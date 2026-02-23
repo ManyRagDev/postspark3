@@ -12,11 +12,10 @@ export async function setupVite(app: Express, server: Server) {
   };
 
   const { createServer: createViteServer } = await import("vite");
-  const { default: viteConfig } = await import("../../vite.config");
 
   const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
+    // Let Vite load vite.config.ts on its own (do NOT import it here,
+    // otherwise esbuild will embed it + all its devDependencies into the bundle)
     server: serverOptions,
     appType: "custom",
   });

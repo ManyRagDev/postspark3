@@ -1,55 +1,3 @@
-var __defProp = Object.defineProperty;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-};
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-
-// vite.config.ts
-var vite_config_exports = {};
-__export(vite_config_exports, {
-  default: () => vite_config_default
-});
-import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
-import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
-import path2 from "node:path";
-import { defineConfig } from "vite";
-var vite_config_default;
-var init_vite_config = __esm({
-  "vite.config.ts"() {
-    "use strict";
-    vite_config_default = defineConfig({
-      plugins: [react(), tailwindcss(), jsxLocPlugin()],
-      resolve: {
-        alias: {
-          "@": path2.resolve(import.meta.dirname, "client", "src"),
-          "@shared": path2.resolve(import.meta.dirname, "shared"),
-          "@assets": path2.resolve(import.meta.dirname, "attached_assets")
-        }
-      },
-      envDir: path2.resolve(import.meta.dirname),
-      root: path2.resolve(import.meta.dirname, "client"),
-      publicDir: path2.resolve(import.meta.dirname, "client", "public"),
-      build: {
-        outDir: path2.resolve(import.meta.dirname, "dist/public"),
-        emptyOutDir: true
-      },
-      server: {
-        host: true,
-        allowedHosts: ["localhost", "127.0.0.1"],
-        fs: {
-          strict: true,
-          deny: ["**/.*"]
-        }
-      }
-    });
-  }
-});
-
 // server/_core/index.ts
 import "dotenv/config";
 import express2 from "express";
@@ -3058,7 +3006,7 @@ async function createContext(opts) {
 import express from "express";
 import fs2 from "fs";
 import { nanoid } from "nanoid";
-import path3 from "path";
+import path2 from "path";
 async function setupVite(app2, server) {
   const serverOptions = {
     middlewareMode: true,
@@ -3066,10 +3014,9 @@ async function setupVite(app2, server) {
     allowedHosts: true
   };
   const { createServer: createViteServer } = await import("vite");
-  const { default: viteConfig } = await Promise.resolve().then(() => (init_vite_config(), vite_config_exports));
   const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
+    // Let Vite load vite.config.ts on its own (do NOT import it here,
+    // otherwise esbuild will embed it + all its devDependencies into the bundle)
     server: serverOptions,
     appType: "custom"
   });
@@ -3077,7 +3024,7 @@ async function setupVite(app2, server) {
   app2.use("*", async (req, res, next) => {
     const url = req.originalUrl;
     try {
-      const clientTemplate = path3.resolve(
+      const clientTemplate = path2.resolve(
         import.meta.dirname,
         "../..",
         "client",
@@ -3097,7 +3044,7 @@ async function setupVite(app2, server) {
   });
 }
 function serveStatic(app2) {
-  const distPath = process.env.NODE_ENV === "development" ? path3.resolve(import.meta.dirname, "../..", "dist", "public") : fs2.existsSync(path3.resolve(import.meta.dirname, "public")) ? path3.resolve(import.meta.dirname, "public") : path3.resolve(import.meta.dirname, "..", "client", "dist");
+  const distPath = process.env.NODE_ENV === "development" ? path2.resolve(import.meta.dirname, "../..", "dist", "public") : fs2.existsSync(path2.resolve(import.meta.dirname, "public")) ? path2.resolve(import.meta.dirname, "public") : path2.resolve(import.meta.dirname, "..", "client", "dist");
   if (!fs2.existsSync(distPath)) {
     console.error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`
@@ -3105,7 +3052,7 @@ function serveStatic(app2) {
   }
   app2.use(express.static(distPath));
   app2.use("*", (_req, res) => {
-    res.sendFile(path3.resolve(distPath, "index.html"));
+    res.sendFile(path2.resolve(distPath, "index.html"));
   });
 }
 
@@ -3168,10 +3115,12 @@ app.use(
 );
 async function startServer() {
   const server = createServer(app);
-  if (process.env.NODE_ENV === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+  if (!process.env.VERCEL) {
+    if (process.env.NODE_ENV === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
   }
   if (!process.env.VERCEL) {
     const preferredPort = parseInt(process.env.PORT || "3000");
