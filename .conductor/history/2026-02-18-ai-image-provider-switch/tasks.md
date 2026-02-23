@@ -1,0 +1,5 @@
+- [ ] [Backend] Refatorar `server/imageGenerateBackground.ts` <!-- id: 0 -->
+- [ ] [Backend] Atualizar RPC `server/routers.ts` <!-- id: 1 -->
+- [ ] [Frontend] Implementar UI de seleção no WorkbenchRefactored.tsx <!-- id: 2 -->
+- [ ] [Verify] Testar geração com Pollinations <!-- id: 3 -->
+- [ ] [Verify] Testar geração com Nano Banana (Gemini) <!-- id: 4 -->

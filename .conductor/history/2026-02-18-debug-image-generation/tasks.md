@@ -1,0 +1,4 @@
+- [x] [Backend] Adicionar `console.log` em `server/imageGenerateBackground.ts` com provider e prompt <!-- id: 0 -->
+- [x] [Backend] Adicionar `console.error` detalhado nos blocos catch <!-- id: 1 -->
+- [x] [Backend] Adicionar headers (User-Agent) na requisição Pollinations <!-- id: 2 -->
+- [ ] [Verify] Testar geração e analisar logs <!-- id: 3 -->

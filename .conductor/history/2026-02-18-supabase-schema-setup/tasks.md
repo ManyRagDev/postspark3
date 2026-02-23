@@ -1,0 +1,3 @@
+- [x] [Supabase] Verificar existência do schema `postspark` <!-- id: 0 -->
+- [x] [Docs] Atualizar `docs/project-status.md` <!-- id: 1 -->
+- [x] [Check] Verificar `drizzle.config.ts` (apenas leitura) <!-- id: 2 -->
