@@ -1,6 +1,6 @@
 # PostSpark — Billing Handoff Document
-> Gerado em: 2026-02-20 | Atualizado em: 2026-02-20
-> Status: Supabase ✅ concluído | Stripe ⏳ aguarda configuração manual
+> Gerado em: 2026-02-20 | Atualizado em: 2026-02-23
+> Status: Supabase ✅ concluído | Stripe ✅ concluído
 
 ---
 
@@ -79,9 +79,9 @@ active       boolean  DEFAULT true
 **Dados inseridos:**
 | id | name | sparks | price_brl | stripe_price_id |
 |---|---|---|---|---|
-| starter | Starter Pack | 200 | 19.90 | ⏳ pendente |
-| power | Power Pack | 600 | 49.90 | ⏳ pendente |
-| mega | Mega Pack | 1500 | 109.90 | ⏳ pendente |
+| starter | Starter Pack | 200 | 19.90 | price_1T47BXE9QJm1ioJLjhIVRtpe |
+| power | Power Pack | 600 | 49.90 | price_1T47BZE9QJm1ioJLLmdQZNdU |
+| mega | Mega Pack | 1500 | 109.90 | price_1T47BaE9QJm1ioJLQcS0seHl |
 
 ### Schema: `founders` (nova)
 ```sql
@@ -133,93 +133,27 @@ created_at                timestamptz
 
 ---
 
-## 2. Stripe — Configuração Manual Necessária
+## 2. Stripe — ✅ Configuração Concluída
 
-> O Stripe Dashboard não pode ser automatizado por segurança.
-> Siga os passos abaixo na ordem indicada.
+Todos os produtos e preços foram criados via API em 2026-02-23.
 
-### Passo 1 — Criar Produto: PostSpark Pro
+### Produtos criados
 
-1. Acesse [dashboard.stripe.com/products](https://dashboard.stripe.com/products)
-2. Clique em **+ Add product**
-3. Preencha:
-   - **Name:** `PostSpark Pro`
-   - **Description:** `Plano profissional com 1.500 Sparks mensais acumulativos`
-4. Em **Pricing**, adicione o primeiro preço:
-   - **Pricing model:** Standard pricing
-   - **Price:** `147,00`
-   - **Currency:** `BRL`
-   - **Billing period:** Monthly
-   - **Trial period:** 7 days
-   - Salve e anote o `price_id` → ex: `price_XXXXXXXXXXXXXXXX` → este é o **STRIPE_PRICE_PRO_MONTHLY**
-5. Adicione um segundo preço no mesmo produto:
-   - **Price:** `1.404,00` (= 12 × 117)
-   - **Currency:** `BRL`
-   - **Billing period:** Every 12 months (annual)
-   - **Trial period:** 7 days
-   - Anote o `price_id` → **STRIPE_PRICE_PRO_ANNUAL**
+| Produto | Stripe Product ID |
+|---|---|
+| PostSpark Pro | `prod_U2BQfqpZL2oobH` |
+| PostSpark Agency | `prod_U2BXGhAP3fXBRr` |
+| Sparks Top-up | `prod_U2BQutuAri50Cp` |
 
-### Passo 2 — Criar Produto: PostSpark Agency
+### Webhook
 
-1. Clique em **+ Add product**
-2. Preencha:
-   - **Name:** `PostSpark Agency`
-   - **Description:** `Plano agência com 4.500 Sparks mensais acumulativos`
-3. Adicione preço mensal:
-   - **Price:** `297,00` BRL / Monthly / Trial 7 days
-   - Anote → **STRIPE_PRICE_AGENCY_MONTHLY**
-4. Adicione preço anual:
-   - **Price:** `2.844,00` BRL / Every 12 months / Trial 7 days
-   - Anote → **STRIPE_PRICE_AGENCY_ANNUAL**
+| Campo | Valor |
+|---|---|
+| ID | `we_1T4748E9QJm1ioJLZy2gN4cM` |
+| URL atual | `https://seudominio.com/api/stripe/webhook` ← atualizar no deploy |
+| Eventos | checkout.session.completed, customer.subscription.updated, customer.subscription.deleted, invoice.payment_failed, payment_intent.succeeded |
 
-> ⚠️ Este produto existe mas será exibido como "Em breve" no app.
-> Não é necessário arquivá-lo no Stripe — apenas não colocar na tela de pricing ainda.
-
-### Passo 3 — Criar Produto: Sparks Top-up
-
-1. Clique em **+ Add product**
-2. Preencha:
-   - **Name:** `Sparks Top-up`
-   - **Description:** `Pacotes avulsos de Sparks`
-3. Adicione **3 preços** (one-time, não recorrentes):
-
-   **Starter Pack:**
-   - **Price:** `19,90` BRL / One time
-   - **Nickname:** `Starter Pack — 200 Sparks`
-   - Anote → **STRIPE_PRICE_TOPUP_STARTER**
-
-   **Power Pack:**
-   - **Price:** `49,90` BRL / One time
-   - **Nickname:** `Power Pack — 600 Sparks`
-   - Anote → **STRIPE_PRICE_TOPUP_POWER**
-
-   **Mega Pack:**
-   - **Price:** `109,90` BRL / One time
-   - **Nickname:** `Mega Pack — 1.500 Sparks`
-   - Anote → **STRIPE_PRICE_TOPUP_MEGA**
-
-### Passo 4 — Configurar Webhook
-
-1. Vá em **Developers → Webhooks**
-2. Clique em **+ Add endpoint**
-3. **Endpoint URL:** `https://seudominio.com/api/stripe/webhook`
-4. **Events to listen:**
-   - `checkout.session.completed`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-   - `invoice.payment_failed`
-   - `payment_intent.succeeded`
-5. Salve e anote o **Signing secret** → **STRIPE_WEBHOOK_SECRET**
-
-### Passo 5 — Atualizar banco com Price IDs dos top-ups
-
-Após criar os produtos, rode este SQL no Supabase (SQL Editor):
-
-```sql
-UPDATE postspark.topup_packages SET stripe_price_id = 'price_SEU_ID_AQUI' WHERE id = 'starter';
-UPDATE postspark.topup_packages SET stripe_price_id = 'price_SEU_ID_AQUI' WHERE id = 'power';
-UPDATE postspark.topup_packages SET stripe_price_id = 'price_SEU_ID_AQUI' WHERE id = 'mega';
-```
+> ⚠️ Lembrete: atualizar a URL do webhook no Stripe Dashboard após o deploy com o domínio real.
 
 ---
 
@@ -230,22 +164,22 @@ Adicione ao `.env` do projeto (e ao ambiente de produção):
 ```env
 # ─── Supabase ───────────────────────────────
 SUPABASE_URL=https://spbuwcwmxlycchuwhfir.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=          # Supabase → Settings → API → service_role
+SUPABASE_SERVICE_ROLE_KEY=          # Supabase → Settings → API → service_role key
 
 # ─── Stripe ─────────────────────────────────
-STRIPE_SECRET_KEY=sk_live_...       # Stripe → Developers → API Keys
-STRIPE_WEBHOOK_SECRET=whsec_...     # Stripe → Developers → Webhooks → Signing secret
+STRIPE_SECRET_KEY=                  # Stripe → Developers → API Keys → Secret key
+STRIPE_WEBHOOK_SECRET=whsec_nrdNurrqfF6gG8UoaoacUJ3VrI6gTVvq
 
 # Preços de assinatura
-STRIPE_PRICE_PRO_MONTHLY=price_...
-STRIPE_PRICE_PRO_ANNUAL=price_...
-STRIPE_PRICE_AGENCY_MONTHLY=price_...
-STRIPE_PRICE_AGENCY_ANNUAL=price_...
+STRIPE_PRICE_PRO_MONTHLY=price_1T473zE9QJm1ioJLJZxhNqJu
+STRIPE_PRICE_PRO_ANNUAL=price_1T4740E9QJm1ioJL6GgU0CuO
+STRIPE_PRICE_AGENCY_MONTHLY=price_1T47BVE9QJm1ioJLQUldzvxS
+STRIPE_PRICE_AGENCY_ANNUAL=price_1T47BWE9QJm1ioJLPdDQTrN7
 
 # Preços de top-up
-STRIPE_PRICE_TOPUP_STARTER=price_...
-STRIPE_PRICE_TOPUP_POWER=price_...
-STRIPE_PRICE_TOPUP_MEGA=price_...
+STRIPE_PRICE_TOPUP_STARTER=price_1T47BXE9QJm1ioJLjhIVRtpe
+STRIPE_PRICE_TOPUP_POWER=price_1T47BZE9QJm1ioJLLmdQZNdU
+STRIPE_PRICE_TOPUP_MEGA=price_1T47BaE9QJm1ioJLQcS0seHl
 ```
 
 ---

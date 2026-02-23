@@ -13,9 +13,142 @@ import { extractStyleFromUrlWithMeta } from "./styleExtractor";
 import { analyzeDesignPattern, generateThemesFromPatterns } from "./designPatternAnalyzer";
 import * as fs from "fs";
 import * as path from "path";
+import {
+  getBillingProfile,
+  debitSparks,
+  getTopupPackages,
+  createSubscriptionCheckout,
+  createTopupCheckout,
+  getSupabase,
+  SPARK_COSTS,
+} from "./billing";
+import { ENV } from "./_core/env";
+import { TRPCError } from "@trpc/server";
+
+// ─── Billing router ───────────────────────────────────────────────────────────
+const billingRouter = router({
+  /** Retorna perfil de billing do usuário logado (plano, sparks, etc.) */
+  getProfile: protectedProcedure.query(async ({ ctx }) => {
+    const email = ctx.user.email ?? "dev@local.dev";
+    return getBillingProfile(email);
+  }),
+
+  /** Inicia trial de 7 dias (anti-abuso por e-mail + IP) */
+  startTrial: protectedProcedure
+    .input(z.object({
+      plan: z.enum(["PRO", "AGENCY"]).default("PRO"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const email = ctx.user.email ?? "";
+      const ip = (ctx.req.headers["x-forwarded-for"] as string | undefined)
+        ?.split(",")[0]?.trim() ?? ctx.req.socket.remoteAddress ?? "0.0.0.0";
+
+      if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
+        return { success: true, reason: "ok" };
+      }
+
+      const profile = await getBillingProfile(email);
+      if (profile.id === "no-profile" || profile.id === "error" || profile.id === "dev-mock") {
+        return { success: false, reason: "profile_not_found" };
+      }
+
+      const sb = getSupabase();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (sb as any).rpc("start_trial", {
+        p_user_id: profile.id,
+        p_email: email,
+        p_ip_address: ip,
+        p_plan: input.plan,
+      });
+
+      if (error) return { success: false, reason: error.message };
+      return data as { success: boolean; reason: string };
+    }),
+
+  /** Cria Stripe Checkout Session para assinatura */
+  createCheckout: protectedProcedure
+    .input(z.object({
+      priceId: z.string(),
+      successPath: z.string().default("/billing/success"),
+      cancelPath: z.string().default("/pricing"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const email = ctx.user.email ?? "";
+      const name = ctx.user.name ?? undefined;
+
+      const profile = await getBillingProfile(email);
+      if (profile.id === "no-profile" || profile.id === "error") {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Perfil de billing não encontrado." });
+      }
+
+      const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
+      const url = await createSubscriptionCheckout({
+        profileId: profile.id,
+        email,
+        name,
+        priceId: input.priceId,
+        successUrl: `${host}${input.successPath}`,
+        cancelUrl: `${host}${input.cancelPath}`,
+      });
+
+      return { url };
+    }),
+
+  /** Lista pacotes de top-up ativos */
+  getTopupPackages: publicProcedure.query(async () => {
+    return getTopupPackages();
+  }),
+
+  /** Cria Stripe Checkout Session para top-up avulso */
+  createTopupCheckout: protectedProcedure
+    .input(z.object({
+      packageId: z.string(),
+      successPath: z.string().default("/billing/topup-success"),
+      cancelPath: z.string().default("/billing"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const email = ctx.user.email ?? "";
+      const name = ctx.user.name ?? undefined;
+
+      const packages = await getTopupPackages();
+      const pkg = packages.find(p => p.id === input.packageId);
+      if (!pkg) throw new TRPCError({ code: "NOT_FOUND", message: "Pacote não encontrado." });
+
+      const profile = await getBillingProfile(email);
+      if (profile.id === "no-profile" || profile.id === "error") {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Perfil de billing não encontrado." });
+      }
+
+      const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
+      const url = await createTopupCheckout({
+        profileId: profile.id,
+        email,
+        name,
+        priceId: pkg.stripe_price_id,
+        packageId: pkg.id,
+        successUrl: `${host}${input.successPath}`,
+        cancelUrl: `${host}${input.cancelPath}`,
+      });
+
+      return { url };
+    }),
+
+  /** Retorna os price IDs disponíveis (para o frontend montar o checkout) */
+  getPriceIds: publicProcedure.query(() => ({
+    pro: {
+      monthly: ENV.stripePriceProMonthly,
+      annual: ENV.stripePriceProAnnual,
+    },
+    agency: {
+      monthly: ENV.stripePriceAgencyMonthly,
+      annual: ENV.stripePriceAgencyAnnual,
+    },
+  })),
+});
 
 export const appRouter = router({
   system: systemRouter,
+  billing: billingRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -37,6 +170,17 @@ export const appRouter = router({
         postMode: z.enum(["static", "carousel"]).default("static"),
       }))
       .mutation(async ({ input, ctx }) => {
+        // Debita Sparks antes de gerar
+        const email = ctx.user.email ?? "dev@local.dev";
+        const profile = await getBillingProfile(email);
+        const cost = input.postMode === "carousel" ? SPARK_COSTS.CAROUSEL : SPARK_COSTS.GENERATE_TEXT;
+        const debit = await debitSparks(profile.id, cost, `Geração de post (${input.postMode})`);
+        if (!debit.success) {
+          throw new TRPCError({
+            code: "PAYMENT_REQUIRED",
+            message: "Sparks insuficientes. Faça upgrade ou adquira um pacote de recarga.",
+          });
+        }
         let contextContent = input.content;
 
         // If URL, scrape it first
@@ -254,7 +398,18 @@ Responda APENAS com JSON válido no formato especificado.`;
       .input(z.object({
         prompt: z.string().min(1),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Debita Sparks antes de gerar imagem
+        const email = ctx.user.email ?? "dev@local.dev";
+        const profile = await getBillingProfile(email);
+        const debit = await debitSparks(profile.id, SPARK_COSTS.GENERATE_IMAGE, "Geração de imagem IA");
+        if (!debit.success) {
+          throw new TRPCError({
+            code: "PAYMENT_REQUIRED",
+            message: "Sparks insuficientes. Faça upgrade ou adquira um pacote de recarga.",
+          });
+        }
+
         const result = await generateImage({
           prompt: input.prompt,
         });
@@ -339,7 +494,18 @@ Responda APENAS com JSON válido no formato especificado.`;
         prompt: z.string().min(1),
         provider: z.enum(['pollinations', 'gemini']).default('pollinations'),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Debita Sparks para geração de imagem de fundo
+        const email = ctx.user.email ?? "dev@local.dev";
+        const profile = await getBillingProfile(email);
+        const debit = await debitSparks(profile.id, SPARK_COSTS.GENERATE_IMAGE, "Geração de imagem de fundo");
+        if (!debit.success) {
+          throw new TRPCError({
+            code: "PAYMENT_REQUIRED",
+            message: "Sparks insuficientes. Faça upgrade ou adquira um pacote de recarga.",
+          });
+        }
+
         const imageData = await generateBackgroundImage(input.prompt, input.provider);
         return { imageData }; // base64 data URI
       }),
@@ -373,7 +539,17 @@ Responda APENAS com JSON válido no formato especificado.`;
       .input(z.object({
         url: z.string().url(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // ChameleonProtocol debita Sparks
+        const email = ctx.user.email ?? "dev@local.dev";
+        const profile = await getBillingProfile(email);
+        const debit = await debitSparks(profile.id, SPARK_COSTS.CHAMELEON, "ChameleonProtocol — análise de marca");
+        if (!debit.success) {
+          throw new TRPCError({
+            code: "PAYMENT_REQUIRED",
+            message: "Sparks insuficientes. Faça upgrade ou adquira um pacote de recarga.",
+          });
+        }
         const brandAnalysis = await analyzeBrandFromUrl(input.url);
         const themeVariations = generateCardThemeVariations(brandAnalysis);
         return {

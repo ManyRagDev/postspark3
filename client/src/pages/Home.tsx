@@ -9,10 +9,12 @@ import { EditorProvider } from "@/contexts/EditorContext";
 import { useExtractedStyles } from "@/hooks/useExtractedStyles";
 import type { InputType, PostVariation, AppState, Platform, AspectRatio, PostMode, TemporaryTheme } from "@shared/postspark";
 import type { ThemeConfig } from "@/lib/themes";
+import { useUpgradePrompt, UpgradePromptModal } from "@/components/UpgradePrompt";
 
 export default function Home() {
   const [appState, setAppState] = useState<AppState>("void");
   const [postMode, setPostMode] = useState<PostMode>("static");
+  const { showUpgradePrompt, open: upgradeOpen, setOpen: setUpgradeOpen } = useUpgradePrompt();
   const [variations, setVariations] = useState<PostVariation[]>([]);
   const [selectedVariation, setSelectedVariation] = useState<PostVariation | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<ThemeConfig | undefined>(undefined);
@@ -74,7 +76,11 @@ export default function Home() {
         }
       } catch (err: any) {
         console.error("Generation error:", err);
-        toast.error(err?.message || "Falha na síntese. Verifique o conteúdo e tente novamente.");
+        if (err?.data?.httpStatus === 402 || err?.message?.includes("Sparks insuficientes")) {
+          showUpgradePrompt();
+        } else {
+          toast.error(err?.message || "Falha na síntese. Verifique o conteúdo e tente novamente.");
+        }
       }
     },
     [generateMutation, postMode, extractStyles, clearExtractedStyles, extractedThemes.length]
@@ -227,6 +233,7 @@ export default function Home() {
             />
           )}
         </AnimatePresence>
+        <UpgradePromptModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
       </div>
     </EditorProvider>
   );

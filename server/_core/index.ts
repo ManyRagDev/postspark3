@@ -7,6 +7,8 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { getStripe, handleStripeWebhook } from "../billing";
+import { ENV } from "./env";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -28,6 +30,39 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 const app = express();
+
+// ─── Stripe webhook (raw body ANTES do json parser) ───────────────────────────
+// Deve vir antes de express.json() para preservar o body raw que o Stripe exige.
+app.post(
+  "/api/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    if (!ENV.stripeWebhookSecret || !ENV.stripeSecretKey) {
+      res.status(503).json({ error: "Billing not configured" });
+      return;
+    }
+
+    const sig = req.headers["stripe-signature"];
+    if (!sig) {
+      res.status(400).json({ error: "Missing stripe-signature header" });
+      return;
+    }
+
+    try {
+      const stripe = getStripe();
+      const event = stripe.webhooks.constructEvent(
+        req.body as Buffer,
+        sig,
+        ENV.stripeWebhookSecret
+      );
+      await handleStripeWebhook(event);
+      res.json({ received: true });
+    } catch (err: any) {
+      console.error("[Webhook] Error:", err.message);
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
 
 // Configure body parser with larger size limit for file uploads
 app.use(express.json({ limit: "50mb" }));
