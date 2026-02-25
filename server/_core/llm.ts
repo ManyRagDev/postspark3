@@ -356,7 +356,40 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
       if (originalSchema && Array.isArray(groqPayload.messages)) {
         const sysMsg = groqPayload.messages.find((m: any) => m.role === "system");
-        const schemaInstruction = `\n\nCRITICAL OBLIGATION: You MUST return a JSON object (and nothing else). The JSON MUST strictly follow this JSON Schema: ${JSON.stringify(originalSchema)}`;
+
+        // We extract the descriptions from the schema to build a more semantic prompt for Groq
+        const schemaInstruction = `
+        
+CRITICAL INSTRUCTION FOR LLM:
+You MUST return a strictly valid JSON Object. No markdown, no conversational text before or after.
+Your JSON must match this structure exactly, keeping all keys:
+{
+  "variations": [
+    {
+      "headline": "Título chamativo do post",
+      "body": "Corpo principal do post",
+      "hashtags": ["#tag1", "#tag2"],
+      "callToAction": "Call to action final",
+      "caption": "Legenda do post para a rede social, máximo 300 caracteres",
+      "tone": "Tom do post",
+      "imagePrompt": "Prompt em inglês para gerar imagem de fundo do post. Deve ser visual, artístico e relevante ao conteúdo.",
+      "backgroundColor": "Cor de fundo em formato hex",
+      "textColor": "Cor do texto em formato hex",
+      "accentColor": "Cor de destaque em formato hex",
+      "layout": "centered | left-aligned | split | minimal",
+      "aspectRatio": "1:1 | 5:6 | 9:16",
+      "aspectRatioOptimizations": {
+        "1:1": { "layout": "...", "backgroundColor": "...", "textColor": "...", "accentColor": "...", "headlineFontSize": 1, "bodyFontSize": 1 },
+        "5:6": { "layout": "...", "backgroundColor": "...", "textColor": "...", "accentColor": "...", "headlineFontSize": 1, "bodyFontSize": 1 },
+        "9:16": { "layout": "...", "backgroundColor": "...", "textColor": "...", "accentColor": "...", "headlineFontSize": 1, "bodyFontSize": 1 }
+      }
+    }
+  ]
+}
+
+Note: If generating a Carousel, you must also include a "slides" array in each variation, where each slide has:
+{ "headline": "...", "body": "...", "slideNumber": 1, "isTitleSlide": true, "isCtaSlide": false }
+`;
 
         if (sysMsg) {
           if (typeof sysMsg.content === "string") sysMsg.content += schemaInstruction;
