@@ -378,7 +378,14 @@ Responda APENAS com JSON válido no formato especificado.`;
         });
 
         const content = response.choices[0]?.message?.content;
-        const parsed = JSON.parse(typeof content === "string" ? content : "{}");
+        let contentStr = typeof content === "string" ? content.trim() : "{}";
+        if (contentStr.startsWith("```json")) {
+          contentStr = contentStr.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
+        } else if (contentStr.startsWith("```")) {
+          contentStr = contentStr.replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+        }
+
+        const parsed = JSON.parse(contentStr || "{}");
         const variations = (parsed.variations || []).slice(0, 3);
 
         // Generate unique IDs and return

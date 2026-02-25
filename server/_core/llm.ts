@@ -351,7 +351,19 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
     // Groq's model doesn't support json_schema 
     if ((groqPayload.response_format as any)?.type === "json_schema") {
+      const originalSchema = (groqPayload.response_format as any).json_schema.schema;
       groqPayload.response_format = { type: "json_object" };
+
+      if (originalSchema && Array.isArray(groqPayload.messages)) {
+        const sysMsg = groqPayload.messages.find((m: any) => m.role === "system");
+        const schemaInstruction = `\n\nCRITICAL OBLIGATION: You MUST return a JSON object (and nothing else). The JSON MUST strictly follow this JSON Schema: ${JSON.stringify(originalSchema)}`;
+
+        if (sysMsg) {
+          if (typeof sysMsg.content === "string") sysMsg.content += schemaInstruction;
+        } else {
+          groqPayload.messages.push({ role: "system", content: schemaInstruction });
+        }
+      }
     }
 
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
