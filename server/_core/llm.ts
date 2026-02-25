@@ -344,10 +344,15 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       throw error; // Re-throw the original error
     }
 
-    const groqPayload = {
+    const groqPayload: Record<string, unknown> = {
       ...payload,
       model: "llama-3.3-70b-versatile",
     };
+
+    // Groq's model doesn't support json_schema 
+    if ((groqPayload.response_format as any)?.type === "json_schema") {
+      groqPayload.response_format = { type: "json_object" };
+    }
 
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
