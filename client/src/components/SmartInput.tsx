@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Sparkles, Link2, Image, ArrowRight, Loader2, Layers, FileText, ChevronDown } from "lucide-react";
-import type { InputType, PostMode } from "@shared/postspark";
+import type { InputType, PostMode, AiModel } from "@shared/postspark";
 import { useAIProcessingStages } from "@/hooks/useAIProcessingStages";
 
 interface SmartInputProps {
@@ -11,6 +11,8 @@ interface SmartInputProps {
   onTextChange?: (text: string) => void;
   postMode?: PostMode;
   onPostModeChange?: (mode: PostMode) => void;
+  selectedModel: AiModel;
+  onModelChange: (model: AiModel) => void;
 }
 
 const URL_REGEX = /^(https?:\/\/|www\.)[^\s]+\.[^\s]{2,}/i;
@@ -64,6 +66,8 @@ export default function SmartInput({
   onTextChange,
   postMode = 'static',
   onPostModeChange,
+  selectedModel,
+  onModelChange,
 }: SmartInputProps) {
   const [value, setValue] = useState("");
   const [inputType, setInputType] = useState<InputType>("text");
@@ -227,6 +231,22 @@ export default function SmartInput({
                 maxHeight: "28px",
               }}
             />
+
+            <button
+              type="button"
+              onClick={() => onModelChange(selectedModel === 'gemini' ? 'llama' : 'gemini')}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all mr-1"
+              style={{
+                background: selectedModel === 'gemini' ? `oklch(0.5 0.15 250 / 12%)` : `oklch(0.65 0.20 25 / 12%)`,
+                border: `1px solid ${selectedModel === 'gemini' ? 'oklch(0.5 0.15 250 / 40%)' : 'oklch(0.65 0.20 25 / 40%)'}`,
+                color: selectedModel === 'gemini' ? 'oklch(0.65 0.15 250)' : 'oklch(0.75 0.20 25)',
+                boxShadow: `0 0 12px ${selectedModel === 'gemini' ? 'oklch(0.5 0.15 250 / 20%)' : 'oklch(0.65 0.20 25 / 20%)'}, inset 0 1px 0 oklch(1 0 0 / 8%)`,
+              }}
+              title={selectedModel === 'gemini' ? "Usando Gemini (Rápido)" : "Usando Llama (Detalhado)"}
+            >
+              <Sparkles size={13} className={selectedModel === 'gemini' ? 'text-blue-400' : 'text-orange-400'} />
+              <span className="text-xs font-semibold tracking-wide">{selectedModel === 'gemini' ? 'GEMINI' : 'LLAMA'}</span>
+            </button>
 
             <div className="flex-shrink-0" ref={modeMenuRef}>
               <button

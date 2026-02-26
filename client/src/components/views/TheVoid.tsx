@@ -4,7 +4,7 @@ import SparkLogo from "../SparkLogo";
 import SmartInput from "../SmartInput";
 import SparkParticles from "../SparkParticles";
 import OrganicBackground from "../OrganicBackground";
-import type { InputType, PostMode } from "@shared/postspark";
+import type { InputType, PostMode, AiModel } from "@shared/postspark";
 import { useAmbientIntelligence } from "@/hooks/useAmbientIntelligence";
 
 interface TheVoidProps {
@@ -12,9 +12,11 @@ interface TheVoidProps {
   isLoading: boolean;
   postMode: PostMode;
   onPostModeChange: (mode: PostMode) => void;
+  selectedModel: AiModel;
+  onModelChange: (model: AiModel) => void;
 }
 
-export default function TheVoid({ onSubmit, isLoading, postMode, onPostModeChange }: TheVoidProps) {
+export default function TheVoid({ onSubmit, isLoading, postMode, onPostModeChange, selectedModel, onModelChange }: TheVoidProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [inputText, setInputText] = useState("");
   const { state, config, confidence } = useAmbientIntelligence(inputText);
@@ -84,6 +86,8 @@ export default function TheVoid({ onSubmit, isLoading, postMode, onPostModeChang
         onTextChange={handleTextChange}
         postMode={postMode}
         onPostModeChange={onPostModeChange}
+        selectedModel={selectedModel}
+        onModelChange={onModelChange}
       />
     </motion.div>
   );

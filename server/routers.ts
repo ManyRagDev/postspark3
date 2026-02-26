@@ -168,6 +168,7 @@ export const appRouter = router({
         imageUrl: z.string().optional(),
         tone: z.string().optional(),
         postMode: z.enum(["static", "carousel"]).default("static"),
+        model: z.enum(["gemini", "llama"]).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         // Debita Sparks antes de gerar
@@ -338,6 +339,7 @@ Responda APENAS com JSON válido no formato especificado.`;
         };
 
         const response = await invokeLLM({
+          model: input.model as any,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },

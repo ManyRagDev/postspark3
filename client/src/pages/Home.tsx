@@ -7,13 +7,14 @@ import HoloDeck from "@/components/views/HoloDeck";
 import WorkbenchRefactored from "@/components/views/WorkbenchRefactored";
 import { EditorProvider } from "@/contexts/EditorContext";
 import { useExtractedStyles } from "@/hooks/useExtractedStyles";
-import type { InputType, PostVariation, AppState, Platform, AspectRatio, PostMode, TemporaryTheme } from "@shared/postspark";
+import type { InputType, PostVariation, AppState, Platform, AspectRatio, PostMode, TemporaryTheme, AiModel } from "@shared/postspark";
 import type { ThemeConfig } from "@/lib/themes";
 import { useUpgradePrompt, UpgradePromptModal } from "@/components/UpgradePrompt";
 
 export default function Home() {
   const [appState, setAppState] = useState<AppState>("void");
   const [postMode, setPostMode] = useState<PostMode>("static");
+  const [selectedModel, setSelectedModel] = useState<AiModel>("gemini");
   const { showUpgradePrompt, open: upgradeOpen, setOpen: setUpgradeOpen } = useUpgradePrompt();
   const [variations, setVariations] = useState<PostVariation[]>([]);
   const [selectedVariation, setSelectedVariation] = useState<PostVariation | null>(null);
@@ -66,6 +67,7 @@ export default function Home() {
           imageUrl: type === "image" ? value : undefined,
           tone: detectedState,
           postMode: postMode,
+          model: selectedModel,
         });
 
         if (result && result.length > 0) {
@@ -193,6 +195,8 @@ export default function Home() {
               isLoading={generateMutation.isPending}
               postMode={postMode}
               onPostModeChange={setPostMode}
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
             />
           )}
 

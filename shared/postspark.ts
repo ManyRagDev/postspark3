@@ -1,6 +1,9 @@
 /** Input type detection */
 export type InputType = "text" | "url" | "image";
 
+/** AI Model selection */
+export type AiModel = "gemini" | "llama";
+
 /** Post mode - static single post or carousel */
 export type PostMode = "static" | "carousel";
 
@@ -200,6 +203,7 @@ export interface GenerationRequest {
   platform: Platform;
   imageUrl?: string;
   postMode?: PostMode;
+  model?: AiModel;
 }
 
 /** URL scrape result */

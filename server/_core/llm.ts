@@ -1,4 +1,5 @@
 import { ENV } from "./env";
+import type { AiModel } from "@shared/postspark";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -56,6 +57,7 @@ export type ToolChoice =
   | ToolChoiceExplicit;
 
 export type InvokeParams = {
+  model?: AiModel;
   messages: Message[];
   tools?: Tool[];
   toolChoice?: ToolChoice;
@@ -278,6 +280,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   assertApiKey();
 
   const {
+    model,
     messages,
     tools,
     toolChoice,
@@ -318,6 +321,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
+  if (model === "llama") {
+    // Explicitly bypass Gemini
+    return await fallbackToGroq(payload, "Llama explicitly requested");
+  }
+
   try {
     const response = await fetch(resolveApiUrl(), {
       method: "POST",
@@ -336,40 +344,51 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     }
 
     return (await response.json()) as InvokeResult;
-  } catch (error) {
-    console.warn("LLM invocation failed with primary API, falling back to Groq...", error);
+  } catch (error: any) {
+    return await fallbackToGroq(payload, error.message);
+  }
+}
 
-    if (!ENV.groqApiKey) {
-      console.warn("GROQ_API_KEY is not configured, cannot use fallback.");
-      throw error; // Re-throw the original error
-    }
+async function fallbackToGroq(payload: Record<string, unknown>, reason?: string): Promise<InvokeResult> {
+  console.warn(`LLM invocation fallback to Groq. Reason: ${reason || 'Unknown'}`);
 
-    const groqPayload: Record<string, unknown> = {
-      ...payload,
-      model: "llama-3.3-70b-versatile",
-    };
+  if (!ENV.groqApiKey) {
+    console.warn("GROQ_API_KEY is not configured, cannot use fallback.");
+    throw new Error(`Primary API failed and Groq fallback is unavailable. Original error: ${reason}`);
+  }
 
-    // Groq's model doesn't support json_schema 
-    if ((groqPayload.response_format as any)?.type === "json_schema") {
-      const originalSchema = (groqPayload.response_format as any).json_schema.schema;
-      groqPayload.response_format = { type: "json_object" };
+  const groqPayload: Record<string, unknown> = {
+    ...payload,
+    model: "llama-3.3-70b-versatile",
+  };
 
-      if (originalSchema && Array.isArray(groqPayload.messages)) {
-        const sysMsg = groqPayload.messages.find((m: any) => m.role === "system");
+  // Groq's model doesn't support json_schema 
+  if ((groqPayload.response_format as any)?.type === "json_schema") {
+    const originalSchema = (groqPayload.response_format as any).json_schema.schema;
+    groqPayload.response_format = { type: "json_object" };
 
-        // We extract the descriptions from the schema to build a more semantic prompt for Groq
-        const schemaInstruction = `
+    if (originalSchema && Array.isArray(groqPayload.messages)) {
+      const sysMsg = groqPayload.messages.find((m: any) => m.role === "system");
+
+      // We extract the descriptions from the schema to build a more semantic prompt for Groq
+      const schemaInstruction = `
         
 CRITICAL INSTRUCTION FOR LLM:
+You MUST act as an elite Creative Copywriter and Social Media Strategist.
+Even though you must return strictly valid JSON, your CONTENT MUST BE EXTREMELY HIGH QUALITY, CREATIVE, AND ENGAGING.
+DO NOT provide generic, boring, or one-word answers.
+Example of BAD headline and body: One-word generic statements that lack hook, curiosity, or value.
+Example of GOOD headline and body: Strong hooks, questions that challenge the reader, counter-intuitive statements. Use energetic and persuasive language tailored to the user's topic.
+
 You MUST return a strictly valid JSON Object. No markdown, no conversational text before or after.
 Your JSON must match this structure exactly, keeping all keys:
 {
   "variations": [
     {
-      "headline": "Título chamativo do post",
-      "body": "Corpo principal do post",
+      "headline": "Título chamativo do post (Máximo 60 caracteres, criativo)",
+      "body": "Corpo principal do post (Máximo 100 caracteres, engajador)",
       "hashtags": ["#tag1", "#tag2"],
-      "callToAction": "Call to action final",
+      "callToAction": "Call to action final (Ex: Leia mais, Comente, etc)",
       "caption": "Legenda do post para a rede social, máximo 300 caracteres",
       "tone": "Tom do post",
       "imagePrompt": "Prompt em inglês para gerar imagem de fundo do post. Deve ser visual, artístico e relevante ao conteúdo.",
@@ -379,9 +398,9 @@ Your JSON must match this structure exactly, keeping all keys:
       "layout": "centered | left-aligned | split | minimal",
       "aspectRatio": "1:1 | 5:6 | 9:16",
       "aspectRatioOptimizations": {
-        "1:1": { "layout": "...", "backgroundColor": "...", "textColor": "...", "accentColor": "...", "headlineFontSize": 1, "bodyFontSize": 1 },
-        "5:6": { "layout": "...", "backgroundColor": "...", "textColor": "...", "accentColor": "...", "headlineFontSize": 1, "bodyFontSize": 1 },
-        "9:16": { "layout": "...", "backgroundColor": "...", "textColor": "...", "accentColor": "...", "headlineFontSize": 1, "bodyFontSize": 1 }
+        "1:1": { "layout": "centered", "backgroundColor": "#1A1A1A", "textColor": "#FFFFFF", "accentColor": "#FF5733", "headlineFontSize": 1, "bodyFontSize": 1 },
+        "5:6": { "layout": "left-aligned", "backgroundColor": "#1A1A1A", "textColor": "#FFFFFF", "accentColor": "#FF5733", "headlineFontSize": 1, "bodyFontSize": 1 },
+        "9:16": { "layout": "split", "backgroundColor": "#1A1A1A", "textColor": "#FFFFFF", "accentColor": "#FF5733", "headlineFontSize": 1, "bodyFontSize": 1 }
       }
     }
   ]
@@ -391,30 +410,29 @@ Note: If generating a Carousel, you must also include a "slides" array in each v
 { "headline": "...", "body": "...", "slideNumber": 1, "isTitleSlide": true, "isCtaSlide": false }
 `;
 
-        if (sysMsg) {
-          if (typeof sysMsg.content === "string") sysMsg.content += schemaInstruction;
-        } else {
-          groqPayload.messages.push({ role: "system", content: schemaInstruction });
-        }
+      if (sysMsg) {
+        if (typeof sysMsg.content === "string") sysMsg.content += schemaInstruction;
+      } else {
+        groqPayload.messages.push({ role: "system", content: schemaInstruction });
       }
     }
-
-    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${ENV.groqApiKey}`,
-      },
-      body: JSON.stringify(groqPayload),
-    });
-
-    if (!groqResponse.ok) {
-      const errorText = await groqResponse.text();
-      throw new Error(
-        `Groq fallback failed: ${groqResponse.status} ${groqResponse.statusText} – ${errorText}`
-      );
-    }
-
-    return (await groqResponse.json()) as InvokeResult;
   }
+
+  const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${ENV.groqApiKey}`,
+    },
+    body: JSON.stringify(groqPayload),
+  });
+
+  if (!groqResponse.ok) {
+    const errorText = await groqResponse.text();
+    throw new Error(
+      `Groq fallback failed: ${groqResponse.status} ${groqResponse.statusText} – ${errorText}`
+    );
+  }
+
+  return (await groqResponse.json()) as InvokeResult;
 }
