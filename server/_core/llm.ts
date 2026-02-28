@@ -362,7 +362,20 @@ async function fallbackToGroq(payload: Record<string, unknown>, reason?: string)
     model: "llama-3.3-70b-versatile",
   };
 
-  // Groq's model doesn't support json_schema 
+  // Groq doesn't support multimodal (image_url) content — strip images from messages
+  if (Array.isArray(groqPayload.messages)) {
+    groqPayload.messages = (groqPayload.messages as any[]).map((msg: any) => {
+      if (!Array.isArray(msg.content)) return msg;
+      // Keep only text parts, concatenate them as a plain string
+      const textParts = msg.content
+        .filter((part: any) => part.type === "text")
+        .map((part: any) => part.text)
+        .join("\n");
+      return { ...msg, content: textParts };
+    });
+  }
+
+  // Groq's model doesn't support json_schema
   if ((groqPayload.response_format as any)?.type === "json_schema") {
     const originalSchema = (groqPayload.response_format as any).json_schema.schema;
     groqPayload.response_format = { type: "json_object" };

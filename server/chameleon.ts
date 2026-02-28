@@ -1,10 +1,18 @@
 /**
- * ChameleonProtocol: Intelligent URL scraping and brand color extraction
- * Extracts brand colors, logo, and font category from a given URL
+ * ChameleonProtocol: Brand analysis adapter (backward compatible)
+ *
+ * Previously used LLM-only guessing from URL.
+ * Now delegates to extractBrandDNA() for real multi-page analysis,
+ * then maps the rich BrandDNA back to the BrandAnalysis interface
+ * that the rest of the app expects.
+ *
+ * The LLM-based mock fallback is retained for dev/offline environments.
  */
 
-import { invokeLLM } from "./_core/llm";
 import type { FontCategory } from "../client/src/lib/themes";
+import { extractBrandDNA } from "./brandDNA";
+import { generateThemesFromBrandDNA } from "./brandThemeGenerator";
+import type { BrandDNA } from "@shared/postspark";
 
 export interface BrandAnalysis {
   brandColors: {
@@ -15,14 +23,51 @@ export interface BrandAnalysis {
   fontCategory: FontCategory;
   summary: string;
   brandName: string;
+  /** Full DNA available when extracted via the new pipeline */
+  dna?: BrandDNA;
+}
+
+/** Map BrandDNA fonts to FontCategory enum */
+function mapFontCategory(headingFont: string): FontCategory {
+  const lower = headingFont.toLowerCase();
+  if (lower.includes('mono') || lower.includes('code') || lower.includes('courier')) return 'mono';
+  if (lower.includes('serif') || lower.includes('georgia') || lower.includes('playfair') ||
+      lower.includes('merriweather') || lower.includes('lora')) return 'serif';
+  if (lower.includes('display') || lower.includes('bebas') || lower.includes('oswald') ||
+      lower.includes('impact') || lower.includes('black')) return 'display';
+  return 'sans';
 }
 
 /**
- * Mock scraper for development
- * In production, this would use a real scraping service
+ * Analyze URL and extract brand information.
+ * Uses the full BrandDNA pipeline (multi-page screenshots + Gemini Vision).
+ * Falls back to LLM-only analysis if the pipeline fails.
+ */
+export async function analyzeBrandFromUrl(url: string): Promise<BrandAnalysis> {
+  try {
+    const dna = await extractBrandDNA(url);
+
+    return {
+      brandColors: {
+        primary: dna.colors.primary,
+        secondary: dna.colors.secondary,
+      },
+      logoUrl: dna.metadata.logo,
+      fontCategory: mapFontCategory(dna.typography.headingFont),
+      summary: `${dna.brandName} — ${dna.industry}. ${dna.emotionalProfile.mood}. ${dna.emotionalProfile.primary} brand identity.`,
+      brandName: dna.brandName,
+      dna,
+    };
+  } catch (error) {
+    console.warn('[chameleon] extractBrandDNA failed, falling back to mock:', error);
+    return mockScrapeUrl(url);
+  }
+}
+
+/**
+ * Mock scraper for development / offline fallback
  */
 export async function mockScrapeUrl(url: string): Promise<BrandAnalysis> {
-  // Mock data for common brands
   const mocks: Record<string, BrandAnalysis> = {
     apple: {
       brandColors: { primary: "#555555", secondary: "#FFFFFF" },
@@ -54,18 +99,13 @@ export async function mockScrapeUrl(url: string): Promise<BrandAnalysis> {
     },
   };
 
-  // Check if URL contains a mock brand keyword
   const lowerUrl = url.toLowerCase();
   for (const [key, data] of Object.entries(mocks)) {
-    if (lowerUrl.includes(key)) {
-      return data;
-    }
+    if (lowerUrl.includes(key)) return data;
   }
 
-  // Default mock for any URL
   return {
     brandColors: { primary: "#FF6B6B", secondary: "#F5F5F5" },
-    logoUrl: undefined,
     fontCategory: "sans",
     summary: "Brand website - Modern design with professional aesthetic.",
     brandName: "Brand",
@@ -73,90 +113,8 @@ export async function mockScrapeUrl(url: string): Promise<BrandAnalysis> {
 }
 
 /**
- * Analyze URL and extract brand information using LLM
- * This function uses the LLM to intelligently extract brand insights
- */
-export async function analyzeBrandFromUrl(url: string): Promise<BrandAnalysis> {
-  try {
-    // Use LLM to analyze the URL and extract brand information
-    const response = await invokeLLM({
-      messages: [
-        {
-          role: "system",
-          content: `You are a brand analyst. Analyze the given URL and extract brand information in JSON format.
-Return ONLY valid JSON with this structure:
-{
-  "brandColors": { "primary": "#HEX", "secondary": "#HEX" },
-  "fontCategory": "serif" | "sans" | "display" | "mono",
-  "summary": "3-line summary of the brand",
-  "brandName": "Brand name"
-}`,
-        },
-        {
-          role: "user",
-          content: `Analyze this URL and extract brand information: ${url}`,
-        },
-      ],
-      response_format: {
-        type: "json_schema" as const,
-        json_schema: {
-          name: "brand_analysis",
-          strict: true,
-          schema: {
-            type: "object",
-            properties: {
-              brandColors: {
-                type: "object",
-                properties: {
-                  primary: { type: "string", description: "Primary brand color in hex format" },
-                  secondary: { type: "string", description: "Secondary brand color in hex format" },
-                },
-                required: ["primary", "secondary"],
-              },
-              fontCategory: {
-                type: "string",
-                enum: ["serif", "sans", "display", "mono"],
-                description: "Font category used by the brand",
-              },
-              summary: {
-                type: "string",
-                description: "3-line summary of the brand",
-              },
-              brandName: {
-                type: "string",
-                description: "Name of the brand",
-              },
-            },
-            required: ["brandColors", "fontCategory", "summary", "brandName"],
-            additionalProperties: false,
-          },
-        },
-      } as any,
-    });
-
-    const content = response.choices[0]?.message.content;
-    if (!content) throw new Error("No response from LLM");
-
-    const contentStr = typeof content === "string" ? content : JSON.stringify(content);
-    const parsed = JSON.parse(contentStr);
-    return {
-      brandColors: parsed.brandColors,
-      fontCategory: parsed.fontCategory,
-      summary: parsed.summary,
-      brandName: parsed.brandName,
-    };
-  } catch (error) {
-    console.warn("LLM brand analysis failed, using mock:", error);
-    // Fallback to mock scraper
-    return mockScrapeUrl(url);
-  }
-}
-
-/**
- * Generate 3 card variations based on brand analysis
- * Card 1: Brand Match (clone the brand)
- * Card 2: Remix Seguro (Swiss Modern with brand accent)
- * Card 3: Remix Disruptivo (Cyber Core or Bold Hype)
+ * Generate 3 card variations based on brand analysis.
+ * Uses BrandDNA themes when available, falls back to pattern-based generation.
  */
 export interface CardVariationTheme {
   themeId: string;
@@ -167,8 +125,21 @@ export interface CardVariationTheme {
 }
 
 export function generateCardThemeVariations(
-  brandAnalysis: BrandAnalysis
+  brandAnalysis: BrandAnalysis,
 ): CardVariationTheme[] {
+  // If we have full BrandDNA, use the richer theme generator
+  if (brandAnalysis.dna) {
+    const themes = generateThemesFromBrandDNA(brandAnalysis.dna, brandAnalysis.dna.metadata.sourceUrl);
+    return themes.map((t, i) => ({
+      themeId: t.id,
+      themeName: t.label,
+      description: t.description,
+      brandColors: { primary: t.colors.accent, secondary: t.colors.bg },
+      type: (i === 0 ? 'brand-match' : i === 1 ? 'remix-safe' : 'remix-disruptive') as CardVariationTheme['type'],
+    }));
+  }
+
+  // Fallback: pattern-based 3 variations using extracted primary/secondary
   return [
     {
       themeId: "brand-custom",

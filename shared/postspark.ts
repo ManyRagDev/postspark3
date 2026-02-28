@@ -370,3 +370,132 @@ export interface StyleExtractionResult {
   fallbackUsed: boolean;                // Se usou fallback LLM-only
   visionUsed: boolean;                  // Se usou Gemini Vision (screenshot analysis)
 }
+
+// ─── Brand DNA System ─────────────────────────────────────────────────────────
+
+/** Musical-metaphor composition rules derived from brand personality */
+export interface CompositionRules {
+  /** Rhythm → spacing pattern (staccato=tight, legato=flowing, syncopated=varied) */
+  rhythm: 'staccato' | 'legato' | 'syncopated';
+  /** Harmony → color relationship strategy (consonant=safe analogous, dissonant=complementary tension, resolved=triadic balance) */
+  harmony: 'consonant' | 'dissonant' | 'resolved';
+  /** Dynamics → visual weight and contrast level (forte=bold/high-contrast, mezzo=balanced, piano=subtle/low-weight) */
+  dynamics: 'forte' | 'mezzo' | 'piano';
+  /** Tempo → content density and breathing room (allegro=compact, andante=normal, adagio=spacious) */
+  tempo: 'allegro' | 'andante' | 'adagio';
+}
+
+/** Full brand identity extracted from multi-page analysis */
+export interface BrandDNA {
+  brandName: string;
+  industry: string;
+
+  /** Personality spectrum — each axis 0-100 */
+  personality: {
+    /** 0 = serious/formal, 100 = playful/fun */
+    seriousPlayful: number;
+    /** 0 = luxury/exclusive, 100 = accessible/democratic */
+    luxuryAccessible: number;
+    /** 0 = modern/cutting-edge, 100 = classic/traditional */
+    modernClassic: number;
+    /** 0 = bold/loud, 100 = subtle/quiet */
+    boldSubtle: number;
+    /** 0 = warm/organic, 100 = cool/technical */
+    warmCool: number;
+  };
+
+  colors: {
+    primary: string;
+    secondary: string;
+    background: string;
+    text: string;
+    accent: string;
+    palette: string[];
+    colorRelationships: {
+      harmony: 'complementary' | 'analogous' | 'triadic' | 'monochromatic' | 'split-complementary';
+      contrast: 'high' | 'medium' | 'low';
+      temperature: 'warm' | 'cool' | 'neutral';
+    };
+  };
+
+  typography: {
+    headingFont: string;
+    bodyFont: string;
+    headingWeight: string;
+    bodyWeight: string;
+    /** How heading and body fonts relate to each other */
+    fontPairing: 'matching' | 'contrasting' | 'complementary';
+  };
+
+  /** Musical-metaphor layout composition rules (derived deterministically from personality) */
+  composition: CompositionRules;
+
+  layout: {
+    density: SpacingDensity;
+    borderRadius: BorderRadiusStyle;
+    padding: PaddingStyle;
+    preferredAlignment: 'left' | 'center' | 'right';
+  };
+
+  effects: {
+    shadows: boolean;
+    gradients: boolean;
+    animations: boolean;
+    glassmorphism: boolean;
+    noise: boolean;
+  };
+
+  /** Emotional/psychological brand profile */
+  emotionalProfile: {
+    /** Primary emotional quality: "trust", "energy", "calm", "excitement", "elegance", etc. */
+    primary: string;
+    /** Secondary emotional quality */
+    secondary: string;
+    /** 2-3 word mood descriptor, e.g. "confident professional" or "playful and bold" */
+    mood: string;
+  };
+
+  metadata: {
+    sourceUrl: string;
+    pagesAnalyzed: number;
+    /** 0-1 quality score of the extraction */
+    extractionQuality: number;
+    visionUsed: boolean;
+    favicon?: string;
+    logo?: string;
+    siteName?: string;
+  };
+}
+
+/** Result from the extractBrandDNA endpoint */
+export interface BrandDNAExtractionResult {
+  brandDNA: BrandDNA;
+  themes: TemporaryTheme[];   // 3 variations (faithful, remix, disruptive)
+  fallbackUsed: boolean;
+}
+
+/** LLM-as-Judge evaluation of generated post variations */
+export interface PostEvaluation {
+  /** 0-100 overall quality score */
+  overallScore: number;
+  dimensions: {
+    /** How closely the post matches the brand's visual identity (0-100) */
+    brandAlignment: number;
+    /** NIMA-inspired aesthetic appeal score (0-100) */
+    aestheticQuality: number;
+    /** Text contrast + hierarchy readability (0-100) */
+    readability: number;
+    /** VQAScore-inspired: does the visual match the intended message? (0-100) */
+    messageClarity: number;
+    /** Potential to catch attention on social media (0-100) */
+    engagement: number;
+  };
+  /** Up to 3 actionable improvement suggestions */
+  suggestions: string[];
+  verdict: 'excellent' | 'good' | 'needs-improvement';
+}
+
+/** Result from the evaluateQuality endpoint */
+export interface PostQualityResult {
+  evaluations: PostEvaluation[];  // One per variation
+}

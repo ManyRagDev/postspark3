@@ -68,6 +68,64 @@ app.post(
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+// NEW: Endpoint Validator / Screenshot Orchestrator
+import { captureScreenshot } from "../screenshotService";
+import { extractBrandDNA as extractBrandDNAFunc } from "../brandDNA";
+import { generateThemesFromBrandDNA } from "../brandThemeGenerator";
+
+app.post("/api/extract", async (req, res) => {
+  const { url } = req.body;
+
+  if (!url || typeof url !== 'string') {
+    res.status(400).json({ success: false, error: "Missing or invalid URL" });
+    return;
+  }
+
+  try {
+    const [desktopBuffer, mobileBuffer] = await Promise.all([
+      captureScreenshot(url, 'desktop'),
+      captureScreenshot(url, 'mobile')
+    ]);
+
+    const desktopSizeKB = desktopBuffer ? (desktopBuffer.byteLength / 1024).toFixed(2) : 0;
+    const mobileSizeKB = mobileBuffer ? (mobileBuffer.byteLength / 1024).toFixed(2) : 0;
+
+    res.json({
+      success: true,
+      url,
+      desktopSizeKB: Number(desktopSizeKB),
+      mobileSizeKB: Number(mobileSizeKB)
+    });
+  } catch (error: any) {
+    console.error("[/api/extract] Error:", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// REST endpoint for Brand DNA (direct, bypassing tRPC)
+app.post("/api/brand-dna", async (req, res) => {
+  const { url } = req.body;
+
+  if (!url || typeof url !== 'string') {
+    return res.status(400).json({ error: "Missing or invalid URL" });
+  }
+
+  try {
+    const brandDNA = await extractBrandDNAFunc(url);
+    const themes = generateThemesFromBrandDNA(brandDNA, url);
+
+    res.json({
+      success: true,
+      brandDNA,
+      themes,
+      fallbackUsed: !brandDNA.metadata.visionUsed
+    });
+  } catch (error: any) {
+    console.error("[/api/brand-dna] Error:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // OAuth callback under /api/oauth/callback
 registerOAuthRoutes(app);
 

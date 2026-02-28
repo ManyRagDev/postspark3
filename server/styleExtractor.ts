@@ -657,13 +657,14 @@ export async function extractStyleFromUrlWithMeta(url: string): Promise<Extracti
     // ── Pass 2: Vision-based extraction (handles SPAs) ──
     console.log("[styleExtractor] Low quality HTML extraction, attempting vision fallback...");
     try {
-        const screenshot = await captureScreenshot(url);
-        if (!screenshot) {
+        const screenshotBuffer = await captureScreenshot(url);
+        if (!screenshotBuffer) {
             console.log("[styleExtractor] Screenshot capture failed, using HTML result as-is");
             return { data: htmlResult, visionUsed: false };
         }
 
-        const visionResult = await extractStylesFromScreenshot(screenshot, url);
+        const screenshotBase64 = `data:image/png;base64,${Buffer.from(screenshotBuffer).toString("base64")}`;
+        const visionResult = await extractStylesFromScreenshot(screenshotBase64, url);
         const merged = mergeExtractionResults(htmlResult, visionResult);
         console.log("[styleExtractor] ── Hybrid Pipeline End (HTML + Vision merged) ──");
         return { data: merged, visionUsed: true };

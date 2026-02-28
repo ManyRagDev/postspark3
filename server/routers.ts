@@ -11,6 +11,9 @@ import { analyzeBrandFromUrl, generateCardThemeVariations } from "./chameleon";
 import { generateBackgroundImage } from "./imageGenerateBackground";
 import { extractStyleFromUrlWithMeta } from "./styleExtractor";
 import { analyzeDesignPattern, generateThemesFromPatterns } from "./designPatternAnalyzer";
+import { extractBrandDNA } from "./brandDNA";
+import { generateThemesFromBrandDNA } from "./brandThemeGenerator";
+import { evaluatePostQuality } from "./postJudge";
 import * as fs from "fs";
 import * as path from "path";
 import {
@@ -631,6 +634,79 @@ Responda APENAS com JSON válido no formato especificado.`;
           fallbackUsed,
           visionUsed,
         };
+      }),
+
+    /**
+     * Extract full Brand DNA from a website URL (Tom & Matiz enhanced pipeline).
+     * Multi-page screenshots + Gemini Vision + synthesis + musical composition mapping.
+     * Cost: 20 Sparks (replaces the 15✦ ChameleonProtocol)
+     */
+    extractBrandDNA: protectedProcedure
+      .input(z.object({
+        url: z.string().url(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const email = ctx.user.email ?? "dev@local.dev";
+        const profile = await getBillingProfile(email);
+        const debit = await debitSparks(profile.id, 20, "Brand DNA — extração multi-página + análise visual");
+        if (!debit.success) {
+          throw new TRPCError({
+            code: "PAYMENT_REQUIRED",
+            message: "Sparks insuficientes. Faça upgrade ou adquira um pacote de recarga.",
+          });
+        }
+
+        const brandDNA = await extractBrandDNA(input.url);
+        const themes = generateThemesFromBrandDNA(brandDNA, input.url);
+
+        return {
+          brandDNA,
+          themes,
+          fallbackUsed: !brandDNA.metadata.visionUsed,
+        };
+      }),
+
+    /**
+     * Evaluate quality of generated post variations (LLM-as-Judge).
+     * Inspired by Pomelli's evaluation methodology: NIMA aesthetics, VQAScore, brand alignment.
+     * Cost: 0 Sparks (quality signal — included as product differentiator)
+     *
+     * Variations are passed directly from the client (already in memory after generation).
+     */
+    evaluateQuality: protectedProcedure
+      .input(z.object({
+        variations: z.array(z.object({
+          id: z.string(),
+          headline: z.string(),
+          body: z.string(),
+          callToAction: z.string(),
+          backgroundColor: z.string(),
+          textColor: z.string(),
+          accentColor: z.string(),
+          layout: z.string(),
+          platform: z.string(),
+        })),
+        brandDNA: z.object({
+          brandName: z.string(),
+          industry: z.string(),
+          colors: z.object({ primary: z.string() }),
+          composition: z.object({ dynamics: z.string() }),
+          personality: z.object({
+            seriousPlayful: z.number(),
+            boldSubtle: z.number(),
+            luxuryAccessible: z.number(),
+            modernClassic: z.number(),
+            warmCool: z.number(),
+          }),
+          emotionalProfile: z.object({ mood: z.string() }),
+        }).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        if (input.variations.length === 0) {
+          return { evaluations: [] };
+        }
+        const evaluations = await evaluatePostQuality(input.variations as any[], input.brandDNA as any);
+        return { evaluations };
       }),
   }),
 });
