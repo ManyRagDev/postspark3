@@ -23,8 +23,8 @@ interface UseExtractedStylesReturn {
     /** Selected extracted theme IDs */
     selectedThemeIds: string[];
 
-    /** Extract styles from a URL */
-    extractStyles: (url: string) => Promise<StyleExtractionResult | undefined>;
+    /** Extract Brand DNA from a URL */
+    extractStyles: (url: string) => Promise<{ brandDNA: any; themes: TemporaryTheme[]; fallbackUsed: boolean } | undefined>;
 
     /** Select/deselect a theme */
     toggleThemeSelection: (themeId: string) => void;
@@ -42,7 +42,8 @@ export function useExtractedStyles(): UseExtractedStylesReturn {
     const [fallbackUsed, setFallbackUsed] = useState(false);
     const [selectedThemeIds, setSelectedThemeIds] = useState<string[]>([]);
 
-    const extractStylesMutation = trpc.post.extractStyles.useMutation();
+    // Use new Brand DNA extractor instead of old extractStyles
+    const extractStylesMutation = trpc.post.extractBrandDNA.useMutation();
 
     const extractStyles = useCallback(async (url: string) => {
         // Normalize URL: add https:// if missing
@@ -61,12 +62,11 @@ export function useExtractedStyles(): UseExtractedStylesReturn {
             setSourceUrl(normalizedUrl);
             const result = await extractStylesMutation.mutateAsync({ url: normalizedUrl });
 
-            console.log("[useExtractedStyles] Extraction result:", {
+            console.log("[useExtractedStyles] Brand DNA extraction result:", {
                 themesCount: result.themes.length,
-                patternsCount: result.designPatterns?.length,
                 fallbackUsed: result.fallbackUsed,
                 firstTheme: result.themes[0]?.label,
-                firstPattern: result.designPatterns?.[0]?.category,
+                brandDNA: result.brandDNA?.brandName,
             });
 
             setExtractedThemes(result.themes);
