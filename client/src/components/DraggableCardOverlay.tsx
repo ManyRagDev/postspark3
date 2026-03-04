@@ -19,19 +19,23 @@ import { useDragElement } from "@/hooks/useDragElement";
 
 // ─── Grid Snap Logic ─────────────────────────────────────────────────────────
 
-const GRID_POSITIONS: { position: TextPosition; cx: number; cy: number }[] = [
-    { position: "top-left", cx: 10, cy: 10 },
-    { position: "top-center", cx: 50, cy: 10 },
-    { position: "top-right", cx: 90, cy: 10 },
-    { position: "center-left", cx: 10, cy: 50 },
-    { position: "center", cx: 50, cy: 50 },
-    { position: "center-right", cx: 90, cy: 50 },
-    { position: "bottom-left", cx: 10, cy: 90 },
-    { position: "bottom-center", cx: 50, cy: 90 },
-    { position: "bottom-right", cx: 90, cy: 90 },
-];
+const SNAP_VALS = [10, 30, 50, 70, 90];
+const GRID_POSITIONS: { position: TextPosition; cx: number; cy: number; namedPos: TextPosition | null }[] = SNAP_VALS.flatMap(y =>
+    SNAP_VALS.map(x => {
+        const yName = y === 10 ? 'top' : y === 50 ? 'center' : y === 90 ? 'bottom' : null;
+        const xName = x === 10 ? 'left' : x === 50 ? 'center' : x === 90 ? 'right' : null;
+        const namedPos = (yName && xName) ? (yName === 'center' && xName === 'center' ? 'center' : `${yName}-${xName}`) as TextPosition : null;
 
-function snapToGrid(x: number, y: number): TextPosition {
+        return {
+            position: namedPos || 'center',
+            cx: x,
+            cy: y,
+            namedPos
+        };
+    })
+);
+
+function findBestSnap(x: number, y: number) {
     let best = GRID_POSITIONS[0];
     let bestDist = Infinity;
     for (const cell of GRID_POSITIONS) {
@@ -41,7 +45,7 @@ function snapToGrid(x: number, y: number): TextPosition {
             best = cell;
         }
     }
-    return best.position;
+    return best;
 }
 
 // ─── Resolve current handle position (%) from LayoutPosition ─────────────────
@@ -74,9 +78,12 @@ function DragHandle({
     const handleDragEnd = useCallback(
         (x: number, y: number) => {
             if (snapEnabled) {
-                const position = snapToGrid(x, y);
-                // Clear freePosition when snapping
-                onPositionChange({ position, freePosition: undefined });
+                const best = findBestSnap(x, y);
+                // If it's a named position, clear freePosition. Otherwise, set it.
+                onPositionChange({
+                    position: best.namedPos || 'center',
+                    freePosition: best.namedPos ? undefined : { x: best.cx, y: best.cy }
+                });
             } else {
                 onPositionChange({ freePosition: { x, y } });
             }

@@ -1,0 +1,648 @@
+import React, { useState, useEffect } from 'react';
+import { UploadCloud, Wand2, Loader2, LayoutTemplate, Type, Palette, Download, ArrowRight, Instagram, Linkedin,
+Sparkles, SlidersHorizontal, Link as LinkIcon } from 'lucide-react';
+
+// API Key fornecida pelo ambiente
+const apiKey = "";
+
+const App = () => {
+const [step, setStep] = useState('upload'); // 'upload', 'processing', 'result'
+const [loadingMessage, setLoadingMessage] = useState('');
+const [uploadedImage, setUploadedImage] = useState(null);
+
+// Estado aprimorado com "Design Tokens"
+const [activePostIndex, setActivePostIndex] = useState(0);
+const [postData, setPostData] = useState({
+colors: {
+background: '#1a1a1a',
+primary: '#77a488',
+secondary: '#f0f5f2',
+text: '#ffffff',
+card: '#242a26'
+},
+designTokens: {
+borderRadius: '16px',
+boxShadow: 'none',
+border: 'none',
+textAlign: 'left',
+originalFont: 'Georgia / Times New Roman',
+fontFamily: 'Playfair Display', // Seleção via Dropdown
+customFontUrl: '', // Nova opção separada
+textTransform: 'none',
+decorations: 'minimal'
+},
+posts: [
+{ label: 'Foco na Dor', badge: 'Cozinha IA', headline: 'Sobrou comida e falta ideia?', subheadline: 'Escaneie sua nota
+fiscal e descubra receitas deliciosas em segundos.', stickerText: 'Magia' },
+{ label: 'Benefício', badge: 'Cozinha IA', headline: 'Sua geladeira, nosso cardápio.', subheadline: 'Receitas
+automáticas baseadas no que você já comprou.', stickerText: 'Prático' },
+{ label: 'Objeção', badge: 'Cozinha IA', headline: 'Não sabe cozinhar?', subheadline: 'Passo a passo simplificado para
+qualquer nível de experiência.', stickerText: 'Fácil' }
+]
+});
+
+// --- Helpers para a Lógica de Fontes ---
+// Identifica se usa a fonte do dropdown ou a URL customizada
+const getActiveFontInfo = (tokens) => {
+// 1. Se o usuário colou um link customizado
+if (tokens.customFontUrl && tokens.customFontUrl.includes('fonts.googleapis.com')) {
+const match = tokens.customFontUrl.match(/family=([^&:]+)/);
+const name = match ? match[1].replace(/\+/g, ' ') : 'sans-serif';
+return { name, url: tokens.customFontUrl };
+}
+
+// 2. Se está usando o dropdown nativo
+const fallbackFamily = tokens.fontFamily || 'Inter';
+const formattedName = fallbackFamily.replace(/ /g, '+');
+return {
+name: fallbackFamily,
+url: `https://fonts.googleapis.com/css2?family=${formattedName}:ital,wght@0,400;0,500;0,700;0,900;1,400&display=swap`
+};
+};
+
+// Carregador Dinâmico de Tipografia no
+
+<head>
+    useEffect(() => {
+    const { url } = getActiveFontInfo(postData.designTokens);
+    if (!url) return;
+
+    if (!document.querySelector(`link[href="${url}"]`)) {
+    const link = document.createElement('link');
+    link.href = url;
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    }
+    }, [postData.designTokens.fontFamily, postData.designTokens.customFontUrl]);
+
+    const handleImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+    setUploadedImage(reader.result);
+    processImage(reader.result);
+    };
+    reader.readAsDataURL(file);
+    }
+    };
+
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // Motor de Visão da IA
+    const callGeminiVision = async (base64Data) => {
+    const promptText = `
+    Você é um Desenvolvedor Front-end, Diretor de Arte e Copywriter de elite.
+    Analise a imagem desta Landing Page anexa e clone a essência do design dela para um post de rede social.
+
+    Sua missão é:
+    1. Extrair a Identidade Visual (Cores HEX): background (fundo do post), card (fundo do bloco de texto), primary
+    (destaque/botões), secondary, text (cor da fonte).
+    2. Extrair os Design Tokens (Estilo CSS). Avalie a imagem e defina:
+    - borderRadius: avalie se o site usa quinas secas ('0px'), cantos levemente arredondados ('8px'), ou muito
+    arredondados ('24px').
+    - boxShadow: o site usa sombras duras e escuras (retorne '8px 8px 0px 0px #000000'), sombras suaves (retorne '0 15px
+    30px rgba(0,0,0,0.1)'), ou sem sombra (retorne 'none')?
+    - border: o site usa bordas grossas pretas (retorne '4px solid #000000'), bordas finas sutis (retorne '1px solid
+    rgba(0,0,0,0.1)'), ou sem borda (retorne 'none')?
+    - textAlign: os textos e títulos principais são alinhados à esquerda (retorne 'left') ou centralizados (retorne
+    'center')?
+    - Tipografia: Qual é a fonte original do site? (Retorne em "originalFont"). Em seguida, escolha a equivalente
+    gratuita do Google Fonts e retorne em "fontFamily". (Ex: Roboto, Montserrat, Playfair Display, Space Grotesk,
+    Poppins, Inter, Oswald, etc).
+    - textTransform: os títulos do site são em CAIXA ALTA (retorne 'uppercase') ou maiúsculas/minúsculas (retorne
+    'none')?
+    - decorations: estilo limpo (retorne 'minimal') ou usa elementos soltos (retorne 'playful')?
+    3. Sintetizar 3 opções diferentes de Copywriting:
+    - Opção 1 (Dor): Foque no problema.
+    - Opção 2 (Benefício/Desejo): Foque no resultado ágil.
+    - Opção 3 (Objeção/Feature): Foque num diferencial específico.
+    4. Para cada cópia, crie um Gancho (Headline) curto e de muito impacto (máximo 5 palavras) e um Subtítulo claro
+    (máximo 10 palavras).
+
+    Retorne estritamente um JSON no seguinte formato:
+    {
+    "colors": {
+    "background": "#HEX", "primary": "#HEX", "secondary": "#HEX", "text": "#HEX", "card": "#HEX"
+    },
+    "designTokens": {
+    "borderRadius": "px",
+    "boxShadow": "value",
+    "border": "value",
+    "textAlign": "left ou center",
+    "originalFont": "Palpite da fonte",
+    "fontFamily": "Fonte exata Google Fonts",
+    "customFontUrl": "",
+    "textTransform": "uppercase ou none",
+    "decorations": "minimal ou playful"
+    },
+    "posts": [
+    { "label": "Foco na Dor", "badge": "Marca", "headline": "...", "subheadline": "...", "stickerText": "..." },
+    { "label": "Foco no Benefício", "badge": "Marca", "headline": "...", "subheadline": "...", "stickerText": "..." },
+    { "label": "Foco em Objeção", "badge": "Marca", "headline": "...", "subheadline": "...", "stickerText": "..." }
+    ]
+    }
+    `;
+
+    const base64ImageString = base64Data.split(',')[1];
+    const payload = {
+    contents: [{ role: "user", parts: [{ text: promptText }, { inlineData: { mimeType: "image/jpeg", data:
+    base64ImageString } }] }],
+    generationConfig: { responseMimeType: "application/json" },
+    systemInstruction: { parts: [{ text: "Você é um assistente criativo que só responde em JSON válido." }] }
+    };
+
+    const delays = [1000, 2000, 4000, 8000];
+    let lastError = null;
+
+    for (let i = 0; i < 4; i++) { try { const response=await
+        fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+        { method: 'POST' , headers: { 'Content-Type' : 'application/json' }, body: JSON.stringify(payload) }); if
+        (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data=await response.json();
+        const jsonString=data.candidates?.[0]?.content?.parts?.[0]?.text; if (jsonString) return JSON.parse(jsonString);
+        } catch (error) { lastError=error; if (i < 3) await sleep(delays[i]); } } throw lastError; }; const
+        processImage=async (base64Image)=> {
+        setStep('processing');
+        setLoadingMessage('Extraindo tipografia e paleta de cores...');
+
+        try {
+        setTimeout(() => setLoadingMessage('Clonando tokens de UI e estrutura...'), 2000);
+        setTimeout(() => setLoadingMessage('Escrevendo as opções de copy...'), 4000);
+
+        const aiResult = await callGeminiVision(base64Image);
+
+        if (aiResult && aiResult.colors && aiResult.designTokens && aiResult.posts) {
+        setPostData(aiResult);
+        setActivePostIndex(0);
+        }
+        setStep('result');
+        } catch (error) {
+        console.error("Erro na IA:", error);
+        alert("Houve um erro na comunicação com a IA. Usando dados de demonstração.");
+        setStep('result');
+        }
+        };
+
+        const handleTextChange = (field, value) => {
+        setPostData(prev => {
+        const newPosts = [...prev.posts];
+        newPosts[activePostIndex] = { ...newPosts[activePostIndex], [field]: value };
+        return { ...prev, posts: newPosts };
+        });
+        };
+
+        const handleColorChange = (field, value) => {
+        setPostData(prev => ({ ...prev, colors: { ...prev.colors, [field]: value } }));
+        };
+
+        const handleTokenChange = (field, value) => {
+        setPostData(prev => ({ ...prev, designTokens: { ...prev.designTokens, [field]: value } }));
+        };
+
+        const activeFontData = getActiveFontInfo(postData.designTokens);
+
+        return (
+        <div className="min-h-screen bg-neutral-100 text-neutral-900 font-sans selection:bg-orange-200">
+            <header
+                className="bg-white border-b border-neutral-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20">
+                <div className="flex items-center gap-2">
+                    <div className="bg-black p-1.5 rounded-lg">
+                        <Wand2 className="w-5 h-5 text-white" />
+                    </div>
+                    <h1 className="text-xl font-bold tracking-tight">Postspark<span
+                            className="text-orange-500 font-black">2.0</span></h1>
+                </div>
+                {step === 'result' && (
+                <button onClick={()=> setStep('upload')} className="text-sm font-medium text-neutral-500
+                    hover:text-black transition-colors">
+                    Processar novo site
+                </button>
+                )}
+            </header>
+
+            <main className="max-w-7xl mx-auto p-4 lg:p-8">
+                {step === 'upload' && (
+                <div
+                    className="flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in zoom-in duration-500">
+                    <div className="text-center max-w-2xl mb-10">
+                        <h2 className="text-4xl lg:text-5xl font-extrabold mb-4 tracking-tight leading-tight">O
+                            verdadeiro <span className="text-orange-500">camaleão</span> para suas redes sociais.</h2>
+                        <p className="text-lg text-neutral-600">Nossa IA lê sua Landing Page e clona o estilo visual
+                            inteiro (cores, bordas, sombras, fontes e alinhamento) para gerar cards perfeitos.</p>
+                    </div>
+
+                    <div className="w-full max-w-2xl relative group">
+                        <div
+                            className="absolute -inset-1 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000">
+                        </div>
+                        <label
+                            className="relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed border-neutral-300 rounded-2xl bg-white hover:bg-neutral-50 transition-colors cursor-pointer overflow-hidden shadow-sm">
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <div
+                                    className="p-4 bg-neutral-100 rounded-full mb-4 group-hover:bg-orange-100 transition-colors duration-300">
+                                    <UploadCloud className="w-10 h-10 text-neutral-500 group-hover:text-orange-500" />
+                                </div>
+                                <p className="mb-2 text-xl font-bold text-neutral-800">Arraste a imagem ou clique para
+                                    selecionar</p>
+                                <p className="text-sm text-neutral-500 font-medium">Capture um print inteiro do site
+                                    (Webp, Png, Jpg)</p>
+                            </div>
+                            <input type="file" className="hidden" accept="image/png, image/jpeg, image/webp"
+                                onChange={handleImageUpload} />
+                        </label>
+                    </div>
+                </div>
+                )}
+
+                {step === 'processing' && (
+                <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in duration-300">
+                    <div className="relative w-24 h-24 mb-8">
+                        <div
+                            className="absolute inset-0 border-4 border-orange-200 rounded-full animate-ping opacity-50">
+                        </div>
+                        <div className="absolute inset-2 bg-black rounded-full flex items-center justify-center z-10">
+                            <Loader2 className="w-8 h-8 text-white animate-spin" />
+                        </div>
+                    </div>
+                    <h3 className="text-3xl font-bold mb-3 tracking-tight">Análise de UI em andamento...</h3>
+                    <p className="text-neutral-500 font-medium animate-pulse text-lg">{loadingMessage}</p>
+                </div>
+                )}
+
+                {step === 'result' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in slide-in-from-bottom-8 duration-700">
+
+                    {/* PAINEL DE CONTROLE (Esquerda) */}
+                    <div className="lg:col-span-6 space-y-6">
+
+                        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
+                            <div
+                                className="p-5 bg-neutral-50 border-b border-neutral-200 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <SlidersHorizontal className="w-5 h-5 text-neutral-600" />
+                                    <h3 className="font-bold text-neutral-800">Motor Camaleão (UI Tokens)</h3>
+                                </div>
+                                <span
+                                    className="text-[10px] uppercase font-bold text-green-600 bg-green-100 px-2 py-1 rounded-full">Auto-Extraído</span>
+                            </div>
+
+                            <div className="p-5 space-y-5">
+                                {/* Cores */}
+                                <div>
+                                    <label className="text-xs font-bold text-neutral-400 uppercase mb-2 block">Paleta de
+                                        Cores</label>
+                                    <div className="flex flex-wrap gap-3">
+                                        {Object.entries(postData.colors).map(([key, hex]) => (
+                                        <div key={key} className="flex flex-col items-center gap-1 group">
+                                            <input type="color" value={hex} onChange={(e)=> handleColorChange(key,
+                                            e.target.value)} className="w-8 h-8 rounded-full border border-neutral-300
+                                            cursor-pointer overflow-hidden p-0" />
+                                            <span
+                                                className="text-[9px] uppercase text-neutral-500 font-semibold">{key}</span>
+                                        </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+
+                                    {/* MENU DE FONTES UX APRIMORADO */}
+                                    <div
+                                        className="col-span-2 space-y-3 bg-neutral-50 p-4 rounded-xl border border-neutral-100">
+                                        <div>
+                                            <div className="flex justify-between items-end mb-1">
+                                                <label
+                                                    className="text-xs font-bold text-neutral-500 uppercase block">Tipografia
+                                                    Primária</label>
+                                                <span className="text-[10px] text-neutral-400 font-medium">Detectado:
+                                                    {postData.designTokens.originalFont}</span>
+                                            </div>
+                                            <select value={postData.designTokens.fontFamily} onChange={(e)=>
+                                                handleTokenChange('fontFamily', e.target.value)}
+                                                disabled={!!postData.designTokens.customFontUrl}
+                                                className={`w-full text-sm p-2 border rounded-lg outline-none
+                                                transition-all ${postData.designTokens.customFontUrl ? 'bg-neutral-100
+                                                border-neutral-200 text-neutral-400 cursor-not-allowed' : 'bg-white
+                                                border-neutral-300 focus:border-black'}`}
+                                                >
+                                                <optgroup label="Sem Serifa (Modernas)">
+                                                    <option value="Inter">Inter</option>
+                                                    <option value="Roboto">Roboto</option>
+                                                    <option value="Montserrat">Montserrat</option>
+                                                    <option value="Poppins">Poppins</option>
+                                                    <option value="Lato">Lato</option>
+                                                    <option value="Open Sans">Open Sans</option>
+                                                    <option value="Raleway">Raleway</option>
+                                                    <option value="Work Sans">Work Sans</option>
+                                                    <option value="Quicksand">Quicksand</option>
+                                                </optgroup>
+                                                <optgroup label="Serifadas (Clássicas)">
+                                                    <option value="Playfair Display">Playfair Display</option>
+                                                    <option value="Merriweather">Merriweather</option>
+                                                    <option value="Lora">Lora</option>
+                                                    <option value="PT Serif">PT Serif</option>
+                                                    <option value="Crimson Text">Crimson Text</option>
+                                                </optgroup>
+                                                <optgroup label="Display (Impacto)">
+                                                    <option value="Oswald">Oswald</option>
+                                                    <option value="Bebas Neue">Bebas Neue</option>
+                                                    <option value="Space Grotesk">Space Grotesk</option>
+                                                    <option value="Syne">Syne</option>
+                                                    <option value="Anton">Anton</option>
+                                                    <option value="Righteous">Righteous</option>
+                                                </optgroup>
+                                            </select>
+                                        </div>
+
+                                        <div className="relative">
+                                            <label
+                                                className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block flex items-center gap-1">
+                                                <LinkIcon className="w-3 h-3" /> Fonte Avançada (Link Customizado)
+                                            </label>
+                                            <input type="text" value={postData.designTokens.customFontUrl}
+                                                onChange={(e)=> handleTokenChange('customFontUrl', e.target.value)}
+                                            className="w-full text-xs p-2 border border-neutral-200 rounded-lg
+                                            focus:border-orange-500 outline-none bg-white placeholder:text-neutral-300"
+                                            placeholder="Cole o link do Google Fonts para substituir (Opcional)"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            className="text-xs font-bold text-neutral-400 uppercase mb-1 block">Formato
+                                            do Título</label>
+                                        <select value={postData.designTokens.textTransform} onChange={(e)=>
+                                            handleTokenChange('textTransform', e.target.value)}
+                                            className="w-full text-sm p-2 border border-neutral-300 rounded-lg
+                                            focus:border-black outline-none bg-white"
+                                            >
+                                            <option value="none">Normal (Como digitado)</option>
+                                            <option value="uppercase">Sempre CAIXA ALTA</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            className="text-xs font-bold text-neutral-400 uppercase mb-1 block">Alinhamento</label>
+                                        <select value={postData.designTokens.textAlign} onChange={(e)=>
+                                            handleTokenChange('textAlign', e.target.value)} className="w-full text-sm
+                                            p-2 border border-neutral-300 rounded-lg">
+                                            <option value="left">Alinhado à Esquerda</option>
+                                            <option value="center">Centralizado</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            className="text-xs font-bold text-neutral-400 uppercase mb-1 block">Arredondamento</label>
+                                        <select value={postData.designTokens.borderRadius} onChange={(e)=>
+                                            handleTokenChange('borderRadius', e.target.value)} className="w-full text-sm
+                                            p-2 border border-neutral-300 rounded-lg">
+                                            <option value="0px">Seco (0px)</option>
+                                            <option value="8px">Leve (8px)</option>
+                                            <option value="16px">Médio (16px)</option>
+                                            <option value="24px">Arredondado (24px)</option>
+                                            <option value="40px">Pílula (40px)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            className="text-xs font-bold text-neutral-400 uppercase mb-1 block">Sombra
+                                            (Box-Shadow)</label>
+                                        <select value={postData.designTokens.boxShadow} onChange={(e)=>
+                                            handleTokenChange('boxShadow', e.target.value)} className="w-full text-sm
+                                            p-2 border border-neutral-300 rounded-lg">
+                                            <option value="none">Sem Sombra</option>
+                                            <option value="0 10px 25px rgba(0,0,0,0.1)">Suave Elegante</option>
+                                            <option value="0 20px 40px rgba(0,0,0,0.2)">Suave Forte</option>
+                                            <option value="8px 8px 0px 0px #000000">Neo-Brutalista</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            className="text-xs font-bold text-neutral-400 uppercase mb-1 block">Bordas</label>
+                                        <select value={postData.designTokens.border} onChange={(e)=>
+                                            handleTokenChange('border', e.target.value)} className="w-full text-sm p-2
+                                            border border-neutral-300 rounded-lg">
+                                            <option value="none">Sem Borda</option>
+                                            <option value="1px solid rgba(0,0,0,0.1)">Fina / Sutil</option>
+                                            <option value="2px solid #000000">Marcada (2px)</option>
+                                            <option value="4px solid #000000">Grossa (4px)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            className="text-xs font-bold text-neutral-400 uppercase mb-1 block">Estilo
+                                            Geral</label>
+                                        <select value={postData.designTokens.decorations} onChange={(e)=>
+                                            handleTokenChange('decorations', e.target.value)} className="w-full text-sm
+                                            p-2 border border-neutral-300 rounded-lg">
+                                            <option value="minimal">Minimalista (Limpo)</option>
+                                            <option value="playful">Playful (Confetes/Selos)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Editor de Texto */}
+                        <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm space-y-4">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Type className="w-5 h-5 text-neutral-600" />
+                                <h3 className="font-bold text-neutral-800">Copywriting IA</h3>
+                            </div>
+
+                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                {postData.posts.map((post, idx) => (
+                                <button key={idx} onClick={()=> setActivePostIndex(idx)}
+                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap
+                                    ${
+                                    activePostIndex === idx
+                                    ? 'bg-black text-white shadow-md'
+                                    : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
+                                    }`}
+                                    >
+                                    Ideia {idx + 1}: {post.label}
+                                </button>
+                                ))}
+                            </div>
+
+                            <div className="space-y-4 mt-2">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            className="text-xs font-bold text-neutral-400 uppercase mb-1 block">Badge</label>
+                                        <input type="text" value={postData.posts[activePostIndex].badge} onChange={(e)=>
+                                        handleTextChange('badge', e.target.value)} className="w-full px-3 py-2 border
+                                        border-neutral-300 rounded-lg text-sm font-medium focus:border-black
+                                        outline-none" />
+                                    </div>
+                                    <div>
+                                        <label
+                                            className="text-xs font-bold text-neutral-400 uppercase mb-1 block">Sticker
+                                            Decorativo</label>
+                                        <input type="text" value={postData.posts[activePostIndex].stickerText}
+                                            onChange={(e)=> handleTextChange('stickerText', e.target.value)}
+                                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm
+                                        font-medium focus:border-black outline-none" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-neutral-400 uppercase mb-1 block">Headline
+                                        (Gancho Principal)</label>
+                                    <textarea value={postData.posts[activePostIndex].headline} onChange={(e)=> handleTextChange('headline', e.target.value)} className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-lg font-black resize-none h-20 focus:border-black outline-none leading-tight" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-neutral-400 uppercase mb-1 block">Subheadline (Explicação)</label>
+                    <textarea value={postData.posts[activePostIndex].subheadline} onChange={(e) => handleTextChange('subheadline', e.target.value)} className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none h-16 focus:border-black outline-none" />
+                  </div>
+                </div>
+              </div>
+
+              <button className="w-full py-4 bg-black text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-neutral-800 transition-transform active:scale-95 shadow-md">
+                <Download className="w-5 h-5" />
+                Exportar Post (PNG)
+              </button>
+            </div>
+
+            {/* PREVIEW AO VIVO CAMALEÃO */}
+            <div className="lg:col-span-6 flex flex-col items-center justify-center bg-neutral-200/50 p-6 rounded-3xl border border-neutral-200 h-full min-h-[600px]">
+              <div className="flex items-center gap-2 mb-6 opacity-70">
+                <LayoutTemplate className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-widest">Preview Dinâmico</span>
+              </div>
+
+              <div 
+                className="relative w-full max-w-[400px] xl:max-w-[460px] aspect-[4/5] overflow-hidden flex flex-col transition-all duration-500 ease-in-out shadow-2xl"
+                style={{ 
+                  backgroundColor: postData.colors.background,
+                  fontFamily: `"${activeFontData.name}", sans-serif`,
+                }}
+              >
+                {postData.designTokens.decorations === 'playful' && (
+                  <div className="absolute inset-0 pointer-events-none opacity-80">
+                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #000 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }}></div>
+                    <div className="absolute top-10 left-8 w-3 h-5 -rotate-12 transition-all duration-300" style={{ backgroundColor: postData.colors.secondary, border: postData.designTokens.border }}></div>
+                    <div className="absolute bottom-16 right-10 w-5 h-5 rounded-full transition-all duration-300" style={{ backgroundColor: postData.colors.primary, border: postData.designTokens.border }}></div>
+                    <div className="absolute top-32 right-6 w-3 h-3 rotate-45 transition-all duration-300" style={{ backgroundColor: postData.colors.text, border: postData.designTokens.border }}></div>
+                    <div className="absolute bottom-10 left-12 w-4 h-2 -rotate-[20deg] transition-all duration-300" style={{ backgroundColor: postData.colors.card, border: postData.designTokens.border }}></div>
+                  </div>
+                )}
+
+                <div className="relative z-10 flex justify-between items-center w-full p-6 transition-all duration-500">
+                  <div 
+                    className="p-1.5 flex items-center justify-center bg-white"
+                    style={{ borderRadius: postData.designTokens.borderRadius, border: postData.designTokens.border, boxShadow: postData.designTokens.boxShadow !== 'none' && postData.designTokens.boxShadow.includes('0px 0px') ? '2px 2px 0px 0px rgba(0,0,0,0.1)' : 'none' }}
+                  >
+                    <Instagram className="w-5 h-5" style={{ color: postData.colors.primary }} />
+                  </div>
+                  
+                  <div 
+                    className="px-4 py-1.5 font-bold text-sm bg-white"
+                    style={{ 
+                      borderRadius: '999px',
+                      border: postData.designTokens.border, 
+                      color: postData.colors.primary,
+                      boxShadow: postData.designTokens.boxShadow !== 'none' && postData.designTokens.boxShadow.includes('0px 0px') ? '2px 2px 0px 0px rgba(0,0,0,0.1)' : 'none'
+                    }}
+                  >
+                    {postData.posts[activePostIndex].badge}
+                  </div>
+
+                  <div 
+                    className="p-1.5 flex items-center justify-center bg-[#0A66C2]"
+                    style={{ borderRadius: postData.designTokens.borderRadius, border: postData.designTokens.border, boxShadow: postData.designTokens.boxShadow !== 'none' && postData.designTokens.boxShadow.includes('0px 0px') ? '2px 2px 0px 0px rgba(0,0,0,0.1)' : 'none' }}
+                  >
+                    <Linkedin className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+
+                <div className="flex-1 flex items-center justify-center p-6 lg:p-8 relative z-10 h-full">
+                  
+                  {postData.designTokens.decorations === 'playful' && postData.designTokens.boxShadow.includes('0px 0px') && (
+                    <div 
+                      className="absolute inset-6 lg:inset-8 bg-black/10 transform translate-x-3 translate-y-3 transition-all duration-500" 
+                      style={{ 
+                        backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.1) 5px, rgba(0,0,0,0.1) 10px)',
+                        borderRadius: postData.designTokens.borderRadius 
+                      }}
+                    ></div>
+                  )}
+                  
+                  <div 
+                    className="relative w-full p-6 lg:p-8 flex flex-col justify-center transition-all duration-500 ease-in-out min-w-0"
+                    style={{ 
+                      backgroundColor: postData.colors.card,
+                      boxShadow: postData.designTokens.boxShadow,
+                      border: postData.designTokens.border,
+                      borderRadius: postData.designTokens.borderRadius,
+                      alignItems: postData.designTokens.textAlign === 'center' ? 'center' : 'flex-start',
+                      textAlign: postData.designTokens.textAlign,
+                    }}
+                  >
+                    
+                    {/* H1 COM CORREÇÃO DE OVERFLOW DE PALAVRA */}
+                    <h1 
+                      className={`text-[1.8rem] md:text-4xl lg:text-[2.6rem] font-bold leading-tight mb-4 tracking-tight transition-all duration-300 w-full ${postData.designTokens.textTransform === 'uppercase' ? 'uppercase' : ''}`}
+                      style={{ 
+                        color: postData.colors.text,
+                        overflowWrap: 'anywhere', // A mágica para palavras super longas não vazarem
+                        wordBreak: 'break-word',
+                        hyphens: 'auto'
+                      }}
+                      lang="pt-BR"
+                    >
+                      {postData.posts[activePostIndex].headline.split(' ').map((word, idx, arr) => {
+                        return (
+                          <span key={idx} style={{ color: (idx === arr.length - 1 && postData.designTokens.decorations === 'playful') ? postData.colors.primary : postData.colors.text }}>
+                            {word}{' '}
+                          </span>
+                        );
+                      })}
+                    </h1>
+
+                    <p 
+                      className="text-base md:text-lg lg:text-xl font-medium leading-snug opacity-90 transition-all duration-300 font-sans" 
+                      style={{ color: postData.colors.text, maxWidth: postData.designTokens.textAlign === 'center' ? '100%' : '90%' }}
+                    >
+                      {postData.posts[activePostIndex].subheadline}
+                    </p>
+
+                    <div 
+                      className={`w-full flex mt-8 transition-all duration-500 font-sans ${postData.designTokens.textAlign === 'center' ? 'justify-center gap-6' : 'justify-between items-end'}`}
+                    >
+                      {postData.designTokens.decorations === 'playful' ? (
+                        <div className="relative group hover:scale-105 transition-transform cursor-pointer">
+                          <div className="absolute inset-0 bg-black translate-x-1 translate-y-1 transition-all"></div>
+                          <div 
+                            className="relative px-3 py-2 flex items-center justify-center rotate-[-8deg] bg-white transition-all"
+                            style={{ border: postData.designTokens.border }}
+                          >
+                            <span className="font-bold text-sm tracking-wider uppercase" style={{ color: postData.colors.primary }}>
+                              {postData.posts[activePostIndex].stickerText}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm font-bold opacity-50 uppercase tracking-widest">{postData.posts[activePostIndex].stickerText}</span>
+                      )}
+
+                      <ArrowRight className="w-6 h-6 lg:w-8 lg:h-8 transition-all duration-300" style={{ color: postData.colors.text }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <p className="text-xs text-neutral-400 mt-6 flex items-center gap-1 font-medium">
+                <Sparkles className="w-3.5 h-3.5" /> Tokens extraídos via IA e renderizados no DOM.
+              </p>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default App;

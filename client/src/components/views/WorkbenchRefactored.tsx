@@ -34,14 +34,19 @@ import {
   Trash2,
   Layers,
   RotateCcw,
+  Settings,
 } from 'lucide-react';
-import type { PostVariation, Platform, AspectRatio, PostMode, FormatOptimization } from '@shared/postspark';
-import { ASPECT_RATIO_LABELS, PLATFORM_SPECS, PLATFORM_ASPECT_RATIOS, CAROUSEL_SLIDE_RANGE } from '@shared/postspark';
+import type { PostVariation, Platform, AspectRatio, PostMode, FormatOptimization, DesignTokens } from '@shared/postspark';
+import { ASPECT_RATIO_LABELS, PLATFORM_SPECS, PLATFORM_ASPECT_RATIOS, CAROUSEL_SLIDE_RANGE, DEFAULT_DESIGN_TOKENS } from '@shared/postspark';
 import { useControlMode } from '@/hooks/useControlMode';
 import { useArcDrawer, type TabId } from '@/hooks/useArcDrawer';
 import type { ImageSettings, AdvancedLayoutSettings, TextPosition, TextAlignment } from '@/types/editor';
 import { DEFAULT_IMAGE_SETTINGS } from '@/types/editor';
+import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
+import ChameleonPanel from '@/components/ChameleonPanel';
+import { FontDropdown } from '@/components/ui/FontDropdown';
 import { AdvancedModeToggle } from '@/components/ui/AdvancedModeToggle';
 import { PrecisionSlider } from '@/components/ui/PrecisionSlider';
 import { CaptionPreview } from '@/components/ui/CaptionPreview';
@@ -108,8 +113,9 @@ function DesignChecklistPanel({
         className="w-full flex items-center justify-between px-3 py-2.5 text-left"
       >
         <div className="flex items-center gap-2">
+          <Eye size={14} style={{ color: "var(--text-secondary)" }} />
           <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">
-            Checklist de Design
+            Visão da IA
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -174,6 +180,8 @@ function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSettings {
         headline: { position: 'center', textAlign: 'center' },
         body: { position: 'bottom-center', textAlign: 'center' },
         accentBar: { position: 'top-center', textAlign: 'center', width: 10 },
+        badge: { position: 'top-center', textAlign: 'center' },
+        sticker: { position: 'bottom-center', textAlign: 'center' },
         padding: 24,
       };
     case 'split':
@@ -182,6 +190,8 @@ function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSettings {
         headline: { position: 'center-left', textAlign: 'left' },
         body: { position: 'bottom-left', textAlign: 'left' },
         accentBar: { position: 'top-left', textAlign: 'left', width: 10 },
+        badge: { position: 'top-right', textAlign: 'right' },
+        sticker: { position: 'bottom-right', textAlign: 'right' },
         padding: 24,
       };
     case 'minimal':
@@ -190,6 +200,8 @@ function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSettings {
         headline: { position: 'center', textAlign: 'center' },
         body: { position: 'bottom-center', textAlign: 'center' },
         accentBar: { position: 'top-center', textAlign: 'center', width: 15 },
+        badge: { position: 'top-center', textAlign: 'center' },
+        sticker: { position: 'bottom-center', textAlign: 'center' },
         padding: 24,
       };
     case 'left-aligned':
@@ -199,6 +211,8 @@ function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSettings {
         headline: { position: 'center-left', textAlign: 'left' },
         body: { position: 'bottom-left', textAlign: 'left' },
         accentBar: { position: 'top-left', textAlign: 'left', width: 10 },
+        badge: { position: 'top-right', textAlign: 'right' },
+        sticker: { position: 'bottom-right', textAlign: 'right' },
         padding: 24,
       };
   }
@@ -227,7 +241,7 @@ interface WorkbenchRefactoredProps {
   slides?: PostVariation[];
   onBack: () => void;
   onSave: (variation: PostVariation) => void;
-  onGenerateImage: (prompt: string, provider: 'pollinations' | 'gemini') => Promise<string>;
+  onGenerateImage: (prompt: string, provider?: 'pollinations_fast' | 'pollinations_hd') => Promise<string>;
   isSaving: boolean;
 }
 
@@ -271,7 +285,12 @@ export default function WorkbenchRefactored({
   const [expandedSection, setExpandedSection] = useState<TabId | null>('text');
   const [copied, setCopied] = useState(false);
   const [isGeneratingImg, setIsGeneratingImg] = useState(false);
-  const [imageProvider, setImageProvider] = useState<'pollinations' | 'gemini'>('gemini');
+  const [imageProvider, setImageProvider] = useState<'pollinations_fast' | 'pollinations_hd'>('pollinations_hd');
+  const [customTokens, setCustomTokens] = useState<DesignTokens | undefined>(undefined);
+
+  const handleTokensChange = useCallback((newTokens: DesignTokens) => {
+    setCustomTokens(newTokens);
+  }, []);
 
   // Estado de legenda
   const [caption, setCaption] = useState(initialVariation.caption || '');
@@ -373,6 +392,13 @@ export default function WorkbenchRefactored({
 
   // Modo Global (Captain/Architect)
   const { mode, setMode, isArchitect } = useControlMode();
+  // Track se o usuário modificou as configurações avançadas de layout
+  // Só aplicamos advancedLayout ao PostCard se o usuário tiver feito alterações
+  const [hasCustomLayout, setHasCustomLayout] = useState(false);
+
+  // --- IA AutoPilot State ---
+  const autoPilotMutation = trpc.post.autoPilotDesign.useMutation();
+  const [isAutoPiloting, setIsAutoPiloting] = useState(false);
 
   // Image & Layout Settings
   const [imageSettings, setImageSettings] = useState<ImageSettings>(DEFAULT_IMAGE_SETTINGS);
@@ -381,9 +407,6 @@ export default function WorkbenchRefactored({
   const [layoutTarget, setLayoutTarget] = useState<'headline' | 'body' | 'accentBar'>('headline');
   const [activeImageSource, setActiveImageSource] = useState<'none' | 'ai' | 'gallery' | 'upload' | 'color'>('ai');
 
-  // Track se o usuário modificou as configurações avançadas de layout
-  // Só aplicamos advancedLayout ao PostCard se o usuário tiver feito alterações
-  const [hasCustomLayout, setHasCustomLayout] = useState(false);
 
   // Otimização Multi-Formato (IA)
   const [showOptimizationHint, setShowOptimizationHint] = useState(false);
@@ -449,31 +472,95 @@ export default function WorkbenchRefactored({
     []
   );
 
+  const handleAutoPilotDesign = useCallback(async () => {
+    if (!canvasRef.current) {
+      toast.error('Não foi possível capturar o layout atual.');
+      return;
+    }
+
+    setIsAutoPiloting(true);
+    toast.loading('A IA visual está calibrando o design do post...', { id: 'autopilot' });
+
+    try {
+      // Capturar a tela
+      const { default: html2canvas } = await import('html2canvas-pro');
+      const canvas = await html2canvas(canvasRef.current, {
+        scale: 1, // Reduzido para não pesar muito o payload
+        useCORS: true,
+      });
+      const imageBase64 = canvas.toDataURL('image/jpeg', 0.8);
+
+      const currentState = {
+        variation: {
+          headline: variation.headline,
+          body: variation.body,
+        },
+        layoutSettings: layoutSettings
+      };
+
+      const result = await autoPilotMutation.mutateAsync({
+        imageBase64,
+        currentState
+      });
+
+      if (result.suggestedLayoutMoves) {
+        setHasCustomLayout(true);
+        const { headline, body, textColor } = result.suggestedLayoutMoves;
+
+        setLayoutSettings(prev => ({
+          ...prev,
+          headline: {
+            ...prev.headline,
+            ...headline
+          },
+          body: {
+            ...prev.body,
+            ...body
+          }
+        }));
+
+        if (textColor) {
+          updateVariation({
+            textColor: textColor
+          });
+        }
+
+        toast.success(`Calibração Visual Direcionada! Nota Inicial: ${result.score}/100.\\n${result.feedback}`, { id: 'autopilot' });
+      } else {
+        toast.error('A IA não conseguiu encontrar um ajuste melhor.', { id: 'autopilot' });
+      }
+    } catch (error: any) {
+      console.error('AutoPilot erro:', error);
+      toast.error('Erro ao conectar com a IA visual.', { id: 'autopilot' });
+    } finally {
+      setIsAutoPiloting(false);
+    }
+  }, [variation, layoutSettings, autoPilotMutation, updateVariation, canvasRef]);
+
   // Handler para drag direto no texto (PostCard → onDragPosition)
   // Recebe posição em % e atualiza LayoutPosition: em modo snap encaixa na célula mais próxima,
-  // em modo livre salva como freePosition.
-  const handleDragPositionFromCard = useCallback(
-    (target: 'headline' | 'body' | 'accentBar', x: number, y: number) => {
-      setHasCustomLayout(true);
-      if (snapToGrid) {
-        // Encaixar na célula mais próxima
-        const best = GRID_POSITIONS_WB.reduce((b, cell) => {
-          const d = Math.hypot(x - cell.cx, y - cell.cy);
-          const bd = Math.hypot(x - b.cx, y - b.cy);
-          return d < bd ? cell : b;
-        }, GRID_POSITIONS_WB[0]);
-        setLayoutSettings((prev) => ({
-          ...prev,
-          [target]: { ...prev[target], position: best.position, freePosition: undefined },
-        }));
-      } else {
-        // Posição livre em %
-        setLayoutSettings((prev) => ({
-          ...prev,
-          [target]: { ...prev[target], freePosition: { x, y } },
-        }));
-      }
-    },
+  // Disparado pelo elemento filho (ex: Card) ao ser arrastado em tela livre
+  const handleDragPositionFromCard = useCallback((target: 'headline' | 'body' | 'accentBar' | 'badge' | 'sticker' | 'card', x: number, y: number) => {
+    setHasCustomLayout(true);
+    if (snapToGrid) {
+      // Encaixar na célula mais próxima
+      const best = GRID_POSITIONS_WB.reduce((b, cell) => {
+        const d = Math.hypot(x - cell.cx, y - cell.cy);
+        const bd = Math.hypot(x - b.cx, y - b.cy);
+        return d < bd ? cell : b;
+      }, GRID_POSITIONS_WB[0]);
+      setLayoutSettings((prev) => ({
+        ...prev,
+        [target]: { ...prev[target], position: best.position, freePosition: undefined },
+      }));
+    } else {
+      // Posição livre em %
+      setLayoutSettings((prev) => ({
+        ...prev,
+        [target]: { ...prev[target], freePosition: { x, y } },
+      }));
+    }
+  },
     [snapToGrid]
   );
 
@@ -484,15 +571,14 @@ export default function WorkbenchRefactored({
   }, [variation.layout]);
 
   // Handler para resize das alças de texto (PostCard → onResizeBlock)
-  // Salva a nova largura em % no LayoutPosition correspondente
-  const handleResizeBlock = useCallback(
-    (target: 'headline' | 'body' | 'accentBar', width: number) => {
-      setHasCustomLayout(true);
-      setLayoutSettings((prev) => ({
-        ...prev,
-        [target]: { ...prev[target], width },
-      }));
-    },
+  // Manipulador para redimensionamento diretamente do card via Pinch (apenas width por enquanto)
+  const handleResizeBlock = useCallback((target: 'headline' | 'body' | 'accentBar' | 'badge' | 'sticker' | 'card', width: number) => {
+    setHasCustomLayout(true);
+    setLayoutSettings((prev) => ({
+      ...prev,
+      [target]: { ...prev[target], width },
+    }));
+  },
     []
   );
 
@@ -711,6 +797,92 @@ export default function WorkbenchRefactored({
         />
       </div>
 
+      {/* --- INSERIDO: Controles de Tipografia e Cor (movidos do Design) --- */}
+      <div className="pt-4 mt-2 border-t border-white/10 space-y-4">
+        {/* Fontes */}
+        <div className="space-y-3">
+          <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 block font-semibold flex items-center gap-1.5">
+            <Type size={11} className="text-[#a855f7]" /> Tipografia
+          </label>
+          <FontDropdown
+            value={variation.headlineFontFamily || (customTokens?.typography.fontFamily) || variation.designTokens?.typography?.fontFamily || DEFAULT_DESIGN_TOKENS.typography.fontFamily}
+            onChange={(val: string) => updateVariation({ headlineFontFamily: val })}
+            label="Fonte do Título"
+          />
+          <FontDropdown
+            value={variation.bodyFontFamily || (customTokens?.typography.fontFamily) || variation.designTokens?.typography?.fontFamily || DEFAULT_DESIGN_TOKENS.typography.fontFamily}
+            onChange={(val: string) => updateVariation({ bodyFontFamily: val })}
+            label="Fonte do Corpo"
+          />
+        </div>
+
+        {/* Cor do Texto */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">
+              Cor do Texto
+            </label>
+            <div className="flex rounded-lg overflow-hidden border border-white/10">
+              {(['both', 'headline', 'body'] as const).map((scope) => (
+                <button
+                  key={scope}
+                  onClick={() => setTextColorScope(scope)}
+                  className="flex-1 py-1.5 min-h-[44px] text-[10px] font-medium transition-colors"
+                  style={{
+                    background: textColorScope === scope ? accentColor : 'transparent',
+                    color: textColorScope === scope ? '#fff' : 'var(--text-tertiary)',
+                    borderRight: scope !== 'body' ? '1px solid rgba(255,255,255,0.1)' : undefined,
+                  }}
+                >
+                  {scope === 'both' ? 'Ambos' : scope === 'headline' ? 'Título' : 'Corpo'}
+                </button>
+              ))}
+            </div>
+          </div>
+          {(() => {
+            const colorValue =
+              textColorScope === 'headline'
+                ? (variation.headlineColor ?? variation.textColor)
+                : textColorScope === 'body'
+                  ? (variation.bodyColor ?? variation.textColor)
+                  : variation.textColor;
+
+            const handleColorChange = (value: string) => {
+              if (textColorScope === 'headline') {
+                updateVariation({ headlineColor: value });
+              } else if (textColorScope === 'body') {
+                updateVariation({ bodyColor: value });
+              } else {
+                updateVariation({ textColor: value, headlineColor: undefined, bodyColor: undefined });
+              }
+            };
+
+            return (
+              <div className="flex gap-2 items-center">
+                <input
+                  type="color"
+                  value={colorValue}
+                  onChange={(e) => handleColorChange(e.target.value)}
+                  className="w-11 h-11 min-w-[44px] rounded-lg cursor-pointer border-0 p-0"
+                />
+                <input
+                  type="text"
+                  value={colorValue}
+                  onChange={(e) => handleColorChange(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-xl text-xs font-mono uppercase"
+                  style={{
+                    background: 'var(--bg-void)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+      {/* ------------------------------------------------------------------- */}
+
       {/* Botão Otimizar com IA */}
       <button
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all"
@@ -792,44 +964,6 @@ export default function WorkbenchRefactored({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Architect 2.0 Text Properties */}
-      <AnimatePresence>
-        {isArchitect && selectedTextId && variation.textElements && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="pt-4 border-t border-white/10"
-          >
-            <div className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <Sparkles size={12} className="text-[#a855f7]" />
-              Edição Livre
-            </div>
-            {(() => {
-              const selectedEl = variation.textElements.find(el => el.id === selectedTextId);
-              if (!selectedEl) return null;
-
-              const handlePropertyChange = (prop: string, val: string) => {
-                const newElements = variation.textElements!.map(el =>
-                  el.id === selectedTextId
-                    ? { ...el, styles: { ...el.styles, [prop]: val } }
-                    : el
-                );
-                updateVariation({ textElements: newElements });
-              };
-
-              return (
-                <AdvancedTextPropertyBar
-                  styles={selectedEl.styles}
-                  onChange={handlePropertyChange}
-                  accentColor={accentColor}
-                />
-              );
-            })()}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 
@@ -862,6 +996,22 @@ export default function WorkbenchRefactored({
   const renderDesignSection = () => (
     <div className="space-y-3">
       {renderBgScopeSelector()}
+
+      {/* Identidade Visual Extraída / Chameleon */}
+      <div className="pt-2 pb-4 mb-4 border-b border-white/10">
+        <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-3 flex items-center gap-1.5 font-semibold">
+          <Sparkles size={11} className="text-[#a855f7]" />
+          Estilo & Identidade
+        </label>
+        <ChameleonPanel
+          tokens={(customTokens || variation.designTokens || DEFAULT_DESIGN_TOKENS) as DesignTokens}
+          onChange={handleTokensChange}
+          variation={variation}
+          onUpdateVariation={updateVariation}
+          activeTarget={layoutTarget}
+        />
+      </div>
+
       <div>
         <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 block">
           Cor de Fundo
@@ -880,96 +1030,6 @@ export default function WorkbenchRefactored({
             />
           ))}
         </div>
-      </div>
-
-      <div>
-        <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 block">
-          Prévia
-        </label>
-        <div
-          className="h-12 rounded-xl flex items-center justify-center gap-3 px-3"
-          style={{ background: variation.backgroundColor }}
-        >
-          <span
-            className="text-sm font-bold"
-            style={{ color: variation.headlineColor ?? variation.textColor }}
-          >
-            T
-          </span>
-          <span
-            className="text-xs opacity-80"
-            style={{ color: variation.bodyColor ?? variation.textColor }}
-          >
-            Aa
-          </span>
-        </div>
-      </div>
-
-      {/* Cor do Texto — sempre visível */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">
-            Cor do Texto
-          </label>
-          {/* Seletor de escopo: Título / Corpo / Ambos */}
-          <div className="flex rounded-lg overflow-hidden border border-white/10">
-            {(['both', 'headline', 'body'] as const).map((scope) => (
-              <button
-                key={scope}
-                onClick={() => setTextColorScope(scope)}
-                className="flex-1 py-1.5 min-h-[44px] text-[10px] font-medium transition-colors"
-                style={{
-                  background: textColorScope === scope ? accentColor : 'transparent',
-                  color: textColorScope === scope ? '#fff' : 'var(--text-tertiary)',
-                  borderRight: scope !== 'body' ? '1px solid rgba(255,255,255,0.1)' : undefined,
-                }}
-              >
-                {scope === 'both' ? 'Ambos' : scope === 'headline' ? 'Título' : 'Corpo'}
-              </button>
-            ))}
-          </div>
-        </div>
-        {(() => {
-          const colorValue =
-            textColorScope === 'headline'
-              ? (variation.headlineColor ?? variation.textColor)
-              : textColorScope === 'body'
-                ? (variation.bodyColor ?? variation.textColor)
-                : variation.textColor;
-
-          const handleColorChange = (value: string) => {
-            if (textColorScope === 'headline') {
-              updateVariation({ headlineColor: value });
-            } else if (textColorScope === 'body') {
-              updateVariation({ bodyColor: value });
-            } else {
-              // Ambos: reseta cores independentes e aplica textColor global
-              updateVariation({ textColor: value, headlineColor: undefined, bodyColor: undefined });
-            }
-          };
-
-          return (
-            <div className="flex gap-2 items-center">
-              <input
-                type="color"
-                value={colorValue}
-                onChange={(e) => handleColorChange(e.target.value)}
-                className="w-11 h-11 min-w-[44px] rounded-lg cursor-pointer border-0 p-0"
-              />
-              <input
-                type="text"
-                value={colorValue}
-                onChange={(e) => handleColorChange(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl text-xs font-mono uppercase"
-                style={{
-                  background: 'var(--bg-void)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  color: 'var(--text-primary)',
-                }}
-              />
-            </div>
-          );
-        })()}
       </div>
 
       {/* Cor de Destaque — sempre visível */}
@@ -1118,23 +1178,22 @@ export default function WorkbenchRefactored({
 
           <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/10">
             <button
-              onClick={() => { }}
-              disabled={true}
-              className={`flex-1 py-1.5 flex items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-all opacity-40 cursor-not-allowed text-white/40`}
+              onClick={() => setImageProvider('pollinations_fast')}
+              className={`flex-1 py-1.5 flex items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-all ${imageProvider === 'pollinations_fast'
+                ? 'bg-white/10 text-white shadow-sm'
+                : 'text-white/40 hover:text-white/60'
+                }`}
             >
-              Pollinations
-              <span className="text-[8px] bg-white/10 px-1 py-0.5 rounded uppercase tracking-wider">
-                Em breve
-              </span>
+              Básico (Rápido)
             </button>
             <button
-              onClick={() => setImageProvider('gemini')}
-              className={`flex-1 py-1.5 flex items-center justify-center rounded-md text-[10px] font-medium transition-all ${imageProvider === 'gemini'
+              onClick={() => setImageProvider('pollinations_hd')}
+              className={`flex-1 py-1.5 flex items-center justify-center rounded-md text-[10px] font-medium transition-all ${imageProvider === 'pollinations_hd'
                 ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-[#ffd700] border border-[#ffd700]/20'
                 : 'text-white/40 hover:text-white/60'
                 }`}
             >
-              Nano Banana Pro
+              Pro (Avançado)
             </button>
           </div>
         </>
@@ -1155,136 +1214,143 @@ export default function WorkbenchRefactored({
         </div>
       )}
 
-      <AnimatePresence>
-        {isArchitect && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="space-y-2 overflow-hidden"
-          >
-            {/* Calibração Visual */}
-            <div className="pt-2">
-              <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 block">
-                Calibração Visual
-              </label>
-              <div className="space-y-2">
-                <PrecisionSlider
-                  label="Zoom"
-                  value={imageSettings.zoom}
-                  min={0.5}
-                  max={3}
-                  step={0.05}
-                  formatValue={(v) => `${v.toFixed(2)}×`}
-                  onChange={(v) => updateImageSetting('zoom', v)}
-                />
-                <PrecisionSlider
-                  label="Brilho"
-                  value={imageSettings.brightness}
-                  min={0}
-                  max={2}
-                  step={0.05}
-                  formatValue={(v) => `${Math.round(v * 100)}%`}
-                  onChange={(v) => updateImageSetting('brightness', v)}
-                />
-                <PrecisionSlider
-                  label="Contraste"
-                  value={imageSettings.contrast}
-                  min={0}
-                  max={2}
-                  step={0.05}
-                  formatValue={(v) => `${Math.round(v * 100)}%`}
-                  onChange={(v) => updateImageSetting('contrast', v)}
-                />
-                <PrecisionSlider
-                  label="Saturação"
-                  value={imageSettings.saturation}
-                  min={0}
-                  max={2}
-                  step={0.05}
-                  formatValue={(v) => `${Math.round(v * 100)}%`}
-                  onChange={(v) => updateImageSetting('saturation', v)}
-                />
-                <PrecisionSlider
-                  label="Blur"
-                  value={imageSettings.blur}
-                  min={0}
-                  max={20}
-                  step={0.5}
-                  formatValue={(v) => `${v}px`}
-                  onChange={(v) => updateImageSetting('blur', v)}
-                />
-              </div>
-            </div>
+      {/* Calibração Visual */}
+      <div className="pt-4 mt-2 border-t border-white/10">
+        <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 block">
+          Calibração Visual da Imagem
+        </label>
+        <div className="space-y-2">
+          <PrecisionSlider
+            label="Zoom"
+            value={imageSettings.zoom}
+            min={0.5}
+            max={3}
+            step={0.05}
+            formatValue={(v) => `${v.toFixed(2)}×`}
+            onChange={(v) => updateImageSetting('zoom', v)}
+          />
+          <PrecisionSlider
+            label="Brilho"
+            value={imageSettings.brightness}
+            min={0}
+            max={2}
+            step={0.05}
+            formatValue={(v) => `${Math.round(v * 100)}%`}
+            onChange={(v) => updateImageSetting('brightness', v)}
+          />
+          <PrecisionSlider
+            label="Contraste"
+            value={imageSettings.contrast}
+            min={0}
+            max={2}
+            step={0.05}
+            formatValue={(v) => `${Math.round(v * 100)}%`}
+            onChange={(v) => updateImageSetting('contrast', v)}
+          />
+          <PrecisionSlider
+            label="Pan X"
+            value={imageSettings.panX}
+            min={0}
+            max={100}
+            step={1}
+            formatValue={(v) => `${v}%`}
+            onChange={(v) => updateImageSetting('panX', v)}
+          />
+          <PrecisionSlider
+            label="Pan Y"
+            value={imageSettings.panY}
+            min={0}
+            max={100}
+            step={1}
+            formatValue={(v) => `${v}%`}
+            onChange={(v) => updateImageSetting('panY', v)}
+          />
+          <PrecisionSlider
+            label="Saturação"
+            value={imageSettings.saturation}
+            min={0}
+            max={2}
+            step={0.05}
+            formatValue={(v) => `${Math.round(v * 100)}%`}
+            onChange={(v) => updateImageSetting('saturation', v)}
+          />
+          <PrecisionSlider
+            label="Blur"
+            value={imageSettings.blur}
+            min={0}
+            max={20}
+            step={0.5}
+            formatValue={(v) => `${v}px`}
+            onChange={(v) => updateImageSetting('blur', v)}
+          />
+        </div>
+      </div>
 
-            {/* Sobreposição */}
-            <div className="pt-2">
-              <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 block">
-                Sobreposição
-              </label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="color"
-                  value={imageSettings.overlayColor}
-                  onChange={(e) => updateImageSetting('overlayColor', e.target.value)}
-                  className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0"
-                />
-                <input
-                  type="text"
-                  value={imageSettings.overlayColor}
-                  onChange={(e) => updateImageSetting('overlayColor', e.target.value)}
-                  className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-mono uppercase"
-                  style={{
-                    background: 'var(--bg-void)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    color: 'var(--text-primary)',
-                  }}
-                />
-              </div>
-              <PrecisionSlider
-                label="Opacidade"
-                value={imageSettings.overlayOpacity}
-                min={0}
-                max={1}
-                step={0.05}
-                formatValue={(v) => `${Math.round(v * 100)}%`}
-                onChange={(v) => updateImageSetting('overlayOpacity', v)}
-              />
-            </div>
+      {/* Sobreposição */}
+      <div className="pt-2">
+        <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 block">
+          Sobreposição da Imagem
+        </label>
+        <div className="flex gap-2 mb-2">
+          <input
+            type="color"
+            value={imageSettings.overlayColor}
+            onChange={(e) => updateImageSetting('overlayColor', e.target.value)}
+            className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0"
+          />
+          <input
+            type="text"
+            value={imageSettings.overlayColor}
+            onChange={(e) => updateImageSetting('overlayColor', e.target.value)}
+            className="flex-1 px-2 py-1.5 rounded-lg text-[10px] font-mono uppercase"
+            style={{
+              background: 'var(--bg-void)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              color: 'var(--text-primary)',
+            }}
+          />
+        </div>
+        <PrecisionSlider
+          label="Opacidade do Filtro"
+          value={imageSettings.overlayOpacity}
+          min={0}
+          max={1}
+          step={0.05}
+          formatValue={(v) => `${Math.round(v * 100)}%`}
+          onChange={(v) => updateImageSetting('overlayOpacity', v)}
+        />
+      </div>
 
-            {/* Blend Modes */}
-            <div className="pt-2">
-              <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 block">
-                Blend Mode
-              </label>
-              <div className="grid grid-cols-3 gap-1">
-                {[
-                  { value: 'normal', label: 'Normal', icon: '◯' },
-                  { value: 'multiply', label: 'Mult', icon: '✕' },
-                  { value: 'screen', label: 'Screen', icon: '◻' },
-                  { value: 'overlay', label: 'Overlay', icon: '◎' },
-                  { value: 'darken', label: 'Dark', icon: '◐' },
-                  { value: 'lighten', label: 'Light', icon: '◑' },
-                ].map((bm) => (
-                  <button
-                    key={bm.value}
-                    onClick={() => updateImageSetting('blendMode', bm.value as ImageSettings['blendMode'])}
-                    className="flex flex-col items-center gap-0.5 p-1.5 rounded-lg text-[9px] transition-all"
-                    style={{
-                      background: imageSettings.blendMode === bm.value ? `${accentColor}15` : 'var(--bg-void)',
-                      color: imageSettings.blendMode === bm.value ? accentColor : 'var(--text-tertiary)',
-                      border: `1px solid ${imageSettings.blendMode === bm.value ? `${accentColor}30` : 'rgba(255, 255, 255, 0.06)'}`,
-                    }}
-                  >
-                    <span className="text-sm">{bm.icon}</span>
-                    <span>{bm.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Blend Modes */}
+      <div className="pt-2 pb-2">
+        <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 block">
+          Blend Mode
+        </label>
+        <div className="grid grid-cols-3 gap-1">
+          {[
+            { value: 'normal', label: 'Normal', icon: '◯' },
+            { value: 'multiply', label: 'Mult', icon: '✕' },
+            { value: 'screen', label: 'Screen', icon: '◻' },
+            { value: 'overlay', label: 'Overlay', icon: '◎' },
+            { value: 'darken', label: 'Dark', icon: '◐' },
+            { value: 'lighten', label: 'Light', icon: '◑' },
+          ].map((bm) => (
+            <button
+              key={bm.value}
+              onClick={() => updateImageSetting('blendMode', bm.value as ImageSettings['blendMode'])}
+              className="flex flex-col items-center gap-0.5 p-1.5 rounded-lg text-[9px] transition-all"
+              style={{
+                background: imageSettings.blendMode === bm.value ? `${accentColor}15` : 'var(--bg-void)',
+                color: imageSettings.blendMode === bm.value ? accentColor : 'var(--text-tertiary)',
+                border: `1px solid ${imageSettings.blendMode === bm.value ? `${accentColor}30` : 'rgba(255, 255, 255, 0.06)'}`,
+              }}
+            >
+              <span className="text-sm">{bm.icon}</span>
+              <span>{bm.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 
@@ -1522,6 +1588,90 @@ export default function WorkbenchRefactored({
     </div>
   );
 
+  const renderAdvancedSection = () => (
+    <div className="space-y-3">
+      {/* Botão Ajustar com IA */}
+      <div className="mb-4">
+        <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <Sparkles size={11} className="text-[#a855f7]" /> Ajuste de Mestre
+        </label>
+        <button
+          onClick={handleAutoPilotDesign}
+          disabled={isAutoPiloting}
+          className="w-full relative group overflow-hidden rounded-xl p-[1px] transition-all duration-300"
+        >
+          {/* Animated gradient border */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#a855f7] via-[#ec4899] to-[#a855f7] rounded-xl opacity-70 group-hover:opacity-100 transition-opacity bg-[length:200%_auto] animate-gradient" />
+
+          <div className="relative flex items-center justify-center gap-2 w-full px-4 py-3 bg-[var(--bg-card)] rounded-[11px] hover:bg-black/20 transition-colors">
+            {isAutoPiloting ? (
+              <Loader2 size={16} className="text-white animate-spin" />
+            ) : (
+              <Eye size={16} className="text-white group-hover:text-white transition-colors" />
+            )}
+            <span className="text-xs font-semibold text-white">
+              {isAutoPiloting ? 'Calibrando Visual...' : 'Ajustar com IA (Visual)'}
+            </span>
+          </div>
+        </button>
+        <p className="text-[9px] text-[var(--text-tertiary)] mt-2 leading-relaxed text-center px-2">
+          A IA analisa o post renderizado e faz correções milimétricas de contraste e alinhamento para você.
+        </p>
+      </div>
+
+      {/* Architect 2.0 Text Properties */}
+      <AnimatePresence>
+        {isArchitect && selectedTextId && variation.textElements && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="pt-4 border-t border-white/10"
+          >
+            <div className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Sparkles size={12} className="text-[#a855f7]" />
+              Edição Livre
+            </div>
+            {(() => {
+              const selectedEl = variation.textElements!.find(el => el.id === selectedTextId);
+              if (!selectedEl) return null;
+
+              const handlePropertyChange = (prop: string, val: string) => {
+                const newElements = variation.textElements!.map(el =>
+                  el.id === selectedTextId
+                    ? { ...el, styles: { ...el.styles, [prop]: val } }
+                    : el
+                );
+                updateVariation({ textElements: newElements });
+              };
+
+              return (
+                <AdvancedTextPropertyBar
+                  styles={selectedEl.styles}
+                  onChange={handlePropertyChange}
+                  accentColor={accentColor}
+                />
+              );
+            })()}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Chameleon / Tokens Manager */}
+      <div className="pt-4 border-t border-white/10 mt-4">
+        <div className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <Palette size={12} className="text-[#a855f7]" />
+          Design Tokens
+        </div>
+        <ChameleonPanel
+          onChange={handleTokensChange}
+          tokens={customTokens || (variation.designTokens ? { ...DEFAULT_DESIGN_TOKENS, ...variation.designTokens } as DesignTokens : DEFAULT_DESIGN_TOKENS)}
+        />
+      </div>
+
+    </div>
+  );
+
   // ========== LAYOUT PRINCIPAL ==========
 
   // Sidebar com seções colapsáveis
@@ -1580,6 +1730,16 @@ export default function WorkbenchRefactored({
           accentColor={accentColor}
         >
           {renderCompositionSection()}
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Avançado"
+          icon={<Settings size={16} />}
+          isExpanded={expandedSection === 'advanced'}
+          onToggle={() => toggleSection('advanced')}
+          accentColor={accentColor}
+        >
+          {renderAdvancedSection()}
         </CollapsibleSection>
       </div>
 
@@ -1745,6 +1905,8 @@ export default function WorkbenchRefactored({
               imageSettings={imageSettings}
               advancedLayout={layoutSettings}
               forceVariationColors={true}
+              designTokens={(customTokens || variation.designTokens) as DesignTokens}
+              brandMeta={(activeTheme as any)?.brandMeta || (variation as any).brandMeta}
               onDragPosition={isArchitect ? handleDragPositionFromCard : undefined}
               onResizeBlock={isArchitect ? handleResizeBlock : undefined}
               snapEnabled={isArchitect ? snapToGrid : undefined}
@@ -2112,6 +2274,7 @@ export default function WorkbenchRefactored({
               { id: 'design' as TabId, Icon: Palette, label: 'Design' },
               { id: 'image' as TabId, Icon: ImagePlus, label: 'Imagem' },
               { id: 'composition' as TabId, Icon: Layout, label: 'Layout' },
+              ...(isArchitect ? [{ id: 'advanced' as TabId, Icon: Settings, label: 'Avançado' }] : []),
             ].map(({ id, Icon, label }) => (
               <button
                 key={id}
@@ -2139,7 +2302,8 @@ export default function WorkbenchRefactored({
               expandedSection === 'text' ? 'Editar Textos' :
                 expandedSection === 'design' ? 'Estilo & Cores' :
                   expandedSection === 'image' ? 'Mídia & Fundo' :
-                    expandedSection === 'composition' ? 'Composição Vertical' : ''
+                    expandedSection === 'composition' ? 'Composição Vertical' :
+                      expandedSection === 'advanced' ? 'Configurações Avançadas' : ''
             }
           >
             <div className="flex flex-col gap-6 pb-12">
@@ -2147,6 +2311,7 @@ export default function WorkbenchRefactored({
               {expandedSection === 'design' && renderDesignSection()}
               {expandedSection === 'image' && renderImageSection()}
               {expandedSection === 'composition' && renderCompositionSection()}
+              {expandedSection === 'advanced' && renderAdvancedSection()}
             </div>
           </MobileEditSheet>
         </div>

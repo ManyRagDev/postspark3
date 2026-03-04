@@ -8,7 +8,9 @@
 - **Font Size Control:** Multiplicadores `headlineFontSize` e `bodyFontSize` no `PostVariation`; sliders no Workbench ajustam tamanho via `calc()`.
 - **Princípios de Design (guia_design.md):** systemPrompt enriquecido com hierarquia 3:2:1, layout inteligente, psicologia das cores e contraste WCAG. Helper `designRules.ts` com `validateDesignChecklist()`. Painel `DesignChecklistPanel` colapsável no Workbench.
 
-## Estrutura de Dados Atual
+## Estrutura de Dados e Serviços
+- **Screenshot Microservice (Railway):** Playwright isolado. Lógica de **Browser Pooling** (reuso de instância Chromium) e **Context Isolation** (um contexto por request). Sanitização automática de banners de cookies/GDPR e widgets de chat. Descoberta inteligente de links internos via `/discover`.
+- **LLM Engine (Robustez):** Implementada em `server/_core/llm.ts`. Uso primário de Gemini-1.5, com fallback automático para Groq (`llama-3.3-70b-versatile`) quando necessário, incluindo stripping de conteúdo multimodal (imagens) não suportado pelo fallback.
 - Projeto Supabase: `Brincar / PostSpark` (ref: `spbuwcwmxlycchuwhfir`)
 - Schema principal: `postspark` (isolado de `brincareducando`)
 - Banco de Dados definido em código: PostgreSQL (Drizzle ORM)

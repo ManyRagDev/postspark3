@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline } from 'lucide-react';
+import { FontDropdown } from './FontDropdown';
 
 interface AdvancedTextPropertyBarProps {
     styles: {
@@ -28,19 +29,11 @@ export const AdvancedTextPropertyBar: React.FC<AdvancedTextPropertyBarProps> = (
             style={{ minHeight: '48px' }}
         >
             {/* Font Family */}
-            <div className="flex items-center gap-2">
-                <select
+            <div className="flex items-center gap-2 min-w-[150px]">
+                <FontDropdown
                     value={styles.fontFamily}
-                    onChange={(e) => onChange('fontFamily', e.target.value)}
-                    className="bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-[#a855f7] transition-colors"
-                    style={{ '--tw-ring-color': accentColor } as React.CSSProperties}
-                >
-                    <option value="Inter, sans-serif">Inter</option>
-                    <option value="Roboto, sans-serif">Roboto</option>
-                    <option value="Playfair Display, serif">Playfair</option>
-                    <option value="Montserrat, sans-serif">Montserrat</option>
-                    <option value="Oswald, sans-serif">Oswald</option>
-                </select>
+                    onChange={(val) => onChange('fontFamily', val)}
+                />
             </div>
 
             <div className="w-px h-5 bg-white/10" />

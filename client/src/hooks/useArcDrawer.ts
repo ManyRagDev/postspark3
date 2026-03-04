@@ -8,7 +8,7 @@
 import { useState, useCallback, useEffect } from 'react';
 
 /** IDs das seções/panels disponíveis */
-export type TabId = 'text' | 'design' | 'image' | 'composition';
+export type TabId = 'text' | 'design' | 'image' | 'composition' | 'advanced';
 
 export type DrawerHeight = 'closed' | 'compact' | 'expanded';
 

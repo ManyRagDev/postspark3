@@ -1,6 +1,110 @@
 /** Input type detection */
 export type InputType = "text" | "url" | "image";
 
+// ─── Chameleon Engine: Design Tokens ──────────────────────────────────────────
+
+/**
+ * CSS-level design tokens — the "Motor Camaleão" runtime values.
+ * Extracted directly from website screenshots via Chameleon Vision,
+ * or converted from legacy ThemeConfig via themeToDesignTokens().
+ * These are CSS-ready values — no abstraction layers needed.
+ */
+export interface DesignTokens {
+  colors: {
+    background: string;  // Post background (HEX)
+    primary: string;     // CTA / accent / highlight (HEX)
+    secondary: string;   // Supporting elements (HEX)
+    text: string;        // Main text (HEX)
+    card: string;        // Card/surface background (HEX)
+  };
+  typography: {
+    fontFamily: string;       // Active Google Fonts name (e.g. "Playfair Display")
+    customFontUrl: string;    // Custom Google Fonts URL (overrides fontFamily when set)
+    originalFont: string;     // Font detected from source site by AI
+    textTransform: 'none' | 'uppercase';
+    textAlign: 'left' | 'center';
+  };
+  structure: {
+    borderRadius: string;  // CSS value: "0px", "8px", "16px", "24px", "40px"
+    boxShadow: string;     // CSS value: "none", "0 10px 25px rgba(0,0,0,0.1)", etc.
+    border: string;        // CSS value: "none", "1px solid rgba(0,0,0,0.1)", etc.
+  };
+  decorations: 'minimal' | 'playful';
+}
+
+/** Default design tokens (fallback) */
+export const DEFAULT_DESIGN_TOKENS: DesignTokens = {
+  colors: {
+    background: '#1a1a2e',
+    primary: '#a855f7',
+    secondary: '#f0f5f2',
+    text: '#ffffff',
+    card: '#242a26',
+  },
+  typography: {
+    fontFamily: 'Inter',
+    customFontUrl: '',
+    originalFont: '',
+    textTransform: 'none',
+    textAlign: 'left',
+  },
+  structure: {
+    borderRadius: '16px',
+    boxShadow: 'none',
+    border: 'none',
+  },
+  decorations: 'minimal',
+};
+
+// ─── Copy Angles ──────────────────────────────────────────────────────────────
+
+/** Named copywriting angle for post variations */
+export type CopyAngleType = 'dor' | 'beneficio' | 'objecao' | 'autoridade' | 'escassez' | 'storytelling' | 'mito_vs_verdade';
+
+/** Copy angle metadata attached to each variation */
+export interface CopyAngle {
+  type: CopyAngleType;
+  label: string;        // Display label, e.g. "Foco na Dor"
+  badge: string;        // Short brand badge shown on card (e.g. "Cozinha IA")
+  stickerText: string;  // Decorative sticker word (e.g. "Magia", "Prático")
+}
+
+/** Labels for copy angle types */
+export const COPY_ANGLE_LABELS: Record<CopyAngleType, string> = {
+  dor: 'Foco na Dor',
+  beneficio: 'Foco no Benefício',
+  objecao: 'Foco em Objeção',
+  autoridade: 'Autoridade',
+  escassez: 'Escassez',
+  storytelling: 'Storytelling',
+  mito_vs_verdade: 'Mito vs Verdade',
+};
+
+/**
+ * Card visual style — defines the structural appearance of post cards.
+ * Propagated through the full pipeline: Vision LLM → BrandDNA → TemporaryTheme → ThemeRenderer.
+ */
+export type CardStyle =
+  | 'neobrutalist'  // Thick solid border, hard offset shadow, flat color, bold type
+  | 'glass'         // Backdrop blur, semi-transparent surface, soft glow border
+  | 'minimal'       // No border, no shadow, maximum whitespace, typography-led
+  | 'editorial'     // Top accent rule, serif hierarchy, print-like structure
+  | 'flat';         // Flat solid colors, no shadows, subtle or no borders (default)
+
+/**
+ * Post template — determines the visual layout structure of the post content.
+ * AI selects the appropriate template based on content type.
+ */
+export type PostTemplate = 'simple' | 'feature-grid' | 'numbered-list' | 'step-by-step';
+
+/** A single content section within a structured post template */
+export interface ContentSection {
+  icon?: string;         // Lucide icon name (e.g., 'Users', 'Star', 'Zap')
+  label: string;         // Short title (e.g., "Conexões reais")
+  description?: string;  // Supporting text
+  number?: number;       // For numbered items
+}
+
 /** AI Model selection */
 export type AiModel = "gemini" | "llama";
 
@@ -128,6 +232,11 @@ export interface FormatOptimization {
   accentColor: string;
   headlineFontSize?: number;
   bodyFontSize?: number;
+  padding?: number;
+  /** Sugestões granulares para elementos específicos */
+  headline?: { x?: number; y?: number; width?: number; textAlign?: 'left' | 'center' | 'right'; backgroundColor?: string; borderRadius?: number };
+  body?: { x?: number; y?: number; width?: number; textAlign?: 'left' | 'center' | 'right'; backgroundColor?: string; borderRadius?: number };
+  card?: { x?: number; y?: number; width?: number; textAlign?: 'left' | 'center' | 'right'; backgroundColor?: string; borderRadius?: number };
 }
 
 /** A single generated post variation */
@@ -152,6 +261,10 @@ export interface PostVariation {
   headlineFontSize?: number;
   /** Multiplicador de tamanho do corpo (default: 1) */
   bodyFontSize?: number;
+  /** Família tipográfica específica para o título. Se ausente, herda fontFamily global ou designTokens. */
+  headlineFontFamily?: string;
+  /** Família tipográfica específica para o corpo. Se ausente, herda fontFamily global ou designTokens. */
+  bodyFontFamily?: string;
   accentColor: string;
   layout: "centered" | "left-aligned" | "split" | "minimal";
   aspectRatio?: AspectRatio;
@@ -160,8 +273,12 @@ export interface PostVariation {
   /** Posição da imagem no layout Bipartido. 'top' = imagem em cima (padrão), 'bottom' = imagem embaixo. */
   splitImagePosition?: 'top' | 'bottom';
 
+  /** Structured content template — determines rich layout (feature grid, numbered list, etc.) */
+  template?: PostTemplate;
+  /** Structured content sections for rich templates */
+  sections?: ContentSection[];
 
-  /** 
+  /**
    * Array de elementos de texto avançados (Architect 2.0).
    * Coexiste com headline/body para transição e compatibilidade.
    */
@@ -186,11 +303,17 @@ export interface PostVariation {
     };
   }>;
 
-  /** 
+  /**
    * AI-generated optimizations for alternate aspect ratios.
    * Allows the UI to suggest specific layouts/colors when switching formats.
    */
   aspectRatioOptimizations?: Partial<Record<AspectRatio, FormatOptimization>>;
+
+  /** Copy angle metadata — defines the persuasion angle of this variation */
+  copyAngle?: CopyAngle;
+
+  /** Design tokens override — when set, these drive the visual rendering directly */
+  designTokens?: Partial<DesignTokens>;
 }
 
 /** App state machine */
@@ -353,6 +476,8 @@ export interface TemporaryTheme {
     borderStyle: 'square' | 'rounded' | 'pill';
     decoration: 'none' | 'noise' | 'glitch' | 'grid';
     padding: string;
+    /** Visual card style derived from the site's design language */
+    cardStyle?: CardStyle;
   };
   effects?: {
     glitch?: boolean;
@@ -360,6 +485,15 @@ export interface TemporaryTheme {
     noise?: boolean;
     grid?: boolean;
   };
+  /** Brand identity metadata — logo, name, favicon for overlay rendering */
+  brandMeta?: {
+    logoUrl?: string;
+    brandName?: string;
+    favicon?: string;
+  };
+
+  /** CSS-level design tokens — direct rendering values from Chameleon Vision */
+  designTokens?: DesignTokens;
 }
 
 /** Result from style extraction endpoint */
@@ -435,6 +569,8 @@ export interface BrandDNA {
     borderRadius: BorderRadiusStyle;
     padding: PaddingStyle;
     preferredAlignment: 'left' | 'center' | 'right';
+    /** Visual card style detected from the site's design language */
+    cardStyle: CardStyle;
   };
 
   effects: {
@@ -498,4 +634,59 @@ export interface PostEvaluation {
 /** Result from the evaluateQuality endpoint */
 export interface PostQualityResult {
   evaluations: PostEvaluation[];  // One per variation
+}
+
+// ─── Chameleon Vision Result ──────────────────────────────────────────────────
+
+/**
+ * Raw result from the Chameleon Vision AI call.
+ * Flat structure matching the JSON schema sent to Gemini Vision.
+ * Use `chameleonResultToDesignTokens()` to convert to DesignTokens.
+ */
+export interface ChameleonVisionResult {
+  colors: {
+    background: string;
+    primary: string;
+    secondary: string;
+    text: string;
+    card: string;
+  };
+  designTokens: {
+    borderRadius: string;
+    boxShadow: string;
+    border: string;
+    textAlign: 'left' | 'center';
+    originalFont: string;
+    fontFamily: string;
+    textTransform: 'none' | 'uppercase';
+    decorations: 'minimal' | 'playful';
+  };
+  posts: Array<{
+    label: string;
+    angle: CopyAngleType;
+    badge: string;
+    headline: string;
+    subheadline: string;
+    stickerText: string;
+  }>;
+}
+
+/** Convert flat ChameleonVisionResult to structured DesignTokens */
+export function chameleonResultToDesignTokens(result: ChameleonVisionResult): DesignTokens {
+  return {
+    colors: result.colors,
+    typography: {
+      fontFamily: result.designTokens.fontFamily,
+      customFontUrl: '',
+      originalFont: result.designTokens.originalFont,
+      textTransform: result.designTokens.textTransform,
+      textAlign: result.designTokens.textAlign,
+    },
+    structure: {
+      borderRadius: result.designTokens.borderRadius,
+      boxShadow: result.designTokens.boxShadow,
+      border: result.designTokens.border,
+    },
+    decorations: result.designTokens.decorations,
+  };
 }

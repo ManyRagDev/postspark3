@@ -76,7 +76,7 @@ export default function BackgroundPicker({
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [aiPrompt, setAiPrompt] = useState(currentText ?? "");
-  const [imageProvider, setImageProvider] = useState<'pollinations' | 'gemini'>('gemini');
+  const [imageProvider, setImageProvider] = useState<'pollinations_fast' | 'pollinations_hd'>('pollinations_hd');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── tRPC ────────────────────────────────────────────────────────────────────
@@ -244,10 +244,10 @@ export default function BackgroundPicker({
         className="flex items-center gap-1 p-1 rounded-xl"
         style={{ background: "oklch(0.12 0.02 280)", border: "1px solid oklch(1 0 0 / 10%)" }}
       >
-        {(["pollinations", "gemini"] as const).map((provider) => {
+        {(["pollinations_fast", "pollinations_hd"] as const).map((provider) => {
           const isActive = imageProvider === provider;
-          const label = provider === "pollinations" ? "Rápido" : "Avançado";
-          const isDisabled = provider === "pollinations";
+          const label = provider === "pollinations_fast" ? "Rápido" : "Avançado";
+          const isDisabled = provider === "pollinations_fast";
 
           return (
             <button
@@ -273,7 +273,7 @@ export default function BackgroundPicker({
         })}
       </div>
       <p className="text-[10px]" style={{ color: "oklch(0.5 0.04 280)" }}>
-        {imageProvider === 'gemini'
+        {imageProvider === 'pollinations_hd'
           ? "Motor avançado — imagens detalhadas e realistas (mais lento)"
           : "Motor rápido — padrões abstratos e gradientes"}
       </p>

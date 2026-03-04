@@ -145,8 +145,7 @@ export default function Pricing() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-start py-16 px-4"
-      style={{ backgroundColor: "oklch(0.04 0.06 280)" }}
+      className="min-h-screen flex flex-col items-center justify-start py-16 px-4 bg-soul-deep"
     >
       {/* Back */}
       <button
@@ -165,8 +164,8 @@ export default function Pricing() {
         transition={{ duration: 0.6 }}
       >
         <div className="flex items-center justify-center gap-2 mb-3">
-          <Sparkles className="h-5 w-5" style={{ color: "oklch(0.7 0.22 40)" }} />
-          <span className="text-sm font-medium" style={{ color: "oklch(0.7 0.22 40)" }}>
+          <Sparkles className="h-5 w-5 text-thermal-orange" />
+          <span className="text-sm font-medium text-thermal-orange">
             Simples e transparente
           </span>
         </div>
@@ -180,8 +179,7 @@ export default function Pricing() {
 
       {/* Billing cycle toggle */}
       <motion.div
-        className="flex items-center gap-1 p-1 rounded-full mb-10"
-        style={{ backgroundColor: "oklch(0.1 0.02 280)" }}
+        className="flex items-center gap-1 p-1 rounded-full mb-10 bg-soul-base"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
@@ -190,21 +188,15 @@ export default function Pricing() {
           <button
             key={c}
             onClick={() => setCycle(c)}
-            className="px-5 py-2 text-sm font-medium rounded-full transition-all"
-            style={{
-              backgroundColor: cycle === c ? "oklch(0.7 0.22 40)" : "transparent",
-              color: cycle === c ? "#000" : "oklch(0.6 0.02 280)",
-            }}
+            className={`px-5 py-2 text-sm font-medium rounded-full transition-all ${cycle === c ? "bg-thermal-orange text-black" : "bg-transparent text-muted-foreground"
+              }`}
           >
             {c === "monthly" ? "Mensal" : (
               <span className="flex items-center gap-1.5">
                 Anual
                 <span
-                  className="px-1.5 py-0.5 rounded-full text-[10px] font-bold"
-                  style={{
-                    backgroundColor: cycle === "annual" ? "#00000020" : "oklch(0.7 0.22 40 / 20%)",
-                    color: cycle === "annual" ? "#000" : "oklch(0.7 0.22 40)",
-                  }}
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${cycle === "annual" ? "bg-black/20 text-black" : "bg-thermal-orange/20 text-thermal-orange"
+                    }`}
                 >
                   -{annualDiscount}%
                 </span>
@@ -229,23 +221,14 @@ export default function Pricing() {
             <motion.div
               key={plan.id}
               variants={cardVariants}
-              className="relative flex flex-col rounded-2xl border p-6"
-              style={{
-                backgroundColor: plan.highlighted
-                  ? "oklch(0.7 0.22 40 / 6%)"
-                  : "oklch(0.08 0.02 280)",
-                borderColor: plan.highlighted
-                  ? "oklch(0.7 0.22 40 / 45%)"
-                  : "oklch(1 0 0 / 8%)",
-                boxShadow: plan.highlighted
-                  ? "0 0 40px oklch(0.7 0.22 40 / 12%)"
-                  : undefined,
-              }}
+              className={`relative flex flex-col rounded-2xl border p-6 ${plan.highlighted
+                  ? "bg-thermal-orange/5 border-thermal-orange/45 shadow-[0_0_40px_rgba(255,165,0,0.12)]"
+                  : "bg-soul-base border-border"
+                }`}
             >
               {plan.highlighted && (
                 <div
-                  className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold"
-                  style={{ backgroundColor: "oklch(0.7 0.22 40)", color: "#000" }}
+                  className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold bg-thermal-orange text-black"
                 >
                   Mais popular
                 </div>
@@ -331,10 +314,10 @@ export default function Pricing() {
                 {isCurrentPlan
                   ? "Plano atual"
                   : plan.soon
-                  ? "Em breve"
-                  : plan.trial && profile?.plan === "FREE"
-                  ? "Iniciar trial grátis"
-                  : plan.cta}
+                    ? "Em breve"
+                    : plan.trial && profile?.plan === "FREE"
+                      ? "Iniciar trial grátis"
+                      : plan.cta}
               </button>
 
               {plan.trial && !plan.soon && (

@@ -158,6 +158,7 @@ export default function Workbench({
         {/* ── TEXTO ── */}
         {activeTab === "text" && (
           <>
+            {/* Desabilitado por pedido do usuário
             <Field label="Plataforma">
               <div className="flex gap-1.5 flex-wrap">
                 {PLATFORMS.map((p) => (
@@ -176,6 +177,7 @@ export default function Workbench({
                 ))}
               </div>
             </Field>
+            */}
             <Field label="Título">
               <input
                 type="text"
@@ -572,10 +574,10 @@ export default function Workbench({
           {/* Card container */}
           <motion.div
             className={`relative z-10 ${aspectRatio === "9:16"
-                ? "w-full max-w-[200px] md:max-w-[260px]"
-                : aspectRatio === "5:6"
-                  ? "w-full max-w-xs md:max-w-sm"
-                  : "w-full max-w-sm md:max-w-lg"
+              ? "w-full max-w-[200px] md:max-w-[260px]"
+              : aspectRatio === "5:6"
+                ? "w-full max-w-xs md:max-w-sm"
+                : "w-full max-w-sm md:max-w-lg"
               }`}
             initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}

@@ -1,13 +1,15 @@
 import { useState, useCallback, useEffect, useRef, type MutableRefObject } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
-import { ArrowLeft, Layers, Sparkles, ImagePlus, Loader2, Palette, LayoutGrid, AlignJustify, Globe, Check } from "lucide-react";
-import type { PostVariation, AspectRatio, TemporaryTheme } from "@shared/postspark";
+import { ArrowLeft, Layers, Sparkles, ImagePlus, Loader2, Palette, LayoutGrid, AlignJustify, Globe, Check, Settings2, PenTool } from "lucide-react";
+import type { PostVariation, AspectRatio, TemporaryTheme, DesignTokens } from "@shared/postspark";
 import { ASPECT_RATIO_LABELS } from "@shared/postspark";
 import OrganicBackground from "../OrganicBackground";
 import PostCard from "../PostCard";
 import RatioIcon from "../RatioIcon";
 import StyleSelector from "../StyleSelector";
+import CopyEditorPanel from "../CopyEditorPanel";
 import type { ThemeConfig } from "@/lib/themes";
+import { themeToDesignTokens } from "@/lib/themes";
 import { useAIProcessingStages, useCompletionFlash } from "@/hooks/useAIProcessingStages";
 
 const RATIOS: AspectRatio[] = ["1:1", "5:6", "9:16"];
@@ -23,6 +25,7 @@ interface HoloDeckProps {
 }
 
 type ViewMode = "peek" | "wallet";
+type SidebarTab = "presets" | "personalizar" | "copy";
 
 // ─── Mini pill: card não-ativo (peek mode) ───────────────────────────────────
 function CardPill({
@@ -302,7 +305,45 @@ export default function HoloDeck({
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
   const [isStyleSelectorOpen, setIsStyleSelectorOpen] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<ThemeConfig | undefined>(undefined);
+
+  const [customTokens, setCustomTokens] = useState<DesignTokens | undefined>(undefined);
+  const [localVariations, setLocalVariations] = useState<PostVariation[]>(variations);
   const isDragging = useRef(false);
+
+  // Sync localVariations when parent variations change (new generation)
+  useEffect(() => { setLocalVariations(variations); }, [variations]);
+
+  // Auto-populate customTokens from the first variation's designTokens (Chameleon Vision)
+  useEffect(() => {
+    if (!customTokens && variations.length > 0) {
+      const firstTokens = variations[0].designTokens as DesignTokens | undefined;
+      if (firstTokens) setCustomTokens(firstTokens);
+    }
+  }, [variations]);
+
+  // When user selects a preset theme, convert to tokens and enter custom mode
+  const handleThemeSelect = useCallback((theme: ThemeConfig) => {
+    setSelectedTheme(theme);
+    setCustomTokens(themeToDesignTokens(theme));
+  }, []);
+
+  // Update local variation (for copy editor)
+  const updateActiveVariation = useCallback((patch: Partial<PostVariation>) => {
+    setLocalVariations((prev) =>
+      prev.map((v, i) => i === currentIndex ? { ...v, ...patch } : v)
+    );
+  }, [currentIndex]);
+
+  // Auto-aplicar o primeiro tema extraído (Brand Faithful) quando a extração do Brand DNA completa.
+  useEffect(() => {
+    if (extractedThemes.length > 0 && !selectedTheme) {
+      const firstTheme = extractedThemes[0] as ThemeConfig;
+      setSelectedTheme(firstTheme);
+      if (!customTokens) {
+        setCustomTokens(themeToDesignTokens(firstTheme));
+      }
+    }
+  }, [extractedThemes]);
 
   const { stageText: imageStageText } = useAIProcessingStages({
     isActive: loadingImageId !== null,
@@ -310,15 +351,16 @@ export default function HoloDeck({
   });
   const showImageFlash = useCompletionFlash(loadingImageId !== null);
 
-  const activeVariation = variations[currentIndex];
-  const accentColor = activeVariation?.accentColor || "#a855f7";
+  const activeVariation = localVariations[currentIndex];
+  // A "Alma" (accentColor) deve vir da variação ativa para o ambiente respirar a cor do post em foco
+  const accentColor = activeVariation?.accentColor ?? customTokens?.colors.primary ?? "#a855f7";
   const prevIndex = (currentIndex - 1 + variations.length) % variations.length;
   const nextIndex = (currentIndex + 1) % variations.length;
 
-  // Card max-width alinhado com as dimensões do Workbench (360px base em todos os formatos)
-  // para garantir que o preview seja fiel ao que aparece no editor
-  const cardMaxW = aspectRatio === "9:16" ? "max-w-[280px] md:max-w-[360px]"
-    : aspectRatio === "5:6" ? "max-w-[300px] md:max-w-[360px]"
+  // Card max-width alinhado com as dimensões contidas para o viewport. 
+  // Na proporção 9:16, evitamos um crescimento horizontal que explode o card fora do `overflow-y`.
+  const cardMaxW = aspectRatio === "9:16" ? "max-w-[200px] md:max-w-[260px]"
+    : aspectRatio === "5:6" ? "max-w-[280px] md:max-w-[320px]"
       : "max-w-[320px] md:max-w-[360px]";
 
   const goNext = useCallback(() => {
@@ -332,6 +374,15 @@ export default function HoloDeck({
   const toggleMode = useCallback(() => {
     setViewMode((m) => (m === "peek" ? "wallet" : "peek"));
   }, []);
+
+  const handleSelect = useCallback((variation: PostVariation) => {
+    // Quando confirmar a variação, passar as edições feitas nos customTokens
+    const parsedVariation = {
+      ...variation,
+      designTokens: customTokens || variation.designTokens,
+    } as PostVariation;
+    onSelect(parsedVariation, { aspectRatio, theme: selectedTheme });
+  }, [customTokens, onSelect, aspectRatio, selectedTheme]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -359,14 +410,14 @@ export default function HoloDeck({
       exit={{ opacity: 0, scale: 1.04, filter: "blur(24px)" }}
       transition={{ duration: 0.4 }}
     >
-      {/* Fundo orgânico animado — intensidade alta para dar vida à tela */}
-      <OrganicBackground accentColor={accentColor} intensity={0.9} />
+      {/* Fundo orgânico animado — intensidade reduzida para não criar orbes sobre os cards */}
+      <OrganicBackground accentColor={accentColor} intensity={0.35} />
 
       {/* Glow radial central que reage à cor do card ativo */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         animate={{
-          background: `radial-gradient(ellipse 70% 60% at 40% 50%, ${accentColor}22 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse 70% 60% at 40% 50%, ${accentColor}32 0%, transparent 70%)`,
         }}
         transition={{ duration: 1.6, ease: "easeInOut" }}
       />
@@ -506,7 +557,7 @@ export default function HoloDeck({
                     animate={{ boxShadow: `0 0 0 1px ${accentColor}38, 0 20px 70px ${accentColor}22` }}
                     transition={{ duration: 1.2, ease: "easeInOut" }}
                   />
-                  <PostCard variation={activeVariation} theme={selectedTheme} aspectRatio={aspectRatio} />
+                  <PostCard variation={activeVariation} theme={customTokens ? undefined : selectedTheme} designTokens={customTokens} aspectRatio={aspectRatio} brandMeta={(selectedTheme as any)?.brandMeta} />
                 </motion.div>
 
                 {/* Action bar */}
@@ -521,12 +572,34 @@ export default function HoloDeck({
                     variation={activeVariation}
                     loadingImageId={loadingImageId}
                     onGenerateImage={() => onGenerateImage(activeVariation)}
-                    onSelect={() => onSelect(activeVariation, { aspectRatio, theme: selectedTheme })}
+                    onSelect={() => handleSelect(activeVariation)}
                     onOpenStyles={() => setIsStyleSelectorOpen(true)}
                     isDraggingRef={isDragging}
                     imageStageText={imageStageText}
                   />
                 </motion.div>
+
+                {/* Badge de tema ativo — visível no mobile (sidebar hidden) */}
+                {selectedTheme && (
+                  <motion.div
+                    className={`md:hidden w-full ${cardMaxW} shrink-0 flex items-center justify-center`}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-medium"
+                      style={{
+                        background: `${selectedTheme.colors.accent}18`,
+                        color: selectedTheme.colors.accent,
+                        border: `1px solid ${selectedTheme.colors.accent}30`,
+                      }}
+                    >
+                      <Globe size={10} />
+                      {selectedTheme.label}
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Pill próximo */}
                 <motion.div
@@ -598,7 +671,7 @@ export default function HoloDeck({
                     variation={activeVariation}
                     loadingImageId={loadingImageId}
                     onGenerateImage={() => onGenerateImage(activeVariation)}
-                    onSelect={() => onSelect(activeVariation, { aspectRatio, theme: selectedTheme })}
+                    onSelect={() => handleSelect(activeVariation)}
                     onOpenStyles={() => setIsStyleSelectorOpen(true)}
                     isDraggingRef={isDragging}
                     imageStageText={imageStageText}
@@ -713,38 +786,25 @@ export default function HoloDeck({
           />
 
           {/* Info do card ativo */}
-          <div className="px-5 pt-5 pb-4" style={{ borderBottom: "1px solid oklch(1 0 0 / 5%)" }}>
+          <div className="px-5 pt-5 pb-3" style={{ borderBottom: "1px solid oklch(1 0 0 / 5%)" }}>
             <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "oklch(0.4 0.03 280)", fontFamily: "var(--font-display)" }}>
-              Variação {currentIndex + 1} de {variations.length}
+              Variação {currentIndex + 1} de {localVariations.length}
             </p>
             <p className="text-sm font-semibold leading-snug" style={{ color: "oklch(0.88 0.01 280)" }}>
               {activeVariation.headline}
             </p>
-            <p className="text-[11px] mt-1.5 line-clamp-2" style={{ color: "oklch(0.55 0.03 280)" }}>
-              {activeVariation.body}
-            </p>
-            <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-              {activeVariation.hashtags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="text-[10px] px-2 py-0.5 rounded-full"
-                  style={{
-                    background: `${activeVariation.accentColor}15`,
-                    color: activeVariation.accentColor,
-                    border: `1px solid ${activeVariation.accentColor}30`,
-                  }}
-                >
-                  #{tag.replace("#", "")}
-                </span>
-              ))}
-            </div>
+            {activeVariation.copyAngle && (
+              <span
+                className="inline-block text-[10px] px-2 py-0.5 rounded mt-1.5 font-medium"
+                style={{ background: `${accentColor}18`, color: accentColor, border: `1px solid ${accentColor}30` }}
+              >
+                {activeVariation.copyAngle.label}
+              </span>
+            )}
           </div>
 
           {/* Ratio picker — desktop only */}
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(1 0 0 / 5%)" }}>
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "oklch(0.4 0.03 280)", fontFamily: "var(--font-display)" }}>
-              Proporção
-            </p>
+          <div className="px-5 py-3" style={{ borderBottom: "1px solid oklch(1 0 0 / 5%)" }}>
             <div className="flex gap-2">
               {RATIOS.map((r) => {
                 const active = r === aspectRatio;
@@ -752,9 +812,8 @@ export default function HoloDeck({
                 return (
                   <motion.button
                     key={r}
-                    data-tour={`ratio-${r}`}
                     onClick={() => setAspectRatio(r)}
-                    className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl text-[11px] font-semibold"
+                    className="flex-1 flex flex-col items-center gap-1 py-2 rounded-xl text-[10px] font-semibold"
                     animate={{
                       background: active ? accentColor : "oklch(1 0 0 / 5%)",
                       color: active ? "oklch(0.08 0 0)" : "oklch(0.5 0.02 280)",
@@ -762,7 +821,7 @@ export default function HoloDeck({
                     }}
                     transition={{ duration: 0.18 }}
                   >
-                    <RatioIcon ratio={r} size={14} color={iconColor} />
+                    <RatioIcon ratio={r} size={12} color={iconColor} />
                     {ASPECT_RATIO_LABELS[r].label}
                   </motion.button>
                 );
@@ -770,116 +829,101 @@ export default function HoloDeck({
             </div>
           </div>
 
-          {/* Ações principais — desktop vertical */}
-          <div className="px-5 py-4 flex flex-col gap-2.5" style={{ borderBottom: "1px solid oklch(1 0 0 / 5%)" }}>
-            {/* Usar este — destaque */}
+          {/* Ações principais — compact */}
+          <div className="px-5 py-3 flex gap-2" style={{ borderBottom: "1px solid oklch(1 0 0 / 5%)" }}>
             <motion.button
-              onClick={() => { if (!isDragging.current) onSelect(activeVariation, { aspectRatio, theme: selectedTheme }); }}
-              data-tour="select-variation"
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold"
-              style={{ background: accentColor, color: "oklch(0.08 0 0)", boxShadow: `inset 0 1px 0 oklch(1 0 0 / 18%), 0 4px 16px ${accentColor}44` }}
+              onClick={() => { if (!isDragging.current) handleSelect(activeVariation); }}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold"
+              style={{ background: accentColor, color: "oklch(0.08 0 0)" }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
             >
-              <Sparkles size={15} />
-              Selecionar este
+              <Sparkles size={13} />
+              Selecionar
             </motion.button>
-
-            {/* Gerar imagem */}
             <button
               onClick={() => onGenerateImage(activeVariation)}
               disabled={loadingImageId === activeVariation.id}
-              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium transition-all disabled:opacity-40${loadingImageId === activeVariation.id ? " shimmer" : ""}`}
-              style={{
-                background: "oklch(1 0 0 / 6%)",
-                border: "1px solid oklch(1 0 0 / 9%)",
-                color: "oklch(0.68 0.12 40)",
-              }}
+              className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium transition-all disabled:opacity-40${loadingImageId === activeVariation.id ? " shimmer" : ""}`}
+              style={{ background: "oklch(1 0 0 / 6%)", border: "1px solid oklch(1 0 0 / 9%)", color: "oklch(0.68 0.12 40)" }}
             >
               {loadingImageId === activeVariation.id ? (
-                <><Loader2 size={13} className="animate-spin" /> {imageStageText}</>
+                <Loader2 size={13} className="animate-spin" />
               ) : (
-                <><ImagePlus size={13} /> Sintetizar visual</>
+                <ImagePlus size={13} />
               )}
-            </button>
-
-            {/* Estilo */}
-            <button
-              onClick={() => setIsStyleSelectorOpen(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium transition-all"
-              style={{
-                background: "oklch(1 0 0 / 5%)",
-                border: "1px solid oklch(1 0 0 / 8%)",
-                color: "oklch(0.65 0.1 280)",
-              }}
-            >
-              <Palette size={13} />
-              Estilo visual
             </button>
           </div>
 
-          {/* Extracted Styles Section - Only shown when URL input */}
-          {extractedThemes.length > 0 && (
-            <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(1 0 0 / 5%)" }}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "oklch(0.4 0.03 280)", fontFamily: "var(--font-display)" }}>
-                <Globe size={10} className="inline mr-1" />
-                Estilos do Site
-              </p>
-              <div className="flex flex-col gap-2">
-                {extractedThemes.map((theme) => (
-                  <ExtractedThemeCard
-                    key={theme.id}
-                    theme={theme}
-                    isSelected={selectedTheme?.id === theme.id}
-                    onSelect={() => setSelectedTheme(theme as ThemeConfig)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Loading indicator for style extraction */}
-          {isExtractingStyles && (
-            <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(1 0 0 / 5%)" }}>
-              <div className="flex items-center gap-2">
-                <Loader2 size={12} className="animate-spin" style={{ color: accentColor }} />
-                <p className="text-[10px] font-medium" style={{ color: "oklch(0.5 0.03 280)" }}>
-                  Extraindo estilos do site...
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Navegação entre variações */}
-          <div className="px-5 py-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "oklch(0.4 0.03 280)", fontFamily: "var(--font-display)" }}>
-              Variações
-            </p>
-            <div className="flex flex-col gap-1.5">
-              {variations.map((v, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentIndex(i)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all"
-                  style={{
-                    background: i === currentIndex ? `${accentColor}15` : "transparent",
-                    border: `1px solid ${i === currentIndex ? `${accentColor}35` : "oklch(1 0 0 / 6%)"}`,
-                  }}
-                >
-                  <div
-                    className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ background: i === currentIndex ? accentColor : "oklch(1 0 0 / 20%)" }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate" style={{ color: i === currentIndex ? "oklch(0.88 0.01 280)" : "oklch(0.55 0.03 280)" }}>
-                      {v.headline}
-                    </p>
-                    <p className="text-[10px] truncate" style={{ color: "oklch(0.4 0.02 280)" }}>
-                      {v.tone}
-                    </p>
+          {/* ── Tab content ── */}
+          <div className="flex-1 overflow-y-auto w-full">
+            <div className="flex flex-col">
+              {/* Extracted themes */}
+              {extractedThemes.length > 0 && (
+                <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(1 0 0 / 5%)" }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "oklch(0.4 0.03 280)" }}>
+                    <Globe size={10} className="inline mr-1" />
+                    Estilos do Site
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {extractedThemes.map((theme) => (
+                      <ExtractedThemeCard
+                        key={theme.id}
+                        theme={theme}
+                        isSelected={selectedTheme?.id === theme.id}
+                        onSelect={() => handleThemeSelect(theme as ThemeConfig)}
+                      />
+                    ))}
                   </div>
+                </div>
+              )}
+
+              {isExtractingStyles && (
+                <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(1 0 0 / 5%)" }}>
+                  <div className="flex items-center gap-2">
+                    <Loader2 size={12} className="animate-spin" style={{ color: accentColor }} />
+                    <p className="text-[10px] font-medium" style={{ color: "oklch(0.5 0.03 280)" }}>Extraindo estilos do site...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Mais presets */}
+              <div className="px-5 py-4" style={{ borderBottom: "1px solid oklch(1 0 0 / 5%)" }}>
+                <button
+                  onClick={() => setIsStyleSelectorOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium transition-all"
+                  style={{ background: "oklch(1 0 0 / 5%)", border: "1px solid oklch(1 0 0 / 8%)", color: "oklch(0.65 0.1 280)" }}
+                >
+                  <Palette size={13} />
+                  Ver todos os presets
                 </button>
-              ))}
+              </div>
+
+              {/* Variações */}
+              <div className="px-5 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "oklch(0.4 0.03 280)" }}>Variações</p>
+                <div className="flex flex-col gap-1.5">
+                  {localVariations.map((v, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentIndex(i)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all"
+                      style={{
+                        background: i === currentIndex ? `${accentColor}15` : "transparent",
+                        border: `1px solid ${i === currentIndex ? `${accentColor}35` : "oklch(1 0 0 / 6%)"}`,
+                      }}
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: i === currentIndex ? accentColor : "oklch(1 0 0 / 20%)" }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate" style={{ color: i === currentIndex ? "oklch(0.88 0.01 280)" : "oklch(0.55 0.03 280)" }}>{v.headline}</p>
+                        <p className="text-[10px] truncate" style={{ color: "oklch(0.4 0.02 280)" }}>
+                          {v.copyAngle?.label ?? v.tone}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </motion.aside>

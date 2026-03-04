@@ -14,6 +14,9 @@ import { analyzeDesignPattern, generateThemesFromPatterns } from "./designPatter
 import { extractBrandDNA } from "./brandDNA";
 import { generateThemesFromBrandDNA } from "./brandThemeGenerator";
 import { evaluatePostQuality } from "./postJudge";
+import { chameleonVision } from "./chameleonVision";
+import { captureScreenshot } from "./screenshotService";
+import { chameleonResultToDesignTokens } from "@shared/postspark";
 import * as fs from "fs";
 import * as path from "path";
 import {
@@ -27,6 +30,96 @@ import {
 } from "./billing";
 import { ENV } from "./_core/env";
 import { TRPCError } from "@trpc/server";
+/**
+ * Helper to safely parse JSON from LLM responses, handling markdown blocks and basic malformations.
+ */
+function safeJsonParse<T>(str: string, fallback: T): T {
+  let cleaned = str.trim();
+
+  // 1. Markdown stripping
+  if (cleaned.startsWith("```json")) {
+    cleaned = cleaned.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
+  } else if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+  }
+
+  // 2. Bound recovery (find the outermost { ... })
+  const startIdx = cleaned.indexOf("{");
+  const endIdx = cleaned.lastIndexOf("}");
+  if (startIdx !== -1 && (endIdx === -1 || endIdx > startIdx)) {
+    cleaned = cleaned.substring(startIdx, endIdx !== -1 ? endIdx + 1 : undefined);
+  }
+
+  // Helper to attempt parsing
+  const tryParse = (jsonStr: string): T | null => {
+    try {
+      // Basic repair: remove trailing commas before closing braces/brackets
+      const repaired = jsonStr.replace(/,\s*([\]}])/g, "$1");
+      return JSON.parse(repaired) as T;
+    } catch {
+      return null;
+    }
+  };
+
+  // 3. First attempt
+  let result = tryParse(cleaned);
+  if (result) return result;
+
+  // 4. Heuristic Repair: Handling truncation
+  // LLMs often stop in the middle of a string, or deep in nested objects.
+  console.warn("[safeJsonParse] Initial parse failed. Attempting heuristic repair...");
+
+  let repairAttempt = cleaned;
+  const stack: ("{" | "[")[] = [];
+  let inString = false;
+  let escaped = false;
+
+  // Walk through to find the state of open structures
+  for (let i = 0; i < repairAttempt.length; i++) {
+    const char = repairAttempt[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+
+    if (char === "{") stack.push("{");
+    else if (char === "[") stack.push("[");
+    else if (char === "}") stack.pop();
+    else if (char === "]") stack.pop();
+  }
+
+  // If we are inside a string, close it
+  if (inString) {
+    repairAttempt += '"';
+  }
+
+  // Close all open braces/brackets in reverse order
+  while (stack.length > 0) {
+    const last = stack.pop();
+    if (last === "{") repairAttempt += "}";
+    else if (last === "[") repairAttempt += "]";
+  }
+
+  // Try again with the surgically repaired JSON
+  result = tryParse(repairAttempt);
+  if (result) {
+    console.log("[safeJsonParse] Heuristic repair successful.");
+    return result;
+  }
+
+  console.error("[safeJsonParse] Failed to parse JSON even after repair.");
+  console.error("[safeJsonParse] Input snippet (100 chars):", str.substring(0, 100));
+  return fallback;
+}
 
 // ─── Billing router ───────────────────────────────────────────────────────────
 const billingRouter = router({
@@ -186,12 +279,59 @@ export const appRouter = router({
           });
         }
         let contextContent = input.content;
+        let brandDnaContext = "";
+        let chameleonResult: import("@shared/postspark").ChameleonVisionResult | null = null;
 
-        // If URL, scrape it first
+        // If URL, scrape it first and extract Brand DNA for visual cloning
         if (input.inputType === "url") {
           try {
+            // 1. Extração de conteúdo bruto
             const scrapeResult = await scrapeUrl(input.content);
             contextContent = `URL: ${input.content}\nTítulo: ${scrapeResult.title}\nDescrição: ${scrapeResult.description}\nConteúdo: ${scrapeResult.content}`;
+
+            // 2. Chameleon Vision — direct CSS extraction (parallel with BrandDNA)
+            const [screenshot, brandDNA] = await Promise.all([
+              captureScreenshot(input.content).catch(() => null),
+              extractBrandDNA(input.content).catch((err: unknown) => {
+                console.warn("Falha ao extrair Brand DNA no processamento da geração.", err);
+                return null;
+              }),
+            ]);
+
+            // 2a. Chameleon Vision: image → CSS tokens + copy (primary source)
+            if (screenshot) {
+              try {
+                chameleonResult = await chameleonVision(screenshot, contextContent);
+                if (chameleonResult) {
+                  console.log("[Chameleon Vision] Extraction successful — CSS tokens + 5 copy angles ready");
+                }
+              } catch (cvErr) {
+                console.warn("[Chameleon Vision] Failed, falling back to BrandDNA:", cvErr);
+              }
+            }
+
+            // 2b. BrandDNA context for copy generation enrichment
+            if (brandDNA) {
+              brandDnaContext = `
+
+INSTRUÇÕES DE CLONAGEM DE MARCA (BRAND SOUL):
+Você DEVE FORÇAR o post gerado a ser uma extensão orgânica do site original.
+Dados da Marca extraídos:
+- Nome/Setor: ${brandDNA.brandName} (${brandDNA.industry})
+- Cores Sugeridas (UTILIZE OBRIGATORIAMENTE ESTAS BASEADAS EM PSICOLOGIA DE CONTRASTE):
+  Primária: ${chameleonResult?.colors.primary || brandDNA.colors.primary}
+  Secundárias: ${chameleonResult?.colors.secondary || brandDNA.colors.secondary}
+  Background Sugerido: ${chameleonResult?.colors.background || brandDNA.colors.background}
+  Accent Sugerido: ${chameleonResult?.colors.primary || brandDNA.colors.accent}
+  Paleta Geral: ${brandDNA.colors.palette.join(", ")}
+- Ritmo Visual/Dinâmica: ${brandDNA.composition.dynamics} / ${brandDNA.composition.rhythm}
+
+REGRA CARDINAL DE CORES (A FONTE É URL):
+1) Você NÃO PODE IGNORAR a paleta fornecida acima. O post DEVE pertencer ao site visualmente.
+2) Selecione backgroundColor, accentColor e textColor EXCLUSIVAMENTE extraídos dessa paleta extraída, garantindo ratio > 4.5:1 WCAG.
+3) Se o site for Dark Mode, gere posts escuros. Se o site for claro, gere variabilidades claras.
+              `;
+            }
           } catch {
             contextContent = `URL fornecida: ${input.content} (não foi possível extrair conteúdo, crie baseado na URL)`;
           }
@@ -218,54 +358,91 @@ export const appRouter = router({
         const systemPrompt = `Você é um especialista em marketing digital, design visual e criação de conteúdo para redes sociais.
 Gere EXATAMENTE 3 variações de post para ${spec.label}.${modeInstruction}
 Cada variação deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado.${toneHint}
+${brandDnaContext}
 
 REGRAS DE COPY — SIGA COM RIGOR:
 - Headline: máximo 60 caracteres. Seja direto e impactante. Sem ponto final.
 - Body: máximo 2 frases curtas. Máximo 100 caracteres no total. Sem rodeios.
-- Caption/Legenda: texto para acompanhar o post na rede social. Máximo 300 caracteres. Engajador, com personalidade, complementando o conteúdo visual. Pode ter emojis moderados.
+- Caption/Legenda: texto para acompanhar o post na rede social. Máximo 300 caracteres. Engajador, complementando o conteúdo visual. Pode ter emojis moderados.
 - NUNCA coloque hashtags ou emojis dentro do headline ou body.
 - Hashtags: máximo 4, somente no campo separado "hashtags".
 - CallToAction: máximo 40 caracteres. Verbo de ação. Ex: "Saiba mais", "Experimente agora".
+- copyAngle: Para cada variação, forneça um objeto com o Propósito e Ganchos do post com type (dor, beneficio, objecao, autoridade, escassez, storytelling, mito_vs_verdade), label (nome da abordagem), badge (palavra curta para o selo da marca/tema) e stickerText (uma palavra de impacto para adesivo decorativo).
 - Seja conciso. Corte qualquer palavra desnecessária. Menos é mais.
 
-PRINCÍPIOS DE DESIGN VISUAL — APLIQUE EM CADA VARIAÇÃO:
+PRINCÍPIOS DE DESIGN VISUAL E MIMETISMO:
 
 1. HIERARQUIA VISUAL (Proporção 3:2:1):
    - O headline deve ser a informação MAIS impactante (peso visual máximo).
    - O body deve complementar, nunca competir com o headline.
-   - Pense no conteúdo como uma pirâmide: título grande → subtítulo médio → detalhe pequeno.
 
 2. LAYOUT INTELIGENTE por objetivo do post:
-   - "centered": Inspiração, emoção, celebração, perguntas, citações. Melhor em 1:1.
-   - "left-aligned": Educação, listas, notícias, tutoriais, conteúdo informativo. Melhor em 5:6 e 9:16.
-   - "split": Promoções, impacto, números, chamadas fortes. Versátil.
-   - "minimal": Ultra-limpo, essencial. Para marcas que usam muito espaço vazio (white space).
-   - REGRA: Varie os layouts entre as 3 variações para oferecer diversidade.
+   - "centered": Inspiração, emoção, celebração, citações. Melhor em 1:1.
+   - "left-aligned": Educação, listas, tutoriais. Melhor em 5:6 e 9:16.
+   - "split": Promoções, impacto. Versátil.
+   - "minimal": Ultra-limpo, essencial. Para marcas focadas no white-space.
 
-3. PSICOLOGIA DAS CORES (escolha backgroundColor e accentColor baseado no tom):
-   - Tom Profissional/Corporativo: fundo neutro escuro ou azul-profundo (#1A1A2E, #16213E, #0F3460), accent azul claro ou prata.
-   - Tom Casual/Engajador: fundo vibrante mas acolhedor (tons de roxo suave #6C3483, verde-esmeralda #1ABC9C, índigo #3D5A80), accent contrastante.
-   - Tom Criativo/Ousado: fundo impactante (preto #0D0D0D, roxo vivo #7B2D8B, gradiente sugerido no imagePrompt), accent em laranja #FF6B35 ou amarelo-ouro #FFD700.
-   - Tom Urgente/CTA forte: accent em vermelho #E74C3C ou laranja #F39C12.
-   - Tom Crescimento/Natural: tons de verde (#27AE60, #2ECC71), accent dourado.
+3. PSICOLOGIA E CLONAGEM DE CORES:
+   - SE houver [INSTRUÇÕES DE CLONAGEM DE MARCA] no prompt, AS CORES SÃO MANDATÓRIAS. Mimetize a "Alma" injetando backgroundColor e textColor apenas baseados na Extração Fornecida.
+   - SE NÃO houver extração, use a psicologia clássica: backgroundColor neutro escuro/azul para tom Corporativo, cores quentes para Criativo, etc.
 
-4. CONTRASTE E LEGIBILIDADE (WCAG 2.1):
-   - SEMPRE garanta contraste alto: fundo escuro → textColor claro (#FFFFFF ou #F0F0F0). Fundo claro → textColor escuro (#1A1A1A ou #0D0D0D).
+4. CONTRASTE (WCAG 2.1):
+   - SEMPRE garanta contraste alto: fundo escuro → textColor claro (#FFFFFF). Fundo claro → textColor escuro (#1A1A1A).
    - NUNCA use texto cinza médio sobre fundo cinza médio.
-   - Quando imagePrompt indicar foto realista com pessoas ou paisagem, sinalize com overlay escuro no imagePrompt (ex: "with dark overlay for text readability").
 
-6. PACOTE CRIATIVO MULTI-FORMATO (Essencial):
-   - Cada variação deve ser pensada para funcionar em todos os formatos (1:1, 5:6, 9:16).
-   - Preencha o objeto "aspectRatioOptimizations" com os ajustes ideais para as proporções que NÃO são a padrão da variação.
-   - 9:16: Exige cores mais saturadas e layouts verticais (centered/split).
-   - 5:6: Ideal para storytelling e listas (left-aligned).
-   - 1:1: Foco em clareza e centralização.
+5. PACOTE CRIATIVO MULTI-FORMATO:
+   - Cada variação deve fluir formatada no aspectRatio correspondente.
 
-Responda APENAS com JSON válido no formato especificado.`;
+6. TEMPLATES ESTRUTURADOS:
+   - Use 'feature-grid' ou 'step-by-step' onde listagem for detectada. Default: 'simple'.
+
+7. FLOATING CARDS & ELEMENT STYLING (NEW):
+   - O card PRINCIPAL não precisa estar sempre centralizado ou ocupar 100% da tela.
+   - Use o objeto "card" dentro das otimizações para criar composições dinâmicas (ex: card inclinado, card menor no canto, layout Figma/Canva).
+   - Isso é especialmente útil quando o fundo (backgroundImage) é rico visualmente.
+   - Use 'backgroundColor' e 'borderRadius' em 'headline' ou 'body' para criar efeitos de BADGE ou STIKER (texto com fundo colorido e cantos arredondados). Isso ajuda a destacar informações de forma "divertida" e moderna. Use cores contrastantes.
+   
+Responda APENAS com JSON válido.`;
 
         const userPrompt = input.inputType === "image"
           ? `Crie posts baseados nesta imagem: ${input.imageUrl || input.content}`
           : `Crie posts baseados neste conteúdo: ${contextContent}`;
+
+        // ─── JSON Schema Layout Definitions ───
+        const layoutPositionSchema = {
+          type: "object",
+          properties: {
+            x: { type: "number", description: "Posição X em % (0-100)" },
+            y: { type: "number", description: "Posição Y em % (0-100)" },
+            width: { type: "number", description: "Largura em % (10-100)" },
+            textAlign: { type: "string", enum: ["left", "center", "right"] },
+            backgroundColor: { type: "string", description: "Cor de fundo opcional para o elemento (RGBA ou Hex)" },
+            borderRadius: { type: "number", description: "Raio da borda em px (0-40)" }
+          },
+          required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
+          additionalProperties: false,
+        };
+
+        const formatOptimizationSchema = {
+          type: "object",
+          properties: {
+            layout: { type: "string", enum: ["centered", "left-aligned", "split", "minimal"] },
+            backgroundColor: { type: "string" },
+            textColor: { type: "string" },
+            accentColor: { type: "string" },
+            headline: { $ref: "#/$defs/layoutPosition" },
+            body: { $ref: "#/$defs/layoutPosition" },
+            card: { $ref: "#/$defs/layoutPosition" },
+            padding: { type: "number" }
+          },
+          required: ["layout", "backgroundColor", "textColor", "accentColor", "headline", "body", "card", "padding"],
+          additionalProperties: false,
+        };
+
+        const layoutDefs = {
+          layoutPosition: layoutPositionSchema,
+          formatOptimization: formatOptimizationSchema,
+        };
 
         // Dynamic schema based on postMode
         const variationSchema = isCarousel ? {
@@ -295,6 +472,7 @@ Responda APENAS com JSON válido no formato especificado.`;
                   isCtaSlide: { type: "boolean", description: "Se é o último slide" },
                 },
                 required: ["headline", "body", "slideNumber", "isTitleSlide", "isCtaSlide"],
+                additionalProperties: false,
               },
               description: "Slides do carrossel (5 itens)",
             },
@@ -307,9 +485,20 @@ Responda APENAS com JSON válido no formato especificado.`;
               },
               required: ["1:1", "5:6", "9:16"],
               additionalProperties: false,
+            },
+            copyAngle: {
+              type: "object",
+              properties: {
+                type: { type: "string", enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"] },
+                label: { type: "string" },
+                badge: { type: "string" },
+                stickerText: { type: "string" }
+              },
+              required: ["type", "label", "badge", "stickerText"],
+              additionalProperties: false
             }
           },
-          required: ["headline", "body", "hashtags", "callToAction", "caption", "tone", "imagePrompt", "backgroundColor", "textColor", "accentColor", "layout", "aspectRatio", "slides", "aspectRatioOptimizations"],
+          required: ["headline", "body", "hashtags", "callToAction", "caption", "tone", "imagePrompt", "backgroundColor", "textColor", "accentColor", "layout", "aspectRatio", "slides", "aspectRatioOptimizations", "copyAngle"],
           additionalProperties: false,
         } : {
           type: "object",
@@ -326,6 +515,22 @@ Responda APENAS com JSON válido no formato especificado.`;
             accentColor: { type: "string", description: "Cor de destaque hex" },
             layout: { type: "string", enum: ["centered", "left-aligned", "split", "minimal"], description: "Layout sugerido" },
             aspectRatio: { type: "string", enum: ["1:1", "5:6", "9:16"], description: "Proporção de aspecto: 1:1 quadrado, 5:6 retrato, 9:16 story/reels — varie entre as variações para oferecer diversidade" },
+            template: { type: "string", enum: ["simple", "feature-grid", "numbered-list", "step-by-step"], description: "Template de conteúdo estruturado. Use 'simple' para mensagens únicas, outros para conteúdo rico." },
+            sections: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  icon: { type: "string", description: "Nome de ícone lucide (ex: Users, Star, Zap, Heart, Globe)" },
+                  label: { type: "string", description: "Título curto da seção" },
+                  description: { type: "string", description: "Texto de suporte opcional" },
+                  number: { type: "integer", description: "Número para listas numeradas" },
+                },
+                required: ["icon", "label", "description", "number"],
+                additionalProperties: false,
+              },
+              description: "Seções de conteúdo estruturado (3-5 itens). Obrigatório quando template != 'simple'.",
+            },
             aspectRatioOptimizations: {
               type: "object",
               properties: {
@@ -335,9 +540,20 @@ Responda APENAS com JSON válido no formato especificado.`;
               },
               required: ["1:1", "5:6", "9:16"],
               additionalProperties: false,
+            },
+            copyAngle: {
+              type: "object",
+              properties: {
+                type: { type: "string", enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"] },
+                label: { type: "string" },
+                badge: { type: "string" },
+                stickerText: { type: "string" }
+              },
+              required: ["type", "label", "badge", "stickerText"],
+              additionalProperties: false
             }
           },
-          required: ["headline", "body", "hashtags", "callToAction", "caption", "tone", "imagePrompt", "backgroundColor", "textColor", "accentColor", "layout", "aspectRatio", "aspectRatioOptimizations"],
+          required: ["headline", "body", "hashtags", "callToAction", "caption", "tone", "imagePrompt", "backgroundColor", "textColor", "accentColor", "layout", "aspectRatio", "template", "sections", "aspectRatioOptimizations", "copyAngle"],
           additionalProperties: false,
         };
 
@@ -361,21 +577,7 @@ Responda APENAS com JSON válido no formato especificado.`;
                   },
                 },
                 required: ["variations"],
-                $defs: {
-                  formatOptimization: {
-                    type: "object",
-                    properties: {
-                      layout: { type: "string", enum: ["centered", "left-aligned", "split", "minimal"] },
-                      backgroundColor: { type: "string" },
-                      textColor: { type: "string" },
-                      accentColor: { type: "string" },
-                      headlineFontSize: { type: "number" },
-                      bodyFontSize: { type: "number" },
-                    },
-                    required: ["layout", "backgroundColor", "textColor", "accentColor", "headlineFontSize", "bodyFontSize"],
-                    additionalProperties: false,
-                  }
-                },
+                $defs: layoutDefs,
                 additionalProperties: false,
               },
             },
@@ -383,26 +585,109 @@ Responda APENAS com JSON válido no formato especificado.`;
         });
 
         const content = response.choices[0]?.message?.content;
-        let contentStr = typeof content === "string" ? content.trim() : "{}";
-        if (contentStr.startsWith("```json")) {
-          contentStr = contentStr.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
-        } else if (contentStr.startsWith("```")) {
-          contentStr = contentStr.replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+        const contentStr = typeof content === "string"
+          ? content
+          : Array.isArray(content)
+            ? content.filter(c => 'text' in c).map(c => (c as any).text).join("\n")
+            : "{}";
+        const parsed = safeJsonParse(contentStr, { variations: [] });
+        let variations = (parsed.variations || []).slice(0, 3);
+
+        // --------------------------------------------------------------------------------
+        // QA PASSPORT / BRAND SOUL GUARDIAN (Apenas ativado em clonagens de site / URL)
+        // --------------------------------------------------------------------------------
+        if (input.inputType === "url" && brandDnaContext.length > 0) {
+          try {
+            console.log("[QA Guard] Validating Brand Mimetism...");
+            const qaPrompt = `Você é um Quality Assurance rigoroso de Design Visual e Acessibilidade técnica (WCAG).
+O LLM Anterior gerou 3 variações de Post. O seu único objetivo é VARRER falhas e ARRUMAR o JSON.
+
+DIRETRIZES CARDINAIS DO BRAND SOUL (Não podem ser violadas):
+${brandDnaContext}
+
+AVALIAÇÕES A FAZER EM CADA VARIAÇÃO:
+1) A \`backgroundColor\` e a \`textColor\` escolhidas são EXATAMENTE (hex) derivadas das Sugeridas pela Marca acima? Se ele alocou hexes azuis num site laranja/vermelho, OVERRIDE para o laranja/vermelho sugerido.
+2) O contraste WCAG entre \`backgroundColor\` e \`textColor\` é viável (>4.5:1)? Se não for (ex: texto cinza no fundo cinza, texto branco no fundo creme), inverta a cor de um deles.
+3) A \`accentColor\` é chamativa dentro do Brand DNA?
+4) O \`layout\` faz sentido analiticamente para o tipo de conteúdo?
+
+Variations Originais Brutas:
+${JSON.stringify(variations, null, 2)}
+
+Retorne um JSON contendo O MESMO ARRAY, de mesmo formato, substituindo estritamente as propriedades listadas caso estejam ruins. Mantenha os textos inteiramente idênticos.
+Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
+
+            const qaResponse = await invokeLLM({
+              model: "gemini", // O QA pode rodar no gemini-flash fixo pela velocidade
+              messages: [{ role: "user", content: qaPrompt }],
+              response_format: {
+                type: "json_schema",
+                json_schema: {
+                  name: "post_variations_qa",
+                  strict: true,
+                  schema: {
+                    type: "object",
+                    properties: {
+                      variations: {
+                        type: "array",
+                        items: variationSchema
+                      }
+                    },
+                    required: ["variations"],
+                    $defs: layoutDefs,
+                    additionalProperties: false
+                  }
+                }
+              }
+            });
+
+            const qaContent = qaResponse.choices[0]?.message?.content;
+            const qaContentStr = typeof qaContent === "string"
+              ? qaContent
+              : Array.isArray(qaContent)
+                ? qaContent.filter(c => 'text' in c).map(c => (c as any).text).join("\n")
+                : "{}";
+            const qaParsed = safeJsonParse(qaContentStr, { variations: [] });
+            if (qaParsed.variations && qaParsed.variations.length > 0) {
+              variations = qaParsed.variations.slice(0, 3);
+              console.log("[QA Guard] Mimetism validation approved & patched.");
+            }
+          } catch (qaErr) {
+            console.warn("[QA Guard] Failing gracefull. Returning raw variations.", qaErr);
+          }
         }
 
-        const parsed = JSON.parse(contentStr || "{}");
-        const variations = (parsed.variations || []).slice(0, 3);
+        // Build DesignTokens from Chameleon Vision result if available
+        const chameleonDesignTokens = chameleonResult
+          ? chameleonResultToDesignTokens(chameleonResult)
+          : undefined;
 
-        // Generate unique IDs and return
-        return variations.map((v: any, i: number) => ({
-          id: `var-${Date.now()}-${i}`,
-          ...v,
-          caption: v.caption || "",
-          platform: input.platform,
-          hashtags: v.hashtags || [],
-          postMode: input.postMode,
-          slides: isCarousel ? (v.slides || []) : undefined,
-        }));
+        // Map Chameleon Vision copy angles to variations
+        const chameleonPosts = chameleonResult?.posts || [];
+
+        // Generate unique IDs and return — enrich with Chameleon Vision data
+        return variations.map((v: any, i: number) => {
+          const chameleonPost = chameleonPosts[i];
+          return {
+            id: `var-${Date.now()}-${i}`,
+            ...v,
+            caption: v.caption || "",
+            platform: input.platform,
+            hashtags: v.hashtags || [],
+            postMode: input.postMode,
+            slides: isCarousel ? (v.slides || []) : undefined,
+            // Chameleon Vision enrichments
+            ...(chameleonDesignTokens ? { designTokens: chameleonDesignTokens } : {}),
+            ...(chameleonPost ? {
+              copyAngle: {
+                type: chameleonPost.angle,
+                label: chameleonPost.label,
+                badge: chameleonPost.badge,
+                stickerText: chameleonPost.stickerText,
+              },
+            } : {}),
+          };
+        });
       }),
 
     /** Generate image for a post */
@@ -504,7 +789,7 @@ Responda APENAS com JSON válido no formato especificado.`;
     generateBackground: protectedProcedure
       .input(z.object({
         prompt: z.string().min(1),
-        provider: z.enum(['pollinations', 'gemini']).default('pollinations'),
+        provider: z.enum(['pollinations_fast', 'pollinations_hd']).default('pollinations_fast'),
       }))
       .mutation(async ({ input, ctx }) => {
         // Debita Sparks para geração de imagem de fundo
@@ -522,6 +807,105 @@ Responda APENAS com JSON válido no formato especificado.`;
         return { imageData }; // base64 data URI
       }),
 
+    /** Automatically adjust layout based on current canvas */
+    autoPilotDesign: protectedProcedure
+      .input(z.object({
+        imageBase64: z.string(),
+        currentState: z.any(),
+      }))
+      .mutation(async ({ input }) => {
+        const systemPrompt = `Você é um Diretor de Arte Sênior e Especialista em Qualidade Visual (QA) e Acessibilidade (WCAG).
+Seu trabalho é avaliar a imagem logada (fotografia do render do post) com o JSON do estado atual fornecido.
+O objetivo é garantir Legibilidade perfeita, Hierarquia e Margens de Respiro.
+
+REGRAS:
+1. Contraste (WCAG): Verifique se o texto está legível contra o fundo. Se o fundo na área delimitada pelo texto for muito claro, force a cor do texto para bem escuro (ex: #000000). Se o fundo for muito escuro, texto claro (ex: #FFFFFF). Use hexadecimais de estilo de acordo com a foto caso encontre uma cor que contrasta perfeitamente (color picking).
+2. Layout: Sugira novas posições X e Y (em porcentagem 0-100) para evitar que o texto corte nas bordas, e mantenha alinhamento harmonioso de design premium (esquerda, centro).
+CRÍTICO SOBRE X e Y: As coordenadas (x, y) representam o **CENTRO EXATO** do bloco de texto, e não o canto superior esquerdo (pois usamos \`transform: translate(-50%, -50%)\` no Frontend).
+- Se você quer alinhar um bloco de \`width: 80\` à esquerda com margem de \`10%\`, o X (centro) NÃO deve ser 10, e sim \`50\` (10 de margem + 40 da metade da largura).
+- Se você usar X=10 para um bloco largo, metade do bloco ficará PARA FORA da tela!
+- Reflita antes de definir o X e Y, garantindo que o \`width\` inteiro caiba na tela somando/subtraindo do centro.
+3. Caso o texto esteja "vazando" do card, reduza \`width\` ou reposicione o \`x\` e \`y\` (lembrando da regra do centro).
+4. Retorne as coordenadas ajustadas e corrigidas, para que possamos plugar direto e o texto se alinhar graciosamente no fundo.
+
+JSON ESTADO ATUAL:
+${JSON.stringify(input.currentState, null, 2)}
+`;
+
+        const response = await invokeLLM({
+          model: "gemini-2.5-flash" as any,
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "Analise a imagem e o posicionamento abaixo para gerar o JSON refatorado." },
+                { type: "image_url", image_url: { url: input.imageBase64 } }
+              ]
+            }
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "auto_pilot_design",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  score: { type: "number", description: "Sua nota para o design inicial (0 a 100)" },
+                  feedback: { type: "string", description: "Descrição curta em português sobre o erro visível e por que você corrigiu do jeito que corrigiu." },
+                  suggestedLayoutMoves: {
+                    type: "object",
+                    properties: {
+                      headline: {
+                        type: "object",
+                        properties: {
+                          x: { type: "number" },
+                          y: { type: "number" },
+                          width: { type: "number" },
+                          textAlign: { type: "string" },
+                          backgroundColor: { type: "string" },
+                          borderRadius: { type: "number" }
+                        },
+                        required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
+                        additionalProperties: false
+                      },
+                      body: {
+                        type: "object",
+                        properties: {
+                          x: { type: "number" },
+                          y: { type: "number" },
+                          width: { type: "number" },
+                          textAlign: { type: "string" },
+                          backgroundColor: { type: "string" },
+                          borderRadius: { type: "number" }
+                        },
+                        required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
+                        additionalProperties: false
+                      },
+                      textColor: { type: "string", description: "Cor HEX sugerida para todos os textos" }
+                    },
+                    required: ["textColor"],
+                    additionalProperties: false
+                  }
+                },
+                required: ["score", "feedback", "suggestedLayoutMoves"],
+                additionalProperties: false
+              }
+            }
+          }
+        });
+
+        const content = response.choices[0]?.message?.content;
+        const contentStr = typeof content === "string"
+          ? content
+          : Array.isArray(content)
+            ? content.filter((c: any) => c.type === 'text').map((c: any) => c.text).join("\n")
+            : "{}";
+        const parsed = safeJsonParse(contentStr, {} as any);
+        return parsed;
+      }),
+
     /** List curated background images grouped by category */
     listBackgrounds: publicProcedure.query(() => {
       const bgRoot = path.join(process.cwd(), "client", "public", "images", "backgrounds");
@@ -535,7 +919,7 @@ Responda APENAS com JSON válido no formato especificado.`;
             const images = fs
               .readdirSync(catPath)
               .filter((f) => /\.(webp|jpg|jpeg|png|gif|svg)$/i.test(f))
-              .map((f) => `/images/backgrounds/${dir.name}/${f}`);
+              .map((f) => `/ images / backgrounds / ${dir.name} / ${f}`);
             return { id: dir.name, name: dir.name, images };
           })
           .filter((c) => c.images.length > 0);
@@ -605,7 +989,7 @@ Responda APENAS com JSON válido no formato especificado.`;
         const designPatterns = await analyzeDesignPattern(extractedData, input.url);
         console.log("[extractStyles] Patterns returned:", designPatterns.length);
         designPatterns.forEach((p, i) => {
-          console.log(`[extractStyles] Pattern ${i + 1}:`, {
+          console.log(`[extractStyles] Pattern ${i + 1}: `, {
             name: p.name,
             category: p.category,
             confidence: p.confidence,
@@ -618,7 +1002,7 @@ Responda APENAS com JSON válido no formato especificado.`;
         const themes = generateThemesFromPatterns(designPatterns, extractedData, input.url);
         console.log("[extractStyles] Generated themes:", themes.length);
         themes.forEach((t, i) => {
-          console.log(`[extractStyles] Theme ${i + 1}:`, {
+          console.log(`[extractStyles] Theme ${i + 1}: `, {
             id: t.id,
             label: t.label,
             category: t.category,
@@ -723,49 +1107,44 @@ async function scrapeUrl(url: string) {
     });
     const html = await response.text();
 
-    const getMetaContent = (html: string, property: string): string => {
-      const patterns = [
-        new RegExp(`<meta[^>]*property=["']${property}["'][^>]*content=["']([^"']*)["']`, "i"),
-        new RegExp(`<meta[^>]*name=["']${property}["'][^>]*content=["']([^"']*)["']`, "i"),
-        new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*property=["']${property}["']`, "i"),
-      ];
-      for (const p of patterns) {
-        const m = html.match(p);
-        if (m?.[1]) return m[1];
-      }
+    const getMetaContent = (htmlSource: string, property: string): string => {
+      const p1 = new RegExp(`< meta[^>] * property=["']${property}["'][^>]*content=["']([^ "']*)["']`, "i");
+      const p2 = new RegExp(`<meta[^>]*name=["']${property}["'][^>]*content=["']([^"']*)["']`, "i");
+
+      const m1 = htmlSource.match(p1);
+      if (m1?.[1]) return m1[1];
+
+      const m2 = htmlSource.match(p2);
+      if (m2?.[1]) return m2[1];
+
       return "";
     };
 
-    const title = getMetaContent(html, "og:title") ||
-      (html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] || "").trim();
-    const description = getMetaContent(html, "og:description") ||
-      getMetaContent(html, "description");
-    const imageUrl = getMetaContent(html, "og:image");
-    const siteName = getMetaContent(html, "og:site_name");
+    const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    const title = getMetaContent(html, "og:title") || (titleMatch?.[1] || "").trim();
+    const description = getMetaContent(html, "og:description") || getMetaContent(html, "description");
 
     // Extract text content (simplified)
     const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
     const bodyHtml = bodyMatch?.[1] || "";
     const textContent = bodyHtml
-      .replace(/<script[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 2000);
+      .trim();
 
     return {
       title,
       description,
-      imageUrl: imageUrl || undefined,
-      siteName: siteName || undefined,
-      content: textContent,
+      content: textContent.substring(0, 10000), // Limit reasonable amount for context
     };
-  } catch {
+  } catch (error) {
+    console.warn("Failed to scrape URL:", url, error);
     return {
-      title: url,
+      title: "",
       description: "",
-      content: `Conteúdo da URL: ${url}`,
+      content: "",
     };
   }
 }

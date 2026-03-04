@@ -41,8 +41,8 @@ export function CollapsibleSection({
   return (
     <div
       className={cn(
-        'rounded-xl overflow-hidden transition-all',
-        isExpanded ? 'bg-white/[0.02]' : 'bg-transparent',
+        'rounded-xl transition-all',
+        isExpanded ? 'bg-white/[0.02] overflow-visible' : 'bg-transparent overflow-hidden',
         className
       )}
       style={{
@@ -110,11 +110,10 @@ export function CollapsibleSection({
       <AnimatePresence initial={false}>
         {isExpanded && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            initial={{ height: 0, opacity: 0, overflow: 'hidden' }}
+            animate={{ height: 'auto', opacity: 1, transitionEnd: { overflow: 'visible' } }}
+            exit={{ height: 0, opacity: 0, overflow: 'hidden' }}
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden"
           >
             <div className="px-3 pb-3 pt-1">{children}</div>
           </motion.div>

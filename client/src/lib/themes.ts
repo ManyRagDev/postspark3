@@ -3,10 +3,13 @@
  * Each theme defines colors, typography, layout, and visual decorations
  */
 
+import type { DesignTokens } from "@shared/postspark";
+
 export type FontCategory = "serif" | "sans" | "display" | "mono";
 export type LayoutAlignment = "left" | "center" | "right";
 export type BorderStyle = "square" | "rounded" | "pill";
 export type Decoration = "none" | "noise" | "glitch" | "grid";
+export type CardStyle = "neobrutalist" | "glass" | "minimal" | "editorial" | "flat";
 
 export interface ThemeConfig {
   id: string;
@@ -30,12 +33,20 @@ export interface ThemeConfig {
     borderStyle: BorderStyle;
     decoration: Decoration;
     padding: string;
+    /** Visual card style — drives border, shadow, and structural appearance in ThemeRenderer */
+    cardStyle?: CardStyle;
   };
   effects?: {
     glitch?: boolean;
     glow?: boolean;
     noise?: boolean;
     grid?: boolean;
+  };
+  /** Brand identity metadata for overlay rendering (logo, name, favicon) */
+  brandMeta?: {
+    logoUrl?: string;
+    brandName?: string;
+    favicon?: string;
   };
 }
 
@@ -340,7 +351,7 @@ export function applyThemeStyles(theme: ThemeConfig): React.CSSProperties {
       theme.layout.borderStyle === "square"
         ? "0"
         : theme.layout.borderStyle === "pill"
-          ? "9999px"
+          ? "2rem"
           : "0.5rem",
     textAlign: theme.layout.alignment as "left" | "center" | "right",
     position: "relative" as const,
@@ -367,4 +378,67 @@ export function getThemeDecorativeClass(theme: ThemeConfig): string {
   }
 
   return classes.join(" ");
+}
+
+// ─── Design Tokens Bridge ────────────────────────────────────────────────────
+
+/** Extract the bare font name from a CSS font-family string like "'Playfair Display', serif" */
+function extractFontName(cssFont: string): string {
+  return cssFont.replace(/['"]/g, '').split(',')[0].trim();
+}
+
+/**
+ * Convert a ThemeConfig (legacy) to DesignTokens (new Chameleon Engine format).
+ * Bridges the gap so existing 8 presets + extracted TemporaryThemes work with the new pipeline.
+ */
+export function themeToDesignTokens(theme: ThemeConfig): DesignTokens {
+  // borderStyle → borderRadius
+  const borderRadiusMap: Record<BorderStyle, string> = {
+    square: '0px',
+    rounded: '12px',
+    pill: '40px',
+  };
+
+  // cardStyle → boxShadow
+  const boxShadowMap: Record<string, string> = {
+    neobrutalist: '5px 5px 0px 0px rgba(0,0,0,0.85)',
+    glass: '0 8px 32px rgba(0,0,0,0.14)',
+    minimal: 'none',
+    editorial: 'none',
+    flat: 'none',
+  };
+
+  // cardStyle → border
+  const borderMap: Record<string, string> = {
+    neobrutalist: '2.5px solid rgba(0,0,0,0.85)',
+    glass: '1px solid rgba(255,255,255,0.15)',
+    minimal: 'none',
+    editorial: 'none',
+    flat: 'none',
+  };
+
+  const cardStyle = theme.layout.cardStyle || 'flat';
+
+  return {
+    colors: {
+      background: theme.colors.bg,
+      primary: theme.colors.accent,
+      secondary: theme.colors.surface,
+      text: theme.colors.text,
+      card: theme.colors.surface,
+    },
+    typography: {
+      fontFamily: extractFontName(theme.typography.headingFont),
+      customFontUrl: '',
+      originalFont: '',
+      textTransform: 'none',
+      textAlign: theme.layout.alignment === 'center' ? 'center' : 'left',
+    },
+    structure: {
+      borderRadius: borderRadiusMap[theme.layout.borderStyle],
+      boxShadow: boxShadowMap[cardStyle] || 'none',
+      border: borderMap[cardStyle] || 'none',
+    },
+    decorations: theme.layout.decoration === 'none' ? 'minimal' : 'playful',
+  };
 }

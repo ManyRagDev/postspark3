@@ -611,6 +611,7 @@ var systemRouter = router({
 import { z as z2 } from "zod";
 
 // server/_core/llm.ts
+import { TRPCError as TRPCError3 } from "@trpc/server";
 var ensureArray = (value) => Array.isArray(value) ? value : [value];
 var normalizeContentPart = (part) => {
   if (typeof part === "string") {
@@ -761,48 +762,22 @@ async function invokeLLM(params) {
   if (normalizedResponseFormat) {
     payload.response_format = normalizedResponseFormat;
   }
-  try {
-    const response = await fetch(resolveApiUrl(), {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${resolveApiKey()}`
-      },
-      body: JSON.stringify(payload)
+  const response = await fetch(resolveApiUrl(), {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${resolveApiKey()}`
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new TRPCError3({
+      code: "BAD_GATEWAY",
+      message: `Gemini API failed: ${response.status} ${response.statusText} \u2013 ${errorText}`
     });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Gemini API failed: ${response.status} ${response.statusText} \u2013 ${errorText}`
-      );
-    }
-    return await response.json();
-  } catch (error) {
-    console.warn("LLM invocation failed with primary API, falling back to Groq...", error);
-    if (!ENV.groqApiKey) {
-      console.warn("GROQ_API_KEY is not configured, cannot use fallback.");
-      throw error;
-    }
-    const groqPayload = {
-      ...payload,
-      model: "llama-3.3-70b-versatile"
-    };
-    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${ENV.groqApiKey}`
-      },
-      body: JSON.stringify(groqPayload)
-    });
-    if (!groqResponse.ok) {
-      const errorText = await groqResponse.text();
-      throw new Error(
-        `Groq fallback failed: ${groqResponse.status} ${groqResponse.statusText} \u2013 ${errorText}`
-      );
-    }
-    return await groqResponse.json();
   }
+  return await response.json();
 }
 
 // server/storage.ts
@@ -901,255 +876,131 @@ async function generateImage(options) {
   };
 }
 
-// server/chameleon.ts
-async function mockScrapeUrl(url) {
-  const mocks = {
-    apple: {
-      brandColors: { primary: "#555555", secondary: "#FFFFFF" },
-      logoUrl: "https://www.apple.com/favicon.ico",
-      fontCategory: "sans",
-      summary: "Apple Inc. - Technology company known for innovative products and sleek design.",
-      brandName: "Apple"
-    },
-    google: {
-      brandColors: { primary: "#4285F4", secondary: "#FFFFFF" },
-      logoUrl: "https://www.google.com/favicon.ico",
-      fontCategory: "sans",
-      summary: "Google - Search engine and technology company with a focus on simplicity.",
-      brandName: "Google"
-    },
-    nike: {
-      brandColors: { primary: "#111111", secondary: "#FFFFFF" },
-      logoUrl: "https://www.nike.com/favicon.ico",
-      fontCategory: "sans",
-      summary: "Nike - Athletic footwear and apparel company with a sporty aesthetic.",
-      brandName: "Nike"
-    },
-    starbucks: {
-      brandColors: { primary: "#00704A", secondary: "#FFFFFF" },
-      logoUrl: "https://www.starbucks.com/favicon.ico",
-      fontCategory: "sans",
-      summary: "Starbucks - Coffee company known for premium beverages and cozy ambiance.",
-      brandName: "Starbucks"
-    }
-  };
-  const lowerUrl = url.toLowerCase();
-  for (const [key, data] of Object.entries(mocks)) {
-    if (lowerUrl.includes(key)) {
-      return data;
-    }
-  }
-  return {
-    brandColors: { primary: "#FF6B6B", secondary: "#F5F5F5" },
-    logoUrl: void 0,
-    fontCategory: "sans",
-    summary: "Brand website - Modern design with professional aesthetic.",
-    brandName: "Brand"
-  };
-}
-async function analyzeBrandFromUrl(url) {
-  try {
-    const response = await invokeLLM({
-      messages: [
-        {
-          role: "system",
-          content: `You are a brand analyst. Analyze the given URL and extract brand information in JSON format.
-Return ONLY valid JSON with this structure:
-{
-  "brandColors": { "primary": "#HEX", "secondary": "#HEX" },
-  "fontCategory": "serif" | "sans" | "display" | "mono",
-  "summary": "3-line summary of the brand",
-  "brandName": "Brand name"
-}`
-        },
-        {
-          role: "user",
-          content: `Analyze this URL and extract brand information: ${url}`
-        }
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "brand_analysis",
-          strict: true,
-          schema: {
-            type: "object",
-            properties: {
-              brandColors: {
-                type: "object",
-                properties: {
-                  primary: { type: "string", description: "Primary brand color in hex format" },
-                  secondary: { type: "string", description: "Secondary brand color in hex format" }
-                },
-                required: ["primary", "secondary"]
-              },
-              fontCategory: {
-                type: "string",
-                enum: ["serif", "sans", "display", "mono"],
-                description: "Font category used by the brand"
-              },
-              summary: {
-                type: "string",
-                description: "3-line summary of the brand"
-              },
-              brandName: {
-                type: "string",
-                description: "Name of the brand"
-              }
-            },
-            required: ["brandColors", "fontCategory", "summary", "brandName"],
-            additionalProperties: false
-          }
-        }
-      }
-    });
-    const content = response.choices[0]?.message.content;
-    if (!content) throw new Error("No response from LLM");
-    const contentStr = typeof content === "string" ? content : JSON.stringify(content);
-    const parsed = JSON.parse(contentStr);
-    return {
-      brandColors: parsed.brandColors,
-      fontCategory: parsed.fontCategory,
-      summary: parsed.summary,
-      brandName: parsed.brandName
-    };
-  } catch (error) {
-    console.warn("LLM brand analysis failed, using mock:", error);
-    return mockScrapeUrl(url);
-  }
-}
-function generateCardThemeVariations(brandAnalysis) {
-  return [
-    {
-      themeId: "brand-custom",
-      themeName: "Brand Match",
-      description: "Clone your brand identity exactly",
-      brandColors: brandAnalysis.brandColors,
-      type: "brand-match"
-    },
-    {
-      themeId: "swiss-modern",
-      themeName: "Remix Seguro",
-      description: "Swiss Modern with your brand accent",
-      brandColors: { primary: brandAnalysis.brandColors.primary, secondary: "#FFFFFF" },
-      type: "remix-safe"
-    },
-    {
-      themeId: "cyber-core",
-      themeName: "Remix Disruptivo",
-      description: "Bold neon aesthetic for maximum impact",
-      type: "remix-disruptive"
-    }
-  ];
-}
-
-// server/imageGenerateBackground.ts
-import { GoogleGenAI } from "@google/genai";
-function wrapComplexPrompt(userPrompt) {
-  return `Photorealistic background image for a social media post. Subject: ${userPrompt}. Professional photography, sharp focus, beautiful lighting. Absolutely no text, no letters, no words, no typography, no UI elements. No UI, no overlays, just clean visual background.`;
-}
-async function generateBackgroundImage(prompt, provider = "pollinations") {
-  console.log(`[ImageGen] Request: provider=${provider}, prompt="${prompt.substring(0, 50)}..."`);
-  try {
-    if (provider === "gemini") {
-      return await generateWithGemini(prompt);
-    }
-    return await generateWithPollinations(prompt);
-  } catch (error) {
-    console.error(`[ImageGen] Critical Error (${provider}):`, error);
-    throw error;
-  }
-}
-async function generateWithPollinations(prompt) {
-  const enhancedPrompt = `Abstract background image for social media post. Theme: ${prompt}, high quality, vibrant colors. No text, no logos.`;
-  const encodedPrompt = encodeURIComponent(enhancedPrompt);
-  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=flux&nologo=true&width=1080&height=1080&enhance=true`;
-  console.log(`[ImageGen] Pollinations URL: ${url}`);
-  const headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "image/jpeg, image/png, image/*"
-  };
-  if (process.env.POLLINATIONS_API_KEY) {
-    headers["Authorization"] = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
-  }
-  const response = await fetch(url, { method: "GET", headers });
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "No error body");
-    console.error(`[ImageGen] Pollinations Error: ${response.status} ${response.statusText} - ${errorText}`);
-    throw new Error(`Pollinations API failed: ${response.status} ${response.statusText}`);
-  }
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const base64 = buffer.toString("base64");
-  return `data:image/jpeg;base64,${base64}`;
-}
-async function generateWithGemini(prompt) {
-  console.log(`[ImageGen] Starting Gemini generation...`);
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("Gemini API key not configured");
-  const ai = new GoogleGenAI({ apiKey });
-  const wrapped = wrapComplexPrompt(prompt);
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp-image-generation",
-      contents: wrapped,
-      config: {
-        responseModalities: ["Text", "Image"]
-      }
-    });
-    const parts = response.candidates?.[0]?.content?.parts ?? [];
-    for (const part of parts) {
-      if (part.inlineData?.data) {
-        const mimeType = part.inlineData.mimeType || "image/png";
-        return `data:${mimeType};base64,${part.inlineData.data}`;
-      }
-    }
-    console.warn("[ImageGen] Gemini response structure unexpected:", JSON.stringify(response, null, 2));
-    throw new Error("Gemini: no image in response");
-  } catch (err) {
-    console.error("[ImageGen] Gemini Error Details:", err.message);
-    if (err.response) {
-      console.error("[ImageGen] Gemini API Response:", JSON.stringify(err.response, null, 2));
-    }
-    throw err;
-  }
-}
-
 // server/screenshotService.ts
-async function captureScreenshot(url) {
-  console.log("[screenshotService] Capturing screenshot for:", url);
+var SCREENSHOT_SERVICE_URL = process.env.SCREENSHOT_SERVICE_URL;
+var DEFAULT_TIMEOUT_MS = 3e4;
+var BATCH_TIMEOUT_MS = 9e4;
+function serviceUrl(path3) {
+  return `${SCREENSHOT_SERVICE_URL}${path3}`;
+}
+function warnMissing(fn) {
+  console.warn(`[screenshotService] ${fn}: SCREENSHOT_SERVICE_URL not configured`);
+  return null;
+}
+async function captureScreenshot(url, type = "desktop") {
+  console.log(`[screenshotService] Capturing ${type} screenshot for: ${url}`);
+  if (!SCREENSHOT_SERVICE_URL) return warnMissing("captureScreenshot");
+  const endpoint = type === "mobile" ? "/screenshot/mobile" : "/screenshot";
   try {
-    const apiUrl = new URL("https://www.googleapis.com/pagespeedonline/v5/runPagespeed");
-    apiUrl.searchParams.set("url", url);
-    apiUrl.searchParams.set("strategy", "desktop");
-    apiUrl.searchParams.set("category", "performance");
-    const response = await fetch(apiUrl.toString(), {
-      signal: AbortSignal.timeout(3e4),
-      // 30s timeout (Lighthouse takes time)
-      headers: {
-        "Accept": "application/json"
-      }
+    const response = await fetch(serviceUrl(endpoint), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url,
+        viewport: type === "desktop" ? { width: 1440, height: 900 } : void 0
+      }),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
     });
     if (!response.ok) {
-      console.warn("[screenshotService] PageSpeed API error:", response.status);
+      console.warn(`[screenshotService] /screenshot error: ${response.status} ${response.statusText}`);
       return null;
     }
-    const data = await response.json();
-    const screenshot = data?.lighthouseResult?.audits?.["final-screenshot"]?.details?.data;
-    if (!screenshot) {
-      const fullScreenshot = data?.lighthouseResult?.audits?.["full-page-screenshot"]?.details?.screenshot?.data;
-      if (fullScreenshot) {
-        console.log("[screenshotService] Got full-page screenshot");
-        return fullScreenshot;
-      }
-      console.warn("[screenshotService] No screenshot in PageSpeed response");
-      return null;
-    }
-    console.log("[screenshotService] Screenshot captured successfully");
-    return screenshot;
+    console.log(`[screenshotService] ${type} screenshot captured \u2713`);
+    return await response.arrayBuffer();
   } catch (error) {
-    console.warn("[screenshotService] Screenshot capture failed:", error);
+    console.warn(`[screenshotService] captureScreenshot failed:`, error);
     return null;
+  }
+}
+async function captureMultipleScreenshots(urls, viewport = { width: 1440, height: 900 }, maxPages = 5) {
+  if (!SCREENSHOT_SERVICE_URL) {
+    warnMissing("captureMultipleScreenshots");
+    return {};
+  }
+  if (urls.length === 0) return {};
+  console.log(`[screenshotService] Multi-capture: ${urls.length} URL(s)`);
+  try {
+    const response = await fetch(serviceUrl("/screenshot/multi"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ urls, viewport, maxPages }),
+      signal: AbortSignal.timeout(BATCH_TIMEOUT_MS)
+    });
+    if (!response.ok) {
+      console.warn(`[screenshotService] /screenshot/multi error: ${response.status}`);
+      return {};
+    }
+    const json = await response.json();
+    if (Object.keys(json.errors).length > 0) {
+      console.warn("[screenshotService] Multi-capture partial errors:", json.errors);
+    }
+    const result = {};
+    for (const [url, b64] of Object.entries(json.screenshots)) {
+      result[url] = Buffer.from(b64, "base64").buffer;
+    }
+    console.log(`[screenshotService] Multi-capture: ${Object.keys(result).length}/${urls.length} succeeded \u2713`);
+    return result;
+  } catch (error) {
+    console.warn(`[screenshotService] captureMultipleScreenshots failed:`, error);
+    return {};
+  }
+}
+async function captureElements(url, selectors, viewport = { width: 1440, height: 900 }) {
+  if (!SCREENSHOT_SERVICE_URL) {
+    warnMissing("captureElements");
+    return {};
+  }
+  if (selectors.length === 0) return {};
+  console.log(`[screenshotService] Element capture: ${selectors.length} selector(s) on ${url}`);
+  try {
+    const response = await fetch(serviceUrl("/screenshot/element"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, selectors, viewport }),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
+    });
+    if (!response.ok) {
+      console.warn(`[screenshotService] /screenshot/element error: ${response.status}`);
+      return {};
+    }
+    const json = await response.json();
+    if (json.notFound.length > 0) {
+      console.log(`[screenshotService] Elements not found: ${json.notFound.join(", ")}`);
+    }
+    const result = {};
+    for (const [sel, b64] of Object.entries(json.elements)) {
+      result[sel] = Buffer.from(b64, "base64").buffer;
+    }
+    console.log(`[screenshotService] Element capture: ${Object.keys(result).length}/${selectors.length} found \u2713`);
+    return result;
+  } catch (error) {
+    console.warn(`[screenshotService] captureElements failed:`, error);
+    return {};
+  }
+}
+async function discoverPages(url, maxLinks = 8) {
+  if (!SCREENSHOT_SERVICE_URL) {
+    warnMissing("discoverPages");
+    return [];
+  }
+  console.log(`[screenshotService] Discovering pages for: ${url}`);
+  try {
+    const response = await fetch(serviceUrl("/discover"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, maxLinks }),
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
+    });
+    if (!response.ok) {
+      console.warn(`[screenshotService] /discover error: ${response.status}`);
+      return [];
+    }
+    const json = await response.json();
+    console.log(`[screenshotService] Discovered ${json.discoveredPages.length} pages \u2713`);
+    return json.discoveredPages;
+  } catch (error) {
+    console.warn(`[screenshotService] discoverPages failed:`, error);
+    return [];
   }
 }
 
@@ -1665,12 +1516,13 @@ async function extractStyleFromUrlWithMeta(url) {
   }
   console.log("[styleExtractor] Low quality HTML extraction, attempting vision fallback...");
   try {
-    const screenshot = await captureScreenshot(url);
-    if (!screenshot) {
+    const screenshotBuffer = await captureScreenshot(url);
+    if (!screenshotBuffer) {
       console.log("[styleExtractor] Screenshot capture failed, using HTML result as-is");
       return { data: htmlResult, visionUsed: false };
     }
-    const visionResult = await extractStylesFromScreenshot(screenshot, url);
+    const screenshotBase64 = `data:image/png;base64,${Buffer.from(screenshotBuffer).toString("base64")}`;
+    const visionResult = await extractStylesFromScreenshot(screenshotBase64, url);
     const merged = mergeExtractionResults(htmlResult, visionResult);
     console.log("[styleExtractor] \u2500\u2500 Hybrid Pipeline End (HTML + Vision merged) \u2500\u2500");
     return { data: merged, visionUsed: true };
@@ -1765,6 +1617,752 @@ function getDefaultStyleData() {
     },
     metadata: {}
   };
+}
+
+// server/brandDNA.ts
+var BRAND_ELEMENT_SELECTORS = [
+  "header",
+  "nav",
+  '.hero, [class*="hero"], [class*="Hero"]',
+  "footer",
+  'button:not([aria-hidden]), .btn, [class*="btn-"], [class*="button-"]',
+  "h1"
+];
+function mapPersonalityToComposition(dna) {
+  const { seriousPlayful, luxuryAccessible, modernClassic, boldSubtle } = dna.personality;
+  const { contrast, harmony } = dna.colors.colorRelationships;
+  let rhythm;
+  if (seriousPlayful < 35 && boldSubtle < 50) {
+    rhythm = "staccato";
+  } else if (seriousPlayful > 65 || luxuryAccessible > 70) {
+    rhythm = "syncopated";
+  } else {
+    rhythm = "legato";
+  }
+  let harmonyRule;
+  if (harmony === "complementary" || harmony === "split-complementary") {
+    harmonyRule = "dissonant";
+  } else if (harmony === "triadic") {
+    harmonyRule = "resolved";
+  } else {
+    harmonyRule = "consonant";
+  }
+  let dynamics;
+  if (boldSubtle < 35 && contrast === "high") {
+    dynamics = "forte";
+  } else if (boldSubtle > 65 || contrast === "low") {
+    dynamics = "piano";
+  } else {
+    dynamics = "mezzo";
+  }
+  let tempo;
+  if (modernClassic < 35 && luxuryAccessible > 60) {
+    tempo = "allegro";
+  } else if (modernClassic > 65 || luxuryAccessible < 35) {
+    tempo = "adagio";
+  } else {
+    tempo = "andante";
+  }
+  return { rhythm, harmony: harmonyRule, dynamics, tempo };
+}
+function compositionToLayout(composition) {
+  const densityMap = {
+    allegro: "compact",
+    andante: "normal",
+    adagio: "spacious"
+  };
+  const radiusMap = {
+    staccato: "square",
+    legato: "rounded",
+    syncopated: "pill"
+  };
+  const paddingMap = {
+    allegro: "tight",
+    andante: "normal",
+    adagio: "loose"
+  };
+  const alignmentMap = {
+    forte: "left",
+    mezzo: "center",
+    piano: "center"
+  };
+  return {
+    density: densityMap[composition.tempo],
+    borderRadius: radiusMap[composition.rhythm],
+    padding: paddingMap[composition.tempo],
+    preferredAlignment: alignmentMap[composition.dynamics]
+  };
+}
+async function analyzeWithVision(screenshots, elementScreenshots, url) {
+  const pageImages = screenshots.slice(0, 2);
+  const elementImages = elementScreenshots.slice(0, 1);
+  const allBuffers = [...pageImages, ...elementImages];
+  if (allBuffers.length === 0) return null;
+  console.log(`[brandDNA] Sending ${allBuffers.length} image(s) to Gemini Vision for brand analysis`);
+  const imageContents = allBuffers.map((buf) => ({
+    type: "image_url",
+    image_url: {
+      // Use 'low' detail to reduce token usage and avoid INVALID_ARGUMENT on large batches
+      url: `data:image/png;base64,${Buffer.from(buf).toString("base64")}`,
+      detail: "low"
+    }
+  }));
+  try {
+    const response = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: `You are a Senior Brand Strategist and Art Director who analyzes brand identities holistically.
+You are looking at multiple screenshots of a website to extract its complete brand DNA.
+
+Your analysis must be PRECISE and based on what you actually SEE in the images:
+- Extract EXACT hex colors from the rendered interface (not guesses)
+- Assess brand personality on each spectrum based on visual and tonal cues
+- Identify emotional qualities that the design evokes
+- Classify the industry/sector based on visual language clues
+
+Be specific. Avoid generic defaults. Every brand has a unique identity.`
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Analyze these ${allBuffers.length} screenshot(s) from the website: ${url}
+
+I need a complete brand DNA analysis. Extract:
+1. The brand name (from logo, title, or domain)
+2. Industry/sector
+3. Personality spectrum (score each axis 0-100 based on visual/tonal evidence)
+4. Exact colors from the UI (primary CTA, background, text, accents)
+5. Color relationship type (analogous/complementary/triadic/monochromatic)
+6. Typography style (serif/sans/display \u2014 identify actual font names if visible)
+7. Visual effects (shadows, gradients, glassmorphism, etc.)
+8. Emotional profile (what feeling does this brand evoke?)
+9. Card/UI style \u2014 what is the primary design language of the site's cards and components?
+   - "neobrutalist": thick solid borders (2px+), hard offset drop shadows, flat colors, bold typography
+   - "glass": frosted glass / backdrop blur effects, semi-transparent surfaces
+   - "minimal": no borders, no drop shadows, maximum whitespace, typography-driven
+   - "editorial": strong typographic hierarchy, serif fonts, accent rules/dividers, print-like grid
+   - "flat": flat solid colors, subtle or no borders, no drop shadows (most modern apps/SaaS)
+
+Return ONLY valid JSON matching the schema.`
+            },
+            ...imageContents
+          ]
+        }
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "vision_brand_analysis",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              brandName: { type: "string" },
+              industry: { type: "string" },
+              personality: {
+                type: "object",
+                properties: {
+                  seriousPlayful: { type: "number", description: "0=serious, 100=playful" },
+                  luxuryAccessible: { type: "number", description: "0=luxury, 100=accessible" },
+                  modernClassic: { type: "number", description: "0=modern, 100=classic" },
+                  boldSubtle: { type: "number", description: "0=bold, 100=subtle" },
+                  warmCool: { type: "number", description: "0=warm, 100=cool" }
+                },
+                required: ["seriousPlayful", "luxuryAccessible", "modernClassic", "boldSubtle", "warmCool"],
+                additionalProperties: false
+              },
+              colors: {
+                type: "object",
+                properties: {
+                  primary: { type: "string", description: "Primary brand/CTA color hex" },
+                  secondary: { type: "string", description: "Secondary color hex" },
+                  background: { type: "string", description: "Main background color hex" },
+                  text: { type: "string", description: "Main body text color hex" },
+                  accent: { type: "string", description: "Accent/highlight color hex" },
+                  colorRelationships: {
+                    type: "object",
+                    properties: {
+                      harmony: { type: "string", enum: ["complementary", "analogous", "triadic", "monochromatic", "split-complementary"] },
+                      contrast: { type: "string", enum: ["high", "medium", "low"] },
+                      temperature: { type: "string", enum: ["warm", "cool", "neutral"] }
+                    },
+                    required: ["harmony", "contrast", "temperature"],
+                    additionalProperties: false
+                  }
+                },
+                required: ["primary", "secondary", "background", "text", "accent", "colorRelationships"],
+                additionalProperties: false
+              },
+              typography: {
+                type: "object",
+                properties: {
+                  headingFont: { type: "string", description: "Heading font name or category" },
+                  bodyFont: { type: "string", description: "Body font name or category" },
+                  fontPairing: { type: "string", enum: ["matching", "contrasting", "complementary"] }
+                },
+                required: ["headingFont", "bodyFont", "fontPairing"],
+                additionalProperties: false
+              },
+              effects: {
+                type: "object",
+                properties: {
+                  shadows: { type: "boolean" },
+                  gradients: { type: "boolean" },
+                  animations: { type: "boolean" },
+                  glassmorphism: { type: "boolean" },
+                  noise: { type: "boolean" }
+                },
+                required: ["shadows", "gradients", "animations", "glassmorphism", "noise"],
+                additionalProperties: false
+              },
+              emotionalProfile: {
+                type: "object",
+                properties: {
+                  primary: { type: "string", description: "Primary emotional quality: trust, energy, calm, excitement, elegance, etc." },
+                  secondary: { type: "string", description: "Secondary emotional quality" },
+                  mood: { type: "string", description: '2-3 word mood descriptor, e.g. "confident professional"' }
+                },
+                required: ["primary", "secondary", "mood"],
+                additionalProperties: false
+              },
+              cardStyle: {
+                type: "string",
+                enum: ["neobrutalist", "glass", "minimal", "editorial", "flat"],
+                description: "Primary design language of the site's UI cards and components: neobrutalist=thick borders+offset shadow, glass=frosted blur, minimal=no borders/shadows, editorial=top accent rule+serif, flat=clean modern default"
+              }
+            },
+            required: ["brandName", "industry", "personality", "colors", "typography", "effects", "emotionalProfile", "cardStyle"],
+            additionalProperties: false
+          }
+        }
+      }
+    });
+    const content = response.choices[0]?.message?.content;
+    if (!content) throw new Error("No response from Vision LLM");
+    const str = typeof content === "string" ? content : JSON.stringify(content);
+    return JSON.parse(str);
+  } catch (err) {
+    console.warn("[brandDNA] Vision analysis failed:", err);
+    return null;
+  }
+}
+function deriveCardStyle(dna) {
+  if (dna.effects.glassmorphism) return "glass";
+  if (dna.effects.shadows && !dna.effects.gradients && dna.personality.boldSubtle < 45) return "neobrutalist";
+  if (!dna.effects.shadows && !dna.effects.gradients && dna.personality.boldSubtle > 65) return "minimal";
+  if (dna.typography.fontPairing === "contrasting" && dna.personality.modernClassic > 55) return "editorial";
+  return "flat";
+}
+function buildFallbackPersonality() {
+  return {
+    seriousPlayful: 40,
+    luxuryAccessible: 50,
+    modernClassic: 30,
+    boldSubtle: 40,
+    warmCool: 50
+  };
+}
+function buildFallbackEmotional() {
+  return { primary: "trust", secondary: "competence", mood: "professional and reliable" };
+}
+async function extractBrandDNA(url) {
+  console.log("[brandDNA] \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550");
+  console.log("[brandDNA] Starting extraction for:", url);
+  const discovered = await discoverPages(url, 8);
+  const highPriority = discovered.filter((p) => p.priority === "high").slice(0, 3);
+  const urlsToCapture = [url, ...highPriority.map((p) => p.url)].slice(0, 5);
+  console.log("[brandDNA] Pages to capture:", urlsToCapture);
+  const [multiScreenshots, elementScreenshots, htmlResult] = await Promise.all([
+    captureMultipleScreenshots(urlsToCapture),
+    captureElements(url, BRAND_ELEMENT_SELECTORS),
+    extractStyleFromUrlWithMeta(url)
+  ]);
+  const screenshotBuffers = Object.values(multiScreenshots);
+  const elementBuffers = Object.values(elementScreenshots);
+  const htmlData = htmlResult.data;
+  console.log("[brandDNA] Screenshots:", screenshotBuffers.length, "| Elements:", elementBuffers.length);
+  const visionAnalysis = await analyzeWithVision(screenshotBuffers, elementBuffers, url);
+  const isDefaultColor = (hex) => ["#6366f1", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#ffffff", "#1f2937"].includes(hex.toLowerCase());
+  const colors = {
+    primary: !isDefaultColor(htmlData.colors.primary) ? htmlData.colors.primary : visionAnalysis?.colors.primary ?? htmlData.colors.primary,
+    secondary: !isDefaultColor(htmlData.colors.secondary) ? htmlData.colors.secondary : visionAnalysis?.colors.secondary ?? htmlData.colors.secondary,
+    background: !isDefaultColor(htmlData.colors.background) ? htmlData.colors.background : visionAnalysis?.colors.background ?? htmlData.colors.background,
+    text: !isDefaultColor(htmlData.colors.text) ? htmlData.colors.text : visionAnalysis?.colors.text ?? htmlData.colors.text,
+    accent: !isDefaultColor(htmlData.colors.accent) ? htmlData.colors.accent : visionAnalysis?.colors.accent ?? htmlData.colors.accent,
+    palette: htmlData.colors.palette.length >= 4 ? htmlData.colors.palette : [
+      visionAnalysis?.colors.primary ?? htmlData.colors.primary,
+      visionAnalysis?.colors.secondary ?? htmlData.colors.secondary,
+      visionAnalysis?.colors.accent ?? htmlData.colors.accent,
+      visionAnalysis?.colors.background ?? htmlData.colors.background,
+      visionAnalysis?.colors.text ?? htmlData.colors.text,
+      ...htmlData.colors.palette
+    ].filter((c, i, arr) => arr.indexOf(c) === i).slice(0, 8),
+    colorRelationships: visionAnalysis?.colors.colorRelationships ?? {
+      harmony: "analogous",
+      contrast: "medium",
+      temperature: "neutral"
+    }
+  };
+  const isDefaultFont = (f) => f === "Inter, sans-serif" || f === "Inter";
+  const typography = {
+    headingFont: !isDefaultFont(htmlData.typography.headingFont) ? htmlData.typography.headingFont : visionAnalysis?.typography.headingFont ?? htmlData.typography.headingFont,
+    bodyFont: !isDefaultFont(htmlData.typography.bodyFont) ? htmlData.typography.bodyFont : visionAnalysis?.typography.bodyFont ?? htmlData.typography.bodyFont,
+    headingWeight: htmlData.typography.headingWeight,
+    bodyWeight: htmlData.typography.bodyWeight,
+    fontPairing: visionAnalysis?.typography.fontPairing ?? "complementary"
+  };
+  const effects = {
+    shadows: htmlData.effects.shadows || (visionAnalysis?.effects.shadows ?? false),
+    gradients: htmlData.effects.gradients || (visionAnalysis?.effects.gradients ?? false),
+    animations: htmlData.effects.animations || (visionAnalysis?.effects.animations ?? false),
+    glassmorphism: htmlData.effects.glassmorphism || (visionAnalysis?.effects.glassmorphism ?? false),
+    noise: htmlData.effects.noise || (visionAnalysis?.effects.noise ?? false)
+  };
+  const personality = visionAnalysis?.personality ?? buildFallbackPersonality();
+  const emotionalProfile = visionAnalysis?.emotionalProfile ?? buildFallbackEmotional();
+  const brandName = visionAnalysis?.brandName ?? htmlData.metadata?.siteName ?? new URL(url).hostname.replace(/^www\./, "");
+  const industry = visionAnalysis?.industry ?? "Business";
+  const composition = mapPersonalityToComposition({ personality, colors });
+  const layoutBase = compositionToLayout(composition);
+  const cardStyle = visionAnalysis?.cardStyle ?? deriveCardStyle({ effects, personality, typography });
+  const layout = {
+    ...layoutBase,
+    cardStyle
+  };
+  console.log("[brandDNA] Card style resolved:", cardStyle, visionAnalysis?.cardStyle ? "(Vision)" : "(fallback)");
+  const visionUsed = screenshotBuffers.length > 0 && visionAnalysis !== null;
+  const realColors = colors.palette.filter((c) => !isDefaultColor(c));
+  const extractionQuality = Math.min(1, (realColors.length >= 4 ? 0.4 : realColors.length * 0.1) + (visionUsed ? 0.4 : 0) + (htmlData.metadata?.siteName ? 0.1 : 0) + (typography.headingFont !== "Inter, sans-serif" ? 0.1 : 0));
+  const brandDNA = {
+    brandName,
+    industry,
+    personality,
+    colors,
+    typography,
+    composition,
+    layout,
+    effects,
+    emotionalProfile,
+    metadata: {
+      sourceUrl: url,
+      pagesAnalyzed: urlsToCapture.length,
+      extractionQuality,
+      visionUsed,
+      favicon: htmlData.metadata?.favicon,
+      logo: htmlData.metadata?.logo,
+      siteName: htmlData.metadata?.siteName
+    }
+  };
+  console.log("[brandDNA] Extraction complete:", {
+    brandName: brandDNA.brandName,
+    industry: brandDNA.industry,
+    mood: brandDNA.emotionalProfile.mood,
+    composition: brandDNA.composition,
+    quality: brandDNA.metadata.extractionQuality.toFixed(2),
+    visionUsed: brandDNA.metadata.visionUsed
+  });
+  console.log("[brandDNA] \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550");
+  return brandDNA;
+}
+
+// server/brandThemeGenerator.ts
+function getBrightness2(hex) {
+  const h = hex.replace("#", "");
+  if (h.length < 6) return 128;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return (r * 299 + g * 587 + b * 114) / 1e3;
+}
+function isDark(hex) {
+  return getBrightness2(hex) < 128;
+}
+function mixColors(hex1, hex2, ratio = 0.5) {
+  const h1 = hex1.replace("#", "");
+  const h2 = hex2.replace("#", "");
+  if (h1.length < 6 || h2.length < 6) return hex1;
+  const r = Math.round(parseInt(h1.slice(0, 2), 16) * (1 - ratio) + parseInt(h2.slice(0, 2), 16) * ratio);
+  const g = Math.round(parseInt(h1.slice(2, 4), 16) * (1 - ratio) + parseInt(h2.slice(2, 4), 16) * ratio);
+  const b = Math.round(parseInt(h1.slice(4, 6), 16) * (1 - ratio) + parseInt(h2.slice(4, 6), 16) * ratio);
+  return "#" + [r, g, b].map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0")).join("");
+}
+function invertCardStyle(style) {
+  switch (style) {
+    case "neobrutalist":
+      return "minimal";
+    case "minimal":
+      return "neobrutalist";
+    case "glass":
+      return "flat";
+    case "editorial":
+      return "flat";
+    case "flat":
+    default:
+      return "flat";
+  }
+}
+function rhythmToDecoration(rhythm) {
+  return rhythm === "staccato" ? "none" : rhythm === "syncopated" ? "glitch" : "none";
+}
+function dynamicsToHeadingSize(dynamics) {
+  return dynamics === "forte" ? "2.5rem" : dynamics === "mezzo" ? "2rem" : "1.75rem";
+}
+function buildSurface(bg) {
+  const dark = isDark(bg);
+  return dark ? mixColors(bg, "#ffffff", 0.08) : mixColors(bg, "#000000", 0.05);
+}
+function buildEffects(dna, composition) {
+  const isGlowStyle = dna.emotionalProfile.primary === "energy" || dna.emotionalProfile.primary === "excitement";
+  return {
+    glow: isGlowStyle && composition.dynamics === "forte",
+    noise: dna.effects.noise || composition.rhythm === "staccato",
+    glitch: composition.rhythm === "syncopated" && composition.dynamics === "forte",
+    grid: dna.industry.toLowerCase().includes("tech") || dna.industry.toLowerCase().includes("saas")
+  };
+}
+function buildSyntheticPattern(dna, variationName, confidence) {
+  const { seriousPlayful, modernClassic, boldSubtle } = dna.personality;
+  const category = boldSubtle < 30 && modernClassic < 30 ? "neon" : seriousPlayful > 70 ? "playful" : seriousPlayful < 30 && boldSubtle < 50 ? "corporate" : boldSubtle > 70 ? "minimalist" : modernClassic > 70 ? "classic" : "modern";
+  return {
+    id: `dna-${variationName.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`,
+    name: variationName,
+    category,
+    confidence,
+    characteristics: [
+      dna.emotionalProfile.mood,
+      dna.industry,
+      `${dna.composition.rhythm} rhythm`
+    ],
+    description: `${dna.emotionalProfile.mood} \u2014 extracted from ${dna.metadata.siteName ?? dna.brandName}`,
+    suggestedColors: {
+      bg: dna.colors.background,
+      text: dna.colors.text,
+      accent: dna.colors.accent,
+      secondary: dna.colors.secondary
+    }
+  };
+}
+function buildBrandFaithful(dna, url) {
+  const { composition, layout } = dna;
+  const effects = buildEffects(dna, composition);
+  return {
+    id: `temp-brand-${Date.now()}-0`,
+    label: `${dna.brandName} \xB7 Original`,
+    description: `Fiel ao DNA visual: ${dna.emotionalProfile.mood}`,
+    category: "brand",
+    source: "website-extraction",
+    sourceUrl: url,
+    designPattern: buildSyntheticPattern(dna, "Brand Faithful", 92),
+    isTemporary: true,
+    createdAt: Date.now(),
+    colors: {
+      bg: dna.colors.background,
+      text: dna.colors.text,
+      accent: dna.colors.primary,
+      surface: buildSurface(dna.colors.background)
+    },
+    typography: {
+      headingFont: dna.typography.headingFont,
+      bodyFont: dna.typography.bodyFont,
+      headingSize: dynamicsToHeadingSize(composition.dynamics),
+      bodySize: "1rem"
+    },
+    layout: {
+      alignment: layout.preferredAlignment,
+      borderStyle: layout.borderRadius,
+      decoration: rhythmToDecoration(composition.rhythm),
+      padding: layout.padding,
+      // Brand Faithful: use the extracted cardStyle directly — highest fidelity to the site
+      cardStyle: dna.layout.cardStyle
+    },
+    effects,
+    brandMeta: {
+      logoUrl: dna.metadata.logo,
+      brandName: dna.brandName,
+      favicon: dna.metadata.favicon
+    }
+  };
+}
+function buildHarmoniousRemix(dna, url) {
+  const remixRhythm = dna.composition.rhythm === "staccato" ? "legato" : dna.composition.rhythm === "legato" ? "syncopated" : "staccato";
+  const remixComposition = {
+    ...dna.composition,
+    rhythm: remixRhythm,
+    dynamics: dna.composition.dynamics === "forte" ? "mezzo" : "forte"
+  };
+  const remixLayout = compositionToLayout(remixComposition);
+  const bg = isDark(dna.colors.background) ? dna.colors.background : dna.colors.secondary;
+  const accent = dna.colors.accent !== dna.colors.primary ? dna.colors.accent : dna.colors.secondary;
+  const effects = buildEffects(dna, remixComposition);
+  return {
+    id: `temp-remix-${Date.now()}-1`,
+    label: `${dna.brandName} \xB7 Remix`,
+    description: `Mesma personalidade, nova composi\xE7\xE3o: ${remixRhythm} rhythm`,
+    category: "remix",
+    source: "website-extraction",
+    sourceUrl: url,
+    designPattern: buildSyntheticPattern(dna, "Harmonious Remix", 78),
+    isTemporary: true,
+    createdAt: Date.now() + 1,
+    colors: {
+      bg,
+      text: isDark(bg) ? "#f5f5f5" : dna.colors.text,
+      accent,
+      surface: buildSurface(bg)
+    },
+    typography: {
+      headingFont: dna.typography.headingFont,
+      bodyFont: dna.typography.bodyFont,
+      headingSize: dynamicsToHeadingSize(remixComposition.dynamics),
+      bodySize: "1rem"
+    },
+    layout: {
+      alignment: "center",
+      borderStyle: remixLayout.borderRadius,
+      decoration: rhythmToDecoration(remixRhythm),
+      padding: remixLayout.padding,
+      // Harmonious Remix: soften neobrutalist to flat for variety; others carry through
+      cardStyle: dna.layout.cardStyle === "neobrutalist" ? "flat" : dna.layout.cardStyle
+    },
+    effects,
+    brandMeta: {
+      logoUrl: dna.metadata.logo,
+      brandName: dna.brandName,
+      favicon: dna.metadata.favicon
+    }
+  };
+}
+function buildDisruptiveContrast(dna, url) {
+  const { seriousPlayful, boldSubtle, modernClassic } = dna.personality;
+  const disruptiveComposition = {
+    rhythm: "staccato",
+    harmony: dna.composition.harmony === "consonant" ? "dissonant" : "consonant",
+    dynamics: "forte",
+    tempo: "allegro"
+  };
+  const disruptiveLayout = compositionToLayout(disruptiveComposition);
+  let bg;
+  let accent;
+  let text2;
+  if (isDark(dna.colors.background)) {
+    bg = "#f8fafc";
+    text2 = "#0f172a";
+    accent = dna.colors.primary;
+  } else if (seriousPlayful < 40) {
+    bg = mixColors(dna.colors.primary, "#0a0a0a", 0.75);
+    text2 = "#f5f5f5";
+    accent = dna.colors.accent !== dna.colors.primary ? dna.colors.accent : dna.colors.primary;
+  } else {
+    bg = dna.colors.primary;
+    text2 = isDark(dna.colors.primary) ? "#ffffff" : "#000000";
+    accent = isDark(dna.colors.primary) ? "#ffffff" : dna.colors.background;
+  }
+  const effects = {
+    glow: boldSubtle < 50,
+    noise: modernClassic > 60,
+    glitch: seriousPlayful > 60,
+    grid: !isDark(bg)
+  };
+  return {
+    id: `temp-disruptive-${Date.now()}-2`,
+    label: `${dna.brandName} \xB7 Contraste`,
+    description: `Ruptura criativa: invers\xE3o de ${seriousPlayful < 40 ? "tom" : boldSubtle > 60 ? "din\xE2mica" : "paleta"}`,
+    category: "disruptive",
+    source: "website-extraction",
+    sourceUrl: url,
+    designPattern: buildSyntheticPattern(dna, "Disruptive Contrast", 65),
+    isTemporary: true,
+    createdAt: Date.now() + 2,
+    colors: {
+      bg,
+      text: text2,
+      accent,
+      surface: buildSurface(bg)
+    },
+    typography: {
+      headingFont: dna.typography.headingFont,
+      bodyFont: dna.typography.bodyFont,
+      headingSize: "2.75rem",
+      bodySize: "1rem"
+    },
+    layout: {
+      alignment: disruptiveLayout.preferredAlignment,
+      borderStyle: "square",
+      decoration: "none",
+      padding: disruptiveLayout.padding,
+      // Disruptive Contrast: inverts the cardStyle for maximum visual tension
+      cardStyle: invertCardStyle(dna.layout.cardStyle)
+    },
+    effects,
+    brandMeta: {
+      logoUrl: dna.metadata.logo,
+      brandName: dna.brandName,
+      favicon: dna.metadata.favicon
+    }
+  };
+}
+function generateThemesFromBrandDNA(dna, url) {
+  console.log("[brandThemeGenerator] Generating 3 variations for:", dna.brandName);
+  const themes = [
+    buildBrandFaithful(dna, url),
+    buildHarmoniousRemix(dna, url),
+    buildDisruptiveContrast(dna, url)
+  ];
+  themes.forEach((t2, i) => {
+    console.log(`[brandThemeGenerator] Variation ${i + 1}:`, {
+      label: t2.label,
+      category: t2.category,
+      bg: t2.colors.bg,
+      accent: t2.colors.accent,
+      composition: `${t2.layout.borderStyle} \xB7 ${t2.layout.alignment} \xB7 ${t2.layout.padding}`
+    });
+  });
+  return themes;
+}
+
+// server/chameleon.ts
+function mapFontCategory(headingFont) {
+  const lower = headingFont.toLowerCase();
+  if (lower.includes("mono") || lower.includes("code") || lower.includes("courier")) return "mono";
+  if (lower.includes("serif") || lower.includes("georgia") || lower.includes("playfair") || lower.includes("merriweather") || lower.includes("lora")) return "serif";
+  if (lower.includes("display") || lower.includes("bebas") || lower.includes("oswald") || lower.includes("impact") || lower.includes("black")) return "display";
+  return "sans";
+}
+async function analyzeBrandFromUrl(url) {
+  try {
+    const dna = await extractBrandDNA(url);
+    return {
+      brandColors: {
+        primary: dna.colors.primary,
+        secondary: dna.colors.secondary
+      },
+      logoUrl: dna.metadata.logo,
+      fontCategory: mapFontCategory(dna.typography.headingFont),
+      summary: `${dna.brandName} \u2014 ${dna.industry}. ${dna.emotionalProfile.mood}. ${dna.emotionalProfile.primary} brand identity.`,
+      brandName: dna.brandName,
+      dna
+    };
+  } catch (error) {
+    console.warn("[chameleon] extractBrandDNA failed, falling back to mock:", error);
+    return mockScrapeUrl(url);
+  }
+}
+async function mockScrapeUrl(url) {
+  const mocks = {
+    apple: {
+      brandColors: { primary: "#555555", secondary: "#FFFFFF" },
+      logoUrl: "https://www.apple.com/favicon.ico",
+      fontCategory: "sans",
+      summary: "Apple Inc. - Technology company known for innovative products and sleek design.",
+      brandName: "Apple"
+    },
+    google: {
+      brandColors: { primary: "#4285F4", secondary: "#FFFFFF" },
+      logoUrl: "https://www.google.com/favicon.ico",
+      fontCategory: "sans",
+      summary: "Google - Search engine and technology company with a focus on simplicity.",
+      brandName: "Google"
+    },
+    nike: {
+      brandColors: { primary: "#111111", secondary: "#FFFFFF" },
+      logoUrl: "https://www.nike.com/favicon.ico",
+      fontCategory: "sans",
+      summary: "Nike - Athletic footwear and apparel company with a sporty aesthetic.",
+      brandName: "Nike"
+    },
+    starbucks: {
+      brandColors: { primary: "#00704A", secondary: "#FFFFFF" },
+      logoUrl: "https://www.starbucks.com/favicon.ico",
+      fontCategory: "sans",
+      summary: "Starbucks - Coffee company known for premium beverages and cozy ambiance.",
+      brandName: "Starbucks"
+    }
+  };
+  const lowerUrl = url.toLowerCase();
+  for (const [key, data] of Object.entries(mocks)) {
+    if (lowerUrl.includes(key)) return data;
+  }
+  return {
+    brandColors: { primary: "#FF6B6B", secondary: "#F5F5F5" },
+    fontCategory: "sans",
+    summary: "Brand website - Modern design with professional aesthetic.",
+    brandName: "Brand"
+  };
+}
+function generateCardThemeVariations(brandAnalysis) {
+  if (brandAnalysis.dna) {
+    const themes = generateThemesFromBrandDNA(brandAnalysis.dna, brandAnalysis.dna.metadata.sourceUrl);
+    return themes.map((t2, i) => ({
+      themeId: t2.id,
+      themeName: t2.label,
+      description: t2.description,
+      brandColors: { primary: t2.colors.accent, secondary: t2.colors.bg },
+      type: i === 0 ? "brand-match" : i === 1 ? "remix-safe" : "remix-disruptive"
+    }));
+  }
+  return [
+    {
+      themeId: "brand-custom",
+      themeName: "Brand Match",
+      description: "Clone your brand identity exactly",
+      brandColors: brandAnalysis.brandColors,
+      type: "brand-match"
+    },
+    {
+      themeId: "swiss-modern",
+      themeName: "Remix Seguro",
+      description: "Swiss Modern with your brand accent",
+      brandColors: { primary: brandAnalysis.brandColors.primary, secondary: "#FFFFFF" },
+      type: "remix-safe"
+    },
+    {
+      themeId: "cyber-core",
+      themeName: "Remix Disruptivo",
+      description: "Bold neon aesthetic for maximum impact",
+      type: "remix-disruptive"
+    }
+  ];
+}
+
+// server/imageGenerateBackground.ts
+function wrapPrompt(userPrompt) {
+  return `Photorealistic or abstract background art for a social media post. Theme: ${userPrompt}. High quality, vibrant colors. Absolutely no text, no letters, no words, no logos, no typography, no UI elements.`;
+}
+async function generateBackgroundImage(prompt, provider = "pollinations_fast") {
+  console.log(`[ImageGen] Request: provider=${provider}, prompt="${prompt.substring(0, 50)}..."`);
+  const modelId = provider === "pollinations_hd" ? "nanobanana-pro" : "nanobanana";
+  const enhancedPrompt = wrapPrompt(prompt);
+  const encodedPrompt = encodeURIComponent(enhancedPrompt);
+  const url = `https://gen.pollinations.ai/image/${encodedPrompt}?model=${modelId}&nologo=true&width=1080&height=1080&enhance=true`;
+  console.log(`[ImageGen] Pollinations Model Select: ${modelId}`);
+  const headers = {
+    "User-Agent": "PostSpark/1.0",
+    "Accept": "image/jpeg, image/png, image/*"
+  };
+  const apiKey = process.env.POLLINATIONS_API_KEY;
+  if (apiKey) {
+    headers["Authorization"] = `Bearer ${apiKey}`;
+  } else {
+    console.warn("[ImageGen] WARNING: POLLINATIONS_API_KEY is missing. Using unauthenticated public endpoint (Rate Limits may apply).");
+  }
+  try {
+    const response = await fetch(url, { method: "GET", headers });
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "No error body");
+      console.error(`[ImageGen] Pollinations Error: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(`Pollinations API failed: ${response.status} ${response.statusText}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString("base64");
+    return `data:image/jpeg;base64,${base64}`;
+  } catch (error) {
+    console.error(`[ImageGen] Critical Request Error:`, error);
+    throw error;
+  }
 }
 
 // server/designPatternAnalyzer.ts
@@ -1925,9 +2523,9 @@ Return exactly 2-3 patterns that best describe this website's design.`
 function generateFallbackPatterns(data) {
   const patterns = [];
   const bgBrightness = getColorBrightness(data.colors.background);
-  const isDark = bgBrightness < 128;
+  const isDark2 = bgBrightness < 128;
   const hasVibrantColors = data.colors.palette.some((c) => getColorSaturation(c) > 0.5);
-  if (isDark && hasVibrantColors) {
+  if (isDark2 && hasVibrantColors) {
     patterns.push({
       id: "dark-modern",
       name: "Dark Modern",
@@ -1937,7 +2535,7 @@ function generateFallbackPatterns(data) {
       description: "Modern dark theme with vibrant color accents",
       suggestedColors: CATEGORY_PALETTES.modern
     });
-  } else if (isDark) {
+  } else if (isDark2) {
     patterns.push({
       id: "minimalist-dark",
       name: "Minimalist Dark",
@@ -2204,6 +2802,373 @@ function getColorSaturation(hex) {
   return (max - min) / (1 - Math.abs(2 * l - 1));
 }
 
+// server/postJudge.ts
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  if (h.length < 6) return null;
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16)
+  ];
+}
+function relativeLuminance(r, g, b) {
+  const [rs, gs, bs] = [r, g, b].map((v) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+function contrastRatio(hex1, hex2) {
+  const rgb1 = hexToRgb(hex1);
+  const rgb2 = hexToRgb(hex2);
+  if (!rgb1 || !rgb2) return 1;
+  const l1 = relativeLuminance(...rgb1);
+  const l2 = relativeLuminance(...rgb2);
+  const [light, dark] = l1 > l2 ? [l1, l2] : [l2, l1];
+  return (light + 0.05) / (dark + 0.05);
+}
+function contrastToScore(ratio) {
+  if (ratio >= 7) return 100;
+  if (ratio >= 4.5) return 75;
+  if (ratio >= 3) return 50;
+  if (ratio >= 2) return 30;
+  return 15;
+}
+async function evaluatePostQuality(variations, brandDNA) {
+  if (variations.length === 0) return [];
+  console.log(`[postJudge] Evaluating ${variations.length} variation(s)...`);
+  const contrastScores = variations.map((v) => ({
+    textContrast: contrastToScore(contrastRatio(v.backgroundColor, v.textColor)),
+    accentContrast: contrastToScore(contrastRatio(v.backgroundColor, v.accentColor))
+  }));
+  const brandContext = brandDNA ? `
+Brand DNA Context:
+- Brand: ${brandDNA.brandName} (${brandDNA.industry})
+- Mood: ${brandDNA.emotionalProfile.mood}
+- Primary color: ${brandDNA.colors.primary}
+- Personality: serious=${100 - brandDNA.personality.seriousPlayful}/100, bold=${100 - brandDNA.personality.boldSubtle}/100
+- Composition: ${brandDNA.composition.rhythm} rhythm, ${brandDNA.composition.dynamics} dynamics` : "No brand DNA provided \u2014 evaluate without brand alignment context.";
+  const variationsSummary = variations.map(
+    (v, i) => `
+Variation ${i + 1}:
+- Headline: "${v.headline}"
+- Body: "${v.body.slice(0, 120)}${v.body.length > 120 ? "..." : ""}"
+- CTA: "${v.callToAction}"
+- Layout: ${v.layout}
+- Colors: bg=${v.backgroundColor}, text=${v.textColor}, accent=${v.accentColor}
+- Platform: ${v.platform}
+- Measured contrast ratio (text/bg): ${contrastRatio(v.backgroundColor, v.textColor).toFixed(1)}:1`
+  ).join("\n");
+  try {
+    const response = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: `You are a Senior Brand Strategist and Social Media Art Director.
+Your task is to evaluate ${variations.length} social media post variation(s) as an expert judge.
+
+Evaluate each variation on these dimensions (0-100 each):
+1. **brandAlignment** \u2014 how well do the copy/colors/tone match the brand's DNA? (50 if no brand DNA)
+2. **aestheticQuality** \u2014 NIMA-inspired: is the visual composition appealing? Consider color harmony, contrast, visual hierarchy
+3. **readability** \u2014 Is the text easy to read? Consider contrast, length, hierarchy (use the measured contrast data provided)
+4. **messageClarity** \u2014 VQAScore-inspired: does every element serve the main message? Is the CTA clear?
+5. **engagement** \u2014 will this catch attention on social media? Consider hook strength, emotional pull, shareability
+
+For each variation, also provide:
+- Up to 3 specific, actionable improvement suggestions (concrete, not generic)
+- A verdict: "excellent" (avg \u2265 80), "good" (avg \u2265 60), "needs-improvement" (avg < 60)
+
+Be honest and specific. Avoid inflated scores \u2014 real feedback is more valuable.`
+        },
+        {
+          role: "user",
+          content: `${brandContext}
+
+${variationsSummary}
+
+Evaluate all ${variations.length} variation(s). Return JSON matching the schema exactly.`
+        }
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "post_quality_evaluation",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              evaluations: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    overallScore: { type: "number", description: "Average of all dimensions (0-100)" },
+                    dimensions: {
+                      type: "object",
+                      properties: {
+                        brandAlignment: { type: "number" },
+                        aestheticQuality: { type: "number" },
+                        readability: { type: "number" },
+                        messageClarity: { type: "number" },
+                        engagement: { type: "number" }
+                      },
+                      required: ["brandAlignment", "aestheticQuality", "readability", "messageClarity", "engagement"],
+                      additionalProperties: false
+                    },
+                    suggestions: {
+                      type: "array",
+                      items: { type: "string" }
+                    },
+                    verdict: { type: "string", enum: ["excellent", "good", "needs-improvement"] }
+                  },
+                  required: ["overallScore", "dimensions", "suggestions", "verdict"],
+                  additionalProperties: false
+                }
+              }
+            },
+            required: ["evaluations"],
+            additionalProperties: false
+          }
+        }
+      }
+    });
+    const content = response.choices[0]?.message?.content;
+    if (!content) throw new Error("No response from Judge LLM");
+    const str = typeof content === "string" ? content : JSON.stringify(content);
+    const parsed = JSON.parse(str);
+    const merged = parsed.evaluations.map((ev, i) => {
+      const cs = contrastScores[i];
+      if (!cs) return ev;
+      const blendedReadability = Math.round(ev.dimensions.readability * 0.7 + cs.textContrast * 0.3);
+      const dims = { ...ev.dimensions, readability: blendedReadability };
+      const overall = Math.round(
+        (dims.brandAlignment + dims.aestheticQuality + dims.readability + dims.messageClarity + dims.engagement) / 5
+      );
+      const verdict = overall >= 80 ? "excellent" : overall >= 60 ? "good" : "needs-improvement";
+      return { ...ev, dimensions: dims, overallScore: overall, verdict };
+    });
+    console.log("[postJudge] Evaluation complete:", merged.map((e) => ({
+      score: e.overallScore,
+      verdict: e.verdict
+    })));
+    return merged;
+  } catch (err) {
+    console.warn("[postJudge] LLM evaluation failed:", err);
+    return variations.map((v, i) => ({
+      overallScore: 70,
+      dimensions: {
+        brandAlignment: 70,
+        aestheticQuality: 70,
+        readability: contrastScores[i]?.textContrast ?? 70,
+        messageClarity: 70,
+        engagement: 70
+      },
+      suggestions: [],
+      verdict: "good"
+    }));
+  }
+}
+
+// server/chameleonVision.ts
+function buildChameleonPrompt(siteContent) {
+  const contextBlock = siteContent ? `
+Contexto textual extra\xEDdo do site:
+${siteContent.slice(0, 2e3)}
+` : "";
+  return `Voc\xEA \xE9 um Desenvolvedor Front-end Senior, Diretor de Arte e Copywriter de elite.
+Analise a imagem desta Landing Page / Website anexa e clone a ess\xEAncia do design dela para posts de rede social.
+
+Sua miss\xE3o:
+
+1. EXTRAIR A IDENTIDADE VISUAL (Cores HEX exatas):
+   - background: cor predominante de fundo da p\xE1gina
+   - card: cor de fundo dos blocos/cards/se\xE7\xF5es de conte\xFAdo
+   - primary: cor de destaque principal (bot\xF5es, CTAs, links)
+   - secondary: cor de suporte (badges, \xEDcones secund\xE1rios)
+   - text: cor do texto principal
+
+2. EXTRAIR DESIGN TOKENS (valores CSS exatos):
+   - borderRadius: avalie o site e retorne EXATAMENTE um destes valores:
+     "0px" = quinas totalmente retas/secas
+     "8px" = cantos levemente arredondados
+     "16px" = arredondamento m\xE9dio
+     "24px" = bem arredondado
+   - boxShadow: qual estilo de sombra o site usa?
+     "none" = sem sombra
+     "0 10px 25px rgba(0,0,0,0.1)" = sombra suave elegante
+     "0 20px 40px rgba(0,0,0,0.2)" = sombra suave forte
+     "8px 8px 0px 0px #000000" = sombra neo-brutalista (offset duro)
+   - border: qual estilo de borda nos cards/elementos?
+     "none" = sem borda
+     "1px solid rgba(0,0,0,0.1)" = borda fina sutil
+     "2px solid #000000" = borda marcada
+     "4px solid #000000" = borda grossa brutalista
+   - textAlign: t\xEDtulos e textos principais s\xE3o alinhados \xE0 esquerda ("left") ou centralizados ("center")?
+   - textTransform: t\xEDtulos est\xE3o em CAIXA ALTA ("uppercase") ou normal ("none")?
+   - decorations: o design \xE9 limpo/minimalista ("minimal") ou usa elementos decorativos soltos como confetes, selos, formas geom\xE9tricas ("playful")?
+
+3. DETECTAR TIPOGRAFIA:
+   - originalFont: qual \xE9 a fonte que o site aparenta usar? (seu melhor palpite)
+   - fontFamily: escolha a fonte GRATUITA equivalente mais pr\xF3xima do Google Fonts.
+     Op\xE7\xF5es comuns: Inter, Roboto, Montserrat, Poppins, Lato, Open Sans, Raleway, Work Sans,
+     Quicksand, Space Grotesk, Playfair Display, Merriweather, Lora, PT Serif, Crimson Text,
+     Oswald, Bebas Neue, Syne, Anton, Righteous, Space Mono, JetBrains Mono
+
+4. CRIAR 7 OP\xC7\xD5ES DE COPYWRITING baseadas no produto/servi\xE7o do site:
+   - Op\xE7\xE3o 1 (dor): Foque no PROBLEMA que o produto resolve. Gancho provocativo.
+   - Op\xE7\xE3o 2 (beneficio): Foque no RESULTADO DESEJADO. Gancho aspiracional.
+   - Op\xE7\xE3o 3 (objecao): Quebre uma OBJE\xC7\xC3O comum. Gancho desmistificador.
+   - Op\xE7\xE3o 4 (autoridade): Use PROVA SOCIAL ou dados. Gancho de credibilidade.
+   - Op\xE7\xE3o 5 (escassez): Crie URG\xCANCIA ou exclusividade. Gancho de escassez.
+   - Op\xE7\xE3o 6 (storytelling): Conte uma pequena hist\xF3ria de jornada ou transforma\xE7\xE3o. Gancho narrativo.
+   - Op\xE7\xE3o 7 (mito_vs_verdade): Desminta um mito de mercado e mostre a verdade do produto. Gancho de revela\xE7\xE3o.
+
+   Para CADA op\xE7\xE3o:
+   - badge: nome curto da marca/produto (m\xE1x 15 caracteres)
+   - headline: gancho de IMPACTO (m\xE1ximo 5 palavras, sem ponto final)
+   - subheadline: explica\xE7\xE3o clara (m\xE1ximo 12 palavras)
+   - stickerText: UMA palavra decorativa de impacto (ex: "Magia", "Pr\xE1tico", "F\xE1cil", "Novo", "Top")
+${contextBlock}
+Retorne ESTRITAMENTE um JSON v\xE1lido no formato especificado. Sem markdown, sem explica\xE7\xF5es.`;
+}
+var CHAMELEON_SCHEMA = {
+  type: "object",
+  properties: {
+    colors: {
+      type: "object",
+      properties: {
+        background: { type: "string", description: "Background color HEX" },
+        primary: { type: "string", description: "Primary/CTA color HEX" },
+        secondary: { type: "string", description: "Secondary color HEX" },
+        text: { type: "string", description: "Text color HEX" },
+        card: { type: "string", description: "Card/surface background HEX" }
+      },
+      required: ["background", "primary", "secondary", "text", "card"],
+      additionalProperties: false
+    },
+    designTokens: {
+      type: "object",
+      properties: {
+        borderRadius: { type: "string" },
+        boxShadow: { type: "string" },
+        border: { type: "string" },
+        textAlign: { type: "string", enum: ["left", "center"] },
+        originalFont: { type: "string" },
+        fontFamily: { type: "string" },
+        textTransform: { type: "string", enum: ["none", "uppercase"] },
+        decorations: { type: "string", enum: ["minimal", "playful"] }
+      },
+      required: ["borderRadius", "boxShadow", "border", "textAlign", "originalFont", "fontFamily", "textTransform", "decorations"],
+      additionalProperties: false
+    },
+    posts: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          label: { type: "string" },
+          angle: { type: "string", enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"] },
+          badge: { type: "string" },
+          headline: { type: "string" },
+          subheadline: { type: "string" },
+          stickerText: { type: "string" }
+        },
+        required: ["label", "angle", "badge", "headline", "subheadline", "stickerText"],
+        additionalProperties: false
+      }
+    }
+  },
+  required: ["colors", "designTokens", "posts"],
+  additionalProperties: false
+};
+async function chameleonVision(screenshot, siteContent) {
+  console.log("[chameleonVision] Starting direct extraction...");
+  const base64 = Buffer.from(screenshot).toString("base64");
+  const promptText = buildChameleonPrompt(siteContent);
+  try {
+    const response = await invokeLLM({
+      messages: [
+        {
+          role: "system",
+          content: "Voc\xEA \xE9 um assistente criativo que s\xF3 responde em JSON v\xE1lido. Nunca inclua markdown, explica\xE7\xF5es ou texto fora do JSON."
+        },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: promptText },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/png;base64,${base64}`,
+                detail: "low"
+              }
+            }
+          ]
+        }
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "chameleon_vision_result",
+          strict: true,
+          schema: CHAMELEON_SCHEMA
+        }
+      }
+    });
+    const content = response.choices[0]?.message?.content;
+    if (!content) throw new Error("No response from Vision LLM");
+    const str = typeof content === "string" ? content : JSON.stringify(content);
+    let cleaned = str.trim();
+    if (cleaned.startsWith("```json")) cleaned = cleaned.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
+    else if (cleaned.startsWith("```")) cleaned = cleaned.replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+    const parsed = JSON.parse(cleaned);
+    if (!parsed.colors?.background || !parsed.designTokens || !Array.isArray(parsed.posts)) {
+      console.warn("[chameleonVision] Invalid response structure, returning null");
+      return null;
+    }
+    const requiredAngles = ["dor", "beneficio", "objecao", "autoridade", "escassez"];
+    const existingAngles = new Set(parsed.posts.map((p) => p.angle));
+    for (const angle of requiredAngles) {
+      if (!existingAngles.has(angle)) {
+        parsed.posts.push({
+          label: angle.charAt(0).toUpperCase() + angle.slice(1),
+          angle,
+          badge: parsed.posts[0]?.badge || "Marca",
+          headline: "Headline pendente",
+          subheadline: "Subheadline pendente",
+          stickerText: "Novo"
+        });
+      }
+    }
+    console.log(`[chameleonVision] Extraction complete: ${parsed.posts.length} copy angles, font: ${parsed.designTokens.fontFamily}`);
+    return parsed;
+  } catch (err) {
+    console.error("[chameleonVision] Extraction failed:", err);
+    return null;
+  }
+}
+
+// shared/postspark.ts
+function chameleonResultToDesignTokens(result) {
+  return {
+    colors: result.colors,
+    typography: {
+      fontFamily: result.designTokens.fontFamily,
+      customFontUrl: "",
+      originalFont: result.designTokens.originalFont,
+      textTransform: result.designTokens.textTransform,
+      textAlign: result.designTokens.textAlign
+    },
+    structure: {
+      borderRadius: result.designTokens.borderRadius,
+      boxShadow: result.designTokens.boxShadow,
+      border: result.designTokens.border
+    },
+    decorations: result.designTokens.decorations
+  };
+}
+
 // server/routers.ts
 import * as fs from "fs";
 import * as path from "path";
@@ -2429,7 +3394,71 @@ function mapStripeStatus(status) {
 }
 
 // server/routers.ts
-import { TRPCError as TRPCError3 } from "@trpc/server";
+import { TRPCError as TRPCError4 } from "@trpc/server";
+function safeJsonParse(str, fallback) {
+  let cleaned = str.trim();
+  if (cleaned.startsWith("```json")) {
+    cleaned = cleaned.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
+  } else if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+  }
+  const startIdx = cleaned.indexOf("{");
+  const endIdx = cleaned.lastIndexOf("}");
+  if (startIdx !== -1 && (endIdx === -1 || endIdx > startIdx)) {
+    cleaned = cleaned.substring(startIdx, endIdx !== -1 ? endIdx + 1 : void 0);
+  }
+  const tryParse = (jsonStr) => {
+    try {
+      const repaired = jsonStr.replace(/,\s*([\]}])/g, "$1");
+      return JSON.parse(repaired);
+    } catch {
+      return null;
+    }
+  };
+  let result = tryParse(cleaned);
+  if (result) return result;
+  console.warn("[safeJsonParse] Initial parse failed. Attempting heuristic repair...");
+  let repairAttempt = cleaned;
+  const stack = [];
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < repairAttempt.length; i++) {
+    const char = repairAttempt[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (char === "{") stack.push("{");
+    else if (char === "[") stack.push("[");
+    else if (char === "}") stack.pop();
+    else if (char === "]") stack.pop();
+  }
+  if (inString) {
+    repairAttempt += '"';
+  }
+  while (stack.length > 0) {
+    const last = stack.pop();
+    if (last === "{") repairAttempt += "}";
+    else if (last === "[") repairAttempt += "]";
+  }
+  result = tryParse(repairAttempt);
+  if (result) {
+    console.log("[safeJsonParse] Heuristic repair successful.");
+    return result;
+  }
+  console.error("[safeJsonParse] Failed to parse JSON even after repair.");
+  console.error("[safeJsonParse] Input snippet (100 chars):", str.substring(0, 100));
+  return fallback;
+}
 var billingRouter = router({
   /** Retorna perfil de billing do usuário logado (plano, sparks, etc.) */
   getProfile: protectedProcedure.query(async ({ ctx }) => {
@@ -2469,7 +3498,7 @@ var billingRouter = router({
     const name = ctx.user.name ?? void 0;
     const profile = await getBillingProfile(email);
     if (profile.id === "no-profile" || profile.id === "error") {
-      throw new TRPCError3({ code: "PRECONDITION_FAILED", message: "Perfil de billing n\xE3o encontrado." });
+      throw new TRPCError4({ code: "PRECONDITION_FAILED", message: "Perfil de billing n\xE3o encontrado." });
     }
     const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
     const url = await createSubscriptionCheckout({
@@ -2496,10 +3525,10 @@ var billingRouter = router({
     const name = ctx.user.name ?? void 0;
     const packages = await getTopupPackages();
     const pkg = packages.find((p) => p.id === input.packageId);
-    if (!pkg) throw new TRPCError3({ code: "NOT_FOUND", message: "Pacote n\xE3o encontrado." });
+    if (!pkg) throw new TRPCError4({ code: "NOT_FOUND", message: "Pacote n\xE3o encontrado." });
     const profile = await getBillingProfile(email);
     if (profile.id === "no-profile" || profile.id === "error") {
-      throw new TRPCError3({ code: "PRECONDITION_FAILED", message: "Perfil de billing n\xE3o encontrado." });
+      throw new TRPCError4({ code: "PRECONDITION_FAILED", message: "Perfil de billing n\xE3o encontrado." });
     }
     const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
     const url = await createTopupCheckout({
@@ -2544,19 +3573,22 @@ var appRouter = router({
       platform: z2.enum(["instagram", "twitter", "linkedin", "facebook"]),
       imageUrl: z2.string().optional(),
       tone: z2.string().optional(),
-      postMode: z2.enum(["static", "carousel"]).default("static")
+      postMode: z2.enum(["static", "carousel"]).default("static"),
+      model: z2.enum(["gemini", "llama"]).optional()
     })).mutation(async ({ input, ctx }) => {
       const email = ctx.user.email ?? "dev@local.dev";
       const profile = await getBillingProfile(email);
       const cost = input.postMode === "carousel" ? SPARK_COSTS.CAROUSEL : SPARK_COSTS.GENERATE_TEXT;
       const debit = await debitSparks(profile.id, cost, `Gera\xE7\xE3o de post (${input.postMode})`);
       if (!debit.success) {
-        throw new TRPCError3({
+        throw new TRPCError4({
           code: "PAYMENT_REQUIRED",
           message: "Sparks insuficientes. Fa\xE7a upgrade ou adquira um pacote de recarga."
         });
       }
       let contextContent = input.content;
+      let brandDnaContext = "";
+      let chameleonResult = null;
       if (input.inputType === "url") {
         try {
           const scrapeResult = await scrapeUrl(input.content);
@@ -2564,6 +3596,44 @@ var appRouter = router({
 T\xEDtulo: ${scrapeResult.title}
 Descri\xE7\xE3o: ${scrapeResult.description}
 Conte\xFAdo: ${scrapeResult.content}`;
+          const [screenshot, brandDNA] = await Promise.all([
+            captureScreenshot(input.content).catch(() => null),
+            extractBrandDNA(input.content).catch((err) => {
+              console.warn("Falha ao extrair Brand DNA no processamento da gera\xE7\xE3o.", err);
+              return null;
+            })
+          ]);
+          if (screenshot) {
+            try {
+              chameleonResult = await chameleonVision(screenshot, contextContent);
+              if (chameleonResult) {
+                console.log("[Chameleon Vision] Extraction successful \u2014 CSS tokens + 5 copy angles ready");
+              }
+            } catch (cvErr) {
+              console.warn("[Chameleon Vision] Failed, falling back to BrandDNA:", cvErr);
+            }
+          }
+          if (brandDNA) {
+            brandDnaContext = `
+
+INSTRU\xC7\xD5ES DE CLONAGEM DE MARCA (BRAND SOUL):
+Voc\xEA DEVE FOR\xC7AR o post gerado a ser uma extens\xE3o org\xE2nica do site original.
+Dados da Marca extra\xEDdos:
+- Nome/Setor: ${brandDNA.brandName} (${brandDNA.industry})
+- Cores Sugeridas (UTILIZE OBRIGATORIAMENTE ESTAS BASEADAS EM PSICOLOGIA DE CONTRASTE):
+  Prim\xE1ria: ${chameleonResult?.colors.primary || brandDNA.colors.primary}
+  Secund\xE1rias: ${chameleonResult?.colors.secondary || brandDNA.colors.secondary}
+  Background Sugerido: ${chameleonResult?.colors.background || brandDNA.colors.background}
+  Accent Sugerido: ${chameleonResult?.colors.primary || brandDNA.colors.accent}
+  Paleta Geral: ${brandDNA.colors.palette.join(", ")}
+- Ritmo Visual/Din\xE2mica: ${brandDNA.composition.dynamics} / ${brandDNA.composition.rhythm}
+
+REGRA CARDINAL DE CORES (A FONTE \xC9 URL):
+1) Voc\xEA N\xC3O PODE IGNORAR a paleta fornecida acima. O post DEVE pertencer ao site visualmente.
+2) Selecione backgroundColor, accentColor e textColor EXCLUSIVAMENTE extra\xEDdos dessa paleta extra\xEDda, garantindo ratio > 4.5:1 WCAG.
+3) Se o site for Dark Mode, gere posts escuros. Se o site for claro, gere variabilidades claras.
+              `;
+          }
         } catch {
           contextContent = `URL fornecida: ${input.content} (n\xE3o foi poss\xEDvel extrair conte\xFAdo, crie baseado na URL)`;
         }
@@ -2584,51 +3654,84 @@ IMPORTANTE: Gere conte\xFAdo para um CARROSSEL (m\xFAltiplos slides). Cada varia
       const systemPrompt = `Voc\xEA \xE9 um especialista em marketing digital, design visual e cria\xE7\xE3o de conte\xFAdo para redes sociais.
 Gere EXATAMENTE 3 varia\xE7\xF5es de post para ${spec.label}.${modeInstruction}
 Cada varia\xE7\xE3o deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado.${toneHint}
+${brandDnaContext}
 
 REGRAS DE COPY \u2014 SIGA COM RIGOR:
 - Headline: m\xE1ximo 60 caracteres. Seja direto e impactante. Sem ponto final.
 - Body: m\xE1ximo 2 frases curtas. M\xE1ximo 100 caracteres no total. Sem rodeios.
-- Caption/Legenda: texto para acompanhar o post na rede social. M\xE1ximo 300 caracteres. Engajador, com personalidade, complementando o conte\xFAdo visual. Pode ter emojis moderados.
+- Caption/Legenda: texto para acompanhar o post na rede social. M\xE1ximo 300 caracteres. Engajador, complementando o conte\xFAdo visual. Pode ter emojis moderados.
 - NUNCA coloque hashtags ou emojis dentro do headline ou body.
 - Hashtags: m\xE1ximo 4, somente no campo separado "hashtags".
 - CallToAction: m\xE1ximo 40 caracteres. Verbo de a\xE7\xE3o. Ex: "Saiba mais", "Experimente agora".
+- copyAngle: Para cada varia\xE7\xE3o, forne\xE7a um objeto com o Prop\xF3sito e Ganchos do post com type (dor, beneficio, objecao, autoridade, escassez, storytelling, mito_vs_verdade), label (nome da abordagem), badge (palavra curta para o selo da marca/tema) e stickerText (uma palavra de impacto para adesivo decorativo).
 - Seja conciso. Corte qualquer palavra desnecess\xE1ria. Menos \xE9 mais.
 
-PRINC\xCDPIOS DE DESIGN VISUAL \u2014 APLIQUE EM CADA VARIA\xC7\xC3O:
+PRINC\xCDPIOS DE DESIGN VISUAL E MIMETISMO:
 
 1. HIERARQUIA VISUAL (Propor\xE7\xE3o 3:2:1):
    - O headline deve ser a informa\xE7\xE3o MAIS impactante (peso visual m\xE1ximo).
    - O body deve complementar, nunca competir com o headline.
-   - Pense no conte\xFAdo como uma pir\xE2mide: t\xEDtulo grande \u2192 subt\xEDtulo m\xE9dio \u2192 detalhe pequeno.
 
 2. LAYOUT INTELIGENTE por objetivo do post:
-   - "centered": Inspira\xE7\xE3o, emo\xE7\xE3o, celebra\xE7\xE3o, perguntas, cita\xE7\xF5es. Melhor em 1:1.
-   - "left-aligned": Educa\xE7\xE3o, listas, not\xEDcias, tutoriais, conte\xFAdo informativo. Melhor em 5:6 e 9:16.
-   - "split": Promo\xE7\xF5es, impacto, n\xFAmeros, chamadas fortes. Vers\xE1til.
-   - "minimal": Ultra-limpo, essencial. Para marcas que usam muito espa\xE7o vazio (white space).
-   - REGRA: Varie os layouts entre as 3 varia\xE7\xF5es para oferecer diversidade.
+   - "centered": Inspira\xE7\xE3o, emo\xE7\xE3o, celebra\xE7\xE3o, cita\xE7\xF5es. Melhor em 1:1.
+   - "left-aligned": Educa\xE7\xE3o, listas, tutoriais. Melhor em 5:6 e 9:16.
+   - "split": Promo\xE7\xF5es, impacto. Vers\xE1til.
+   - "minimal": Ultra-limpo, essencial. Para marcas focadas no white-space.
 
-3. PSICOLOGIA DAS CORES (escolha backgroundColor e accentColor baseado no tom):
-   - Tom Profissional/Corporativo: fundo neutro escuro ou azul-profundo (#1A1A2E, #16213E, #0F3460), accent azul claro ou prata.
-   - Tom Casual/Engajador: fundo vibrante mas acolhedor (tons de roxo suave #6C3483, verde-esmeralda #1ABC9C, \xEDndigo #3D5A80), accent contrastante.
-   - Tom Criativo/Ousado: fundo impactante (preto #0D0D0D, roxo vivo #7B2D8B, gradiente sugerido no imagePrompt), accent em laranja #FF6B35 ou amarelo-ouro #FFD700.
-   - Tom Urgente/CTA forte: accent em vermelho #E74C3C ou laranja #F39C12.
-   - Tom Crescimento/Natural: tons de verde (#27AE60, #2ECC71), accent dourado.
+3. PSICOLOGIA E CLONAGEM DE CORES:
+   - SE houver [INSTRU\xC7\xD5ES DE CLONAGEM DE MARCA] no prompt, AS CORES S\xC3O MANDAT\xD3RIAS. Mimetize a "Alma" injetando backgroundColor e textColor apenas baseados na Extra\xE7\xE3o Fornecida.
+   - SE N\xC3O houver extra\xE7\xE3o, use a psicologia cl\xE1ssica: backgroundColor neutro escuro/azul para tom Corporativo, cores quentes para Criativo, etc.
 
-4. CONTRASTE E LEGIBILIDADE (WCAG 2.1):
-   - SEMPRE garanta contraste alto: fundo escuro \u2192 textColor claro (#FFFFFF ou #F0F0F0). Fundo claro \u2192 textColor escuro (#1A1A1A ou #0D0D0D).
+4. CONTRASTE (WCAG 2.1):
+   - SEMPRE garanta contraste alto: fundo escuro \u2192 textColor claro (#FFFFFF). Fundo claro \u2192 textColor escuro (#1A1A1A).
    - NUNCA use texto cinza m\xE9dio sobre fundo cinza m\xE9dio.
-   - Quando imagePrompt indicar foto realista com pessoas ou paisagem, sinalize com overlay escuro no imagePrompt (ex: "with dark overlay for text readability").
 
-6. PACOTE CRIATIVO MULTI-FORMATO (Essencial):
-   - Cada varia\xE7\xE3o deve ser pensada para funcionar em todos os formatos (1:1, 5:6, 9:16).
-   - Preencha o objeto "aspectRatioOptimizations" com os ajustes ideais para as propor\xE7\xF5es que N\xC3O s\xE3o a padr\xE3o da varia\xE7\xE3o.
-   - 9:16: Exige cores mais saturadas e layouts verticais (centered/split).
-   - 5:6: Ideal para storytelling e listas (left-aligned).
-   - 1:1: Foco em clareza e centraliza\xE7\xE3o.
+5. PACOTE CRIATIVO MULTI-FORMATO:
+   - Cada varia\xE7\xE3o deve fluir formatada no aspectRatio correspondente.
 
-Responda APENAS com JSON v\xE1lido no formato especificado.`;
+6. TEMPLATES ESTRUTURADOS:
+   - Use 'feature-grid' ou 'step-by-step' onde listagem for detectada. Default: 'simple'.
+
+7. FLOATING CARDS & ELEMENT STYLING (NEW):
+   - O card PRINCIPAL n\xE3o precisa estar sempre centralizado ou ocupar 100% da tela.
+   - Use o objeto "card" dentro das otimiza\xE7\xF5es para criar composi\xE7\xF5es din\xE2micas (ex: card inclinado, card menor no canto, layout Figma/Canva).
+   - Isso \xE9 especialmente \xFAtil quando o fundo (backgroundImage) \xE9 rico visualmente.
+   - Use 'backgroundColor' e 'borderRadius' em 'headline' ou 'body' para criar efeitos de BADGE ou STIKER (texto com fundo colorido e cantos arredondados). Isso ajuda a destacar informa\xE7\xF5es de forma "divertida" e moderna. Use cores contrastantes.
+   
+Responda APENAS com JSON v\xE1lido.`;
       const userPrompt = input.inputType === "image" ? `Crie posts baseados nesta imagem: ${input.imageUrl || input.content}` : `Crie posts baseados neste conte\xFAdo: ${contextContent}`;
+      const layoutPositionSchema = {
+        type: "object",
+        properties: {
+          x: { type: "number", description: "Posi\xE7\xE3o X em % (0-100)" },
+          y: { type: "number", description: "Posi\xE7\xE3o Y em % (0-100)" },
+          width: { type: "number", description: "Largura em % (10-100)" },
+          textAlign: { type: "string", enum: ["left", "center", "right"] },
+          backgroundColor: { type: "string", description: "Cor de fundo opcional para o elemento (RGBA ou Hex)" },
+          borderRadius: { type: "number", description: "Raio da borda em px (0-40)" }
+        },
+        required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
+        additionalProperties: false
+      };
+      const formatOptimizationSchema = {
+        type: "object",
+        properties: {
+          layout: { type: "string", enum: ["centered", "left-aligned", "split", "minimal"] },
+          backgroundColor: { type: "string" },
+          textColor: { type: "string" },
+          accentColor: { type: "string" },
+          headline: { $ref: "#/$defs/layoutPosition" },
+          body: { $ref: "#/$defs/layoutPosition" },
+          card: { $ref: "#/$defs/layoutPosition" },
+          padding: { type: "number" }
+        },
+        required: ["layout", "backgroundColor", "textColor", "accentColor", "headline", "body", "card", "padding"],
+        additionalProperties: false
+      };
+      const layoutDefs = {
+        layoutPosition: layoutPositionSchema,
+        formatOptimization: formatOptimizationSchema
+      };
       const variationSchema = isCarousel ? {
         type: "object",
         properties: {
@@ -2655,7 +3758,8 @@ Responda APENAS com JSON v\xE1lido no formato especificado.`;
                 isTitleSlide: { type: "boolean", description: "Se \xE9 o primeiro slide" },
                 isCtaSlide: { type: "boolean", description: "Se \xE9 o \xFAltimo slide" }
               },
-              required: ["headline", "body", "slideNumber", "isTitleSlide", "isCtaSlide"]
+              required: ["headline", "body", "slideNumber", "isTitleSlide", "isCtaSlide"],
+              additionalProperties: false
             },
             description: "Slides do carrossel (5 itens)"
           },
@@ -2668,9 +3772,20 @@ Responda APENAS com JSON v\xE1lido no formato especificado.`;
             },
             required: ["1:1", "5:6", "9:16"],
             additionalProperties: false
+          },
+          copyAngle: {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"] },
+              label: { type: "string" },
+              badge: { type: "string" },
+              stickerText: { type: "string" }
+            },
+            required: ["type", "label", "badge", "stickerText"],
+            additionalProperties: false
           }
         },
-        required: ["headline", "body", "hashtags", "callToAction", "caption", "tone", "imagePrompt", "backgroundColor", "textColor", "accentColor", "layout", "aspectRatio", "slides", "aspectRatioOptimizations"],
+        required: ["headline", "body", "hashtags", "callToAction", "caption", "tone", "imagePrompt", "backgroundColor", "textColor", "accentColor", "layout", "aspectRatio", "slides", "aspectRatioOptimizations", "copyAngle"],
         additionalProperties: false
       } : {
         type: "object",
@@ -2687,6 +3802,22 @@ Responda APENAS com JSON v\xE1lido no formato especificado.`;
           accentColor: { type: "string", description: "Cor de destaque hex" },
           layout: { type: "string", enum: ["centered", "left-aligned", "split", "minimal"], description: "Layout sugerido" },
           aspectRatio: { type: "string", enum: ["1:1", "5:6", "9:16"], description: "Propor\xE7\xE3o de aspecto: 1:1 quadrado, 5:6 retrato, 9:16 story/reels \u2014 varie entre as varia\xE7\xF5es para oferecer diversidade" },
+          template: { type: "string", enum: ["simple", "feature-grid", "numbered-list", "step-by-step"], description: "Template de conte\xFAdo estruturado. Use 'simple' para mensagens \xFAnicas, outros para conte\xFAdo rico." },
+          sections: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                icon: { type: "string", description: "Nome de \xEDcone lucide (ex: Users, Star, Zap, Heart, Globe)" },
+                label: { type: "string", description: "T\xEDtulo curto da se\xE7\xE3o" },
+                description: { type: "string", description: "Texto de suporte opcional" },
+                number: { type: "integer", description: "N\xFAmero para listas numeradas" }
+              },
+              required: ["icon", "label", "description", "number"],
+              additionalProperties: false
+            },
+            description: "Se\xE7\xF5es de conte\xFAdo estruturado (3-5 itens). Obrigat\xF3rio quando template != 'simple'."
+          },
           aspectRatioOptimizations: {
             type: "object",
             properties: {
@@ -2696,12 +3827,24 @@ Responda APENAS com JSON v\xE1lido no formato especificado.`;
             },
             required: ["1:1", "5:6", "9:16"],
             additionalProperties: false
+          },
+          copyAngle: {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"] },
+              label: { type: "string" },
+              badge: { type: "string" },
+              stickerText: { type: "string" }
+            },
+            required: ["type", "label", "badge", "stickerText"],
+            additionalProperties: false
           }
         },
-        required: ["headline", "body", "hashtags", "callToAction", "caption", "tone", "imagePrompt", "backgroundColor", "textColor", "accentColor", "layout", "aspectRatio", "aspectRatioOptimizations"],
+        required: ["headline", "body", "hashtags", "callToAction", "caption", "tone", "imagePrompt", "backgroundColor", "textColor", "accentColor", "layout", "aspectRatio", "template", "sections", "aspectRatioOptimizations", "copyAngle"],
         additionalProperties: false
       };
       const response = await invokeLLM({
+        model: input.model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -2720,38 +3863,95 @@ Responda APENAS com JSON v\xE1lido no formato especificado.`;
                 }
               },
               required: ["variations"],
-              $defs: {
-                formatOptimization: {
-                  type: "object",
-                  properties: {
-                    layout: { type: "string", enum: ["centered", "left-aligned", "split", "minimal"] },
-                    backgroundColor: { type: "string" },
-                    textColor: { type: "string" },
-                    accentColor: { type: "string" },
-                    headlineFontSize: { type: "number" },
-                    bodyFontSize: { type: "number" }
-                  },
-                  required: ["layout", "backgroundColor", "textColor", "accentColor", "headlineFontSize", "bodyFontSize"],
-                  additionalProperties: false
-                }
-              },
+              $defs: layoutDefs,
               additionalProperties: false
             }
           }
         }
       });
       const content = response.choices[0]?.message?.content;
-      const parsed = JSON.parse(typeof content === "string" ? content : "{}");
-      const variations = (parsed.variations || []).slice(0, 3);
-      return variations.map((v, i) => ({
-        id: `var-${Date.now()}-${i}`,
-        ...v,
-        caption: v.caption || "",
-        platform: input.platform,
-        hashtags: v.hashtags || [],
-        postMode: input.postMode,
-        slides: isCarousel ? v.slides || [] : void 0
-      }));
+      const contentStr = typeof content === "string" ? content : Array.isArray(content) ? content.filter((c) => "text" in c).map((c) => c.text).join("\n") : "{}";
+      const parsed = safeJsonParse(contentStr, { variations: [] });
+      let variations = (parsed.variations || []).slice(0, 3);
+      if (input.inputType === "url" && brandDnaContext.length > 0) {
+        try {
+          console.log("[QA Guard] Validating Brand Mimetism...");
+          const qaPrompt = `Voc\xEA \xE9 um Quality Assurance rigoroso de Design Visual e Acessibilidade t\xE9cnica (WCAG).
+O LLM Anterior gerou 3 varia\xE7\xF5es de Post. O seu \xFAnico objetivo \xE9 VARRER falhas e ARRUMAR o JSON.
+
+DIRETRIZES CARDINAIS DO BRAND SOUL (N\xE3o podem ser violadas):
+${brandDnaContext}
+
+AVALIA\xC7\xD5ES A FAZER EM CADA VARIA\xC7\xC3O:
+1) A \`backgroundColor\` e a \`textColor\` escolhidas s\xE3o EXATAMENTE (hex) derivadas das Sugeridas pela Marca acima? Se ele alocou hexes azuis num site laranja/vermelho, OVERRIDE para o laranja/vermelho sugerido.
+2) O contraste WCAG entre \`backgroundColor\` e \`textColor\` \xE9 vi\xE1vel (>4.5:1)? Se n\xE3o for (ex: texto cinza no fundo cinza, texto branco no fundo creme), inverta a cor de um deles.
+3) A \`accentColor\` \xE9 chamativa dentro do Brand DNA?
+4) O \`layout\` faz sentido analiticamente para o tipo de conte\xFAdo?
+
+Variations Originais Brutas:
+${JSON.stringify(variations, null, 2)}
+
+Retorne um JSON contendo O MESMO ARRAY, de mesmo formato, substituindo estritamente as propriedades listadas caso estejam ruins. Mantenha os textos inteiramente id\xEAnticos.
+Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
+          const qaResponse = await invokeLLM({
+            model: "gemini",
+            // O QA pode rodar no gemini-flash fixo pela velocidade
+            messages: [{ role: "user", content: qaPrompt }],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "post_variations_qa",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    variations: {
+                      type: "array",
+                      items: variationSchema
+                    }
+                  },
+                  required: ["variations"],
+                  $defs: layoutDefs,
+                  additionalProperties: false
+                }
+              }
+            }
+          });
+          const qaContent = qaResponse.choices[0]?.message?.content;
+          const qaContentStr = typeof qaContent === "string" ? qaContent : Array.isArray(qaContent) ? qaContent.filter((c) => "text" in c).map((c) => c.text).join("\n") : "{}";
+          const qaParsed = safeJsonParse(qaContentStr, { variations: [] });
+          if (qaParsed.variations && qaParsed.variations.length > 0) {
+            variations = qaParsed.variations.slice(0, 3);
+            console.log("[QA Guard] Mimetism validation approved & patched.");
+          }
+        } catch (qaErr) {
+          console.warn("[QA Guard] Failing gracefull. Returning raw variations.", qaErr);
+        }
+      }
+      const chameleonDesignTokens = chameleonResult ? chameleonResultToDesignTokens(chameleonResult) : void 0;
+      const chameleonPosts = chameleonResult?.posts || [];
+      return variations.map((v, i) => {
+        const chameleonPost = chameleonPosts[i];
+        return {
+          id: `var-${Date.now()}-${i}`,
+          ...v,
+          caption: v.caption || "",
+          platform: input.platform,
+          hashtags: v.hashtags || [],
+          postMode: input.postMode,
+          slides: isCarousel ? v.slides || [] : void 0,
+          // Chameleon Vision enrichments
+          ...chameleonDesignTokens ? { designTokens: chameleonDesignTokens } : {},
+          ...chameleonPost ? {
+            copyAngle: {
+              type: chameleonPost.angle,
+              label: chameleonPost.label,
+              badge: chameleonPost.badge,
+              stickerText: chameleonPost.stickerText
+            }
+          } : {}
+        };
+      });
     }),
     /** Generate image for a post */
     generateImage: protectedProcedure.input(z2.object({
@@ -2761,7 +3961,7 @@ Responda APENAS com JSON v\xE1lido no formato especificado.`;
       const profile = await getBillingProfile(email);
       const debit = await debitSparks(profile.id, SPARK_COSTS.GENERATE_IMAGE, "Gera\xE7\xE3o de imagem IA");
       if (!debit.success) {
-        throw new TRPCError3({
+        throw new TRPCError4({
           code: "PAYMENT_REQUIRED",
           message: "Sparks insuficientes. Fa\xE7a upgrade ou adquira um pacote de recarga."
         });
@@ -2833,13 +4033,13 @@ Responda APENAS com JSON v\xE1lido no formato especificado.`;
     /** Generate background image via Pollinations or Gemini */
     generateBackground: protectedProcedure.input(z2.object({
       prompt: z2.string().min(1),
-      provider: z2.enum(["pollinations", "gemini"]).default("pollinations")
+      provider: z2.enum(["pollinations_fast", "pollinations_hd"]).default("pollinations_fast")
     })).mutation(async ({ input, ctx }) => {
       const email = ctx.user.email ?? "dev@local.dev";
       const profile = await getBillingProfile(email);
       const debit = await debitSparks(profile.id, SPARK_COSTS.GENERATE_IMAGE, "Gera\xE7\xE3o de imagem de fundo");
       if (!debit.success) {
-        throw new TRPCError3({
+        throw new TRPCError4({
           code: "PAYMENT_REQUIRED",
           message: "Sparks insuficientes. Fa\xE7a upgrade ou adquira um pacote de recarga."
         });
@@ -2847,13 +4047,103 @@ Responda APENAS com JSON v\xE1lido no formato especificado.`;
       const imageData = await generateBackgroundImage(input.prompt, input.provider);
       return { imageData };
     }),
+    /** Automatically adjust layout based on current canvas */
+    autoPilotDesign: protectedProcedure.input(z2.object({
+      imageBase64: z2.string(),
+      currentState: z2.any()
+    })).mutation(async ({ input }) => {
+      const systemPrompt = `Voc\xEA \xE9 um Diretor de Arte S\xEAnior e Especialista em Qualidade Visual (QA) e Acessibilidade (WCAG).
+Seu trabalho \xE9 avaliar a imagem logada (fotografia do render do post) com o JSON do estado atual fornecido.
+O objetivo \xE9 garantir Legibilidade perfeita, Hierarquia e Margens de Respiro.
+
+REGRAS:
+1. Contraste (WCAG): Verifique se o texto est\xE1 leg\xEDvel contra o fundo. Se o fundo na \xE1rea delimitada pelo texto for muito claro, force a cor do texto para bem escuro (ex: #000000). Se o fundo for muito escuro, texto claro (ex: #FFFFFF). Use hexadecimais de estilo de acordo com a foto caso encontre uma cor que contrasta perfeitamente (color picking).
+2. Layout: Sugira novas posi\xE7\xF5es X e Y (em porcentagem 0-100) para evitar que o texto corte nas bordas, e mantenha alinhamento harmonioso de design premium (esquerda, centro).
+CR\xCDTICO SOBRE X e Y: As coordenadas (x, y) representam o **CENTRO EXATO** do bloco de texto, e n\xE3o o canto superior esquerdo (pois usamos \`transform: translate(-50%, -50%)\` no Frontend).
+- Se voc\xEA quer alinhar um bloco de \`width: 80\` \xE0 esquerda com margem de \`10%\`, o X (centro) N\xC3O deve ser 10, e sim \`50\` (10 de margem + 40 da metade da largura).
+- Se voc\xEA usar X=10 para um bloco largo, metade do bloco ficar\xE1 PARA FORA da tela!
+- Reflita antes de definir o X e Y, garantindo que o \`width\` inteiro caiba na tela somando/subtraindo do centro.
+3. Caso o texto esteja "vazando" do card, reduza \`width\` ou reposicione o \`x\` e \`y\` (lembrando da regra do centro).
+4. Retorne as coordenadas ajustadas e corrigidas, para que possamos plugar direto e o texto se alinhar graciosamente no fundo.
+
+JSON ESTADO ATUAL:
+${JSON.stringify(input.currentState, null, 2)}
+`;
+      const response = await invokeLLM({
+        model: "gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Analise a imagem e o posicionamento abaixo para gerar o JSON refatorado." },
+              { type: "image_url", image_url: { url: input.imageBase64 } }
+            ]
+          }
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "auto_pilot_design",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                score: { type: "number", description: "Sua nota para o design inicial (0 a 100)" },
+                feedback: { type: "string", description: "Descri\xE7\xE3o curta em portugu\xEAs sobre o erro vis\xEDvel e por que voc\xEA corrigiu do jeito que corrigiu." },
+                suggestedLayoutMoves: {
+                  type: "object",
+                  properties: {
+                    headline: {
+                      type: "object",
+                      properties: {
+                        x: { type: "number" },
+                        y: { type: "number" },
+                        width: { type: "number" },
+                        textAlign: { type: "string" },
+                        backgroundColor: { type: "string" },
+                        borderRadius: { type: "number" }
+                      },
+                      required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
+                      additionalProperties: false
+                    },
+                    body: {
+                      type: "object",
+                      properties: {
+                        x: { type: "number" },
+                        y: { type: "number" },
+                        width: { type: "number" },
+                        textAlign: { type: "string" },
+                        backgroundColor: { type: "string" },
+                        borderRadius: { type: "number" }
+                      },
+                      required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
+                      additionalProperties: false
+                    },
+                    textColor: { type: "string", description: "Cor HEX sugerida para todos os textos" }
+                  },
+                  required: ["textColor"],
+                  additionalProperties: false
+                }
+              },
+              required: ["score", "feedback", "suggestedLayoutMoves"],
+              additionalProperties: false
+            }
+          }
+        }
+      });
+      const content = response.choices[0]?.message?.content;
+      const contentStr = typeof content === "string" ? content : Array.isArray(content) ? content.filter((c) => c.type === "text").map((c) => c.text).join("\n") : "{}";
+      const parsed = safeJsonParse(contentStr, {});
+      return parsed;
+    }),
     /** List curated background images grouped by category */
     listBackgrounds: publicProcedure.query(() => {
       const bgRoot = path.join(process.cwd(), "client", "public", "images", "backgrounds");
       try {
         const categories = fs.readdirSync(bgRoot, { withFileTypes: true }).filter((d) => d.isDirectory()).map((dir) => {
           const catPath = path.join(bgRoot, dir.name);
-          const images = fs.readdirSync(catPath).filter((f) => /\.(webp|jpg|jpeg|png|gif|svg)$/i.test(f)).map((f) => `/images/backgrounds/${dir.name}/${f}`);
+          const images = fs.readdirSync(catPath).filter((f) => /\.(webp|jpg|jpeg|png|gif|svg)$/i.test(f)).map((f) => `/ images / backgrounds / ${dir.name} / ${f}`);
           return { id: dir.name, name: dir.name, images };
         }).filter((c) => c.images.length > 0);
         return categories;
@@ -2869,7 +4159,7 @@ Responda APENAS com JSON v\xE1lido no formato especificado.`;
       const profile = await getBillingProfile(email);
       const debit = await debitSparks(profile.id, SPARK_COSTS.CHAMELEON, "ChameleonProtocol \u2014 an\xE1lise de marca");
       if (!debit.success) {
-        throw new TRPCError3({
+        throw new TRPCError4({
           code: "PAYMENT_REQUIRED",
           message: "Sparks insuficientes. Fa\xE7a upgrade ou adquira um pacote de recarga."
         });
@@ -2908,7 +4198,7 @@ Responda APENAS com JSON v\xE1lido no formato especificado.`;
       const designPatterns = await analyzeDesignPattern(extractedData, input.url);
       console.log("[extractStyles] Patterns returned:", designPatterns.length);
       designPatterns.forEach((p, i) => {
-        console.log(`[extractStyles] Pattern ${i + 1}:`, {
+        console.log(`[extractStyles] Pattern ${i + 1}: `, {
           name: p.name,
           category: p.category,
           confidence: p.confidence,
@@ -2919,7 +4209,7 @@ Responda APENAS com JSON v\xE1lido no formato especificado.`;
       const themes = generateThemesFromPatterns(designPatterns, extractedData, input.url);
       console.log("[extractStyles] Generated themes:", themes.length);
       themes.forEach((t2, i) => {
-        console.log(`[extractStyles] Theme ${i + 1}:`, {
+        console.log(`[extractStyles] Theme ${i + 1}: `, {
           id: t2.id,
           label: t2.label,
           category: t2.category,
@@ -2934,6 +4224,71 @@ Responda APENAS com JSON v\xE1lido no formato especificado.`;
         fallbackUsed,
         visionUsed
       };
+    }),
+    /**
+     * Extract full Brand DNA from a website URL (Tom & Matiz enhanced pipeline).
+     * Multi-page screenshots + Gemini Vision + synthesis + musical composition mapping.
+     * Cost: 20 Sparks (replaces the 15✦ ChameleonProtocol)
+     */
+    extractBrandDNA: protectedProcedure.input(z2.object({
+      url: z2.string().url()
+    })).mutation(async ({ input, ctx }) => {
+      const email = ctx.user.email ?? "dev@local.dev";
+      const profile = await getBillingProfile(email);
+      const debit = await debitSparks(profile.id, 20, "Brand DNA \u2014 extra\xE7\xE3o multi-p\xE1gina + an\xE1lise visual");
+      if (!debit.success) {
+        throw new TRPCError4({
+          code: "PAYMENT_REQUIRED",
+          message: "Sparks insuficientes. Fa\xE7a upgrade ou adquira um pacote de recarga."
+        });
+      }
+      const brandDNA = await extractBrandDNA(input.url);
+      const themes = generateThemesFromBrandDNA(brandDNA, input.url);
+      return {
+        brandDNA,
+        themes,
+        fallbackUsed: !brandDNA.metadata.visionUsed
+      };
+    }),
+    /**
+     * Evaluate quality of generated post variations (LLM-as-Judge).
+     * Inspired by Pomelli's evaluation methodology: NIMA aesthetics, VQAScore, brand alignment.
+     * Cost: 0 Sparks (quality signal — included as product differentiator)
+     *
+     * Variations are passed directly from the client (already in memory after generation).
+     */
+    evaluateQuality: protectedProcedure.input(z2.object({
+      variations: z2.array(z2.object({
+        id: z2.string(),
+        headline: z2.string(),
+        body: z2.string(),
+        callToAction: z2.string(),
+        backgroundColor: z2.string(),
+        textColor: z2.string(),
+        accentColor: z2.string(),
+        layout: z2.string(),
+        platform: z2.string()
+      })),
+      brandDNA: z2.object({
+        brandName: z2.string(),
+        industry: z2.string(),
+        colors: z2.object({ primary: z2.string() }),
+        composition: z2.object({ dynamics: z2.string() }),
+        personality: z2.object({
+          seriousPlayful: z2.number(),
+          boldSubtle: z2.number(),
+          luxuryAccessible: z2.number(),
+          modernClassic: z2.number(),
+          warmCool: z2.number()
+        }),
+        emotionalProfile: z2.object({ mood: z2.string() })
+      }).optional()
+    })).mutation(async ({ input }) => {
+      if (input.variations.length === 0) {
+        return { evaluations: [] };
+      }
+      const evaluations = await evaluatePostQuality(input.variations, input.brandDNA);
+      return { evaluations };
     })
   })
 });
@@ -2947,37 +4302,33 @@ async function scrapeUrl(url) {
       signal: AbortSignal.timeout(1e4)
     });
     const html = await response.text();
-    const getMetaContent = (html2, property) => {
-      const patterns = [
-        new RegExp(`<meta[^>]*property=["']${property}["'][^>]*content=["']([^"']*)["']`, "i"),
-        new RegExp(`<meta[^>]*name=["']${property}["'][^>]*content=["']([^"']*)["']`, "i"),
-        new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*property=["']${property}["']`, "i")
-      ];
-      for (const p of patterns) {
-        const m = html2.match(p);
-        if (m?.[1]) return m[1];
-      }
+    const getMetaContent = (htmlSource, property) => {
+      const p1 = new RegExp(`< meta[^>] * property=["']${property}["'][^>]*content=["']([^ "']*)["']`, "i");
+      const p2 = new RegExp(`<meta[^>]*name=["']${property}["'][^>]*content=["']([^"']*)["']`, "i");
+      const m1 = htmlSource.match(p1);
+      if (m1?.[1]) return m1[1];
+      const m2 = htmlSource.match(p2);
+      if (m2?.[1]) return m2[1];
       return "";
     };
-    const title = getMetaContent(html, "og:title") || (html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] || "").trim();
+    const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    const title = getMetaContent(html, "og:title") || (titleMatch?.[1] || "").trim();
     const description = getMetaContent(html, "og:description") || getMetaContent(html, "description");
-    const imageUrl = getMetaContent(html, "og:image");
-    const siteName = getMetaContent(html, "og:site_name");
     const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
     const bodyHtml = bodyMatch?.[1] || "";
-    const textContent = bodyHtml.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 2e3);
+    const textContent = bodyHtml.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ").replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     return {
       title,
       description,
-      imageUrl: imageUrl || void 0,
-      siteName: siteName || void 0,
-      content: textContent
+      content: textContent.substring(0, 1e4)
+      // Limit reasonable amount for context
     };
-  } catch {
+  } catch (error) {
+    console.warn("Failed to scrape URL:", url, error);
     return {
-      title: url,
+      title: "",
       description: "",
-      content: `Conte\xFAdo da URL: ${url}`
+      content: ""
     };
   }
 }
@@ -3105,6 +4456,49 @@ app.post(
 );
 app.use(express2.json({ limit: "50mb" }));
 app.use(express2.urlencoded({ limit: "50mb", extended: true }));
+app.post("/api/extract", async (req, res) => {
+  const { url } = req.body;
+  if (!url || typeof url !== "string") {
+    res.status(400).json({ success: false, error: "Missing or invalid URL" });
+    return;
+  }
+  try {
+    const [desktopBuffer, mobileBuffer] = await Promise.all([
+      captureScreenshot(url, "desktop"),
+      captureScreenshot(url, "mobile")
+    ]);
+    const desktopSizeKB = desktopBuffer ? (desktopBuffer.byteLength / 1024).toFixed(2) : 0;
+    const mobileSizeKB = mobileBuffer ? (mobileBuffer.byteLength / 1024).toFixed(2) : 0;
+    res.json({
+      success: true,
+      url,
+      desktopSizeKB: Number(desktopSizeKB),
+      mobileSizeKB: Number(mobileSizeKB)
+    });
+  } catch (error) {
+    console.error("[/api/extract] Error:", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+app.post("/api/brand-dna", async (req, res) => {
+  const { url } = req.body;
+  if (!url || typeof url !== "string") {
+    return res.status(400).json({ error: "Missing or invalid URL" });
+  }
+  try {
+    const brandDNA = await extractBrandDNA(url);
+    const themes = generateThemesFromBrandDNA(brandDNA, url);
+    res.json({
+      success: true,
+      brandDNA,
+      themes,
+      fallbackUsed: !brandDNA.metadata.visionUsed
+    });
+  } catch (error) {
+    console.error("[/api/brand-dna] Error:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
 registerOAuthRoutes(app);
 app.use(
   ["/api/trpc", "/trpc"],

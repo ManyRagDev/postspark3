@@ -112,7 +112,7 @@ export default function Home() {
       try {
         const result = await generateImageMutation.mutateAsync({
           prompt: variation.imagePrompt,
-          provider: 'pollinations', // Default to fast provider in HoloDeck
+          provider: 'pollinations_fast', // Default to fast provider in HoloDeck
         });
         if (result.imageData) {
           setVariations((prev) =>
@@ -132,7 +132,7 @@ export default function Home() {
 
   // Generate image in Workbench
   const handleGenerateImageWorkbench = useCallback(
-    async (prompt: string, provider: 'pollinations' | 'gemini' = 'pollinations'): Promise<string> => {
+    async (prompt: string, provider: 'pollinations_fast' | 'pollinations_hd' = 'pollinations_fast'): Promise<string> => {
       try {
         const result = await generateImageMutation.mutateAsync({ prompt, provider });
         return result.imageData || "";
@@ -224,9 +224,11 @@ export default function Home() {
               slides={
                 selectedVariation.slides?.map((slide, index) => ({
                   ...structuredClone(selectedVariation),
+                  ...structuredClone(slide),
                   id: `${selectedVariation.id}-slide-${index}`,
                   headline: slide.headline,
                   body: slide.body,
+                  textElements: (slide as any).textElements || selectedVariation.textElements,
                   // Preserve other variation properties
                 }))
               }

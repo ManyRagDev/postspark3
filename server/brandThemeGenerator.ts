@@ -10,7 +10,7 @@
  * with composition-aware generation grounded in real extracted DNA.
  */
 
-import type { BrandDNA, TemporaryTheme, DesignPattern, CompositionRules } from "@shared/postspark";
+import type { BrandDNA, CardStyle, TemporaryTheme, DesignPattern, CompositionRules } from "@shared/postspark";
 import { mapPersonalityToComposition, compositionToLayout } from "./brandDNA";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -48,6 +48,21 @@ function mixColors(hex1: string, hex2: string, ratio = 0.5): string {
     const g = Math.round(parseInt(h1.slice(2, 4), 16) * (1 - ratio) + parseInt(h2.slice(2, 4), 16) * ratio);
     const b = Math.round(parseInt(h1.slice(4, 6), 16) * (1 - ratio) + parseInt(h2.slice(4, 6), 16) * ratio);
     return '#' + [r, g, b].map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Inverts a CardStyle for the Disruptive Contrast variation.
+ * neobrutalist ↔ minimal  |  glass ↔ flat  |  editorial ↔ flat
+ */
+function invertCardStyle(style: CardStyle): CardStyle {
+    switch (style) {
+        case 'neobrutalist': return 'minimal';
+        case 'minimal': return 'neobrutalist';
+        case 'glass': return 'flat';
+        case 'editorial': return 'flat';
+        case 'flat':
+        default: return 'flat';
+    }
 }
 
 /** Map composition rhythm to decoration style */
@@ -147,8 +162,15 @@ function buildBrandFaithful(dna: BrandDNA, url: string): TemporaryTheme {
             borderStyle: layout.borderRadius,
             decoration: rhythmToDecoration(composition.rhythm),
             padding: layout.padding,
+            // Brand Faithful: use the extracted cardStyle directly — highest fidelity to the site
+            cardStyle: dna.layout.cardStyle,
         },
         effects,
+        brandMeta: {
+            logoUrl: dna.metadata.logo,
+            brandName: dna.brandName,
+            favicon: dna.metadata.favicon,
+        },
     };
 }
 
@@ -208,8 +230,15 @@ function buildHarmoniousRemix(dna: BrandDNA, url: string): TemporaryTheme {
             borderStyle: remixLayout.borderRadius,
             decoration: rhythmToDecoration(remixRhythm),
             padding: remixLayout.padding,
+            // Harmonious Remix: soften neobrutalist to flat for variety; others carry through
+            cardStyle: dna.layout.cardStyle === 'neobrutalist' ? 'flat' : dna.layout.cardStyle,
         },
         effects,
+        brandMeta: {
+            logoUrl: dna.metadata.logo,
+            brandName: dna.brandName,
+            favicon: dna.metadata.favicon,
+        },
     };
 }
 
@@ -246,9 +275,10 @@ function buildDisruptiveContrast(dna: BrandDNA, url: string): TemporaryTheme {
         text = '#0f172a';
         accent = dna.colors.primary;
     } else if (seriousPlayful < 40) {
-        // Serious brand → go dark and bold
-        bg = '#0a0a0a';
-        text = '#ffffff';
+        // Serious brand → go dark but derive from brand's own primary color
+        // Mixes primary color 75% toward black — preserves brand warmth/hue in dark mode
+        bg = mixColors(dna.colors.primary, '#0a0a0a', 0.75);
+        text = '#f5f5f5';
         accent = dna.colors.accent !== dna.colors.primary ? dna.colors.accent : dna.colors.primary;
     } else {
         // Playful/modern brand → go monochrome with accent pop
@@ -291,8 +321,15 @@ function buildDisruptiveContrast(dna: BrandDNA, url: string): TemporaryTheme {
             borderStyle: 'square',
             decoration: 'none',
             padding: disruptiveLayout.padding,
+            // Disruptive Contrast: inverts the cardStyle for maximum visual tension
+            cardStyle: invertCardStyle(dna.layout.cardStyle),
         },
         effects,
+        brandMeta: {
+            logoUrl: dna.metadata.logo,
+            brandName: dna.brandName,
+            favicon: dna.metadata.favicon,
+        },
     };
 }
 

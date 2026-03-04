@@ -24,23 +24,27 @@
 
 import type React from "react";
 import { useRef, useState, useEffect, useCallback } from "react";
-import { Layers } from "lucide-react";
-import type { PostVariation, AspectRatio, BackgroundValue, BgOverlaySettings } from "@shared/postspark";
+import { Layers, Users, Star, Zap, Heart, Globe, Calendar, Shield, Rocket, Target, Award, MessageCircle, TrendingUp, CheckCircle, Play, Camera, Music, MapPin, Clock, Gift, Sparkles, ArrowRight } from "lucide-react";
+import type { PostVariation, AspectRatio, BackgroundValue, BgOverlaySettings, ContentSection, PostTemplate, DesignTokens } from "@shared/postspark";
 import { ASPECT_RATIO_VALUES } from "@shared/postspark";
 import type { ThemeConfig } from "@/lib/themes";
 import type { ImageSettings, AdvancedLayoutSettings, TextPosition } from "@/types/editor";
 import ThemeRenderer from "./ThemeRenderer";
+import BrandOverlay from "./BrandOverlay";
 import { useTextAutoFit } from "@/hooks/useTextAutoFit";
 import { useDragElement } from "@/hooks/useDragElement";
 import { useResizeElement } from "@/hooks/useResizeElement";
-
-// --- TextCanvas Imports ---
+import { useDynamicFont } from "@/hooks/useDynamicFont";
+// --- Canvas Components ---
 import { AdvancedTextNode } from "@/components/canvas/AdvancedTextNode";
+import { DraggableBlock, resolveLayoutStyle, resolvePosition, GRID_SNAP_POSITIONS } from "@/components/canvas/DraggableBlock";
 
 interface PostCardProps {
   variation: PostVariation;
   compact?: boolean;
   theme?: ThemeConfig;
+  /** CSS-ready design tokens from Chameleon Vision. Priority: designTokens > theme > variation. */
+  designTokens?: DesignTokens;
   aspectRatio?: AspectRatio;
   imageSettings?: ImageSettings;
   advancedLayout?: AdvancedLayoutSettings;
@@ -49,13 +53,20 @@ interface PostCardProps {
   showOverflowWarning?: boolean;
   /** When true, variation colors take priority over theme colors (used in Workbench editor) */
   forceVariationColors?: boolean;
-  /** Callback para atualizar posição de texto via drag direto no card (modo Arquiteto) */
-  onDragPosition?: (target: "headline" | "body" | "accentBar", x: number, y: number) => void;
-  /** Callback para atualizar largura do bloco via resize handles (modo Arquiteto) */
-  onResizeBlock?: (target: "headline" | "body" | "accentBar", width: number) => void;
+  /** Brand identity metadata for overlay rendering (logo, platform icon, decorative shapes) */
+  brandMeta?: { logoUrl?: string; brandName?: string; favicon?: string };
+  /** Callback para atualizar posição de texto ou do card via drag direto no canvas */
+  onDragPosition?: (target: "headline" | "body" | "accentBar" | "card" | "badge" | "sticker", x: number, y: number) => void;
+  /** Callback para atualizar largura do bloco ou do card via resize handles */
+  onResizeBlock?: (target: "headline" | "body" | "accentBar" | "card" | "badge" | "sticker", width: number) => void;
   /** Se o snap magnético está ativo (usado junto com onDragPosition) */
   snapEnabled?: boolean;
+  /** Se o card em si está em modo de edição (exibe borda e alças do card) */
+  isEditingCard?: boolean;
+  /** Callback para quando um elemento (headline, body, etc) é selecionado no canvas */
+  onSelectElement?: (target: "headline" | "body" | "accentBar" | "card" | "badge" | "sticker") => void;
 }
+
 
 // ─── AccentBar Component ─────────────────────────────────────────────────────
 function AccentBar({ color, width = "3rem", height = "3px", align = "flex-start", style }: {
@@ -79,39 +90,176 @@ function AccentBar({ color, width = "3rem", height = "3px", align = "flex-start"
   );
 }
 
-// ─── Mapeamento TextPosition → CSSProperties ─────────────────────────────────
-function resolvePosition(
-  rawPosition: TextPosition | string,
-  padding: number
-): React.CSSProperties {
-  const p = padding;
-  // Normalize legacy / malformed 'center-center' → 'center'
-  const position = rawPosition === "center-center" ? "center" : (rawPosition as TextPosition);
-  // All positions use left+top+transform to keep box anchoring consistent.
-  // This prevents visual alignment shifts when dragging between positions.
-  switch (position) {
-    case "top-left":
-      return { top: p, left: `${p}px` };
-    case "top-center":
-      return { top: p, left: "50%", transform: "translateX(-50%)" };
-    case "top-right":
-      return { top: p, left: `calc(100% - ${p}px)`, transform: "translateX(-100%)" };
-    case "center-left":
-      return { top: "50%", left: `${p}px`, transform: "translateY(-50%)" };
-    case "center":
-      return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
-    case "center-right":
-      return { top: "50%", left: `calc(100% - ${p}px)`, transform: "translate(-100%, -50%)" };
-    case "bottom-left":
-      return { top: `calc(100% - ${p}px)`, left: `${p}px`, transform: "translateY(-100%)" };
-    case "bottom-center":
-      return { top: `calc(100% - ${p}px)`, left: "50%", transform: "translate(-50%, -100%)" };
-    case "bottom-right":
-      return { top: `calc(100% - ${p}px)`, left: `calc(100% - ${p}px)`, transform: "translate(-100%, -100%)" };
+// ─── Lucide Icon Map ─────────────────────────────────────────────────────────
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
+  Users, Star, Zap, Heart, Globe, Calendar, Shield, Rocket, Target, Award,
+  MessageCircle, TrendingUp, CheckCircle, Play, Camera, Music, Map: MapPin, MapPin, Clock, Gift, Sparkles,
+};
+
+function getLucideIcon(name?: string) {
+  if (!name) return null;
+  return ICON_MAP[name] ?? null;
+}
+
+// ─── Template Section Renderers ──────────────────────────────────────────────
+
+function FeatureGrid({ sections, accentColor, textColor, bodyFont }: {
+  sections: ContentSection[];
+  accentColor: string;
+  textColor: string;
+  bodyFont: string;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-3 w-full mt-3">
+      {sections.slice(0, 3).map((section, i) => {
+        const Icon = getLucideIcon(section.icon);
+        return (
+          <div key={i} className="flex flex-col items-center gap-1.5 text-center">
+            {Icon && (
+              <div
+                className="flex items-center justify-center rounded-lg"
+                style={{
+                  width: 36, height: 36,
+                  backgroundColor: `${accentColor}20`,
+                }}
+              >
+                <Icon size={18} style={{ color: accentColor }} />
+              </div>
+            )}
+            <span
+              className="font-semibold leading-tight"
+              style={{ color: textColor, fontFamily: bodyFont, fontSize: "0.7rem" }}
+            >
+              {section.label}
+            </span>
+            {section.description && (
+              <span
+                className="opacity-60 leading-tight"
+                style={{ color: textColor, fontFamily: bodyFont, fontSize: "0.55rem" }}
+              >
+                {section.description}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function NumberedList({ sections, accentColor, textColor, bodyFont }: {
+  sections: ContentSection[];
+  accentColor: string;
+  textColor: string;
+  bodyFont: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2 w-full mt-3">
+      {sections.slice(0, 5).map((section, i) => (
+        <div key={i} className="flex items-start gap-2.5">
+          <span
+            className="font-bold shrink-0 flex items-center justify-center rounded-full"
+            style={{
+              width: 22, height: 22,
+              fontSize: "0.65rem",
+              backgroundColor: accentColor,
+              color: textColor,
+            }}
+          >
+            {section.number ?? i + 1}
+          </span>
+          <div className="flex flex-col">
+            <span
+              className="font-semibold leading-tight"
+              style={{ color: textColor, fontFamily: bodyFont, fontSize: "0.72rem" }}
+            >
+              {section.label}
+            </span>
+            {section.description && (
+              <span
+                className="opacity-60 leading-tight"
+                style={{ color: textColor, fontFamily: bodyFont, fontSize: "0.55rem" }}
+              >
+                {section.description}
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StepByStep({ sections, accentColor, textColor, bodyFont }: {
+  sections: ContentSection[];
+  accentColor: string;
+  textColor: string;
+  bodyFont: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3 w-full mt-3">
+      {sections.slice(0, 3).map((section, i) => {
+        const Icon = getLucideIcon(section.icon);
+        return (
+          <div key={i} className="flex items-center gap-3">
+            <div
+              className="flex items-center justify-center shrink-0 rounded-full font-bold"
+              style={{
+                width: 28, height: 28,
+                fontSize: "0.7rem",
+                backgroundColor: `${accentColor}25`,
+                color: accentColor,
+                border: `1.5px solid ${accentColor}40`,
+              }}
+            >
+              {Icon ? <Icon size={14} style={{ color: accentColor }} /> : i + 1}
+            </div>
+            <div className="flex flex-col">
+              <span
+                className="font-semibold leading-tight"
+                style={{ color: textColor, fontFamily: bodyFont, fontSize: "0.72rem" }}
+              >
+                {section.label}
+              </span>
+              {section.description && (
+                <span
+                  className="opacity-60 leading-tight"
+                  style={{ color: textColor, fontFamily: bodyFont, fontSize: "0.55rem" }}
+                >
+                  {section.description}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Renders structured content sections below headline/body based on template type */
+function TemplateSections({ template, sections, accentColor, textColor, bodyFont }: {
+  template?: PostTemplate;
+  sections?: ContentSection[];
+  accentColor: string;
+  textColor: string;
+  bodyFont: string;
+}) {
+  if (!template || template === 'simple' || !sections?.length) return null;
+
+  switch (template) {
+    case 'feature-grid':
+      return <FeatureGrid sections={sections} accentColor={accentColor} textColor={textColor} bodyFont={bodyFont} />;
+    case 'numbered-list':
+      return <NumberedList sections={sections} accentColor={accentColor} textColor={textColor} bodyFont={bodyFont} />;
+    case 'step-by-step':
+      return <StepByStep sections={sections} accentColor={accentColor} textColor={textColor} bodyFont={bodyFont} />;
     default:
-      return { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
+      return null;
   }
 }
+
+// resolvePosition and resolveLayoutStyle are now imported from DraggableBlock.tsx to ensure visual consistency between text elements and the card itself.
 
 // ─── ArchitectOverlay ─────────────────────────────────────────────────────────
 // A unified positioned layer that renders headline + body at absolute positions.
@@ -130,245 +278,18 @@ interface ArchitectOverlayProps {
   bodyFont: string;
   headingSize: string;
   bodySize: string;
-  cardRef: React.RefObject<HTMLElement | null>;
-  onDragPosition?: (target: "headline" | "body" | "accentBar", x: number, y: number) => void;
-  onResizeBlock?: (target: "headline" | "body" | "accentBar", width: number) => void;
+  template?: PostTemplate;
+  sections?: ContentSection[];
+  cardRef: React.RefObject<HTMLDivElement | null>;
+  onDragPosition?: (target: "headline" | "body" | "accentBar" | "badge" | "sticker", x: number, y: number) => void;
+  onResizeBlock?: (target: "headline" | "body" | "accentBar" | "badge" | "sticker", width: number) => void;
   snapEnabled?: boolean;
+  onSelectElement?: (target: "headline" | "body" | "accentBar" | "card" | "badge" | "sticker") => void;
+  badgeNode?: React.ReactNode;
+  stickerNode?: React.ReactNode;
 }
 
-// Grid de 3×3 para snap visual durante drag
-const GRID_SNAP_POSITIONS = [
-  { cx: 10, cy: 10 }, { cx: 50, cy: 10 }, { cx: 90, cy: 10 },
-  { cx: 10, cy: 50 }, { cx: 50, cy: 50 }, { cx: 90, cy: 50 },
-  { cx: 10, cy: 90 }, { cx: 50, cy: 90 }, { cx: 90, cy: 90 },
-];
-
-function resolveLayoutStyle(
-  lp: import("@/types/editor").LayoutPosition,
-  padding: number,
-): React.CSSProperties {
-  if (lp.freePosition) {
-    // FIX Bug 4 — Respiro (padding) tem efeito mesmo com freePosition.
-    // Converte padding de px para % (assumindo card ~360px) e aplica como clamp nas bordas,
-    // garantindo que os blocos de texto nunca ultrapassem a margem de segurança definida pelo slider.
-    const paddingPct = (padding / 360) * 100;
-    const halfBlock = 5; // estimativa de metade da largura de um bloco médio em %
-    const minX = paddingPct + halfBlock;
-    const maxX = 100 - paddingPct - halfBlock;
-    const minY = paddingPct + halfBlock;
-    const maxY = 100 - paddingPct - halfBlock;
-    const clampedX = Math.max(minX, Math.min(maxX, lp.freePosition.x));
-    const clampedY = Math.max(minY, Math.min(maxY, lp.freePosition.y));
-    return {
-      left: `${clampedX}%`,
-      top: `${clampedY}%`,
-      transform: "translate(-50%, -50%)",
-    };
-  }
-  return resolvePosition(lp.position, padding);
-}
-
-// ─── DraggableTextBlock ───────────────────────────────────────────────────────
-// Bloco de texto arrastável com:
-//  • Clique único → seleciona (mostra bounding box + 8 alças de resize)
-//  • Drag no texto → move o bloco
-//  • Drag nas alças de aresta/canto → redimensiona (largura em %)
-//  • Clique fora → desseleciona
-
-interface DraggableTextBlockProps {
-  layoutPos: import("@/types/editor").LayoutPosition;
-  padding: number;
-  cardRef: React.RefObject<HTMLElement | null>;
-  onDragEnd: (x: number, y: number) => void;
-  onResize: (width: number) => void;
-  snapEnabled: boolean;
-  children: React.ReactNode;
-  accentColor?: string;
-}
-
-// Alças de redimensionamento: 4 cantos + 4 pontos médios das arestas
-// cx/cy em % relativo ao bounding box do bloco (0=esquerda/topo, 100=direita/baixo)
-const HANDLES = [
-  { id: "tl", cx: 0, cy: 0, cursor: "nw-resize", dir: "left" as const },
-  { id: "tm", cx: 50, cy: 0, cursor: "n-resize", dir: "right" as const }, // vertical — ignorado no resize
-  { id: "tr", cx: 100, cy: 0, cursor: "ne-resize", dir: "right" as const },
-  { id: "ml", cx: 0, cy: 50, cursor: "ew-resize", dir: "left" as const },
-  { id: "mr", cx: 100, cy: 50, cursor: "ew-resize", dir: "right" as const },
-  { id: "bl", cx: 0, cy: 100, cursor: "sw-resize", dir: "left" as const },
-  { id: "bm", cx: 50, cy: 100, cursor: "s-resize", dir: "right" as const },
-  { id: "br", cx: 100, cy: 100, cursor: "se-resize", dir: "right" as const },
-] as const;
-
-function DraggableTextBlock({
-  layoutPos,
-  padding,
-  cardRef,
-  onDragEnd,
-  onResize,
-  snapEnabled,
-  children,
-  accentColor = "rgba(255,255,255,0.8)",
-}: DraggableTextBlockProps) {
-  const [isSelected, setIsSelected] = useState(false);
-  const blockRef = useRef<HTMLDivElement>(null);
-
-  // Largura efectiva: usa layoutPos.width se salvo, senão 76% (padrão)
-  const currentWidth = layoutPos.width ?? 76;
-
-  const { isDragging, dragPos, handlers } = useDragElement({
-    containerRef: cardRef,
-    onDragEnd,
-  });
-
-  const { isResizing, previewWidth, startResize } = useResizeElement({
-    containerRef: cardRef,
-    initialWidth: currentWidth,
-    onResizeEnd: onResize,
-  });
-
-  // Desselecionar ao clicar fora do bloco
-  useEffect(() => {
-    if (!isSelected) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (blockRef.current && !blockRef.current.contains(e.target as Node)) {
-        setIsSelected(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isSelected]);
-
-  // Largura visual durante resize usa previewWidth; senão usa currentWidth
-  const effectiveWidth = isResizing && previewWidth !== null ? previewWidth : currentWidth;
-
-  // Posição visual durante drag usa dragPos; caso contrário usa layoutPos
-  const currentStyle: React.CSSProperties = isDragging && dragPos
-    ? { left: `${dragPos.x}%`, top: `${dragPos.y}%`, transform: "translate(-50%, -50%)" }
-    : resolveLayoutStyle(layoutPos, padding);
-
-  // Célula de snap mais próxima durante drag (para mostrar guia)
-  const snapTarget = isDragging && dragPos && snapEnabled
-    ? GRID_SNAP_POSITIONS.reduce((best, cell) => {
-      const d = Math.hypot(dragPos.x - cell.cx, dragPos.y - cell.cy);
-      const bd = Math.hypot(dragPos.x - best.cx, dragPos.y - best.cy);
-      return d < bd ? cell : best;
-    }, GRID_SNAP_POSITIONS[0])
-    : null;
-
-  // Cor do bounding box e alças (derivada do accentColor com opacidade)
-  const handleBg = "rgba(255,255,255,1)";
-  const boxBorder = `${accentColor}90`;
-
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      // Não inicia move drag se clicou numa alça de resize
-      if ((e.target as HTMLElement).dataset.handle) return;
-      (handlers as { onPointerDown: React.PointerEventHandler<HTMLElement> }).onPointerDown(
-        e as React.PointerEvent<HTMLElement>
-      );
-    },
-    [handlers]
-  );
-
-  const handlePointerMove = useCallback(
-    (e: React.PointerEvent<HTMLElement>) => {
-      (handlers as { onPointerMove: React.PointerEventHandler<HTMLElement> }).onPointerMove(e);
-    },
-    [handlers]
-  );
-
-  const handlePointerUp = useCallback(
-    (e: React.PointerEvent<HTMLElement>) => {
-      (handlers as { onPointerUp: React.PointerEventHandler<HTMLElement> }).onPointerUp(e);
-    },
-    [handlers]
-  );
-
-  return (
-    <>
-      {/* Guias de grid durante drag com snap ativo */}
-      {isDragging && snapEnabled && (
-        <div className="absolute inset-0 z-10 pointer-events-none">
-          {[10, 50, 90].map((y) => (
-            <div key={`h${y}`} className="absolute left-0 right-0" style={{
-              top: `${y}%`, height: "1px",
-              background: `${accentColor}30`, borderTop: `1px dashed ${accentColor}40`,
-            }} />
-          ))}
-          {[10, 50, 90].map((x) => (
-            <div key={`v${x}`} className="absolute top-0 bottom-0" style={{
-              left: `${x}%`, width: "1px",
-              background: `${accentColor}30`, borderLeft: `1px dashed ${accentColor}40`,
-            }} />
-          ))}
-          {snapTarget && (
-            <div className="absolute rounded-lg" style={{
-              left: `${snapTarget.cx}%`, top: `${snapTarget.cy}%`,
-              transform: "translate(-50%, -50%)",
-              width: "48px", height: "24px",
-              background: `${accentColor}25`, border: `1.5px dashed ${accentColor}70`,
-            }} />
-          )}
-        </div>
-      )}
-
-      {/* Bloco de texto — arrastável + selecionável */}
-      <div
-        ref={blockRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onClick={() => !isDragging && setIsSelected(true)}
-        className="absolute z-20 select-none"
-        style={{
-          ...currentStyle,
-          width: `${effectiveWidth}%`,
-          cursor: isDragging ? "grabbing" : "grab",
-          touchAction: "none",
-          // Bounding box leve quando selecionado ou em drag
-          outline: (isSelected || isDragging || isResizing)
-            ? `1.5px solid ${boxBorder}`
-            : "none",
-          outlineOffset: "3px",
-          borderRadius: "3px",
-        }}
-      >
-        {children}
-
-        {/* Alças de resize — só visíveis quando selecionado e não em drag */}
-        {isSelected && !isDragging && (
-          <>
-            {HANDLES.map((h) => (
-              <div
-                key={h.id}
-                data-handle={h.id}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  startResize(e, h.dir);
-                }}
-                style={{
-                  position: "absolute",
-                  left: `${h.cx}%`,
-                  top: `${h.cy}%`,
-                  transform: "translate(-50%, -50%)",
-                  width: 9,
-                  height: 9,
-                  borderRadius: 2,
-                  background: handleBg,
-                  border: `1.5px solid ${boxBorder}`,
-                  cursor: h.cursor,
-                  zIndex: 30,
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
-                  touchAction: "none",
-                }}
-              />
-            ))}
-          </>
-        )}
-      </div>
-    </>
-  );
-}
+// DraggableTextBlock and resolve helpers removed — now using shared DraggableBlock component.
 
 function ArchitectOverlay({
   al,
@@ -382,10 +303,15 @@ function ArchitectOverlay({
   bodyFont,
   headingSize,
   bodySize,
+  template,
+  sections,
   cardRef,
   onDragPosition,
   onResizeBlock,
   snapEnabled = true,
+  onSelectElement,
+  badgeNode,
+  stickerNode,
 }: ArchitectOverlayProps) {
   const headlineStyle = resolveLayoutStyle(al.headline, al.padding);
   const bodyStyle = resolveLayoutStyle(al.body, al.padding);
@@ -405,7 +331,13 @@ function ArchitectOverlay({
             <AccentBar color={accentColor} width="100%" />
           </div>
         )}
-        <div className="absolute z-20" style={{ ...headlineStyle, width: `${headlineWidth}%` }}>
+        <div className="absolute z-20" style={{
+          ...headlineStyle,
+          width: `${headlineWidth}%`,
+          backgroundColor: al.headline.backgroundColor ?? 'transparent',
+          borderRadius: al.headline.borderRadius ? `${al.headline.borderRadius}px` : '3px',
+          padding: al.headline.backgroundColor ? '0.5rem 1rem' : undefined,
+        }}>
           <h2
             className="font-bold"
             style={{
@@ -421,22 +353,37 @@ function ArchitectOverlay({
             {headline}
           </h2>
         </div>
-        {body && (
-          <div className="absolute z-20" style={{ ...bodyStyle, width: `${bodyWidth}%` }}>
-            <p
-              style={{
-                color: bodyTextColor,
-                fontFamily: bodyFont,
-                fontSize: bodySize,
-                lineHeight: 1.65,
-                opacity: 0.85,
-                textAlign: al.body.textAlign,
-                whiteSpace: "pre-wrap",
-                overflowWrap: "break-word",
-              }}
-            >
-              {body}
-            </p>
+        {(body || (sections && sections.length > 0)) && (
+          <div className="absolute z-20 flex flex-col gap-3" style={{
+            ...bodyStyle,
+            width: `${bodyWidth}%`,
+            backgroundColor: al.body.backgroundColor ?? 'transparent',
+            borderRadius: al.body.borderRadius ? `${al.body.borderRadius}px` : '3px',
+            padding: al.body.backgroundColor ? '0.5rem 1rem' : undefined,
+          }}>
+            {body && (
+              <p
+                style={{
+                  color: bodyTextColor,
+                  fontFamily: bodyFont,
+                  fontSize: bodySize,
+                  lineHeight: 1.65,
+                  opacity: 0.85,
+                  textAlign: al.body.textAlign,
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "break-word",
+                }}
+              >
+                {body}
+              </p>
+            )}
+            <TemplateSections
+              template={template}
+              sections={sections}
+              accentColor={accentColor}
+              textColor={bodyTextColor}
+              bodyFont={bodyFont}
+            />
           </div>
         )}
       </>
@@ -447,26 +394,28 @@ function ArchitectOverlay({
     <>
       {/* Barrinha arrastável */}
       {al.accentBar && (
-        <DraggableTextBlock
+        <DraggableBlock
           layoutPos={al.accentBar}
           padding={al.padding}
-          cardRef={cardRef}
+          containerRef={cardRef}
           onDragEnd={(x, y) => onDragPosition("accentBar", x, y)}
           onResize={(w) => onResizeBlock?.("accentBar", w)}
+          onSelect={() => onSelectElement?.("accentBar")}
           snapEnabled={snapEnabled}
           accentColor={accentColor}
         >
           <AccentBar color={accentColor} width="100%" />
-        </DraggableTextBlock>
+        </DraggableBlock>
       )}
 
       {/* Título arrastável + redimensionável */}
-      <DraggableTextBlock
+      <DraggableBlock
         layoutPos={al.headline}
         padding={al.padding}
-        cardRef={cardRef}
+        containerRef={cardRef}
         onDragEnd={(x, y) => onDragPosition("headline", x, y)}
         onResize={(w) => onResizeBlock?.("headline", w)}
+        onSelect={() => onSelectElement?.("headline")}
         snapEnabled={snapEnabled}
         accentColor={effectiveText}
       >
@@ -485,35 +434,83 @@ function ArchitectOverlay({
         >
           {headline}
         </h2>
-      </DraggableTextBlock>
+      </DraggableBlock>
 
       {/* Corpo arrastável + redimensionável */}
-      {body && (
-        <DraggableTextBlock
+      {(body || (sections && sections.length > 0)) && (
+        <DraggableBlock
           layoutPos={al.body}
           padding={al.padding}
-          cardRef={cardRef}
+          containerRef={cardRef}
           onDragEnd={(x, y) => onDragPosition("body", x, y)}
           onResize={(w) => onResizeBlock?.("body", w)}
+          onSelect={() => onSelectElement?.("body")}
           snapEnabled={snapEnabled}
           accentColor={effectiveText}
         >
-          <p
-            style={{
-              color: bodyTextColor,
-              fontFamily: bodyFont,
-              fontSize: bodySize,
-              lineHeight: 1.65,
-              opacity: 0.85,
-              textAlign: al.body.textAlign,
-              whiteSpace: "pre-wrap",
-              overflowWrap: "break-word",
-              width: "100%",
-            }}
-          >
-            {body}
-          </p>
-        </DraggableTextBlock>
+          <div className="flex flex-col gap-3 w-full">
+            {body && (
+              <p
+                style={{
+                  color: bodyTextColor,
+                  fontFamily: bodyFont,
+                  fontSize: bodySize,
+                  lineHeight: 1.65,
+                  opacity: 0.85,
+                  textAlign: al.body.textAlign,
+                  whiteSpace: "pre-wrap",
+                  overflowWrap: "break-word",
+                  width: "100%",
+                }}
+              >
+                {body}
+              </p>
+            )}
+            <TemplateSections
+              template={template}
+              sections={sections}
+              accentColor={accentColor}
+              textColor={bodyTextColor}
+              bodyFont={bodyFont}
+            />
+          </div>
+        </DraggableBlock>
+      )}
+
+      {/* Badge arrastável + redimensionável */}
+      {al.badge && badgeNode && (
+        <DraggableBlock
+          layoutPos={al.badge}
+          padding={al.padding}
+          containerRef={cardRef}
+          onDragEnd={(x, y) => onDragPosition?.("badge", x, y)}
+          onResize={(w) => onResizeBlock?.("badge", w)}
+          onSelect={() => onSelectElement?.("badge")}
+          snapEnabled={snapEnabled}
+          accentColor={accentColor}
+        >
+          <div className={`w-full flex ${al.badge.textAlign === 'center' ? 'justify-center' : al.badge.textAlign === 'right' ? 'justify-end' : 'justify-start'}`}>
+            {badgeNode}
+          </div>
+        </DraggableBlock>
+      )}
+
+      {/* Sticker arrastável + redimensionável */}
+      {al.sticker && stickerNode && (
+        <DraggableBlock
+          layoutPos={al.sticker}
+          padding={al.padding}
+          containerRef={cardRef}
+          onDragEnd={(x, y) => onDragPosition?.("sticker", x, y)}
+          onResize={(w) => onResizeBlock?.("sticker", w)}
+          onSelect={() => onSelectElement?.("sticker")}
+          snapEnabled={snapEnabled}
+          accentColor={accentColor}
+        >
+          <div className={`w-full flex items-center ${al.sticker.textAlign === 'center' ? 'justify-center' : al.sticker.textAlign === 'right' ? 'justify-end' : 'justify-start'}`}>
+            {stickerNode}
+          </div>
+        </DraggableBlock>
       )}
     </>
   );
@@ -524,22 +521,37 @@ export default function PostCard({
   variation,
   compact = false,
   theme,
+  designTokens,
   aspectRatio: ratioOverride,
   imageSettings,
   advancedLayout,
   bgValue,
   bgOverlay,
+  showOverflowWarning = true,
   forceVariationColors = false,
+  brandMeta,
+  onSelectElement,
   onDragPosition,
   onResizeBlock,
   snapEnabled = true,
+  isEditingCard = false,
 }: PostCardProps) {
-  // Ref para o container de layout (a div com aspectRatio) — é o pai direto do ArchitectOverlay.
-  // useDragElement usa este ref para calcular posições % corretamente.
-  const cardRef = useRef<HTMLElement | null>(null);
+  // cardRef points to the main card container (inner layer) — managed by ThemeRenderer but referenced here
+  // for drag/resize logic in child overlays.
+  const cardRef = useRef<HTMLDivElement | null>(null);
   // layoutRef aponta para a div interna com aspectRatio — usada como container de referência pelo drag
   const layoutRef = useRef<HTMLDivElement | null>(null);
   const { headline, body, imageUrl: variationImageUrl, backgroundColor, textColor, headlineColor, bodyColor, accentColor, layout } = variation;
+
+  // Merge: variation-level tokens override prop-level tokens
+  const dt = variation.designTokens
+    ? { ...designTokens, ...variation.designTokens } as DesignTokens | undefined
+    : designTokens;
+
+  // Dynamic font loading from design tokens and variations
+  useDynamicFont(dt?.typography?.fontFamily ?? '', dt?.typography?.customFontUrl ?? '');
+  useDynamicFont(variation.headlineFontFamily ?? '');
+  useDynamicFont(variation.bodyFontFamily ?? '');
 
   // ── Background resolution (priority: solid > bgValue.url > variation.imageUrl) ──
   const isSolid = bgValue?.type === "solid";
@@ -552,46 +564,52 @@ export default function PostCard({
   const isStory = ratio === "9:16";
 
   // ── Cores ──
-  // forceVariationColors (Workbench): variation colors take priority so edits are reflected immediately.
-  // Normal (HoloDeck preview): theme colors take priority as expected.
-  // Quando há um tema ativo, o background do visual deve ser transparente
-  // para que o ThemeRenderer controle o fundo (evita sobrescrita)
+  // Priority: forceVariationColors > designTokens > theme > variation defaults
   const effectiveBg = isSolid && bgValue?.color
     ? bgValue.color
     : (forceVariationColors && backgroundColor)
       ? backgroundColor
-      : theme ? "transparent" : (backgroundColor || "#1a1a2e");
+      : dt ? "transparent"
+        : theme ? "transparent" : (backgroundColor || "#1a1a2e");
   const effectiveText = (forceVariationColors && textColor)
     ? textColor
-    : theme ? theme.colors.text : (textColor || "#ffffff");
+    : dt ? dt.colors.text
+      : theme ? theme.colors.text : (textColor || "#ffffff");
 
   // Cores independentes por elemento — fazem fallback para effectiveText quando não definidas
   const effectiveHeadlineText = (forceVariationColors && headlineColor) ? headlineColor : effectiveText;
   const effectiveBodyText = (forceVariationColors && bodyColor) ? bodyColor : effectiveText;
   const effectiveAccent = (forceVariationColors && accentColor)
     ? accentColor
-    : theme ? theme.colors.accent : (accentColor || "#a855f7");
+    : dt ? dt.colors.primary
+      : theme ? theme.colors.accent : (accentColor || "#a855f7");
 
-  // Cores do card vêm do tema quando disponível
-  const cardBg = theme ? theme.colors.bg : effectiveBg;
-  const cardText = theme ? theme.colors.text : effectiveText;
-  const cardAccent = theme ? theme.colors.accent : effectiveAccent;
+  // Cores do card vêm dos tokens/tema quando disponíveis
+  const cardBg = dt ? dt.colors.card : theme ? theme.colors.bg : effectiveBg;
+  const cardText = dt ? dt.colors.text : theme ? theme.colors.text : effectiveText;
+  const cardAccent = dt ? dt.colors.primary : theme ? theme.colors.accent : effectiveAccent;
 
-  // Debug log para verificar cores
-  if (theme) {
-    console.log("[PostCard] Theme applied:", {
-      id: theme.id,
-      label: theme.label,
-      bg: theme.colors.bg,
-      text: theme.colors.text,
-      accent: theme.colors.accent,
-      effectiveBg,
-      cardBg,
-    });
-  }
-  const headingFont = theme ? theme.typography.headingFont : "var(--font-display)";
-  const bodyFont = theme ? theme.typography.bodyFont : "inherit";
-  const textAlign = theme ? (theme.layout.alignment as React.CSSProperties["textAlign"]) : undefined;
+  // Fonts: variation > designTokens > theme > defaults
+  const headingFont = variation.headlineFontFamily
+    ? `"${variation.headlineFontFamily}", sans-serif`
+    : dt
+      ? `"${dt.typography.fontFamily}", sans-serif`
+      : theme ? theme.typography.headingFont : "var(--font-display)";
+  const bodyFont = variation.bodyFontFamily
+    ? `"${variation.bodyFontFamily}", sans-serif`
+    : dt
+      ? `"${dt.typography.fontFamily}", sans-serif`
+      : theme ? theme.typography.bodyFont : "inherit";
+  const textAlign = dt
+    ? (dt.typography.textAlign as React.CSSProperties["textAlign"])
+    : theme ? (theme.layout.alignment as React.CSSProperties["textAlign"]) : undefined;
+
+  // Text transform from design tokens
+  const headlineTextTransform = dt?.typography.textTransform ?? 'none';
+
+  // Decorations: sticker + badge from copyAngle
+  const copyAngle = variation.copyAngle;
+  const isPlayful = dt?.decorations === 'playful';
 
   // ── Auto-fit: Ajusta texto automaticamente ao mudar aspect ratio ──
   const autoFit = useTextAutoFit({
@@ -624,7 +642,7 @@ export default function PostCard({
   const is = imageSettings;
   const objPos = bgOverlay
     ? `${bgOverlay.position.x}% ${bgOverlay.position.y}%`
-    : "50% 50%";
+    : `${is?.panX ?? 50}% ${is?.panY ?? 50}%`;
 
   const imgStyle: React.CSSProperties = is
     ? {
@@ -690,6 +708,8 @@ export default function PostCard({
     al: advancedLayout,
     headline,
     body: body || "",
+    template: variation.template,
+    sections: variation.sections,
     effectiveText,
     headlineTextColor: effectiveHeadlineText,
     bodyTextColor: effectiveBodyText,
@@ -698,16 +718,153 @@ export default function PostCard({
     bodyFont,
     headingSize: isLayoutCentered || isLayoutMinimal ? `calc(${headingSize} * 1.15)` : headingSize,
     bodySize,
-    cardRef: layoutRef as React.RefObject<HTMLElement | null>,
+    cardRef,
     onDragPosition,
     onResizeBlock,
     snapEnabled,
+    onSelectElement,
+    // FIX: Renderiza inner content para que o ArchitectOverlay assuma os wrappers flexbox/posições
+    badgeNode: (() => {
+      if (!copyAngle?.badge || compact) return null;
+      const primaryColor = dt?.colors?.primary || effectiveAccent;
+      const border = dt?.structure?.border || 'none';
+      const boxShadow = dt?.structure?.boxShadow && dt.structure.boxShadow !== 'none' && dt.structure.boxShadow.includes('0px 0px') ? '2px 2px 0px 0px rgba(0,0,0,0.1)' : 'none';
+      return (
+        <div
+          className="px-4 py-1.5 font-bold text-sm bg-white inline-block"
+          style={{ borderRadius: dt?.structure?.borderRadius || '999px', border, color: primaryColor, boxShadow }}
+        >
+          {copyAngle.badge}
+        </div>
+      );
+    })(),
+    stickerNode: (() => {
+      if (!copyAngle?.stickerText || compact) return null;
+      const primaryColor = dt?.colors?.primary || effectiveAccent;
+      const border = dt?.structure?.border || 'none';
+      if (isPlayful) {
+        return (
+          <div className="relative group transition-transform inline-block">
+            <div className="absolute inset-0 bg-black translate-x-1 translate-y-1 transition-all"></div>
+            <div className="relative px-3 py-2 flex items-center justify-center rotate-[-8deg] bg-white transition-all" style={{ border }}>
+              <span className="font-bold text-sm tracking-wider uppercase" style={{ color: primaryColor }}>{copyAngle.stickerText}</span>
+            </div>
+          </div>
+        );
+      }
+      return (
+        <div
+          className="px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-widest inline-block transition-all duration-500"
+          style={{
+            background: `linear-gradient(135deg, ${effectiveAccent}, ${effectiveAccent}dd)`, color: '#fff',
+            textShadow: '0 1px 2px rgba(0,0,0,0.2)', boxShadow: `0 4px 15px -3px ${effectiveAccent}40`, border: '1px solid rgba(255,255,255,0.1)'
+          }}
+        >
+          {copyAngle.stickerText}
+        </div>
+      );
+    })(),
   } : null;
 
   // Helper para aplicar line-clamp dinâmico
   const getLineClampClass = (lines: number | undefined) => {
     if (!lines) return "";
     return `line-clamp-${lines}`;
+  };
+
+  // ── Helpers para UI Clone (exemplo.html) ────────────────────────────────────
+  const renderHeadline = (text: string, highlightColor: string, isPlayfulTheme: boolean) => {
+    if (!text || !isPlayfulTheme || !dt) return <>{text}</>;
+    const words = text.split(" ");
+    if (words.length <= 1) return <>{text}</>;
+    const lastWord = words.pop();
+    return (
+      <>
+        {words.join(" ")}{" "}
+        <span style={{ color: highlightColor }}>{lastWord}</span>
+      </>
+    );
+  };
+
+  const renderTopBar = () => {
+    if (!copyAngle?.badge || compact) return null;
+
+    const borderRadius = dt?.structure?.borderRadius || '999px';
+    const border = dt?.structure?.border || 'none';
+    const boxShadow = dt?.structure?.boxShadow && dt.structure.boxShadow !== 'none' && dt.structure.boxShadow.includes('0px 0px') ? '2px 2px 0px 0px rgba(0,0,0,0.1)' : 'none';
+    const primaryColor = dt?.colors?.primary || effectiveAccent;
+
+    return (
+      <div className="relative z-10 flex justify-center items-center w-full mb-auto transition-all duration-500">
+        <div
+          className="px-4 py-1.5 font-bold text-sm bg-white"
+          style={{
+            borderRadius: '999px',
+            border,
+            color: primaryColor,
+            boxShadow
+          }}
+        >
+          {copyAngle.badge}
+        </div>
+      </div>
+    );
+  };
+
+  const renderBottomBar = () => {
+    if (!copyAngle?.stickerText || compact) return null;
+
+    const isCenter = dt?.typography?.textAlign === 'center';
+    const border = dt?.structure?.border || 'none';
+    const primaryColor = dt?.colors?.primary || effectiveAccent;
+    const isCarousel = variation.postMode === 'carousel' || (variation.slides && variation.slides.length > 1);
+
+    return (
+      <div
+        className={`w-full flex mt-6 transition-all duration-500 font-sans z-10 mt-auto ${isCenter ? 'justify-center gap-6' : 'justify-between items-end'}`}
+      >
+        {isPlayful ? (
+          <div className="relative group transition-transform">
+            <div className="absolute inset-0 bg-black translate-x-1 translate-y-1 transition-all"></div>
+            <div
+              className="relative px-3 py-2 flex items-center justify-center rotate-[-8deg] bg-white transition-all"
+              style={{ border }}
+            >
+              <span className="font-bold text-sm tracking-wider uppercase" style={{ color: primaryColor }}>
+                {copyAngle.stickerText}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div
+            className="px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-widest transition-all duration-500"
+            style={{
+              background: `linear-gradient(135deg, ${effectiveAccent}, ${effectiveAccent}dd)`,
+              color: '#fff',
+              textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+              boxShadow: `0 4px 15px -3px ${effectiveAccent}40`,
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}
+          >
+            {copyAngle.stickerText}
+          </div>
+        )}
+        {isCarousel && (
+          <ArrowRight className="w-6 h-6 lg:w-8 lg:h-8 transition-all duration-300 shrink-0" style={{ color: effectiveText }} />
+        )}
+      </div>
+    );
+  };
+
+  const renderDecorationsOverlay = () => {
+    // Se o Overlay Dinâmico está ativo, o próprio ArchitectOverlay renderiza essas decorações como DraggableBlocks
+    if (architectProps) return null;
+    return (
+      <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between" style={{ padding: compact ? "1rem" : dynamicPadding }}>
+        {renderTopBar()}
+        {renderBottomBar()}
+      </div>
+    );
   };
 
   // ══════════════════════════════════════════════════════════════════
@@ -733,47 +890,51 @@ export default function PostCard({
         <ArchitectOverlay {...architectProps} />
       ) : (
         // ── Default story layout ──
-        <div className="relative z-10 flex flex-col justify-center flex-1 gap-4">
-          {!compact && (
-            <AccentBar color={effectiveAccent} width="3rem" height="3px" align="flex-start" />
-          )}
-          <h2
-            className="font-bold"
-            style={{
-              color: effectiveHeadlineText,
-              fontFamily: headingFont,
-              fontSize: headingSize,
-              lineHeight: 1.25,
-              textAlign: textAlign ?? "left",
-              wordBreak: "break-word",
-              overflowWrap: "break-word",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {headline}
-          </h2>
-          {body && !compact && (
-            <div
-              className="w-full rounded-full"
-              style={{ height: "1px", background: `${effectiveAccent}30` }}
-            />
-          )}
-          {body && (
-            <p
-              className={compact ? "line-clamp-2" : ""}
+        <div className="relative z-10 flex flex-col justify-center flex-1 gap-4 h-full">
+          {renderTopBar()}
+          <div className="flex flex-col flex-1 justify-center gap-4">
+            {!compact && (
+              <AccentBar color={effectiveAccent} width="3rem" height="3px" align="flex-start" />
+            )}
+            <h2
+              className="font-bold"
               style={{
-                color: effectiveBodyText,
-                fontFamily: bodyFont,
-                fontSize: bodySize,
-                lineHeight: 1.65,
-                opacity: 0.85,
+                color: effectiveHeadlineText,
+                fontFamily: headingFont,
+                fontSize: headingSize,
+                lineHeight: 1.25,
                 textAlign: textAlign ?? "left",
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
                 whiteSpace: "pre-wrap",
               }}
             >
-              {body}
-            </p>
-          )}
+              {renderHeadline(headline, effectiveAccent, isPlayful)}
+            </h2>
+            {body && !compact && (
+              <div
+                className="w-full rounded-full"
+                style={{ height: "1px", background: `${effectiveAccent}30` }}
+              />
+            )}
+            {body && (
+              <p
+                className={compact ? "line-clamp-2" : ""}
+                style={{
+                  color: effectiveBodyText,
+                  fontFamily: bodyFont,
+                  fontSize: bodySize,
+                  lineHeight: 1.65,
+                  opacity: 0.85,
+                  textAlign: textAlign ?? "left",
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {body}
+              </p>
+            )}
+          </div>
+          {renderBottomBar()}
         </div>
       )}
 
@@ -803,30 +964,43 @@ export default function PostCard({
         <ArchitectOverlay {...architectProps} />
       ) : (
         // CENTERED: Texto no meio, centralizado
-        <div className="relative z-10 flex flex-col justify-center items-center flex-1 text-center gap-3">
+        <div className="relative z-10 flex flex-col justify-center items-center flex-1 text-center gap-3 h-full w-full">
+          {renderTopBar()}
           {variation.postMode === 'carousel' && !compact && (
             <div className="absolute top-0 right-0 bg-black/40 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1 border border-white/10">
               <Layers size={12} className="text-white" />
               <span className="text-[10px] font-medium text-white">Carrossel</span>
             </div>
           )}
-          {!compact && (
-            <AccentBar color={effectiveAccent} width="3rem" height="3px" align="center" />
-          )}
-          <h2
-            className={`font-bold leading-tight ${!compact && headlineLineClamp ? getLineClampClass(headlineLineClamp) : ""}`}
-            style={{ color: effectiveHeadlineText, fontFamily: headingFont, fontSize: `calc(${headingSize} * 1.15)`, whiteSpace: "pre-wrap" }}
-          >
-            {headline}
-          </h2>
-          {body && (
-            <p
-              className={`${compact ? "line-clamp-2" : getLineClampClass(bodyLineClamp) || "line-clamp-4"} opacity-75 max-w-[90%]`}
-              style={{ color: effectiveBodyText, fontFamily: bodyFont, fontSize: bodySize, lineHeight: 1.6, whiteSpace: "pre-wrap" }}
+          <div className="flex flex-col flex-1 justify-center items-center gap-3 w-full">
+            {!compact && (
+              <AccentBar color={effectiveAccent} width="3rem" height="3px" align="center" />
+            )}
+            <h2
+              className={`font-bold leading-tight ${!compact && headlineLineClamp ? getLineClampClass(headlineLineClamp) : ""}`}
+              style={{ color: effectiveHeadlineText, fontFamily: headingFont, fontSize: `calc(${headingSize} * 1.15)`, whiteSpace: "pre-wrap" }}
             >
-              {body}
-            </p>
-          )}
+              {renderHeadline(headline, effectiveAccent, isPlayful)}
+            </h2>
+            {body && (
+              <p
+                className={`${compact ? "line-clamp-2" : getLineClampClass(bodyLineClamp) || "line-clamp-4"} opacity-75 max-w-[90%]`}
+                style={{ color: effectiveBodyText, fontFamily: bodyFont, fontSize: bodySize, lineHeight: 1.6, whiteSpace: "pre-wrap" }}
+              >
+                {body}
+              </p>
+            )}
+            {!compact && (
+              <TemplateSections
+                template={variation.template}
+                sections={variation.sections}
+                accentColor={effectiveAccent}
+                textColor={effectiveText}
+                bodyFont={bodyFont}
+              />
+            )}
+          </div>
+          {renderBottomBar()}
         </div>
       )}
 
@@ -855,30 +1029,43 @@ export default function PostCard({
         <ArchitectOverlay {...architectProps} />
       ) : (
         // LEFT-ALIGNED: Texto na base, alinhado à esquerda
-        <div className="relative z-10 flex flex-col gap-2 mt-auto w-full text-left items-start">
+        <div className="relative z-10 flex flex-col gap-2 h-full w-full text-left items-start">
+          {renderTopBar()}
           {variation.postMode === 'carousel' && !compact && (
             <div className="absolute top-[-30px] right-0 bg-black/40 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1 border border-white/10">
               <Layers size={12} className="text-white" />
               <span className="text-[10px] font-medium text-white">Carrossel</span>
             </div>
           )}
-          {!compact && (
-            <AccentBar color={effectiveAccent} width="2.5rem" height="3px" align="flex-start" />
-          )}
-          <h2
-            className={`font-bold leading-tight ${!compact && headlineLineClamp ? getLineClampClass(headlineLineClamp) : ""}`}
-            style={{ color: effectiveHeadlineText, fontFamily: headingFont, fontSize: headingSize, whiteSpace: "pre-wrap" }}
-          >
-            {headline}
-          </h2>
-          {body && (
-            <p
-              className={`${compact ? "line-clamp-1" : getLineClampClass(bodyLineClamp) || "line-clamp-3"} opacity-80`}
-              style={{ color: effectiveBodyText, fontFamily: bodyFont, fontSize: bodySize, lineHeight: 1.55 }}
+          <div className="flex flex-col gap-2 mt-auto w-full">
+            {!compact && (
+              <AccentBar color={effectiveAccent} width="2.5rem" height="3px" align="flex-start" />
+            )}
+            <h2
+              className={`font-bold leading-tight ${!compact && headlineLineClamp ? getLineClampClass(headlineLineClamp) : ""}`}
+              style={{ color: effectiveHeadlineText, fontFamily: headingFont, fontSize: headingSize, whiteSpace: "pre-wrap" }}
             >
-              {body}
-            </p>
-          )}
+              {renderHeadline(headline, effectiveAccent, isPlayful)}
+            </h2>
+            {body && (
+              <p
+                className={`${compact ? "line-clamp-1" : getLineClampClass(bodyLineClamp) || "line-clamp-3"} opacity-80`}
+                style={{ color: effectiveBodyText, fontFamily: bodyFont, fontSize: bodySize, lineHeight: 1.55 }}
+              >
+                {body}
+              </p>
+            )}
+            {!compact && (
+              <TemplateSections
+                template={variation.template}
+                sections={variation.sections}
+                accentColor={effectiveAccent}
+                textColor={effectiveText}
+                bodyFont={bodyFont}
+              />
+            )}
+          </div>
+          {renderBottomBar()}
         </div>
       )}
 
@@ -945,7 +1132,7 @@ export default function PostCard({
             overflowWrap: 'break-word',
           }}
         >
-          {headline}
+          {renderHeadline(headline, effectiveAccent, isPlayful)}
         </h2>
         {body && (
           <p
@@ -1012,26 +1199,30 @@ export default function PostCard({
         <ArchitectOverlay {...architectProps} />
       ) : (
         // MINIMAL: Apenas headline, tipografia grande, muito espaço negativo
-        <div className="relative z-10 flex flex-col justify-center items-center flex-1 text-center">
+        <div className="relative z-10 flex flex-col justify-center items-center flex-1 text-center w-full h-full">
+          {renderTopBar()}
           {variation.postMode === 'carousel' && !compact && (
             <div className="absolute top-0 right-0 bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1">
               <Layers size={10} className="text-white/80" />
               <span className="text-[9px] font-medium text-white/80">Carrossel</span>
             </div>
           )}
-          <h2
-            className="font-bold leading-[1.1] tracking-tight"
-            style={{
-              color: effectiveHeadlineText,
-              fontFamily: headingFont,
-              fontSize: compact ? headingSize : `calc(${headingSize} * 1.4)`,
-              maxWidth: "95%",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {headline}
-          </h2>
-          {/* Corpo NÃO aparece no layout minimal - apenas headline */}
+          <div className="flex flex-col flex-1 justify-center items-center w-full">
+            <h2
+              className="font-bold leading-[1.1] tracking-tight"
+              style={{
+                color: effectiveHeadlineText,
+                fontFamily: headingFont,
+                fontSize: compact ? headingSize : `calc(${headingSize} * 1.4)`,
+                maxWidth: "95%",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {renderHeadline(headline, effectiveAccent, isPlayful)}
+            </h2>
+            {/* Corpo NÃO aparece no layout minimal - apenas headline */}
+          </div>
+          {renderBottomBar()}
         </div>
       )}
 
@@ -1053,19 +1244,67 @@ export default function PostCard({
           ? minimalLayout
           : leftAlignedLayout; // fallback padrão (clássico)
 
+  // DesignTokens path — ThemeRenderer handles structure, PostCard adds decorations
+  if (dt) {
+    return (
+      <div style={{ aspectRatio: aspectRatioCSS, position: "relative", width: "100%", overflow: "hidden" }} className={compact ? "rounded-xl" : "rounded-2xl"}>
+        <ThemeRenderer
+          designTokens={dt}
+          className="w-full h-full"
+          cardRef={cardRef}
+          cardLayout={advancedLayout?.card}
+          onDragCard={(x, y) => onDragPosition?.("card", x, y)}
+          onResizeCard={(w) => onResizeBlock?.("card", w)}
+          isEditingCard={isEditingCard}
+        >
+          {brandMeta && (
+            <BrandOverlay
+              logoUrl={brandMeta.logoUrl}
+              brandName={brandMeta.brandName}
+              platform={variation.platform}
+              accentColor={dt.colors.primary}
+              textColor={dt.colors.text}
+            />
+          )}
+          {visual}
+        </ThemeRenderer>
+      </div>
+    );
+  }
+
   if (theme) {
     return (
-      <ThemeRenderer theme={theme} className={compact ? "rounded-xl" : "rounded-2xl"} cardRef={cardRef}>
-        {visual}
-      </ThemeRenderer>
+      <div style={{ aspectRatio: aspectRatioCSS, position: "relative", width: "100%", overflow: "hidden" }} className={compact ? "rounded-xl" : "rounded-2xl"}>
+        <ThemeRenderer
+          theme={theme}
+          className="w-full h-full"
+          cardRef={cardRef}
+          cardLayout={advancedLayout?.card}
+          onDragCard={(x, y) => onDragPosition?.("card", x, y)}
+          onResizeCard={(w) => onResizeBlock?.("card", w)}
+          isEditingCard={isEditingCard}
+        >
+          {brandMeta && (
+            <BrandOverlay
+              logoUrl={brandMeta.logoUrl}
+              brandName={brandMeta.brandName}
+              platform={variation.platform}
+              accentColor={theme.colors.accent}
+              textColor={theme.colors.text}
+              cardStyle={theme.layout.cardStyle}
+            />
+          )}
+          {visual}
+        </ThemeRenderer>
+      </div>
     );
   }
 
   return (
     <div
-      ref={(el) => { (cardRef as React.MutableRefObject<HTMLElement | null>).current = el; }}
+      ref={cardRef}
       className={compact ? "rounded-xl overflow-hidden" : "rounded-2xl overflow-hidden"}
-      style={{ background: effectiveBg }}
+      style={{ background: effectiveBg, aspectRatio: aspectRatioCSS, width: "100%", position: "relative" }}
     >
       {visual}
     </div>

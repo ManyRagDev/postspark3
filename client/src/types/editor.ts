@@ -32,6 +32,8 @@ export interface ImageSettings {
   overlayOpacity: number; // 0–1, default 0.5
   overlayColor: string;   // hex, default '#000000'
   blendMode: BlendMode;   // default 'normal'
+  panX: number;           // 0-100%, default 50
+  panY: number;           // 0-100%, default 50
 }
 
 // ── Layout Settings ───────────────────────────────────────────────────────────
@@ -49,12 +51,20 @@ export interface LayoutPosition {
   freePosition?: FreePosition;
   /** Largura do bloco de texto em % do card (0–100). Undefined = usa maxWidth padrão (76%) */
   width?: number;
+  /** Cor de fundo opcional para o bloco (ex: para criar badges ou stickers) */
+  backgroundColor?: string;
+  /** Arredondamento opcional para o fundo do bloco */
+  borderRadius?: number;
 }
 
 export interface AdvancedLayoutSettings {
   headline: LayoutPosition;
   body: LayoutPosition;
   accentBar?: LayoutPosition;
+  badge?: LayoutPosition;
+  sticker?: LayoutPosition;
+  /** Position and width of the main post card relative to the canvas. Undefined = centered. */
+  card?: LayoutPosition;
   padding: number; // 0–80px, default 24
 }
 
@@ -69,11 +79,15 @@ export const DEFAULT_IMAGE_SETTINGS: ImageSettings = {
   overlayOpacity: 0,    // 0 = sem overlay por padrão
   overlayColor: "#000000",
   blendMode: "normal",
+  panX: 50,
+  panY: 50,
 };
 
 export const DEFAULT_LAYOUT_SETTINGS: AdvancedLayoutSettings = {
   headline: { position: "bottom-left", textAlign: "left" },
   body: { position: "bottom-left", textAlign: "left" },
   accentBar: { position: "top-left", textAlign: "left", width: 15 },
+  badge: { position: "top-center", textAlign: "center" },
+  sticker: { position: "bottom-center", textAlign: "center" },
   padding: 24,
 };

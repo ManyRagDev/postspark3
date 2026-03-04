@@ -13,7 +13,7 @@
  */
 
 import { invokeLLM } from "./_core/llm";
-import type { BrandDNA, CompositionRules, SpacingDensity, BorderRadiusStyle, PaddingStyle } from "@shared/postspark";
+import type { BrandDNA, CardStyle, CompositionRules, SpacingDensity, BorderRadiusStyle, PaddingStyle } from "@shared/postspark";
 import { extractStyleFromUrlWithMeta } from "./styleExtractor";
 import {
     discoverPages,
@@ -147,6 +147,8 @@ interface VisionBrandAnalysis {
     typography: Omit<BrandDNA['typography'], 'headingWeight' | 'bodyWeight'>;
     effects: BrandDNA['effects'];
     emotionalProfile: BrandDNA['emotionalProfile'];
+    /** Visual card/UI style detected from the site's design language */
+    cardStyle: CardStyle;
 }
 
 async function analyzeWithVision(
@@ -204,6 +206,12 @@ I need a complete brand DNA analysis. Extract:
 6. Typography style (serif/sans/display — identify actual font names if visible)
 7. Visual effects (shadows, gradients, glassmorphism, etc.)
 8. Emotional profile (what feeling does this brand evoke?)
+9. Card/UI style — what is the primary design language of the site's cards and components?
+   - "neobrutalist": thick solid borders (2px+), hard offset drop shadows, flat colors, bold typography
+   - "glass": frosted glass / backdrop blur effects, semi-transparent surfaces
+   - "minimal": no borders, no drop shadows, maximum whitespace, typography-driven
+   - "editorial": strong typographic hierarchy, serif fonts, accent rules/dividers, print-like grid
+   - "flat": flat solid colors, subtle or no borders, no drop shadows (most modern apps/SaaS)
 
 Return ONLY valid JSON matching the schema.`,
                         },
@@ -287,8 +295,13 @@ Return ONLY valid JSON matching the schema.`,
                                 required: ['primary', 'secondary', 'mood'],
                                 additionalProperties: false,
                             },
+                            cardStyle: {
+                                type: 'string',
+                                enum: ['neobrutalist', 'glass', 'minimal', 'editorial', 'flat'],
+                                description: 'Primary design language of the site\'s UI cards and components: neobrutalist=thick borders+offset shadow, glass=frosted blur, minimal=no borders/shadows, editorial=top accent rule+serif, flat=clean modern default',
+                            },
                         },
-                        required: ['brandName', 'industry', 'personality', 'colors', 'typography', 'effects', 'emotionalProfile'],
+                        required: ['brandName', 'industry', 'personality', 'colors', 'typography', 'effects', 'emotionalProfile', 'cardStyle'],
                         additionalProperties: false,
                     },
                 },
@@ -303,6 +316,24 @@ Return ONLY valid JSON matching the schema.`,
         console.warn('[brandDNA] Vision analysis failed:', err);
         return null;
     }
+}
+
+// ─── Card Style fallback (deterministic, no LLM) ─────────────────────────────
+
+/**
+ * Derive a CardStyle from BrandDNA when Vision LLM didn't return one.
+ * Rules are priority-ordered: glassmorphism → neobrutalist → minimal → editorial → flat.
+ */
+function deriveCardStyle(dna: { effects: BrandDNA['effects']; personality: BrandDNA['personality']; typography: Pick<BrandDNA['typography'], 'fontPairing'> }): CardStyle {
+    if (dna.effects.glassmorphism) return 'glass';
+    // Neobrutalism: shadows present, no gradients, bold personality
+    if (dna.effects.shadows && !dna.effects.gradients && dna.personality.boldSubtle < 45) return 'neobrutalist';
+    // Minimal: no visual effects, high subtlety
+    if (!dna.effects.shadows && !dna.effects.gradients && dna.personality.boldSubtle > 65) return 'minimal';
+    // Editorial: contrasting fonts + classic lean
+    if (dna.typography.fontPairing === 'contrasting' && dna.personality.modernClassic > 55) return 'editorial';
+    // Default: flat modern
+    return 'flat';
 }
 
 // ─── Fallback brand name / personality from HTML data ────────────────────────
@@ -429,7 +460,18 @@ export async function extractBrandDNA(url: string): Promise<BrandDNA> {
 
     // ── Step 5: Composition mapping (deterministic) ───────────────────────────
     const composition = mapPersonalityToComposition({ personality, colors });
-    const layout = compositionToLayout(composition);
+    const layoutBase = compositionToLayout(composition);
+
+    // Resolve cardStyle: Vision LLM is authoritative, fallback to deterministic rules
+    const cardStyle: CardStyle = visionAnalysis?.cardStyle
+        ?? deriveCardStyle({ effects, personality, typography });
+
+    const layout: BrandDNA['layout'] = {
+        ...layoutBase,
+        cardStyle,
+    };
+
+    console.log('[brandDNA] Card style resolved:', cardStyle, visionAnalysis?.cardStyle ? '(Vision)' : '(fallback)');
 
     // ── Extraction quality score ──────────────────────────────────────────────
     const visionUsed = screenshotBuffers.length > 0 && visionAnalysis !== null;

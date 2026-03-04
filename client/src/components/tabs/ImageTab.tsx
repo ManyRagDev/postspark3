@@ -206,6 +206,24 @@ export function ImageTab({
                   formatValue={(v) => `${v}px`}
                   onChange={(v) => onUpdateImageSetting('blur', v)}
                 />
+                <PrecisionSlider
+                  label="Posição Horizontal (Pan X)"
+                  value={imageSettings.panX}
+                  min={0}
+                  max={100}
+                  step={1}
+                  formatValue={(v) => `${v}%`}
+                  onChange={(v) => onUpdateImageSetting('panX', v)}
+                />
+                <PrecisionSlider
+                  label="Posição Vertical (Pan Y)"
+                  value={imageSettings.panY}
+                  min={0}
+                  max={100}
+                  step={1}
+                  formatValue={(v) => `${v}%`}
+                  onChange={(v) => onUpdateImageSetting('panY', v)}
+                />
               </div>
             </motion.div>
 

@@ -74,8 +74,7 @@ export default function Billing() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center py-12 px-4"
-      style={{ backgroundColor: "oklch(0.04 0.06 280)" }}
+      className="min-h-screen flex flex-col items-center py-12 px-4 bg-soul-deep"
     >
       {/* Back */}
       <button
@@ -128,8 +127,7 @@ export default function Billing() {
             </div>
             {/* Progress bar */}
             <div
-              className="h-1.5 rounded-full overflow-hidden"
-              style={{ backgroundColor: "oklch(1 0 0 / 8%)" }}
+              className="h-1.5 rounded-full overflow-hidden bg-white/5"
             >
               <motion.div
                 className="h-full rounded-full"
@@ -151,8 +149,7 @@ export default function Billing() {
             <button
               onClick={handleUpgrade}
               disabled={checkoutMutation.isPending}
-              className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-              style={{ backgroundColor: "oklch(0.7 0.22 40)", color: "#000" }}
+              className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 bg-thermal-orange text-black"
             >
               <Crown className="h-4 w-4" />
               Fazer upgrade para Pro
@@ -169,17 +166,13 @@ export default function Billing() {
 
         {/* Pacotes de top-up */}
         <motion.div
-          className="rounded-2xl border p-5"
-          style={{
-            backgroundColor: "oklch(0.08 0.02 280)",
-            borderColor: "oklch(1 0 0 / 8%)",
-          }}
+          className="rounded-2xl border p-5 bg-soul-base border-border"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
           <div className="flex items-center gap-2.5 mb-4">
-            <ShoppingBag className="h-4 w-4" style={{ color: "oklch(0.7 0.22 40)" }} />
+            <ShoppingBag className="h-4 w-4 text-thermal-orange" />
             <span className="font-semibold text-foreground">Comprar Sparks</span>
           </div>
 
@@ -188,8 +181,7 @@ export default function Billing() {
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-14 rounded-xl animate-pulse"
-                  style={{ backgroundColor: "oklch(0.12 0.02 280)" }}
+                  className="h-14 rounded-xl animate-pulse bg-soul-base/50"
                 />
               ))}
             </div>
@@ -200,11 +192,8 @@ export default function Billing() {
                   key={pkg.id}
                   onClick={() => handleTopup(pkg.id)}
                   disabled={topupMutation.isPending}
-                  className="flex items-center justify-between p-3.5 rounded-xl border transition-all hover:border-white/20 hover:bg-white/5 text-left"
-                  style={{
-                    borderColor: i === 1 ? "oklch(0.7 0.22 40 / 35%)" : "oklch(1 0 0 / 8%)",
-                    backgroundColor: i === 1 ? "oklch(0.7 0.22 40 / 4%)" : undefined,
-                  }}
+                  className={`flex items-center justify-between p-3.5 rounded-xl border transition-all hover:border-white/20 hover:bg-white/5 text-left ${i === 1 ? "border-thermal-orange/35 bg-thermal-orange/5" : "border-border"
+                    }`}
                 >
                   <div>
                     <p className="text-sm font-semibold text-foreground">{pkg.name}</p>
@@ -215,15 +204,13 @@ export default function Billing() {
                   <div className="flex items-center gap-3">
                     {i === 1 && (
                       <span
-                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ backgroundColor: "oklch(0.7 0.22 40)", color: "#000" }}
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-thermal-orange text-black"
                       >
                         Popular
                       </span>
                     )}
                     <p
-                      className="text-sm font-bold"
-                      style={{ color: "oklch(0.7 0.22 40)" }}
+                      className="text-sm font-bold text-thermal-orange"
                     >
                       R$ {pkg.price_brl.toFixed(2).replace(".", ",")}
                     </p>
