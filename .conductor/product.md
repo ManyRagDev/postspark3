@@ -14,6 +14,8 @@ O fluxo perfeito projetado para o usuário no PostSpark é: **Gerar -> Baixar ->
 O objetivo de sucesso do app é gerar um post pronto. As sugestões inteligentes da IA (presentes desde o *The Void* até as variações no *HoloDeck*) devem ser precisas e bem resolvidas o suficiente para que o usuário idealmente não *precise* usar as ferramentas de edição. 
 O *Workbench* existe como uma suíte poderosa de controle e refinamento opcional, não como uma etapa impositiva para corrigir geração ruim.
 
-## 4. Filosofia de Experiência do Usuário (UX)
-- **Liberdade Assistida:** O app deve sugerir sempre o melhor resultado de forma inteligente, mas as ferramentas de edição não podem ser "prisões". 
 - **Equilíbrio e Controle:** O usuário tem o direito de cometer "erros" táticos (ex: mover um texto para cima do outro para um teste visual) sem que o sistema o bloqueie ativamente limitando suas escolhas mecânicas. Para garantir a segurança dessa exploração, os mecanismos de reversão (desfazer) e controle de estado devem ser impecáveis.
+
+## 5. Pilares de Interface Premium
+- **Estética Reativa (Glow System):** A interface deve parecer "viva". O uso de brilhos (glows) e micro-animações em botões ativos e seções expandidas não é apenas decorativo; serve como feedback visual de luxo, reforçando o valor *high-ticket* do software.
+- **Grades Invisíveis (Padding-Aware):** O sistema de ímã (snap) não deve apenas alinhar; ele deve garantir que o design nunca pareça "quebrado". Ao projetar a grade 5x5 para dentro da margem de segurança do post, garantimos que nenhum elemento encoste na borda por acidente, mantendo a elegância do respiro visual (padding).

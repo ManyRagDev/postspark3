@@ -1,16 +1,22 @@
-import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
-type UseAuthOptions = {
-  redirectOnUnauthenticated?: boolean;
-  redirectPath?: string;
-};
+async function exchangeSupabaseSession(accessToken: string): Promise<void> {
+  const response = await fetch("/api/auth/supabase-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ access_token: accessToken }),
+  });
 
-export function useAuth(options?: UseAuthOptions) {
-  const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
-    options ?? {};
+  if (!response.ok) {
+    throw new Error("Failed to sync Supabase session bridge");
+  }
+}
+
+export function useAuth() {
   const utils = trpc.useUtils();
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
@@ -24,7 +30,64 @@ export function useAuth(options?: UseAuthOptions) {
     },
   });
 
+  useEffect(() => {
+    let active = true;
+
+    const syncCurrentSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!active || !session?.access_token) {
+        return;
+      }
+
+      try {
+        await exchangeSupabaseSession(session.access_token);
+        await utils.auth.me.invalidate();
+      } catch (error) {
+        console.warn("[Auth] Failed to sync existing Supabase session:", error);
+      }
+    };
+
+    syncCurrentSession().catch(() => {});
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
+
+      if (event === "SIGNED_OUT") {
+        fetch("/api/auth/supabase-logout", {
+          method: "POST",
+          credentials: "include",
+        }).catch(() => {});
+        utils.auth.me.setData(undefined, null);
+        return;
+      }
+
+      if (session?.access_token) {
+        exchangeSupabaseSession(session.access_token)
+          .then(() => utils.auth.me.invalidate())
+          .catch(error => {
+            console.warn("[Auth] Failed to sync Supabase token refresh:", error);
+          });
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [utils]);
+
   const logout = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn("[Auth] Supabase signOut failed:", error);
+    }
+
     try {
       await logoutMutation.mutateAsync();
     } catch (error: unknown) {
@@ -36,16 +99,16 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
+      fetch("/api/auth/supabase-logout", {
+        method: "POST",
+        credentials: "include",
+      }).catch(() => {});
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
   }, [logoutMutation, utils]);
 
   const state = useMemo(() => {
-    localStorage.setItem(
-      "manus-runtime-user-info",
-      JSON.stringify(meQuery.data)
-    );
     return {
       user: meQuery.data ?? null,
       loading: meQuery.isLoading || logoutMutation.isPending,
@@ -58,22 +121,6 @@ export function useAuth(options?: UseAuthOptions) {
     meQuery.isLoading,
     logoutMutation.error,
     logoutMutation.isPending,
-  ]);
-
-  useEffect(() => {
-    if (!redirectOnUnauthenticated) return;
-    if (meQuery.isLoading || logoutMutation.isPending) return;
-    if (state.user) return;
-    if (typeof window === "undefined") return;
-    if (window.location.pathname === redirectPath) return;
-
-    window.location.href = redirectPath
-  }, [
-    redirectOnUnauthenticated,
-    redirectPath,
-    logoutMutation.isPending,
-    meQuery.isLoading,
-    state.user,
   ]);
 
   return {

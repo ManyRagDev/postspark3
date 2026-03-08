@@ -742,11 +742,15 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
         postMode: z.string().optional(),
         slides: z.array(z.any()).optional(),
         textElements: z.array(z.any()).optional(),
+        imageSettings: z.any().optional(),
+        layoutSettings: z.any().optional(),
+        bgValue: z.any().optional(),
+        bgOverlay: z.any().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         const postId = await createPost({
-          userId: ctx.user.id,
           ...input,
+          userUuid: ctx.user.id,
         });
         return { id: postId };
       }),
@@ -767,6 +771,10 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
         postMode: z.string().optional(),
         slides: z.array(z.any()).optional(),
         textElements: z.array(z.any()).optional(),
+        imageSettings: z.any().optional(),
+        layoutSettings: z.any().optional(),
+        bgValue: z.any().optional(),
+        bgOverlay: z.any().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         await updatePost(input.id, ctx.user.id, input);
@@ -781,8 +789,8 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
     /** Get single post */
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
-        return getPostById(input.id);
+      .query(async ({ input, ctx }) => {
+        return getPostById(input.id, ctx.user.id);
       }),
 
     /** Generate background image via Pollinations or Gemini */

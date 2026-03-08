@@ -26,6 +26,7 @@ export type InsertUser = typeof users.$inferInsert;
  */
 export const posts = postsparkSchema.table("posts", {
   id: serial("id").primaryKey(),
+  userUuid: uuid("user_uuid"),
   userId: integer("userId").notNull(),
   inputType: varchar("inputType", { length: 16 }).notNull(), // text | url | image
   inputContent: text("inputContent").notNull(),
@@ -44,6 +45,10 @@ export const posts = postsparkSchema.table("posts", {
   postMode: varchar("postMode", { length: 32 }).default("static").notNull(),
   slides: jsonb("slides").$type<any[]>(),
   textElements: jsonb("textElements").$type<any[]>(),
+  imageSettings: jsonb("image_settings").$type<any>(),
+  layoutSettings: jsonb("layout_settings").$type<any>(),
+  bgValue: jsonb("bg_value").$type<any>(),
+  bgOverlay: jsonb("bg_overlay").$type<any>(),
   exported: boolean("exported").default(false), // Changed to boolean
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),

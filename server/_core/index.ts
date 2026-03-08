@@ -3,7 +3,7 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./oauth";
+import { registerSupabaseAuthRoutes } from "./supabaseAuth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -126,8 +126,8 @@ app.post("/api/brand-dna", async (req, res) => {
   }
 });
 
-// OAuth callback under /api/oauth/callback
-registerOAuthRoutes(app);
+// Supabase Auth bridge (email, Google SSO → PostSpark session cookie)
+registerSupabaseAuthRoutes(app);
 
 // tRPC API - Support both /api/trpc and /trpc for production robustness
 app.use(

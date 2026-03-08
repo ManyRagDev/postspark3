@@ -5,26 +5,21 @@ import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
-import { getLoginUrl } from "./const";
 import "./index.css";
 
 const queryClient = new QueryClient();
 
-const redirectToLoginIfUnauthorized = (error: unknown) => {
-  if (!(error instanceof TRPCClientError)) return;
-  if (typeof window === "undefined") return;
-
-  const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
-
-  if (!isUnauthorized) return;
-
-  window.location.href = getLoginUrl();
-};
-
+/**
+ * Quando a API retorna UNAUTHORIZED, não redirecionamos para lugar nenhum.
+ * O AuthGate no App.tsx exibe o LoginModal automaticamente.
+ */
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
-    redirectToLoginIfUnauthorized(error);
+    if (error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG) {
+      // Invalida a query de auth para forçar o AuthGate a aparecer
+      queryClient.invalidateQueries({ queryKey: [["auth", "me"]] });
+    }
     console.error("[API Query Error]", error);
   }
 });
@@ -32,7 +27,9 @@ queryClient.getQueryCache().subscribe(event => {
 queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
-    redirectToLoginIfUnauthorized(error);
+    if (error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG) {
+      queryClient.invalidateQueries({ queryKey: [["auth", "me"]] });
+    }
     console.error("[API Mutation Error]", error);
   }
 });

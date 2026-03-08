@@ -9,7 +9,7 @@ overrides:
 
 patchedDependencies:
   wouter@3.7.1:
-    hash: 4utoqymkqegp7ldbtu4ndzqvum
+    hash: 4e16e6ff3fde7d6c1024d3e0c8605dc9eb6afb690d0d49958c2f449091813072
     path: patches/wouter@3.7.1.patch
 
 importers:
@@ -142,9 +142,6 @@ importers:
       dotenv:
         specifier: ^17.2.2
         version: 17.2.3
-      drizzle-orm:
-        specifier: ^0.44.5
-        version: 0.44.6(mysql2@3.15.1)(postgres@3.4.8)
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.2.1)
@@ -160,9 +157,6 @@ importers:
       input-otp:
         specifier: ^1.4.2
         version: 1.4.2(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
-      jose:
-        specifier: 6.1.0
-        version: 6.1.0
       lucide-react:
         specifier: ^0.453.0
         version: 0.453.0(react@19.2.1)
@@ -172,9 +166,6 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
-      postgres:
-        specifier: ^3.4.5
-        version: 3.4.8
       react:
         specifier: ^19.2.1
         version: 19.2.1
@@ -216,10 +207,13 @@ importers:
         version: 1.1.2(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       wouter:
         specifier: ^3.3.5
-        version: 3.7.1(patch_hash=4utoqymkqegp7ldbtu4ndzqvum)(react@19.2.1)
+        version: 3.7.1(patch_hash=4e16e6ff3fde7d6c1024d3e0c8605dc9eb6afb690d0d49958c2f449091813072)(react@19.2.1)
       zod:
         specifier: ^4.1.12
         version: 4.1.12
+      zustand:
+        specifier: ^5.0.11
+        version: 5.0.11(@types/react@19.2.1)(react@19.2.1)(use-sync-external-store@1.6.0(react@19.2.1))
     devDependencies:
       '@builder.io/vite-plugin-jsx-loc':
         specifier: ^0.1.1
@@ -257,9 +251,6 @@ importers:
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
-      drizzle-kit:
-        specifier: ^0.31.4
-        version: 0.31.5
       esbuild:
         specifier: ^0.25.0
         version: 0.25.10
@@ -4673,6 +4664,24 @@ packages:
 
   zod@4.1.12:
     resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
+
+  zustand@5.0.11:
+    resolution: {integrity: sha512-fdZY+dk7zn/vbWNCYmzZULHRrss0jx5pPFiOuMZ/5HJN6Yv3u+1Wswy/4MpZEkEGhtNH+pwxZB8OKgUBPzYAGg==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      '@types/react': '>=18.0.0'
+      immer: '>=9.0.6'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+      use-sync-external-store:
+        optional: true
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -9721,7 +9730,7 @@ snapshots:
       siginfo: 2.0.0
       stackback: 0.0.2
 
-  wouter@3.7.1(patch_hash=4utoqymkqegp7ldbtu4ndzqvum)(react@19.2.1):
+  wouter@3.7.1(patch_hash=4e16e6ff3fde7d6c1024d3e0c8605dc9eb6afb690d0d49958c2f449091813072)(react@19.2.1):
     dependencies:
       mitt: 3.0.1
       react: 19.2.1
@@ -9747,5 +9756,11 @@ snapshots:
   yallist@5.0.0: {}
 
   zod@4.1.12: {}
+
+  zustand@5.0.11(@types/react@19.2.1)(react@19.2.1)(use-sync-external-store@1.6.0(react@19.2.1)):
+    optionalDependencies:
+      '@types/react': 19.2.1
+      react: 19.2.1
+      use-sync-external-store: 1.6.0(react@19.2.1)
 
   zwitch@2.0.4: {}

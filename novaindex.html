@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostSpark - Mockup Interativo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;800&display=swap');
+
+        :root {
+            --bg-base: #040509;
+            --spark-orange: #ff6b2b;
+            --spark-blue: #8ab4f8;
+            --card-bg: rgba(15, 17, 26, 0.85);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --mouse-x: 50vw;
+            --mouse-y: 50vh;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            /* Fundo estrelado simulado com gradiente radial múltiplo */
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+                radial-gradient(circle at 50% 10%, rgba(255, 107, 43, 0.05) 200px, transparent 600px);
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            cursor: none;
+            /* Escondemos o cursor padrão para usar a nossa lanterna */
+        }
+
+        /* === CAMADA 0: LENS FLARE CENTRAL === */
+        .lens-flare-container {
+            position: absolute;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .flare-horizontal {
+            position: absolute;
+            width: 70vw;
+            height: 6px;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.8) 0%, rgba(255, 107, 43, 0.6) 10%, rgba(0, 0, 0, 0) 60%);
+            filter: blur(3px);
+        }
+
+        .flare-vertical {
+            position: absolute;
+            width: 4px;
+            height: 30vh;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.9) 0%, rgba(255, 107, 43, 0.5) 20%, rgba(0, 0, 0, 0) 60%);
+            filter: blur(2px);
+        }
+
+        .flare-core {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #fff 0%, #ff6b2b 40%, transparent 70%);
+            border-radius: 50%;
+            filter: blur(4px);
+            box-shadow: 0 0 50px 20px rgba(255, 107, 43, 0.4);
+            transform: rotate(45deg) scaleY(0.5);
+        }
+
+        /* === CAMADA 1: OS POSTS MASCARADOS === */
+        #cards-layer {
+            position: absolute;
+            bottom: -5%;
+            left: 0;
+            width: 100vw;
+            height: 65vh;
+            /* Ocupa a parte inferior */
+            z-index: 1;
+            pointer-events: none;
+
+            /* Máscara em cone simulado / spotlight largo */
+            -webkit-mask-image: radial-gradient(circle 450px at var(--mouse-x) calc(var(--mouse-y) - 35vh), rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0.03) 80%);
+            mask-image: radial-gradient(circle 450px at var(--mouse-x) calc(var(--mouse-y) - 35vh), rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0.03) 80%);
+            transition: -webkit-mask-image 0.05s linear;
+        }
+
+        /* Feixe de luz colorido que acompanha o mouse por cima dos cards */
+        #light-beam {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(255, 140, 60, 0.15) 0%, rgba(138, 180, 248, 0.05) 40%, transparent 70%);
+            border-radius: 50%;
+            left: var(--mouse-x);
+            top: calc(var(--mouse-y) - 35vh);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            mix-blend-mode: screen;
+            z-index: 2;
+        }
+
+        .card {
+            position: absolute;
+            width: 200px;
+            height: 250px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            backdrop-filter: blur(12px);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .card.glow-orange {
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 107, 43, 0.15), inset 0 0 0 1px rgba(255, 107, 43, 0.3);
+        }
+
+        .card.glow-blue {
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9), 0 0 20px rgba(138, 180, 248, 0.15), inset 0 0 0 1px rgba(138, 180, 248, 0.3);
+        }
+
+        .card-img {
+            width: 100%;
+            height: 120px;
+            background-color: #1a1b26;
+            background-size: cover;
+            background-position: center;
+            border-radius: 6px;
+            position: relative;
+        }
+
+        /* Uma leve camada escura sobre a imagem para não estourar na luz */
+        .card-img::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent 50%, rgba(15, 17, 26, 0.8) 100%);
+        }
+
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #f1f1f1;
+            line-height: 1.3;
+        }
+
+        .card-text {
+            font-size: 9px;
+            color: #888;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            font-size: 8px;
+            color: #666;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 6px;
+        }
+
+        /* Posicionamento caótico dos cards imitando a imagem */
+        .c1 {
+            bottom: 10%;
+            left: 5%;
+            transform: rotate(-18deg);
+            z-index: 2;
+        }
+
+        .c2 {
+            bottom: 25%;
+            left: 18%;
+            transform: rotate(12deg);
+            z-index: 1;
+        }
+
+        .c3 {
+            bottom: 5%;
+            left: 28%;
+            transform: rotate(-8deg);
+            z-index: 3;
+        }
+
+        .c4 {
+            bottom: -10%;
+            left: 42%;
+            transform: rotate(5deg);
+            z-index: 4;
+        }
+
+        .c5 {
+            bottom: 20%;
+            left: 50%;
+            transform: rotate(-12deg);
+            z-index: 2;
+        }
+
+        .c6 {
+            bottom: 15%;
+            right: 28%;
+            transform: rotate(15deg);
+            z-index: 3;
+        }
+
+        .c7 {
+            bottom: -5%;
+            right: 15%;
+            transform: rotate(-22deg);
+            z-index: 5;
+        }
+
+        .c8 {
+            bottom: 30%;
+            right: 8%;
+            transform: rotate(25deg);
+            z-index: 1;
+        }
+
+        .c9 {
+            bottom: 45%;
+            left: -2%;
+            transform: rotate(35deg);
+            z-index: 0;
+        }
+
+        .c10 {
+            bottom: 40%;
+            right: -2%;
+            transform: rotate(-30deg);
+            z-index: 0;
+        }
+
+        /* === CAMADA 2: INTERFACE PRINCIPAL === */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 8vh;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            text-align: center;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .headline {
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #fff;
+            line-height: 1.1;
+            letter-spacing: -0.5px;
+            text-shadow: 0 0 30px rgba(255, 107, 43, 0.5), 0 2px 4px rgba(0, 0, 0, 0.8);
+            margin-bottom: 24vh;
+            /* Espaço para o clarão central */
+            max-width: 900px;
+        }
+
+        .logo-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 40px;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo-text span {
+            color: var(--spark-orange);
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 300;
+        }
+
+        /* Barra de Busca Refinada */
+        .search-container {
+            width: 750px;
+            max-width: 90vw;
+            background: rgba(15, 15, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 100px;
+            /* Mais arredondado como na imagem */
+            padding: 6px 6px 6px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .search-container:hover {
+            background: rgba(20, 20, 26, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .search-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 15px;
+            width: 100%;
+            outline: none;
+            font-weight: 300;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .search-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-gemini {
+            background: rgba(26, 35, 60, 0.6);
+            color: var(--spark-blue);
+            border-color: rgba(138, 180, 248, 0.4);
+        }
+
+        .btn-gemini:hover {
+            background: rgba(36, 45, 70, 0.8);
+        }
+
+        .btn-static {
+            background: rgba(60, 26, 15, 0.6);
+            color: var(--spark-orange);
+            border-color: rgba(255, 107, 43, 0.4);
+            text-transform: none;
+            /* Mantendo "Estático" normal */
+        }
+
+        .btn-static:hover {
+            background: rgba(70, 36, 25, 0.8);
+        }
+
+        .btn-enter {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            font-size: 18px;
+            font-weight: 300;
+        }
+
+        .btn-enter:hover {
+            color: white;
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .hints {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 24px;
+            font-weight: 300;
+        }
+
+        /* === CAMADA 3: O CURSOR LANTERNA === */
+        #lantern-cursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* Suaviza o movimento */
+            transition: transform 0.05s linear;
+        }
+
+        .lantern-icon {
+            /* Usando um SVG inline para a lanterna */
+            width: 48px;
+            height: 48px;
+            filter: drop-shadow(0 0 15px rgba(255, 107, 43, 0.8)) drop-shadow(0 0 30px rgba(255, 107, 43, 0.4));
+            margin-left: 15px;
+            /* Offset para o centro do brilho estar na "lâmpada" */
+            margin-top: 15px;
+        }
+
+        .lantern-text {
+            margin-top: 15px;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.7);
+            letter-spacing: 1px;
+            text-align: center;
+            max-width: 140px;
+            text-transform: uppercase;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LENS FLARE DE FUNDO -->
+    <div class="lens-flare-container">
+        <div class="flare-horizontal"></div>
+        <div class="flare-vertical"></div>
+        <div class="flare-core"></div>
+    </div>
+
+    <!-- CAMADA DOS POSTS -->
+    <div id="cards-layer">
+        <div id="light-beam"></div>
+
+        <!-- Cartões gerados com imagens simuladas do Unsplash -->
+        <div class="card glow-orange c1">
+            <div class="card-img"
+                style="background-image: url('https://images.unsplash.com/photo-1558655146-d09347e92766?w=300&q=80');">
+            </div>
+            <div class="card-content">
+                <div class="card-title">10 Dicas de Design para 2024</div>
+                <div class="card-text">Descubra as tendências visuais que vão dominar o mercado criativo.</div>
+            </div>
+            <div class="card-footer"><span>❤️ 2.5k</span> <span>💬 120</span></div>
+        </div>
+
+        <div class="card glow-blue c2">
+            <div class="card-img"
+                style="background-image: url('https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=300&q=80');">
+            </div>
+            <div class="card-content">
+                <div class="card-title">A Nova Era do SEO</div>
+                <div class="card-text">Como otimizar seus conteúdos na era das inteligências artificiais.</div>
+            </div>
+            <div class="card-footer"><span>❤️ 1.1k</span> <span>💬 45</span></div>
+        </div>
+
+        <div class="card glow-orange c3">
+            <div class="card-img"
+                style="background-image: url('https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=300&q=80');">
+            </div>
+            <div class="card-content">
+                <div class="card-title">Post para Instagram: Rumo à Criatividade</div>
+                <div class="card-text">Destaque-se no feed com cores vibrantes e mensagens diretas.</div>
+            </div>
+            <div class="card-footer"><span>❤️ 4.8k</span> <span>💬 310</span></div>
+        </div>
+
+        <div class="card glow-blue c4">
+            <div class="card-img"
+                style="background-image: url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&q=80');">
+            </div>
+            <div class="card-content">
+                <div class="card-title">Post para Instagram: Café e Criatividade</div>
+                <div class="card-text">Comece o dia organizando suas ideias com uma boa dose de cafeína.</div>
+            </div>
+            <div class="card-footer"><span>❤️ 890</span> <span>💬 12</span></div>
+        </div>
+
+        <div class="card glow-orange c5">
+            <div class="card-img"
+                style="background-image: url('https://images.unsplash.com/photo-1516383740770-fbcc5ccbece0?w=300&q=80');">
+            </div>
+            <div class="card-content">
+                <div class="card-title">Ideias de Conteúdo B2B</div>
+                <div class="card-text">Estratégias para gerar leads qualificados pelo LinkedIn.</div>
+            </div>
+            <div class="card-footer"><span>❤️ 3.2k</span> <span>💬 150</span></div>
+        </div>
+
+        <div class="card glow-blue c6">
+            <div class="card-img"
+                style="background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=300&q=80');">
+            </div>
+            <div class="card-content">
+                <div class="card-title">O Futuro das Redes</div>
+                <div class="card-text">Como a Web3 vai impactar a criação de comunidade.</div>
+            </div>
+            <div class="card-footer"><span>❤️ 5.6k</span> <span>💬 420</span></div>
+        </div>
+
+        <div class="card glow-orange c7">
+            <div class="card-img"
+                style="background-image: url('https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&q=80');">
+            </div>
+            <div class="card-content">
+                <div class="card-title">Campanha Lançamento</div>
+                <div class="card-text">Tênis esportivo edição limitada com design aerodinâmico.</div>
+            </div>
+            <div class="card-footer"><span>❤️ 12k</span> <span>💬 800</span></div>
+        </div>
+
+        <div class="card glow-blue c8">
+            <div class="card-img"
+                style="background-image: url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=300&q=80');">
+            </div>
+            <div class="card-content">
+                <div class="card-title">Análise de Dados 101</div>
+                <div class="card-text">Métricas que realmente importam no tráfego pago.</div>
+            </div>
+            <div class="card-footer"><span>❤️ 2.1k</span> <span>💬 98</span></div>
+        </div>
+
+        <div class="card glow-orange c9">
+            <div class="card-img"
+                style="background-image: url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300&q=80');">
+            </div>
+            <div class="card-content">
+                <div class="card-title">Setup Gamer 2024</div>
+                <div class="card-text">Inspirações para montar o ambiente perfeito.</div>
+            </div>
+            <div class="card-footer"><span>❤️ 8.5k</span> <span>💬 500</span></div>
+        </div>
+
+        <div class="card glow-blue c10">
+            <div class="card-img"
+                style="background-image: url('https://images.unsplash.com/photo-1616469829941-c7200edec809?w=300&q=80');">
+            </div>
+            <div class="card-content">
+                <div class="card-title">Minimalismo Digital</div>
+                <div class="card-text">Como reduzir ruídos no seu design de interface.</div>
+            </div>
+            <div class="card-footer"><span>❤️ 4.3k</span> <span>💬 215</span></div>
+        </div>
+    </div>
+
+    <!-- INTERFACE -->
+    <div class="ui-layer">
+        <div class="hero-content">
+
+            <h1 class="headline">O poder de mil mentes criativas.<br>A um clique de distância.</h1>
+
+            <div class="logo-area">
+                <div class="logo-text">Post<span>Spark</span></div>
+                <div class="subtitle">Capture a alma. Crie o novo.</div>
+            </div>
+
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="O que vamos criar hoje?">
+                <div class="search-actions">
+                    <button class="btn btn-gemini">✨ GEMINI</button>
+                    <button class="btn btn-static">📄 Estático ⌄</button>
+                    <button class="btn btn-enter">→</button>
+                </div>
+            </div>
+
+            <div class="hints">
+                Insira uma ideia, texto ou URL para começar
+            </div>
+        </div>
+    </div>
+
+    <!-- CURSOR PERSONALIZADO (A LANTERNA) -->
+    <div id="lantern-cursor">
+        <svg class="lantern-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L14 7H10L12 2Z" fill="#ff6b2b" />
+            <path d="M8 7H16V10H8V7Z" fill="#333" />
+            <path d="M7 10H17V18H7V10Z" fill="#ffd54f" fill-opacity="0.8" />
+            <path d="M9 10V18M12 10V18M15 10V18" stroke="#333" stroke-width="0.5" />
+            <path d="M6 18H18V21H6V18Z" fill="#333" />
+            <path d="M10 21H14V23H10V21Z" fill="#222" />
+            <!-- Brilho central da lanterna -->
+            <circle cx="12" cy="14" r="3" fill="#ffffff" />
+        </svg>
+        <div class="lantern-text">Mova o mouse para revelar milhões de possibilidades</div>
+    </div>
+
+    <script>
+        const root = document.documentElement;
+        const lanternCursor = document.getElementById('lantern-cursor');
+
+        // Define posições iniciais no centro da tela
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            // Atualiza as variáveis CSS para o efeito de máscara e brilho nos cards
+            root.style.setProperty('--mouse-x', `${mouseX}px`);
+            root.style.setProperty('--mouse-y', `${mouseY}px`);
+
+            // Move o cursor customizado (lanterna e texto)
+            lanternCursor.style.transform = `translate(${mouseX - 24}px, ${mouseY - 24}px)`;
+        });
+
+        // Garantir que a lanterna fique escondida caso o mouse saia da tela
+        document.addEventListener('mouseleave', () => {
+            lanternCursor.style.opacity = '0';
+        });
+        document.addEventListener('mouseenter', () => {
+            lanternCursor.style.opacity = '1';
+        });
+    </script>
+</body>
+
+</html>

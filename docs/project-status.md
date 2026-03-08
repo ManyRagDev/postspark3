@@ -2,7 +2,9 @@
 
 ## Funcionalidades Implementadas
 - **TextCanvas (Architect 2.0):** Ambiente de edição livre com `AdvancedTextCanvas`, `AdvancedTextNode`, `AdvancedTextSelectionBox`, `AdvancedTextPropertyBar`, e `AdvancedTextSidebar`. Suporta drag, resize, rotate e formatação de texto inline.
-- **PostCard multi-layout:** Componente com 4 layouts (`centered`, `left-aligned`, `split`, `minimal`) e 3 proporções (1:1, 5:6, 9:16). Inclui `ArchitectOverlay` com grid 3×3 para posicionamento preciso.
+- **PostCard multi-layout & Grid Snap 5x5:** Layouts flexíveis e proporções dinâmicas. O sistema de ímã agora utiliza uma grade 5x5 **padding-aware**, que mapeia as coordenadas 0-100% para a área interna segura do card, evitando que elementos encostem nas bordas.
+- **Glow Premium & Polimento UI:** Implementação de um sistema de estética de luxo com brilhos reativos (glows) no Header, Sidebar, Bottom Bar e botões de estado (Ímã, Proporção), sincronizados com a `accentColor` do post.
+- **Estabilização de Arraste (Drag Fix):** Correção do "glitch" de salto no primeiro clique através da captura tardia (*late-binding*) dos bounds do container no momento de ultrapassagem do threshold de drag.
 - **Modo Carrossel:** `PostVariation` suporta array de `slides`; `PostCard` renderiza carrossel com navegação. TheVoid e WorkbenchRefactored integrados ao modo carrossel.
 - **HoloDeck → Workbench (Fuga de Dados Corrigida):** Prop drilling auditado; deep clone implementado para isolamento da variação. Schema Drizzle atualizado com colunas JSON para `textElements`, `slides` e `postMode`.
 - **Font Size Control:** Multiplicadores `headlineFontSize` e `bodyFontSize` no `PostVariation`; sliders no Workbench ajustam tamanho via `calc()`.

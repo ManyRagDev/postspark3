@@ -766,11 +766,7 @@ export default function PostCard({
     })(),
   } : null;
 
-  // Helper para aplicar line-clamp dinâmico
-  const getLineClampClass = (lines: number | undefined) => {
-    if (!lines) return "";
-    return `line-clamp-${lines}`;
-  };
+
 
   // ── Helpers para UI Clone (exemplo.html) ────────────────────────────────────
   const renderHeadline = (text: string, highlightColor: string, isPlayfulTheme: boolean) => {
@@ -977,14 +973,14 @@ export default function PostCard({
               <AccentBar color={effectiveAccent} width="3rem" height="3px" align="center" />
             )}
             <h2
-              className={`font-bold leading-tight ${!compact && headlineLineClamp ? getLineClampClass(headlineLineClamp) : ""}`}
+              className={`font-bold leading-tight ${compact ? "line-clamp-2" : ""}`}
               style={{ color: effectiveHeadlineText, fontFamily: headingFont, fontSize: `calc(${headingSize} * 1.15)`, whiteSpace: "pre-wrap" }}
             >
               {renderHeadline(headline, effectiveAccent, isPlayful)}
             </h2>
             {body && (
               <p
-                className={`${compact ? "line-clamp-2" : getLineClampClass(bodyLineClamp) || "line-clamp-4"} opacity-75 max-w-[90%]`}
+                className={`${compact ? "line-clamp-2" : ""} opacity-75 max-w-[90%]`}
                 style={{ color: effectiveBodyText, fontFamily: bodyFont, fontSize: bodySize, lineHeight: 1.6, whiteSpace: "pre-wrap" }}
               >
                 {body}
@@ -1042,14 +1038,14 @@ export default function PostCard({
               <AccentBar color={effectiveAccent} width="2.5rem" height="3px" align="flex-start" />
             )}
             <h2
-              className={`font-bold leading-tight ${!compact && headlineLineClamp ? getLineClampClass(headlineLineClamp) : ""}`}
+              className={`font-bold leading-tight ${compact ? "line-clamp-2" : ""}`}
               style={{ color: effectiveHeadlineText, fontFamily: headingFont, fontSize: headingSize, whiteSpace: "pre-wrap" }}
             >
               {renderHeadline(headline, effectiveAccent, isPlayful)}
             </h2>
             {body && (
               <p
-                className={`${compact ? "line-clamp-1" : getLineClampClass(bodyLineClamp) || "line-clamp-3"} opacity-80`}
+                className={`${compact ? "line-clamp-2" : ""} opacity-80`}
                 style={{ color: effectiveBodyText, fontFamily: bodyFont, fontSize: bodySize, lineHeight: 1.55 }}
               >
                 {body}
@@ -1123,7 +1119,7 @@ export default function PostCard({
           <AccentBar color={effectiveAccent} width="2rem" height="3px" align="flex-start" />
         )}
         <h2
-          className={`font-bold leading-tight ${!compact && headlineLineClamp ? getLineClampClass(headlineLineClamp) : ''}`}
+          className={`font-bold leading-tight ${compact ? 'line-clamp-2' : ''}`}
           style={{
             color: effectiveHeadlineText,
             fontFamily: headingFont,
@@ -1136,7 +1132,7 @@ export default function PostCard({
         </h2>
         {body && (
           <p
-            className={`${compact ? 'line-clamp-2' : getLineClampClass(bodyLineClamp) || 'line-clamp-3'} opacity-80`}
+            className={`${compact ? 'line-clamp-2' : ''} opacity-80`}
             style={{
               color: effectiveBodyText,
               fontFamily: bodyFont,

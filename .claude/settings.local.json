@@ -121,7 +121,13 @@
       "Bash(cmd.exe /c \"taskkill /F /PID 4204\")",
       "Bash(cmd.exe /c \"tasklist /FI \"\"PID eq 4204\"\"\")",
       "Bash(powershell.exe -Command \"Get-Process -Id 4204 | Select-Object Name, Id, Path\")",
-      "Bash(powershell.exe -Command \"Stop-Process -Id 4204 -Force\")"
+      "Bash(powershell.exe -Command \"Stop-Process -Id 4204 -Force\")",
+      "Bash(curl -s http://127.0.0.1:3000/)",
+      "Bash(curl -s http://127.0.0.1:3000/app)",
+      "Bash(curl -s http://127.0.0.1:3002/)",
+      "Bash(curl -s http://127.0.0.1:3003/)",
+      "Bash(taskkill //F //PID 19500)",
+      "Bash(taskkill //F //PID 20564)"
     ]
   }
 }

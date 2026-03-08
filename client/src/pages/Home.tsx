@@ -4,26 +4,21 @@ import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import TheVoid from "@/components/views/TheVoid";
 import HoloDeck from "@/components/views/HoloDeck";
-import WorkbenchRefactored from "@/components/views/WorkbenchRefactored";
-import { EditorProvider } from "@/contexts/EditorContext";
+import WorkbenchV2 from "@/components/views/WorkbenchV2/WorkbenchV2";
 import { useExtractedStyles } from "@/hooks/useExtractedStyles";
-import type { InputType, PostVariation, AppState, Platform, AspectRatio, PostMode, TemporaryTheme, AiModel } from "@shared/postspark";
-import type { ThemeConfig } from "@/lib/themes";
+import type { InputType, PostVariation, AppState, AiModel, PostMode } from "@shared/postspark";
 import { useUpgradePrompt, UpgradePromptModal } from "@/components/UpgradePrompt";
 
 export default function Home() {
   const [appState, setAppState] = useState<AppState>("void");
   const [postMode, setPostMode] = useState<PostMode>("static");
   const [selectedModel, setSelectedModel] = useState<AiModel>("gemini");
-  const { showUpgradePrompt, open: upgradeOpen, setOpen: setUpgradeOpen } = useUpgradePrompt();
-  const [variations, setVariations] = useState<PostVariation[]>([]);
-  const [selectedVariation, setSelectedVariation] = useState<PostVariation | null>(null);
-  const [selectedTheme, setSelectedTheme] = useState<ThemeConfig | undefined>(undefined);
-  const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>('1:1');
   const [inputMeta, setInputMeta] = useState<{ type: InputType; content: string }>({
     type: "text",
     content: "",
   });
+  const { showUpgradePrompt, open: upgradeOpen, setOpen: setUpgradeOpen } = useUpgradePrompt();
+  const [variations, setVariations] = useState<PostVariation[]>([]);
   const [loadingImageId, setLoadingImageId] = useState<string | null>(null);
 
   const generateMutation = trpc.post.generate.useMutation();
@@ -63,7 +58,7 @@ export default function Home() {
         const result = await generateMutation.mutateAsync({
           inputType: type,
           content: value,
-          platform: "instagram" as Platform,
+          platform: "instagram",
           imageUrl: type === "image" ? value : undefined,
           tone: detectedState,
           postMode: postMode,
@@ -85,23 +80,12 @@ export default function Home() {
         }
       }
     },
-    [generateMutation, postMode, extractStyles, clearExtractedStyles, extractedThemes.length]
+    [generateMutation, postMode, extractStyles, clearExtractedStyles]
   );
 
   // State 2 → State 3: Select a variation to edit
-  // Receives aspectRatio and theme from HoloDeck
-  const handleSelectVariation = useCallback((
-    variation: PostVariation,
-    options?: { aspectRatio?: AspectRatio; theme?: ThemeConfig }
-  ) => {
-    const enrichedVariation: PostVariation = {
-      ...structuredClone(variation),
-      aspectRatio: options?.aspectRatio ?? variation.aspectRatio ?? '1:1',
-    };
-
-    setSelectedVariation(enrichedVariation);
-    setSelectedTheme(options?.theme);
-    setSelectedAspectRatio(options?.aspectRatio ?? variation.aspectRatio ?? '1:1');
+  const handleSelectVariation = useCallback(() => {
+    // Trust that HoloDeck.tsx has already populated useEditorStore
     setAppState("workbench");
   }, []);
 
@@ -163,6 +147,10 @@ export default function Home() {
           textColor: variation.textColor,
           accentColor: variation.accentColor,
           layout: variation.layout,
+          imageSettings: (variation as any).imageSettings,
+          layoutSettings: (variation as any).layoutSettings,
+          bgValue: (variation as any).bgValue,
+          bgOverlay: (variation as any).bgOverlay,
         });
         toast.success("Conteúdo consolidado.");
       } catch {
@@ -176,71 +164,49 @@ export default function Home() {
   const goToVoid = useCallback(() => {
     setAppState("void");
     setVariations([]);
-    setSelectedVariation(null);
   }, []);
 
   const goToHoloDeck = useCallback(() => {
     setAppState("holodeck");
-    setSelectedVariation(null);
   }, []);
 
   return (
-    <EditorProvider>
-      <div className="min-h-screen bg-background text-foreground overflow-hidden">
-        <AnimatePresence mode="wait">
-          {appState === "void" && (
-            <TheVoid
-              key="void"
-              onSubmit={handleVoidSubmit}
-              isLoading={generateMutation.isPending}
-              postMode={postMode}
-              onPostModeChange={setPostMode}
-              selectedModel={selectedModel}
-              onModelChange={setSelectedModel}
-            />
-          )}
+    <div className="min-h-screen bg-background text-foreground overflow-hidden">
+      <AnimatePresence mode="wait">
+        {appState === "void" && (
+          <TheVoid
+            key="void"
+            onSubmit={handleVoidSubmit}
+            isLoading={generateMutation.isPending}
+            postMode={postMode}
+            onPostModeChange={setPostMode}
+          />
+        )}
 
-          {appState === "holodeck" && variations.length > 0 && (
-            <HoloDeck
-              key="holodeck"
-              variations={variations}
-              onSelect={handleSelectVariation}
-              onBack={goToVoid}
-              onGenerateImage={handleGenerateImageHolo}
-              loadingImageId={loadingImageId}
-              extractedThemes={extractedThemes}
-              isExtractingStyles={isExtracting}
-            />
-          )}
+        {appState === "holodeck" && variations.length > 0 && (
+          <HoloDeck
+            key="holodeck"
+            variations={variations}
+            onSelect={handleSelectVariation}
+            onBack={goToVoid}
+            onGenerateImage={handleGenerateImageHolo}
+            loadingImageId={loadingImageId}
+            extractedThemes={extractedThemes}
+            isExtractingStyles={isExtracting}
+          />
+        )}
 
-
-          {appState === "workbench" && selectedVariation && (
-            <WorkbenchRefactored
-              key="workbench"
-              variation={selectedVariation}
-              initialTheme={selectedTheme}
-              initialAspectRatio={selectedAspectRatio}
-              postMode={selectedVariation.postMode}
-              slides={
-                selectedVariation.slides?.map((slide, index) => ({
-                  ...structuredClone(selectedVariation),
-                  ...structuredClone(slide),
-                  id: `${selectedVariation.id}-slide-${index}`,
-                  headline: slide.headline,
-                  body: slide.body,
-                  textElements: (slide as any).textElements || selectedVariation.textElements,
-                  // Preserve other variation properties
-                }))
-              }
-              onBack={goToHoloDeck}
-              onSave={handleSave}
-              onGenerateImage={handleGenerateImageWorkbench}
-              isSaving={saveMutation.isPending}
-            />
-          )}
-        </AnimatePresence>
-        <UpgradePromptModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
-      </div>
-    </EditorProvider>
+        {appState === "workbench" && (
+          <WorkbenchV2
+            key="workbench"
+            onBack={goToHoloDeck}
+            onSave={handleSave}
+            isSaving={saveMutation.isPending}
+            onExport={() => { }} // Hook placeholder for now
+          />
+        )}
+      </AnimatePresence>
+      <UpgradePromptModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+    </div>
   );
 }

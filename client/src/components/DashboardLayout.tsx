@@ -19,7 +19,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -39,8 +38,10 @@ const MAX_WIDTH = 480;
 
 export default function DashboardLayout({
   children,
+  onLogin,
 }: {
   children: React.ReactNode;
+  onLogin?: () => void;
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
@@ -69,9 +70,7 @@ export default function DashboardLayout({
             </p>
           </div>
           <Button
-            onClick={() => {
-              window.location.href = getLoginUrl();
-            }}
+            onClick={() => { onLogin?.(); }}
             size="lg"
             className="w-full shadow-lg hover:shadow-xl transition-all"
           >

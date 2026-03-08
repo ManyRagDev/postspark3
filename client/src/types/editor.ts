@@ -60,11 +60,11 @@ export interface LayoutPosition {
 export interface AdvancedLayoutSettings {
   headline: LayoutPosition;
   body: LayoutPosition;
-  accentBar?: LayoutPosition;
-  badge?: LayoutPosition;
-  sticker?: LayoutPosition;
-  /** Position and width of the main post card relative to the canvas. Undefined = centered. */
-  card?: LayoutPosition;
+  accentBar: LayoutPosition;
+  badge: LayoutPosition;
+  sticker: LayoutPosition;
+  /** Position and width of the main post card relative to the canvas. */
+  card: LayoutPosition;
   padding: number; // 0–80px, default 24
 }
 
@@ -89,5 +89,6 @@ export const DEFAULT_LAYOUT_SETTINGS: AdvancedLayoutSettings = {
   accentBar: { position: "top-left", textAlign: "left", width: 15 },
   badge: { position: "top-center", textAlign: "center" },
   sticker: { position: "bottom-center", textAlign: "center" },
+  card: { position: "center", textAlign: "center" },
   padding: 24,
 };

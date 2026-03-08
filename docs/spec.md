@@ -17,6 +17,17 @@ Será abolido qualquer uso nativo do Router do React ou props contextuais em cas
 A camada visual deve seguir restritamente ser uma manifestação reativa do Zustand.
 Camadas complexas de lógica do Architect (Acesso às quinas, giros, grid snap de 5x5 posições de ímã) vão viver exclusivamente num invólucro (Wrapper) ou `ArchitectOverlay` transparente posto por Traz ou Frente ao Canvas puro. O PostCard final receberá a injeção seca das propriedades visuais via Store.
 
+### 4.1 Sistema de Projeção de Coordenadas (Padding-Aware)
+Para garantir que elementos em (0,0) ou (100,100) não toquem a borda do card, implementamos um sistema de mapeamento projetado:
+*   **Input**: Coordenadas abstratas 0-100% (armazenadas no DB).
+*   **Projeção**: O componente `DraggableBlock` projeta esses valores apenas para a área interna (*inner area*) subtraindo o `padding` do card.
+*   **Visualização**: A grade 5x5 renderizada é a própria projeção, garantindo paridade visual absoluta entre o arrasto e o snap.
+
+### 4.2 Professional Glow System
+A interface V2 utiliza um sistema de brilho reativo baseado em `framer-motion`:
+*   **Accent Sync**: O brilho usa o `accentColor` da variação ativa.
+*   **Feedback Tátil**: Botões de ação (Salvar/Exportar) e seletores de estado (Magnet/Ratio) usam pulse e glow para indicar atividade.
+
 ## 5. Resgate High-Ticket
 - **Geração de Imagem Pro:** Garantir o switch para consumo fidedigno entre endpoints rápidos (flux/nanobanana flash) e premium.
 - **Ajustar com IA**: Restauro do prompt multimodal injetando visualização via Canvas Output para LLM Gemini 1.5 Pro/2.5 Pro no node server.

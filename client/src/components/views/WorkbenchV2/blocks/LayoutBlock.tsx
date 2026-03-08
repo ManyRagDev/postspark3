@@ -115,8 +115,18 @@ export default function LayoutBlock() {
                         <button
                             key={opt.value}
                             onClick={() => {
-                                const { updateVariation } = useEditorStore.getState();
-                                updateVariation({ layout: opt.value });
+                                const state = useEditorStore.getState();
+                                state.updateVariation({ layout: opt.value });
+
+                                // Tiro de Sniper: Limpa as posições livres (fantasmas) ao mudar o layout master
+                                const currentLayout = state.layoutSettings;
+                                const clearedLayout = { ...currentLayout };
+                                (["headline", "body", "accentBar", "badge", "sticker"] as const).forEach(layer => {
+                                    if (clearedLayout[layer]) {
+                                        clearedLayout[layer] = { ...clearedLayout[layer], freePosition: undefined };
+                                    }
+                                });
+                                state.updateLayoutSettings(clearedLayout);
                             }}
                             className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg transition-all group"
                             style={{

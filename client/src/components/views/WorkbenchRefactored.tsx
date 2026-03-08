@@ -172,7 +172,7 @@ function DesignChecklistPanel({
  *
  * freePosition só é definido quando o usuário arrasta no modo Arquiteto.
  */
-function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSettings {
+export function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSettings {
   switch (layout) {
     case 'centered':
       return {
@@ -182,6 +182,7 @@ function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSettings {
         accentBar: { position: 'top-center', textAlign: 'center', width: 10 },
         badge: { position: 'top-center', textAlign: 'center' },
         sticker: { position: 'bottom-center', textAlign: 'center' },
+        card: { position: 'center', textAlign: 'center' },
         padding: 24,
       };
     case 'split':
@@ -192,6 +193,7 @@ function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSettings {
         accentBar: { position: 'top-left', textAlign: 'left', width: 10 },
         badge: { position: 'top-right', textAlign: 'right' },
         sticker: { position: 'bottom-right', textAlign: 'right' },
+        card: { position: 'center-left', textAlign: 'left' },
         padding: 24,
       };
     case 'minimal':
@@ -202,6 +204,7 @@ function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSettings {
         accentBar: { position: 'top-center', textAlign: 'center', width: 15 },
         badge: { position: 'top-center', textAlign: 'center' },
         sticker: { position: 'bottom-center', textAlign: 'center' },
+        card: { position: 'center', textAlign: 'center' },
         padding: 24,
       };
     case 'left-aligned':
@@ -213,6 +216,7 @@ function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSettings {
         accentBar: { position: 'top-left', textAlign: 'left', width: 10 },
         badge: { position: 'top-right', textAlign: 'right' },
         sticker: { position: 'bottom-right', textAlign: 'right' },
+        card: { position: 'center-left', textAlign: 'left' },
         padding: 24,
       };
   }

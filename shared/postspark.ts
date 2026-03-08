@@ -314,6 +314,12 @@ export interface PostVariation {
 
   /** Design tokens override — when set, these drive the visual rendering directly */
   designTokens?: Partial<DesignTokens>;
+
+  /** Editor V2 Persistence fields */
+  imageSettings?: any;
+  layoutSettings?: any;
+  bgValue?: any;
+  bgOverlay?: any;
 }
 
 /** App state machine */

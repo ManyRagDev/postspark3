@@ -11,6 +11,8 @@ import CopyEditorPanel from "../CopyEditorPanel";
 import type { ThemeConfig } from "@/lib/themes";
 import { themeToDesignTokens } from "@/lib/themes";
 import { useAIProcessingStages, useCompletionFlash } from "@/hooks/useAIProcessingStages";
+import { useEditorStore } from "@/store/editorStore";
+import { layoutToAdvanced } from "./WorkbenchRefactored";
 
 const RATIOS: AspectRatio[] = ["1:1", "5:6", "9:16"];
 
@@ -380,7 +382,46 @@ export default function HoloDeck({
     const parsedVariation = {
       ...variation,
       designTokens: customTokens || variation.designTokens,
+      backgroundColor: customTokens?.colors.background || variation.backgroundColor,
+      accentColor: customTokens?.colors.primary || variation.accentColor,
+      textColor: customTokens?.colors.text || variation.textColor,
     } as PostVariation;
+
+    // Injeta na store Zustand global (Strangler Fig Fase 1)
+    const editorStore = useEditorStore.getState();
+    editorStore.setActiveVariation(parsedVariation);
+    editorStore.setAspectRatio(aspectRatio);
+    editorStore.setPlatform(parsedVariation.platform || "instagram");
+
+    // Injetar o background corretamente baseado no designTokens/customTheme
+    if (parsedVariation.designTokens?.colors?.background) {
+      editorStore.setBgValue({ type: "solid", color: parsedVariation.designTokens.colors.background });
+    } else if (parsedVariation.backgroundColor) {
+      editorStore.setBgValue({ type: "solid", color: parsedVariation.backgroundColor });
+    } else if (parsedVariation.imageUrl) {
+      editorStore.setBgValue({ type: "ai", url: parsedVariation.imageUrl });
+    }
+
+    if (parsedVariation.layout) {
+      const advanced = layoutToAdvanced(parsedVariation.layout);
+      // CRÍTICO: Limpa a prancheta de freePositions antigas para o post nascer limpo
+      if (advanced.headline) advanced.headline.freePosition = undefined;
+      if (advanced.body) advanced.body.freePosition = undefined;
+      if (advanced.accentBar) advanced.accentBar.freePosition = undefined;
+      if (advanced.card) advanced.card.freePosition = undefined;
+      if (advanced.badge) advanced.badge.freePosition = undefined;
+      if (advanced.sticker) advanced.sticker.freePosition = undefined;
+      editorStore.updateLayoutSettings(advanced);
+    }
+
+    if (parsedVariation.slides && parsedVariation.slides.length > 0) {
+      editorStore.setSlides(parsedVariation.slides);
+      editorStore.setPostMode("carousel");
+    } else {
+      editorStore.setSlides([]);
+      editorStore.setPostMode("static");
+    }
+
     onSelect(parsedVariation, { aspectRatio, theme: selectedTheme });
   }, [customTokens, onSelect, aspectRatio, selectedTheme]);
 

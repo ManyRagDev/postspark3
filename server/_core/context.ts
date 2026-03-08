@@ -1,31 +1,37 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
-import type { User } from "../../drizzle/schema";
+import type { AuthenticatedUser } from "./sdk";
+import { sdk } from "./sdk";
+
+export type TrpcUser = AuthenticatedUser;
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
   res: CreateExpressContextOptions["res"];
-  user: User | null;
+  user: TrpcUser | null;
 };
 
-// DEV MODE: Auth desativada temporariamente. Usuário mock sempre autenticado.
-const DEV_USER: User = {
-  id: 1,
-  openId: "local-dev",
+const DEV_USER: TrpcUser = {
+  id: "00000000-0000-0000-0000-000000000001",
   name: "Dev User",
   email: "dev@local.dev",
-  loginMethod: "dev",
   role: "admin",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  lastSignedIn: new Date(),
 };
 
 export async function createContext(
   opts: CreateExpressContextOptions
 ): Promise<TrpcContext> {
-  return {
-    req: opts.req,
-    res: opts.res,
-    user: DEV_USER,
-  };
+  if (process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true") {
+    return { req: opts.req, res: opts.res, user: DEV_USER };
+  }
+
+  try {
+    const user = await sdk.authenticateRequest(opts.req);
+    return {
+      req: opts.req,
+      res: opts.res,
+      user,
+    };
+  } catch {
+    return { req: opts.req, res: opts.res, user: null };
+  }
 }
