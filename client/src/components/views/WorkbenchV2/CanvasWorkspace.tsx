@@ -121,8 +121,8 @@ export default function CanvasWorkspace({
         return () => window.removeEventListener('resize', calculateScale);
     }, [aspectRatio]);
 
-    const accentColor = activeVariation?.accentColor ?? "#a855f7";
     const dt = activeVariation?.designTokens;
+    const accentColor = dt?.colors?.primary ?? activeVariation?.accentColor ?? "#a855f7";
     const backgroundColor = dt?.colors?.background ?? activeVariation?.backgroundColor ?? "#0d0d16";
 
     return (

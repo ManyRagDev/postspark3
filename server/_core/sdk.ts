@@ -9,6 +9,8 @@ export type AuthenticatedUser = {
   id: string;
   email: string | null;
   name: string | null;
+  phone?: string | null;
+  company?: string | null;
   role?: string | null;
 };
 
@@ -68,6 +70,10 @@ class SDKServer {
         : typeof metadata.name === "string"
           ? metadata.name
           : null;
+    const phoneFromMetadata =
+      typeof metadata.phone === "string" ? metadata.phone : null;
+    const companyFromMetadata =
+      typeof metadata.company === "string" ? metadata.company : null;
     const roleFromMetadata =
       typeof user.app_metadata?.role === "string" ? user.app_metadata.role : null;
 
@@ -75,6 +81,8 @@ class SDKServer {
       id: user.id,
       email: user.email ?? null,
       name: nameFromMetadata,
+      phone: phoneFromMetadata,
+      company: companyFromMetadata,
       role: roleFromMetadata,
     };
   }

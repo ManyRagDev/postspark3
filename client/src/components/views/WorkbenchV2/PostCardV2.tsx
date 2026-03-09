@@ -279,6 +279,7 @@ export default function PostCardV2({
   const variation = activeVariation;
   const designTokens = variation.designTokens;
   const theme = undefined as ThemeConfig | undefined; // Eliminamos props theme puras na V2, focando em designTokens
+  const resolvedBrandMeta = brandMeta || (variation as any).brandMeta;
 
   const { headline, body, imageUrl: variationImageUrl, backgroundColor, textColor, headlineColor, bodyColor, accentColor, layout } = variation;
 
@@ -1330,10 +1331,10 @@ export default function PostCardV2({
             }}
             isEditingCard={isEditingCard}
           >
-            {brandMeta && (
+            {resolvedBrandMeta && (
               <BrandOverlay
-                logoUrl={brandMeta.logoUrl}
-                brandName={brandMeta.brandName}
+                logoUrl={resolvedBrandMeta.logoUrl}
+                brandName={resolvedBrandMeta.brandName}
                 platform={variation.platform}
                 accentColor={dt.colors.primary}
                 textColor={dt.colors.text}
@@ -1376,10 +1377,10 @@ export default function PostCardV2({
             }}
             isEditingCard={isEditingCard}
           >
-            {brandMeta && (
+            {resolvedBrandMeta && (
               <BrandOverlay
-                logoUrl={brandMeta.logoUrl}
-                brandName={brandMeta.brandName}
+                logoUrl={resolvedBrandMeta.logoUrl}
+                brandName={resolvedBrandMeta.brandName}
                 platform={variation.platform}
                 accentColor={theme.colors.accent}
                 textColor={theme.colors.text}

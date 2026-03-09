@@ -9,6 +9,7 @@ import Pricing from "./pages/Pricing";
 import Billing from "./pages/Billing";
 import AuthGate from "./components/AuthGate";
 import LoginModal from "./components/LoginModal";
+import UserTopMenu from "./components/UserTopMenu";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useState, useEffect } from "react";
 
@@ -95,12 +96,13 @@ function Router() {
  * Mostra AuthGate + LoginModal para usuários não autenticados.
  */
 function AppInner() {
-  const { isAuthenticated, loading } = useAuth();
+  const { loading } = useAuth();
   const [loginOpen, setLoginOpen] = useState(false);
 
   return (
     <>
       <Router />
+      <UserTopMenu />
       {/* AuthGate: aparece apenas para usuários não autenticados */}
       {!loading && (
         <AuthGate onLogin={() => setLoginOpen(true)} />

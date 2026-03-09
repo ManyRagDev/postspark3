@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, type MutableRefObject } from "react";
+﻿import { useState, useCallback, useEffect, useRef, type MutableRefObject } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { ArrowLeft, Layers, Sparkles, ImagePlus, Loader2, Palette, LayoutGrid, AlignJustify, Globe, Check, Settings2, PenTool } from "lucide-react";
 import type { PostVariation, AspectRatio, TemporaryTheme, DesignTokens } from "@shared/postspark";
@@ -292,6 +292,59 @@ function ExtractedThemeCard({
   );
 }
 
+function ViewModeToggle({
+  viewMode,
+  accentColor,
+  onToggle,
+}: {
+  viewMode: ViewMode;
+  accentColor: string;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      className="relative flex items-center rounded-full p-0.5 shrink-0"
+      style={{
+        background: "oklch(1 0 0 / 7%)",
+        border: "1px solid oklch(1 0 0 / 10%)",
+        backdropFilter: "blur(12px)",
+      }}
+    >
+      <motion.div
+        className="absolute rounded-full"
+        style={{ height: "calc(100% - 4px)", top: 2 }}
+        animate={{
+          left: viewMode === "peek" ? 2 : "50%",
+          width: "50%",
+          background: accentColor,
+        }}
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      />
+
+      <span
+        className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full transition-colors select-none"
+        style={{
+          color: viewMode === "peek" ? "oklch(0.08 0 0)" : "oklch(0.5 0.02 280)",
+        }}
+      >
+        <AlignJustify size={12} />
+        Pilha
+      </span>
+
+      <span
+        className="relative z-10 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full transition-colors select-none"
+        style={{
+          color: viewMode === "wallet" ? "oklch(0.08 0 0)" : "oklch(0.5 0.02 280)",
+        }}
+      >
+        <LayoutGrid size={12} />
+        Deck
+      </span>
+    </button>
+  );
+}
+
 // ─── HoloDeck ─────────────────────────────────────────────────────────────────
 export default function HoloDeck({
   variations,
@@ -311,17 +364,24 @@ export default function HoloDeck({
   const [customTokens, setCustomTokens] = useState<DesignTokens | undefined>(undefined);
   const [localVariations, setLocalVariations] = useState<PostVariation[]>(variations);
   const isDragging = useRef(false);
+  const variationCount = localVariations.length;
 
   // Sync localVariations when parent variations change (new generation)
-  useEffect(() => { setLocalVariations(variations); }, [variations]);
+  useEffect(() => {
+    setLocalVariations(variations);
+    setCurrentIndex((prev) => {
+      if (variations.length === 0) return 0;
+      return prev >= variations.length ? variations.length - 1 : prev;
+    });
+  }, [variations]);
 
   // Auto-populate customTokens from the first variation's designTokens (Chameleon Vision)
   useEffect(() => {
-    if (!customTokens && variations.length > 0) {
-      const firstTokens = variations[0].designTokens as DesignTokens | undefined;
+    if (!customTokens && localVariations.length > 0) {
+      const firstTokens = localVariations[0].designTokens as DesignTokens | undefined;
       if (firstTokens) setCustomTokens(firstTokens);
     }
-  }, [variations]);
+  }, [localVariations, customTokens]);
 
   // When user selects a preset theme, convert to tokens and enter custom mode
   const handleThemeSelect = useCallback((theme: ThemeConfig) => {
@@ -356,8 +416,8 @@ export default function HoloDeck({
   const activeVariation = localVariations[currentIndex];
   // A "Alma" (accentColor) deve vir da variação ativa para o ambiente respirar a cor do post em foco
   const accentColor = activeVariation?.accentColor ?? customTokens?.colors.primary ?? "#a855f7";
-  const prevIndex = (currentIndex - 1 + variations.length) % variations.length;
-  const nextIndex = (currentIndex + 1) % variations.length;
+  const prevIndex = variationCount > 0 ? (currentIndex - 1 + variationCount) % variationCount : 0;
+  const nextIndex = variationCount > 0 ? (currentIndex + 1) % variationCount : 0;
 
   // Card max-width alinhado com as dimensões contidas para o viewport. 
   // Na proporção 9:16, evitamos um crescimento horizontal que explode o card fora do `overflow-y`.
@@ -366,25 +426,30 @@ export default function HoloDeck({
       : "max-w-[320px] md:max-w-[360px]";
 
   const goNext = useCallback(() => {
-    setCurrentIndex((i) => (i + 1) % variations.length);
-  }, [variations.length]);
+    if (variationCount <= 1) return;
+    setCurrentIndex((i) => (i + 1) % variationCount);
+  }, [variationCount]);
 
   const goPrev = useCallback(() => {
-    setCurrentIndex((i) => (i - 1 + variations.length) % variations.length);
-  }, [variations.length]);
+    if (variationCount <= 1) return;
+    setCurrentIndex((i) => (i - 1 + variationCount) % variationCount);
+  }, [variationCount]);
 
   const toggleMode = useCallback(() => {
     setViewMode((m) => (m === "peek" ? "wallet" : "peek"));
   }, []);
 
   const handleSelect = useCallback((variation: PostVariation) => {
+    const variationTokens = variation.designTokens;
+    const resolvedTokens = customTokens || variationTokens;
     // Quando confirmar a variação, passar as edições feitas nos customTokens
     const parsedVariation = {
       ...variation,
-      designTokens: customTokens || variation.designTokens,
-      backgroundColor: customTokens?.colors.background || variation.backgroundColor,
-      accentColor: customTokens?.colors.primary || variation.accentColor,
-      textColor: customTokens?.colors.text || variation.textColor,
+      designTokens: resolvedTokens,
+      backgroundColor: customTokens?.colors.background || variationTokens?.colors?.background || variation.backgroundColor,
+      accentColor: customTokens?.colors.primary || variationTokens?.colors?.primary || variation.accentColor,
+      textColor: customTokens?.colors.text || variationTokens?.colors?.text || variation.textColor,
+      brandMeta: (selectedTheme as any)?.brandMeta || (variation as any)?.brandMeta,
     } as PostVariation;
 
     // Injeta na store Zustand global (Strangler Fig Fase 1)
@@ -394,7 +459,9 @@ export default function HoloDeck({
     editorStore.setPlatform(parsedVariation.platform || "instagram");
 
     // Injetar o background corretamente baseado no designTokens/customTheme
-    if (parsedVariation.designTokens?.colors?.background) {
+    if ((parsedVariation as any).bgValue?.type) {
+      editorStore.setBgValue((parsedVariation as any).bgValue);
+    } else if (parsedVariation.designTokens?.colors?.background) {
       editorStore.setBgValue({ type: "solid", color: parsedVariation.designTokens.colors.background });
     } else if (parsedVariation.backgroundColor) {
       editorStore.setBgValue({ type: "solid", color: parsedVariation.backgroundColor });
@@ -402,7 +469,13 @@ export default function HoloDeck({
       editorStore.setBgValue({ type: "ai", url: parsedVariation.imageUrl });
     }
 
-    if (parsedVariation.layout) {
+    if ((parsedVariation as any).bgOverlay) {
+      editorStore.setBgOverlay((parsedVariation as any).bgOverlay);
+    }
+
+    if ((parsedVariation as any).layoutSettings) {
+      editorStore.updateLayoutSettings((parsedVariation as any).layoutSettings);
+    } else if (parsedVariation.layout) {
       const advanced = layoutToAdvanced(parsedVariation.layout);
       // CRÍTICO: Limpa a prancheta de freePositions antigas para o post nascer limpo
       if (advanced.headline) advanced.headline.freePosition = undefined;
@@ -438,9 +511,11 @@ export default function HoloDeck({
 
   // Cards visíveis no wallet: ativo + 2 embaixo
   const walletVisible = [0, 1, 2].map((offset) => ({
-    index: (currentIndex + offset) % variations.length,
+    index: variationCount > 0 ? (currentIndex + offset) % variationCount : 0,
     stackIndex: offset,
   }));
+
+  if (variationCount === 0 || !activeVariation) return null;
 
   return (
     <motion.div
@@ -489,19 +564,26 @@ export default function HoloDeck({
           Retornar
         </button>
 
-        {/* Counter */}
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-          style={{
-            background: "oklch(1 0 0 / 5%)",
-            border: "1px solid oklch(1 0 0 / 8%)",
-          }}
-        >
-          <Layers size={12} style={{ color: accentColor }} />
-          <span className="text-xs font-medium" style={{ color: "oklch(0.65 0.03 280)" }}>
-            {currentIndex + 1}
-            <span style={{ color: "oklch(0.35 0.02 280)" }}> / {variations.length}</span>
-          </span>
+        <div className="flex items-center gap-2">
+          {/* Counter */}
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+            style={{
+              background: "oklch(1 0 0 / 5%)",
+              border: "1px solid oklch(1 0 0 / 8%)",
+            }}
+          >
+            <Layers size={12} style={{ color: accentColor }} />
+            <span className="text-xs font-medium" style={{ color: "oklch(0.65 0.03 280)" }}>
+              {currentIndex + 1}
+              <span style={{ color: "oklch(0.35 0.02 280)" }}> / {variationCount}</span>
+            </span>
+          </div>
+          <ViewModeToggle
+            viewMode={viewMode}
+            accentColor={accentColor}
+            onToggle={toggleMode}
+          />
         </div>
 
         {/* Ratio picker — visível apenas no mobile (no desktop fica na sidebar) */}
@@ -572,7 +654,7 @@ export default function HoloDeck({
                   animate={{ opacity: 0.75, y: 0 }}
                   transition={{ type: "spring", stiffness: 340, damping: 32 }}
                 >
-                  <CardPill variation={variations[prevIndex]} position="above" onClick={goPrev} />
+                  <CardPill variation={localVariations[prevIndex]} position="above" onClick={goPrev} />
                 </motion.div>
 
                 {/* Card visual ativo */}
@@ -598,7 +680,13 @@ export default function HoloDeck({
                     animate={{ boxShadow: `0 0 0 1px ${accentColor}38, 0 20px 70px ${accentColor}22` }}
                     transition={{ duration: 1.2, ease: "easeInOut" }}
                   />
-                  <PostCard variation={activeVariation} theme={customTokens ? undefined : selectedTheme} designTokens={customTokens} aspectRatio={aspectRatio} brandMeta={(selectedTheme as any)?.brandMeta} />
+                  <PostCard
+                    variation={activeVariation}
+                    theme={customTokens ? undefined : selectedTheme}
+                    designTokens={customTokens}
+                    aspectRatio={aspectRatio}
+                    brandMeta={(selectedTheme as any)?.brandMeta || (activeVariation as any)?.brandMeta}
+                  />
                 </motion.div>
 
                 {/* Action bar */}
@@ -650,7 +738,7 @@ export default function HoloDeck({
                   animate={{ opacity: 0.75, y: 0 }}
                   transition={{ type: "spring", stiffness: 340, damping: 32 }}
                 >
-                  <CardPill variation={variations[nextIndex]} position="below" onClick={goNext} />
+                  <CardPill variation={localVariations[nextIndex]} position="below" onClick={goNext} />
                 </motion.div>
 
                 {/* Hint de swipe lateral (só aparece brevemente) */}
@@ -689,7 +777,7 @@ export default function HoloDeck({
                   {[...walletVisible].reverse().map(({ index, stackIndex }) => (
                     <WalletCard
                       key={`wallet-${index}-${currentIndex}`}
-                      variation={variations[index]}
+                      variation={localVariations[index]}
                       stackIndex={stackIndex}
                       total={3}
                       isActive={stackIndex === 0}
@@ -740,54 +828,9 @@ export default function HoloDeck({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            {/* Switch pill de modo */}
-            <button
-              onClick={toggleMode}
-              className="relative flex items-center rounded-full p-0.5"
-              style={{
-                background: "oklch(1 0 0 / 7%)",
-                border: "1px solid oklch(1 0 0 / 10%)",
-                backdropFilter: "blur(12px)",
-              }}
-            >
-              {/* Thumb animado */}
-              <motion.div
-                className="absolute rounded-full"
-                style={{ height: "calc(100% - 4px)", top: 2 }}
-                animate={{
-                  left: viewMode === "peek" ? 2 : "50%",
-                  width: "50%",
-                  background: accentColor,
-                }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              />
-
-              {/* Label Pilha */}
-              <span
-                className="relative z-10 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full transition-colors select-none"
-                style={{
-                  color: viewMode === "peek" ? "oklch(0.08 0 0)" : "oklch(0.5 0.02 280)",
-                }}
-              >
-                <AlignJustify size={12} />
-                Pilha
-              </span>
-
-              {/* Label Deck */}
-              <span
-                className="relative z-10 flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full transition-colors select-none"
-                style={{
-                  color: viewMode === "wallet" ? "oklch(0.08 0 0)" : "oklch(0.5 0.02 280)",
-                }}
-              >
-                <LayoutGrid size={12} />
-                Deck
-              </span>
-            </button>
-
             {/* Dots de navegação entre cards */}
             <div className="flex items-center gap-1.5">
-              {variations.map((_, i) => (
+              {localVariations.map((_, i) => (
                 <motion.button
                   key={i}
                   onClick={() => setCurrentIndex(i)}
@@ -974,7 +1017,7 @@ export default function HoloDeck({
       <StyleSelector
         isOpen={isStyleSelectorOpen}
         onClose={() => setIsStyleSelectorOpen(false)}
-        onSelect={(theme) => setSelectedTheme(theme)}
+        onSelect={handleThemeSelect}
         currentThemeId={selectedTheme?.id}
       />
     </motion.div>

@@ -2,19 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
-
-async function exchangeSupabaseSession(accessToken: string): Promise<void> {
-  const response = await fetch("/api/auth/supabase-session", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ access_token: accessToken }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to sync Supabase session bridge");
-  }
-}
+import { exchangeSupabaseSession } from "@/lib/authBridge";
 
 export function useAuth() {
   const utils = trpc.useUtils();
