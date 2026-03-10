@@ -106,7 +106,7 @@ export default function LoginModal({ open, onClose, onSuccess }: LoginModalProps
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: `${window.location.origin}/api/auth/google-callback`,
+                    redirectTo: `${window.location.origin}/auth/google-callback`,
                     queryParams: {
                         access_type: 'offline',
                         prompt: 'consent',
@@ -318,3 +318,4 @@ export default function LoginModal({ open, onClose, onSuccess }: LoginModalProps
         </AnimatePresence>
     );
 }
+

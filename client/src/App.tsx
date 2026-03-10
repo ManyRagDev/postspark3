@@ -41,7 +41,7 @@ function TopupSuccess() {
 
 /**
  * Callback do Google OAuth via Supabase.
- * O Supabase redireciona para /api/auth/google-callback#access_token=...
+ * O Supabase redireciona para /auth/google-callback#access_token=...
  * Capturamos o token do hash e trocamos pela sessão PostSpark.
  */
 function GoogleAuthCallback() {
@@ -84,7 +84,7 @@ function Router() {
       <Route path={"/billing"} component={Billing} />
       <Route path={"/billing/success"} component={PostCheckoutSuccess} />
       <Route path={"/billing/topup-success"} component={TopupSuccess} />
-      <Route path={"/api/auth/google-callback"} component={GoogleAuthCallback} />
+      <Route path={"/auth/google-callback"} component={GoogleAuthCallback} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
@@ -142,3 +142,4 @@ function App() {
 }
 
 export default App;
+
