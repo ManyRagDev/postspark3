@@ -14,6 +14,10 @@ export async function exchangeSupabaseSession(accessToken: string): Promise<void
 }
 
 export async function refreshBridgeFromCurrentSession(): Promise<void> {
+  if (!supabase) {
+    throw new Error("Supabase client is not configured");
+  }
+
   const {
     data: { session },
   } = await supabase.auth.getSession();

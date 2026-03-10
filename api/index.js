@@ -5,70 +5,34 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 
+// server/_core/supabaseAuth.ts
+import { createClient } from "@supabase/supabase-js";
+
 // shared/const.ts
 var COOKIE_NAME = "app_session_id";
 var ONE_YEAR_MS = 1e3 * 60 * 60 * 24 * 365;
-var AXIOS_TIMEOUT_MS = 3e4;
 var UNAUTHED_ERR_MSG = "Please login (10001)";
 var NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 
-// server/db.ts
-import { desc, eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-
-// drizzle/schema.ts
-import { pgSchema, varchar, text, timestamp, boolean, jsonb, serial, integer } from "drizzle-orm/pg-core";
-var postsparkSchema = pgSchema("postspark");
-var users = postsparkSchema.table("users", {
-  id: serial("id").primaryKey(),
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
-  name: text("name"),
-  email: varchar("email", { length: 320 }),
-  loginMethod: varchar("loginMethod", { length: 64 }),
-  role: varchar("role", { length: 32 }).default("user").notNull(),
-  // Using varchar for simplicity instead of pgEnum for now
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // PostgreSQL doesn't have onUpdateNow natively in the same way, usually needs trigger. For simplicity keeping defaultNow.
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull()
-});
-var posts = postsparkSchema.table("posts", {
-  id: serial("id").primaryKey(),
-  userId: integer("userId").notNull(),
-  inputType: varchar("inputType", { length: 16 }).notNull(),
-  // text | url | image
-  inputContent: text("inputContent").notNull(),
-  platform: varchar("platform", { length: 32 }).notNull(),
-  // instagram | twitter | linkedin | facebook
-  headline: text("headline"),
-  body: text("body"),
-  hashtags: jsonb("hashtags").$type(),
-  // Changed to jsonb
-  callToAction: text("callToAction"),
-  tone: varchar("tone", { length: 64 }),
-  imagePrompt: text("imagePrompt"),
-  imageUrl: text("imageUrl"),
-  backgroundColor: varchar("backgroundColor", { length: 32 }),
-  textColor: varchar("textColor", { length: 32 }),
-  accentColor: varchar("accentColor", { length: 32 }),
-  layout: varchar("layout", { length: 32 }),
-  postMode: varchar("postMode", { length: 32 }).default("static").notNull(),
-  slides: jsonb("slides").$type(),
-  textElements: jsonb("textElements").$type(),
-  exported: boolean("exported").default(false),
-  // Changed to boolean
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull()
-});
+// server/_core/cookies.ts
+function isSecureRequest(req) {
+  if (req.protocol === "https") return true;
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  if (!forwardedProto) return false;
+  const protoList = Array.isArray(forwardedProto) ? forwardedProto : forwardedProto.split(",");
+  return protoList.some((proto) => proto.trim().toLowerCase() === "https");
+}
+function getSessionCookieOptions(req) {
+  return {
+    httpOnly: true,
+    path: "/",
+    sameSite: "lax",
+    secure: isSecureRequest(req)
+  };
+}
 
 // server/_core/env.ts
 var ENV = {
-  appId: process.env.VITE_APP_ID ?? "",
-  cookieSecret: process.env.JWT_SECRET ?? "",
-  databaseUrl: process.env.DATABASE_URL ?? "",
-  oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
-  ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
@@ -89,378 +53,46 @@ var ENV = {
   stripePriceTopupMega: process.env.STRIPE_PRICE_TOPUP_MEGA ?? ""
 };
 
-// server/db.ts
-var _db = null;
-async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      const client = postgres(process.env.DATABASE_URL, { prepare: false });
-      _db = drizzle(client, { schema: { ...postsparkSchema, users, posts } });
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+// server/_core/supabaseAuth.ts
+function getSupabaseAdmin() {
+  if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
+    throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
   }
-  return _db;
+  return createClient(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
+    auth: { persistSession: false }
+  });
 }
-async function upsertUser(user) {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
-  }
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
-  try {
-    const values = {
-      openId: user.openId
-    };
-    const updateSet = {};
-    const textFields = ["name", "email", "loginMethod"];
-    const assignNullable = (field) => {
-      const value = user[field];
-      if (value === void 0) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-    textFields.forEach(assignNullable);
-    if (user.lastSignedIn !== void 0) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== void 0) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = "admin";
-      updateSet.role = "admin";
-    }
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = /* @__PURE__ */ new Date();
-    }
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = /* @__PURE__ */ new Date();
-    }
-    await db.insert(users).values(values).onConflictDoUpdate({
-      target: users.openId,
-      set: updateSet
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
-}
-async function getUserByOpenId(openId) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return void 0;
-  }
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-  return result.length > 0 ? result[0] : void 0;
-}
-async function createPost(post) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const [result] = await db.insert(posts).values(post).returning({ id: posts.id });
-  return result.id;
-}
-async function getUserPosts(userId, limit = 50) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  return db.select().from(posts).where(eq(posts.userId, userId)).orderBy(desc(posts.createdAt)).limit(limit);
-}
-async function updatePost(postId, userId, data) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const { id, ...updateData } = data;
-  await db.update(posts).set(updateData).where(eq(posts.id, postId));
-}
-async function getPostById(postId) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const result = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
-  return result[0];
-}
-
-// server/_core/cookies.ts
-function isSecureRequest(req) {
-  if (req.protocol === "https") return true;
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  if (!forwardedProto) return false;
-  const protoList = Array.isArray(forwardedProto) ? forwardedProto : forwardedProto.split(",");
-  return protoList.some((proto) => proto.trim().toLowerCase() === "https");
-}
-function getSessionCookieOptions(req) {
-  return {
-    httpOnly: true,
-    path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req)
-  };
-}
-
-// shared/_core/errors.ts
-var HttpError = class extends Error {
-  constructor(statusCode, message) {
-    super(message);
-    this.statusCode = statusCode;
-    this.name = "HttpError";
-  }
-};
-var ForbiddenError = (msg) => new HttpError(403, msg);
-
-// server/_core/sdk.ts
-import axios from "axios";
-import { parse as parseCookieHeader } from "cookie";
-import { SignJWT, jwtVerify } from "jose";
-var isNonEmptyString = (value) => typeof value === "string" && value.length > 0;
-var EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
-var GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
-var GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
-var OAuthService = class {
-  constructor(client) {
-    this.client = client;
-  }
-  decodeState(state) {
-    const redirectUri = atob(state);
-    return redirectUri;
-  }
-  async getTokenByCode(code, state) {
-    const payload = {
-      clientId: ENV.appId,
-      grantType: "authorization_code",
-      code,
-      redirectUri: this.decodeState(state)
-    };
-    const { data } = await this.client.post(
-      EXCHANGE_TOKEN_PATH,
-      payload
-    );
-    return data;
-  }
-  async getUserInfoByToken(token) {
-    const { data } = await this.client.post(
-      GET_USER_INFO_PATH,
-      {
-        accessToken: token.accessToken
-      }
-    );
-    return data;
-  }
-};
-var createOAuthHttpClient = () => axios.create({
-  baseURL: ENV.oAuthServerUrl,
-  timeout: AXIOS_TIMEOUT_MS
-});
-var SDKServer = class {
-  client;
-  oauthService;
-  constructor(client = createOAuthHttpClient()) {
-    this.client = client;
-    this.oauthService = new OAuthService(this.client);
-  }
-  deriveLoginMethod(platforms, fallback) {
-    if (fallback && fallback.length > 0) return fallback;
-    if (!Array.isArray(platforms) || platforms.length === 0) return null;
-    const set = new Set(
-      platforms.filter((p) => typeof p === "string")
-    );
-    if (set.has("REGISTERED_PLATFORM_EMAIL")) return "email";
-    if (set.has("REGISTERED_PLATFORM_GOOGLE")) return "google";
-    if (set.has("REGISTERED_PLATFORM_APPLE")) return "apple";
-    if (set.has("REGISTERED_PLATFORM_MICROSOFT") || set.has("REGISTERED_PLATFORM_AZURE"))
-      return "microsoft";
-    if (set.has("REGISTERED_PLATFORM_GITHUB")) return "github";
-    const first = Array.from(set)[0];
-    return first ? first.toLowerCase() : null;
-  }
-  /**
-   * Exchange OAuth authorization code for access token
-   * @example
-   * const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-   */
-  async exchangeCodeForToken(code, state) {
-    return this.oauthService.getTokenByCode(code, state);
-  }
-  /**
-   * Get user information using access token
-   * @example
-   * const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-   */
-  async getUserInfo(accessToken) {
-    const data = await this.oauthService.getUserInfoByToken({
-      accessToken
-    });
-    const loginMethod = this.deriveLoginMethod(
-      data?.platforms,
-      data?.platform ?? data.platform ?? null
-    );
-    return {
-      ...data,
-      platform: loginMethod,
-      loginMethod
-    };
-  }
-  parseCookies(cookieHeader) {
-    if (!cookieHeader) {
-      return /* @__PURE__ */ new Map();
-    }
-    const parsed = parseCookieHeader(cookieHeader);
-    return new Map(Object.entries(parsed));
-  }
-  getSessionSecret() {
-    const secret = ENV.cookieSecret;
-    return new TextEncoder().encode(secret);
-  }
-  /**
-   * Create a session token for a Manus user openId
-   * @example
-   * const sessionToken = await sdk.createSessionToken(userInfo.openId);
-   */
-  async createSessionToken(openId, options = {}) {
-    return this.signSession(
-      {
-        openId,
-        appId: ENV.appId,
-        name: options.name || ""
-      },
-      options
-    );
-  }
-  async signSession(payload, options = {}) {
-    const issuedAt = Date.now();
-    const expiresInMs = options.expiresInMs ?? ONE_YEAR_MS;
-    const expirationSeconds = Math.floor((issuedAt + expiresInMs) / 1e3);
-    const secretKey = this.getSessionSecret();
-    return new SignJWT({
-      openId: payload.openId,
-      appId: payload.appId,
-      name: payload.name
-    }).setProtectedHeader({ alg: "HS256", typ: "JWT" }).setExpirationTime(expirationSeconds).sign(secretKey);
-  }
-  async verifySession(cookieValue) {
-    if (!cookieValue) {
-      console.warn("[Auth] Missing session cookie");
-      return null;
-    }
-    try {
-      const secretKey = this.getSessionSecret();
-      const { payload } = await jwtVerify(cookieValue, secretKey, {
-        algorithms: ["HS256"]
-      });
-      const { openId, appId, name } = payload;
-      if (!isNonEmptyString(openId) || !isNonEmptyString(appId) || !isNonEmptyString(name)) {
-        console.warn("[Auth] Session payload missing required fields");
-        return null;
-      }
-      return {
-        openId,
-        appId,
-        name
-      };
-    } catch (error) {
-      console.warn("[Auth] Session verification failed", String(error));
-      return null;
-    }
-  }
-  async getUserInfoWithJwt(jwtToken) {
-    const payload = {
-      jwtToken,
-      projectId: ENV.appId
-    };
-    const { data } = await this.client.post(
-      GET_USER_INFO_WITH_JWT_PATH,
-      payload
-    );
-    const loginMethod = this.deriveLoginMethod(
-      data?.platforms,
-      data?.platform ?? data.platform ?? null
-    );
-    return {
-      ...data,
-      platform: loginMethod,
-      loginMethod
-    };
-  }
-  async authenticateRequest(req) {
-    const cookies = this.parseCookies(req.headers.cookie);
-    const sessionCookie = cookies.get(COOKIE_NAME);
-    const session = await this.verifySession(sessionCookie);
-    if (!session) {
-      throw ForbiddenError("Invalid session cookie");
-    }
-    const sessionUserId = session.openId;
-    const signedInAt = /* @__PURE__ */ new Date();
-    let user = await getUserByOpenId(sessionUserId);
-    if (!user) {
-      try {
-        const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
-        await upsertUser({
-          openId: userInfo.openId,
-          name: userInfo.name || null,
-          email: userInfo.email ?? null,
-          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
-          lastSignedIn: signedInAt
-        });
-        user = await getUserByOpenId(userInfo.openId);
-      } catch (error) {
-        console.error("[Auth] Failed to sync user from OAuth:", error);
-        throw ForbiddenError("Failed to sync user info");
-      }
-    }
-    if (!user) {
-      throw ForbiddenError("User not found");
-    }
-    await upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt
-    });
-    return user;
-  }
-};
-var sdk = new SDKServer();
-
-// server/_core/oauth.ts
-function getQueryParam(req, key) {
-  const value = req.query[key];
-  return typeof value === "string" ? value : void 0;
-}
-function registerOAuthRoutes(app2) {
-  app2.get("/api/oauth/callback", async (req, res) => {
-    const code = getQueryParam(req, "code");
-    const state = getQueryParam(req, "state");
-    if (!code || !state) {
-      res.status(400).json({ error: "code and state are required" });
+function registerSupabaseAuthRoutes(app2) {
+  app2.post("/api/auth/supabase-session", async (req, res) => {
+    const { access_token } = req.body;
+    if (!access_token || typeof access_token !== "string") {
+      res.status(400).json({ error: "access_token is required" });
       return;
     }
     try {
-      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
-      if (!userInfo.openId) {
-        res.status(400).json({ error: "openId missing from user info" });
+      const supabase = getSupabaseAdmin();
+      const {
+        data: { user },
+        error
+      } = await supabase.auth.getUser(access_token);
+      if (error || !user) {
+        res.status(401).json({ error: "Invalid or expired token" });
         return;
       }
-      await upsertUser({
-        openId: userInfo.openId,
-        name: userInfo.name || null,
-        email: userInfo.email ?? null,
-        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
-        lastSignedIn: /* @__PURE__ */ new Date()
-      });
-      const sessionToken = await sdk.createSessionToken(userInfo.openId, {
-        name: userInfo.name || "",
-        expiresInMs: ONE_YEAR_MS
-      });
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      res.redirect(302, "/");
-    } catch (error) {
-      console.error("[OAuth] Callback failed", error);
-      res.status(500).json({ error: "OAuth callback failed" });
+      res.cookie(COOKIE_NAME, access_token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      const metadata = user.user_metadata ?? {};
+      const name = typeof metadata.full_name === "string" ? metadata.full_name : typeof metadata.name === "string" ? metadata.name : null;
+      res.json({ ok: true, id: user.id, email: user.email ?? null, name });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Session creation failed";
+      res.status(500).json({ error: "Session creation failed", detail: message });
     }
+  });
+  app2.post("/api/auth/supabase-logout", (req, res) => {
+    const cookieOptions = getSessionCookieOptions(req);
+    res.clearCookie(COOKIE_NAME, cookieOptions);
+    res.json({ ok: true });
   });
 }
 
@@ -472,7 +104,7 @@ import { TRPCError } from "@trpc/server";
 var TITLE_MAX_LENGTH = 1200;
 var CONTENT_MAX_LENGTH = 2e4;
 var trimValue = (value) => value.trim();
-var isNonEmptyString2 = (value) => typeof value === "string" && value.trim().length > 0;
+var isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
 var buildEndpointUrl = (baseUrl) => {
   const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
   return new URL(
@@ -481,13 +113,13 @@ var buildEndpointUrl = (baseUrl) => {
   ).toString();
 };
 var validatePayload = (input) => {
-  if (!isNonEmptyString2(input.title)) {
+  if (!isNonEmptyString(input.title)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Notification title is required."
     });
   }
-  if (!isNonEmptyString2(input.content)) {
+  if (!isNonEmptyString(input.content)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Notification content is required."
@@ -874,6 +506,105 @@ async function generateImage(options) {
   return {
     url
   };
+}
+
+// server/db.ts
+import { createClient as createClient2 } from "@supabase/supabase-js";
+var _supabaseDbClient = null;
+function getSupabaseDbClient() {
+  if (!_supabaseDbClient) {
+    if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
+      throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
+    }
+    _supabaseDbClient = createClient2(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
+      auth: { persistSession: false },
+      db: { schema: "postspark" }
+    });
+  }
+  return _supabaseDbClient;
+}
+function removeUndefined(payload) {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== void 0)
+  );
+}
+async function createPost(post) {
+  const db = getSupabaseDbClient();
+  const payload = {
+    user_uuid: post.userUuid,
+    inputType: post.inputType,
+    inputContent: post.inputContent,
+    platform: post.platform,
+    headline: post.headline ?? null,
+    body: post.body ?? null,
+    hashtags: post.hashtags ?? null,
+    callToAction: post.callToAction ?? null,
+    tone: post.tone ?? null,
+    imagePrompt: post.imagePrompt ?? null,
+    imageUrl: post.imageUrl ?? null,
+    backgroundColor: post.backgroundColor ?? null,
+    textColor: post.textColor ?? null,
+    accentColor: post.accentColor ?? null,
+    layout: post.layout ?? null,
+    postMode: post.postMode ?? "static",
+    slides: post.slides ?? null,
+    textElements: post.textElements ?? null,
+    image_settings: post.imageSettings ?? null,
+    layout_settings: post.layoutSettings ?? null,
+    bg_value: post.bgValue ?? null,
+    bg_overlay: post.bgOverlay ?? null
+  };
+  const { data, error } = await db.from("posts").insert(payload).select("id").single();
+  if (error || !data) {
+    throw new Error(`[Database] createPost failed: ${error?.message ?? "unknown error"}`);
+  }
+  return data.id;
+}
+async function getUserPosts(userUuid, limit = 50) {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db.from("posts").select("*").eq("user_uuid", userUuid).order("createdAt", { ascending: false }).limit(limit);
+  if (error) {
+    throw new Error(`[Database] getUserPosts failed: ${error.message}`);
+  }
+  return data ?? [];
+}
+async function updatePost(postId, userUuid, data) {
+  const db = getSupabaseDbClient();
+  const payload = removeUndefined({
+    headline: data.headline,
+    body: data.body,
+    hashtags: data.hashtags,
+    callToAction: data.callToAction,
+    tone: data.tone,
+    imagePrompt: data.imagePrompt,
+    imageUrl: data.imageUrl,
+    backgroundColor: data.backgroundColor,
+    textColor: data.textColor,
+    accentColor: data.accentColor,
+    layout: data.layout,
+    postMode: data.postMode,
+    slides: data.slides,
+    textElements: data.textElements,
+    image_settings: data.imageSettings,
+    layout_settings: data.layoutSettings,
+    bg_value: data.bgValue,
+    bg_overlay: data.bgOverlay
+  });
+  if (Object.keys(payload).length === 0) {
+    return;
+  }
+  const { error } = await db.from("posts").update(payload).eq("id", postId).eq("user_uuid", userUuid);
+  if (error) {
+    throw new Error(`[Database] updatePost failed: ${error.message}`);
+  }
+}
+async function getPostById(postId, userUuid) {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db.from("posts").select("*").eq("id", postId).eq("user_uuid", userUuid).maybeSingle();
+  if (error) {
+    throw new Error(`[Database] getPostById failed: ${error.message}`);
+  }
+  return data ?? void 0;
 }
 
 // server/screenshotService.ts
@@ -1281,8 +1012,8 @@ async function fetchExternalStylesheets(html, baseUrl) {
         }
       });
       if (!res.ok) return "";
-      const text2 = await res.text();
-      return text2.slice(0, 5e5);
+      const text = await res.text();
+      return text.slice(0, 5e5);
     } catch {
       return "";
     }
@@ -2146,18 +1877,18 @@ function buildDisruptiveContrast(dna, url) {
   const disruptiveLayout = compositionToLayout(disruptiveComposition);
   let bg;
   let accent;
-  let text2;
+  let text;
   if (isDark(dna.colors.background)) {
     bg = "#f8fafc";
-    text2 = "#0f172a";
+    text = "#0f172a";
     accent = dna.colors.primary;
   } else if (seriousPlayful < 40) {
     bg = mixColors(dna.colors.primary, "#0a0a0a", 0.75);
-    text2 = "#f5f5f5";
+    text = "#f5f5f5";
     accent = dna.colors.accent !== dna.colors.primary ? dna.colors.accent : dna.colors.primary;
   } else {
     bg = dna.colors.primary;
-    text2 = isDark(dna.colors.primary) ? "#ffffff" : "#000000";
+    text = isDark(dna.colors.primary) ? "#ffffff" : "#000000";
     accent = isDark(dna.colors.primary) ? "#ffffff" : dna.colors.background;
   }
   const effects = {
@@ -2178,7 +1909,7 @@ function buildDisruptiveContrast(dna, url) {
     createdAt: Date.now() + 2,
     colors: {
       bg,
-      text: text2,
+      text,
       accent,
       surface: buildSurface(bg)
     },
@@ -3175,7 +2906,7 @@ import * as path from "path";
 
 // server/billing.ts
 import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
+import { createClient as createClient3 } from "@supabase/supabase-js";
 var SPARK_COSTS = {
   GENERATE_TEXT: 10,
   // 3 variações de texto
@@ -3202,7 +2933,7 @@ function getSupabase() {
     if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
       throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set");
     }
-    _supabase = createClient(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
+    _supabase = createClient3(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
       auth: { persistSession: false },
       db: { schema: "postspark" }
     });
@@ -3995,11 +3726,15 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
       layout: z2.string().optional(),
       postMode: z2.string().optional(),
       slides: z2.array(z2.any()).optional(),
-      textElements: z2.array(z2.any()).optional()
+      textElements: z2.array(z2.any()).optional(),
+      imageSettings: z2.any().optional(),
+      layoutSettings: z2.any().optional(),
+      bgValue: z2.any().optional(),
+      bgOverlay: z2.any().optional()
     })).mutation(async ({ input, ctx }) => {
       const postId = await createPost({
-        userId: ctx.user.id,
-        ...input
+        ...input,
+        userUuid: ctx.user.id
       });
       return { id: postId };
     }),
@@ -4017,7 +3752,11 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
       layout: z2.string().optional(),
       postMode: z2.string().optional(),
       slides: z2.array(z2.any()).optional(),
-      textElements: z2.array(z2.any()).optional()
+      textElements: z2.array(z2.any()).optional(),
+      imageSettings: z2.any().optional(),
+      layoutSettings: z2.any().optional(),
+      bgValue: z2.any().optional(),
+      bgOverlay: z2.any().optional()
     })).mutation(async ({ input, ctx }) => {
       await updatePost(input.id, ctx.user.id, input);
       return { success: true };
@@ -4027,8 +3766,8 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
       return getUserPosts(ctx.user.id);
     }),
     /** Get single post */
-    get: protectedProcedure.input(z2.object({ id: z2.number() })).query(async ({ input }) => {
-      return getPostById(input.id);
+    get: protectedProcedure.input(z2.object({ id: z2.number() })).query(async ({ input, ctx }) => {
+      return getPostById(input.id, ctx.user.id);
     }),
     /** Generate background image via Pollinations or Gemini */
     generateBackground: protectedProcedure.input(z2.object({
@@ -4333,24 +4072,96 @@ async function scrapeUrl(url) {
   }
 }
 
+// shared/_core/errors.ts
+var HttpError = class extends Error {
+  constructor(statusCode, message) {
+    super(message);
+    this.statusCode = statusCode;
+    this.name = "HttpError";
+  }
+};
+var ForbiddenError = (msg) => new HttpError(403, msg);
+
+// server/_core/sdk.ts
+import { parse as parseCookieHeader } from "cookie";
+import { createClient as createClient4 } from "@supabase/supabase-js";
+var _supabaseAuthClient = null;
+function getSupabaseAuthClient() {
+  if (!_supabaseAuthClient) {
+    if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
+      throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
+    }
+    _supabaseAuthClient = createClient4(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
+      auth: { persistSession: false }
+    });
+  }
+  return _supabaseAuthClient;
+}
+var SDKServer = class {
+  parseCookies(cookieHeader) {
+    if (!cookieHeader) {
+      return /* @__PURE__ */ new Map();
+    }
+    const parsed = parseCookieHeader(cookieHeader);
+    return new Map(Object.entries(parsed));
+  }
+  /**
+   * Auth 100% Supabase:
+   * - le access token do cookie bridge
+   * - valida com supabase.auth.getUser(token)
+   */
+  async authenticateRequest(req) {
+    const cookies = this.parseCookies(req.headers.cookie);
+    const accessToken = cookies.get(COOKIE_NAME);
+    if (!accessToken) {
+      throw ForbiddenError("Missing session token");
+    }
+    const supabase = getSupabaseAuthClient();
+    const {
+      data: { user },
+      error
+    } = await supabase.auth.getUser(accessToken);
+    if (error || !user) {
+      throw ForbiddenError("Invalid or expired session");
+    }
+    const metadata = user.user_metadata ?? {};
+    const nameFromMetadata = typeof metadata.full_name === "string" ? metadata.full_name : typeof metadata.name === "string" ? metadata.name : null;
+    const phoneFromMetadata = typeof metadata.phone === "string" ? metadata.phone : null;
+    const companyFromMetadata = typeof metadata.company === "string" ? metadata.company : null;
+    const roleFromMetadata = typeof user.app_metadata?.role === "string" ? user.app_metadata.role : null;
+    return {
+      id: user.id,
+      email: user.email ?? null,
+      name: nameFromMetadata,
+      phone: phoneFromMetadata,
+      company: companyFromMetadata,
+      role: roleFromMetadata
+    };
+  }
+};
+var sdk = new SDKServer();
+
 // server/_core/context.ts
 var DEV_USER = {
-  id: 1,
-  openId: "local-dev",
+  id: "00000000-0000-0000-0000-000000000001",
   name: "Dev User",
   email: "dev@local.dev",
-  loginMethod: "dev",
-  role: "admin",
-  createdAt: /* @__PURE__ */ new Date(),
-  updatedAt: /* @__PURE__ */ new Date(),
-  lastSignedIn: /* @__PURE__ */ new Date()
+  role: "admin"
 };
 async function createContext(opts) {
-  return {
-    req: opts.req,
-    res: opts.res,
-    user: DEV_USER
-  };
+  if (process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true") {
+    return { req: opts.req, res: opts.res, user: DEV_USER };
+  }
+  try {
+    const user = await sdk.authenticateRequest(opts.req);
+    return {
+      req: opts.req,
+      res: opts.res,
+      user
+    };
+  } catch {
+    return { req: opts.req, res: opts.res, user: null };
+  }
 }
 
 // server/_core/vite.ts
@@ -4499,7 +4310,7 @@ app.post("/api/brand-dna", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-registerOAuthRoutes(app);
+registerSupabaseAuthRoutes(app);
 app.use(
   ["/api/trpc", "/trpc"],
   createExpressMiddleware({

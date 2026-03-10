@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, Eye, EyeOff, Loader2, Chrome } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { isSupabaseConfigured, supabase } from '@/lib/supabaseClient';
 
 interface LoginModalProps {
     open: boolean;
@@ -52,6 +52,10 @@ export default function LoginModal({ open, onClose, onSuccess }: LoginModalProps
         setLoading(true);
 
         try {
+            if (!isSupabaseConfigured || !supabase) {
+                throw new Error('Login indisponivel: configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY na Vercel.');
+            }
+
             let result;
 
             if (mode === 'login') {
@@ -95,6 +99,10 @@ export default function LoginModal({ open, onClose, onSuccess }: LoginModalProps
         setError(null);
 
         try {
+            if (!isSupabaseConfigured || !supabase) {
+                throw new Error('Login com Google indisponivel: configure as variaveis publicas do Supabase na Vercel.');
+            }
+
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
@@ -178,7 +186,7 @@ export default function LoginModal({ open, onClose, onSuccess }: LoginModalProps
                             {/* Google SSO */}
                             <button
                                 onClick={handleGoogleSSO}
-                                disabled={googleLoading || loading}
+                                disabled={googleLoading || loading || !isSupabaseConfigured}
                                 className="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-xl font-medium text-sm transition-all"
                                 style={{
                                     background: 'oklch(0.15 0.03 280)',
@@ -260,10 +268,19 @@ export default function LoginModal({ open, onClose, onSuccess }: LoginModalProps
                                     </motion.p>
                                 )}
 
+                                {!isSupabaseConfigured && (
+                                    <p
+                                        className="text-xs px-3 py-2 rounded-lg"
+                                        style={{ background: 'oklch(0.4 0.2 25 / 15%)', color: 'oklch(0.85 0.08 85)', border: '1px solid oklch(0.55 0.12 85 / 30%)' }}
+                                    >
+                                        Login desabilitado ate configurar VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.
+                                    </p>
+                                )}
+
                                 {/* Submit */}
                                 <motion.button
                                     type="submit"
-                                    disabled={loading || googleLoading}
+                                    disabled={loading || googleLoading || !isSupabaseConfigured}
                                     className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all mt-1"
                                     style={{
                                         background: loading ? 'oklch(0.5 0.15 40)' : 'linear-gradient(135deg, oklch(0.7 0.22 40), oklch(0.6 0.2 20))',

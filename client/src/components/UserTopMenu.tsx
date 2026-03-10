@@ -67,6 +67,10 @@ export default function UserTopMenu() {
     try {
       setSaving(true);
 
+      if (!supabase) {
+        throw new Error("Supabase client is not configured");
+      }
+
       const normalizedName = name.trim();
       const normalizedPhone = phone.trim();
       const normalizedCompany = company.trim();

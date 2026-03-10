@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { exchangeSupabaseSession } from "@/lib/authBridge";
 
 export function useAuth() {
@@ -19,12 +19,17 @@ export function useAuth() {
   });
 
   useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) {
+      return;
+    }
+
+    const supabaseClient = supabase;
     let active = true;
 
     const syncCurrentSession = async () => {
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await supabaseClient.auth.getSession();
 
       if (!active || !session?.access_token) {
         return;
@@ -42,7 +47,7 @@ export function useAuth() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabaseClient.auth.onAuthStateChange((event, session) => {
       if (!active) return;
 
       if (event === "SIGNED_OUT") {
@@ -70,10 +75,12 @@ export function useAuth() {
   }, [utils]);
 
   const logout = useCallback(async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.warn("[Auth] Supabase signOut failed:", error);
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (error) {
+        console.warn("[Auth] Supabase signOut failed:", error);
+      }
     }
 
     try {
