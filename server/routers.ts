@@ -25,6 +25,7 @@ import {
   getTopupPackages,
   createSubscriptionCheckout,
   createTopupCheckout,
+  getSubscriptionPriceId,
   getSupabase,
   SPARK_COSTS,
 } from "./billing";
@@ -121,6 +122,64 @@ function safeJsonParse<T>(str: string, fallback: T): T {
   return fallback;
 }
 
+function normalizeVariationText(value: string | undefined): string {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s#]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenizeVariationText(value: string | undefined): string[] {
+  return normalizeVariationText(value)
+    .split(" ")
+    .filter((token) => token.length > 2);
+}
+
+function jaccardSimilarity(a: string[], b: string[]): number {
+  if (a.length === 0 && b.length === 0) return 1;
+  const aSet = new Set(a);
+  const bSet = new Set(b);
+  let intersection = 0;
+
+  for (const token of Array.from(aSet)) {
+    if (bSet.has(token)) intersection += 1;
+  }
+
+  const union = new Set([...Array.from(aSet), ...Array.from(bSet)]).size;
+  return union === 0 ? 0 : intersection / union;
+}
+
+function variationsNeedDiversification(variations: Array<any>): boolean {
+  if (variations.length < 3) return true;
+
+  for (let i = 0; i < variations.length; i++) {
+    for (let j = i + 1; j < variations.length; j++) {
+      const a = variations[i];
+      const b = variations[j];
+      const aText = tokenizeVariationText(`${a.headline} ${a.body} ${a.callToAction} ${a.caption}`);
+      const bText = tokenizeVariationText(`${b.headline} ${b.body} ${b.callToAction} ${b.caption}`);
+      const copySimilarity = jaccardSimilarity(aText, bText);
+
+      const sameHeadline = normalizeVariationText(a.headline) === normalizeVariationText(b.headline);
+      const sameBody = normalizeVariationText(a.body) === normalizeVariationText(b.body);
+      const sameTone = normalizeVariationText(a.tone) === normalizeVariationText(b.tone);
+      const sameLayout = a.layout === b.layout;
+      const sameColors = a.backgroundColor === b.backgroundColor
+        && a.textColor === b.textColor
+        && a.accentColor === b.accentColor;
+
+      if (sameHeadline || (sameBody && sameLayout) || (copySimilarity >= 0.78 && sameLayout) || (copySimilarity >= 0.9 && sameColors) || (sameTone && sameLayout && sameColors)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 // ─── Billing router ───────────────────────────────────────────────────────────
 const billingRouter = router({
   /** Retorna perfil de billing do usuário logado (plano, sparks, etc.) */
@@ -164,7 +223,8 @@ const billingRouter = router({
   /** Cria Stripe Checkout Session para assinatura */
   createCheckout: protectedProcedure
     .input(z.object({
-      priceId: z.string(),
+      plan: z.enum(["PRO", "AGENCY"]),
+      cycle: z.enum(["monthly", "annual"]).default("monthly"),
       successPath: z.string().default("/billing/success"),
       cancelPath: z.string().default("/pricing"),
     }))
@@ -178,11 +238,12 @@ const billingRouter = router({
       }
 
       const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
+      const priceId = getSubscriptionPriceId(input.plan, input.cycle);
       const url = await createSubscriptionCheckout({
         profileId: profile.id,
         email,
         name,
-        priceId: input.priceId,
+        priceId,
         successUrl: `${host}${input.successPath}`,
         cancelUrl: `${host}${input.cancelPath}`,
       });
@@ -229,17 +290,6 @@ const billingRouter = router({
       return { url };
     }),
 
-  /** Retorna os price IDs disponíveis (para o frontend montar o checkout) */
-  getPriceIds: publicProcedure.query(() => ({
-    pro: {
-      monthly: ENV.stripePriceProMonthly,
-      annual: ENV.stripePriceProAnnual,
-    },
-    agency: {
-      monthly: ENV.stripePriceAgencyMonthly,
-      annual: ENV.stripePriceAgencyAnnual,
-    },
-  })),
 });
 
 export const appRouter = router({
@@ -368,6 +418,8 @@ REGRAS DE COPY — SIGA COM RIGOR:
 - Hashtags: máximo 4, somente no campo separado "hashtags".
 - CallToAction: máximo 40 caracteres. Verbo de ação. Ex: "Saiba mais", "Experimente agora".
 - copyAngle: Para cada variação, forneça um objeto com o Propósito e Ganchos do post com type (dor, beneficio, objecao, autoridade, escassez, storytelling, mito_vs_verdade), label (nome da abordagem), badge (palavra curta para o selo da marca/tema) e stickerText (uma palavra de impacto para adesivo decorativo).
+- As 3 variações DEVEM ser claramente distinguíveis entre si. Não repita headline, body, copyAngle, CTA, hashtags ou a mesma combinação de layout + paleta.
+- Faça cada variação abrir por uma ideia diferente: 1) institucional/autoridade, 2) conversa/engajamento, 3) criativa ou provocativa.
 - Seja conciso. Corte qualquer palavra desnecessária. Menos é mais.
 
 PRINCÍPIOS DE DESIGN VISUAL E MIMETISMO:
@@ -590,7 +642,7 @@ Responda APENAS com JSON válido.`;
           : Array.isArray(content)
             ? content.filter(c => 'text' in c).map(c => (c as any).text).join("\n")
             : "{}";
-        const parsed = safeJsonParse(contentStr, { variations: [] });
+        const parsed = safeJsonParse<{ variations: any[] }>(contentStr, { variations: [] });
         let variations = (parsed.variations || []).slice(0, 3);
 
         // --------------------------------------------------------------------------------
@@ -647,13 +699,78 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
               : Array.isArray(qaContent)
                 ? qaContent.filter(c => 'text' in c).map(c => (c as any).text).join("\n")
                 : "{}";
-            const qaParsed = safeJsonParse(qaContentStr, { variations: [] });
+            const qaParsed = safeJsonParse<{ variations: any[] }>(qaContentStr, { variations: [] });
             if (qaParsed.variations && qaParsed.variations.length > 0) {
               variations = qaParsed.variations.slice(0, 3);
               console.log("[QA Guard] Mimetism validation approved & patched.");
             }
           } catch (qaErr) {
             console.warn("[QA Guard] Failing gracefull. Returning raw variations.", qaErr);
+          }
+        }
+
+        if (variationsNeedDiversification(variations)) {
+          try {
+            console.warn("[Variation Guard] Similar variations detected. Requesting diversified rewrite...");
+            const diversificationPrompt = `Você recebeu 3 variações de post que ficaram parecidas demais.
+Reescreva o array para entregar EXATAMENTE 3 variações nitidamente diferentes entre si.
+
+REGRAS OBRIGATÓRIAS:
+- Preserve o mesmo tema central e as regras de marca já aplicadas.
+- Não repita headline, body, CTA, hashtags, copyAngle, nem a mesma combinação de layout + paleta.
+- Garanta pelo menos 2 layouts diferentes no conjunto final.
+- Garanta ângulos de copy diferentes e facilmente distinguíveis.
+- Mantenha o JSON no mesmo schema exato.
+
+Variações atuais:
+${JSON.stringify(variations, null, 2)}
+
+Responda APENAS com JSON válido.`;
+
+            const diversificationResponse = await invokeLLM({
+              model: input.model as any,
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: diversificationPrompt },
+              ],
+              response_format: {
+                type: "json_schema",
+                json_schema: {
+                  name: "post_variations_diversified",
+                  strict: true,
+                  schema: {
+                    type: "object",
+                    properties: {
+                      variations: {
+                        type: "array",
+                        items: variationSchema,
+                      },
+                    },
+                    required: ["variations"],
+                    $defs: layoutDefs,
+                    additionalProperties: false,
+                  },
+                },
+              },
+            });
+
+            const diversifiedContent = diversificationResponse.choices[0]?.message?.content;
+            const diversifiedContentStr = typeof diversifiedContent === "string"
+              ? diversifiedContent
+              : Array.isArray(diversifiedContent)
+                ? diversifiedContent.filter(c => "text" in c).map(c => (c as any).text).join("\n")
+                : "{}";
+            const diversifiedParsed = safeJsonParse<{ variations: any[] }>(diversifiedContentStr, { variations: [] });
+            const diversifiedVariations = (diversifiedParsed.variations || []).slice(0, 3);
+
+            if (diversifiedVariations.length > 0 && !variationsNeedDiversification(diversifiedVariations)) {
+              variations = diversifiedVariations;
+              console.log("[Variation Guard] Diversified variations accepted.");
+            } else {
+              console.warn("[Variation Guard] Diversification attempt still too similar. Keeping original output.");
+            }
+          } catch (diversificationErr) {
+            console.warn("[Variation Guard] Diversification retry failed. Keeping original output.", diversificationErr);
           }
         }
 

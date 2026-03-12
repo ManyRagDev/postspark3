@@ -375,14 +375,6 @@ export default function HoloDeck({
     });
   }, [variations]);
 
-  // Auto-populate customTokens from the first variation's designTokens (Chameleon Vision)
-  useEffect(() => {
-    if (!customTokens && localVariations.length > 0) {
-      const firstTokens = localVariations[0].designTokens as DesignTokens | undefined;
-      if (firstTokens) setCustomTokens(firstTokens);
-    }
-  }, [localVariations, customTokens]);
-
   // When user selects a preset theme, convert to tokens and enter custom mode
   const handleThemeSelect = useCallback((theme: ThemeConfig) => {
     setSelectedTheme(theme);
@@ -396,17 +388,6 @@ export default function HoloDeck({
     );
   }, [currentIndex]);
 
-  // Auto-aplicar o primeiro tema extraído (Brand Faithful) quando a extração do Brand DNA completa.
-  useEffect(() => {
-    if (extractedThemes.length > 0 && !selectedTheme) {
-      const firstTheme = extractedThemes[0] as ThemeConfig;
-      setSelectedTheme(firstTheme);
-      if (!customTokens) {
-        setCustomTokens(themeToDesignTokens(firstTheme));
-      }
-    }
-  }, [extractedThemes]);
-
   const { stageText: imageStageText } = useAIProcessingStages({
     isActive: loadingImageId !== null,
     preset: "image",
@@ -414,6 +395,13 @@ export default function HoloDeck({
   const showImageFlash = useCompletionFlash(loadingImageId !== null);
 
   const activeVariation = localVariations[currentIndex];
+  const hasManualStyleOverride = Boolean(customTokens || selectedTheme);
+  const getPreviewVariation = useCallback((variation: PostVariation) => {
+    return hasManualStyleOverride
+      ? variation
+      : { ...variation, designTokens: undefined };
+  }, [hasManualStyleOverride]);
+  const activePreviewVariation = getPreviewVariation(activeVariation);
   // A "Alma" (accentColor) deve vir da variação ativa para o ambiente respirar a cor do post em foco
   const accentColor = activeVariation?.accentColor ?? customTokens?.colors.primary ?? "#a855f7";
   const prevIndex = variationCount > 0 ? (currentIndex - 1 + variationCount) % variationCount : 0;
@@ -681,7 +669,7 @@ export default function HoloDeck({
                     transition={{ duration: 1.2, ease: "easeInOut" }}
                   />
                   <PostCard
-                    variation={activeVariation}
+                    variation={activePreviewVariation}
                     theme={customTokens ? undefined : selectedTheme}
                     designTokens={customTokens}
                     aspectRatio={aspectRatio}
@@ -777,7 +765,7 @@ export default function HoloDeck({
                   {[...walletVisible].reverse().map(({ index, stackIndex }) => (
                     <WalletCard
                       key={`wallet-${index}-${currentIndex}`}
-                      variation={localVariations[index]}
+                      variation={getPreviewVariation(localVariations[index])}
                       stackIndex={stackIndex}
                       total={3}
                       isActive={stackIndex === 0}
@@ -1002,6 +990,9 @@ export default function HoloDeck({
                         <p className="text-xs font-medium truncate" style={{ color: i === currentIndex ? "oklch(0.88 0.01 280)" : "oklch(0.55 0.03 280)" }}>{v.headline}</p>
                         <p className="text-[10px] truncate" style={{ color: "oklch(0.4 0.02 280)" }}>
                           {v.copyAngle?.label ?? v.tone}
+                        </p>
+                        <p className="text-[10px] uppercase tracking-wide truncate" style={{ color: "oklch(0.34 0.02 280)" }}>
+                          {v.layout} · {v.backgroundColor}
                         </p>
                       </div>
                     </button>

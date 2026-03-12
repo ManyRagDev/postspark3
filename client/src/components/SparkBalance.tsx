@@ -9,8 +9,8 @@ import { useLocation } from "wouter";
 
 const PLAN_MONTHLY_SPARKS: Record<string, number> = {
   FREE: 150,
-  PRO: 1650,    // 150 inicial + 1500 mensal
-  AGENCY: 4650, // 150 inicial + 4500 mensal
+  PRO: 2000,
+  AGENCY: 4500,
   FOUNDER: 99999,
   DEV: 99999,
   LITE: 150,

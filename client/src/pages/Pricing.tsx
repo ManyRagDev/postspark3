@@ -1,5 +1,5 @@
 /**
- * Pricing — página de planos e preços do PostSpark.
+ * Pricing - pagina de planos e precos do PostSpark.
  * Rota: /pricing
  */
 import { useState } from "react";
@@ -10,73 +10,78 @@ import { toast } from "sonner";
 import { useLocation } from "wouter";
 
 type BillingCycle = "monthly" | "annual";
+type PaidPlan = "PRO" | "AGENCY";
 
 const PLANS = [
   {
     id: "free",
-    name: "Free",
+    planCode: null,
+    name: "START",
     icon: Zap,
-    price: { monthly: "Gratuito", annual: "Gratuito" },
-    priceKey: null,
-    sparks: "150 ✦",
-    refill: "Sem recarga",
-    rollover: false,
+    price: { monthly: "Gratis", annual: "Gratis" },
+    sparks: "150 ✦ iniciais",
     trial: false,
+    rollover: false,
+    equivalence: "3 carrosseis completos ou ate 15 posts simples",
     features: [
-      "150 Sparks para começar",
-      "Gerador de posts (texto)",
-      "3 variações por geração",
-      "Export básico",
+      "Geracao de posts",
+      "Geracao de legendas",
+      "Editor completo",
+      "Exportacao HD ilimitada",
+      "Creditos de entrada para experimentar",
     ],
-    cta: "Começar grátis",
+    footnote: "Os Sparks gratuitos do START nao acumulam indefinidamente.",
+    cta: "Comecar gratis",
     highlighted: false,
-    soon: false,
+    comingSoon: false,
   },
   {
     id: "pro",
-    name: "Pro",
+    planCode: "PRO" as const,
+    name: "PRO",
     icon: Crown,
     price: { monthly: "R$ 147", annual: "R$ 117" },
-    priceKey: "pro" as const,
-    sparks: "+1.500 ✦/mês",
-    refill: "+1.500 ✦ por mês",
-    rollover: true,
+    sparks: "2000 ✦ por mes",
     trial: true,
+    rollover: true,
+    equivalence: "Ate 50 carrosseis completos ou ate 200 posts simples",
     features: [
-      "Tudo do Free",
-      "+1.500 Sparks por mês (acumulam)",
-      "Geração de imagem IA",
-      "ChameleonProtocol",
-      "Carrossel completo",
-      "Trial grátis de 7 dias",
+      "Geracao de posts e carrosseis",
+      "Geracao de legendas",
+      "Chameleon Protocol",
+      "Geracao premium",
+      "Editor completo",
+      "Melhor custo por geracao",
     ],
-    cta: "Iniciar trial grátis",
+    footnote: "Sparks de planos pagos acumulam e nao expiram.",
+    cta: "Iniciar trial gratis",
     highlighted: true,
-    soon: false,
+    comingSoon: false,
   },
   {
     id: "agency",
-    name: "Agency",
+    planCode: "AGENCY" as const,
+    name: "AGENCY",
     icon: Building2,
-    price: { monthly: "R$ 297", annual: "R$ 237" },
-    priceKey: "agency" as const,
-    sparks: "+4.500 ✦/mês",
-    refill: "+4.500 ✦ por mês",
+    price: { monthly: "Em breve", annual: "Em breve" },
+    sparks: "Plano orientado por operacao",
+    trial: false,
     rollover: true,
-    trial: true,
+    equivalence: "Teams, colaboracao, multi-brand e operacao em escala",
     features: [
-      "Tudo do Pro",
-      "+4.500 Sparks por mês (acumulam)",
-      "Múltiplos perfis de marca",
-      "God Mode",
-      "Prioridade máxima na fila de IA",
-      "Trial grátis de 7 dias",
+      "Workspace multi-brand",
+      "Colaboracao em equipe",
+      "Gerenciamento de clientes",
+      "Bibliotecas compartilhadas",
+      "Geracao em lote",
+      "Exportacao em massa",
     ],
+    footnote: "O Agency sera liberado quando as features operacionais estiverem prontas.",
     cta: "Em breve",
     highlighted: false,
-    soon: true,
+    comingSoon: true,
   },
-];
+] as const;
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -91,63 +96,48 @@ const cardVariants = {
 export default function Pricing() {
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const [, setLocation] = useLocation();
-  const { data: priceIds } = trpc.billing.getPriceIds.useQuery();
   const { data: profile } = trpc.billing.getProfile.useQuery();
   const checkoutMutation = trpc.billing.createCheckout.useMutation();
   const trialMutation = trpc.billing.startTrial.useMutation();
+
+  const handleCheckout = async (plan: PaidPlan) => {
+    try {
+      const { url } = await checkoutMutation.mutateAsync({ plan, cycle });
+      window.location.href = url;
+    } catch {
+      toast.error("Nao foi possivel abrir o checkout. Tente novamente.");
+    }
+  };
 
   const handleCTA = async (planId: string) => {
     if (planId === "free") {
       setLocation("/");
       return;
     }
-    if (planId === "agency") return; // soon
 
-    const plan = PLANS.find((p) => p.id === planId);
-    if (!plan || !plan.priceKey || !priceIds) return;
+    const plan = PLANS.find((item) => item.id === planId);
+    if (!plan || plan.comingSoon || !plan.planCode) return;
 
-    const priceId =
-      cycle === "annual"
-        ? priceIds[plan.priceKey]?.annual
-        : priceIds[plan.priceKey]?.monthly;
-
-    if (!priceId) {
-      toast.error("Configuração de preço não encontrada.");
-      return;
-    }
-
-    // Se ainda está no Free e o plano tem trial, oferecer trial primeiro
-    if (profile?.plan === "FREE" && plan.trial) {
+    if (plan.planCode === "PRO" && profile?.plan === "FREE" && plan.trial) {
       try {
-        const result = await trialMutation.mutateAsync({ plan: planId === "pro" ? "PRO" : "AGENCY" });
+        const result = await trialMutation.mutateAsync({ plan: "PRO" });
         if (result.success) {
-          toast.success("Trial de 7 dias iniciado! Aproveite o PostSpark Pro.");
+          toast.success("Trial de 7 dias iniciado com 2000 Sparks.");
           setLocation("/");
           return;
         }
-        if (result.reason === "already_used_email" || result.reason === "already_used_ip") {
-          // Trial já usado — vai direto para checkout
-        }
       } catch {
-        // Trial falhou — vai para checkout
+        // Se o trial falhar, cai para o checkout pago.
       }
     }
 
-    try {
-      const { url } = await checkoutMutation.mutateAsync({ priceId });
-      window.location.href = url;
-    } catch {
-      toast.error("Não foi possível abrir o checkout. Tente novamente.");
-    }
+    await handleCheckout(plan.planCode);
   };
 
-  const annualDiscount = 20; // %
+  const annualDiscount = 20;
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-start py-16 px-4 bg-soul-deep"
-    >
-      {/* Back */}
+    <div className="min-h-screen flex flex-col items-center justify-start py-16 px-4 bg-soul-deep">
       <button
         onClick={() => setLocation("/")}
         className="self-start mb-8 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -156,7 +146,6 @@ export default function Pricing() {
         Voltar
       </button>
 
-      {/* Header */}
       <motion.div
         className="text-center mb-10"
         initial={{ opacity: 0, y: -20 }}
@@ -172,31 +161,29 @@ export default function Pricing() {
         <h1 className="text-4xl font-bold tracking-tight text-foreground mb-3">
           Escolha seu plano
         </h1>
-        <p className="text-muted-foreground max-w-md">
-          Sparks não expiram e acumulam mês a mês. Pague pelo que usar.
+        <p className="text-muted-foreground max-w-xl">
+          O PostSpark comunica resultado, nao apenas creditos. Nos planos pagos e nos top-ups,
+          seus Sparks acumulam e nao expiram.
         </p>
       </motion.div>
 
-      {/* Billing cycle toggle */}
       <motion.div
         className="flex items-center gap-1 p-1 rounded-full mb-10 bg-soul-base"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
       >
-        {(["monthly", "annual"] as const).map((c) => (
+        {(["monthly", "annual"] as const).map((item) => (
           <button
-            key={c}
-            onClick={() => setCycle(c)}
-            className={`px-5 py-2 text-sm font-medium rounded-full transition-all ${cycle === c ? "bg-thermal-orange text-black" : "bg-transparent text-muted-foreground"
-              }`}
+            key={item}
+            onClick={() => setCycle(item)}
+            className={`px-5 py-2 text-sm font-medium rounded-full transition-all ${cycle === item ? "bg-thermal-orange text-black" : "bg-transparent text-muted-foreground"}`}
           >
-            {c === "monthly" ? "Mensal" : (
+            {item === "monthly" ? "Mensal" : (
               <span className="flex items-center gap-1.5">
                 Anual
                 <span
-                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${cycle === "annual" ? "bg-black/20 text-black" : "bg-thermal-orange/20 text-thermal-orange"
-                    }`}
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${cycle === "annual" ? "bg-black/20 text-black" : "bg-thermal-orange/20 text-thermal-orange"}`}
                 >
                   -{annualDiscount}%
                 </span>
@@ -206,42 +193,33 @@ export default function Pricing() {
         ))}
       </motion.div>
 
-      {/* Cards */}
       <motion.div
-        className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-4xl"
+        className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full max-w-5xl"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
         {PLANS.map((plan) => {
           const Icon = plan.icon;
-          const isCurrentPlan = profile?.plan === plan.id.toUpperCase();
+          const isCurrentPlan = profile?.plan === (plan.planCode ?? "FREE");
 
           return (
             <motion.div
               key={plan.id}
               variants={cardVariants}
-              className={`relative flex flex-col rounded-2xl border p-6 ${plan.highlighted
-                  ? "bg-thermal-orange/5 border-thermal-orange/45 shadow-[0_0_40px_rgba(255,165,0,0.12)]"
-                  : "bg-soul-base border-border"
-                }`}
+              className={`relative flex flex-col rounded-2xl border p-6 ${plan.highlighted ? "bg-thermal-orange/5 border-thermal-orange/45 shadow-[0_0_40px_rgba(255,165,0,0.12)]" : "bg-soul-base border-border"}`}
             >
               {plan.highlighted && (
-                <div
-                  className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold bg-thermal-orange text-black"
-                >
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold bg-thermal-orange text-black">
                   Mais popular
                 </div>
               )}
 
-              {/* Plan header */}
               <div className="flex items-center gap-2.5 mb-4">
                 <div
                   className="p-2 rounded-xl"
                   style={{
-                    backgroundColor: plan.highlighted
-                      ? "oklch(0.7 0.22 40 / 15%)"
-                      : "oklch(1 0 0 / 6%)",
+                    backgroundColor: plan.highlighted ? "oklch(0.7 0.22 40 / 15%)" : "oklch(1 0 0 / 6%)",
                   }}
                 >
                   <Icon
@@ -259,70 +237,50 @@ export default function Pricing() {
                 )}
               </div>
 
-              {/* Price */}
               <div className="mb-1">
                 <span className="text-3xl font-bold text-foreground">
                   {plan.price[cycle]}
                 </span>
-                {plan.id !== "free" && (
+                {plan.planCode === "PRO" && (
                   <span className="text-sm text-muted-foreground ml-1">
-                    {cycle === "annual" ? "/mês · cobrado anualmente" : "/mês"}
+                    {cycle === "annual" ? "/mes · cobrado anualmente" : "/mes"}
                   </span>
                 )}
               </div>
 
-              {/* Sparks */}
-              <div
-                className="flex items-center gap-1.5 text-sm mb-5"
-                style={{ color: "oklch(0.7 0.22 40)" }}
-              >
+              <div className="flex items-center gap-1.5 text-sm mb-2" style={{ color: "oklch(0.7 0.22 40)" }}>
                 <Zap className="h-3.5 w-3.5" />
                 <span>{plan.sparks}</span>
-                {plan.rollover && (
-                  <span className="text-xs text-muted-foreground ml-1">(acumulam)</span>
-                )}
               </div>
 
-              {/* Features */}
-              <ul className="flex flex-col gap-2 mb-6 flex-1">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm">
-                    <Check
-                      className="h-3.5 w-3.5 mt-0.5 shrink-0"
-                      style={{ color: "oklch(0.7 0.22 40)" }}
-                    />
-                    <span className="text-muted-foreground">{f}</span>
+              <p className="text-xs text-muted-foreground mb-5">{plan.equivalence}</p>
+
+              <ul className="flex flex-col gap-2 mb-4 flex-1">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2 text-sm">
+                    <Check className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "oklch(0.7 0.22 40)" }} />
+                    <span className="text-muted-foreground">{feature}</span>
                   </li>
                 ))}
               </ul>
 
-              {/* CTA */}
+              <p className="text-[11px] text-muted-foreground mb-6">{plan.footnote}</p>
+
               <button
                 onClick={() => handleCTA(plan.id)}
-                disabled={
-                  plan.soon ||
-                  isCurrentPlan ||
-                  checkoutMutation.isPending ||
-                  trialMutation.isPending
-                }
+                disabled={plan.comingSoon || isCurrentPlan || checkoutMutation.isPending || trialMutation.isPending}
                 className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   backgroundColor: plan.highlighted ? "oklch(0.7 0.22 40)" : "oklch(1 0 0 / 8%)",
                   color: plan.highlighted ? "#000" : "oklch(0.8 0.01 280)",
                 }}
               >
-                {isCurrentPlan
-                  ? "Plano atual"
-                  : plan.soon
-                    ? "Em breve"
-                    : plan.trial && profile?.plan === "FREE"
-                      ? "Iniciar trial grátis"
-                      : plan.cta}
+                {isCurrentPlan ? "Plano atual" : plan.cta}
               </button>
 
-              {plan.trial && !plan.soon && (
+              {plan.planCode === "PRO" && (
                 <p className="text-[11px] text-center text-muted-foreground mt-2">
-                  7 dias grátis · sem cartão
+                  7 dias gratis · sem cartao
                 </p>
               )}
             </motion.div>
@@ -330,7 +288,6 @@ export default function Pricing() {
         })}
       </motion.div>
 
-      {/* Topup info */}
       <motion.div
         className="mt-10 text-center max-w-md"
         initial={{ opacity: 0 }}

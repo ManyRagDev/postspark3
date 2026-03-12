@@ -54,6 +54,8 @@ export function getSupabase() {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type BillingPlan = "FREE" | "LITE" | "PRO" | "AGENCY" | "FOUNDER" | "DEV";
+export type PaidPlan = "PRO" | "AGENCY";
+export type BillingCycle = "monthly" | "annual";
 
 export type BillingProfile = {
   id: string;           // UUID (postspark.profiles.id)
@@ -224,6 +226,18 @@ export async function createSubscriptionCheckout(params: {
   return session.url!;
 }
 
+export function getSubscriptionPriceId(plan: PaidPlan, cycle: BillingCycle): string {
+  if (plan === "PRO") {
+    const priceId = cycle === "annual" ? ENV.stripePriceProAnnual : ENV.stripePriceProMonthly;
+    if (!priceId) throw new Error(`Stripe price for ${plan} (${cycle}) not configured`);
+    return priceId;
+  }
+
+  const priceId = cycle === "annual" ? ENV.stripePriceAgencyAnnual : ENV.stripePriceAgencyMonthly;
+  if (!priceId) throw new Error(`Stripe price for ${plan} (${cycle}) not configured`);
+  return priceId;
+}
+
 /**
  * Cria uma Stripe Checkout Session para top-up avulso.
  */
@@ -370,7 +384,14 @@ function getPlanFromPriceId(priceId: string): "PRO" | "AGENCY" {
   ) {
     return "AGENCY";
   }
-  return "PRO";
+  if (
+    priceId === ENV.stripePriceProMonthly ||
+    priceId === ENV.stripePriceProAnnual
+  ) {
+    return "PRO";
+  }
+
+  throw new Error(`Unknown Stripe price id received in webhook: ${priceId}`);
 }
 
 function mapStripeStatus(

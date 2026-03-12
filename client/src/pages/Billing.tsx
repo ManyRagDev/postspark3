@@ -1,6 +1,6 @@
 /**
- * Billing — portal de billing do usuário.
- * Mostra plano atual, saldo de Sparks, histórico e opções de top-up.
+ * Billing - portal de billing do usuario.
+ * Mostra plano atual, saldo de Sparks e opcoes de top-up.
  * Rota: /billing
  */
 import { motion } from "framer-motion";
@@ -10,9 +10,9 @@ import { toast } from "sonner";
 import { useLocation } from "wouter";
 
 const PLAN_LABELS: Record<string, string> = {
-  FREE: "Free",
-  PRO: "Pro",
-  AGENCY: "Agency",
+  FREE: "START",
+  PRO: "PRO",
+  AGENCY: "AGENCY",
   FOUNDER: "Founder",
   DEV: "Dev",
   LITE: "Lite",
@@ -29,8 +29,8 @@ const PLAN_COLORS: Record<string, string> = {
 
 const PLAN_MONTHLY_SPARKS: Record<string, number> = {
   FREE: 150,
-  PRO: 1650,
-  AGENCY: 4650,
+  PRO: 2000,
+  AGENCY: 4500,
   FOUNDER: 99999,
   DEV: 99999,
   LITE: 150,
@@ -42,27 +42,22 @@ export default function Billing() {
   const { data: packages, isLoading: pkgLoading } = trpc.billing.getTopupPackages.useQuery();
   const topupMutation = trpc.billing.createTopupCheckout.useMutation();
   const checkoutMutation = trpc.billing.createCheckout.useMutation();
-  const { data: priceIds } = trpc.billing.getPriceIds.useQuery();
 
   const handleTopup = async (packageId: string) => {
     try {
       const { url } = await topupMutation.mutateAsync({ packageId });
       window.location.href = url;
     } catch {
-      toast.error("Não foi possível abrir o checkout. Tente novamente.");
+      toast.error("Nao foi possivel abrir o checkout. Tente novamente.");
     }
   };
 
   const handleUpgrade = async () => {
-    if (!priceIds?.pro?.monthly) {
-      toast.error("Configuração de preço não encontrada.");
-      return;
-    }
     try {
-      const { url } = await checkoutMutation.mutateAsync({ priceId: priceIds.pro.monthly });
+      const { url } = await checkoutMutation.mutateAsync({ plan: "PRO", cycle: "monthly" });
       window.location.href = url;
     } catch {
-      toast.error("Não foi possível abrir o checkout. Tente novamente.");
+      toast.error("Nao foi possivel abrir o checkout. Tente novamente.");
     }
   };
 
@@ -73,10 +68,7 @@ export default function Billing() {
   const planColor = PLAN_COLORS[plan] ?? PLAN_COLORS.FREE;
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center py-12 px-4 bg-soul-deep"
-    >
-      {/* Back */}
+    <div className="min-h-screen flex flex-col items-center py-12 px-4 bg-soul-deep">
       <button
         onClick={() => setLocation("/")}
         className="self-start mb-8 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -86,7 +78,6 @@ export default function Billing() {
       </button>
 
       <div className="w-full max-w-lg flex flex-col gap-5">
-        {/* Plano atual */}
         <motion.div
           className="rounded-2xl border p-5"
           style={{
@@ -114,21 +105,18 @@ export default function Billing() {
             </span>
           </div>
 
-          {/* Spark balance */}
           <div className="mb-3">
             <div className="flex items-center justify-between mb-1.5 text-sm">
               <span className="text-muted-foreground flex items-center gap-1.5">
                 <Zap className="h-3.5 w-3.5" style={{ color: planColor }} />
-                Sparks disponíveis
+                Sparks disponiveis
               </span>
               <span className="font-bold text-foreground">
                 {profileLoading ? "—" : `${sparks.toLocaleString("pt-BR")} ✦`}
               </span>
             </div>
-            {/* Progress bar */}
-            <div
-              className="h-1.5 rounded-full overflow-hidden bg-white/5"
-            >
+
+            <div className="h-1.5 rounded-full overflow-hidden bg-white/5">
               <motion.div
                 className="h-full rounded-full"
                 style={{ backgroundColor: planColor }}
@@ -137,14 +125,14 @@ export default function Billing() {
                 transition={{ duration: 0.8, ease: "easeOut" }}
               />
             </div>
+
             {plan !== "FOUNDER" && plan !== "DEV" && (
               <p className="text-[11px] text-muted-foreground mt-1.5">
-                {sparks.toLocaleString("pt-BR")} de {maxSparks.toLocaleString("pt-BR")} ✦ acumulados
+                {sparks.toLocaleString("pt-BR")} de {maxSparks.toLocaleString("pt-BR")} ✦ de referencia mensal
               </p>
             )}
           </div>
 
-          {/* Upgrade CTA se FREE */}
           {plan === "FREE" && (
             <button
               onClick={handleUpgrade}
@@ -152,19 +140,18 @@ export default function Billing() {
               className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 bg-thermal-orange text-black"
             >
               <Crown className="h-4 w-4" />
-              Fazer upgrade para Pro
+              Fazer upgrade para PRO
               <ArrowRight className="h-4 w-4" />
             </button>
           )}
 
           {plan === "FREE" && (
             <p className="text-[11px] text-center text-muted-foreground mt-2">
-              7 dias grátis · sem cartão necessário
+              7 dias gratis · 2000 Sparks no trial PRO
             </p>
           )}
         </motion.div>
 
-        {/* Pacotes de top-up */}
         <motion.div
           className="rounded-2xl border p-5 bg-soul-base border-border"
           initial={{ opacity: 0, y: 16 }}
@@ -178,22 +165,18 @@ export default function Billing() {
 
           {pkgLoading ? (
             <div className="flex flex-col gap-2">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-14 rounded-xl animate-pulse bg-soul-base/50"
-                />
+              {[1, 2, 3].map((item) => (
+                <div key={item} className="h-14 rounded-xl animate-pulse bg-soul-base/50" />
               ))}
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {(packages ?? []).map((pkg, i) => (
+              {(packages ?? []).map((pkg, index) => (
                 <button
                   key={pkg.id}
                   onClick={() => handleTopup(pkg.id)}
                   disabled={topupMutation.isPending}
-                  className={`flex items-center justify-between p-3.5 rounded-xl border transition-all hover:border-white/20 hover:bg-white/5 text-left ${i === 1 ? "border-thermal-orange/35 bg-thermal-orange/5" : "border-border"
-                    }`}
+                  className={`flex items-center justify-between p-3.5 rounded-xl border transition-all hover:border-white/20 hover:bg-white/5 text-left ${index === 1 ? "border-thermal-orange/35 bg-thermal-orange/5" : "border-border"}`}
                 >
                   <div>
                     <p className="text-sm font-semibold text-foreground">{pkg.name}</p>
@@ -202,29 +185,24 @@ export default function Billing() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    {i === 1 && (
-                      <span
-                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-thermal-orange text-black"
-                      >
+                    {index === 1 && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-thermal-orange text-black">
                         Popular
                       </span>
                     )}
-                    <p
-                      className="text-sm font-bold text-thermal-orange"
-                    >
+                    <p className="text-sm font-bold text-thermal-orange">
                       R$ {pkg.price_brl.toFixed(2).replace(".", ",")}
                     </p>
                   </div>
                 </button>
               ))}
               <p className="text-[11px] text-center text-muted-foreground mt-1">
-                Pagamento único • Sparks não expiram • Acumulam com o saldo atual
+                Pagamento unico · Sparks nao expiram · Acumulam com o saldo atual
               </p>
             </div>
           )}
         </motion.div>
 
-        {/* Link para página de planos */}
         <motion.button
           className="text-sm text-center text-muted-foreground hover:text-foreground transition-colors py-2"
           onClick={() => setLocation("/pricing")}

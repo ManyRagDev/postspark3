@@ -79,9 +79,9 @@ active       boolean  DEFAULT true
 **Dados inseridos:**
 | id | name | sparks | price_brl | stripe_price_id |
 |---|---|---|---|---|
-| starter | Starter Pack | 200 | 19.90 | price_1T47BXE9QJm1ioJLjhIVRtpe |
-| power | Power Pack | 600 | 49.90 | price_1T47BZE9QJm1ioJLLmdQZNdU |
-| mega | Mega Pack | 1500 | 109.90 | price_1T47BaE9QJm1ioJLQcS0seHl |
+| starter | Starter Pack | 200 | 29.00 | price_1T9aQTE9QJm1ioJLpiCJqKR3 |
+| power | Power Pack | 700 | 79.00 | price_1T9aQUE9QJm1ioJLuiTazo3q |
+| mega | Mega Pack | 1500 | 159.00 | price_1T9aQTE9QJm1ioJL9MCVEhkZ |
 
 ### Schema: `founders` (nova)
 ```sql
@@ -117,8 +117,8 @@ created_at                timestamptz
 
 | Função | Status | O que faz |
 |---|---|---|
-| `handle_new_user()` | ✅ corrigida | Cria profile com 150✦ (era 50) |
-| `refill_monthly_sparks()` | ✅ corrigida | ACUMULA sparks (não reseta). Pro=+1500, Agency=+4500 |
+| `handle_new_user()` | ✅ corrigida | Cria profile com 150✦ |
+| `refill_monthly_sparks()` | ✅ corrigida | ACUMULA sparks (não reseta). Pro=+2000, Agency=+4500 |
 | `credit_sparks()` | ✅ sem alteração | Soma sparks + registra transação CREDIT |
 | `debit_sparks()` | ✅ atualizada | Bypass total para FOUNDER e DEV — débito simbólico sem consumo real |
 | `use_regeneration()` | ✅ sem alteração | Controla regen por sessão |
@@ -177,9 +177,9 @@ STRIPE_PRICE_AGENCY_MONTHLY=price_1T47BVE9QJm1ioJLQUldzvxS
 STRIPE_PRICE_AGENCY_ANNUAL=price_1T47BWE9QJm1ioJLPdDQTrN7
 
 # Preços de top-up
-STRIPE_PRICE_TOPUP_STARTER=price_1T47BXE9QJm1ioJLjhIVRtpe
-STRIPE_PRICE_TOPUP_POWER=price_1T47BZE9QJm1ioJLLmdQZNdU
-STRIPE_PRICE_TOPUP_MEGA=price_1T47BaE9QJm1ioJLQcS0seHl
+STRIPE_PRICE_TOPUP_STARTER=price_1T9aQTE9QJm1ioJLpiCJqKR3
+STRIPE_PRICE_TOPUP_POWER=price_1T9aQUE9QJm1ioJLuiTazo3q
+STRIPE_PRICE_TOPUP_MEGA=price_1T9aQTE9QJm1ioJL9MCVEhkZ
 ```
 
 ---
@@ -203,16 +203,16 @@ STRIPE_PRICE_TOPUP_MEGA=price_1T47BaE9QJm1ioJLQcS0seHl
 | Plano | Sparks | Recarga mensal | Rollover | Trial | Cobrança |
 |---|---|---|---|---|---|
 | FREE | 150✦ (fixo) | Não | Não | Não | Gratuito |
-| PRO | 150✦ + 1.500✦ trial | +1.500✦/mês | ✅ acumula | 7 dias sem cartão | R$147/mês |
+| PRO | 150✦ + 2.000✦ trial | +2.000✦/mês | ✅ acumula | 7 dias sem cartão | R$147/mês |
 | AGENCY | 150✦ + 4.500✦ trial | +4.500✦/mês | ✅ acumula | 7 dias sem cartão | R$297/mês |
 | **FOUNDER** | **99.999✦ simbólicos** | **Ilimitado (bypass)** | **N/A** | **N/A** | **Gratuito (manual)** |
 
 ### Pacotes Top-up
 | Pacote | Sparks | Preço |
 |---|---|---|
-| Starter Pack | 200✦ | R$ 19,90 |
-| Power Pack | 600✦ | R$ 49,90 |
-| Mega Pack | 1.500✦ | R$ 109,90 |
+| Starter Pack | 200✦ | R$ 29,00 |
+| Power Pack | 700✦ | R$ 79,00 |
+| Mega Pack | 1.500✦ | R$ 159,00 |
 
 ### Founder — Como Usar (SQL Editor do Supabase)
 
@@ -293,7 +293,7 @@ auth.users criado → trigger handle_new_user()
 INICIA TRIAL (7 dias)
     │
     ├── start_trial() verifica e-mail + IP
-    ├── plan → 'PRO', sparks += 1.500
+    ├── plan → 'PRO', sparks += 2.000
     └── trials registro criado
     │
     ▼
