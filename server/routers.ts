@@ -5,7 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { invokeLLM } from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
-import { createPost, getUserPosts, updatePost, getPostById } from "./db";
+import { createBackgroundAsset, createPost, getPostById, getUserBackgroundAssets, getUserPosts, updatePost } from "./db";
 import { storagePut } from "./storage";
 import { analyzeBrandFromUrl, generateCardThemeVariations } from "./chameleon";
 import { generateBackgroundImage } from "./imageGenerateBackground";
@@ -178,6 +178,89 @@ function variationsNeedDiversification(variations: Array<any>): boolean {
   }
 
   return false;
+}
+
+const CAROUSEL_SLIDE_TARGET = 5;
+
+function buildFallbackCarouselSlides(variation: any): Array<any> {
+  const baseHeadline = String(variation?.headline || "Resumo");
+  const baseBody = String(variation?.body || "").trim();
+  const callToAction = String(variation?.callToAction || "Saiba mais").trim();
+  const bodyParts = baseBody
+    .split(/(?<=[.!?])\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const fallbackBodies = [
+    baseBody || "Entenda o contexto desta ideia.",
+    bodyParts[0] || baseBody || "Veja por que isso importa agora.",
+    bodyParts[1] || bodyParts[0] || "Descubra o principal benefício desta proposta.",
+    bodyParts[2] || bodyParts[1] || "Veja como aplicar isso no dia a dia.",
+    callToAction || "Dê o próximo passo com segurança.",
+  ];
+
+  const fallbackHeadlines = [
+    baseHeadline,
+    "O problema",
+    "O que muda",
+    "Na prática",
+    callToAction || "Próximo passo",
+  ];
+
+  return fallbackHeadlines.map((headline, index) => ({
+    headline,
+    body: fallbackBodies[index],
+    slideNumber: index + 1,
+    isTitleSlide: index === 0,
+    isCtaSlide: index === CAROUSEL_SLIDE_TARGET - 1,
+  }));
+}
+
+function normalizeCarouselSlides(variation: any): Array<any> {
+  const rawSlides = Array.isArray(variation?.slides) ? variation.slides : [];
+  const normalized = rawSlides
+    .filter(Boolean)
+    .slice(0, CAROUSEL_SLIDE_TARGET)
+    .map((slide: any, index: number) => ({
+      headline: String(slide?.headline || variation?.headline || `Slide ${index + 1}`),
+      body: String(slide?.body || variation?.body || ""),
+      slideNumber: index + 1,
+      isTitleSlide: index === 0,
+      isCtaSlide: index === CAROUSEL_SLIDE_TARGET - 1,
+    }));
+
+  if (normalized.length === CAROUSEL_SLIDE_TARGET) {
+    return normalized;
+  }
+
+  return buildFallbackCarouselSlides(variation);
+}
+
+function decodeDataUrl(dataUrl: string): { buffer: Buffer; contentType: string; extension: string } {
+  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error("Invalid data URL");
+  }
+
+  const contentType = match[1];
+  const base64 = match[2];
+  const extension = contentType.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+  return {
+    buffer: Buffer.from(base64, "base64"),
+    contentType,
+    extension,
+  };
+}
+
+const PLAN_SAVE_LIMIT_MESSAGES: Record<string, string> = {
+  FREE: "No plano gratuito, você pode salvar até 5 posts. Faça upgrade para manter sua biblioteca completa.",
+  PRO: "Seu plano PRO permite salvar até 100 posts. Exclua itens antigos ou faça upgrade para continuar salvando.",
+  AGENCY: "Seu plano AGENCY permite salvar até 500 posts. Exclua itens antigos ou fale com o suporte para ampliar a capacidade.",
+  LITE: "Seu plano LITE permite salvar até 20 posts. Faça upgrade para ampliar sua biblioteca.",
+};
+
+function resolveSaveLimitMessage(plan: string | null | undefined): string {
+  return PLAN_SAVE_LIMIT_MESSAGES[plan || ""] || "Você atingiu o limite de posts salvos do seu plano. Exclua itens antigos ou faça upgrade para continuar.";
 }
 
 // ─── Billing router ───────────────────────────────────────────────────────────
@@ -402,7 +485,7 @@ REGRA CARDINAL DE CORES (A FONTE É URL):
         // Dynamic system prompt based on postMode
         const isCarousel = input.postMode === "carousel";
         const modeInstruction = isCarousel
-          ? `\nIMPORTANTE: Gere conteúdo para um CARROSSEL (múltiplos slides). Cada variação será um carrossel com 5 slides organizados em um array "slides". Cada slide deve ter: headline (título curto máx 50 caracteres), body (mensagem máx 80 caracteres), slideNumber (1-5), isTitleSlide (primeiro slide), isCtaSlide (último slide com call-to-action).`
+          ? `\nIMPORTANTE: Gere conteúdo para um CARROSSEL (múltiplos slides). Cada variação DEVE ter exatamente 5 slides organizados em um array "slides". Não retorne array vazio, parcial ou simplificado. Cada slide deve ter: headline (título curto máx 50 caracteres), body (mensagem máx 80 caracteres), slideNumber (1-5), isTitleSlide (primeiro slide), isCtaSlide (último slide com call-to-action). O headline/body de nível superior são apenas um resumo do carrossel; o conteúdo principal vive nos slides.`
           : "\nGere posts individuais (estático).";
 
         const systemPrompt = `Você é um especialista em marketing digital, design visual e criação de conteúdo para redes sociais.
@@ -526,6 +609,8 @@ Responda APENAS com JSON válido.`;
                 required: ["headline", "body", "slideNumber", "isTitleSlide", "isCtaSlide"],
                 additionalProperties: false,
               },
+              minItems: CAROUSEL_SLIDE_TARGET,
+              maxItems: CAROUSEL_SLIDE_TARGET,
               description: "Slides do carrossel (5 itens)",
             },
             aspectRatioOptimizations: {
@@ -666,6 +751,8 @@ AVALIAÇÕES A FAZER EM CADA VARIAÇÃO:
 Variations Originais Brutas:
 ${JSON.stringify(variations, null, 2)}
 
+${isCarousel ? "CRÍTICO: preserve exatamente os 5 slides de cada variação. Não colapse o carrossel para um post estático, não remova slides, não troque a ordem narrativa e não retorne array vazio em `slides`." : ""}
+
 Retorne um JSON contendo O MESMO ARRAY, de mesmo formato, substituindo estritamente as propriedades listadas caso estejam ruins. Mantenha os textos inteiramente idênticos.
 Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
 
@@ -720,6 +807,7 @@ REGRAS OBRIGATÓRIAS:
 - Não repita headline, body, CTA, hashtags, copyAngle, nem a mesma combinação de layout + paleta.
 - Garanta pelo menos 2 layouts diferentes no conjunto final.
 - Garanta ângulos de copy diferentes e facilmente distinguíveis.
+- ${isCarousel ? "Se for carrossel, preserve exatamente 5 slides por variação, com narrativa completa e `slides` nunca vazio." : "Mantenha o formato estático atual."}
 - Mantenha o JSON no mesmo schema exato.
 
 Variações atuais:
@@ -785,6 +873,7 @@ Responda APENAS com JSON válido.`;
         // Generate unique IDs and return — enrich with Chameleon Vision data
         return variations.map((v: any, i: number) => {
           const chameleonPost = chameleonPosts[i];
+          const normalizedSlides = isCarousel ? normalizeCarouselSlides(v) : undefined;
           return {
             id: `var-${Date.now()}-${i}`,
             ...v,
@@ -792,7 +881,7 @@ Responda APENAS com JSON válido.`;
             platform: input.platform,
             hashtags: v.hashtags || [],
             postMode: input.postMode,
-            slides: isCarousel ? (v.slides || []) : undefined,
+            slides: normalizedSlides,
             // Chameleon Vision enrichments
             ...(chameleonDesignTokens ? { designTokens: chameleonDesignTokens } : {}),
             ...(chameleonPost ? {
@@ -863,13 +952,26 @@ Responda APENAS com JSON válido.`;
         layoutSettings: z.any().optional(),
         bgValue: z.any().optional(),
         bgOverlay: z.any().optional(),
+        copyAngle: z.any().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const postId = await createPost({
-          ...input,
-          userUuid: ctx.user.id,
-        });
-        return { id: postId };
+        try {
+          const postId = await createPost({
+            ...input,
+            userUuid: ctx.user.id,
+          });
+          return { id: postId };
+        } catch (error: any) {
+          const rawMessage = String(error?.message || "");
+          if (rawMessage.includes("Saved posts limit reached for plan")) {
+            const profile = await getBillingProfile(ctx.user.email ?? "dev@local.dev");
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: resolveSaveLimitMessage(profile.plan),
+            });
+          }
+          throw error;
+        }
       }),
 
     /** Update a post */
@@ -892,6 +994,7 @@ Responda APENAS com JSON válido.`;
         layoutSettings: z.any().optional(),
         bgValue: z.any().optional(),
         bgOverlay: z.any().optional(),
+        copyAngle: z.any().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         await updatePost(input.id, ctx.user.id, input);
@@ -931,6 +1034,38 @@ Responda APENAS com JSON válido.`;
         const imageData = await generateBackgroundImage(input.prompt, input.provider);
         return { imageData }; // base64 data URI
       }),
+
+    saveBackgroundAsset: protectedProcedure
+      .input(z.object({
+        imageUrl: z.string().min(1),
+        sourceType: z.enum(["ai", "upload", "gallery"]),
+        prompt: z.string().optional(),
+        label: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        let finalImageUrl = input.imageUrl;
+
+        if (input.imageUrl.startsWith("data:image/")) {
+          const { buffer, contentType, extension } = decodeDataUrl(input.imageUrl);
+          const key = `users/${ctx.user.id}/backgrounds/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+          const uploaded = await storagePut(key, buffer, contentType);
+          finalImageUrl = uploaded.url;
+        }
+
+        const asset = await createBackgroundAsset({
+          userUuid: ctx.user.id,
+          imageUrl: finalImageUrl,
+          sourceType: input.sourceType,
+          prompt: input.prompt,
+          label: input.label,
+        });
+
+        return asset;
+      }),
+
+    listSavedBackgrounds: protectedProcedure.query(async ({ ctx }) => {
+      return getUserBackgroundAssets(ctx.user.id);
+    }),
 
     /** Automatically adjust layout based on current canvas */
     autoPilotDesign: protectedProcedure

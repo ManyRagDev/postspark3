@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Loader2, ImageOff } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
 // Tipo para o manifesto
 interface BackgroundManifest {
@@ -66,15 +67,29 @@ export function BackgroundGallery({
   accentColor = '#a855f7',
 }: BackgroundGalleryProps) {
   const { manifest, loading, error } = useBackgroundManifest();
+  const { data: savedBackgrounds, isLoading: loadingSaved } = trpc.post.listSavedBackgrounds.useQuery();
   const [activeCategory, setActiveCategory] = useState<string>('acolhimento-respiro');
 
   // Obter categorias do manifesto
-  const categories = manifest ? Object.keys(manifest.categories) : [];
-  const currentCategory = manifest?.categories[activeCategory];
+  const categories = manifest ? ['saved', ...Object.keys(manifest.categories)] : ['saved'];
+  const currentCategory = activeCategory === 'saved'
+    ? {
+        label: 'Imagens salvas',
+        description: 'Backgrounds salvos por você ao gerar ou escolher um fundo.',
+        icon: '💾',
+        images: (savedBackgrounds || []).map((item) => item.image_url),
+      }
+    : manifest?.categories[activeCategory];
   const currentImages = currentCategory?.images || [];
 
+  useEffect(() => {
+    if (activeCategory === 'acolhimento-respiro' && savedBackgrounds && savedBackgrounds.length > 0) {
+      setActiveCategory('saved');
+    }
+  }, [activeCategory, savedBackgrounds]);
+
   // Loading state
-  if (loading) {
+  if (loading || loadingSaved) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 size={20} className="animate-spin" style={{ color: accentColor }} />
@@ -84,7 +99,7 @@ export function BackgroundGallery({
   }
 
   // Error state
-  if (error || !manifest) {
+  if (error && (!savedBackgrounds || savedBackgrounds.length === 0)) {
     return (
       <div className="flex flex-col items-center justify-center py-8 gap-2">
         <ImageOff size={20} className="text-[var(--text-tertiary)]" />
@@ -98,7 +113,10 @@ export function BackgroundGallery({
       {/* Categorias */}
       <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
         {categories.map((cat) => {
-          const info = manifest.categories[cat];
+          const info = cat === 'saved'
+            ? { label: 'Imagens salvas', icon: '💾' }
+            : manifest?.categories[cat];
+          if (!info) return null;
           const isActive = activeCategory === cat;
           return (
             <button
@@ -128,10 +146,11 @@ export function BackgroundGallery({
         <div className="grid grid-cols-4 gap-1.5">
           {currentImages.map((imagePath, index) => {
             // Encode cada segmento do path separadamente para preservar as barras
+            const isSavedCategory = activeCategory === 'saved';
             const encodedPath = imagePath.split('/').map(encodeURIComponent).join('/');
-            const url = `/images/backgrounds/${encodedPath}`;
+            const url = isSavedCategory ? imagePath : `/images/backgrounds/${encodedPath}`;
             // selectedUrl pode ter sido salvo sem encoding (compatibilidade) — compara também o path raw
-            const rawUrl = `/images/backgrounds/${imagePath}`;
+            const rawUrl = isSavedCategory ? imagePath : `/images/backgrounds/${imagePath}`;
             const isSelected = selectedUrl === url || selectedUrl === rawUrl;
             return (
               <motion.button

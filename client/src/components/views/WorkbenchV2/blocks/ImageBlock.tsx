@@ -14,11 +14,13 @@
  */
 
 import React, { useRef } from "react";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, Save, X } from "lucide-react";
 import type { BackgroundValue } from "@shared/postspark";
 import { BackgroundGallery } from "@/components/ui/BackgroundGallery";
 import { PrecisionSlider } from "@/components/ui/PrecisionSlider";
 import { useEditorStore } from "@/store/editorStore";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 // Tabs de fonte do fundo
 const BG_TABS: { id: BackgroundValue["type"]; label: string; icon: string }[] = [
@@ -42,9 +44,19 @@ export default function ImageBlock({ onGenerateImage, isGenerating = false }: Im
     const setBgOverlay = useEditorStore((s) => s.setBgOverlay);
     const updateImageSettings = useEditorStore((s) => s.updateImageSettings);
     const activeVariation = useEditorStore((s) => s.activeVariation);
+    const utils = trpc.useUtils();
 
     const [imageProvider, setImageProvider] = React.useState<'pollinations_fast' | 'pollinations_hd'>('pollinations_fast');
     const [aiPrompt, setAiPrompt] = React.useState(activeVariation?.imagePrompt || "");
+    const saveBackgroundMutation = trpc.post.saveBackgroundAsset.useMutation({
+        onSuccess: async () => {
+            await utils.post.listSavedBackgrounds.invalidate();
+            toast.success("Background salvo na sua biblioteca.");
+        },
+        onError: (error) => {
+            toast.error(error.message || "Não foi possível salvar o background.");
+        },
+    });
 
     React.useEffect(() => {
         if (activeVariation?.imagePrompt) {
@@ -72,6 +84,16 @@ export default function ImageBlock({ onGenerateImage, isGenerating = false }: Im
     const handleGenerate = async () => {
         if (!onGenerateImage || !aiPrompt.trim() || isGenerating) return;
         await onGenerateImage(aiPrompt, imageProvider);
+    };
+
+    const handleSaveBackground = async () => {
+        if (!bgValue.url || saveBackgroundMutation.isPending) return;
+        await saveBackgroundMutation.mutateAsync({
+            imageUrl: bgValue.url,
+            sourceType: bgValue.type === "upload" ? "upload" : bgValue.type === "gallery" ? "gallery" : "ai",
+            prompt: activeTab === "ai" ? aiPrompt : activeVariation?.imagePrompt,
+            label: activeTab === "ai" ? "Background IA" : activeTab === "upload" ? "Upload salvo" : "Background salvo",
+        });
     };
 
     return (
@@ -251,6 +273,24 @@ export default function ImageBlock({ onGenerateImage, isGenerating = false }: Im
             )}
 
             {/* ── Overlay (só quando há imagem) ── */}
+            {(activeTab === "gallery" || activeTab === "upload" || activeTab === "ai") &&
+                bgValue.type === activeTab &&
+                bgValue.url && (
+                    <button
+                        onClick={handleSaveBackground}
+                        disabled={saveBackgroundMutation.isPending}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold transition-all disabled:opacity-50"
+                        style={{
+                            borderColor: `${accentColor}40`,
+                            background: `${accentColor}12`,
+                            color: accentColor,
+                        }}
+                    >
+                        <Save size={12} />
+                        {saveBackgroundMutation.isPending ? "Salvando..." : "Salvar na biblioteca"}
+                    </button>
+                )}
+
             {(activeTab === "gallery" || activeTab === "upload" || activeTab === "ai") &&
                 bgValue.type === activeTab &&
                 bgValue.url && (

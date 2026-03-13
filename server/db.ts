@@ -9,6 +9,13 @@ type JsonValue =
   | { [key: string]: JsonValue }
   | JsonValue[];
 
+type CopyAngleValue = {
+  type: string;
+  label: string;
+  badge: string;
+  stickerText: string;
+};
+
 export type PostRecord = {
   id: number;
   user_uuid: string | null;
@@ -33,6 +40,7 @@ export type PostRecord = {
   layout_settings: JsonValue | null;
   bg_value: JsonValue | null;
   bg_overlay: JsonValue | null;
+  copy_angle: CopyAngleValue | null;
   exported: boolean | null;
   createdAt: string;
   updatedAt: string;
@@ -61,10 +69,30 @@ export type CreatePostInput = {
   layoutSettings?: JsonValue;
   bgValue?: JsonValue;
   bgOverlay?: JsonValue;
+  copyAngle?: CopyAngleValue;
 };
 
 export type UpdatePostInput = Partial<Omit<CreatePostInput, "userUuid">> & {
   id?: number;
+};
+
+export type BackgroundAssetRecord = {
+  id: number;
+  user_uuid: string;
+  image_url: string;
+  source_type: string;
+  prompt: string | null;
+  label: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateBackgroundAssetInput = {
+  userUuid: string;
+  imageUrl: string;
+  sourceType: string;
+  prompt?: string;
+  label?: string;
 };
 
 let _supabaseDbClient: any = null;
@@ -120,6 +148,7 @@ export async function createPost(post: CreatePostInput): Promise<number> {
     layout_settings: post.layoutSettings ?? null,
     bg_value: post.bgValue ?? null,
     bg_overlay: post.bgOverlay ?? null,
+    copy_angle: post.copyAngle ?? null,
   };
 
   const { data, error } = await db
@@ -178,6 +207,7 @@ export async function updatePost(
     layout_settings: data.layoutSettings,
     bg_value: data.bgValue,
     bg_overlay: data.bgOverlay,
+    copy_angle: data.copyAngle,
   });
 
   if (Object.keys(payload).length === 0) {
@@ -213,4 +243,43 @@ export async function getPostById(
   }
 
   return (data ?? undefined) as PostRecord | undefined;
+}
+
+export async function createBackgroundAsset(input: CreateBackgroundAssetInput): Promise<BackgroundAssetRecord> {
+  const db = getSupabaseDbClient();
+
+  const { data, error } = await db
+    .from("background_assets")
+    .insert({
+      user_uuid: input.userUuid,
+      image_url: input.imageUrl,
+      source_type: input.sourceType,
+      prompt: input.prompt ?? null,
+      label: input.label ?? null,
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error(`[Database] createBackgroundAsset failed: ${error?.message ?? "unknown error"}`);
+  }
+
+  return data as BackgroundAssetRecord;
+}
+
+export async function getUserBackgroundAssets(userUuid: string, limit = 100): Promise<BackgroundAssetRecord[]> {
+  const db = getSupabaseDbClient();
+
+  const { data, error } = await db
+    .from("background_assets")
+    .select("*")
+    .eq("user_uuid", userUuid)
+    .order("createdAt", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(`[Database] getUserBackgroundAssets failed: ${error.message}`);
+  }
+
+  return (data ?? []) as BackgroundAssetRecord[];
 }

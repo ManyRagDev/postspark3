@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Pricing from "./pages/Pricing";
 import Billing from "./pages/Billing";
+import SavedPosts from "./pages/SavedPosts";
 import AuthGate from "./components/AuthGate";
 import LoginModal from "./components/LoginModal";
 import UserTopMenu from "./components/UserTopMenu";
@@ -82,6 +83,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/pricing"} component={Pricing} />
       <Route path={"/billing"} component={Billing} />
+      <Route path={"/saved-posts"} component={SavedPosts} />
       <Route path={"/billing/success"} component={PostCheckoutSuccess} />
       <Route path={"/billing/topup-success"} component={TopupSuccess} />
       <Route path={"/auth/google-callback"} component={GoogleAuthCallback} />

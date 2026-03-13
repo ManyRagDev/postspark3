@@ -44,6 +44,9 @@ interface WorkbenchV2Props {
     onExport?: () => void;
 }
 
+const DESKTOP_ACCOUNT_SAFE_WIDTH = 240;
+const DESKTOP_ACCOUNT_SAFE_HEIGHT = 76;
+
 // ─── Sidebar Esquerda (Desktop) ──────────────────────────────────────────────
 interface LeftSidebarProps {
     onGenerateImage: (prompt: string, provider: 'pollinations_fast' | 'pollinations_hd') => Promise<string>;
@@ -212,7 +215,7 @@ function LeftSidebar({ onGenerateImage, isGenerating, accentColor }: LeftSidebar
 }
 
 // ─── Painel Direito (Quick Actions - Desktop) ─────────────────────────────────
-function RightPanel() {
+function RightPanel({ topClearance = 0 }: { topClearance?: number }) {
     const aspectRatio = useEditorStore((s) => s.aspectRatio);
     const setAspectRatio = useEditorStore((s) => s.setAspectRatio);
     const activeVariation = useEditorStore((s) => s.activeVariation);
@@ -228,6 +231,7 @@ function RightPanel() {
                 background: "var(--bg-panel, rgba(18,18,28,0.95))",
                 borderLeft: "1px solid rgba(255,255,255,0.06)",
                 padding: "1rem",
+                paddingTop: `${topClearance + 16}px`,
             }}
         >
             <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">
@@ -323,6 +327,7 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: Work
 
     const { activeTab } = arcDrawer.state;
     const accentColor = activeVariation.accentColor ?? "#a855f7";
+    const desktopHeaderPaddingRight = !isMobile ? `${DESKTOP_ACCOUNT_SAFE_WIDTH}px` : undefined;
 
     return (
         <div
@@ -336,6 +341,7 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: Work
                     borderBottom: "1px solid rgba(255,255,255,0.06)",
                     background: "var(--bg-panel, rgba(18,18,28,0.95))",
                     height: "48px",
+                    paddingRight: desktopHeaderPaddingRight,
                 }}
             >
                 <button
@@ -402,7 +408,7 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: Work
 
                 <CanvasWorkspace canvasRef={canvasRef} />
 
-                {!isMobile && <RightPanel />}
+                {!isMobile && <RightPanel topClearance={DESKTOP_ACCOUNT_SAFE_HEIGHT} />}
             </div>
 
             {/* ── Mobile: Bottom Navigation Bar ───────────────────────────────── */}

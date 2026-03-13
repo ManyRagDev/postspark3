@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { AnimatePresence } from "framer-motion";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import TheVoid from "@/components/views/TheVoid";
 import HoloDeck from "@/components/views/HoloDeck";
@@ -8,6 +8,7 @@ import WorkbenchV2 from "@/components/views/WorkbenchV2/WorkbenchV2";
 import { useExtractedStyles } from "@/hooks/useExtractedStyles";
 import type { InputType, PostVariation, AppState, AiModel, PostMode } from "@shared/postspark";
 import { useUpgradePrompt, UpgradePromptModal } from "@/components/UpgradePrompt";
+import { useEditorStore } from "@/store/editorStore";
 
 export default function Home() {
   const [appState, setAppState] = useState<AppState>("void");
@@ -20,6 +21,7 @@ export default function Home() {
   const { showUpgradePrompt, open: upgradeOpen, setOpen: setUpgradeOpen } = useUpgradePrompt();
   const [variations, setVariations] = useState<PostVariation[]>([]);
   const [loadingImageId, setLoadingImageId] = useState<string | null>(null);
+  const activeVariation = useEditorStore((state) => state.activeVariation);
 
   const generateMutation = trpc.post.generate.useMutation();
   const generateImageMutation = trpc.post.generateBackground.useMutation();
@@ -132,6 +134,7 @@ export default function Home() {
   const handleSave = useCallback(
     async (variation: PostVariation) => {
       try {
+        const editorState = useEditorStore.getState();
         await saveMutation.mutateAsync({
           inputType: inputMeta.type,
           inputContent: inputMeta.content,
@@ -147,14 +150,25 @@ export default function Home() {
           textColor: variation.textColor,
           accentColor: variation.accentColor,
           layout: variation.layout,
-          imageSettings: (variation as any).imageSettings,
-          layoutSettings: (variation as any).layoutSettings,
-          bgValue: (variation as any).bgValue,
-          bgOverlay: (variation as any).bgOverlay,
+          postMode: editorState.postMode,
+          slides: editorState.slides,
+          textElements: variation.textElements,
+          imageSettings: editorState.imageSettings,
+          layoutSettings: editorState.layoutSettings,
+          bgValue: editorState.bgValue,
+          bgOverlay: editorState.bgOverlay,
+          copyAngle: variation.copyAngle,
         });
         toast.success("Conteúdo consolidado.");
-      } catch {
-        toast.error("Não foi possível consolidar o post.");
+      } catch (err: any) {
+        const saveErrorMessage =
+          err?.message ||
+          err?.shape?.message ||
+          err?.data?.message ||
+          err?.data?.cause?.message ||
+          "Não foi possível consolidar o post.";
+        console.error("[Home] Save error:", err);
+        toast.error(saveErrorMessage);
       }
     },
     [saveMutation, inputMeta]
@@ -169,6 +183,24 @@ export default function Home() {
   const goToHoloDeck = useCallback(() => {
     setAppState("holodeck");
   }, []);
+
+  useEffect(() => {
+    const pendingSavedPost = sessionStorage.getItem("postspark.open_saved_post");
+    if (!pendingSavedPost || !activeVariation) return;
+
+    try {
+      const parsed = JSON.parse(pendingSavedPost) as { type?: InputType; content?: string };
+      setInputMeta({
+        type: parsed.type || "text",
+        content: parsed.content || "",
+      });
+      setAppState("workbench");
+    } catch {
+      setAppState("workbench");
+    } finally {
+      sessionStorage.removeItem("postspark.open_saved_post");
+    }
+  }, [activeVariation]);
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">

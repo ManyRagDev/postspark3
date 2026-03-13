@@ -258,6 +258,9 @@ export default function PostCardV2({
   // Consumindo dados do Zustand (Fase 1 + Fase 3)
   const {
     activeVariation,
+    slides,
+    currentSlideIndex,
+    updateSlide,
     imageSettings,
     layoutSettings,
     updateLayoutSettings,
@@ -281,7 +284,12 @@ export default function PostCardV2({
   const theme = undefined as ThemeConfig | undefined; // Eliminamos props theme puras na V2, focando em designTokens
   const resolvedBrandMeta = brandMeta || (variation as any).brandMeta;
 
-  const { headline, body, imageUrl: variationImageUrl, backgroundColor, textColor, headlineColor, bodyColor, accentColor, layout } = variation;
+  const activeSlide = variation.postMode === 'carousel' && slides.length > 0
+    ? slides[currentSlideIndex] || slides[0]
+    : null;
+  const headline = activeSlide?.headline || variation.headline;
+  const body = activeSlide?.body || variation.body;
+  const { imageUrl: variationImageUrl, backgroundColor, textColor, headlineColor, bodyColor, accentColor, layout } = variation;
 
   // Merge: variation-level tokens override prop-level tokens
   const baseTokens = designTokens as any;
@@ -348,6 +356,14 @@ export default function PostCardV2({
   // Decorations: sticker + badge from copyAngle
   const copyAngle = variation.copyAngle;
   const isPlayful = dt?.decorations === 'playful';
+
+  const commitCarouselAwareUpdate = (patch: Partial<{ headline: string; body: string }>) => {
+    if (variation.postMode === 'carousel' && activeSlide) {
+      updateSlide(currentSlideIndex, patch);
+      return;
+    }
+    useEditorStore.getState().updateVariation(patch);
+  };
 
   // ── Auto-fit: Ajusta texto automaticamente ao mudar aspect ratio ──
   const autoFit = useTextAutoFit({
@@ -686,7 +702,7 @@ export default function PostCardV2({
               }}
               onBlur={(e) => {
                 const cleanText = e.currentTarget.innerText.trim();
-                useEditorStore.getState().updateVariation({ headline: cleanText });
+                commitCarouselAwareUpdate({ headline: cleanText });
                 setInlineEditTarget(null);
               }}
               style={{
@@ -723,7 +739,7 @@ export default function PostCardV2({
                 }}
                 onBlur={(e) => {
                   const cleanText = e.currentTarget.innerText.trim();
-                  useEditorStore.getState().updateVariation({ body: cleanText });
+                  commitCarouselAwareUpdate({ body: cleanText });
                   setInlineEditTarget(null);
                 }}
                 style={{
@@ -803,7 +819,7 @@ export default function PostCardV2({
               }}
               onBlur={(e) => {
                 const cleanText = e.currentTarget.innerText.trim();
-                useEditorStore.getState().updateVariation({ headline: cleanText });
+                commitCarouselAwareUpdate({ headline: cleanText });
                 setInlineEditTarget(null);
               }}
               style={{
@@ -830,7 +846,7 @@ export default function PostCardV2({
                 }}
                 onBlur={(e) => {
                   const cleanText = e.currentTarget.innerText.trim();
-                  useEditorStore.getState().updateVariation({ body: cleanText });
+                  commitCarouselAwareUpdate({ body: cleanText });
                   setInlineEditTarget(null);
                 }}
                 style={{
@@ -907,7 +923,7 @@ export default function PostCardV2({
               }}
               onBlur={(e) => {
                 const cleanText = e.currentTarget.innerText.trim();
-                useEditorStore.getState().updateVariation({ headline: cleanText });
+                commitCarouselAwareUpdate({ headline: cleanText });
                 setInlineEditTarget(null);
               }}
               style={{
@@ -934,7 +950,7 @@ export default function PostCardV2({
                 }}
                 onBlur={(e) => {
                   const cleanText = e.currentTarget.innerText.trim();
-                  useEditorStore.getState().updateVariation({ body: cleanText });
+                  commitCarouselAwareUpdate({ body: cleanText });
                   setInlineEditTarget(null);
                 }}
                 style={{
@@ -1029,7 +1045,7 @@ export default function PostCardV2({
             }}
             onBlur={(e) => {
               const cleanText = e.currentTarget.innerText.trim();
-              useEditorStore.getState().updateVariation({ headline: cleanText });
+              commitCarouselAwareUpdate({ headline: cleanText });
               setInlineEditTarget(null);
             }}
             style={{
@@ -1057,7 +1073,7 @@ export default function PostCardV2({
               }}
               onBlur={(e) => {
                 const cleanText = e.currentTarget.innerText.trim();
-                useEditorStore.getState().updateVariation({ body: cleanText });
+                commitCarouselAwareUpdate({ body: cleanText });
                 setInlineEditTarget(null);
               }}
               style={{
@@ -1137,7 +1153,7 @@ export default function PostCardV2({
               }}
               onBlur={(e) => {
                 const cleanText = e.currentTarget.innerText.trim();
-                useEditorStore.getState().updateVariation({ headline: cleanText });
+                commitCarouselAwareUpdate({ headline: cleanText });
                 setInlineEditTarget(null);
               }}
               style={{
@@ -1224,7 +1240,7 @@ export default function PostCardV2({
                 }}
                 onBlur={(e) => {
                   const cleanText = e.currentTarget.innerText.trim();
-                  useEditorStore.getState().updateVariation({ headline: cleanText });
+                  commitCarouselAwareUpdate({ headline: cleanText });
                   setInlineEditTarget(null);
                 }}
                 style={{
@@ -1254,7 +1270,7 @@ export default function PostCardV2({
                     }}
                     onBlur={(e) => {
                       const cleanText = e.currentTarget.innerText.trim();
-                      useEditorStore.getState().updateVariation({ body: cleanText });
+                      commitCarouselAwareUpdate({ body: cleanText });
                       setInlineEditTarget(null);
                     }}
                     style={{

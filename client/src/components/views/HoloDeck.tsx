@@ -475,8 +475,8 @@ export default function HoloDeck({
       editorStore.updateLayoutSettings(advanced);
     }
 
-    if (parsedVariation.slides && parsedVariation.slides.length > 0) {
-      editorStore.setSlides(parsedVariation.slides);
+    if (parsedVariation.postMode === "carousel" || (parsedVariation.slides && parsedVariation.slides.length > 0)) {
+      editorStore.setSlides(parsedVariation.slides || []);
       editorStore.setPostMode("carousel");
     } else {
       editorStore.setSlides([]);

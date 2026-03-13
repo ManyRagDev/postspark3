@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
-import { Eye, Sparkles, Loader2, Magnet } from "lucide-react";
+import { Eye, Sparkles, Loader2, Magnet, ChevronLeft, ChevronRight } from "lucide-react";
 import html2canvas from "html2canvas-pro";
 import PostCardV2 from "./PostCardV2";
 import OrganicBackground from "../../OrganicBackground";
@@ -36,6 +36,10 @@ export default function CanvasWorkspace({
     const bgValue = useEditorStore((s) => s.bgValue);
     const isMagnetActive = useEditorStore((s) => s.isMagnetActive);
     const setMagnetActive = useEditorStore((s) => s.setMagnetActive);
+    const postMode = useEditorStore((s) => s.postMode);
+    const slides = useEditorStore((s) => s.slides);
+    const currentSlideIndex = useEditorStore((s) => s.currentSlideIndex);
+    const setCurrentSlideIndex = useEditorStore((s) => s.setCurrentSlideIndex);
 
     const [isAutoPiloting, setIsAutoPiloting] = useState(false);
     const autoPilotMutation = trpc.post.autoPilotDesign.useMutation();
@@ -124,6 +128,7 @@ export default function CanvasWorkspace({
     const dt = activeVariation?.designTokens;
     const accentColor = dt?.colors?.primary ?? activeVariation?.accentColor ?? "#a855f7";
     const backgroundColor = dt?.colors?.background ?? activeVariation?.backgroundColor ?? "#0d0d16";
+    const isCarousel = postMode === "carousel" && slides.length > 0;
 
     return (
         <div
@@ -226,6 +231,42 @@ export default function CanvasWorkspace({
                 </div>
 
                 {/* Botão de Ajuste com IA (Floating no topo direito do CanvasWorkspace) */}
+                {isCarousel && (
+                    <div className="absolute left-1/2 top-4 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/10 bg-black/60 px-3 py-2 backdrop-blur-md">
+                        <button
+                            onClick={() => setCurrentSlideIndex((currentSlideIndex - 1 + slides.length) % slides.length)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/6 text-white/75 transition-colors hover:bg-white/12 hover:text-white"
+                            title="Slide anterior"
+                        >
+                            <ChevronLeft size={14} />
+                        </button>
+                        <div className="flex items-center gap-1.5">
+                            {slides.map((_, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => setCurrentSlideIndex(index)}
+                                    className="rounded-full transition-all"
+                                    style={{
+                                        width: index === currentSlideIndex ? 20 : 6,
+                                        height: 6,
+                                        background: index === currentSlideIndex ? accentColor : "rgba(255,255,255,0.22)",
+                                    }}
+                                    title={`Slide ${index + 1}`}
+                                />
+                            ))}
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/65">
+                            {currentSlideIndex + 1}/{slides.length}
+                        </span>
+                        <button
+                            onClick={() => setCurrentSlideIndex((currentSlideIndex + 1) % slides.length)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/6 text-white/75 transition-colors hover:bg-white/12 hover:text-white"
+                            title="Próximo slide"
+                        >
+                            <ChevronRight size={14} />
+                        </button>
+                    </div>
+                )}
                 <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2">
                     {canAutoPilot ? (
                         <button

@@ -49,6 +49,7 @@ export const posts = postsparkSchema.table("posts", {
   layoutSettings: jsonb("layout_settings").$type<any>(),
   bgValue: jsonb("bg_value").$type<any>(),
   bgOverlay: jsonb("bg_overlay").$type<any>(),
+  copyAngle: jsonb("copy_angle").$type<any>(),
   exported: boolean("exported").default(false), // Changed to boolean
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -56,3 +57,17 @@ export const posts = postsparkSchema.table("posts", {
 
 export type Post = typeof posts.$inferSelect;
 export type InsertPost = typeof posts.$inferInsert;
+
+export const backgroundAssets = postsparkSchema.table("background_assets", {
+  id: serial("id").primaryKey(),
+  userUuid: uuid("user_uuid").notNull(),
+  imageUrl: text("image_url").notNull(),
+  sourceType: varchar("source_type", { length: 32 }).notNull(),
+  prompt: text("prompt"),
+  label: text("label"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export type BackgroundAsset = typeof backgroundAssets.$inferSelect;
+export type InsertBackgroundAsset = typeof backgroundAssets.$inferInsert;

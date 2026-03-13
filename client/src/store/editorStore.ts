@@ -25,6 +25,7 @@ export interface EditorState {
     setActiveVariation: (variation: PostVariation | null) => void;
     setSlides: (slides: CarouselSlide[]) => void;
     setCurrentSlideIndex: (index: number) => void;
+    updateSlide: (index: number, patch: Partial<CarouselSlide>) => void;
     setPostMode: (mode: PostMode) => void;
     setPlatform: (platform: Platform) => void;
     setAspectRatio: (ratio: AspectRatio) => void;
@@ -71,9 +72,35 @@ export const useEditorStore = create<EditorState>((set) => ({
             bgOverlay: (variation as any).bgOverlay ?? state.bgOverlay,
         };
     }),
-    setSlides: (slides) => set({ slides }),
+    setSlides: (slides) => set((state) => ({
+        slides,
+        currentSlideIndex: 0,
+        activeVariation: state.activeVariation
+            ? {
+                ...state.activeVariation,
+                postMode: slides.length > 0 ? 'carousel' : state.activeVariation.postMode,
+                slides,
+            }
+            : null,
+    })),
     setCurrentSlideIndex: (currentSlideIndex) => set({ currentSlideIndex }),
-    setPostMode: (postMode) => set({ postMode }),
+    updateSlide: (index, patch) => set((state) => {
+        if (index < 0 || index >= state.slides.length) return state;
+        const slides = [...state.slides];
+        slides[index] = { ...slides[index], ...patch };
+        return {
+            slides,
+            activeVariation: state.activeVariation
+                ? { ...state.activeVariation, slides }
+                : null,
+        };
+    }),
+    setPostMode: (postMode) => set((state) => ({
+        postMode,
+        activeVariation: state.activeVariation
+            ? { ...state.activeVariation, postMode }
+            : null,
+    })),
     setPlatform: (platform) => set({ platform }),
     setAspectRatio: (aspectRatio) => set({ aspectRatio }),
 
