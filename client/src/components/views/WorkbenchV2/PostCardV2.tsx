@@ -287,6 +287,9 @@ export default function PostCardV2({
   const activeSlide = variation.postMode === 'carousel' && slides.length > 0
     ? slides[currentSlideIndex] || slides[0]
     : null;
+  const isCarousel = variation.postMode === 'carousel' && slides.length > 0;
+  const isCtaSlide = Boolean(activeSlide?.isCtaSlide) || (isCarousel && currentSlideIndex === slides.length - 1);
+  const showCarouselArrow = isCarousel && !isCtaSlide;
   const headline = activeSlide?.headline || variation.headline;
   const body = activeSlide?.body || variation.body;
   const { imageUrl: variationImageUrl, backgroundColor, textColor, headlineColor, bodyColor, accentColor, layout } = variation;
@@ -480,7 +483,7 @@ export default function PostCardV2({
   };
 
   // ── Handlers & Wrappers for Flexbox + Draggable ──
-  const handleDragPosition = (target: "headline" | "body" | "accentBar" | "badge" | "sticker", x: number, y: number) => {
+  const handleDragPosition = (target: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow", x: number, y: number) => {
     if (!layoutSettings) return;
     let finalX = x;
     let finalY = y;
@@ -496,7 +499,7 @@ export default function PostCardV2({
     });
   };
 
-  const handleResizeBlock = (target: "headline" | "body" | "accentBar" | "badge" | "sticker", width: number) => {
+  const handleResizeBlock = (target: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow", width: number) => {
     if (!layoutSettings) return;
     updateLayoutSettings({
       ...layoutSettings,
@@ -504,15 +507,15 @@ export default function PostCardV2({
     });
   };
 
-  const handleSelectElement = (target: "headline" | "body" | "accentBar" | "card" | "badge" | "sticker" | "global") => {
-    if (target === 'headline' || target === 'body' || target === 'badge' || target === 'sticker' || target === 'accentBar') {
+  const handleSelectElement = (target: "headline" | "body" | "accentBar" | "card" | "badge" | "sticker" | "carouselArrow" | "global") => {
+    if (target === 'headline' || target === 'body' || target === 'badge' || target === 'sticker' || target === 'accentBar' || target === 'carouselArrow') {
       setLayoutTarget(target);
     } else {
       setLayoutTarget('global');
     }
   };
 
-  const Draggable = ({ target, children, color }: { target: "headline" | "body" | "accentBar" | "badge" | "sticker", children: React.ReactNode, color?: string }) => {
+  const Draggable = ({ target, children, color }: { target: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow", children: React.ReactNode, color?: string }) => {
     if (!layoutSettings || !layoutSettings[target]) return <>{children}</>;
     return (
       <DraggableBlock
@@ -530,7 +533,7 @@ export default function PostCardV2({
         accentColor={color || effectiveText}
         isDraggable={!compact && inlineEditTarget !== target}
         forceSelected={layoutTarget === target}
-        defaultWidth={target === 'badge' || target === 'sticker' ? 'max-content' : '100%'}
+        defaultWidth={target === 'badge' || target === 'sticker' || target === 'carouselArrow' ? 'max-content' : '100%'}
       >
         {children}
       </DraggableBlock>
@@ -590,72 +593,80 @@ export default function PostCardV2({
   };
 
   const renderBottomBar = () => {
-    if (!copyAngle?.stickerText || compact) return null;
+    const hasSticker = Boolean(copyAngle?.stickerText);
+    if ((!hasSticker && !showCarouselArrow) || compact) return null;
 
     const isCenter = dt?.typography?.textAlign === 'center';
     const border = dt?.structure?.border || 'none';
     const primaryColor = effectiveAccent;
-    const isCarousel = variation.postMode === 'carousel' || (variation.slides && variation.slides.length > 1);
 
     return (
       <div className={`w-full flex mt-6 transition-all duration-500 font-sans z-10 mt-auto pointer-events-none ${isCenter ? 'justify-center gap-6' : 'justify-between items-end'}`}>
-        <div className="pointer-events-auto">
-          <Draggable target="sticker" color={primaryColor}>
-            {isPlayful ? (
-              <div className="relative group transition-transform">
-                <div className="absolute inset-0 bg-black translate-x-1 translate-y-1 transition-all"></div>
-                <div
-                  className="relative px-3 py-2 flex items-center justify-center rotate-[-8deg] bg-white transition-all"
-                  style={{ border }}
-                >
-                  <span
-                    className="font-bold text-sm tracking-wider uppercase"
-                    style={{ color: primaryColor, outline: 'none' }}
-                    contentEditable={inlineEditTarget === 'sticker'}
-                    suppressContentEditableWarning={true}
-                    onPaste={(e) => {
-                      e.preventDefault();
-                      const text = e.clipboardData.getData("text/plain");
-                      document.execCommand("insertText", false, text);
-                    }}
-                    onBlur={(e) => {
-                      const cleanText = e.currentTarget.innerText.trim();
-                      useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, stickerText: cleanText } });
-                      setInlineEditTarget(null);
-                    }}
-                  >
-                    {copyAngle.stickerText}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div
-                className="px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-widest transition-all duration-500"
-                style={{
-                  background: `linear-gradient(135deg, ${effectiveAccent}, ${effectiveAccent}dd)`,
-                  color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.2)', boxShadow: `0 4px 15px -3px ${effectiveAccent}40`, border: '1px solid rgba(255,255,255,0.1)', outline: 'none'
-                }}
-                contentEditable={inlineEditTarget === 'sticker'}
-                suppressContentEditableWarning={true}
-                onPaste={(e) => {
-                  e.preventDefault();
-                  const text = e.clipboardData.getData("text/plain");
-                  document.execCommand("insertText", false, text);
-                }}
-                onBlur={(e) => {
-                  const cleanText = e.currentTarget.innerText.trim();
-                  useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, stickerText: cleanText } });
-                  setInlineEditTarget(null);
-                }}
-              >
-                {copyAngle.stickerText}
-              </div>
-            )}
-          </Draggable>
-        </div>
-        {isCarousel && (
+        {hasSticker && (
           <div className="pointer-events-auto">
-            <ArrowRight className="w-6 h-6 lg:w-8 lg:h-8 transition-all duration-300 shrink-0" style={{ color: effectiveText }} />
+            <Draggable target="sticker" color={primaryColor}>
+              {isPlayful ? (
+                <div className="relative group transition-transform">
+                  <div className="absolute inset-0 bg-black translate-x-1 translate-y-1 transition-all"></div>
+                  <div
+                    className="relative px-3 py-2 flex items-center justify-center rotate-[-8deg] bg-white transition-all"
+                    style={{ border }}
+                  >
+                    <span
+                      className="font-bold text-sm tracking-wider uppercase"
+                      style={{ color: primaryColor, outline: 'none' }}
+                      contentEditable={inlineEditTarget === 'sticker'}
+                      suppressContentEditableWarning={true}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        const text = e.clipboardData.getData("text/plain");
+                        document.execCommand("insertText", false, text);
+                      }}
+                      onBlur={(e) => {
+                        const cleanText = e.currentTarget.innerText.trim();
+                        if (copyAngle) {
+                          useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, stickerText: cleanText } });
+                        }
+                        setInlineEditTarget(null);
+                      }}
+                    >
+                      {copyAngle?.stickerText}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-widest transition-all duration-500"
+                  style={{
+                    background: `linear-gradient(135deg, ${effectiveAccent}, ${effectiveAccent}dd)`,
+                    color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.2)', boxShadow: `0 4px 15px -3px ${effectiveAccent}40`, border: '1px solid rgba(255,255,255,0.1)', outline: 'none'
+                  }}
+                  contentEditable={inlineEditTarget === 'sticker'}
+                  suppressContentEditableWarning={true}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const text = e.clipboardData.getData("text/plain");
+                    document.execCommand("insertText", false, text);
+                  }}
+                  onBlur={(e) => {
+                    const cleanText = e.currentTarget.innerText.trim();
+                    if (copyAngle) {
+                      useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, stickerText: cleanText } });
+                    }
+                    setInlineEditTarget(null);
+                  }}
+                >
+                  {copyAngle?.stickerText}
+                </div>
+              )}
+            </Draggable>
+          </div>
+        )}
+        {showCarouselArrow && (
+          <div className="pointer-events-auto">
+            <Draggable target="carouselArrow" color={effectiveText}>
+              <ArrowRight className="w-6 h-6 lg:w-8 lg:h-8 transition-all duration-300 shrink-0" style={{ color: effectiveText }} />
+            </Draggable>
           </div>
         )}
       </div>

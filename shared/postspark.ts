@@ -108,8 +108,67 @@ export interface ContentSection {
 /** AI Model selection */
 export type AiModel = "gemini" | "llama";
 
+/** Creation mode - ideation starts from an open prompt, execution starts from a structured brief */
+export type CreationMode = "ideation" | "execution";
+
 /** Post mode - static single post or carousel */
 export type PostMode = "static" | "carousel";
+
+/** Execution mode intervention level */
+export type ExecutionInterventionLevel =
+  | "visual_only"
+  | "light_optimize"
+  | "optimize_structure";
+
+/** Source format used to build the execution brief */
+export type ExecutionContentSourceType =
+  | "freeform"
+  | "carousel_topics"
+  | "carousel_slides"
+  | "caption_ready";
+
+/** Brand adaptation strategy */
+export type BrandAdaptationMode =
+  | "strict"
+  | "adaptive"
+  | "reference_clone";
+
+/** Single slide input used by the execution brief */
+export interface ExecutionSlideInput {
+  slideNumber: number;
+  rawText: string;
+  role?: "hook" | "development" | "cta" | "custom";
+  locked?: boolean;
+}
+
+/** Visual/brand inputs used to adapt the generated piece */
+export interface ExecutionBrandInput {
+  websiteUrl?: string;
+  logoUrl?: string;
+  referenceImageUrl?: string;
+  brandColors?: string[];
+  fontHint?: string;
+  adaptationMode: BrandAdaptationMode;
+}
+
+/** Structured brief for users who already know what they want to create */
+export interface CreativeExecutionBrief {
+  creationMode: "execution";
+  format: "static" | "carousel" | "story" | "ad";
+  platform: Platform;
+  objective: "educate" | "authority" | "sell" | "engage" | "lead";
+  tone?: string;
+  callToAction?: string;
+  interventionLevel: ExecutionInterventionLevel;
+  contentSourceType: ExecutionContentSourceType;
+  rawInput: string;
+  slides?: ExecutionSlideInput[];
+  mustKeep?: string[];
+  mustInclude?: string[];
+  forbiddenTerms?: string[];
+  notes?: string;
+  brandInput?: ExecutionBrandInput;
+}
 
 /** Post mode configuration */
 export const POST_MODE_CONFIG: Record<PostMode, {
@@ -315,6 +374,13 @@ export interface PostVariation {
   /** Design tokens override — when set, these drive the visual rendering directly */
   designTokens?: Partial<DesignTokens>;
 
+  /** Metadata about how the variation was generated */
+  generationMeta?: {
+    creationMode: CreationMode;
+    fidelity?: "high" | "medium";
+    interventionLevel?: ExecutionInterventionLevel;
+  };
+
   /** Editor V2 Persistence fields */
   imageSettings?: any;
   layoutSettings?: any;
@@ -323,7 +389,7 @@ export interface PostVariation {
 }
 
 /** App state machine */
-export type AppState = "void" | "holodeck" | "workbench";
+export type AppState = "void" | "execution-brief" | "holodeck" | "workbench";
 
 /** Generation request */
 export interface GenerationRequest {
@@ -333,6 +399,8 @@ export interface GenerationRequest {
   imageUrl?: string;
   postMode?: PostMode;
   model?: AiModel;
+  creationMode?: CreationMode;
+  executionBrief?: CreativeExecutionBrief;
 }
 
 /** URL scrape result */

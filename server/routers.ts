@@ -181,6 +181,117 @@ function variationsNeedDiversification(variations: Array<any>): boolean {
 }
 
 const CAROUSEL_SLIDE_TARGET = 5;
+const EXECUTION_VARIATION_TARGET = 3;
+
+const executionSlideInputSchema = z.object({
+  slideNumber: z.number().int().min(1).max(CAROUSEL_SLIDE_TARGET),
+  rawText: z.string(),
+  role: z.enum(["hook", "development", "cta", "custom"]).optional(),
+  locked: z.boolean().optional(),
+});
+
+const executionBrandInputSchema = z.object({
+  websiteUrl: z.string().optional(),
+  logoUrl: z.string().optional(),
+  referenceImageUrl: z.string().optional(),
+  brandColors: z.array(z.string()).optional(),
+  fontHint: z.string().optional(),
+  adaptationMode: z.enum(["strict", "adaptive", "reference_clone"]),
+});
+
+const executionBriefSchema = z.object({
+  creationMode: z.literal("execution"),
+  format: z.enum(["static", "carousel", "story", "ad"]),
+  platform: z.enum(["instagram", "twitter", "linkedin", "facebook"]),
+  objective: z.enum(["educate", "authority", "sell", "engage", "lead"]),
+  tone: z.string().optional(),
+  callToAction: z.string().optional(),
+  interventionLevel: z.enum(["visual_only", "light_optimize", "optimize_structure"]),
+  contentSourceType: z.enum(["freeform", "carousel_topics", "carousel_slides", "caption_ready"]),
+  rawInput: z.string(),
+  slides: z.array(executionSlideInputSchema).optional(),
+  mustKeep: z.array(z.string()).optional(),
+  mustInclude: z.array(z.string()).optional(),
+  forbiddenTerms: z.array(z.string()).optional(),
+  notes: z.string().optional(),
+  brandInput: executionBrandInputSchema.optional(),
+});
+
+function normalizeExecutionBrief(input: any) {
+  const brief = executionBriefSchema.parse(input);
+  const normalizedSlides = Array.isArray(brief.slides)
+    ? brief.slides
+      .filter((slide) => slide.rawText.trim().length > 0)
+      .sort((a, b) => a.slideNumber - b.slideNumber)
+      .slice(0, CAROUSEL_SLIDE_TARGET)
+    : [];
+
+  return {
+    ...brief,
+    slides: normalizedSlides,
+    mustKeep: brief.mustKeep || [],
+    mustInclude: brief.mustInclude || [],
+    forbiddenTerms: brief.forbiddenTerms || [],
+    brandInput: brief.brandInput
+      ? {
+        ...brief.brandInput,
+        brandColors: brief.brandInput.brandColors || [],
+      }
+      : undefined,
+  };
+}
+
+function buildExecutionBriefContext(brief: ReturnType<typeof normalizeExecutionBrief>) {
+  const slidesBlock = brief.slides.length > 0
+    ? brief.slides
+      .map((slide) => `Slide ${slide.slideNumber} [${slide.role || "custom"}${slide.locked ? ", travado" : ""}]: ${slide.rawText}`)
+      .join("\n")
+    : "Nenhum slide estruturado foi fornecido.";
+
+  const brandBlock = brief.brandInput
+    ? [
+      `- Site: ${brief.brandInput.websiteUrl || "não informado"}`,
+      `- Referência visual: ${brief.brandInput.referenceImageUrl || "não informada"}`,
+      `- Cores: ${brief.brandInput.brandColors?.join(", ") || "não informadas"}`,
+      `- Fonte sugerida: ${brief.brandInput.fontHint || "não informada"}`,
+      `- Modo de adaptação: ${brief.brandInput.adaptationMode}`,
+    ].join("\n")
+    : "- Nenhuma identidade visual estruturada foi enviada.";
+
+  const mustKeepBlock = brief.mustKeep.length > 0 ? brief.mustKeep.join(" | ") : "nenhum";
+  const mustIncludeBlock = brief.mustInclude.length > 0 ? brief.mustInclude.join(" | ") : "nenhum";
+  const forbiddenBlock = brief.forbiddenTerms.length > 0 ? brief.forbiddenTerms.join(" | ") : "nenhum";
+
+  return `BRIEFING DE EXECUÇÃO:
+- Formato: ${brief.format}
+- Plataforma: ${brief.platform}
+- Objetivo: ${brief.objective}
+- Tom desejado: ${brief.tone || "não informado"}
+- CTA obrigatório: ${brief.callToAction || "não informado"}
+- Nível de intervenção: ${brief.interventionLevel}
+- Tipo de insumo: ${brief.contentSourceType}
+
+CONTEÚDO BRUTO:
+${brief.rawInput}
+
+SLIDES FORNECIDOS:
+${slidesBlock}
+
+ITENS QUE DEVEM SER PRESERVADOS:
+${mustKeepBlock}
+
+ITENS QUE DEVEM APARECER:
+${mustIncludeBlock}
+
+TERMOS PROIBIDOS:
+${forbiddenBlock}
+
+IDENTIDADE VISUAL:
+${brandBlock}
+
+OBSERVAÇÕES:
+${brief.notes || "nenhuma"}`;
+}
 
 function buildFallbackCarouselSlides(variation: any): Array<any> {
   const baseHeadline = String(variation?.headline || "Resumo");
@@ -398,6 +509,8 @@ export const appRouter = router({
         tone: z.string().optional(),
         postMode: z.enum(["static", "carousel"]).default("static"),
         model: z.enum(["gemini", "llama"]).optional(),
+        creationMode: z.enum(["ideation", "execution"]).default("ideation"),
+        executionBrief: executionBriefSchema.optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         // Debita Sparks antes de gerar
@@ -414,6 +527,9 @@ export const appRouter = router({
         let contextContent = input.content;
         let brandDnaContext = "";
         let chameleonResult: import("@shared/postspark").ChameleonVisionResult | null = null;
+        const normalizedExecutionBrief = input.creationMode === "execution" && input.executionBrief
+          ? normalizeExecutionBrief(input.executionBrief)
+          : null;
 
         // If URL, scrape it first and extract Brand DNA for visual cloning
         if (input.inputType === "url") {
@@ -478,20 +594,41 @@ REGRA CARDINAL DE CORES (A FONTE É URL):
         };
         const spec = platformSpecs[input.platform];
 
-        const toneHint = input.tone
-          ? `\nTom detectado no input do usuário: "${input.tone}" — calibre o conteúdo gerado para esse estado emocional.\n`
+        const effectiveTone = normalizedExecutionBrief?.tone || input.tone;
+        const toneHint = effectiveTone
+          ? `\nTom detectado no input do usuário: "${effectiveTone}" — calibre o conteúdo gerado para esse estado emocional.\n`
           : "";
 
         // Dynamic system prompt based on postMode
         const isCarousel = input.postMode === "carousel";
-        const modeInstruction = isCarousel
-          ? `\nIMPORTANTE: Gere conteúdo para um CARROSSEL (múltiplos slides). Cada variação DEVE ter exatamente 5 slides organizados em um array "slides". Não retorne array vazio, parcial ou simplificado. Cada slide deve ter: headline (título curto máx 50 caracteres), body (mensagem máx 80 caracteres), slideNumber (1-5), isTitleSlide (primeiro slide), isCtaSlide (último slide com call-to-action). O headline/body de nível superior são apenas um resumo do carrossel; o conteúdo principal vive nos slides.`
-          : "\nGere posts individuais (estático).";
+        const modeInstruction = normalizedExecutionBrief
+          ? isCarousel
+            ? `\nIMPORTANTE: Gere conteúdo para um CARROSSEL de execução guiada. Cada variação DEVE ter exatamente 5 slides organizados em "slides". Preserve a estrutura fornecida pelo usuário sempre que ela existir. Slide 1 = gancho, slides 2-4 = desenvolvimento, slide 5 = CTA final. Não coloque CTA nos slides 1-4.`
+            : "\nIMPORTANTE: Gere uma peça de execução guiada, fiel ao briefing, com baixa distância entre as variações."
+          : isCarousel
+            ? `\nIMPORTANTE: Gere conteúdo para um CARROSSEL (múltiplos slides). Cada variação DEVE ter exatamente 5 slides organizados em um array "slides". Não retorne array vazio, parcial ou simplificado. Estrutura obrigatória do carrossel: slide 1 = gancho forte e altamente curioso para fazer a pessoa folhear; slides 2, 3 e 4 = desenvolvimento progressivo do tema; slide 5 = CTA final, e somente ele deve conter call-to-action. Não coloque CTA nos slides 1-4. Cada slide deve ter: headline (título curto máx 50 caracteres), body (mensagem máx 80 caracteres), slideNumber (1-5), isTitleSlide (true apenas no slide 1), isCtaSlide (true apenas no slide 5). O headline/body de nível superior são apenas um resumo do carrossel; o conteúdo principal vive nos slides.`
+            : "\nGere posts individuais (estático).";
+
+        const executionSystemContext = normalizedExecutionBrief
+          ? `
+MODO DE EXECUÇÃO ATIVADO:
+- Você NÃO está criando do zero. Você está executando um briefing.
+- Preserve a intenção, a estrutura, o CTA e os termos obrigatórios enviados pelo usuário.
+- Se houver slides fornecidos, trate-os como material fonte prioritário.
+- Não reescreva agressivamente sem necessidade.
+- O nível de intervenção permitido é: ${normalizedExecutionBrief.interventionLevel}.
+- Gere EXATAMENTE ${EXECUTION_VARIATION_TARGET} variações próximas entre si. Varie principalmente acabamento visual, microcopy e hierarquia, não o conceito central.
+- Se o nível for "visual_only", mantenha o texto quase intacto.
+- Se o nível for "light_optimize", melhore clareza, ritmo e impacto sem alterar a estrutura principal.
+- Se o nível for "optimize_structure", você pode reorganizar trechos, mas sem trair a mensagem central.
+`
+          : "";
 
         const systemPrompt = `Você é um especialista em marketing digital, design visual e criação de conteúdo para redes sociais.
 Gere EXATAMENTE 3 variações de post para ${spec.label}.${modeInstruction}
-Cada variação deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado.${toneHint}
+${normalizedExecutionBrief ? "As 3 variações devem ser próximas entre si e altamente fiéis ao briefing." : "Cada variação deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado."}${toneHint}
 ${brandDnaContext}
+${executionSystemContext}
 
 REGRAS DE COPY — SIGA COM RIGOR:
 - Headline: máximo 60 caracteres. Seja direto e impactante. Sem ponto final.
@@ -539,9 +676,13 @@ PRINCÍPIOS DE DESIGN VISUAL E MIMETISMO:
    
 Responda APENAS com JSON válido.`;
 
-        const userPrompt = input.inputType === "image"
-          ? `Crie posts baseados nesta imagem: ${input.imageUrl || input.content}`
-          : `Crie posts baseados neste conteúdo: ${contextContent}`;
+        const userPrompt = normalizedExecutionBrief
+          ? `Execute este briefing com fidelidade. Otimize apenas no grau permitido.
+
+${buildExecutionBriefContext(normalizedExecutionBrief)}`
+          : input.inputType === "image"
+            ? `Crie posts baseados nesta imagem: ${input.imageUrl || input.content}`
+            : `Crie posts baseados neste conteúdo: ${contextContent}`;
 
         // ─── JSON Schema Layout Definitions ───
         const layoutPositionSchema = {
@@ -796,7 +937,7 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
           }
         }
 
-        if (variationsNeedDiversification(variations)) {
+        if (!normalizedExecutionBrief && variationsNeedDiversification(variations)) {
           try {
             console.warn("[Variation Guard] Similar variations detected. Requesting diversified rewrite...");
             const diversificationPrompt = `Você recebeu 3 variações de post que ficaram parecidas demais.
@@ -892,6 +1033,11 @@ Responda APENAS com JSON válido.`;
                 stickerText: chameleonPost.stickerText,
               },
             } : {}),
+            generationMeta: {
+              creationMode: input.creationMode,
+              fidelity: normalizedExecutionBrief ? "high" : "medium",
+              interventionLevel: normalizedExecutionBrief?.interventionLevel,
+            },
           };
         });
       }),

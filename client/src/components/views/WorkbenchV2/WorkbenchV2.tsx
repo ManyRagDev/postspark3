@@ -64,7 +64,7 @@ function LeftSidebar({ onGenerateImage, isGenerating, accentColor }: LeftSidebar
     };
 
     const isTextContext = layoutTarget === 'headline' || layoutTarget === 'body';
-    const isBrandContext = layoutTarget === 'badge' || layoutTarget === 'sticker' || layoutTarget === 'accentBar';
+    const isBrandContext = layoutTarget === 'badge' || layoutTarget === 'sticker' || layoutTarget === 'accentBar' || layoutTarget === 'carouselArrow';
 
     // MODO CONTEXTUAL (Foco isolado no elemento clicado)
     if (isTextContext || isBrandContext) {
@@ -73,7 +73,8 @@ function LeftSidebar({ onGenerateImage, isGenerating, accentColor }: LeftSidebar
             body: "Corpo de Texto",
             badge: "Badge (Tag)",
             sticker: "Sticker Decorativo",
-            accentBar: "Barra de Destaque"
+            accentBar: "Barra de Destaque",
+            carouselArrow: "Seta do Carrossel",
         };
         return (
             <aside

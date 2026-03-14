@@ -63,6 +63,7 @@ export interface AdvancedLayoutSettings {
   accentBar: LayoutPosition;
   badge: LayoutPosition;
   sticker: LayoutPosition;
+  carouselArrow: LayoutPosition;
   /** Position and width of the main post card relative to the canvas. */
   card: LayoutPosition;
   padding: number; // 0–80px, default 24
@@ -89,6 +90,7 @@ export const DEFAULT_LAYOUT_SETTINGS: AdvancedLayoutSettings = {
   accentBar: { position: "top-left", textAlign: "left", width: 15 },
   badge: { position: "top-center", textAlign: "center" },
   sticker: { position: "bottom-center", textAlign: "center" },
+  carouselArrow: { position: "bottom-right", textAlign: "right", width: 12 },
   card: { position: "center", textAlign: "center" },
   padding: 24,
 };

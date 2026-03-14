@@ -1,8 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Sparkles, Link2, Image, ArrowRight, Loader2, Layers, FileText, ChevronDown } from "lucide-react";
-import type { InputType, PostMode, AiModel } from "@shared/postspark";
+import { Sparkles, Link2, Image, ArrowRight, Loader2, Layers, FileText, ChevronDown, Wand2, BriefcaseBusiness } from "lucide-react";
+import type { CreationMode, InputType, PostMode, AiModel } from "@shared/postspark";
 import { useAIProcessingStages } from "@/hooks/useAIProcessingStages";
 
 interface SmartInputProps {
@@ -11,6 +11,8 @@ interface SmartInputProps {
   onTextChange?: (text: string) => void;
   postMode?: PostMode;
   onPostModeChange?: (mode: PostMode) => void;
+  creationMode?: CreationMode;
+  onCreationModeChange?: (mode: CreationMode) => void;
 }
 
 const URL_REGEX = /^(https?:\/\/|www\.)[^\s]+\.[^\s]{2,}/i;
@@ -64,6 +66,8 @@ export default function SmartInput({
   onTextChange,
   postMode = 'static',
   onPostModeChange,
+  creationMode = "ideation",
+  onCreationModeChange,
 }: SmartInputProps) {
   const [value, setValue] = useState("");
   const [inputType, setInputType] = useState<InputType>("text");
@@ -83,6 +87,7 @@ export default function SmartInput({
 
   const config = TYPE_CONFIG[inputType];
   const Icon = config.icon;
+  const isExecutionMode = creationMode === "execution";
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -92,9 +97,14 @@ export default function SmartInput({
   }, [onTextChange]);
 
   const handleSubmit = useCallback(() => {
-    if (!value.trim() || isLoading) return;
+    if (isLoading) return;
+    if (isExecutionMode) {
+      onSubmit("", "text");
+      return;
+    }
+    if (!value.trim()) return;
     onSubmit(value.trim(), inputType);
-  }, [value, inputType, onSubmit, isLoading]);
+  }, [value, inputType, onSubmit, isLoading, isExecutionMode]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -131,6 +141,18 @@ export default function SmartInput({
     static: { icon: FileText, label: 'Estático' },
     carousel: { icon: Layers, label: 'Carrossel' },
   };
+  const creationModeConfig = {
+    ideation: {
+      icon: Wand2,
+      label: "Quero ideias",
+      description: "A IA explora caminhos criativos",
+    },
+    execution: {
+      icon: BriefcaseBusiness,
+      label: "Ja sei o que criar",
+      description: "Voce traz o briefing e a IA executa",
+    },
+  } satisfies Record<CreationMode, { icon: typeof Wand2; label: string; description: string }>;
   const currentMode = modeConfig[postMode];
   const ModeIcon = currentMode.icon;
 
@@ -179,8 +201,45 @@ export default function SmartInput({
           className="relative backdrop-blur-xl rounded-2xl p-4"
           style={{ WebkitBackdropFilter: "blur(24px)" }}
         >
+          <div className="mb-3 flex flex-wrap gap-2">
+            {(["ideation", "execution"] as CreationMode[]).map((mode) => {
+              const cfg = creationModeConfig[mode];
+              const IconComponent = cfg.icon;
+              const isSelected = creationMode === mode;
+
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => onCreationModeChange?.(mode)}
+                  className="flex items-center gap-2 rounded-xl px-3 py-2 text-left transition-all"
+                  style={{
+                    background: isSelected ? "oklch(0.7 0.22 40 / 14%)" : "oklch(1 0 0 / 4%)",
+                    border: `1px solid ${isSelected ? "oklch(0.7 0.22 40 / 40%)" : "oklch(1 0 0 / 8%)"}`,
+                    color: isSelected ? "oklch(0.92 0.03 280)" : "oklch(0.65 0.03 280)",
+                  }}
+                >
+                  <div
+                    className="flex h-7 w-7 items-center justify-center rounded-lg"
+                    style={{
+                      background: isSelected ? "oklch(0.7 0.22 40 / 20%)" : "oklch(1 0 0 / 6%)",
+                    }}
+                  >
+                    <IconComponent size={14} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold">{cfg.label}</span>
+                    <span className="text-[10px]" style={{ color: isSelected ? "oklch(0.75 0.12 40)" : "oklch(0.5 0.02 280)" }}>
+                      {cfg.description}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
           <AnimatePresence mode="wait">
-            {value.trim() && (
+            {!isExecutionMode && value.trim() && (
               <motion.div
                 key={inputType}
                 initial={{ opacity: 0, y: -10, scale: 0.9 }}
@@ -208,27 +267,48 @@ export default function SmartInput({
           </AnimatePresence>
 
           <div className="flex items-center gap-2">
-            <textarea
-              ref={inputRef}
-              data-tour="void-input"
-              value={value}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              placeholder="O que vamos criar hoje?"
-              rows={1}
-              disabled={isLoading}
-              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground text-base resize-none outline-none leading-relaxed overflow-x-auto whitespace-nowrap"
-              style={{
-                fontFamily: "var(--font-sans)",
-                height: "28px",
-                minHeight: "28px",
-                maxHeight: "28px",
-              }}
-            />
-
-
+            <AnimatePresence initial={false} mode="wait">
+              {!isExecutionMode ? (
+                <motion.textarea
+                  key="ideation-input"
+                  ref={inputRef}
+                  data-tour="void-input"
+                  value={value}
+                  onChange={handleChange}
+                  onKeyDown={handleKeyDown}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  placeholder="O que vamos criar hoje?"
+                  rows={1}
+                  disabled={isLoading}
+                  className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground text-base resize-none outline-none leading-relaxed overflow-x-auto whitespace-nowrap"
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    height: "28px",
+                    minHeight: "28px",
+                    maxHeight: "28px",
+                  }}
+                  initial={{ opacity: 0, height: 0, y: 8 }}
+                  animate={{ opacity: 1, height: 28, y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -8 }}
+                  transition={{ duration: 0.22, ease: "easeInOut" }}
+                />
+              ) : (
+                <motion.div
+                  key="execution-cta-copy"
+                  className="flex-1 pr-2"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.22, ease: "easeInOut" }}
+                >
+                  <div className="text-sm font-semibold text-white">Voce vai detalhar o briefing na proxima etapa</div>
+                  <div className="mt-1 text-xs text-white/50">
+                    Formato, conteudo, intervencao da IA e identidade visual serao configurados em seguida.
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="flex-shrink-0" ref={modeMenuRef}>
               <button
@@ -371,14 +451,15 @@ export default function SmartInput({
             <motion.button
               onClick={handleSubmit}
               data-tour="void-submit"
-              disabled={!value.trim() || isLoading}
+              disabled={(!isExecutionMode && !value.trim()) || isLoading}
               className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl transition-colors disabled:opacity-30"
               style={{
-                background: value.trim() ? config.borderColor : "oklch(1 0 0 / 8%)",
-                color: value.trim() ? "oklch(0.08 0.02 280)" : "oklch(0.6 0.03 280)",
+                background: (isExecutionMode || value.trim()) ? config.borderColor : "oklch(1 0 0 / 8%)",
+                color: (isExecutionMode || value.trim()) ? "oklch(0.08 0.02 280)" : "oklch(0.6 0.03 280)",
               }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              title={isExecutionMode ? "Continuar briefing" : "Gerar ideias"}
             >
               {isLoading ? (
                 <Loader2 size={18} className="animate-spin" />
@@ -412,7 +493,9 @@ export default function SmartInput({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
             >
-              Insira uma ideia, texto ou URL para começar
+              {creationMode === "execution"
+                ? "Selecione para executar um briefing estruturado na proxima tela"
+                : "Insira uma ideia, texto ou URL para começar"}
             </motion.p>
           )}
         </AnimatePresence>

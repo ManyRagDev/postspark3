@@ -808,18 +808,23 @@ export default function PostCard({
   };
 
   const renderBottomBar = () => {
-    if (!copyAngle?.stickerText || compact) return null;
+    const isCarousel = variation.postMode === 'carousel' || (variation.slides && variation.slides.length > 1);
+    const activeSlide = variation.postMode === 'carousel' && Array.isArray(variation.slides)
+      ? variation.slides[0]
+      : null;
+    const isCtaSlide = Boolean(activeSlide?.isCtaSlide);
+    const showCarouselArrow = isCarousel && !isCtaSlide;
+    if ((!copyAngle?.stickerText && !showCarouselArrow) || compact) return null;
 
     const isCenter = dt?.typography?.textAlign === 'center';
     const border = dt?.structure?.border || 'none';
     const primaryColor = dt?.colors?.primary || effectiveAccent;
-    const isCarousel = variation.postMode === 'carousel' || (variation.slides && variation.slides.length > 1);
 
     return (
       <div
         className={`w-full flex mt-6 transition-all duration-500 font-sans z-10 mt-auto ${isCenter ? 'justify-center gap-6' : 'justify-between items-end'}`}
       >
-        {isPlayful ? (
+        {copyAngle?.stickerText && (isPlayful ? (
           <div className="relative group transition-transform">
             <div className="absolute inset-0 bg-black translate-x-1 translate-y-1 transition-all"></div>
             <div
@@ -844,8 +849,8 @@ export default function PostCard({
           >
             {copyAngle.stickerText}
           </div>
-        )}
-        {isCarousel && (
+        ))}
+        {showCarouselArrow && (
           <ArrowRight className="w-6 h-6 lg:w-8 lg:h-8 transition-all duration-300 shrink-0" style={{ color: effectiveText }} />
         )}
       </div>

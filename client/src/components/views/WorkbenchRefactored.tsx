@@ -182,6 +182,7 @@ export function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSett
         accentBar: { position: 'top-center', textAlign: 'center', width: 10 },
         badge: { position: 'top-center', textAlign: 'center' },
         sticker: { position: 'bottom-center', textAlign: 'center' },
+        carouselArrow: { position: 'bottom-right', textAlign: 'right', width: 12 },
         card: { position: 'center', textAlign: 'center' },
         padding: 24,
       };
@@ -193,6 +194,7 @@ export function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSett
         accentBar: { position: 'top-left', textAlign: 'left', width: 10 },
         badge: { position: 'top-right', textAlign: 'right' },
         sticker: { position: 'bottom-right', textAlign: 'right' },
+        carouselArrow: { position: 'bottom-right', textAlign: 'right', width: 12 },
         card: { position: 'center-left', textAlign: 'left' },
         padding: 24,
       };
@@ -204,6 +206,7 @@ export function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSett
         accentBar: { position: 'top-center', textAlign: 'center', width: 15 },
         badge: { position: 'top-center', textAlign: 'center' },
         sticker: { position: 'bottom-center', textAlign: 'center' },
+        carouselArrow: { position: 'bottom-right', textAlign: 'right', width: 12 },
         card: { position: 'center', textAlign: 'center' },
         padding: 24,
       };
@@ -216,6 +219,7 @@ export function layoutToAdvanced(layout: string | undefined): AdvancedLayoutSett
         accentBar: { position: 'top-left', textAlign: 'left', width: 10 },
         badge: { position: 'top-right', textAlign: 'right' },
         sticker: { position: 'bottom-right', textAlign: 'right' },
+        carouselArrow: { position: 'bottom-right', textAlign: 'right', width: 12 },
         card: { position: 'center-left', textAlign: 'left' },
         padding: 24,
       };

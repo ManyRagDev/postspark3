@@ -18,7 +18,7 @@ export interface EditorState {
     layoutSettings: AdvancedLayoutSettings;
     bgValue: BackgroundValue;
     bgOverlay: BgOverlaySettings;
-    layoutTarget: 'headline' | 'body' | 'image' | 'global' | 'badge' | 'sticker' | 'accentBar' | 'card';
+    layoutTarget: 'headline' | 'body' | 'image' | 'global' | 'badge' | 'sticker' | 'accentBar' | 'carouselArrow' | 'card';
     isMagnetActive: boolean;
 
     // --- Mutators Core (Actions) ---
@@ -35,7 +35,7 @@ export interface EditorState {
     updateLayoutSettings: (settings: Partial<AdvancedLayoutSettings>) => void;
     setBgValue: (bg: BackgroundValue) => void;
     setBgOverlay: (overlay: Partial<BgOverlaySettings>) => void;
-    setLayoutTarget: (target: 'headline' | 'body' | 'image' | 'global' | 'badge' | 'sticker' | 'accentBar' | 'card') => void;
+    setLayoutTarget: (target: 'headline' | 'body' | 'image' | 'global' | 'badge' | 'sticker' | 'accentBar' | 'carouselArrow' | 'card') => void;
     setMagnetActive: (active: boolean) => void;
 
     // --- Actions Adicionais Úteis ---

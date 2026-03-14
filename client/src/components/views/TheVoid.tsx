@@ -6,7 +6,7 @@ import {
   useSpring,
 } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
-import type { InputType, PostMode } from "@shared/postspark";
+import type { CreationMode, InputType, PostMode } from "@shared/postspark";
 import { useAmbientIntelligence } from "@/hooks/useAmbientIntelligence";
 import OrganicBackground from "../OrganicBackground";
 import SparkLogo from "../SparkLogo";
@@ -17,6 +17,8 @@ interface TheVoidProps {
   isLoading: boolean;
   postMode: PostMode;
   onPostModeChange: (mode: PostMode) => void;
+  creationMode: CreationMode;
+  onCreationModeChange: (mode: CreationMode) => void;
 }
 
 const BACKGROUND_CARDS = [
@@ -117,6 +119,8 @@ export default function TheVoid({
   isLoading,
   postMode,
   onPostModeChange,
+  creationMode,
+  onCreationModeChange,
 }: TheVoidProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [inputText, setInputText] = useState("");
@@ -234,6 +238,8 @@ export default function TheVoid({
         onTextChange={handleTextChange}
         postMode={postMode}
         onPostModeChange={onPostModeChange}
+        creationMode={creationMode}
+        onCreationModeChange={onCreationModeChange}
       />
     </motion.div>
   );

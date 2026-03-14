@@ -4,7 +4,7 @@
  * Extrai os controles técnicos de layout do Workbench legado:
  *  - Padding global (Respiro) via <PrecisionSlider />
  *  - Grid de posições 3×3 (clique para posicionar Título, Corpo, Destaque)
- *  - Seletor de "layer" alvo: headline | body | accentBar | badge | sticker
+ *  - Seletor de "layer" alvo: headline | body | accentBar | badge | sticker | carouselArrow
  *
  * Conectado exclusivamente ao Zustand:
  *  - Lê: layoutSettings, layoutTarget
@@ -21,7 +21,7 @@ import { useEditorStore } from "@/store/editorStore";
 
 // Todos os alvos de layout disponíveis
 const LAYOUT_LAYERS: {
-    id: "headline" | "body" | "accentBar" | "badge" | "sticker";
+    id: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow";
     label: string;
 }[] = [
         { id: "headline", label: "Título" },
@@ -29,6 +29,7 @@ const LAYOUT_LAYERS: {
         { id: "accentBar", label: "Destaque" },
         { id: "badge", label: "Badge" },
         { id: "sticker", label: "Sticker" },
+        { id: "carouselArrow", label: "Seta" },
     ];
 
 // Grid 3×3 de posições
@@ -66,7 +67,7 @@ export default function LayoutBlock() {
     // Layer ativo é gerenciado localmente (os valores accentBar/badge/sticker
     // não são tipos válidos do Zustand global layoutTarget)
     const [activeLayer, setActiveLayer] = useState<
-        "headline" | "body" | "accentBar" | "badge" | "sticker"
+        "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow"
     >("headline");
 
     const accentColor = activeVariation?.accentColor ?? "#a855f7";
@@ -121,7 +122,7 @@ export default function LayoutBlock() {
                                 // Tiro de Sniper: Limpa as posições livres (fantasmas) ao mudar o layout master
                                 const currentLayout = state.layoutSettings;
                                 const clearedLayout = { ...currentLayout };
-                                (["headline", "body", "accentBar", "badge", "sticker"] as const).forEach(layer => {
+                                (["headline", "body", "accentBar", "badge", "sticker", "carouselArrow"] as const).forEach(layer => {
                                     if (clearedLayout[layer]) {
                                         clearedLayout[layer] = { ...clearedLayout[layer], freePosition: undefined };
                                     }

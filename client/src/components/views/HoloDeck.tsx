@@ -1,7 +1,7 @@
 ﻿import { useState, useCallback, useEffect, useRef, type MutableRefObject } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
-import { ArrowLeft, Layers, Sparkles, ImagePlus, Loader2, Palette, LayoutGrid, AlignJustify, Globe, Check, Settings2, PenTool } from "lucide-react";
-import type { PostVariation, AspectRatio, TemporaryTheme, DesignTokens } from "@shared/postspark";
+import { ArrowLeft, Layers, Sparkles, ImagePlus, Loader2, Palette, LayoutGrid, AlignJustify, Globe, Check, Settings2, PenTool, BriefcaseBusiness } from "lucide-react";
+import type { PostVariation, AspectRatio, TemporaryTheme, DesignTokens, CreativeExecutionBrief } from "@shared/postspark";
 import { ASPECT_RATIO_LABELS } from "@shared/postspark";
 import OrganicBackground from "../OrganicBackground";
 import PostCard from "../PostCard";
@@ -24,6 +24,8 @@ interface HoloDeckProps {
   loadingImageId: string | null;
   extractedThemes?: TemporaryTheme[];
   isExtractingStyles?: boolean;
+  executionBrief?: CreativeExecutionBrief;
+  onBackToBrief?: () => void;
 }
 
 type ViewMode = "peek" | "wallet";
@@ -354,6 +356,8 @@ export default function HoloDeck({
   loadingImageId,
   extractedThemes = [],
   isExtractingStyles = false,
+  executionBrief,
+  onBackToBrief,
 }: HoloDeckProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("peek");
@@ -553,6 +557,19 @@ export default function HoloDeck({
         </button>
 
         <div className="flex items-center gap-2">
+          {executionBrief && (
+            <div
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full"
+              style={{
+                background: "rgba(251,146,60,0.1)",
+                border: "1px solid rgba(251,146,60,0.22)",
+                color: "rgb(255 237 213)",
+              }}
+            >
+              <BriefcaseBusiness size={12} />
+              <span className="text-xs font-medium">Briefing executado</span>
+            </div>
+          )}
           {/* Counter */}
           <div
             className="flex items-center gap-2 px-3 py-1.5 rounded-full"
@@ -604,6 +621,34 @@ export default function HoloDeck({
         {/* Desktop: espaço para alinhar header (sidebar cobre o lado direito) */}
         <div className="hidden md:block w-16" />
       </motion.div>
+
+      {executionBrief && (
+        <div className="relative z-30 px-5 pb-2">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3 rounded-2xl border border-orange-300/12 bg-orange-400/8 px-4 py-3">
+            <div className="flex items-center gap-2 text-orange-50">
+              <BriefcaseBusiness size={15} />
+              <span className="text-sm font-semibold">Modo execution</span>
+            </div>
+            <span className="text-xs text-orange-50/70">
+              {executionBrief.format} · {executionBrief.objective} · {
+                executionBrief.interventionLevel === "visual_only"
+                  ? "fidelidade maxima"
+                  : executionBrief.interventionLevel === "light_optimize"
+                    ? "otimizacao leve"
+                    : "otimizacao estrutural"
+              }
+            </span>
+            {onBackToBrief && (
+              <button
+                onClick={onBackToBrief}
+                className="ml-auto rounded-xl border border-orange-300/20 bg-black/20 px-3 py-2 text-xs font-medium text-orange-50 transition-colors hover:bg-black/30"
+              >
+                Editar briefing
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Wrapper desktop: card (flex-1) + sidebar (w-72) ── */}
       <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
