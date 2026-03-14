@@ -7,7 +7,7 @@
  *  - Preview de hashtags via <CaptionPreview />
  *  - Edição de Call-to-Action e controle de hashtags
  *
- * Fonte de dados: 100% Zustand (activeVariation / setActiveVariation).
+ * Fonte de dados: 100% Zustand.
  * O WorkbenchRefactored.tsx NÃO é alterado.
  */
 
@@ -18,8 +18,11 @@ import { useEditorStore } from "@/store/editorStore";
 
 export default function CaptionBlock() {
     const activeVariation = useEditorStore((s) => s.activeVariation);
-    const setActiveVariation = useEditorStore((s) => s.setActiveVariation);
+    const updateVariation = useEditorStore((s) => s.updateVariation);
+    const updateSlide = useEditorStore((s) => s.updateSlide);
     const platform = useEditorStore((s) => s.platform);
+    const postMode = useEditorStore((s) => s.postMode);
+    const currentSlideIndex = useEditorStore((s) => s.currentSlideIndex);
 
     const [showPreview, setShowPreview] = useState(false);
     const [newHashtag, setNewHashtag] = useState("");
@@ -34,8 +37,16 @@ export default function CaptionBlock() {
 
     const accentColor = activeVariation.accentColor ?? "#a855f7";
 
-    const update = (partial: Partial<typeof activeVariation>) =>
-        setActiveVariation({ ...activeVariation, ...partial });
+    const update = (partial: Partial<typeof activeVariation>) => updateVariation(partial);
+
+    const updateSlideText = (field: "headline" | "body", value: string) => {
+        if (postMode === "carousel") {
+            updateSlide(currentSlideIndex, { [field]: value });
+            return;
+        }
+
+        update({ [field]: value } as Partial<typeof activeVariation>);
+    };
 
     const addHashtag = () => {
         const tag = newHashtag.replace(/^#/, "").trim();
@@ -58,7 +69,6 @@ export default function CaptionBlock() {
 
     return (
         <div className="space-y-4">
-            {/* ── Cabeçalho ── */}
             <div className="flex items-center gap-2">
                 <MessageSquare size={13} className="text-[var(--text-tertiary)]" />
                 <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">
@@ -66,7 +76,6 @@ export default function CaptionBlock() {
                 </label>
             </div>
 
-            {/* ── Título ── */}
             <div>
                 <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
                     Título
@@ -79,14 +88,13 @@ export default function CaptionBlock() {
                 <input
                     type="text"
                     value={activeVariation.headline ?? ""}
-                    onChange={(e) => update({ headline: e.target.value })}
+                    onChange={(e) => updateSlideText("headline", e.target.value)}
                     className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
                     style={inputStyle}
                     placeholder="Digite o título..."
                 />
             </div>
 
-            {/* ── Corpo ── */}
             <div>
                 <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
                     Corpo
@@ -98,7 +106,7 @@ export default function CaptionBlock() {
                 </label>
                 <textarea
                     value={activeVariation.body ?? ""}
-                    onChange={(e) => update({ body: e.target.value })}
+                    onChange={(e) => updateSlideText("body", e.target.value)}
                     rows={4}
                     className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all resize-none"
                     style={inputStyle}
@@ -106,7 +114,6 @@ export default function CaptionBlock() {
                 />
             </div>
 
-            {/* ── Call-to-Action ── */}
             <div>
                 <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
                     Call-to-Action
@@ -121,7 +128,6 @@ export default function CaptionBlock() {
                 />
             </div>
 
-            {/* ── Legenda (Caption) ── */}
             <div>
                 <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
                     Legenda
@@ -136,7 +142,6 @@ export default function CaptionBlock() {
                 />
             </div>
 
-            {/* ── Preview da Legenda (CaptionPreview) ── */}
             <CaptionPreview
                 caption={activeVariation.caption ?? ""}
                 hashtags={activeVariation.hashtags ?? []}
@@ -146,14 +151,12 @@ export default function CaptionBlock() {
                 accentColor={accentColor}
             />
 
-            {/* ── Hashtags ── */}
             <div>
                 <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <Hash size={11} />
                     Hashtags ({(activeVariation.hashtags ?? []).length})
                 </label>
 
-                {/* Lista de tags */}
                 <div className="flex flex-wrap gap-1.5 mb-2">
                     {(activeVariation.hashtags ?? []).map((tag, i) => (
                         <span
@@ -176,7 +179,6 @@ export default function CaptionBlock() {
                     ))}
                 </div>
 
-                {/* Adicionar hashtag */}
                 <div className="flex gap-1.5">
                     <input
                         type="text"

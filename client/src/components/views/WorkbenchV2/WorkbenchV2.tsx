@@ -291,6 +291,7 @@ function RightPanel({ topClearance = 0 }: { topClearance?: number }) {
 // ─── WorkbenchV2 (raiz) ───────────────────────────────────────────────────────
 export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: WorkbenchV2Props) {
     const activeVariation = useEditorStore((s) => s.activeVariation);
+    const baseVariation = useEditorStore((s) => s.baseVariation);
     const aspectRatio = useEditorStore((s) => s.aspectRatio);
     const isMagnetActive = useEditorStore((s) => s.isMagnetActive);
     const setMagnetActive = useEditorStore((s) => s.setMagnetActive);
@@ -364,7 +365,7 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: Work
 
                 <div className="flex items-center gap-2 ml-auto">
                     <button
-                        onClick={() => onSave?.(activeVariation)}
+                        onClick={() => onSave?.(baseVariation ?? activeVariation)}
                         disabled={isSaving}
                         className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300 bg-white text-black hover:bg-white/90 active:scale-95 disabled:opacity-50 relative group/save overflow-hidden"
                     >

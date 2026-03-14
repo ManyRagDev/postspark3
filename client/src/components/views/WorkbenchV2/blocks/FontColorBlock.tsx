@@ -59,7 +59,7 @@ function ColorSwatch({
 
 export default function FontColorBlock() {
     const activeVariation = useEditorStore((s) => s.activeVariation);
-    const setActiveVariation = useEditorStore((s) => s.setActiveVariation);
+    const updateVariation = useEditorStore((s) => s.updateVariation);
     const layoutTarget = useEditorStore((s) => s.layoutTarget);
     const setLayoutTarget = useEditorStore((s) => s.setLayoutTarget);
 
@@ -85,9 +85,6 @@ export default function FontColorBlock() {
             : fontScope === "body"
                 ? (activeVariation.bodyFontFamily ?? activeVariation.designTokens?.typography?.fontFamily ?? "Inter")
                 : (activeVariation.designTokens?.typography?.fontFamily ?? "Inter");
-
-    const updateVariation = (partial: Partial<typeof activeVariation>) =>
-        setActiveVariation({ ...activeVariation, ...partial });
 
     const handleFontChange = (value: string) => {
         if (fontScope === "headline") {

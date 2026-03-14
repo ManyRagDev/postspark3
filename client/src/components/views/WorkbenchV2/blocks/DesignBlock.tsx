@@ -22,7 +22,7 @@ import { useEditorStore } from "@/store/editorStore";
 
 export default function DesignBlock() {
     const activeVariation = useEditorStore((s) => s.activeVariation);
-    const setActiveVariation = useEditorStore((s) => s.setActiveVariation);
+    const updateVariation = useEditorStore((s) => s.updateVariation);
     const layoutTarget = useEditorStore((s) => s.layoutTarget);
 
     if (!activeVariation) {
@@ -42,14 +42,13 @@ export default function DesignBlock() {
         : layoutTarget) as "headline" | "body" | "both";
 
     const handleTokensChange = (updated: DesignTokens) => {
-        setActiveVariation({
-            ...activeVariation,
+        updateVariation({
             designTokens: updated,
         });
     };
 
     const handleUpdateVariation = (partial: Partial<typeof activeVariation>) => {
-        setActiveVariation({ ...activeVariation, ...partial });
+        updateVariation(partial);
     };
 
     return (

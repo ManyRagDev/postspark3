@@ -281,6 +281,19 @@ export interface CarouselSlide {
   slideNumber: number;
   isTitleSlide?: boolean;
   isCtaSlide?: boolean;
+  /**
+   * Optional visual/editor overrides for this specific slide.
+   * Used by Workbench V2 when the editor is applying changes to the current slide only.
+   */
+  editorState?: CarouselSlideEditorState;
+}
+
+export interface CarouselSlideEditorState {
+  variation?: Partial<Omit<PostVariation, "slides">>;
+  imageSettings?: Record<string, unknown>;
+  layoutSettings?: Record<string, unknown>;
+  bgValue?: BackgroundValue;
+  bgOverlay?: Partial<BgOverlaySettings>;
 }
 
 /** Specific design optimizations for an aspect ratio */

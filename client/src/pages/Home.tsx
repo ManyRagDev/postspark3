@@ -206,29 +206,30 @@ export default function Home() {
     async (variation: PostVariation) => {
       try {
         const editorState = useEditorStore.getState();
+        const persistedVariation = editorState.baseVariation ?? variation;
         await saveMutation.mutateAsync({
           inputType: inputMeta.type,
           inputContent: inputMeta.content,
-          platform: variation.platform,
-          headline: variation.headline,
-          body: variation.body,
-          hashtags: variation.hashtags,
-          callToAction: variation.callToAction,
-          tone: variation.tone,
-          imagePrompt: variation.imagePrompt,
-          imageUrl: variation.imageUrl,
-          backgroundColor: variation.backgroundColor,
-          textColor: variation.textColor,
-          accentColor: variation.accentColor,
-          layout: variation.layout,
+          platform: persistedVariation.platform,
+          headline: persistedVariation.headline,
+          body: persistedVariation.body,
+          hashtags: persistedVariation.hashtags,
+          callToAction: persistedVariation.callToAction,
+          tone: persistedVariation.tone,
+          imagePrompt: persistedVariation.imagePrompt,
+          imageUrl: persistedVariation.imageUrl,
+          backgroundColor: persistedVariation.backgroundColor,
+          textColor: persistedVariation.textColor,
+          accentColor: persistedVariation.accentColor,
+          layout: persistedVariation.layout,
           postMode: editorState.postMode,
           slides: editorState.slides,
-          textElements: variation.textElements,
-          imageSettings: editorState.imageSettings,
-          layoutSettings: editorState.layoutSettings,
-          bgValue: editorState.bgValue,
-          bgOverlay: editorState.bgOverlay,
-          copyAngle: variation.copyAngle,
+          textElements: persistedVariation.textElements,
+          imageSettings: editorState.baseImageSettings,
+          layoutSettings: editorState.baseLayoutSettings,
+          bgValue: editorState.baseBgValue,
+          bgOverlay: editorState.baseBgOverlay,
+          copyAngle: persistedVariation.copyAngle,
         });
         toast.success("Conteúdo consolidado.");
       } catch (err: any) {

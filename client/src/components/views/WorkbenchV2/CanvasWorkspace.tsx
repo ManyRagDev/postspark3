@@ -40,6 +40,8 @@ export default function CanvasWorkspace({
     const slides = useEditorStore((s) => s.slides);
     const currentSlideIndex = useEditorStore((s) => s.currentSlideIndex);
     const setCurrentSlideIndex = useEditorStore((s) => s.setCurrentSlideIndex);
+    const applyScope = useEditorStore((s) => s.applyScope);
+    const setApplyScope = useEditorStore((s) => s.setApplyScope);
 
     const [isAutoPiloting, setIsAutoPiloting] = useState(false);
     const autoPilotMutation = trpc.post.autoPilotDesign.useMutation();
@@ -157,7 +159,7 @@ export default function CanvasWorkspace({
                 }}
             />
             {/* Container do card com scaling responsivo pra grandeza visual */}
-            <div className="relative group p-8 flex items-center justify-center max-h-[85vh]">
+            <div className="relative group px-8 pt-24 pb-8 flex items-center justify-center max-h-[85vh]">
                 <div
                     ref={canvasRef}
                     className="relative z-10 rounded-2xl shadow-2xl transition-transform duration-300 ease-in-out ease-out transform-gpu shrink-0"
@@ -232,7 +234,7 @@ export default function CanvasWorkspace({
 
                 {/* Botão de Ajuste com IA (Floating no topo direito do CanvasWorkspace) */}
                 {isCarousel && (
-                    <div className="absolute left-1/2 top-4 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/10 bg-black/60 px-3 py-2 backdrop-blur-md">
+                    <div className="absolute left-1/2 top-6 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/10 bg-black/60 px-3 py-2 backdrop-blur-md shadow-2xl">
                         <button
                             onClick={() => setCurrentSlideIndex((currentSlideIndex - 1 + slides.length) % slides.length)}
                             className="flex h-7 w-7 items-center justify-center rounded-full bg-white/6 text-white/75 transition-colors hover:bg-white/12 hover:text-white"
@@ -258,6 +260,30 @@ export default function CanvasWorkspace({
                         <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/65">
                             {currentSlideIndex + 1}/{slides.length}
                         </span>
+                        <div className="mx-1 h-5 w-px bg-white/10" />
+                        <div className="flex items-center gap-1 rounded-full border border-white/8 bg-white/5 p-1">
+                            {([
+                                { id: "current", label: "Este slide" },
+                                { id: "all", label: "Todos" },
+                            ] as const).map((scope) => {
+                                const isActive = applyScope === scope.id;
+                                return (
+                                    <button
+                                        key={scope.id}
+                                        onClick={() => setApplyScope(scope.id)}
+                                        className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] transition-all"
+                                        style={{
+                                            background: isActive ? `${accentColor}20` : "transparent",
+                                            border: `1px solid ${isActive ? `${accentColor}66` : "transparent"}`,
+                                            color: isActive ? accentColor : "rgba(255,255,255,0.55)",
+                                        }}
+                                        title={scope.id === "current" ? "Aplicar mudanças apenas ao slide atual" : "Aplicar mudanças a todos os slides"}
+                                    >
+                                        {scope.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
                         <button
                             onClick={() => setCurrentSlideIndex((currentSlideIndex + 1) % slides.length)}
                             className="flex h-7 w-7 items-center justify-center rounded-full bg-white/6 text-white/75 transition-colors hover:bg-white/12 hover:text-white"
