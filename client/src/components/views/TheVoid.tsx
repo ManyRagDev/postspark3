@@ -320,58 +320,67 @@ export default function TheVoid({
 
       {isMobile && (
         <motion.div
-          className="relative z-10 w-full h-full flex flex-col items-center justify-center px-5 pointer-events-auto"
+          className="relative z-10 w-full h-full overflow-y-auto pointer-events-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4 }}
         >
-          <motion.div
-            className="w-full flex flex-col items-center gap-7"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-          >
+          <div className="relative min-h-[100svh] px-5 pb-[calc(env(safe-area-inset-bottom,0px)+36px)] pt-[max(20px,env(safe-area-inset-top,0px)+12px)]">
             <motion.div
-              className="flex flex-col items-center gap-2 drop-shadow-2xl"
-              initial={{ opacity: 0, y: 12 }}
+              className="mx-auto flex min-h-[calc(100svh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-56px)] w-full max-w-[21.5rem] flex-col items-center justify-center gap-7"
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.15 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
             >
-              <SparkLogo size={40} />
-              <div className="text-center">
-                <h1
-                  className="text-2xl font-bold tracking-tight"
-                  style={{ fontFamily: "var(--font-display)", textShadow: "0 2px 10px rgba(0,0,0,0.5)" }}
-                >
-                  <span className="text-foreground">Post</span>
-                  <span style={{ color: "oklch(0.7 0.22 40)" }}>Spark</span>
-                </h1>
-                <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.6)" }}>
-                  Capture a alma. Crie o novo.
-                </p>
-              </div>
-            </motion.div>
+              <motion.div
+                className="flex flex-col items-center gap-3 text-center"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.12 }}
+              >
+                <SparkLogo size={42} />
+                <div className="space-y-1.5">
+                  <h1
+                    className="text-[2rem] font-bold tracking-[-0.045em] leading-none"
+                    style={{ fontFamily: "var(--font-display)", textShadow: "0 4px 20px rgba(0,0,0,0.45)" }}
+                  >
+                    <span className="text-foreground">Post</span>
+                    <span style={{ color: "oklch(0.7 0.22 40)" }}>Spark</span>
+                  </h1>
+                  <p className="mx-auto max-w-[22ch] text-[13px] leading-relaxed text-white/62">
+                    Capture a alma. Crie o novo.
+                  </p>
+                </div>
+              </motion.div>
 
-            <motion.div
-              className="w-full flex flex-col items-center gap-3"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              {smartInputWithGlow}
-              <div className="flex justify-center">{ambientBadge}</div>
-            </motion.div>
-          </motion.div>
+              <motion.div
+                className="w-full"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.24 }}
+              >
+                {smartInputWithGlow}
+              </motion.div>
 
-          <motion.p
-            className="absolute bottom-8 text-[11px] text-center"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2 }}
-          >
-            Digite uma ideia ou cole uma URL
-          </motion.p>
+              <motion.div
+                className="flex min-h-8 items-center justify-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.32 }}
+              >
+                {ambientBadge}
+              </motion.div>
+
+              <motion.p
+                className="text-center text-[11px] leading-relaxed text-white/38"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.46 }}
+              >
+                Insira uma ideia, texto ou URL para começar
+              </motion.p>
+            </motion.div>
+          </div>
         </motion.div>
       )}
 

@@ -166,7 +166,7 @@ export default function SmartInput({
   }, [onPostModeChange]);
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4">
+    <div className="w-full max-w-2xl mx-auto px-0 sm:px-4">
       <motion.div
         className="relative rounded-2xl overflow-hidden"
         animate={{
@@ -201,7 +201,7 @@ export default function SmartInput({
           className="relative backdrop-blur-xl rounded-2xl p-4"
           style={{ WebkitBackdropFilter: "blur(24px)" }}
         >
-          <div className="mb-3 flex flex-wrap gap-2">
+          <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {(["ideation", "execution"] as CreationMode[]).map((mode) => {
               const cfg = creationModeConfig[mode];
               const IconComponent = cfg.icon;
@@ -212,7 +212,7 @@ export default function SmartInput({
                   key={mode}
                   type="button"
                   onClick={() => onCreationModeChange?.(mode)}
-                  className="flex items-center gap-2 rounded-xl px-3 py-2 text-left transition-all"
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left transition-all"
                   style={{
                     background: isSelected ? "oklch(0.7 0.22 40 / 14%)" : "oklch(1 0 0 / 4%)",
                     border: `1px solid ${isSelected ? "oklch(0.7 0.22 40 / 40%)" : "oklch(1 0 0 / 8%)"}`,
