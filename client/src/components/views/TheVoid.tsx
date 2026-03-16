@@ -434,15 +434,6 @@ export default function TheVoid({
             {ambientBadge}
           </motion.div>
 
-          <motion.p
-            className="text-[11px] text-center mt-4"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.4 }}
-          >
-            Cole uma URL ou descreva uma ideia
-          </motion.p>
         </motion.div>
       )}
     </motion.div>
