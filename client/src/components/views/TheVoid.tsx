@@ -10,6 +10,7 @@ import type { CreationMode, InputType, PostMode } from "@shared/postspark";
 import { useAmbientIntelligence } from "@/hooks/useAmbientIntelligence";
 import OrganicBackground from "../OrganicBackground";
 import SparkLogo from "../SparkLogo";
+import SparkParticles from "../SparkParticles";
 import SmartInput from "../SmartInput";
 
 interface TheVoidProps {
@@ -122,6 +123,7 @@ export default function TheVoid({
   creationMode,
   onCreationModeChange,
 }: TheVoidProps) {
+  const EXECUTION_ACCENT = "oklch(0.74 0.16 72)";
   const [isMobile, setIsMobile] = useState(false);
   const [inputText, setInputText] = useState("");
   const { state, config, confidence } = useAmbientIntelligence(inputText);
@@ -196,6 +198,11 @@ export default function TheVoid({
 
   const isAmbientActive = state !== "neutral" && confidence > 40;
   const glowColor = isAmbientActive ? config.theme.accent : undefined;
+  const surfaceAccent = creationMode === "execution"
+    ? EXECUTION_ACCENT
+    : isAmbientActive
+      ? config.theme.accent
+      : "#6d28d9";
 
   const ambientBadge = (
     <AnimatePresence>
@@ -226,8 +233,10 @@ export default function TheVoid({
       className="w-full"
       animate={{
         filter:
-          isAmbientActive && glowColor
-            ? `drop-shadow(0 0 20px ${glowColor}50)`
+          creationMode === "execution"
+            ? `drop-shadow(0 0 18px ${EXECUTION_ACCENT}35)`
+            : isAmbientActive && glowColor
+              ? `drop-shadow(0 0 20px ${glowColor}50)`
             : "drop-shadow(0 0 0px transparent)",
       }}
       transition={{ duration: 0.5 }}
@@ -255,9 +264,14 @@ export default function TheVoid({
       onPointerMove={handlePointerMove}
     >
       <OrganicBackground
-        accentColor={isAmbientActive ? config.theme.accent : "#6d28d9"}
-        intensity={isAmbientActive ? 0.22 : 0.08}
+        accentColor={surfaceAccent}
+        intensity={creationMode === "execution" ? 0.14 : isAmbientActive ? 0.22 : 0.08}
         performanceMode={isMobile ? "reduced" : "full"}
+      />
+      <SparkParticles
+        count={isMobile ? 10 : 18}
+        performanceMode={isMobile ? "reduced" : "full"}
+        variant="subtle"
       />
 
       {!isMobile && (
@@ -338,7 +352,7 @@ export default function TheVoid({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.12 }}
               >
-                <SparkLogo size={42} />
+                <SparkLogo size={126} />
                 <div className="space-y-1.5">
                   <h1
                     className="text-[2rem] font-bold tracking-[-0.045em] leading-none"
@@ -371,14 +385,6 @@ export default function TheVoid({
                 {ambientBadge}
               </motion.div>
 
-              <motion.p
-                className="text-center text-[11px] leading-relaxed text-white/38"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.46 }}
-              >
-                Insira uma ideia, texto ou URL para começar
-              </motion.p>
             </motion.div>
           </div>
         </motion.div>

@@ -25,11 +25,14 @@ const COLORS = [
 export default function SparkParticles({
   count = 40,
   performanceMode = "full",
+  variant = "default",
 }: {
   count?: number;
   performanceMode?: "full" | "reduced";
+  variant?: "default" | "subtle";
 }) {
   const isReduced = performanceMode === "reduced";
+  const isSubtle = variant === "subtle";
 
   const particles = useMemo<Particle[]>(
     () =>
@@ -61,15 +64,15 @@ export default function SparkParticles({
             height: p.size,
             background: p.color,
             boxShadow: isReduced
-              ? `0 0 ${p.size * 4}px ${p.color}`
-              : `0 0 ${p.size * 6}px ${p.color}, 0 0 ${p.size * 12}px ${p.color}`,
-            opacity: isReduced ? 0.75 : 1,
+              ? `0 0 ${p.size * (isSubtle ? 2.5 : 4)}px ${p.color}`
+              : `0 0 ${p.size * (isSubtle ? 3.5 : 6)}px ${p.color}, 0 0 ${p.size * (isSubtle ? 7 : 12)}px ${p.color}`,
+            opacity: isSubtle ? (isReduced ? 0.42 : 0.5) : isReduced ? 0.75 : 1,
           }}
           animate={{
             y: [0, p.driftYMid, -200],
             x: [0, p.driftXMid, p.driftXEnd],
-            opacity: [0, 1, 0],
-            scale: isReduced ? [0.5, 1.15, 0.3] : [0.5, 1.4, 0.3],
+            opacity: isSubtle ? [0, 0.66, 0] : [0, 1, 0],
+            scale: isSubtle ? [0.5, isReduced ? 0.95 : 1.05, 0.3] : isReduced ? [0.5, 1.15, 0.3] : [0.5, 1.4, 0.3],
           }}
           transition={{
             duration: p.duration,
@@ -85,7 +88,7 @@ export default function SparkParticles({
         style={{
           left: "10%",
           top: "60%",
-          background: "radial-gradient(circle, oklch(0.7 0.22 40 / 6%) 0%, transparent 70%)",
+          background: `radial-gradient(circle, oklch(0.7 0.22 40 / ${isSubtle ? "2.5%" : "6%"}) 0%, transparent 70%)`,
         }}
         animate={{
           scale: [1, 1.3, 1],
@@ -98,7 +101,7 @@ export default function SparkParticles({
         style={{
           right: "5%",
           top: "20%",
-          background: "radial-gradient(circle, oklch(0.75 0.14 200 / 5%) 0%, transparent 70%)",
+          background: `radial-gradient(circle, oklch(0.75 0.14 200 / ${isSubtle ? "2%" : "5%"}) 0%, transparent 70%)`,
         }}
         animate={{
           scale: [1.2, 1, 1.2],
@@ -112,7 +115,7 @@ export default function SparkParticles({
           left: "50%",
           top: "10%",
           transform: "translateX(-50%)",
-          background: "radial-gradient(circle, oklch(0.45 0.18 290 / 5%) 0%, transparent 70%)",
+          background: `radial-gradient(circle, oklch(0.45 0.18 290 / ${isSubtle ? "2%" : "5%"}) 0%, transparent 70%)`,
         }}
         animate={{
           scale: [1, 1.4, 1],
