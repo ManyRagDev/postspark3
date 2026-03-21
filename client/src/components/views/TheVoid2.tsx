@@ -716,8 +716,8 @@ export default function TheVoid2() {
         </motion.div>
 
         <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center pt-10 md:pt-14">
-          <div ref={cardsStageRef} className="relative flex h-[560px] items-center justify-center" style={{ perspective: "1200px", transformStyle: "preserve-3d", transform: isMobile ? "scale(0.78)" : undefined, transformOrigin: "center center" }}>
-            <button type="button" onClick={goPrevious} disabled={currentIndex === 0 || collisionActive} aria-label="Card anterior" className="absolute left-0 z-40 rounded-full border border-white/10 bg-white/5 p-3 text-white/50 shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-0 md:left-6">
+          <div ref={cardsStageRef} className="relative flex h-[560px] items-center justify-center" style={{ perspective: "1200px", transformStyle: "preserve-3d", transform: isMobile ? "scale(0.576)" : undefined, transformOrigin: "center center" }}>
+            <button type="button" onClick={goPrevious} disabled={currentIndex === 0 || collisionActive} aria-label="Card anterior" className="absolute left-0 z-40 hidden rounded-full border border-white/10 bg-white/5 p-3 text-white/50 shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-0 md:left-6 md:block">
               <ChevronLeft className="h-6 w-6 md:h-8 md:w-8" />
             </button>
 
@@ -773,7 +773,7 @@ export default function TheVoid2() {
               );
             })}
 
-            <button type="button" onClick={goNext} disabled={currentIndex === showcaseCards.length - 1 || collisionActive} aria-label="Proximo card" className="absolute right-0 z-40 rounded-full border border-white/10 bg-white/5 p-3 text-white/50 shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-0 md:right-6">
+            <button type="button" onClick={goNext} disabled={currentIndex === showcaseCards.length - 1 || collisionActive} aria-label="Proximo card" className="absolute right-0 z-40 hidden rounded-full border border-white/10 bg-white/5 p-3 text-white/50 shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-0 md:right-6 md:block">
               <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
             </button>
           </div>
@@ -785,13 +785,8 @@ export default function TheVoid2() {
       {/* ============================================================ */}
       <div
         ref={drawerRef}
-        className="fixed inset-x-4 z-30 mx-auto flex w-auto max-w-md flex-col items-center rounded-[2rem] border text-center"
+        className="fixed inset-x-4 z-30 mx-auto flex w-auto max-w-md flex-col items-center text-center"
         style={{
-          background: "linear-gradient(180deg, rgba(13,17,29,0.88) 0%, rgba(9,11,18,0.95) 100%)",
-          borderColor: "rgba(255,255,255,0.12)",
-          backdropFilter: "blur(26px)",
-          WebkitBackdropFilter: "blur(26px)",
-          boxShadow: "0 24px 60px rgba(0,0,0,0.52), inset 0 1px 0 rgba(255,255,255,0.08)",
           touchAction: "none",
           bottom: "16px",
           pointerEvents: "auto",
@@ -799,7 +794,7 @@ export default function TheVoid2() {
       >
         {/* Chevron - muda de direção baseado no estado */}
         <div
-          className="flex w-full justify-center pt-3"
+          className="flex w-full justify-center pt-4"
           onPointerDown={isMobile ? handleDrawerPointerDown : undefined}
           onPointerMove={isMobile ? handleDrawerPointerMove : undefined}
           onPointerUp={isMobile ? handleDrawerPointerEnd : undefined}
@@ -819,11 +814,7 @@ export default function TheVoid2() {
           onPointerMove={!isMobile && !isTransformed ? handleDrawerPointerMove : undefined}
           onPointerUp={!isMobile && !isTransformed ? handleDrawerPointerEnd : undefined}
           onPointerCancel={!isMobile && !isTransformed ? handleDrawerPointerEnd : undefined}
-          className="rounded-full border p-2 transition-all"
-          style={{ 
-            borderColor: "rgba(255,255,255,0.12)", 
-            background: "rgba(255,255,255,0.04)",
-          }}
+          className="transition-all"
           animate={{ 
             y: isTransformed ? 0 : [0, -7, 0],
           }}
@@ -832,16 +823,16 @@ export default function TheVoid2() {
           }}
         >
           {isTransformed ? (
-            <ChevronDown size={18} className="text-[oklch(0.7_0.22_40)]" />
+            <ChevronDown size={isMobile ? 22 : 18} className="text-[oklch(0.7_0.22_40)]" />
           ) : (
-            <ChevronUp size={18} className="text-[oklch(0.7_0.22_40)]" />
+            <ChevronUp size={isMobile ? 22 : 18} className="text-[oklch(0.7_0.22_40)]" />
           )}
         </motion.button>
         </div>
 
         {/* Conteúdo que se transforma */}
-        <div ref={drawerContentRef} className="mt-2 max-h-[calc(100dvh-7rem)] w-full overflow-y-auto overflow-x-hidden px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:max-h-none md:overflow-visible">
-          <div ref={drawerInitialRef} className="text-base font-medium leading-tight text-white/88">
+        <div ref={drawerContentRef} className="mt-2 max-h-[calc(100dvh-7rem)] w-full overflow-y-auto overflow-x-hidden pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:max-h-none md:overflow-visible">
+          <div ref={drawerInitialRef} className={`${isMobile ? "text-lg" : "text-base"} font-medium leading-tight text-white/88`}>
             Deslize para iniciar
           </div>
 
