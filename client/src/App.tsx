@@ -1,18 +1,17 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Pricing from "./pages/Pricing";
 import Billing from "./pages/Billing";
 import SavedPosts from "./pages/SavedPosts";
-import AuthGate from "./components/AuthGate";
-import LoginModal from "./components/LoginModal";
+import TheVoid2Page from "./pages/TheVoid2Page";
 import UserTopMenu from "./components/UserTopMenu";
 import { useAuth } from "./_core/hooks/useAuth";
-import { useState, useEffect } from "react";
+import { useEffect, type ComponentType } from "react";
 
 function PostCheckoutSuccess() {
   setTimeout(() => { window.location.href = "/"; }, 3000);
@@ -62,7 +61,7 @@ function GoogleAuthCallback() {
       credentials: 'include',
       body: JSON.stringify({ access_token }),
     })
-      .then(() => { window.location.href = '/'; })
+      .then(() => { window.location.href = '/thevoid'; })
       .catch(() => { window.location.href = '/?auth_error=session_failed'; });
   }, []);
 
@@ -77,13 +76,63 @@ function GoogleAuthCallback() {
   );
 }
 
+function RootEntry() {
+  const { loading, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (loading) return;
+    setLocation(isAuthenticated ? "/thevoid" : "/thevoid2");
+  }, [isAuthenticated, loading, setLocation]);
+
+  return null;
+}
+
+function PublicLandingRoute() {
+  const { loading, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (loading || !isAuthenticated) return;
+    setLocation("/thevoid");
+  }, [isAuthenticated, loading, setLocation]);
+
+  if (loading || isAuthenticated) return null;
+  return <TheVoid2Page />;
+}
+
+function LegacyTheVoid2Route() {
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    setLocation("/");
+  }, [setLocation]);
+
+  return null;
+}
+
+function ProtectedRoute({ component: Component }: { component: ComponentType }) {
+  const { loading, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (loading || isAuthenticated) return;
+    setLocation("/");
+  }, [isAuthenticated, loading, setLocation]);
+
+  if (loading || !isAuthenticated) return null;
+  return <Component />;
+}
+
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      <Route path={"/"} component={PublicLandingRoute} />
+      <Route path={"/thevoid"} component={() => <ProtectedRoute component={Home} />} />
+      <Route path={"/thevoid2"} component={LegacyTheVoid2Route} />
       <Route path={"/pricing"} component={Pricing} />
-      <Route path={"/billing"} component={Billing} />
-      <Route path={"/saved-posts"} component={SavedPosts} />
+      <Route path={"/billing"} component={() => <ProtectedRoute component={Billing} />} />
+      <Route path={"/saved-posts"} component={() => <ProtectedRoute component={SavedPosts} />} />
       <Route path={"/billing/success"} component={PostCheckoutSuccess} />
       <Route path={"/billing/topup-success"} component={TopupSuccess} />
       <Route path={"/auth/google-callback"} component={GoogleAuthCallback} />
@@ -98,21 +147,15 @@ function Router() {
  * Mostra AuthGate + LoginModal para usuários não autenticados.
  */
 function AppInner() {
-  const { loading } = useAuth();
-  const [loginOpen, setLoginOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const [location] = useLocation();
+  const isTheVoid2Route = location === "/" || location === "/thevoid2";
 
   return (
     <>
       <Router />
-      <UserTopMenu />
+      {isAuthenticated && !isTheVoid2Route ? <UserTopMenu /> : null}
       {/* AuthGate: aparece apenas para usuários não autenticados */}
-      {!loading && (
-        <AuthGate onLogin={() => setLoginOpen(true)} />
-      )}
-      <LoginModal
-        open={loginOpen}
-        onClose={() => setLoginOpen(false)}
-      />
     </>
   );
 }
