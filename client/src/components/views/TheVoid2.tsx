@@ -245,6 +245,8 @@ export default function TheVoid2() {
   const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const touchStartYRef = useRef(0);
   const touchStartProgressRef = useRef(0);
+  const progressRef = useRef(0);
+  const progressRafRef = useRef<number | null>(null);
   const drawerPointerActiveRef = useRef(false);
   const drawerDidDragRef = useRef(false);
   const suppressChevronClickRef = useRef(false);
@@ -260,6 +262,18 @@ export default function TheVoid2() {
     syncViewport();
     window.addEventListener("resize", syncViewport);
     return () => window.removeEventListener("resize", syncViewport);
+  }, []);
+
+  useEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
+
+  useEffect(() => {
+    return () => {
+      if (progressRafRef.current !== null) {
+        window.cancelAnimationFrame(progressRafRef.current);
+      }
+    };
   }, []);
 
   const handleDrawerEmailAuth = useCallback(async (event: React.FormEvent) => {
@@ -402,7 +416,7 @@ export default function TheVoid2() {
         
         // Rotação dramática baseada na direção
         const rotY = direction * (30 + absOffset * 15) * collisionFactor * mobileRotation;
-        const rotX = -20 * collisionFactor; // Todos caem um pouco para trás
+        const rotX = -20 * collisionFactor * mobileRotation; // Todos caem um pouco para tr�s
         
         // Scale e fade
         const scaleFactor = 1 - collisionFactor * (isMobile ? 0.14 : 0.2);
@@ -421,7 +435,7 @@ export default function TheVoid2() {
 
       return { 
         x, y, z, scale, rotateY, rotateX, opacity, zIndex, pointerEvents, 
-        filter: `brightness(${brightness})` 
+        filter: isMobile ? "none" : `brightness(${brightness})` 
       };
     });
   }, [currentIndex, isMobile, progress]);
@@ -484,12 +498,28 @@ export default function TheVoid2() {
     ), snapPoints[0]);
   }, [MOBILE_PREVIEW_SNAP, isMobile]);
 
+  const syncProgressState = useCallback((nextProgress: number) => {
+    progressRef.current = nextProgress;
+
+    if (!isMobile) {
+      setProgress(nextProgress);
+      return;
+    }
+
+    if (progressRafRef.current !== null) return;
+
+    progressRafRef.current = window.requestAnimationFrame(() => {
+      progressRafRef.current = null;
+      setProgress(progressRef.current);
+    });
+  }, [isMobile]);
+
   // ============================================================
   // CONTROLE DE PROGRESS (drawer + wheel/scroll)
   // ============================================================
   const applyProgress = useCallback((nextProgress: number) => {
     const clamped = clamp(nextProgress, 0, 1);
-    setProgress(clamped);
+    syncProgressState(clamped);
 
     // O drawer segue o scroll - posição absoluta baseada no progress
     // drawerY vai de 0 (bottom) até 1 (top/invisível)
@@ -499,7 +529,7 @@ export default function TheVoid2() {
         opacity: 1,
       });
     }
-  }, [getDrawerY]);
+  }, [getDrawerY, syncProgressState]);
 
   const animateProgressTo = useCallback((target: number, duration = 0.5) => {
     if (isAnimatingRef.current) return;
@@ -511,7 +541,7 @@ export default function TheVoid2() {
       ease: "power3.inOut",
       onUpdate: function() {
         const newProgress = this.targets()[0].value;
-        setProgress(newProgress);
+        syncProgressState(newProgress);
         
         if (drawerRef.current) {
           gsap.set(drawerRef.current, {
@@ -524,7 +554,7 @@ export default function TheVoid2() {
         isAnimatingRef.current = false;
       },
     });
-  }, [getDrawerY, progress]);
+  }, [getDrawerY, progress, syncProgressState]);
 
   // ============================================================
   // WHEEL HANDLER (Desktop) - scroll DESCER = drawer sobe
@@ -697,9 +727,9 @@ export default function TheVoid2() {
   return (
     <div ref={rootRef} className="h-[100dvh] min-h-screen overflow-hidden text-white selection:bg-[#00f5ff] selection:text-black" style={{ background: "linear-gradient(180deg, #050505 0%, #090b11 100%)" }}>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <SparkParticles count={isMobile ? 18 : 30} performanceMode={isMobile ? "reduced" : "full"} variant="default" />
-        <div className="absolute left-[-8%] top-[-12%] h-[34rem] w-[34rem] rounded-full bg-[#00f5ff]/8 blur-[140px]" />
-        <div className="absolute bottom-[-15%] right-[-10%] h-[38rem] w-[38rem] rounded-full bg-[#d4af37]/8 blur-[160px]" />
+        <SparkParticles count={isMobile ? 10 : 30} performanceMode={isMobile ? "reduced" : "full"} variant="default" />
+        <div className={`${isMobile ? "left-[-12%] top-[-10%] h-[18rem] w-[18rem] blur-[72px]" : "left-[-8%] top-[-12%] h-[34rem] w-[34rem] blur-[140px]"} absolute rounded-full bg-[#00f5ff]/8`} />
+        <div className={`${isMobile ? "bottom-[-8%] right-[-12%] h-[20rem] w-[20rem] blur-[84px]" : "bottom-[-15%] right-[-10%] h-[38rem] w-[38rem] blur-[160px]"} absolute rounded-full bg-[#d4af37]/8`} />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent_40%)]" />
       </div>
 
@@ -755,7 +785,7 @@ export default function TheVoid2() {
                   }}
                   onMouseLeave={() => { if (isCenter) setHoverRotation({ x: 0, y: 0 }); }}
                   className="absolute h-[460px] w-[320px] overflow-hidden rounded-[28px] text-left shadow-2xl outline-none"
-                  style={{ transformStyle: "preserve-3d", pointerEvents: styles.pointerEvents, background: post.palette.background, border: isCenter ? `1px solid ${post.palette.accent}66` : "1px solid rgba(255,255,255,0.06)", boxShadow: isCenter ? `0 0 40px ${post.palette.accent}22, 0 30px 80px rgba(0,0,0,0.45)` : "0 26px 60px rgba(0,0,0,0.38)" }}
+                  style={{ transformStyle: "preserve-3d", pointerEvents: styles.pointerEvents, background: post.palette.background, border: isCenter ? `1px solid ${post.palette.accent}66` : "1px solid rgba(255,255,255,0.06)", boxShadow: isMobile ? (isCenter ? `0 0 22px ${post.palette.accent}18, 0 18px 44px rgba(0,0,0,0.34)` : "0 16px 36px rgba(0,0,0,0.28)") : (isCenter ? `0 0 40px ${post.palette.accent}22, 0 30px 80px rgba(0,0,0,0.45)` : "0 26px 60px rgba(0,0,0,0.38)") }}
                 >
                   {renderBackground(post)}
                   {renderDecorations(post)}
@@ -846,7 +876,7 @@ export default function TheVoid2() {
                 <h2 className="mt-1 text-lg font-semibold text-white/92">Entre para criar posts</h2>
               </div>
 
-              <button type="button" onClick={handleDrawerGoogleAuth} disabled={authLoading || authGoogleLoading || !isSupabaseConfigured} className="flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all disabled:opacity-60" style={{ background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.9)" }}>
+              <button type="button" onClick={handleDrawerGoogleAuth} disabled={authLoading || authGoogleLoading || !isSupabaseConfigured} className="flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all disabled:opacity-60" style={{ background: "rgba(18,22,34,0.98)", borderColor: "rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.94)" }}>
                 <Chrome size={16} />
                 <span>{authGoogleLoading ? "Conectando..." : "Google"}</span>
               </button>
@@ -859,12 +889,12 @@ export default function TheVoid2() {
 
               <div className="relative">
                 <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
-                <input type="email" value={authEmail} onChange={(event) => { setAuthEmail(event.target.value); setAuthError(null); }} placeholder="Email" required className="w-full rounded-xl border bg-white/6 py-2.5 pl-9 pr-3 text-sm outline-none" style={{ borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.92)" }} />
+                <input type="email" value={authEmail} onChange={(event) => { setAuthEmail(event.target.value); setAuthError(null); }} placeholder="Email" required className="w-full rounded-xl border py-2.5 pl-9 pr-3 text-sm outline-none" style={{ background: "rgba(16,20,30,0.98)", borderColor: "rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.95)" }} />
               </div>
 
               <div className="relative">
                 <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
-                <input type={showAuthPassword ? "text" : "password"} value={authPassword} onChange={(event) => { setAuthPassword(event.target.value); setAuthError(null); }} placeholder={authMode === "register" ? "Minimo 6 caracteres" : "Senha"} required minLength={6} className="w-full rounded-xl border bg-white/6 py-2.5 pl-9 pr-10 text-sm outline-none" style={{ borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.92)" }} />
+                <input type={showAuthPassword ? "text" : "password"} value={authPassword} onChange={(event) => { setAuthPassword(event.target.value); setAuthError(null); }} placeholder={authMode === "register" ? "Minimo 6 caracteres" : "Senha"} required minLength={6} className="w-full rounded-xl border py-2.5 pl-9 pr-10 text-sm outline-none" style={{ background: "rgba(16,20,30,0.98)", borderColor: "rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.95)" }} />
                 <button type="button" onClick={() => setShowAuthPassword((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40">
                   {showAuthPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
@@ -894,6 +924,7 @@ export default function TheVoid2() {
     </div>
   );
 }
+
 
 
 

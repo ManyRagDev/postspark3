@@ -64,15 +64,15 @@ export default function SparkParticles({
             height: p.size,
             background: p.color,
             boxShadow: isReduced
-              ? `0 0 ${p.size * (isSubtle ? 2.5 : 4)}px ${p.color}`
+              ? `0 0 ${p.size * (isSubtle ? 1.5 : 2.2)}px ${p.color}`
               : `0 0 ${p.size * (isSubtle ? 3.5 : 6)}px ${p.color}, 0 0 ${p.size * (isSubtle ? 7 : 12)}px ${p.color}`,
-            opacity: isSubtle ? (isReduced ? 0.42 : 0.5) : isReduced ? 0.75 : 1,
+            opacity: isSubtle ? (isReduced ? 0.34 : 0.5) : isReduced ? 0.58 : 1,
           }}
           animate={{
             y: [0, p.driftYMid, -200],
             x: [0, p.driftXMid, p.driftXEnd],
             opacity: isSubtle ? [0, 0.66, 0] : [0, 1, 0],
-            scale: isSubtle ? [0.5, isReduced ? 0.95 : 1.05, 0.3] : isReduced ? [0.5, 1.15, 0.3] : [0.5, 1.4, 0.3],
+            scale: isSubtle ? [0.5, isReduced ? 0.82 : 1.05, 0.3] : isReduced ? [0.5, 0.96, 0.3] : [0.5, 1.4, 0.3],
           }}
           transition={{
             duration: p.duration,
