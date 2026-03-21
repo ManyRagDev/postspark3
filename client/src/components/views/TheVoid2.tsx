@@ -485,6 +485,18 @@ export default function TheVoid2() {
     return mapRange(nextProgress, MOBILE_PREVIEW_SNAP, 1, previewY, centeredY);
   }, [MOBILE_PREVIEW_SNAP, isMobile]);
 
+  const getCurrentProgress = useCallback(() => {
+    return isMobile ? progressRef.current : progress;
+  }, [isMobile, progress]);
+
+  const getChevronTargetProgress = useCallback((nextProgress: number) => {
+    if (!isMobile) {
+      return nextProgress > LOCK_THRESHOLD ? 0 : 1;
+    }
+
+    return nextProgress >= MOBILE_PREVIEW_SNAP ? 0 : 1;
+  }, [LOCK_THRESHOLD, MOBILE_PREVIEW_SNAP, isMobile]);
+
   const getProgressSnapTarget = useCallback((nextProgress: number) => {
     if (!isMobile) {
       if (nextProgress > LOCK_THRESHOLD) return 1;
@@ -531,18 +543,17 @@ export default function TheVoid2() {
     }
   }, [getDrawerY, syncProgressState]);
 
-  const animateProgressTo = useCallback((target: number, duration = 0.5) => {
+  const animateProgressTo = useCallback((target: number, duration = 0.5, fromProgress?: number) => {
     if (isAnimatingRef.current) return;
     isAnimatingRef.current = true;
-    
-    gsap.to({ value: progress }, {
+    const tweenState = { value: clamp(fromProgress ?? getCurrentProgress(), 0, 1) };
+    gsap.to(tweenState, {
       value: clamp(target, 0, 1),
       duration,
       ease: "power3.inOut",
       onUpdate: function() {
-        const newProgress = this.targets()[0].value;
+        const newProgress = tweenState.value;
         syncProgressState(newProgress);
-        
         if (drawerRef.current) {
           gsap.set(drawerRef.current, {
             y: getDrawerY(newProgress),
@@ -554,7 +565,7 @@ export default function TheVoid2() {
         isAnimatingRef.current = false;
       },
     });
-  }, [getDrawerY, progress, syncProgressState]);
+  }, [getCurrentProgress, getDrawerY, syncProgressState]);
 
   // ============================================================
   // WHEEL HANDLER (Desktop) - scroll DESCER = drawer sobe
@@ -606,9 +617,9 @@ export default function TheVoid2() {
     drawerPointerActiveRef.current = true;
     drawerDidDragRef.current = false;
     touchStartYRef.current = event.clientY;
-    touchStartProgressRef.current = progress;
+    touchStartProgressRef.current = getCurrentProgress();
     event.currentTarget.setPointerCapture(event.pointerId);
-  }, [progress]);
+  }, [getCurrentProgress]);
 
   const handleDrawerPointerMove = useCallback((event: React.PointerEvent<HTMLElement>) => {
     if (isAnimatingRef.current || !drawerPointerActiveRef.current) return;
@@ -637,9 +648,10 @@ export default function TheVoid2() {
       suppressChevronClickRef.current = false;
     }, 0);
 
-    const snapTarget = getProgressSnapTarget(progress);
-    if (snapTarget !== progress) animateProgressTo(snapTarget, isMobile ? 0.38 : 0.5);
-  }, [animateProgressTo, getProgressSnapTarget, isMobile, progress]);
+    const currentProgress = getCurrentProgress();
+    const snapTarget = getProgressSnapTarget(currentProgress);
+    if (snapTarget !== currentProgress) animateProgressTo(snapTarget, isMobile ? 0.38 : 0.5, currentProgress);
+  }, [animateProgressTo, getCurrentProgress, getProgressSnapTarget, isMobile]);
 
   const loginVisible = progress >= 0.85;
   const loginInteractive = progress >= 0.97;
@@ -682,7 +694,7 @@ export default function TheVoid2() {
         duration: 0.28,
         ease: "power2.out",
         onUpdate: () => {
-          if (drawerRef.current) gsap.set(drawerRef.current, { y: getDrawerY(progress) });
+          if (drawerRef.current) gsap.set(drawerRef.current, { y: getDrawerY(getCurrentProgress()) });
         },
       });
     } else {
@@ -711,13 +723,13 @@ export default function TheVoid2() {
         duration: 0.28,
         ease: "power2.out",
         onUpdate: () => {
-          if (drawerRef.current) gsap.set(drawerRef.current, { y: getDrawerY(progress) });
+          if (drawerRef.current) gsap.set(drawerRef.current, { y: getDrawerY(getCurrentProgress()) });
         },
       });
     }
     if (drawerRef.current) {
       gsap.to(drawerRef.current, {
-        y: getDrawerY(progress),
+        y: getDrawerY(getCurrentProgress()),
         duration: 0.28,
         ease: "power2.out",
       });
@@ -834,15 +846,9 @@ export default function TheVoid2() {
           type="button"
           onClick={() => {
             if (suppressChevronClickRef.current) return;
-            if (isTransformed) {
-              animateProgressTo(0);
-            } else {
-              animateProgressTo(1);
-            }
+            const currentProgress = getCurrentProgress();
+            animateProgressTo(getChevronTargetProgress(currentProgress), isMobile ? 0.38 : 0.5, currentProgress);
           }}
-          onPointerDown={!isMobile && !isTransformed ? handleDrawerPointerDown : undefined}
-          onPointerMove={!isMobile && !isTransformed ? handleDrawerPointerMove : undefined}
-          onPointerUp={!isMobile && !isTransformed ? handleDrawerPointerEnd : undefined}
           onPointerCancel={!isMobile && !isTransformed ? handleDrawerPointerEnd : undefined}
           className="transition-all"
           animate={{ 
@@ -924,6 +930,8 @@ export default function TheVoid2() {
     </div>
   );
 }
+
+
 
 
 
