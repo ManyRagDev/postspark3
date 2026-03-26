@@ -218,31 +218,37 @@ function ShowcaseCardItem({
   post,
   index,
   currentIndex,
+  previousIndex,
   progress,
   isMobile,
   collisionActive,
   isDragging,
   setCardRef,
   handleCardDragEnd,
-  setCurrentIndex,
+  selectCard,
 }: {
   post: ShowcaseCard;
   index: number;
   currentIndex: number;
+  previousIndex: number;
   progress: MotionValue<number>;
   isMobile: boolean;
   collisionActive: boolean;
   isDragging: boolean;
   setCardRef: (index: number, element: HTMLButtonElement | null) => void;
   handleCardDragEnd: (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void;
-  setCurrentIndex: React.Dispatch<React.SetStateAction<number>>;
+  selectCard: (index: number) => void;
 }) {
   const isCenter = index === currentIndex;
   const wasCenterRef = useRef(isCenter);
   const centerIntroProgress = useMotionValue(isCenter ? 1 : 0);
+  const centerTravelX = useTransform(centerIntroProgress, [0, 1], [
+    index > previousIndex ? (isMobile ? 72 : 112) : index < previousIndex ? (isMobile ? -72 : -112) : 0,
+    0,
+  ]);
   const centerIntroScale = useTransform(centerIntroProgress, [0, 1], [0.965, 1]);
-  const centerIntroY = useTransform(centerIntroProgress, [0, 1], [18, 0]);
-  const centerIntroOpacity = useTransform(centerIntroProgress, [0, 1], [0.82, 1]);
+  const centerIntroY = useTransform(centerIntroProgress, [0, 1], [isMobile ? 10 : 14, 0]);
+  const centerIntroOpacity = useTransform(centerIntroProgress, [0, 1], [0.86, 1]);
   const baseVisual = useTransform(() => getCardVisualState(index, currentIndex, isMobile, progress.get()));
   const x = useTransform(baseVisual, (value) => value.x);
   const y = useTransform(baseVisual, (value) => value.y);
@@ -300,7 +306,7 @@ function ShowcaseCardItem({
         if (!isCenter) {
           hoverRotateX.set(0);
           hoverRotateY.set(0);
-          setCurrentIndex(index);
+          selectCard(index);
         }
       }}
       onMouseMove={(event) => {
@@ -343,6 +349,7 @@ function ShowcaseCardItem({
         style={{
           rotateX: isCenter ? hoverRotateXSpring : 0,
           rotateY: isCenter ? hoverRotateYSpring : 0,
+          x: isCenter ? centerTravelX : 0,
           scale: isCenter ? centerIntroScale : 1,
           y: isCenter ? centerIntroY : 0,
           opacity: isCenter ? centerIntroOpacity : 1,
@@ -495,6 +502,7 @@ export default function TheVoid2() {
   const { isAuthenticated, loading } = useAuth();
   const [, setLocation] = useLocation();
   const [currentIndex, setCurrentIndex] = useState(4);
+  const previousIndexRef = useRef(4);
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" ? window.innerWidth < 768 : false);
   const progress = useMotionValue(0);
   const drawerY = useMotionValue(0);
@@ -602,13 +610,26 @@ export default function TheVoid2() {
 
   const goPrevious = useCallback(() => {
     if (collisionActive) return;
-    setCurrentIndex((prev) => Math.max(0, prev - 1));
+    setCurrentIndex((prev) => {
+      previousIndexRef.current = prev;
+      return Math.max(0, prev - 1);
+    });
   }, [collisionActive]);
 
   const goNext = useCallback(() => {
     if (collisionActive) return;
-    setCurrentIndex((prev) => Math.min(showcaseCards.length - 1, prev + 1));
+    setCurrentIndex((prev) => {
+      previousIndexRef.current = prev;
+      return Math.min(showcaseCards.length - 1, prev + 1);
+    });
   }, [collisionActive]);
+
+  const selectCard = useCallback((index: number) => {
+    setCurrentIndex((prev) => {
+      previousIndexRef.current = prev;
+      return index;
+    });
+  }, []);
 
   const handleCardDragEnd = useCallback((_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (collisionActive) return;
@@ -905,13 +926,14 @@ export default function TheVoid2() {
                 post={post}
                 index={index}
                 currentIndex={currentIndex}
+                previousIndex={previousIndexRef.current}
                 progress={progress}
                 isMobile={isMobile}
                 collisionActive={collisionActive}
                 isDragging={isDragging}
                 setCardRef={(cardIndex, element) => { cardRefs.current[cardIndex] = element; }}
                 handleCardDragEnd={handleCardDragEnd}
-                setCurrentIndex={setCurrentIndex}
+                selectCard={selectCard}
               />
             ))}
 
