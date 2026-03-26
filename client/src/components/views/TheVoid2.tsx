@@ -5,10 +5,10 @@ import { exchangeSupabaseSession } from "@/lib/authBridge";
 import { showcaseCards, type ShowcaseCard } from "@/lib/showcaseCards";
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { gsap } from "gsap";
-import { motion } from "framer-motion";
+import { animate, motion, useMotionValue, useMotionValueEvent, useSpring, useTransform, type MotionValue } from "framer-motion";
 import type { PanInfo } from "framer-motion";
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Chrome, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
 type AuthMode = "login" | "register";
@@ -23,11 +23,130 @@ function mapRange(value: number, inMin: number, inMax: number, outMin: number, o
   return outMin + (outMax - outMin) * progress;
 }
 
-function renderBackground(post: ShowcaseCard) {
+const MOBILE_PREVIEW_SNAP = 0.42;
+const MOBILE_DRAG_DISTANCE = 320;
+const LOCK_THRESHOLD = 0.75;
+const CARDS_COLLISION_START = 0.15;
+
+function getOptimizedUnsplashUrl(url: string, isMobile: boolean) {
+  if (!url.includes("images.unsplash.com")) return url;
+
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("auto", "format");
+    parsed.searchParams.set("fit", "crop");
+    parsed.searchParams.set("w", isMobile ? "400" : "900");
+    parsed.searchParams.set("q", isMobile ? "70" : "80");
+    if (isMobile) parsed.searchParams.set("fm", "webp");
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+type CardVisualState = {
+  x: string;
+  y: number;
+  z: number;
+  scale: number;
+  rotateY: number;
+  rotateX: number;
+  opacity: number;
+  zIndex: number;
+  pointerEvents: "auto" | "none";
+  filter: string;
+  visible: boolean;
+};
+
+function getCollisionFactor(drawerProgress: number) {
+  if (drawerProgress < CARDS_COLLISION_START) return 0;
+  return clamp(mapRange(drawerProgress, CARDS_COLLISION_START, 0.7, 0, 1), 0, 1);
+}
+
+function getCardVisualState(index: number, currentIndex: number, isMobile: boolean, drawerProgress: number): CardVisualState {
+  const offset = index - currentIndex;
+  const absOffset = Math.abs(offset);
+
+  let scale = 1;
+  let x = "0%";
+  let y = 0;
+  let z = 0;
+  let rotateY = 0;
+  let rotateX = 0;
+  let opacity = 1;
+  let zIndex = 10;
+  let brightness = 1;
+  let pointerEvents: "auto" | "none" = "auto";
+
+  const collisionFactor = getCollisionFactor(drawerProgress);
+
+  if (collisionFactor === 0) {
+    if (offset !== 0) {
+      if (absOffset > 2) {
+        opacity = 0;
+        pointerEvents = "none";
+      } else {
+        scale = 1 - absOffset * 0.15;
+        z = -absOffset * 100;
+        zIndex = 10 - absOffset;
+        opacity = 1 - absOffset * 0.25;
+        brightness = 1 - absOffset * 0.3;
+        if (offset < 0) {
+          rotateY = 20 + absOffset * 10;
+          x = `calc(-${45 + absOffset * 35}%)`;
+        } else {
+          rotateY = -(20 + absOffset * 10);
+          x = `calc(${45 + absOffset * 35}%)`;
+        }
+      }
+    }
+  } else {
+    const mobileSpread = isMobile ? 0.55 : 1;
+    const mobileRise = isMobile ? 0.75 : 1;
+    const mobileRotation = isMobile ? 0.45 : 1;
+    const mobileOpacityLoss = isMobile ? 0.72 : 1;
+    const direction = offset === 0 ? 0 : offset < 0 ? -1 : 1;
+    const sideForce = direction * (200 + absOffset * 150) * collisionFactor * mobileSpread;
+    const riseForce = -(100 + absOffset * 50) * collisionFactor * mobileRise;
+    const rotY = direction * (30 + absOffset * 15) * collisionFactor * mobileRotation;
+    const rotX = -20 * collisionFactor * mobileRotation;
+    const scaleFactor = 1 - collisionFactor * (isMobile ? 0.14 : 0.2);
+    const opacityFactor = 1 - collisionFactor * (absOffset === 0 ? 0.5 : 0.95) * mobileOpacityLoss;
+
+    x = `${sideForce}px`;
+    y = riseForce;
+    scale = scaleFactor;
+    rotateY = rotY;
+    rotateX = rotX;
+    opacity = opacityFactor;
+    zIndex = 10 - absOffset;
+    brightness = 1 - collisionFactor * 0.3;
+    pointerEvents = opacityFactor < 0.1 ? "none" : "auto";
+  }
+
+  const maxVisibleOffset = collisionFactor > 0 ? (isMobile ? 2 : 3) : 2;
+
+  return {
+    x,
+    y,
+    z,
+    scale,
+    rotateY,
+    rotateX,
+    opacity,
+    zIndex,
+    pointerEvents,
+    filter: isMobile ? "none" : `brightness(${brightness})`,
+    visible: absOffset <= maxVisibleOffset,
+  };
+}
+
+function renderBackground(post: ShowcaseCard, isMobile: boolean) {
   if (post.backgroundKind === "photo" && post.backgroundImageUrl) {
+    const backgroundImageUrl = getOptimizedUnsplashUrl(post.backgroundImageUrl, isMobile);
     return (
       <>
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${post.backgroundImageUrl})` }} />
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${backgroundImageUrl})` }} />
         <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${post.palette.background}12 0%, ${post.palette.background}7A 54%, ${post.palette.background}EC 100%)` }} />
       </>
     );
@@ -54,9 +173,10 @@ function renderBackground(post: ShowcaseCard) {
     return <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 16% 24%, ${post.palette.accent}3F 0%, transparent 26%), radial-gradient(circle at 78% 24%, #ffffff10 0%, transparent 18%), radial-gradient(circle at 62% 78%, ${post.palette.accent}22 0%, transparent 22%), linear-gradient(135deg, ${post.palette.surface ?? post.palette.background} 0%, ${post.palette.background} 100%)` }} />;
   }
   if (post.backgroundKind === "editorial" && post.backgroundImageUrl) {
+    const backgroundImageUrl = getOptimizedUnsplashUrl(post.backgroundImageUrl, isMobile);
     return (
       <>
-        <div className="absolute inset-y-0 right-0 w-[58%] bg-cover bg-center" style={{ backgroundImage: `url(${post.backgroundImageUrl})` }} />
+        <div className="absolute inset-y-0 right-0 w-[58%] bg-cover bg-center" style={{ backgroundImage: `url(${backgroundImageUrl})` }} />
         <div className="absolute inset-0" style={{ background: `linear-gradient(90deg, ${post.palette.background} 0%, ${post.palette.background}F0 48%, ${post.palette.background}60 72%, transparent 100%)` }} />
       </>
     );
@@ -92,6 +212,158 @@ function getHeadlineClasses(post: ShowcaseCard) {
   if (post.layoutType === "conversion") return "max-w-[11ch] text-[2.05rem] uppercase leading-[0.92]";
   if (post.layoutType === "grid") return "max-w-[12ch] text-[1.9rem] leading-[1]";
   return "max-w-[12ch] text-[2rem] leading-tight";
+}
+
+function ShowcaseCardItem({
+  post,
+  index,
+  currentIndex,
+  progress,
+  isMobile,
+  collisionActive,
+  isDragging,
+  setCardRef,
+  handleCardDragEnd,
+  setCurrentIndex,
+}: {
+  post: ShowcaseCard;
+  index: number;
+  currentIndex: number;
+  progress: MotionValue<number>;
+  isMobile: boolean;
+  collisionActive: boolean;
+  isDragging: boolean;
+  setCardRef: (index: number, element: HTMLButtonElement | null) => void;
+  handleCardDragEnd: (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void;
+  setCurrentIndex: React.Dispatch<React.SetStateAction<number>>;
+}) {
+  const isCenter = index === currentIndex;
+  const wasCenterRef = useRef(isCenter);
+  const centerIntroProgress = useMotionValue(isCenter ? 1 : 0);
+  const centerIntroScale = useTransform(centerIntroProgress, [0, 1], [0.965, 1]);
+  const centerIntroY = useTransform(centerIntroProgress, [0, 1], [18, 0]);
+  const centerIntroOpacity = useTransform(centerIntroProgress, [0, 1], [0.82, 1]);
+  const baseVisual = useTransform(() => getCardVisualState(index, currentIndex, isMobile, progress.get()));
+  const x = useTransform(baseVisual, (value) => value.x);
+  const y = useTransform(baseVisual, (value) => value.y);
+  const z = useTransform(baseVisual, (value) => value.z);
+  const scale = useTransform(baseVisual, (value) => value.scale);
+  const opacity = useTransform(baseVisual, (value) => value.opacity);
+  const zIndex = useTransform(baseVisual, (value) => value.zIndex);
+  const filter = useTransform(baseVisual, (value) => value.filter);
+  const pointerEvents = useTransform(baseVisual, (value) => value.pointerEvents);
+  const rotateX = useTransform(baseVisual, (value) => value.rotateX);
+  const rotateY = useTransform(baseVisual, (value) => value.rotateY);
+  const visible = useTransform(baseVisual, (value) => value.visible);
+  const hoverRotateX = useMotionValue(0);
+  const hoverRotateY = useMotionValue(0);
+  const hoverRotateXSpring = useSpring(hoverRotateX, { stiffness: 180, damping: 20, mass: 0.5 });
+  const hoverRotateYSpring = useSpring(hoverRotateY, { stiffness: 180, damping: 20, mass: 0.5 });
+  const boxShadow = isMobile
+    ? (isDragging ? "0 10px 24px rgba(0,0,0,0.2)" : isCenter ? "0 14px 34px rgba(0,0,0,0.28)" : "0 10px 24px rgba(0,0,0,0.24)")
+    : (isCenter ? `0 0 40px ${post.palette.accent}22, 0 30px 80px rgba(0,0,0,0.45)` : "0 26px 60px rgba(0,0,0,0.38)");
+
+  useEffect(() => {
+    if (isCenter && !wasCenterRef.current) {
+      const controls = animate(centerIntroProgress, 1, {
+        from: 0,
+        duration: 0.34,
+        ease: [0.22, 1, 0.36, 1],
+      });
+      wasCenterRef.current = true;
+      return () => controls.stop();
+    }
+
+    if (!isCenter) {
+      centerIntroProgress.set(0);
+      wasCenterRef.current = false;
+      return;
+    }
+
+    centerIntroProgress.set(1);
+    wasCenterRef.current = true;
+  }, [centerIntroProgress, isCenter]);
+
+  if (!visible.get()) return null;
+
+  return (
+    <motion.button
+      ref={(element) => { setCardRef(index, element); }}
+      type="button"
+      drag={isCenter && !collisionActive ? "x" : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.6}
+      onDragEnd={isCenter ? handleCardDragEnd : undefined}
+      initial={false}
+      onTap={() => {
+        if (collisionActive) return;
+        if (!isCenter) {
+          hoverRotateX.set(0);
+          hoverRotateY.set(0);
+          setCurrentIndex(index);
+        }
+      }}
+      onMouseMove={(event) => {
+        if (!isCenter || collisionActive || isMobile) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        const relativeX = event.clientX - rect.left;
+        const relativeY = event.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        hoverRotateX.set(((relativeY - centerY) / centerY) * -10);
+        hoverRotateY.set(((relativeX - centerX) / centerX) * 10);
+      }}
+      onMouseLeave={() => {
+        if (!isCenter) return;
+        hoverRotateX.set(0);
+        hoverRotateY.set(0);
+      }}
+      className="absolute h-[460px] w-[320px] overflow-hidden rounded-[28px] text-left shadow-2xl outline-none"
+      style={{
+        x,
+        y,
+        z,
+        scale,
+        rotateX,
+        rotateY,
+        opacity,
+        zIndex,
+        filter,
+        display: visible.get() ? "block" : "none",
+        transformStyle: "preserve-3d",
+        pointerEvents,
+        background: post.palette.background,
+        border: isCenter ? `1px solid ${post.palette.accent}66` : "1px solid rgba(255,255,255,0.06)",
+        boxShadow,
+      }}
+      transition={{ type: "spring", stiffness: 150, damping: 22, mass: 0.8 }}
+    >
+      <motion.div
+        className="absolute inset-0"
+        style={{
+          rotateX: isCenter ? hoverRotateXSpring : 0,
+          rotateY: isCenter ? hoverRotateYSpring : 0,
+          scale: isCenter ? centerIntroScale : 1,
+          y: isCenter ? centerIntroY : 0,
+          opacity: isCenter ? centerIntroOpacity : 1,
+          transformStyle: "preserve-3d",
+        }}
+      >
+        {renderBackground(post, isMobile)}
+        {renderDecorations(post)}
+        <div className="absolute inset-0" style={{ background: post.layoutType === "minimal" ? "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))" : `linear-gradient(180deg, transparent 0%, transparent 35%, ${post.palette.background}22 58%, ${post.palette.background}CC 100%)` }} />
+        <div className={`absolute inset-0 flex flex-col p-7 ${getTextBlockClasses(post)}`}>
+          {post.layoutType === "editorial" ? <div className="text-[10px] uppercase tracking-[0.34em]" style={{ color: `${post.palette.text}88`, fontFamily: post.fontFamily }}>{post.title}</div> : null}
+          <div>
+            <span className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em]" style={{ color: post.palette.accent, fontFamily: post.fontFamily }}>{post.category}</span>
+            {post.layoutType !== "editorial" ? <div className="mb-2 text-[10px] uppercase tracking-[0.24em]" style={{ color: `${post.palette.text}82`, fontFamily: post.fontFamily }}>{post.title}</div> : null}
+            <h2 className={`font-semibold ${getHeadlineClasses(post)}`} style={{ color: post.palette.text, fontFamily: post.fontFamily, textTransform: post.layoutType === "minimal" || post.titleCase === "upper" ? "uppercase" : "none" }}>{post.headline}</h2>
+            <p className={`mt-3 max-w-[23ch] text-sm font-light leading-relaxed ${post.layoutType === "minimal" ? "text-[13px]" : ""}`} style={{ color: `${post.palette.text}B8`, fontFamily: post.fontFamily }}>{post.subtext}</p>
+          </div>
+        </div>
+      </motion.div>
+    </motion.button>
+  );
 }
 
 function LoginPanel({ visible, interactive, onSuccess, onBack }: { visible: boolean; interactive: boolean; onSuccess: () => void; onBack: () => void }) {
@@ -223,9 +495,13 @@ export default function TheVoid2() {
   const { isAuthenticated, loading } = useAuth();
   const [, setLocation] = useLocation();
   const [currentIndex, setCurrentIndex] = useState(4);
-  const [hoverRotation, setHoverRotation] = useState({ x: 0, y: 0 });
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" ? window.innerWidth < 768 : false);
-  const [progress, setProgress] = useState(0); // Progress como STATE para causar re-renders
+  const progress = useMotionValue(0);
+  const drawerY = useMotionValue(0);
+  const [collisionActive, setCollisionActive] = useState(false);
+  const [isTransformed, setIsTransformed] = useState(false);
+  const [loginInteractive, setLoginInteractive] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
@@ -233,8 +509,6 @@ export default function TheVoid2() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authGoogleLoading, setAuthGoogleLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const MOBILE_PREVIEW_SNAP = 0.42;
-  const MOBILE_DRAG_DISTANCE = 320;
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const drawerRef = useRef<HTMLDivElement | null>(null);
@@ -245,13 +519,14 @@ export default function TheVoid2() {
   const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const touchStartYRef = useRef(0);
   const touchStartProgressRef = useRef(0);
-  const progressRef = useRef(0);
-  const progressRafRef = useRef<number | null>(null);
   const drawerPointerActiveRef = useRef(false);
   const drawerDidDragRef = useRef(false);
   const suppressChevronClickRef = useRef(false);
   const isAnimatingRef = useRef(false);
-  const scrollStartYRef = useRef(0);
+  const progressAnimationRef = useRef<ReturnType<typeof animate> | null>(null);
+  const collisionActiveRef = useRef(false);
+  const isTransformedRef = useRef(false);
+  const loginInteractiveRef = useRef(false);
 
   useEffect(() => {
     if (!loading && isAuthenticated) setLocation("/thevoid");
@@ -262,18 +537,6 @@ export default function TheVoid2() {
     syncViewport();
     window.addEventListener("resize", syncViewport);
     return () => window.removeEventListener("resize", syncViewport);
-  }, []);
-
-  useEffect(() => {
-    progressRef.current = progress;
-  }, [progress]);
-
-  useEffect(() => {
-    return () => {
-      if (progressRafRef.current !== null) {
-        window.cancelAnimationFrame(progressRafRef.current);
-      }
-    };
   }, []);
 
   const handleDrawerEmailAuth = useCallback(async (event: React.FormEvent) => {
@@ -337,123 +600,13 @@ export default function TheVoid2() {
     }
   }, []);
 
-  // ============================================================
-  // FÍSICA DE COLISÃO - PARÂMETROS
-  // ============================================================
-  const LOCK_THRESHOLD = 0.75;  // Ponto irreversível
-  const CARDS_COLLISION_START = 0.15; // Quando drawer começa a atingir cards
-
-  // Calcula espalhamento dos cards baseado na posição Y do drawer
-  const getCollisionFactor = (cardOffset: number, drawerY: number) => {
-    // drawerY vai de 0 (início) até 1 (fim)
-    // Cards começam a ser afetados quando drawerY > CARDS_COLLISION_START
-    if (drawerY < CARDS_COLLISION_START) return 0;
-    
-    const collisionProgress = mapRange(drawerY, CARDS_COLLISION_START, 0.7, 0, 1);
-    return clamp(collisionProgress, 0, 1);
-  };
-
-  const cardStyles = useMemo(() => {
-    const drawerY = progress; // 0 = início, 1 = fim
-    
-    return showcaseCards.map((_, index) => {
-      const offset = index - currentIndex;
-      const absOffset = Math.abs(offset);
-      
-      let scale = 1;
-      let x = "0%";
-      let y = 0;
-      let z = 0;
-      let rotateY = 0;
-      let rotateX = 0;
-      let opacity = 1;
-      let zIndex = 10;
-      let brightness = 1;
-      let pointerEvents: "auto" | "none" = "auto";
-
-      // ============================================================
-      // FASE 1: Carrossel normal (antes da colisão)
-      // ============================================================
-      const collisionFactor = getCollisionFactor(offset, drawerY);
-      
-      if (collisionFactor === 0) {
-        // Estado normal do carrossel
-        if (offset !== 0) {
-          if (absOffset > 2) {
-            opacity = 0;
-            pointerEvents = "none";
-          } else {
-            scale = 1 - absOffset * 0.15;
-            z = -absOffset * 100;
-            zIndex = 10 - absOffset;
-            opacity = 1 - absOffset * 0.25;
-            brightness = 1 - absOffset * 0.3;
-            if (offset < 0) {
-              rotateY = 20 + absOffset * 10;
-              x = `calc(-${45 + absOffset * 35}%)`;
-            } else {
-              rotateY = -(20 + absOffset * 10);
-              x = `calc(${45 + absOffset * 35}%)`;
-            }
-          }
-        }
-      } 
-      // ============================================================
-      // FASE 2: ESPALHAMENTO DOS CARDS (física de colisão)
-      // ============================================================
-      else {
-        const mobileSpread = isMobile ? 0.55 : 1;
-        const mobileRise = isMobile ? 0.75 : 1;
-        const mobileRotation = isMobile ? 0.45 : 1;
-        const mobileOpacityLoss = isMobile ? 0.72 : 1;
-        // Direção baseada na posição no carrossel
-        const direction = offset === 0 ? 0 : offset < 0 ? -1 : 1;
-        
-        // Cards espalham para os lados + sobem
-        // Central vai mais para cima, laterais vão para os lados
-        const sideForce = direction * (200 + absOffset * 150) * collisionFactor * mobileSpread;
-        const riseForce = -(100 + absOffset * 50) * collisionFactor * mobileRise;
-        
-        // Rotação dramática baseada na direção
-        const rotY = direction * (30 + absOffset * 15) * collisionFactor * mobileRotation;
-        const rotX = -20 * collisionFactor * mobileRotation; // Todos caem um pouco para tr�s
-        
-        // Scale e fade
-        const scaleFactor = 1 - collisionFactor * (isMobile ? 0.14 : 0.2);
-        const opacityFactor = 1 - collisionFactor * (absOffset === 0 ? 0.5 : 0.95) * mobileOpacityLoss;
-        
-        x = `${sideForce}px`;
-        y = riseForce;
-        scale = scaleFactor;
-        rotateY = rotY;
-        rotateX = rotX;
-        opacity = opacityFactor;
-        zIndex = 10 - absOffset;
-        brightness = 1 - collisionFactor * 0.3;
-        pointerEvents = opacityFactor < 0.1 ? "none" : "auto";
-      }
-
-      return { 
-        x, y, z, scale, rotateY, rotateX, opacity, zIndex, pointerEvents, 
-        filter: isMobile ? "none" : `brightness(${brightness})` 
-      };
-    });
-  }, [currentIndex, isMobile, progress]);
-
-  // ============================================================
-  // NAVEGAÇÃO DE CARDS (só funciona quando colisão inativa)
-  // ============================================================
-  const collisionActive = progress > CARDS_COLLISION_START;
-
   const goPrevious = useCallback(() => {
     if (collisionActive) return;
-    setHoverRotation({ x: 0, y: 0 });
     setCurrentIndex((prev) => Math.max(0, prev - 1));
   }, [collisionActive]);
 
   const goNext = useCallback(() => {
     if (collisionActive) return;
-    setHoverRotation({ x: 0, y: 0 });
     setCurrentIndex((prev) => Math.min(showcaseCards.length - 1, prev + 1));
   }, [collisionActive]);
 
@@ -470,7 +623,8 @@ export default function TheVoid2() {
     if (!drawerRef.current || typeof window === "undefined") return desktopY;
 
     const drawerHeight = drawerRef.current.offsetHeight;
-    const centeredY = -(((window.innerHeight - drawerHeight) / 2) - 16);
+    const centeredOffset = isMobile ? 56 : 96;
+    const centeredY = -(((window.innerHeight - drawerHeight) / 2) - centeredOffset);
 
     if (!isMobile) {
       const centerBlend = mapRange(nextProgress, 0.82, 1, 0, 1);
@@ -483,11 +637,9 @@ export default function TheVoid2() {
     }
 
     return mapRange(nextProgress, MOBILE_PREVIEW_SNAP, 1, previewY, centeredY);
-  }, [MOBILE_PREVIEW_SNAP, isMobile]);
-
-  const getCurrentProgress = useCallback(() => {
-    return isMobile ? progressRef.current : progress;
-  }, [isMobile, progress]);
+  }, [MOBILE_PREVIEW_SNAP, isMobile]);  const getCurrentProgress = useCallback(() => {
+    return progress.get();
+  }, [progress]);
 
   const getChevronTargetProgress = useCallback((nextProgress: number) => {
     if (!isMobile) {
@@ -495,7 +647,7 @@ export default function TheVoid2() {
     }
 
     return nextProgress >= MOBILE_PREVIEW_SNAP ? 0 : 1;
-  }, [LOCK_THRESHOLD, MOBILE_PREVIEW_SNAP, isMobile]);
+  }, [isMobile]);
 
   const getProgressSnapTarget = useCallback((nextProgress: number) => {
     if (!isMobile) {
@@ -508,114 +660,108 @@ export default function TheVoid2() {
     return snapPoints.reduce((closest, candidate) => (
       Math.abs(candidate - nextProgress) < Math.abs(closest - nextProgress) ? candidate : closest
     ), snapPoints[0]);
-  }, [MOBILE_PREVIEW_SNAP, isMobile]);
-
-  const syncProgressState = useCallback((nextProgress: number) => {
-    progressRef.current = nextProgress;
-
-    if (!isMobile) {
-      setProgress(nextProgress);
-      return;
-    }
-
-    if (progressRafRef.current !== null) return;
-
-    progressRafRef.current = window.requestAnimationFrame(() => {
-      progressRafRef.current = null;
-      setProgress(progressRef.current);
-    });
   }, [isMobile]);
 
-  // ============================================================
-  // CONTROLE DE PROGRESS (drawer + wheel/scroll)
-  // ============================================================
-  const applyProgress = useCallback((nextProgress: number) => {
-    const clamped = clamp(nextProgress, 0, 1);
-    syncProgressState(clamped);
-
-    // O drawer segue o scroll - posição absoluta baseada no progress
-    // drawerY vai de 0 (bottom) até 1 (top/invisível)
-    if (drawerRef.current) {
-      gsap.set(drawerRef.current, {
-        y: getDrawerY(clamped),
-        opacity: 1,
-      });
+  const syncThresholdState = useCallback((nextProgress: number) => {
+    const nextCollisionActive = nextProgress > CARDS_COLLISION_START;
+    if (collisionActiveRef.current !== nextCollisionActive) {
+      collisionActiveRef.current = nextCollisionActive;
+      setCollisionActive(nextCollisionActive);
     }
-  }, [getDrawerY, syncProgressState]);
+
+    const nextIsTransformed = nextProgress > 0.85;
+    if (isTransformedRef.current !== nextIsTransformed) {
+      isTransformedRef.current = nextIsTransformed;
+      setIsTransformed(nextIsTransformed);
+    }
+
+    const nextLoginInteractive = nextProgress >= 0.97;
+    if (loginInteractiveRef.current !== nextLoginInteractive) {
+      loginInteractiveRef.current = nextLoginInteractive;
+      setLoginInteractive(nextLoginInteractive);
+    }
+  }, []);
+
+  const syncDrawerPosition = useCallback((nextProgress: number) => {
+    drawerY.set(getDrawerY(nextProgress));
+  }, [drawerY, getDrawerY]);
+
+  useMotionValueEvent(progress, "change", (latest) => {
+    syncThresholdState(latest);
+    syncDrawerPosition(latest);
+  });
+
+  const applyProgress = useCallback((nextProgress: number) => {
+    progress.set(clamp(nextProgress, 0, 1));
+  }, [progress]);
 
   const animateProgressTo = useCallback((target: number, duration = 0.5, fromProgress?: number) => {
-    if (isAnimatingRef.current) return;
+    progressAnimationRef.current?.stop();
     isAnimatingRef.current = true;
-    const tweenState = { value: clamp(fromProgress ?? getCurrentProgress(), 0, 1) };
-    gsap.to(tweenState, {
-      value: clamp(target, 0, 1),
+    progressAnimationRef.current = animate(progress, clamp(target, 0, 1), {
       duration,
-      ease: "power3.inOut",
-      onUpdate: function() {
-        const newProgress = tweenState.value;
-        syncProgressState(newProgress);
-        if (drawerRef.current) {
-          gsap.set(drawerRef.current, {
-            y: getDrawerY(newProgress),
-            opacity: 1,
-          });
-        }
-      },
+      ease: "easeInOut",
+      from: clamp(fromProgress ?? getCurrentProgress(), 0, 1),
       onComplete: () => {
         isAnimatingRef.current = false;
+        progressAnimationRef.current = null;
+      },
+      onStop: () => {
+        isAnimatingRef.current = false;
+        progressAnimationRef.current = null;
       },
     });
-  }, [getCurrentProgress, getDrawerY, syncProgressState]);
+  }, [getCurrentProgress, progress]);
 
-  // ============================================================
-  // WHEEL HANDLER (Desktop) - scroll DESCER = drawer sobe
-  // ============================================================
+  useEffect(() => {
+    syncThresholdState(progress.get());
+    syncDrawerPosition(progress.get());
+  }, [progress, syncDrawerPosition, syncThresholdState]);
+
+  useEffect(() => {
+    return () => {
+      progressAnimationRef.current?.stop();
+    };
+  }, []);
+
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
-      
-      // Desktop apenas
       if (isMobile) return;
-      
-      // Não interferir se já está no fim ou animado
-      if (isAnimatingRef.current && progress >= 0.99) return;
-      
-      // Scroll PARA BAIXO (deltaY > 0) = drawer SOBE (progress++)
-      // Scroll PARA CIMA (deltaY < 0) = drawer DESCE (progress--)
+      if (isAnimatingRef.current && progress.get() >= 0.99) return;
+
       const delta = event.deltaY * 0.0008;
-      const newProgress = clamp(progress + delta, 0, 1);
+      const newProgress = clamp(progress.get() + delta, 0, 1);
       applyProgress(newProgress);
     };
 
     window.addEventListener("wheel", handleWheel, { passive: false });
     return () => window.removeEventListener("wheel", handleWheel);
-  }, [progress, applyProgress, isMobile]);
+  }, [applyProgress, isMobile, progress]);
 
   useEffect(() => {
-    if (!isMobile || typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
 
-    const syncDrawerPosition = () => {
-      if (!drawerRef.current) return;
-      gsap.set(drawerRef.current, { y: getDrawerY(progress), opacity: 1 });
+    const handleViewportChange = () => {
+      syncThresholdState(progress.get());
+      syncDrawerPosition(progress.get());
     };
 
-    syncDrawerPosition();
-    window.addEventListener("resize", syncDrawerPosition);
-    window.visualViewport?.addEventListener("resize", syncDrawerPosition);
+    handleViewportChange();
+    window.addEventListener("resize", handleViewportChange);
+    window.visualViewport?.addEventListener("resize", handleViewportChange);
 
     return () => {
-      window.removeEventListener("resize", syncDrawerPosition);
-      window.visualViewport?.removeEventListener("resize", syncDrawerPosition);
+      window.removeEventListener("resize", handleViewportChange);
+      window.visualViewport?.removeEventListener("resize", handleViewportChange);
     };
-  }, [getDrawerY, isMobile, progress]);
+  }, [progress, syncDrawerPosition, syncThresholdState]);
 
-  // ============================================================
-  // POINTER HANDLERS (Mobile) - drag no drawer
-  // ============================================================
   const handleDrawerPointerDown = useCallback((event: React.PointerEvent<HTMLElement>) => {
     if (isAnimatingRef.current) return;
     drawerPointerActiveRef.current = true;
     drawerDidDragRef.current = false;
+    setIsDragging(true);
     touchStartYRef.current = event.clientY;
     touchStartProgressRef.current = getCurrentProgress();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -633,7 +779,7 @@ export default function TheVoid2() {
     const progressDelta = delta / progressDistance;
     const newProgress = clamp(touchStartProgressRef.current + progressDelta, 0, 1);
     applyProgress(newProgress);
-  }, [MOBILE_DRAG_DISTANCE, applyProgress, isMobile]);
+  }, [applyProgress, isMobile]);
 
   const handleDrawerPointerEnd = useCallback((event: React.PointerEvent<HTMLElement>) => {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -641,6 +787,7 @@ export default function TheVoid2() {
     }
 
     drawerPointerActiveRef.current = false;
+    setIsDragging(false);
     if (!drawerDidDragRef.current) return;
 
     suppressChevronClickRef.current = true;
@@ -653,12 +800,6 @@ export default function TheVoid2() {
     if (snapTarget !== currentProgress) animateProgressTo(snapTarget, isMobile ? 0.38 : 0.5, currentProgress);
   }, [animateProgressTo, getCurrentProgress, getProgressSnapTarget, isMobile]);
 
-  const loginVisible = progress >= 0.85;
-  const loginInteractive = progress >= 0.97;
-  
-  // Calcula transformação do drawer
-  const drawerTransformProgress = mapRange(progress, 0.7, 0.97, 0, 1);
-  const isTransformed = progress > 0.85;
   useLayoutEffect(() => {
     const content = drawerContentRef.current;
     const initial = drawerInitialRef.current;
@@ -694,7 +835,7 @@ export default function TheVoid2() {
         duration: 0.28,
         ease: "power2.out",
         onUpdate: () => {
-          if (drawerRef.current) gsap.set(drawerRef.current, { y: getDrawerY(getCurrentProgress()) });
+          syncDrawerPosition(getCurrentProgress());
         },
       });
     } else {
@@ -723,18 +864,13 @@ export default function TheVoid2() {
         duration: 0.28,
         ease: "power2.out",
         onUpdate: () => {
-          if (drawerRef.current) gsap.set(drawerRef.current, { y: getDrawerY(getCurrentProgress()) });
+          syncDrawerPosition(getCurrentProgress());
         },
       });
     }
-    if (drawerRef.current) {
-      gsap.to(drawerRef.current, {
-        y: getDrawerY(getCurrentProgress()),
-        duration: 0.28,
-        ease: "power2.out",
-      });
-    }
-  }, [getDrawerY, isTransformed, progress]);
+
+    syncDrawerPosition(getCurrentProgress());
+  }, [getCurrentProgress, isTransformed, syncDrawerPosition]);
 
   return (
     <div ref={rootRef} className="h-[100dvh] min-h-screen overflow-hidden text-white selection:bg-[#00f5ff] selection:text-black" style={{ background: "linear-gradient(180deg, #050505 0%, #090b11 100%)" }}>
@@ -763,57 +899,21 @@ export default function TheVoid2() {
               <ChevronLeft className="h-6 w-6 md:h-8 md:w-8" />
             </button>
 
-            {showcaseCards.map((post, index) => {
-              const styles = cardStyles[index];
-              const isCenter = index === currentIndex;
-
-              return (
-                <motion.button
-                  key={post.id}
-                  ref={(el) => { cardRefs.current[index] = el; }}
-                  type="button"
-                  drag={isCenter && !collisionActive ? "x" : false}
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.6}
-                  onDragEnd={isCenter ? handleCardDragEnd : undefined}
-                  initial={false}
-                  animate={{ x: styles.x, z: styles.z, scale: styles.scale, rotateX: isCenter ? hoverRotation.x : 0, rotateY: isCenter ? hoverRotation.y : styles.rotateY, opacity: styles.opacity, zIndex: styles.zIndex, filter: styles.filter }}
-                  transition={{ type: "spring", stiffness: 150, damping: 22, mass: 0.8 }}
-                  onTap={() => {
-                    if (collisionActive) return;
-                    if (!isCenter) {
-                      setHoverRotation({ x: 0, y: 0 });
-                      setCurrentIndex(index);
-                    }
-                  }}
-                  onMouseMove={(event) => {
-                    if (!isCenter || collisionActive) return;
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    const x = event.clientX - rect.left;
-                    const y = event.clientY - rect.top;
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    setHoverRotation({ x: ((y - centerY) / centerY) * -12, y: ((x - centerX) / centerX) * 12 });
-                  }}
-                  onMouseLeave={() => { if (isCenter) setHoverRotation({ x: 0, y: 0 }); }}
-                  className="absolute h-[460px] w-[320px] overflow-hidden rounded-[28px] text-left shadow-2xl outline-none"
-                  style={{ transformStyle: "preserve-3d", pointerEvents: styles.pointerEvents, background: post.palette.background, border: isCenter ? `1px solid ${post.palette.accent}66` : "1px solid rgba(255,255,255,0.06)", boxShadow: isMobile ? (isCenter ? `0 0 22px ${post.palette.accent}18, 0 18px 44px rgba(0,0,0,0.34)` : "0 16px 36px rgba(0,0,0,0.28)") : (isCenter ? `0 0 40px ${post.palette.accent}22, 0 30px 80px rgba(0,0,0,0.45)` : "0 26px 60px rgba(0,0,0,0.38)") }}
-                >
-                  {renderBackground(post)}
-                  {renderDecorations(post)}
-                  <div className="absolute inset-0" style={{ background: post.layoutType === "minimal" ? "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))" : `linear-gradient(180deg, transparent 0%, transparent 35%, ${post.palette.background}22 58%, ${post.palette.background}CC 100%)` }} />
-                  <div className={`absolute inset-0 flex flex-col p-7 ${getTextBlockClasses(post)}`}>
-                    {post.layoutType === "editorial" ? <div className="text-[10px] uppercase tracking-[0.34em]" style={{ color: `${post.palette.text}88`, fontFamily: post.fontFamily }}>{post.title}</div> : null}
-                    <div>
-                      <span className="mb-3 block text-[11px] font-bold uppercase tracking-[0.32em]" style={{ color: post.palette.accent, fontFamily: post.fontFamily }}>{post.category}</span>
-                      {post.layoutType !== "editorial" ? <div className="mb-2 text-[10px] uppercase tracking-[0.24em]" style={{ color: `${post.palette.text}82`, fontFamily: post.fontFamily }}>{post.title}</div> : null}
-                      <h2 className={`font-semibold ${getHeadlineClasses(post)}`} style={{ color: post.palette.text, fontFamily: post.fontFamily, textTransform: post.layoutType === "minimal" || post.titleCase === "upper" ? "uppercase" : "none" }}>{post.headline}</h2>
-                      <p className={`mt-3 max-w-[23ch] text-sm font-light leading-relaxed ${post.layoutType === "minimal" ? "text-[13px]" : ""}`} style={{ color: `${post.palette.text}B8`, fontFamily: post.fontFamily }}>{post.subtext}</p>
-                    </div>
-                  </div>
-                </motion.button>
-              );
-            })}
+            {showcaseCards.map((post, index) => (
+              <ShowcaseCardItem
+                key={post.id}
+                post={post}
+                index={index}
+                currentIndex={currentIndex}
+                progress={progress}
+                isMobile={isMobile}
+                collisionActive={collisionActive}
+                isDragging={isDragging}
+                setCardRef={(cardIndex, element) => { cardRefs.current[cardIndex] = element; }}
+                handleCardDragEnd={handleCardDragEnd}
+                setCurrentIndex={setCurrentIndex}
+              />
+            ))}
 
             <button type="button" onClick={goNext} disabled={currentIndex === showcaseCards.length - 1 || collisionActive} aria-label="Proximo card" className="absolute right-0 z-40 hidden rounded-full border border-white/10 bg-white/5 p-3 text-white/50 shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-0 md:right-6 md:block">
               <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
@@ -823,18 +923,19 @@ export default function TheVoid2() {
       </div>
 
       {/* ============================================================ */}
-      {/* DRAWER QUE SE TRANSFORMA - Único elemento que cresce */}
+      {/* DRAWER QUE SE TRANSFORMA - ÃƒÆ’Ã…Â¡nico elemento que cresce */}
       {/* ============================================================ */}
-      <div
+      <motion.div
         ref={drawerRef}
         className="fixed inset-x-4 z-30 mx-auto flex w-auto max-w-md flex-col items-center text-center"
         style={{
+          y: drawerY,
           touchAction: "none",
           bottom: "16px",
           pointerEvents: "auto",
         }}
       >
-        {/* Chevron - muda de direção baseado no estado */}
+        {/* Chevron - muda de direÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o baseado no estado */}
         <div
           className="flex w-full justify-center pt-4"
           onPointerDown={isMobile ? handleDrawerPointerDown : undefined}
@@ -866,10 +967,10 @@ export default function TheVoid2() {
         </motion.button>
         </div>
 
-        {/* Conteúdo que se transforma */}
+        {/* ConteÃƒÆ’Ã‚Âºdo que se transforma */}
         <div ref={drawerContentRef} className="mt-2 max-h-[calc(100dvh-7rem)] w-full overflow-y-auto overflow-x-hidden pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:max-h-none md:overflow-visible">
           <div ref={drawerInitialRef} className={`${isMobile ? "text-lg" : "text-base"} font-medium leading-tight text-white/88`}>
-            Deslize para iniciar
+            {isMobile ? "Deslize para iniciar" : "Clique para iniciar"}
           </div>
 
           <form
@@ -926,7 +1027,7 @@ export default function TheVoid2() {
               </div>
           </form>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
