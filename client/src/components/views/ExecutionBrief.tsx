@@ -492,7 +492,7 @@ export default function ExecutionBrief({
                 disabled={isLoading || !brief.rawInput.trim()}
                 className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-400 px-4 py-3 text-sm font-semibold text-slate-950 transition-opacity disabled:opacity-50"
               >
-                {isLoading ? "Executando briefing..." : "Gerar pecas"}
+                {isLoading ? "Executando briefing..." : "Gerar"}
                 {!isLoading && <ArrowRight size={16} />}
               </button>
             </SectionCard>
