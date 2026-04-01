@@ -27,7 +27,7 @@ export default function SavedPosts() {
       id: `saved-${post.id}`,
       headline: post.headline || "",
       body: post.body || "",
-      caption: "",
+      caption: post.caption || "",
       hashtags: Array.isArray(post.hashtags) ? post.hashtags : [],
       callToAction: post.callToAction || "",
       tone: post.tone || "",

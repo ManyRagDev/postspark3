@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Pricing from "./pages/Pricing";
 import Billing from "./pages/Billing";
 import SavedPosts from "./pages/SavedPosts";
+import Admin from "./pages/Admin";
 import TheVoid2Page from "./pages/TheVoid2Page";
 import UserTopMenu from "./components/UserTopMenu";
 import { useAuth } from "./_core/hooks/useAuth";
@@ -124,6 +125,21 @@ function ProtectedRoute({ component: Component }: { component: ComponentType }) 
   return <Component />;
 }
 
+function AdminRoute({ component: Component }: { component: ComponentType }) {
+  const { loading, isAuthenticated, user } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (loading) return;
+    if (!isAuthenticated || user?.role !== "admin") {
+      setLocation("/");
+    }
+  }, [isAuthenticated, loading, user, setLocation]);
+
+  if (loading || !isAuthenticated || user?.role !== "admin") return null;
+  return <Component />;
+}
+
 function Router() {
   return (
     <Switch>
@@ -135,6 +151,7 @@ function Router() {
       <Route path={"/saved-posts"} component={() => <ProtectedRoute component={SavedPosts} />} />
       <Route path={"/billing/success"} component={PostCheckoutSuccess} />
       <Route path={"/billing/topup-success"} component={TopupSuccess} />
+      <Route path={"/admin"} component={() => <AdminRoute component={Admin} />} />
       <Route path={"/auth/google-callback"} component={GoogleAuthCallback} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

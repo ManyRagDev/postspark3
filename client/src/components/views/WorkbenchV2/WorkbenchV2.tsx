@@ -23,6 +23,7 @@ import { trpc } from "@/lib/trpc";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import type { AspectRatio } from "@shared/postspark";
 import { ASPECT_RATIO_LABELS } from "@shared/postspark";
+import { toast } from "sonner";
 import RatioIcon from "../../RatioIcon";
 
 import CanvasWorkspace from "./CanvasWorkspace";
@@ -301,6 +302,7 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: Work
 
     const generateBackgroundMutation = trpc.post.generateBackground.useMutation();
     const [isGeneratingImg, setIsGeneratingImg] = React.useState(false);
+    const [isExporting, setIsExporting] = React.useState(false);
 
     const handleGenerateImage = React.useCallback(async (prompt: string, provider: 'pollinations_fast' | 'pollinations_hd' = 'pollinations_fast') => {
         setIsGeneratingImg(true);
@@ -318,6 +320,39 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: Work
             setIsGeneratingImg(false);
         }
     }, [generateBackgroundMutation]);
+
+    const handleExport = React.useCallback(async () => {
+        if (onExport) {
+            onExport();
+            return;
+        }
+
+        const exportPlatform = activeVariation?.platform ?? "instagram";
+
+        if (!canvasRef.current) {
+            toast.error("Nao foi possivel localizar a area do post para exportacao.");
+            return;
+        }
+
+        setIsExporting(true);
+        try {
+            const { default: html2canvas } = await import("html2canvas-pro");
+            const canvas = await html2canvas(canvasRef.current, {
+                scale: 2,
+                backgroundColor: null,
+                useCORS: true,
+            });
+            const link = document.createElement("a");
+            link.download = `postspark-${exportPlatform}-${Date.now()}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        } catch (error) {
+            console.error("Export failed:", error);
+            toast.error("A exportacao falhou. Tente novamente.");
+        } finally {
+            setIsExporting(false);
+        }
+    }, [activeVariation, onExport]);
 
     if (!activeVariation) {
         return (
@@ -378,7 +413,8 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: Work
                     </button>
 
                     <button
-                        onClick={onExport}
+                        onClick={handleExport}
+                        disabled={isExporting}
                         className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-500 active:scale-95 relative group/export"
                         style={{
                             background: `${accentColor}15`,
@@ -392,8 +428,12 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: Work
                             animate={{ opacity: [0.2, 0.4, 0.2] }}
                             transition={{ repeat: Infinity, duration: 2.5 }}
                         />
-                        <Download size={13} className="relative z-10" />
-                        <span className="relative z-10">Exportar</span>
+                        {isExporting ? (
+                            <Loader2 size={13} className="relative z-10 animate-spin" />
+                        ) : (
+                            <Download size={13} className="relative z-10" />
+                        )}
+                        <span className="relative z-10">{isExporting ? "Exportando" : "Exportar"}</span>
                     </button>
                 </div>
             </header>

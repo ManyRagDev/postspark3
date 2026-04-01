@@ -486,9 +486,12 @@ const billingRouter = router({
 
 });
 
+import { adminRouter } from "./routers/admin";
+
 export const appRouter = router({
   system: systemRouter,
   billing: billingRouter,
+  admin: adminRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -1082,6 +1085,7 @@ Responda APENAS com JSON válido.`;
         platform: z.string(),
         headline: z.string().optional(),
         body: z.string().optional(),
+        caption: z.string().optional(),
         hashtags: z.array(z.string()).optional(),
         callToAction: z.string().optional(),
         tone: z.string().optional(),
@@ -1126,6 +1130,7 @@ Responda APENAS com JSON válido.`;
         id: z.number(),
         headline: z.string().optional(),
         body: z.string().optional(),
+        caption: z.string().optional(),
         hashtags: z.array(z.string()).optional(),
         callToAction: z.string().optional(),
         imageUrl: z.string().optional(),

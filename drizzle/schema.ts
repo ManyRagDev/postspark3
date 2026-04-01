@@ -33,6 +33,7 @@ export const posts = postsparkSchema.table("posts", {
   platform: varchar("platform", { length: 32 }).notNull(), // instagram | twitter | linkedin | facebook
   headline: text("headline"),
   body: text("body"),
+  caption: text("caption"),
   hashtags: jsonb("hashtags").$type<string[]>(), // Changed to jsonb
   callToAction: text("callToAction"),
   tone: varchar("tone", { length: 64 }),

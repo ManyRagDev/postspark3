@@ -207,12 +207,14 @@ export default function Home() {
       try {
         const editorState = useEditorStore.getState();
         const persistedVariation = editorState.baseVariation ?? variation;
+        const activeCaption = editorState.activeVariation?.caption ?? persistedVariation.caption;
         await saveMutation.mutateAsync({
           inputType: inputMeta.type,
           inputContent: inputMeta.content,
           platform: persistedVariation.platform,
           headline: persistedVariation.headline,
           body: persistedVariation.body,
+          caption: activeCaption,
           hashtags: persistedVariation.hashtags,
           callToAction: persistedVariation.callToAction,
           tone: persistedVariation.tone,
@@ -326,7 +328,6 @@ export default function Home() {
             onBack={goToHoloDeck}
             onSave={handleSave}
             isSaving={saveMutation.isPending}
-            onExport={() => { }} // Hook placeholder for now
           />
         )}
       </AnimatePresence>

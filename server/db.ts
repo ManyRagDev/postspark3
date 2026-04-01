@@ -24,6 +24,7 @@ export type PostRecord = {
   platform: string;
   headline: string | null;
   body: string | null;
+  caption: string | null;
   hashtags: string[] | null;
   callToAction: string | null;
   tone: string | null;
@@ -53,6 +54,7 @@ export type CreatePostInput = {
   platform: string;
   headline?: string;
   body?: string;
+  caption?: string;
   hashtags?: string[];
   callToAction?: string;
   tone?: string;
@@ -132,6 +134,7 @@ export async function createPost(post: CreatePostInput): Promise<number> {
     platform: post.platform,
     headline: post.headline ?? null,
     body: post.body ?? null,
+    caption: post.caption ?? null,
     hashtags: post.hashtags ?? null,
     callToAction: post.callToAction ?? null,
     tone: post.tone ?? null,
@@ -191,6 +194,7 @@ export async function updatePost(
   const payload = removeUndefined({
     headline: data.headline,
     body: data.body,
+    caption: data.caption,
     hashtags: data.hashtags,
     callToAction: data.callToAction,
     tone: data.tone,

@@ -19,4 +19,11 @@ export const ENV = {
   stripePriceTopupStarter: process.env.STRIPE_PRICE_TOPUP_STARTER ?? "",
   stripePriceTopupPower: process.env.STRIPE_PRICE_TOPUP_POWER ?? "",
   stripePriceTopupMega: process.env.STRIPE_PRICE_TOPUP_MEGA ?? "",
+
+  // SMTP (Hostinger)
+  smtpHost: process.env.SMTP_HOST ?? "",
+  smtpPort: parseInt(process.env.SMTP_PORT || "465"),
+  smtpUser: process.env.SMTP_USER ?? "",
+  smtpPass: process.env.SMTP_PASS ?? "",
+  smtpFrom: process.env.SMTP_FROM ?? "",
 };
