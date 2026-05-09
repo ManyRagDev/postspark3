@@ -17,6 +17,7 @@ import { useEditorStore } from "@/store/editorStore";
 import { trpc } from "@/lib/trpc";
 import { motion, AnimatePresence } from "framer-motion";
 import { layoutToAdvanced } from "../WorkbenchRefactored";
+import { useIsMobile } from "@/hooks/useMobile";
 
 interface CanvasWorkspaceProps {
     /** Referência do card para o export (html2canvas) */
@@ -29,6 +30,7 @@ export default function CanvasWorkspace({
     canvasRef,
     isEditingCard = false,
 }: CanvasWorkspaceProps) {
+    const isMobile = useIsMobile();
     const aspectRatio = useEditorStore((s) => s.aspectRatio);
     const activeVariation = useEditorStore((s) => s.activeVariation);
     const updateLayoutSettings = useEditorStore((s) => s.updateLayoutSettings);
@@ -105,10 +107,11 @@ export default function CanvasWorkspace({
             // O card base na V2 tem um tamanho lógico interno, por ex 360px
             // Precisamos calcular uma escala para ele caber e ficar GLORIOSO mas não cortar
             const baseWidth = 360; // Base lógica original para manter a proporção das fontes
-            const padding = 64; // p-8 * 2
+            const horizontalPadding = isMobile ? 24 : 64;
+            const verticalPadding = isMobile ? 24 : 64;
 
-            const availableWidth = containerWidth - padding;
-            const availableHeight = containerHeight - padding;
+            const availableWidth = Math.max(containerWidth - horizontalPadding, 1);
+            const availableHeight = Math.max(containerHeight - verticalPadding, 1);
 
             let targetHeight = baseWidth;
             if (aspectRatio === '9:16') targetHeight = baseWidth * (16 / 9);
@@ -116,16 +119,25 @@ export default function CanvasWorkspace({
 
             const scaleW = availableWidth / baseWidth;
             const scaleH = availableHeight / targetHeight;
-            const viewportFitScale = Math.min(scaleW, scaleH, 1.25); // Max zoom 1.25x (se couber)
-            const finalScale = viewportFitScale * 0.8; // 20% menor conforme solicitado pelo usuário
+            const viewportFitScale = Math.min(scaleW, scaleH, isMobile ? 1 : 1.25);
+            const finalScale = viewportFitScale * (isMobile ? 0.98 : 0.8);
 
             setScale(finalScale);
         };
 
         calculateScale();
         window.addEventListener('resize', calculateScale);
-        return () => window.removeEventListener('resize', calculateScale);
-    }, [aspectRatio]);
+        const resizeObserver = typeof ResizeObserver !== "undefined"
+            ? new ResizeObserver(calculateScale)
+            : null;
+        if (resizeObserver && containerRef.current) {
+            resizeObserver.observe(containerRef.current);
+        }
+        return () => {
+            window.removeEventListener('resize', calculateScale);
+            resizeObserver?.disconnect();
+        };
+    }, [aspectRatio, isMobile]);
 
     const dt = activeVariation?.designTokens;
     const accentColor = dt?.colors?.primary ?? activeVariation?.accentColor ?? "#a855f7";
@@ -159,7 +171,9 @@ export default function CanvasWorkspace({
                 }}
             />
             {/* Container do card com scaling responsivo pra grandeza visual */}
-            <div className="relative group px-8 pt-24 pb-8 flex items-center justify-center max-h-[85vh]">
+            <div
+                className={`relative group flex items-center justify-center ${isMobile ? "px-3 pt-5 pb-4 h-full w-full" : "px-8 pt-24 pb-8 max-h-[85vh]"}`}
+            >
                 <div
                     ref={canvasRef}
                     className="relative z-10 rounded-2xl shadow-2xl transition-transform duration-300 ease-in-out ease-out transform-gpu shrink-0"

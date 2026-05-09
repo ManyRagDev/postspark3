@@ -218,6 +218,7 @@ Autenticar via Supabase no frontend e converter a sessão em cookie httpOnly par
 - [`server/_core/sdk.ts`](./server/_core/sdk.ts)
 - [`server/_core/context.ts`](./server/_core/context.ts)
 - [`server/_core/cookies.ts`](./server/_core/cookies.ts)
+- [`server/_core/manylabs.ts`](./server/_core/manylabs.ts)
 
 **Entradas**
 
@@ -234,30 +235,36 @@ Autenticar via Supabase no frontend e converter a sessão em cookie httpOnly par
 
 **Dependências internas**
 
-- `auth.me` e `auth.logout` via tRPC.
+- `auth.me` e `auth.logout` via tRPC;
+- `manylabs.ts` para verificação de acesso ao app.
 
 **Dependências externas**
 
-- Supabase Auth.
+- Supabase Auth;
+- Schema `manylabs` no Supabase (perfis, app_access, app_roles, audit_events).
 
 **Dados consumidos**
 
 - access token do Supabase;
-- metadata do usuário no Supabase.
+- metadata do usuário no Supabase;
+- `manylabs.app_access` para verificação de acesso ao PostSpark.
 
 **Dados produzidos**
 
 - cookie httpOnly;
-- objeto `AuthenticatedUser`.
+- objeto `AuthenticatedUser`;
+- registros em `manylabs.profiles`, `manylabs.app_access`, `manylabs.app_roles`, `manylabs.audit_events` (via auto-ativação).
 
 **Integrações envolvidas**
 
-- Supabase `auth.getUser`, `signInWithPassword`, `signUp`, `signInWithOAuth`, `signOut`.
+- Supabase `auth.getUser`, `signInWithPassword`, `signUp`, `signInWithOAuth`, `signOut`;
+- RPC `manylabs.has_app_access(user_id, app_slug)`.
 
 **Riscos e observações**
 
 - Há dois estados de sessão para manter coerentes: cliente Supabase e cookie bridge do backend.
-- Em `development`, `BYPASS_AUTH=true` injeta usuário fixo admin. Isso altera comportamento de segurança e deve ser tratado como modo especial, não como fluxo padrão.
+- Em `development`, `BYPASS_AUTH=true` injeta usuário fixo admin e pula checagem ManyLabs. Isso altera comportamento de segurança e deve ser tratado como modo especial, não como fluxo padrão.
+- A checagem ManyLabs ocorre em dois pontos: emissão do cookie (`supabaseAuth.ts`) e validação por request (`sdk.ts`), garantindo que cookies antigos sejam bloqueados se o acesso for revogado.
 
 ### 5.3 API tRPC e regras de negócio
 
@@ -545,12 +552,19 @@ Gerenciar o estado editável do post e suas variantes/overrides por slide.
 2. O Supabase retorna sessão/token no cliente.
 3. O frontend chama `/api/auth/supabase-session` com `access_token`.
 4. O backend valida o token com Supabase Admin.
-5. O backend grava cookie httpOnly `app_session_id`.
-6. Em cada chamada tRPC protegida, `sdk.authenticateRequest` valida o cookie e preenche `ctx.user`.
+5. O backend verifica acesso ManyLabs via `ensurePostSparkAccess()`:
+   - Se existe `manylabs.app_access` com status `active` ou `trial` → acesso permitido.
+   - Se não existe registro prévio → auto-ativação (cria profile, app_access, app_role, audit_event) → acesso permitido.
+   - Se existe registro com status bloqueante (`blocked`, `revoked`, `suspended`, `inactive`) ou desconhecido → acesso negado (HTTP 403, `postspark_access_required`).
+6. Se acesso permitido, o backend grava cookie httpOnly `app_session_id`.
+7. Em cada chamada tRPC protegida, `sdk.authenticateRequest` valida o cookie e chama `hasPostSparkAccess()` para verificar se o acesso continua ativo.
+8. Se acesso revogado desde a emissão do cookie, a request é bloqueada com `ForbiddenError`.
 
 Observação:
 
 - `useAuth` também escuta `onAuthStateChange` para manter o backend sincronizado com refresh/logout do cliente.
+- A checagem dupla (login + cada request) garante que revogação de acesso seja efetiva imediatamente, mesmo com cookies válidos.
+- Em `development` com `BYPASS_AUTH=true`, toda a checagem ManyLabs é pulada.
 
 ### 6.2 Fluxo principal do usuário autenticado
 
@@ -950,7 +964,56 @@ Fato observado:
 - `post.listBackgrounds` em `server/routers.ts` monta paths de imagem com espaços em `"/ images / backgrounds / ..."`.
 - Isso parece inconsistente com paths web esperados e deve ser validado antes de confiar nesse endpoint como verdade funcional.
 
-## 13. Lacunas de conhecimento
+## 13. ManyLabs Access Control
+
+### Visão geral
+
+O PostSpark agora integra com o schema `manylabs` para controle de acesso por app. O Supabase Auth continua sendo a identidade global, mas o acesso ao PostSpark é controlado por `manylabs.app_access`.
+
+### Schema manylabs
+
+Tabelas confirmadas:
+
+- `manylabs.profiles`: `user_id`, `email_normalized`, `display_name`, `avatar_url`, `source`, `metadata`, `created_at`, `updated_at`
+- `manylabs.app_access`: `user_id`, `app_slug`, `status`, `source`, `activated_at`, `expires_at`, `metadata`, `created_at`, `updated_at`
+- `manylabs.app_roles`: `id`, `user_id`, `app_slug`, `role`, `source`, `metadata`, `created_at`, `updated_at`
+- `manylabs.audit_events`: `id`, `actor_user_id`, `target_user_id`, `app_slug`, `action`, `source`, `metadata`, `created_at`
+
+RPC confirmada:
+
+- `manylabs.has_app_access(p_user_id uuid, p_app_slug text)` → boolean
+
+### Arquivo central
+
+- [`server/_core/manylabs.ts`](./server/_core/manylabs.ts)
+
+### Funções exportadas
+
+- `hasPostSparkAccess(userId)`: chama RPC `has_app_access`. Fail-closed (retorna `false` em erro).
+- `ensurePostSparkAccess(userId, email, name)`: verifica se o usuário tem acesso; auto-ativa se não houver registro prévio. Nunca reativa status bloqueante.
+
+### Regras de auto-ativação
+
+1. Query `manylabs.app_access` WHERE `user_id + app_slug = 'postspark'`.
+2. Se encontrado com status `active` ou `trial` → retorna `true`.
+3. Se encontrado com status `blocked`, `revoked`, `suspended`, `inactive` ou desconhecido → retorna `false` (nunca reativa).
+4. Se não encontrado → cria registros em `profiles`, `app_access` (status `active`), `app_roles` (role `user`) e `audit_events` (action `app_access.auto_activated`).
+
+### RLS no schema postspark
+
+Migration `postspark_rls_hardening` aplicada:
+
+- RLS habilitado em `posts`, `background_assets`, `users`, `topup_packages`, `plan_save_limits`.
+- `authenticated` só acessa `posts` e `background_assets` se o registro pertence a `auth.uid()` E o usuário tem acesso ativo em `manylabs.app_access`.
+- `topup_packages` e `plan_save_limits` seguem com leitura pública.
+
+### Fluxo de erro no frontend
+
+- `LoginModal`: captura `postspark_access_required` e exibe mensagem neutra.
+- `GoogleAuthCallback`: em caso de 403, redireciona para `/?auth_error=postspark_access_required`.
+- `PublicLandingRoute`: lê `auth_error` dos query params e exibe toast com mensagem.
+
+## 14. Lacunas de conhecimento
 
 ### Não foi possível confirmar apenas pelo código local
 

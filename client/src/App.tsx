@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
@@ -62,7 +63,20 @@ function GoogleAuthCallback() {
       credentials: 'include',
       body: JSON.stringify({ access_token }),
     })
-      .then(() => { window.location.href = '/thevoid'; })
+      .then(async (res) => {
+        if (!res.ok) {
+          if (res.status === 403) {
+            const body = await res.json().catch(() => ({}));
+            if (body.error === 'postspark_access_required') {
+              window.location.href = '/?auth_error=postspark_access_required';
+              return;
+            }
+          }
+          window.location.href = '/?auth_error=session_failed';
+          return;
+        }
+        window.location.href = '/thevoid';
+      })
       .catch(() => { window.location.href = '/?auth_error=session_failed'; });
   }, []);
 
@@ -97,6 +111,20 @@ function PublicLandingRoute() {
     if (loading || !isAuthenticated) return;
     setLocation("/thevoid");
   }, [isAuthenticated, loading, setLocation]);
+
+  // Show auth error toast from query params (e.g. Google OAuth 403)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const authError = params.get('auth_error');
+    if (authError === 'postspark_access_required') {
+      toast.error('Não conseguimos ativar o PostSpark para sua Conta ManyLabs. Tente novamente ou fale com o suporte.');
+    } else if (authError) {
+      toast.error('Falha na autenticação. Tente novamente.');
+    }
+    if (authError) {
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   if (loading || isAuthenticated) return null;
   return <TheVoid2Page />;

@@ -4,6 +4,7 @@ import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
 import { createClient } from "@supabase/supabase-js";
 import { ENV } from "./env";
+import { hasPostSparkAccess } from "./manylabs";
 
 export type AuthenticatedUser = {
   id: string;
@@ -61,6 +62,14 @@ class SDKServer {
 
     if (error || !user) {
       throw ForbiddenError("Invalid or expired session");
+    }
+
+    // ── ManyLabs access check (skip in dev with BYPASS_AUTH) ──
+    if (!(process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true")) {
+      const hasAccess = await hasPostSparkAccess(user.id);
+      if (!hasAccess) {
+        throw ForbiddenError("PostSpark access required");
+      }
     }
 
     const metadata = user.user_metadata ?? {};

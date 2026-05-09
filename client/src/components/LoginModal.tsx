@@ -19,6 +19,12 @@ async function exchangeSupabaseSession(access_token: string): Promise<void> {
         body: JSON.stringify({ access_token }),
     });
     if (!res.ok) {
+        if (res.status === 403) {
+            const body = await res.json().catch(() => ({}));
+            if (body.error === 'postspark_access_required') {
+                throw new Error('postspark_access_required');
+            }
+        }
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Falha ao criar sessão');
     }
@@ -82,7 +88,9 @@ export default function LoginModal({ open, onClose, onSuccess }: LoginModalProps
             window.location.reload(); // Força refresh para o useAuth pegar o novo cookie
         } catch (err: any) {
             const msg = err?.message || 'Ocorreu um erro. Tente novamente.';
-            if (msg.includes('Invalid login credentials')) {
+            if (msg === 'postspark_access_required') {
+                setError('Não conseguimos ativar o PostSpark para sua Conta ManyLabs. Tente novamente ou fale com o suporte.');
+            } else if (msg.includes('Invalid login credentials')) {
                 setError('E-mail ou senha incorretos.');
             } else if (msg.includes('User already registered')) {
                 setError('Este e-mail já está cadastrado. Faça login.');

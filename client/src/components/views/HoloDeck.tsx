@@ -401,9 +401,19 @@ export default function HoloDeck({
   const activeVariation = localVariations[currentIndex];
   const hasManualStyleOverride = Boolean(customTokens || selectedTheme);
   const getPreviewVariation = useCallback((variation: PostVariation) => {
-    return hasManualStyleOverride
+    const base = hasManualStyleOverride
       ? variation
       : { ...variation, designTokens: undefined };
+    // Para carrosséis, renderiza o primeiro slide real em vez do resumo top-level
+    if (variation.slides && variation.slides.length > 0) {
+      const firstSlide = variation.slides[0];
+      return {
+        ...base,
+        headline: firstSlide.headline || base.headline,
+        body: firstSlide.body || base.body,
+      };
+    }
+    return base;
   }, [hasManualStyleOverride]);
   const activePreviewVariation = getPreviewVariation(activeVariation);
   // A "Alma" (accentColor) deve vir da variação ativa para o ambiente respirar a cor do post em foco

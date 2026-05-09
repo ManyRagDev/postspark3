@@ -6,7 +6,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 
 // server/_core/supabaseAuth.ts
-import { createClient } from "@supabase/supabase-js";
+import { createClient as createClient2 } from "@supabase/supabase-js";
 
 // shared/const.ts
 var COOKIE_NAME = "app_session_id";
@@ -50,15 +50,71 @@ var ENV = {
   stripePriceAgencyAnnual: process.env.STRIPE_PRICE_AGENCY_ANNUAL ?? "",
   stripePriceTopupStarter: process.env.STRIPE_PRICE_TOPUP_STARTER ?? "",
   stripePriceTopupPower: process.env.STRIPE_PRICE_TOPUP_POWER ?? "",
-  stripePriceTopupMega: process.env.STRIPE_PRICE_TOPUP_MEGA ?? ""
+  stripePriceTopupMega: process.env.STRIPE_PRICE_TOPUP_MEGA ?? "",
+  // SMTP (Hostinger)
+  smtpHost: process.env.SMTP_HOST ?? "",
+  smtpPort: parseInt(process.env.SMTP_PORT || "465"),
+  smtpUser: process.env.SMTP_USER ?? "",
+  smtpPass: process.env.SMTP_PASS ?? "",
+  smtpFrom: process.env.SMTP_FROM ?? ""
 };
+
+// server/_core/manylabs.ts
+import { createClient } from "@supabase/supabase-js";
+var _postsparkAdminClient = null;
+function getPostSparkAdminClient() {
+  if (!_postsparkAdminClient) {
+    if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
+      throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
+    }
+    _postsparkAdminClient = createClient(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
+      auth: { persistSession: false },
+      db: { schema: "postspark" }
+    });
+  }
+  return _postsparkAdminClient;
+}
+async function hasPostSparkAccess(userId) {
+  try {
+    const supabase = getPostSparkAdminClient();
+    const { data, error } = await supabase.rpc("has_manylabs_app_access", {
+      p_user_id: userId
+    });
+    if (error) {
+      console.error("[ManyLabs] has_manylabs_app_access RPC error:", error.message);
+      return false;
+    }
+    return Boolean(data);
+  } catch (err) {
+    console.error("[ManyLabs] has_manylabs_app_access unexpected error:", err);
+    return false;
+  }
+}
+async function ensurePostSparkAccess(userId, email, name) {
+  try {
+    const supabase = getPostSparkAdminClient();
+    const { data, error } = await supabase.rpc("ensure_manylabs_app_access", {
+      p_user_id: userId,
+      p_email: email,
+      p_display_name: name
+    });
+    if (error) {
+      console.error("[ManyLabs] ensure_manylabs_app_access RPC error:", error.message);
+      return false;
+    }
+    return Boolean(data);
+  } catch (err) {
+    console.error("[ManyLabs] ensure_manylabs_app_access unexpected error:", err);
+    return false;
+  }
+}
 
 // server/_core/supabaseAuth.ts
 function getSupabaseAdmin() {
   if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
     throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
   }
-  return createClient(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
+  return createClient2(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
     auth: { persistSession: false }
   });
 }
@@ -78,6 +134,15 @@ function registerSupabaseAuthRoutes(app2) {
       if (error || !user) {
         res.status(401).json({ error: "Invalid or expired token" });
         return;
+      }
+      if (!(process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true")) {
+        const metadata2 = user.user_metadata ?? {};
+        const name2 = typeof metadata2.full_name === "string" ? metadata2.full_name : typeof metadata2.name === "string" ? metadata2.name : null;
+        const hasAccess = await ensurePostSparkAccess(user.id, user.email ?? null, name2);
+        if (!hasAccess) {
+          res.status(403).json({ error: "postspark_access_required" });
+          return;
+        }
       }
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, access_token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
@@ -509,14 +574,14 @@ async function generateImage(options) {
 }
 
 // server/db.ts
-import { createClient as createClient2 } from "@supabase/supabase-js";
+import { createClient as createClient3 } from "@supabase/supabase-js";
 var _supabaseDbClient = null;
 function getSupabaseDbClient() {
   if (!_supabaseDbClient) {
     if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
       throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
     }
-    _supabaseDbClient = createClient2(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
+    _supabaseDbClient = createClient3(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
       auth: { persistSession: false },
       db: { schema: "postspark" }
     });
@@ -537,6 +602,7 @@ async function createPost(post) {
     platform: post.platform,
     headline: post.headline ?? null,
     body: post.body ?? null,
+    caption: post.caption ?? null,
     hashtags: post.hashtags ?? null,
     callToAction: post.callToAction ?? null,
     tone: post.tone ?? null,
@@ -552,7 +618,8 @@ async function createPost(post) {
     image_settings: post.imageSettings ?? null,
     layout_settings: post.layoutSettings ?? null,
     bg_value: post.bgValue ?? null,
-    bg_overlay: post.bgOverlay ?? null
+    bg_overlay: post.bgOverlay ?? null,
+    copy_angle: post.copyAngle ?? null
   };
   const { data, error } = await db.from("posts").insert(payload).select("id").single();
   if (error || !data) {
@@ -573,6 +640,7 @@ async function updatePost(postId, userUuid, data) {
   const payload = removeUndefined({
     headline: data.headline,
     body: data.body,
+    caption: data.caption,
     hashtags: data.hashtags,
     callToAction: data.callToAction,
     tone: data.tone,
@@ -588,7 +656,8 @@ async function updatePost(postId, userUuid, data) {
     image_settings: data.imageSettings,
     layout_settings: data.layoutSettings,
     bg_value: data.bgValue,
-    bg_overlay: data.bgOverlay
+    bg_overlay: data.bgOverlay,
+    copy_angle: data.copyAngle
   });
   if (Object.keys(payload).length === 0) {
     return;
@@ -605,6 +674,28 @@ async function getPostById(postId, userUuid) {
     throw new Error(`[Database] getPostById failed: ${error.message}`);
   }
   return data ?? void 0;
+}
+async function createBackgroundAsset(input) {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db.from("background_assets").insert({
+    user_uuid: input.userUuid,
+    image_url: input.imageUrl,
+    source_type: input.sourceType,
+    prompt: input.prompt ?? null,
+    label: input.label ?? null
+  }).select("*").single();
+  if (error || !data) {
+    throw new Error(`[Database] createBackgroundAsset failed: ${error?.message ?? "unknown error"}`);
+  }
+  return data;
+}
+async function getUserBackgroundAssets(userUuid, limit = 100) {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db.from("background_assets").select("*").eq("user_uuid", userUuid).order("createdAt", { ascending: false }).limit(limit);
+  if (error) {
+    throw new Error(`[Database] getUserBackgroundAssets failed: ${error.message}`);
+  }
+  return data ?? [];
 }
 
 // server/screenshotService.ts
@@ -2906,7 +2997,7 @@ import * as path from "path";
 
 // server/billing.ts
 import Stripe from "stripe";
-import { createClient as createClient3 } from "@supabase/supabase-js";
+import { createClient as createClient4 } from "@supabase/supabase-js";
 var SPARK_COSTS = {
   GENERATE_TEXT: 10,
   // 3 variações de texto
@@ -2933,7 +3024,7 @@ function getSupabase() {
     if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
       throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set");
     }
-    _supabase = createClient3(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
+    _supabase = createClient4(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
       auth: { persistSession: false },
       db: { schema: "postspark" }
     });
@@ -3015,6 +3106,16 @@ async function createSubscriptionCheckout(params) {
     }
   });
   return session.url;
+}
+function getSubscriptionPriceId(plan, cycle) {
+  if (plan === "PRO") {
+    const priceId2 = cycle === "annual" ? ENV.stripePriceProAnnual : ENV.stripePriceProMonthly;
+    if (!priceId2) throw new Error(`Stripe price for ${plan} (${cycle}) not configured`);
+    return priceId2;
+  }
+  const priceId = cycle === "annual" ? ENV.stripePriceAgencyAnnual : ENV.stripePriceAgencyMonthly;
+  if (!priceId) throw new Error(`Stripe price for ${plan} (${cycle}) not configured`);
+  return priceId;
 }
 async function createTopupCheckout(params) {
   const stripe = getStripe();
@@ -3105,7 +3206,10 @@ function getPlanFromPriceId(priceId) {
   if (priceId === ENV.stripePriceAgencyMonthly || priceId === ENV.stripePriceAgencyAnnual) {
     return "AGENCY";
   }
-  return "PRO";
+  if (priceId === ENV.stripePriceProMonthly || priceId === ENV.stripePriceProAnnual) {
+    return "PRO";
+  }
+  throw new Error(`Unknown Stripe price id received in webhook: ${priceId}`);
 }
 function mapStripeStatus(status) {
   switch (status) {
@@ -3125,7 +3229,40 @@ function mapStripeStatus(status) {
 }
 
 // server/routers.ts
+import { TRPCError as TRPCError5 } from "@trpc/server";
+
+// server/routers/admin.ts
 import { TRPCError as TRPCError4 } from "@trpc/server";
+var adminRouter = router({
+  /**
+   * List all user profiles for administrative management.
+   * Protected by RBAC (role: 'admin')
+   */
+  listProfiles: adminProcedure.query(async () => {
+    const sb = getSupabase();
+    const { data, error } = await sb.schema("postspark").from("profiles").select("*").order("created_at", { ascending: false });
+    if (error) {
+      throw new TRPCError4({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Erro ao buscar perfis: ${error.message}`
+      });
+    }
+    return data;
+  }),
+  /**
+   * Get basic growth stats (Total users, Active plans)
+   */
+  getStats: adminProcedure.query(async () => {
+    const sb = getSupabase();
+    const { count, error } = await sb.schema("postspark").from("profiles").select("*", { count: "exact", head: true });
+    if (error) throw new TRPCError4({ code: "INTERNAL_SERVER_ERROR", message: error.message });
+    return {
+      totalUsers: count || 0
+    };
+  })
+});
+
+// server/routers.ts
 function safeJsonParse(str, fallback) {
   let cleaned = str.trim();
   if (cleaned.startsWith("```json")) {
@@ -3190,6 +3327,198 @@ function safeJsonParse(str, fallback) {
   console.error("[safeJsonParse] Input snippet (100 chars):", str.substring(0, 100));
   return fallback;
 }
+function normalizeVariationText(value) {
+  return (value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s#]/g, " ").replace(/\s+/g, " ").trim();
+}
+function tokenizeVariationText(value) {
+  return normalizeVariationText(value).split(" ").filter((token) => token.length > 2);
+}
+function jaccardSimilarity(a, b) {
+  if (a.length === 0 && b.length === 0) return 1;
+  const aSet = new Set(a);
+  const bSet = new Set(b);
+  let intersection = 0;
+  for (const token of Array.from(aSet)) {
+    if (bSet.has(token)) intersection += 1;
+  }
+  const union = (/* @__PURE__ */ new Set([...Array.from(aSet), ...Array.from(bSet)])).size;
+  return union === 0 ? 0 : intersection / union;
+}
+function variationsNeedDiversification(variations) {
+  if (variations.length < 3) return true;
+  for (let i = 0; i < variations.length; i++) {
+    for (let j = i + 1; j < variations.length; j++) {
+      const a = variations[i];
+      const b = variations[j];
+      const aText = tokenizeVariationText(`${a.headline} ${a.body} ${a.callToAction} ${a.caption}`);
+      const bText = tokenizeVariationText(`${b.headline} ${b.body} ${b.callToAction} ${b.caption}`);
+      const copySimilarity = jaccardSimilarity(aText, bText);
+      const sameHeadline = normalizeVariationText(a.headline) === normalizeVariationText(b.headline);
+      const sameBody = normalizeVariationText(a.body) === normalizeVariationText(b.body);
+      const sameTone = normalizeVariationText(a.tone) === normalizeVariationText(b.tone);
+      const sameLayout = a.layout === b.layout;
+      const sameColors = a.backgroundColor === b.backgroundColor && a.textColor === b.textColor && a.accentColor === b.accentColor;
+      if (sameHeadline || sameBody && sameLayout || copySimilarity >= 0.78 && sameLayout || copySimilarity >= 0.9 && sameColors || sameTone && sameLayout && sameColors) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+var CAROUSEL_SLIDE_TARGET = 5;
+var EXECUTION_VARIATION_TARGET = 3;
+var executionSlideInputSchema = z2.object({
+  slideNumber: z2.number().int().min(1).max(CAROUSEL_SLIDE_TARGET),
+  rawText: z2.string(),
+  role: z2.enum(["hook", "development", "cta", "custom"]).optional(),
+  locked: z2.boolean().optional()
+});
+var executionBrandInputSchema = z2.object({
+  websiteUrl: z2.string().optional(),
+  logoUrl: z2.string().optional(),
+  referenceImageUrl: z2.string().optional(),
+  brandColors: z2.array(z2.string()).optional(),
+  fontHint: z2.string().optional(),
+  adaptationMode: z2.enum(["strict", "adaptive", "reference_clone"])
+});
+var executionBriefSchema = z2.object({
+  creationMode: z2.literal("execution"),
+  format: z2.enum(["static", "carousel", "story", "ad"]),
+  platform: z2.enum(["instagram", "twitter", "linkedin", "facebook"]),
+  objective: z2.enum(["educate", "authority", "sell", "engage", "lead"]),
+  tone: z2.string().optional(),
+  callToAction: z2.string().optional(),
+  interventionLevel: z2.enum(["visual_only", "light_optimize", "optimize_structure"]),
+  contentSourceType: z2.enum(["freeform", "carousel_topics", "carousel_slides", "caption_ready"]),
+  rawInput: z2.string(),
+  slides: z2.array(executionSlideInputSchema).optional(),
+  mustKeep: z2.array(z2.string()).optional(),
+  mustInclude: z2.array(z2.string()).optional(),
+  forbiddenTerms: z2.array(z2.string()).optional(),
+  notes: z2.string().optional(),
+  brandInput: executionBrandInputSchema.optional()
+});
+function normalizeExecutionBrief(input) {
+  const brief = executionBriefSchema.parse(input);
+  const normalizedSlides = Array.isArray(brief.slides) ? brief.slides.filter((slide) => slide.rawText.trim().length > 0).sort((a, b) => a.slideNumber - b.slideNumber).slice(0, CAROUSEL_SLIDE_TARGET) : [];
+  return {
+    ...brief,
+    slides: normalizedSlides,
+    mustKeep: brief.mustKeep || [],
+    mustInclude: brief.mustInclude || [],
+    forbiddenTerms: brief.forbiddenTerms || [],
+    brandInput: brief.brandInput ? {
+      ...brief.brandInput,
+      brandColors: brief.brandInput.brandColors || []
+    } : void 0
+  };
+}
+function buildExecutionBriefContext(brief) {
+  const slidesBlock = brief.slides.length > 0 ? brief.slides.map((slide) => `Slide ${slide.slideNumber} [${slide.role || "custom"}${slide.locked ? ", travado" : ""}]: ${slide.rawText}`).join("\n") : "Nenhum slide estruturado foi fornecido.";
+  const brandBlock = brief.brandInput ? [
+    `- Site: ${brief.brandInput.websiteUrl || "n\xE3o informado"}`,
+    `- Refer\xEAncia visual: ${brief.brandInput.referenceImageUrl || "n\xE3o informada"}`,
+    `- Cores: ${brief.brandInput.brandColors?.join(", ") || "n\xE3o informadas"}`,
+    `- Fonte sugerida: ${brief.brandInput.fontHint || "n\xE3o informada"}`,
+    `- Modo de adapta\xE7\xE3o: ${brief.brandInput.adaptationMode}`
+  ].join("\n") : "- Nenhuma identidade visual estruturada foi enviada.";
+  const mustKeepBlock = brief.mustKeep.length > 0 ? brief.mustKeep.join(" | ") : "nenhum";
+  const mustIncludeBlock = brief.mustInclude.length > 0 ? brief.mustInclude.join(" | ") : "nenhum";
+  const forbiddenBlock = brief.forbiddenTerms.length > 0 ? brief.forbiddenTerms.join(" | ") : "nenhum";
+  return `BRIEFING DE EXECU\xC7\xC3O:
+- Formato: ${brief.format}
+- Plataforma: ${brief.platform}
+- Objetivo: ${brief.objective}
+- Tom desejado: ${brief.tone || "n\xE3o informado"}
+- CTA obrigat\xF3rio: ${brief.callToAction || "n\xE3o informado"}
+- N\xEDvel de interven\xE7\xE3o: ${brief.interventionLevel}
+- Tipo de insumo: ${brief.contentSourceType}
+
+CONTE\xDADO BRUTO:
+${brief.rawInput}
+
+SLIDES FORNECIDOS:
+${slidesBlock}
+
+ITENS QUE DEVEM SER PRESERVADOS:
+${mustKeepBlock}
+
+ITENS QUE DEVEM APARECER:
+${mustIncludeBlock}
+
+TERMOS PROIBIDOS:
+${forbiddenBlock}
+
+IDENTIDADE VISUAL:
+${brandBlock}
+
+OBSERVA\xC7\xD5ES:
+${brief.notes || "nenhuma"}`;
+}
+function buildFallbackCarouselSlides(variation) {
+  const baseHeadline = String(variation?.headline || "Resumo");
+  const baseBody = String(variation?.body || "").trim();
+  const callToAction = String(variation?.callToAction || "Saiba mais").trim();
+  const bodyParts = baseBody.split(/(?<=[.!?])\s+/).map((part) => part.trim()).filter(Boolean);
+  const fallbackBodies = [
+    baseBody || "Entenda o contexto desta ideia.",
+    bodyParts[0] || baseBody || "Veja por que isso importa agora.",
+    bodyParts[1] || bodyParts[0] || "Descubra o principal benef\xEDcio desta proposta.",
+    bodyParts[2] || bodyParts[1] || "Veja como aplicar isso no dia a dia.",
+    callToAction || "D\xEA o pr\xF3ximo passo com seguran\xE7a."
+  ];
+  const fallbackHeadlines = [
+    baseHeadline,
+    "O problema",
+    "O que muda",
+    "Na pr\xE1tica",
+    callToAction || "Pr\xF3ximo passo"
+  ];
+  return fallbackHeadlines.map((headline, index) => ({
+    headline,
+    body: fallbackBodies[index],
+    slideNumber: index + 1,
+    isTitleSlide: index === 0,
+    isCtaSlide: index === CAROUSEL_SLIDE_TARGET - 1
+  }));
+}
+function normalizeCarouselSlides(variation) {
+  const rawSlides = Array.isArray(variation?.slides) ? variation.slides : [];
+  const normalized = rawSlides.filter(Boolean).slice(0, CAROUSEL_SLIDE_TARGET).map((slide, index) => ({
+    headline: String(slide?.headline || variation?.headline || `Slide ${index + 1}`),
+    body: String(slide?.body || variation?.body || ""),
+    slideNumber: index + 1,
+    isTitleSlide: index === 0,
+    isCtaSlide: index === CAROUSEL_SLIDE_TARGET - 1
+  }));
+  if (normalized.length === CAROUSEL_SLIDE_TARGET) {
+    return normalized;
+  }
+  return buildFallbackCarouselSlides(variation);
+}
+function decodeDataUrl(dataUrl) {
+  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error("Invalid data URL");
+  }
+  const contentType = match[1];
+  const base64 = match[2];
+  const extension = contentType.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+  return {
+    buffer: Buffer.from(base64, "base64"),
+    contentType,
+    extension
+  };
+}
+var PLAN_SAVE_LIMIT_MESSAGES = {
+  FREE: "No plano gratuito, voc\xEA pode salvar at\xE9 5 posts. Fa\xE7a upgrade para manter sua biblioteca completa.",
+  PRO: "Seu plano PRO permite salvar at\xE9 100 posts. Exclua itens antigos ou fa\xE7a upgrade para continuar salvando.",
+  AGENCY: "Seu plano AGENCY permite salvar at\xE9 500 posts. Exclua itens antigos ou fale com o suporte para ampliar a capacidade.",
+  LITE: "Seu plano LITE permite salvar at\xE9 20 posts. Fa\xE7a upgrade para ampliar sua biblioteca."
+};
+function resolveSaveLimitMessage(plan) {
+  return PLAN_SAVE_LIMIT_MESSAGES[plan || ""] || "Voc\xEA atingiu o limite de posts salvos do seu plano. Exclua itens antigos ou fa\xE7a upgrade para continuar.";
+}
 var billingRouter = router({
   /** Retorna perfil de billing do usuário logado (plano, sparks, etc.) */
   getProfile: protectedProcedure.query(async ({ ctx }) => {
@@ -3221,7 +3550,8 @@ var billingRouter = router({
   }),
   /** Cria Stripe Checkout Session para assinatura */
   createCheckout: protectedProcedure.input(z2.object({
-    priceId: z2.string(),
+    plan: z2.enum(["PRO", "AGENCY"]),
+    cycle: z2.enum(["monthly", "annual"]).default("monthly"),
     successPath: z2.string().default("/billing/success"),
     cancelPath: z2.string().default("/pricing")
   })).mutation(async ({ input, ctx }) => {
@@ -3229,14 +3559,15 @@ var billingRouter = router({
     const name = ctx.user.name ?? void 0;
     const profile = await getBillingProfile(email);
     if (profile.id === "no-profile" || profile.id === "error") {
-      throw new TRPCError4({ code: "PRECONDITION_FAILED", message: "Perfil de billing n\xE3o encontrado." });
+      throw new TRPCError5({ code: "PRECONDITION_FAILED", message: "Perfil de billing n\xE3o encontrado." });
     }
     const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
+    const priceId = getSubscriptionPriceId(input.plan, input.cycle);
     const url = await createSubscriptionCheckout({
       profileId: profile.id,
       email,
       name,
-      priceId: input.priceId,
+      priceId,
       successUrl: `${host}${input.successPath}`,
       cancelUrl: `${host}${input.cancelPath}`
     });
@@ -3256,10 +3587,10 @@ var billingRouter = router({
     const name = ctx.user.name ?? void 0;
     const packages = await getTopupPackages();
     const pkg = packages.find((p) => p.id === input.packageId);
-    if (!pkg) throw new TRPCError4({ code: "NOT_FOUND", message: "Pacote n\xE3o encontrado." });
+    if (!pkg) throw new TRPCError5({ code: "NOT_FOUND", message: "Pacote n\xE3o encontrado." });
     const profile = await getBillingProfile(email);
     if (profile.id === "no-profile" || profile.id === "error") {
-      throw new TRPCError4({ code: "PRECONDITION_FAILED", message: "Perfil de billing n\xE3o encontrado." });
+      throw new TRPCError5({ code: "PRECONDITION_FAILED", message: "Perfil de billing n\xE3o encontrado." });
     }
     const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
     const url = await createTopupCheckout({
@@ -3272,22 +3603,12 @@ var billingRouter = router({
       cancelUrl: `${host}${input.cancelPath}`
     });
     return { url };
-  }),
-  /** Retorna os price IDs disponíveis (para o frontend montar o checkout) */
-  getPriceIds: publicProcedure.query(() => ({
-    pro: {
-      monthly: ENV.stripePriceProMonthly,
-      annual: ENV.stripePriceProAnnual
-    },
-    agency: {
-      monthly: ENV.stripePriceAgencyMonthly,
-      annual: ENV.stripePriceAgencyAnnual
-    }
-  }))
+  })
 });
 var appRouter = router({
   system: systemRouter,
   billing: billingRouter,
+  admin: adminRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -3305,14 +3626,16 @@ var appRouter = router({
       imageUrl: z2.string().optional(),
       tone: z2.string().optional(),
       postMode: z2.enum(["static", "carousel"]).default("static"),
-      model: z2.enum(["gemini", "llama"]).optional()
+      model: z2.enum(["gemini", "llama"]).optional(),
+      creationMode: z2.enum(["ideation", "execution"]).default("ideation"),
+      executionBrief: executionBriefSchema.optional()
     })).mutation(async ({ input, ctx }) => {
       const email = ctx.user.email ?? "dev@local.dev";
       const profile = await getBillingProfile(email);
       const cost = input.postMode === "carousel" ? SPARK_COSTS.CAROUSEL : SPARK_COSTS.GENERATE_TEXT;
       const debit = await debitSparks(profile.id, cost, `Gera\xE7\xE3o de post (${input.postMode})`);
       if (!debit.success) {
-        throw new TRPCError4({
+        throw new TRPCError5({
           code: "PAYMENT_REQUIRED",
           message: "Sparks insuficientes. Fa\xE7a upgrade ou adquira um pacote de recarga."
         });
@@ -3320,6 +3643,7 @@ var appRouter = router({
       let contextContent = input.content;
       let brandDnaContext = "";
       let chameleonResult = null;
+      const normalizedExecutionBrief = input.creationMode === "execution" && input.executionBrief ? normalizeExecutionBrief(input.executionBrief) : null;
       if (input.inputType === "url") {
         try {
           const scrapeResult = await scrapeUrl(input.content);
@@ -3376,16 +3700,31 @@ REGRA CARDINAL DE CORES (A FONTE \xC9 URL):
         facebook: { label: "Facebook", maxChars: 63206 }
       };
       const spec = platformSpecs[input.platform];
-      const toneHint = input.tone ? `
-Tom detectado no input do usu\xE1rio: "${input.tone}" \u2014 calibre o conte\xFAdo gerado para esse estado emocional.
+      const effectiveTone = normalizedExecutionBrief?.tone || input.tone;
+      const toneHint = effectiveTone ? `
+Tom detectado no input do usu\xE1rio: "${effectiveTone}" \u2014 calibre o conte\xFAdo gerado para esse estado emocional.
 ` : "";
       const isCarousel = input.postMode === "carousel";
-      const modeInstruction = isCarousel ? `
-IMPORTANTE: Gere conte\xFAdo para um CARROSSEL (m\xFAltiplos slides). Cada varia\xE7\xE3o ser\xE1 um carrossel com 5 slides organizados em um array "slides". Cada slide deve ter: headline (t\xEDtulo curto m\xE1x 50 caracteres), body (mensagem m\xE1x 80 caracteres), slideNumber (1-5), isTitleSlide (primeiro slide), isCtaSlide (\xFAltimo slide com call-to-action).` : "\nGere posts individuais (est\xE1tico).";
+      const modeInstruction = normalizedExecutionBrief ? isCarousel ? `
+IMPORTANTE: Gere conte\xFAdo para um CARROSSEL de execu\xE7\xE3o guiada. Cada varia\xE7\xE3o DEVE ter exatamente 5 slides organizados em "slides". Preserve a estrutura fornecida pelo usu\xE1rio sempre que ela existir. Slide 1 = gancho, slides 2-4 = desenvolvimento, slide 5 = CTA final. N\xE3o coloque CTA nos slides 1-4.` : "\nIMPORTANTE: Gere uma pe\xE7a de execu\xE7\xE3o guiada, fiel ao briefing, com baixa dist\xE2ncia entre as varia\xE7\xF5es." : isCarousel ? `
+IMPORTANTE: Gere conte\xFAdo para um CARROSSEL (m\xFAltiplos slides). Cada varia\xE7\xE3o DEVE ter exatamente 5 slides organizados em um array "slides". N\xE3o retorne array vazio, parcial ou simplificado. Estrutura obrigat\xF3ria do carrossel: slide 1 = gancho forte e altamente curioso para fazer a pessoa folhear; slides 2, 3 e 4 = desenvolvimento progressivo do tema; slide 5 = CTA final, e somente ele deve conter call-to-action. N\xE3o coloque CTA nos slides 1-4. Cada slide deve ter: headline (t\xEDtulo curto m\xE1x 50 caracteres), body (mensagem m\xE1x 80 caracteres), slideNumber (1-5), isTitleSlide (true apenas no slide 1), isCtaSlide (true apenas no slide 5). O headline/body de n\xEDvel superior s\xE3o apenas um resumo do carrossel; o conte\xFAdo principal vive nos slides.` : "\nGere posts individuais (est\xE1tico).";
+      const executionSystemContext = normalizedExecutionBrief ? `
+MODO DE EXECU\xC7\xC3O ATIVADO:
+- Voc\xEA N\xC3O est\xE1 criando do zero. Voc\xEA est\xE1 executando um briefing.
+- Preserve a inten\xE7\xE3o, a estrutura, o CTA e os termos obrigat\xF3rios enviados pelo usu\xE1rio.
+- Se houver slides fornecidos, trate-os como material fonte priorit\xE1rio.
+- N\xE3o reescreva agressivamente sem necessidade.
+- O n\xEDvel de interven\xE7\xE3o permitido \xE9: ${normalizedExecutionBrief.interventionLevel}.
+- Gere EXATAMENTE ${EXECUTION_VARIATION_TARGET} varia\xE7\xF5es pr\xF3ximas entre si. Varie principalmente acabamento visual, microcopy e hierarquia, n\xE3o o conceito central.
+- Se o n\xEDvel for "visual_only", mantenha o texto quase intacto.
+- Se o n\xEDvel for "light_optimize", melhore clareza, ritmo e impacto sem alterar a estrutura principal.
+- Se o n\xEDvel for "optimize_structure", voc\xEA pode reorganizar trechos, mas sem trair a mensagem central.
+` : "";
       const systemPrompt = `Voc\xEA \xE9 um especialista em marketing digital, design visual e cria\xE7\xE3o de conte\xFAdo para redes sociais.
 Gere EXATAMENTE 3 varia\xE7\xF5es de post para ${spec.label}.${modeInstruction}
-Cada varia\xE7\xE3o deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado.${toneHint}
+${normalizedExecutionBrief ? "As 3 varia\xE7\xF5es devem ser pr\xF3ximas entre si e altamente fi\xE9is ao briefing." : "Cada varia\xE7\xE3o deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado."}${toneHint}
 ${brandDnaContext}
+${executionSystemContext}
 
 REGRAS DE COPY \u2014 SIGA COM RIGOR:
 - Headline: m\xE1ximo 60 caracteres. Seja direto e impactante. Sem ponto final.
@@ -3395,6 +3734,8 @@ REGRAS DE COPY \u2014 SIGA COM RIGOR:
 - Hashtags: m\xE1ximo 4, somente no campo separado "hashtags".
 - CallToAction: m\xE1ximo 40 caracteres. Verbo de a\xE7\xE3o. Ex: "Saiba mais", "Experimente agora".
 - copyAngle: Para cada varia\xE7\xE3o, forne\xE7a um objeto com o Prop\xF3sito e Ganchos do post com type (dor, beneficio, objecao, autoridade, escassez, storytelling, mito_vs_verdade), label (nome da abordagem), badge (palavra curta para o selo da marca/tema) e stickerText (uma palavra de impacto para adesivo decorativo).
+- As 3 varia\xE7\xF5es DEVEM ser claramente distingu\xEDveis entre si. N\xE3o repita headline, body, copyAngle, CTA, hashtags ou a mesma combina\xE7\xE3o de layout + paleta.
+- Fa\xE7a cada varia\xE7\xE3o abrir por uma ideia diferente: 1) institucional/autoridade, 2) conversa/engajamento, 3) criativa ou provocativa.
 - Seja conciso. Corte qualquer palavra desnecess\xE1ria. Menos \xE9 mais.
 
 PRINC\xCDPIOS DE DESIGN VISUAL E MIMETISMO:
@@ -3430,7 +3771,9 @@ PRINC\xCDPIOS DE DESIGN VISUAL E MIMETISMO:
    - Use 'backgroundColor' e 'borderRadius' em 'headline' ou 'body' para criar efeitos de BADGE ou STIKER (texto com fundo colorido e cantos arredondados). Isso ajuda a destacar informa\xE7\xF5es de forma "divertida" e moderna. Use cores contrastantes.
    
 Responda APENAS com JSON v\xE1lido.`;
-      const userPrompt = input.inputType === "image" ? `Crie posts baseados nesta imagem: ${input.imageUrl || input.content}` : `Crie posts baseados neste conte\xFAdo: ${contextContent}`;
+      const userPrompt = normalizedExecutionBrief ? `Execute este briefing com fidelidade. Otimize apenas no grau permitido.
+
+${buildExecutionBriefContext(normalizedExecutionBrief)}` : input.inputType === "image" ? `Crie posts baseados nesta imagem: ${input.imageUrl || input.content}` : `Crie posts baseados neste conte\xFAdo: ${contextContent}`;
       const layoutPositionSchema = {
         type: "object",
         properties: {
@@ -3492,6 +3835,8 @@ Responda APENAS com JSON v\xE1lido.`;
               required: ["headline", "body", "slideNumber", "isTitleSlide", "isCtaSlide"],
               additionalProperties: false
             },
+            minItems: CAROUSEL_SLIDE_TARGET,
+            maxItems: CAROUSEL_SLIDE_TARGET,
             description: "Slides do carrossel (5 itens)"
           },
           aspectRatioOptimizations: {
@@ -3622,6 +3967,8 @@ AVALIA\xC7\xD5ES A FAZER EM CADA VARIA\xC7\xC3O:
 Variations Originais Brutas:
 ${JSON.stringify(variations, null, 2)}
 
+${isCarousel ? "CR\xCDTICO: preserve exatamente os 5 slides de cada varia\xE7\xE3o. N\xE3o colapse o carrossel para um post est\xE1tico, n\xE3o remova slides, n\xE3o troque a ordem narrativa e n\xE3o retorne array vazio em `slides`." : ""}
+
 Retorne um JSON contendo O MESMO ARRAY, de mesmo formato, substituindo estritamente as propriedades listadas caso estejam ruins. Mantenha os textos inteiramente id\xEAnticos.
 Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
           const qaResponse = await invokeLLM({
@@ -3659,10 +4006,69 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
           console.warn("[QA Guard] Failing gracefull. Returning raw variations.", qaErr);
         }
       }
+      if (!normalizedExecutionBrief && variationsNeedDiversification(variations)) {
+        try {
+          console.warn("[Variation Guard] Similar variations detected. Requesting diversified rewrite...");
+          const diversificationPrompt = `Voc\xEA recebeu 3 varia\xE7\xF5es de post que ficaram parecidas demais.
+Reescreva o array para entregar EXATAMENTE 3 varia\xE7\xF5es nitidamente diferentes entre si.
+
+REGRAS OBRIGAT\xD3RIAS:
+- Preserve o mesmo tema central e as regras de marca j\xE1 aplicadas.
+- N\xE3o repita headline, body, CTA, hashtags, copyAngle, nem a mesma combina\xE7\xE3o de layout + paleta.
+- Garanta pelo menos 2 layouts diferentes no conjunto final.
+- Garanta \xE2ngulos de copy diferentes e facilmente distingu\xEDveis.
+- ${isCarousel ? "Se for carrossel, preserve exatamente 5 slides por varia\xE7\xE3o, com narrativa completa e `slides` nunca vazio." : "Mantenha o formato est\xE1tico atual."}
+- Mantenha o JSON no mesmo schema exato.
+
+Varia\xE7\xF5es atuais:
+${JSON.stringify(variations, null, 2)}
+
+Responda APENAS com JSON v\xE1lido.`;
+          const diversificationResponse = await invokeLLM({
+            model: input.model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: diversificationPrompt }
+            ],
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "post_variations_diversified",
+                strict: true,
+                schema: {
+                  type: "object",
+                  properties: {
+                    variations: {
+                      type: "array",
+                      items: variationSchema
+                    }
+                  },
+                  required: ["variations"],
+                  $defs: layoutDefs,
+                  additionalProperties: false
+                }
+              }
+            }
+          });
+          const diversifiedContent = diversificationResponse.choices[0]?.message?.content;
+          const diversifiedContentStr = typeof diversifiedContent === "string" ? diversifiedContent : Array.isArray(diversifiedContent) ? diversifiedContent.filter((c) => "text" in c).map((c) => c.text).join("\n") : "{}";
+          const diversifiedParsed = safeJsonParse(diversifiedContentStr, { variations: [] });
+          const diversifiedVariations = (diversifiedParsed.variations || []).slice(0, 3);
+          if (diversifiedVariations.length > 0 && !variationsNeedDiversification(diversifiedVariations)) {
+            variations = diversifiedVariations;
+            console.log("[Variation Guard] Diversified variations accepted.");
+          } else {
+            console.warn("[Variation Guard] Diversification attempt still too similar. Keeping original output.");
+          }
+        } catch (diversificationErr) {
+          console.warn("[Variation Guard] Diversification retry failed. Keeping original output.", diversificationErr);
+        }
+      }
       const chameleonDesignTokens = chameleonResult ? chameleonResultToDesignTokens(chameleonResult) : void 0;
       const chameleonPosts = chameleonResult?.posts || [];
       return variations.map((v, i) => {
         const chameleonPost = chameleonPosts[i];
+        const normalizedSlides = isCarousel ? normalizeCarouselSlides(v) : void 0;
         return {
           id: `var-${Date.now()}-${i}`,
           ...v,
@@ -3670,7 +4076,7 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
           platform: input.platform,
           hashtags: v.hashtags || [],
           postMode: input.postMode,
-          slides: isCarousel ? v.slides || [] : void 0,
+          slides: normalizedSlides,
           // Chameleon Vision enrichments
           ...chameleonDesignTokens ? { designTokens: chameleonDesignTokens } : {},
           ...chameleonPost ? {
@@ -3680,7 +4086,12 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
               badge: chameleonPost.badge,
               stickerText: chameleonPost.stickerText
             }
-          } : {}
+          } : {},
+          generationMeta: {
+            creationMode: input.creationMode,
+            fidelity: normalizedExecutionBrief ? "high" : "medium",
+            interventionLevel: normalizedExecutionBrief?.interventionLevel
+          }
         };
       });
     }),
@@ -3692,7 +4103,7 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
       const profile = await getBillingProfile(email);
       const debit = await debitSparks(profile.id, SPARK_COSTS.GENERATE_IMAGE, "Gera\xE7\xE3o de imagem IA");
       if (!debit.success) {
-        throw new TRPCError4({
+        throw new TRPCError5({
           code: "PAYMENT_REQUIRED",
           message: "Sparks insuficientes. Fa\xE7a upgrade ou adquira um pacote de recarga."
         });
@@ -3715,6 +4126,7 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
       platform: z2.string(),
       headline: z2.string().optional(),
       body: z2.string().optional(),
+      caption: z2.string().optional(),
       hashtags: z2.array(z2.string()).optional(),
       callToAction: z2.string().optional(),
       tone: z2.string().optional(),
@@ -3730,19 +4142,33 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
       imageSettings: z2.any().optional(),
       layoutSettings: z2.any().optional(),
       bgValue: z2.any().optional(),
-      bgOverlay: z2.any().optional()
+      bgOverlay: z2.any().optional(),
+      copyAngle: z2.any().optional()
     })).mutation(async ({ input, ctx }) => {
-      const postId = await createPost({
-        ...input,
-        userUuid: ctx.user.id
-      });
-      return { id: postId };
+      try {
+        const postId = await createPost({
+          ...input,
+          userUuid: ctx.user.id
+        });
+        return { id: postId };
+      } catch (error) {
+        const rawMessage = String(error?.message || "");
+        if (rawMessage.includes("Saved posts limit reached for plan")) {
+          const profile = await getBillingProfile(ctx.user.email ?? "dev@local.dev");
+          throw new TRPCError5({
+            code: "FORBIDDEN",
+            message: resolveSaveLimitMessage(profile.plan)
+          });
+        }
+        throw error;
+      }
     }),
     /** Update a post */
     update: protectedProcedure.input(z2.object({
       id: z2.number(),
       headline: z2.string().optional(),
       body: z2.string().optional(),
+      caption: z2.string().optional(),
       hashtags: z2.array(z2.string()).optional(),
       callToAction: z2.string().optional(),
       imageUrl: z2.string().optional(),
@@ -3756,7 +4182,8 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
       imageSettings: z2.any().optional(),
       layoutSettings: z2.any().optional(),
       bgValue: z2.any().optional(),
-      bgOverlay: z2.any().optional()
+      bgOverlay: z2.any().optional(),
+      copyAngle: z2.any().optional()
     })).mutation(async ({ input, ctx }) => {
       await updatePost(input.id, ctx.user.id, input);
       return { success: true };
@@ -3778,13 +4205,38 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
       const profile = await getBillingProfile(email);
       const debit = await debitSparks(profile.id, SPARK_COSTS.GENERATE_IMAGE, "Gera\xE7\xE3o de imagem de fundo");
       if (!debit.success) {
-        throw new TRPCError4({
+        throw new TRPCError5({
           code: "PAYMENT_REQUIRED",
           message: "Sparks insuficientes. Fa\xE7a upgrade ou adquira um pacote de recarga."
         });
       }
       const imageData = await generateBackgroundImage(input.prompt, input.provider);
       return { imageData };
+    }),
+    saveBackgroundAsset: protectedProcedure.input(z2.object({
+      imageUrl: z2.string().min(1),
+      sourceType: z2.enum(["ai", "upload", "gallery"]),
+      prompt: z2.string().optional(),
+      label: z2.string().optional()
+    })).mutation(async ({ input, ctx }) => {
+      let finalImageUrl = input.imageUrl;
+      if (input.imageUrl.startsWith("data:image/")) {
+        const { buffer, contentType, extension } = decodeDataUrl(input.imageUrl);
+        const key = `users/${ctx.user.id}/backgrounds/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+        const uploaded = await storagePut(key, buffer, contentType);
+        finalImageUrl = uploaded.url;
+      }
+      const asset = await createBackgroundAsset({
+        userUuid: ctx.user.id,
+        imageUrl: finalImageUrl,
+        sourceType: input.sourceType,
+        prompt: input.prompt,
+        label: input.label
+      });
+      return asset;
+    }),
+    listSavedBackgrounds: protectedProcedure.query(async ({ ctx }) => {
+      return getUserBackgroundAssets(ctx.user.id);
     }),
     /** Automatically adjust layout based on current canvas */
     autoPilotDesign: protectedProcedure.input(z2.object({
@@ -3898,7 +4350,7 @@ ${JSON.stringify(input.currentState, null, 2)}
       const profile = await getBillingProfile(email);
       const debit = await debitSparks(profile.id, SPARK_COSTS.CHAMELEON, "ChameleonProtocol \u2014 an\xE1lise de marca");
       if (!debit.success) {
-        throw new TRPCError4({
+        throw new TRPCError5({
           code: "PAYMENT_REQUIRED",
           message: "Sparks insuficientes. Fa\xE7a upgrade ou adquira um pacote de recarga."
         });
@@ -3976,7 +4428,7 @@ ${JSON.stringify(input.currentState, null, 2)}
       const profile = await getBillingProfile(email);
       const debit = await debitSparks(profile.id, 20, "Brand DNA \u2014 extra\xE7\xE3o multi-p\xE1gina + an\xE1lise visual");
       if (!debit.success) {
-        throw new TRPCError4({
+        throw new TRPCError5({
           code: "PAYMENT_REQUIRED",
           message: "Sparks insuficientes. Fa\xE7a upgrade ou adquira um pacote de recarga."
         });
@@ -4084,14 +4536,14 @@ var ForbiddenError = (msg) => new HttpError(403, msg);
 
 // server/_core/sdk.ts
 import { parse as parseCookieHeader } from "cookie";
-import { createClient as createClient4 } from "@supabase/supabase-js";
+import { createClient as createClient5 } from "@supabase/supabase-js";
 var _supabaseAuthClient = null;
 function getSupabaseAuthClient() {
   if (!_supabaseAuthClient) {
     if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
       throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
     }
-    _supabaseAuthClient = createClient4(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
+    _supabaseAuthClient = createClient5(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
       auth: { persistSession: false }
     });
   }
@@ -4123,6 +4575,12 @@ var SDKServer = class {
     } = await supabase.auth.getUser(accessToken);
     if (error || !user) {
       throw ForbiddenError("Invalid or expired session");
+    }
+    if (!(process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true")) {
+      const hasAccess = await hasPostSparkAccess(user.id);
+      if (!hasAccess) {
+        throw ForbiddenError("PostSpark access required");
+      }
     }
     const metadata = user.user_metadata ?? {};
     const nameFromMetadata = typeof metadata.full_name === "string" ? metadata.full_name : typeof metadata.name === "string" ? metadata.name : null;

@@ -9,6 +9,12 @@ export async function exchangeSupabaseSession(accessToken: string): Promise<void
   });
 
   if (!response.ok) {
+    if (response.status === 403) {
+      const body = await response.json().catch(() => ({}));
+      if (body.error === "postspark_access_required") {
+        throw new Error("postspark_access_required");
+      }
+    }
     throw new Error("Failed to sync Supabase session bridge");
   }
 }

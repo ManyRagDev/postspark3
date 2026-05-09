@@ -19,3 +19,9 @@ O *Workbench* existe como uma suíte poderosa de controle e refinamento opcional
 ## 5. Pilares de Interface Premium
 - **Estética Reativa (Glow System):** A interface deve parecer "viva". O uso de brilhos (glows) e micro-animações em botões ativos e seções expandidas não é apenas decorativo; serve como feedback visual de luxo, reforçando o valor *high-ticket* do software.
 - **Grades Invisíveis (Padding-Aware):** O sistema de ímã (snap) não deve apenas alinhar; ele deve garantir que o design nunca pareça "quebrado". Ao projetar a grade 5x5 para dentro da margem de segurança do post, garantimos que nenhum elemento encoste na borda por acidente, mantendo a elegância do respiro visual (padding).
++
++## 6. Governança e Administração (PostSpark Admin)
++O sistema possui uma camada administrativa robusta para gestão da base de usuários e saúde financeira do projeto.
++- **Painel Gerencial:** Acesso exclusivo via `/admin` protegido por RBAC (Role-Based Access Control).
++- **Segurança de Cargos:** Permissões de administrador são imutáveis via API/REST, exigindo intervenção manual direta no banco de dados para promoção de usuários, garantindo que o controle do ecossistema permaneça sob total controle do proprietário.
++- **Monitoramento de Balanço:** Visibilidade em tempo real do saldo de *Sparks* e planos ativos para suporte proativo a agências.
