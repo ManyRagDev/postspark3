@@ -1103,6 +1103,7 @@ Responda APENAS com JSON válido.`;
         bgValue: z.any().optional(),
         bgOverlay: z.any().optional(),
         copyAngle: z.any().optional(),
+        variationSnapshot: z.any().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         try {
@@ -1146,6 +1147,7 @@ Responda APENAS com JSON válido.`;
         bgValue: z.any().optional(),
         bgOverlay: z.any().optional(),
         copyAngle: z.any().optional(),
+        variationSnapshot: z.any().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         await updatePost(input.id, ctx.user.id, input);

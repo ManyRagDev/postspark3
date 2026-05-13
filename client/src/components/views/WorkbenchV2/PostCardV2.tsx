@@ -40,6 +40,7 @@ import { useTextAutoFit } from "@/hooks/useTextAutoFit";
 import { AdvancedTextNode } from "@/components/canvas/AdvancedTextNode";
 import { DraggableBlock } from "@/components/canvas/DraggableBlock";
 import { useEditorStore } from "@/store/editorStore";
+import { normalizeSectionIcon, normalizeSectionLayouts, normalizeSections } from "@/lib/variationSnapshot";
 
 interface PostCardV2Props {
   compact?: boolean;
@@ -83,8 +84,13 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
 };
 
 function getLucideIcon(name?: string) {
-  if (!name) return null;
-  return ICON_MAP[name] ?? null;
+  if (!name) return Zap;
+  const normalized = normalizeSectionIcon(name);
+  const exact = ICON_MAP[normalized];
+  if (exact) return exact;
+
+  const key = Object.keys(ICON_MAP).find((item) => item.toLowerCase() === normalized.toLowerCase());
+  return key ? ICON_MAP[key] : Zap;
 }
 
 // ─── Template Section Renderers ──────────────────────────────────────────────
@@ -526,6 +532,7 @@ export default function PostCardV2({
         onDragEnd={(x, y) => handleDragPosition(target, x, y)}
         onResize={(w) => handleResizeBlock(target, w)}
         onSelect={() => handleSelectElement(target)}
+        onDeselect={() => setLayoutTarget("global")}
         onDoubleClick={(e) => {
           e.stopPropagation();
           if (!compact && (target === 'headline' || target === 'body' || target === 'badge' || target === 'sticker')) setInlineEditTarget(target as any);
@@ -543,6 +550,155 @@ export default function PostCardV2({
 
 
   // ── Helpers para UI Clone (exemplo.html) ────────────────────────────────────
+  const updateSectionLayout = (sectionId: string, patch: Partial<LayoutPosition>) => {
+    if (!layoutSettings) return;
+    const existingLayouts = normalizeSectionLayouts(variation.sections, layoutSettings);
+    updateLayoutSettings({
+      sectionLayouts: {
+        ...existingLayouts,
+        [sectionId]: {
+          ...existingLayouts[sectionId],
+          ...patch,
+        },
+      },
+    } as Partial<AdvancedLayoutSettings>);
+  };
+
+  const handleSectionDragPosition = (sectionId: string, x: number, y: number) => {
+    let finalX = x;
+    let finalY = y;
+    if (isMagnetActive) {
+      const SNAP_POINTS = [10, 30, 50, 70, 90];
+      const snap = (val: number) => SNAP_POINTS.reduce((prev, curr) => Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev);
+      finalX = snap(x);
+      finalY = snap(y);
+    }
+    updateSectionLayout(sectionId, { freePosition: { x: finalX, y: finalY } });
+  };
+
+  const renderSectionContent = (section: ContentSection, index: number) => {
+    const Icon = getLucideIcon(section.icon);
+
+    if (variation.template === "numbered-list") {
+      return (
+        <div className="flex items-start gap-2.5 text-left">
+          <span
+            className="font-bold shrink-0 flex items-center justify-center rounded-full"
+            style={{ width: 22, height: 22, fontSize: "0.65rem", backgroundColor: effectiveAccent, color: effectiveText }}
+          >
+            {section.number ?? index + 1}
+          </span>
+          <div className="flex flex-col min-w-0">
+            <span className="font-semibold leading-tight" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.72rem" }}>
+              {section.label}
+            </span>
+            {section.description && (
+              <span className="opacity-60 leading-tight" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.55rem" }}>
+                {section.description}
+              </span>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (variation.template === "step-by-step") {
+      return (
+        <div className="flex items-center gap-3 text-left">
+          <div
+            className="flex items-center justify-center shrink-0 rounded-full font-bold"
+            style={{
+              width: 28,
+              height: 28,
+              fontSize: "0.7rem",
+              backgroundColor: `${effectiveAccent}25`,
+              color: effectiveAccent,
+              border: `1.5px solid ${effectiveAccent}40`,
+            }}
+          >
+            {Icon ? <Icon size={14} style={{ color: effectiveAccent }} /> : section.number ?? index + 1}
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="font-semibold leading-tight" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.72rem" }}>
+              {section.label}
+            </span>
+            {section.description && (
+              <span className="opacity-60 leading-tight" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.55rem" }}>
+                {section.description}
+              </span>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col items-center gap-1.5 text-center">
+        <div
+          className="flex items-center justify-center rounded-lg"
+          style={{ width: 36, height: 36, backgroundColor: `${effectiveAccent}20` }}
+        >
+          <Icon size={18} style={{ color: effectiveAccent }} />
+        </div>
+        <span className="font-semibold leading-tight" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.7rem" }}>
+          {section.label}
+        </span>
+        {section.description && (
+          <span className="opacity-60 leading-tight" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.55rem" }}>
+            {section.description}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const renderEditableTemplateSections = () => {
+    const sections = normalizeSections(variation.sections);
+    if (!variation.template || variation.template === "simple" || !sections?.length) return null;
+    if (!layoutSettings) {
+      return (
+        <TemplateSections
+          template={variation.template}
+          sections={sections}
+          accentColor={effectiveAccent}
+          textColor={effectiveText}
+          bodyFont={bodyFont}
+        />
+      );
+    }
+
+    const existingLayouts = normalizeSectionLayouts(sections, layoutSettings);
+    const isList = variation.template === "numbered-list" || variation.template === "step-by-step";
+
+    return (
+      <div className={isList ? "relative flex flex-col gap-2 w-full mt-3" : "relative grid grid-cols-3 gap-3 w-full mt-3"}>
+        {sections.map((section, index) => {
+          const sectionId = section.id ?? `section-${index + 1}`;
+          const layoutPos = existingLayouts[sectionId];
+          return (
+            <DraggableBlock
+              key={sectionId}
+              layoutPos={layoutPos}
+              padding={compact ? 12 : 24}
+              containerRef={layoutRef}
+              snapEnabled={isMagnetActive && !compact}
+              onDragEnd={(x, y) => handleSectionDragPosition(sectionId, x, y)}
+              onResize={(width) => updateSectionLayout(sectionId, { width })}
+              onSelect={() => setLayoutTarget(`section:${sectionId}`)}
+              onDeselect={() => setLayoutTarget("global")}
+              accentColor={effectiveAccent}
+              isDraggable={!compact}
+              forceSelected={layoutTarget === `section:${sectionId}`}
+              defaultWidth={isList ? "80%" : "100%"}
+            >
+              {renderSectionContent(section, index)}
+            </DraggableBlock>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderHeadline = (text: string, highlightColor: string, isPlayfulTheme: boolean) => {
     if (!text || !isPlayfulTheme || !dt) return <>{text}</>;
     const words = text.split(" ");
@@ -768,15 +924,7 @@ export default function PostCardV2({
               </p>
             </Draggable>
           )}
-          {!compact && (
-            <TemplateSections
-              template={variation.template}
-              sections={variation.sections}
-              accentColor={effectiveAccent}
-              textColor={effectiveText}
-              bodyFont={bodyFont}
-            />
-          )}
+          {!compact && renderEditableTemplateSections()}
         </div>
         {renderBottomBar()}
 
@@ -873,15 +1021,7 @@ export default function PostCardV2({
               </p>
             </Draggable>
           )}
-          {!compact && (
-            <TemplateSections
-              template={variation.template}
-              sections={variation.sections}
-              accentColor={effectiveAccent}
-              textColor={effectiveText}
-              bodyFont={bodyFont}
-            />
-          )}
+          {!compact && renderEditableTemplateSections()}
         </div>
         {renderBottomBar()}
 
@@ -976,15 +1116,7 @@ export default function PostCardV2({
               </p>
             </Draggable>
           )}
-          {!compact && (
-            <TemplateSections
-              template={variation.template}
-              sections={variation.sections}
-              accentColor={effectiveAccent}
-              textColor={effectiveText}
-              bodyFont={bodyFont}
-            />
-          )}
+          {!compact && renderEditableTemplateSections()}
         </div>
         {renderBottomBar()}
 

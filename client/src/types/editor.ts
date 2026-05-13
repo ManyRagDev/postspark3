@@ -66,6 +66,8 @@ export interface AdvancedLayoutSettings {
   carouselArrow: LayoutPosition;
   /** Position and width of the main post card relative to the canvas. */
   card: LayoutPosition;
+  /** Per-section positioning for rich template items. Keyed by ContentSection.id. */
+  sectionLayouts?: Record<string, LayoutPosition>;
   padding: number; // 0–80px, default 24
 }
 
@@ -92,5 +94,6 @@ export const DEFAULT_LAYOUT_SETTINGS: AdvancedLayoutSettings = {
   sticker: { position: "bottom-center", textAlign: "center" },
   carouselArrow: { position: "bottom-right", textAlign: "right", width: 12 },
   card: { position: "center", textAlign: "center" },
+  sectionLayouts: {},
   padding: 24,
 };

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Bookmark, Image as ImageIcon, Sparkles } from "l
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { useEditorStore } from "@/store/editorStore";
+import { normalizeVariationForEditor } from "@/lib/variationSnapshot";
 import type { PostVariation, PostMode, Platform, CarouselSlide, AspectRatio } from "@shared/postspark";
 import { layoutToAdvanced } from "@/components/views/WorkbenchRefactored";
 
@@ -22,34 +23,42 @@ export default function SavedPosts() {
 
   const openSavedPost = (post: any) => {
     const editorStore = useEditorStore.getState();
-    const slides = Array.isArray(post.slides) ? post.slides as CarouselSlide[] : [];
-    const normalizedVariation: PostVariation = {
+    const snapshot = post.variation_snapshot && typeof post.variation_snapshot === "object"
+      ? post.variation_snapshot
+      : null;
+    const slides = Array.isArray(snapshot?.slides)
+      ? snapshot.slides as CarouselSlide[]
+      : Array.isArray(post.slides)
+        ? post.slides as CarouselSlide[]
+        : [];
+    const normalizedVariation: PostVariation = normalizeVariationForEditor({
       id: `saved-${post.id}`,
-      headline: post.headline || "",
-      body: post.body || "",
-      caption: post.caption || "",
-      hashtags: Array.isArray(post.hashtags) ? post.hashtags : [],
-      callToAction: post.callToAction || "",
-      tone: post.tone || "",
-      platform: (post.platform || "instagram") as Platform,
-      imagePrompt: post.imagePrompt || "",
-      imageUrl: post.imageUrl || undefined,
-      backgroundColor: post.backgroundColor || "#0f1117",
-      textColor: post.textColor || "#ffffff",
-      accentColor: post.accentColor || "#d4af37",
-      layout: post.layout || "centered",
-      aspectRatio: "1:1" as AspectRatio,
-      postMode: (post.postMode || "static") as PostMode,
+      ...(snapshot ?? {}),
+      headline: snapshot?.headline || post.headline || "",
+      body: snapshot?.body || post.body || "",
+      caption: snapshot?.caption || post.caption || "",
+      hashtags: Array.isArray(snapshot?.hashtags) ? snapshot.hashtags : Array.isArray(post.hashtags) ? post.hashtags : [],
+      callToAction: snapshot?.callToAction || post.callToAction || "",
+      tone: snapshot?.tone || post.tone || "",
+      platform: (snapshot?.platform || post.platform || "instagram") as Platform,
+      imagePrompt: snapshot?.imagePrompt || post.imagePrompt || "",
+      imageUrl: snapshot?.imageUrl || post.imageUrl || undefined,
+      backgroundColor: snapshot?.backgroundColor || post.backgroundColor || "#0f1117",
+      textColor: snapshot?.textColor || post.textColor || "#ffffff",
+      accentColor: snapshot?.accentColor || post.accentColor || "#d4af37",
+      layout: snapshot?.layout || post.layout || "centered",
+      aspectRatio: (snapshot?.aspectRatio || "1:1") as AspectRatio,
+      postMode: (snapshot?.postMode || post.postMode || "static") as PostMode,
       slides,
-      copyAngle: post.copy_angle || undefined,
-      textElements: Array.isArray(post.textElements) ? post.textElements : undefined,
-      imageSettings: post.image_settings || undefined,
-      layoutSettings: post.layout_settings || layoutToAdvanced(post.layout || "centered"),
-      bgValue: post.bg_value || (post.imageUrl
+      copyAngle: snapshot?.copyAngle || post.copy_angle || undefined,
+      textElements: Array.isArray(snapshot?.textElements) ? snapshot.textElements : Array.isArray(post.textElements) ? post.textElements : undefined,
+      imageSettings: snapshot?.imageSettings || post.image_settings || undefined,
+      layoutSettings: snapshot?.layoutSettings || post.layout_settings || layoutToAdvanced(post.layout || "centered"),
+      bgValue: snapshot?.bgValue || post.bg_value || (post.imageUrl
         ? { type: "ai", url: post.imageUrl }
         : { type: "solid", color: post.backgroundColor || "#0f1117" }),
-      bgOverlay: post.bg_overlay || undefined,
-    };
+      bgOverlay: snapshot?.bgOverlay || post.bg_overlay || undefined,
+    } as PostVariation);
 
     editorStore.reset();
     editorStore.setActiveVariation(normalizedVariation);

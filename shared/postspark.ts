@@ -99,6 +99,7 @@ export type PostTemplate = 'simple' | 'feature-grid' | 'numbered-list' | 'step-b
 
 /** A single content section within a structured post template */
 export interface ContentSection {
+  id?: string;            // Stable editor id for selection/drag persistence
   icon?: string;         // Lucide icon name (e.g., 'Users', 'Star', 'Zap')
   label: string;         // Short title (e.g., "Conexões reais")
   description?: string;  // Supporting text

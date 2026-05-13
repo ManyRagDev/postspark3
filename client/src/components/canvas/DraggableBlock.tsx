@@ -66,6 +66,7 @@ interface DraggableBlockProps {
     accentColor?: string;
     isDraggable?: boolean;
     onSelect?: () => void;
+    onDeselect?: () => void;
     forceSelected?: boolean;
     onDoubleClick?: (e: React.MouseEvent) => void;
     defaultWidth?: string;
@@ -82,6 +83,7 @@ export function DraggableBlock({
     accentColor = "rgba(255,255,255,0.8)",
     isDraggable = true,
     onSelect,
+    onDeselect,
     forceSelected = false,
     onDoubleClick,
     defaultWidth = "100%",
@@ -107,6 +109,7 @@ export function DraggableBlock({
         const handleClickOutside = (e: MouseEvent) => {
             if (blockRef.current && !blockRef.current.contains(e.target as Node)) {
                 setIsSelected(false);
+                onDeselect?.();
             }
         };
         document.addEventListener("mousedown", handleClickOutside);

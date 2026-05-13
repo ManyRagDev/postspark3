@@ -12,6 +12,7 @@ import type { ThemeConfig } from "@/lib/themes";
 import { themeToDesignTokens } from "@/lib/themes";
 import { useAIProcessingStages, useCompletionFlash } from "@/hooks/useAIProcessingStages";
 import { useEditorStore } from "@/store/editorStore";
+import { normalizeVariationForEditor } from "@/lib/variationSnapshot";
 import { layoutToAdvanced } from "./WorkbenchRefactored";
 
 const RATIOS: AspectRatio[] = ["1:1", "5:6", "9:16"];
@@ -445,14 +446,14 @@ export default function HoloDeck({
     const variationTokens = variation.designTokens;
     const resolvedTokens = customTokens || variationTokens;
     // Quando confirmar a variação, passar as edições feitas nos customTokens
-    const parsedVariation = {
+    const parsedVariation = normalizeVariationForEditor({
       ...variation,
       designTokens: resolvedTokens,
       backgroundColor: customTokens?.colors.background || variationTokens?.colors?.background || variation.backgroundColor,
       accentColor: customTokens?.colors.primary || variationTokens?.colors?.primary || variation.accentColor,
       textColor: customTokens?.colors.text || variationTokens?.colors?.text || variation.textColor,
       brandMeta: (selectedTheme as any)?.brandMeta || (variation as any)?.brandMeta,
-    } as PostVariation;
+    } as PostVariation);
 
     // Injeta na store Zustand global (Strangler Fig Fase 1)
     const editorStore = useEditorStore.getState();

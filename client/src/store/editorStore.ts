@@ -22,7 +22,8 @@ type LayoutTarget =
     | 'sticker'
     | 'accentBar'
     | 'carouselArrow'
-    | 'card';
+    | 'card'
+    | `section:${string}`;
 
 export type ApplyScope = 'current' | 'all';
 
@@ -64,6 +65,7 @@ const normalizeLayoutSettings = (settings?: Partial<AdvancedLayoutSettings>): Ad
     ...DEFAULT_LAYOUT_SETTINGS,
     ...Object.fromEntries(
         Object.entries(settings ?? {}).map(([key, value]) => {
+            if (key === 'sectionLayouts') return [key, value ?? {}];
             if (!value || key === 'padding') return [key, value];
             const baseLayer = (DEFAULT_LAYOUT_SETTINGS as any)[key];
             return [key, { ...baseLayer, ...((value as unknown) as Record<string, unknown>) }];

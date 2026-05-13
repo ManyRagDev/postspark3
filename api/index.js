@@ -619,7 +619,8 @@ async function createPost(post) {
     layout_settings: post.layoutSettings ?? null,
     bg_value: post.bgValue ?? null,
     bg_overlay: post.bgOverlay ?? null,
-    copy_angle: post.copyAngle ?? null
+    copy_angle: post.copyAngle ?? null,
+    variation_snapshot: post.variationSnapshot ?? null
   };
   const { data, error } = await db.from("posts").insert(payload).select("id").single();
   if (error || !data) {
@@ -657,7 +658,8 @@ async function updatePost(postId, userUuid, data) {
     layout_settings: data.layoutSettings,
     bg_value: data.bgValue,
     bg_overlay: data.bgOverlay,
-    copy_angle: data.copyAngle
+    copy_angle: data.copyAngle,
+    variation_snapshot: data.variationSnapshot
   });
   if (Object.keys(payload).length === 0) {
     return;
@@ -4143,7 +4145,8 @@ Responda APENAS com JSON v\xE1lido.`;
       layoutSettings: z2.any().optional(),
       bgValue: z2.any().optional(),
       bgOverlay: z2.any().optional(),
-      copyAngle: z2.any().optional()
+      copyAngle: z2.any().optional(),
+      variationSnapshot: z2.any().optional()
     })).mutation(async ({ input, ctx }) => {
       try {
         const postId = await createPost({
@@ -4183,7 +4186,8 @@ Responda APENAS com JSON v\xE1lido.`;
       layoutSettings: z2.any().optional(),
       bgValue: z2.any().optional(),
       bgOverlay: z2.any().optional(),
-      copyAngle: z2.any().optional()
+      copyAngle: z2.any().optional(),
+      variationSnapshot: z2.any().optional()
     })).mutation(async ({ input, ctx }) => {
       await updatePost(input.id, ctx.user.id, input);
       return { success: true };

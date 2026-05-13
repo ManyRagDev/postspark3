@@ -10,6 +10,7 @@ import { useExtractedStyles } from "@/hooks/useExtractedStyles";
 import type { InputType, PostVariation, AppState, AiModel, PostMode, CreationMode, CreativeExecutionBrief } from "@shared/postspark";
 import { useUpgradePrompt, UpgradePromptModal } from "@/components/UpgradePrompt";
 import { useEditorStore } from "@/store/editorStore";
+import { buildVariationSnapshot } from "@/lib/variationSnapshot";
 
 export default function Home() {
   const [appState, setAppState] = useState<AppState>("void");
@@ -208,6 +209,11 @@ export default function Home() {
         const editorState = useEditorStore.getState();
         const persistedVariation = editorState.baseVariation ?? variation;
         const activeCaption = editorState.activeVariation?.caption ?? persistedVariation.caption;
+        const variationSnapshot = buildVariationSnapshot(
+          editorState,
+          variation,
+          editorState.aspectRatio,
+        );
         await saveMutation.mutateAsync({
           inputType: inputMeta.type,
           inputContent: inputMeta.content,
@@ -232,6 +238,7 @@ export default function Home() {
           bgValue: editorState.baseBgValue,
           bgOverlay: editorState.baseBgOverlay,
           copyAngle: persistedVariation.copyAngle,
+          variationSnapshot,
         });
         toast.success("Conteúdo consolidado.");
       } catch (err: any) {

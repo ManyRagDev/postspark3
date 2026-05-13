@@ -42,6 +42,7 @@ export type PostRecord = {
   bg_value: JsonValue | null;
   bg_overlay: JsonValue | null;
   copy_angle: CopyAngleValue | null;
+  variation_snapshot: JsonValue | null;
   exported: boolean | null;
   createdAt: string;
   updatedAt: string;
@@ -72,6 +73,7 @@ export type CreatePostInput = {
   bgValue?: JsonValue;
   bgOverlay?: JsonValue;
   copyAngle?: CopyAngleValue;
+  variationSnapshot?: JsonValue;
 };
 
 export type UpdatePostInput = Partial<Omit<CreatePostInput, "userUuid">> & {
@@ -152,6 +154,7 @@ export async function createPost(post: CreatePostInput): Promise<number> {
     bg_value: post.bgValue ?? null,
     bg_overlay: post.bgOverlay ?? null,
     copy_angle: post.copyAngle ?? null,
+    variation_snapshot: post.variationSnapshot ?? null,
   };
 
   const { data, error } = await db
@@ -212,6 +215,7 @@ export async function updatePost(
     bg_value: data.bgValue,
     bg_overlay: data.bgOverlay,
     copy_angle: data.copyAngle,
+    variation_snapshot: data.variationSnapshot,
   });
 
   if (Object.keys(payload).length === 0) {

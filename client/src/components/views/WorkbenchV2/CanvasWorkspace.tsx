@@ -44,6 +44,7 @@ export default function CanvasWorkspace({
     const setCurrentSlideIndex = useEditorStore((s) => s.setCurrentSlideIndex);
     const applyScope = useEditorStore((s) => s.applyScope);
     const setApplyScope = useEditorStore((s) => s.setApplyScope);
+    const setLayoutTarget = useEditorStore((s) => s.setLayoutTarget);
 
     const [isAutoPiloting, setIsAutoPiloting] = useState(false);
     const autoPilotMutation = trpc.post.autoPilotDesign.useMutation();
@@ -139,6 +140,17 @@ export default function CanvasWorkspace({
         };
     }, [aspectRatio, isMobile]);
 
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setLayoutTarget("global");
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [setLayoutTarget]);
+
     const dt = activeVariation?.designTokens;
     const accentColor = dt?.colors?.primary ?? activeVariation?.accentColor ?? "#a855f7";
     const backgroundColor = dt?.colors?.background ?? activeVariation?.backgroundColor ?? "#0d0d16";
@@ -149,6 +161,11 @@ export default function CanvasWorkspace({
             className="flex-1 flex items-center justify-center relative overflow-hidden"
             style={{ background: "oklch(0.05 0.02 280)" }}
             ref={containerRef}
+            onMouseDown={(event) => {
+                const target = event.target as HTMLElement;
+                if (target.closest(".draggable-block") || target.closest("button")) return;
+                setLayoutTarget("global");
+            }}
         >
             {/* Fundo orgânico decorativo e dinâmico */}
             <OrganicBackground accentColor={accentColor} intensity={0.4} />

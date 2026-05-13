@@ -1,4 +1,4 @@
-import { pgSchema, varchar, text, timestamp, boolean, uuid, jsonb, serial, integer } from "drizzle-orm/pg-core";
+import { pgSchema, varchar, text, timestamp, boolean, uuid, jsonb, serial, bigint } from "drizzle-orm/pg-core";
 
 // Define the schema explicitly
 export const postsparkSchema = pgSchema("postspark");
@@ -27,7 +27,7 @@ export type InsertUser = typeof users.$inferInsert;
 export const posts = postsparkSchema.table("posts", {
   id: serial("id").primaryKey(),
   userUuid: uuid("user_uuid"),
-  userId: integer("userId").notNull(),
+  userId: text("userId"),
   inputType: varchar("inputType", { length: 16 }).notNull(), // text | url | image
   inputContent: text("inputContent").notNull(),
   platform: varchar("platform", { length: 32 }).notNull(), // instagram | twitter | linkedin | facebook
@@ -51,6 +51,7 @@ export const posts = postsparkSchema.table("posts", {
   bgValue: jsonb("bg_value").$type<any>(),
   bgOverlay: jsonb("bg_overlay").$type<any>(),
   copyAngle: jsonb("copy_angle").$type<any>(),
+  variationSnapshot: jsonb("variation_snapshot").$type<any>(),
   exported: boolean("exported").default(false), // Changed to boolean
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -60,7 +61,7 @@ export type Post = typeof posts.$inferSelect;
 export type InsertPost = typeof posts.$inferInsert;
 
 export const backgroundAssets = postsparkSchema.table("background_assets", {
-  id: serial("id").primaryKey(),
+  id: bigint("id", { mode: "number" }).primaryKey(),
   userUuid: uuid("user_uuid").notNull(),
   imageUrl: text("image_url").notNull(),
   sourceType: varchar("source_type", { length: 32 }).notNull(),

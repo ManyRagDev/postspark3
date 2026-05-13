@@ -543,6 +543,8 @@ Gerenciar o estado editável do post e suas variantes/overrides por slide.
 **Riscos e observações**
 
 - O store trata diferenciação entre base global e override por slide; mudanças aqui têm alto risco de regressão de editor.
+- Posts salvos novos usam `variation_snapshot` como fonte preferencial para reabrir o estado visual rico do Workbench. Esse snapshot preserva templates estruturados, `sections`, tokens visuais e ajustes do editor que não cabem integralmente nos campos legados.
+- Itens centrais de templates estruturados (`sections`) são normalizados com `id` estável e podem ter layouts individuais persistidos em `layoutSettings.sectionLayouts`.
 
 ## 6. Fluxos principais
 
@@ -614,9 +616,10 @@ Observação:
 ### 6.7 Fluxo de reabertura de posts salvos
 
 1. `SavedPosts` consulta `post.list`.
-2. Ao abrir um post, o frontend reconstrói uma `PostVariation`.
-3. O store do editor é hidratado com layout, bg, slides e settings persistidos.
-4. O app redireciona para `/`, e `Home.tsx` abre o editor a partir de `sessionStorage`.
+2. Ao abrir um post, o frontend prefere `variation_snapshot` quando presente.
+3. Se o snapshot não existir, o frontend reconstrói uma `PostVariation` pelos campos legados.
+4. O store do editor é hidratado com layout, bg, slides, settings persistidos e layouts individuais de `sections`.
+5. O app redireciona para `/`, e `Home.tsx` abre o editor a partir de `sessionStorage`.
 
 ## 7. Dados e persistência
 
@@ -668,6 +671,7 @@ Campos principais confirmados:
 - `bg_value`
 - `bg_overlay`
 - `copy_angle`
+- `variation_snapshot`
 - `exported`
 - timestamps
 
