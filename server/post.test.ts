@@ -21,6 +21,12 @@ vi.mock("./_core/llm", () => ({
               textColor: "#ffffff",
               accentColor: "#FF5F1F",
               layout: "centered",
+              copyAngle: {
+                type: "autoridade",
+                label: "Especialista",
+                badge: "Premium",
+                stickerText: "Qualidade",
+              },
             },
             {
               headline: "Bora tomar um café?",
@@ -34,6 +40,12 @@ vi.mock("./_core/llm", () => ({
               textColor: "#ffffff",
               accentColor: "#06B6D4",
               layout: "left-aligned",
+              copyAngle: {
+                type: "beneficio",
+                label: "Momento",
+                badge: "Cafe",
+                stickerText: "Prove",
+              },
             },
             {
               headline: "CAFÉ ARTESANAL",
@@ -47,12 +59,26 @@ vi.mock("./_core/llm", () => ({
               textColor: "#ffffff",
               accentColor: "#EC4899",
               layout: "minimal",
+              copyAngle: {
+                type: "storytelling",
+                label: "Experiencia",
+                badge: "Artesanal",
+                stickerText: "Unico",
+              },
             },
           ],
         }),
       },
     }],
   }),
+}));
+
+vi.mock("@google/genai", () => ({
+  GoogleGenAI: class {
+    models = {
+      embedContent: vi.fn().mockRejectedValue(new Error("embeddings offline")),
+    };
+  },
 }));
 
 // Mock image generation
@@ -66,6 +92,8 @@ vi.mock("./db", () => ({
   getUserPosts: vi.fn().mockResolvedValue([]),
   updatePost: vi.fn().mockResolvedValue(undefined),
   getPostById: vi.fn().mockResolvedValue(null),
+  createGenerationRun: vi.fn().mockResolvedValue(undefined),
+  createContentFingerprints: vi.fn().mockResolvedValue(undefined),
   upsertUser: vi.fn(),
   getUserByOpenId: vi.fn(),
 }));
@@ -104,21 +132,22 @@ describe("post.generate", () => {
       platform: "instagram",
     });
 
-    expect(result).toHaveLength(3);
-    expect(result[0]).toHaveProperty("headline");
-    expect(result[0]).toHaveProperty("body");
-    expect(result[0]).toHaveProperty("hashtags");
-    expect(result[0]).toHaveProperty("callToAction");
-    expect(result[0]).toHaveProperty("tone");
-    expect(result[0]).toHaveProperty("imagePrompt");
-    expect(result[0]).toHaveProperty("backgroundColor");
-    expect(result[0]).toHaveProperty("textColor");
-    expect(result[0]).toHaveProperty("accentColor");
-    expect(result[0]).toHaveProperty("layout");
-    expect(result[0]).toHaveProperty("caption");
-    expect(typeof result[0].caption).toBe("string");
-    expect(result[0].platform).toBe("instagram");
-    expect(result[0].id).toMatch(/^var-/);
+    expect(result.variations).toHaveLength(3);
+    expect(result.generationRunId).toEqual(expect.any(String));
+    expect(result.variations[0]).toHaveProperty("headline");
+    expect(result.variations[0]).toHaveProperty("body");
+    expect(result.variations[0]).toHaveProperty("hashtags");
+    expect(result.variations[0]).toHaveProperty("callToAction");
+    expect(result.variations[0]).toHaveProperty("tone");
+    expect(result.variations[0]).toHaveProperty("imagePrompt");
+    expect(result.variations[0]).toHaveProperty("backgroundColor");
+    expect(result.variations[0]).toHaveProperty("textColor");
+    expect(result.variations[0]).toHaveProperty("accentColor");
+    expect(result.variations[0]).toHaveProperty("layout");
+    expect(result.variations[0]).toHaveProperty("caption");
+    expect(typeof result.variations[0].caption).toBe("string");
+    expect(result.variations[0].platform).toBe("instagram");
+    expect(result.variations[0].id).toMatch(/^var-/);
   });
 
   it("rejects unauthenticated users", async () => {

@@ -27,6 +27,7 @@ interface TextAutoFitOptions {
   body: string;
   aspectRatio: AspectRatio;
   isCompact?: boolean;
+  structuredSectionCount?: number;
 }
 
 export function useTextAutoFit({
@@ -34,6 +35,7 @@ export function useTextAutoFit({
   body,
   aspectRatio,
   isCompact = false,
+  structuredSectionCount = 0,
 }: TextAutoFitOptions): TextAutoFitResult {
   return useMemo(() => {
     if (isCompact) {
@@ -52,6 +54,7 @@ export function useTextAutoFit({
 
     const isStory = aspectRatio === "9:16";
     const isPortrait = aspectRatio === "5:6";
+    const hasStructuredContent = structuredSectionCount > 0;
 
     // ══════════════════════════════════════════════════════════════════
     // STORY LAYOUT (9:16)
@@ -63,7 +66,7 @@ export function useTextAutoFit({
 
       // Headline: base 1.45rem, mín 1.0rem
       // Threshold menor pois o card é estreito e texto quebra mais rápido
-      const hBase = 1.45;
+      const hBase = hasStructuredContent ? 1.3 : 1.45;
       const hMin = 1.0;
       const hThreshold = 30;
       const hDecay = 0.014;
@@ -71,7 +74,7 @@ export function useTextAutoFit({
       const headlineSize = `${Math.max(hMin, hBase - hExcess * hDecay).toFixed(3)}rem`;
 
       // Body: base 0.85rem, mín 0.72rem
-      const bBase = 0.85;
+      const bBase = hasStructuredContent ? 0.78 : 0.85;
       const bMin = 0.72;
       const bThreshold = 80;
       const bDecay = 0.0015;
@@ -84,7 +87,7 @@ export function useTextAutoFit({
         bodySize,
         headlineLineClamp: undefined,
         bodyLineClamp: undefined,
-        padding: "1.75rem 1.5rem",
+        padding: hasStructuredContent ? "1.4rem 1.25rem" : "1.75rem 1.5rem",
         maxHeadlineChars: 120,
         maxBodyChars: 300,
         shouldTruncateHeadline: false,
@@ -100,7 +103,7 @@ export function useTextAutoFit({
       const totalLen = headlineLen + body.length;
 
       // Headline: base 1.55rem, mín 1.05rem
-      const hBase = 1.55;
+      const hBase = hasStructuredContent ? 1.38 : 1.55;
       const hMin = 1.05;
       const hThreshold = 35;
       const hDecay = 0.014;
@@ -108,7 +111,7 @@ export function useTextAutoFit({
       const headlineSize = `${Math.max(hMin, hBase - hExcess * hDecay).toFixed(3)}rem`;
 
       // Body: base 0.9rem, mín 0.75rem
-      const bBase = 0.9;
+      const bBase = hasStructuredContent ? 0.8 : 0.9;
       const bMin = 0.75;
       const bThreshold = 110;
       const bDecay = 0.001;
@@ -123,7 +126,7 @@ export function useTextAutoFit({
         bodySize,
         headlineLineClamp: headlineLen > 60 ? 3 : 2,
         bodyLineClamp: totalLen > 140 ? 4 : 3,
-        padding: "1.85rem",
+        padding: hasStructuredContent ? "1.45rem" : "1.85rem",
         maxHeadlineChars,
         maxBodyChars,
         shouldTruncateHeadline: headlineLen > maxHeadlineChars,
@@ -138,7 +141,7 @@ export function useTextAutoFit({
     const totalLen = headlineLen + body.length;
 
     // Headline: base 1.65rem, mín 1.1rem
-    const hBase = 1.65;
+    const hBase = hasStructuredContent ? 1.38 : 1.65;
     const hMin = 1.1;
     const hThreshold = 40;
     const hDecay = 0.014;
@@ -146,7 +149,7 @@ export function useTextAutoFit({
     const headlineSize = `${Math.max(hMin, hBase - hExcess * hDecay).toFixed(3)}rem`;
 
     // Body: base 0.95rem, mín 0.78rem
-    const bBase = 0.95;
+    const bBase = hasStructuredContent ? 0.8 : 0.95;
     const bMin = 0.78;
     const bThreshold = 120;
     const bDecay = 0.0008;
@@ -161,13 +164,13 @@ export function useTextAutoFit({
       bodySize,
       headlineLineClamp: headlineLen > 60 ? 3 : 2,
       bodyLineClamp: 4,
-      padding: "1.75rem",
+      padding: hasStructuredContent ? "1.35rem" : "1.75rem",
       maxHeadlineChars,
       maxBodyChars,
       shouldTruncateHeadline: headlineLen > maxHeadlineChars,
       shouldTruncateBody: body.length > maxBodyChars,
     };
-  }, [headline, body, aspectRatio, isCompact]);
+  }, [headline, body, aspectRatio, isCompact, structuredSectionCount]);
 }
 
 /**

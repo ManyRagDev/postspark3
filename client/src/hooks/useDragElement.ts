@@ -1,140 +1,145 @@
-/**
- * useDragElement — Hook de drag-and-drop via Pointer Events
- *
- * Calcula a posição do elemento arrastado em percentual (0–100)
- * relativo ao bounding rect de um container pai.
- *
- * Inclui threshold de distância mínima (5px) para distinguir
- * click de drag — um simples click NÃO dispara onDragEnd.
- *
- * Uso:
- *   const { isDragging, dragPos, handlers } = useDragElement({
- *     containerRef,
- *     onDragEnd: (x, y) => { ... },
- *   });
- */
-
-import { useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseDragElementOptions {
-    /** Ref para o elemento container (o card) usado para calcular % */
-    containerRef: React.RefObject<HTMLElement | null>;
-    /** Callback chamado quando o drag termina, com posição em % */
-    onDragEnd: (x: number, y: number) => void;
+  containerRef: React.RefObject<HTMLElement | null>;
+  elementRef: React.RefObject<HTMLElement | null>;
+  onDragEnd: (x: number, y: number) => void;
 }
 
 interface DragPos {
-    x: number; // 0–100%
-    y: number; // 0–100%
+  x: number;
+  y: number;
 }
 
-/** Distância mínima em px antes de considerar como drag real */
 const DRAG_THRESHOLD = 5;
 
-export function useDragElement({ containerRef, onDragEnd }: UseDragElementOptions) {
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragPos, setDragPos] = useState<DragPos | null>(null);
+export function useDragElement({
+  containerRef,
+  elementRef,
+  onDragEnd,
+}: UseDragElementOptions) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPos, setDragPos] = useState<DragPos | null>(null);
 
-    // Offset do ponto de clique dentro do handle (para evitar salto no início do drag)
-    const clickOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-    // Ponto de pointerDown original para calcular threshold
-    const startClient = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-    // Se o pointer está pressionado (antes de atingir threshold)
-    const isPending = useRef(false);
-    // Se já ultrapassou o threshold neste gesto
-    const didExceedThreshold = useRef(false);
+  const clickOffset = useRef({ x: 0, y: 0 });
+  const elementSize = useRef({ width: 0, height: 0 });
+  const startClient = useRef({ x: 0, y: 0 });
+  const activePointerId = useRef<number | null>(null);
+  const didExceedThreshold = useRef(false);
+  const latestPos = useRef<DragPos | null>(null);
 
-    const toPercent = useCallback(
-        (clientX: number, clientY: number): DragPos => {
-            if (!containerRef.current) return { x: 50, y: 50 };
-            const rect = containerRef.current.getBoundingClientRect();
-            const x = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
-            const y = Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100));
-            return { x, y };
-        },
-        [containerRef]
-    );
+  const toPercent = useCallback(
+    (centerClientX: number, centerClientY: number): DragPos => {
+      const container = containerRef.current;
+      if (!container) return { x: 50, y: 50 };
 
-    const onPointerDown = useCallback(
-        (e: React.PointerEvent<HTMLElement>) => {
-            e.preventDefault();
-            e.stopPropagation();
-            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      const rect = container.getBoundingClientRect();
+      const halfWidth = Math.min(elementSize.current.width / 2, rect.width / 2);
+      const halfHeight = Math.min(elementSize.current.height / 2, rect.height / 2);
+      const boundedX = Math.min(
+        rect.right - halfWidth,
+        Math.max(rect.left + halfWidth, centerClientX),
+      );
+      const boundedY = Math.min(
+        rect.bottom - halfHeight,
+        Math.max(rect.top + halfHeight, centerClientY),
+      );
 
-            // Calcula o offset de clique do mouse em relação ao CENTRO ATUAL do elemento.
-            let offsetX = 0;
-            let offsetY = 0;
+      return {
+        x: ((boundedX - rect.left) / rect.width) * 100,
+        y: ((boundedY - rect.top) / rect.height) * 100,
+      };
+    },
+    [containerRef],
+  );
 
-            if (containerRef.current) {
-                const targetRect = e.currentTarget.getBoundingClientRect();
-                const centerX = targetRect.left + (targetRect.width / 2);
-                const centerY = targetRect.top + (targetRect.height / 2);
-                offsetX = e.clientX - centerX;
-                offsetY = e.clientY - centerY;
-            }
+  const onPointerDown = useCallback(
+    (event: React.PointerEvent<HTMLElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-            clickOffset.current = { x: offsetX, y: offsetY };
-            startClient.current = { x: e.clientX, y: e.clientY };
-            isPending.current = true;
-            didExceedThreshold.current = false;
-        },
-        [containerRef]
-    );
+      const targetRect =
+        elementRef.current?.getBoundingClientRect() ??
+        event.currentTarget.getBoundingClientRect();
 
-    const onPointerMove = useCallback(
-        (e: React.PointerEvent<HTMLElement>) => {
-            if (!isPending.current && !isDragging) return;
-            e.preventDefault();
+      clickOffset.current = {
+        x: event.clientX - (targetRect.left + targetRect.width / 2),
+        y: event.clientY - (targetRect.top + targetRect.height / 2),
+      };
+      elementSize.current = {
+        width: targetRect.width,
+        height: targetRect.height,
+      };
+      startClient.current = { x: event.clientX, y: event.clientY };
+      activePointerId.current = event.pointerId;
+      didExceedThreshold.current = false;
+      latestPos.current = null;
+    },
+    [elementRef],
+  );
 
-            if (isPending.current && !didExceedThreshold.current) {
-                const dx = e.clientX - startClient.current.x;
-                const dy = e.clientY - startClient.current.y;
-                if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+  const onPointerMove = useCallback(
+    (event: PointerEvent) => {
+      if (activePointerId.current !== event.pointerId) return;
+      event.preventDefault();
 
-                // Threshold ultrapassado — inicia drag real
-                didExceedThreshold.current = true;
-                isPending.current = false;
+      if (!didExceedThreshold.current) {
+        const distance = Math.hypot(
+          event.clientX - startClient.current.x,
+          event.clientY - startClient.current.y,
+        );
+        if (distance < DRAG_THRESHOLD) return;
+        didExceedThreshold.current = true;
+        setIsDragging(true);
+      }
 
-                // Recalcular no exato momento em que o drag "destrava"
-                // para garantir que qualquer mudança de layout seja capturada
-                setIsDragging(true);
-                const pos = toPercent(e.clientX - clickOffset.current.x, e.clientY - clickOffset.current.y);
-                setDragPos(pos);
-                return;
-            }
+      const pos = toPercent(
+        event.clientX - clickOffset.current.x,
+        event.clientY - clickOffset.current.y,
+      );
+      latestPos.current = pos;
+      setDragPos(pos);
+    },
+    [toPercent],
+  );
 
-            if (isDragging) {
-                setDragPos(toPercent(e.clientX - clickOffset.current.x, e.clientY - clickOffset.current.y));
-            }
-        },
-        [isDragging, toPercent]
-    );
+  const onPointerUp = useCallback(
+    (event: PointerEvent) => {
+      if (activePointerId.current !== event.pointerId) return;
+      activePointerId.current = null;
 
-    const onPointerUp = useCallback(
-        (e: React.PointerEvent<HTMLElement>) => {
-            (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-            isPending.current = false;
+      if (!didExceedThreshold.current) return;
 
-            if (!isDragging) {
-                // Não ultrapassou threshold → foi apenas um click, não dispara onDragEnd
-                return;
-            }
+      const pos =
+        latestPos.current ??
+        toPercent(
+          event.clientX - clickOffset.current.x,
+          event.clientY - clickOffset.current.y,
+        );
 
-            const pos = toPercent(e.clientX - clickOffset.current.x, e.clientY - clickOffset.current.y);
-            setIsDragging(false);
-            setDragPos(null);
-            onDragEnd(pos.x, pos.y);
-        },
-        [isDragging, toPercent, onDragEnd]
-    );
+      didExceedThreshold.current = false;
+      latestPos.current = null;
+      setIsDragging(false);
+      setDragPos(null);
+      onDragEnd(pos.x, pos.y);
+    },
+    [onDragEnd, toPercent],
+  );
 
-    return {
-        isDragging,
-        dragPos,
-        handlers: {
-            onPointerDown,
-            onPointerMove,
-            onPointerUp,
-        },
+  useEffect(() => {
+    document.addEventListener("pointermove", onPointerMove, { passive: false });
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointercancel", onPointerUp);
+    return () => {
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("pointercancel", onPointerUp);
     };
+  }, [onPointerMove, onPointerUp]);
+
+  return {
+    isDragging,
+    dragPos,
+    handlers: { onPointerDown },
+  };
 }

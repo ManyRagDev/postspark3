@@ -23,7 +23,8 @@ type LayoutTarget =
     | 'accentBar'
     | 'carouselArrow'
     | 'card'
-    | `section:${string}`;
+    | `section:${string}`
+    | `textElement:${string}`;
 
 export type ApplyScope = 'current' | 'all';
 
@@ -242,14 +243,18 @@ export const useEditorStore = create<EditorState>((set) => ({
                 };
             }
 
+            const responsiveLayouts = variation.layoutSettingsByAspectRatio ?? {};
+            const initialLayout =
+                (responsiveLayouts[state.aspectRatio] as Partial<AdvancedLayoutSettings> | undefined) ??
+                ((variation as any).layoutSettings as Partial<AdvancedLayoutSettings> | undefined);
             const nextVariation = { ...variation };
             return {
                 activeVariation: nextVariation,
                 baseVariation: nextVariation,
                 imageSettings: normalizeImageSettings((variation as any).imageSettings),
                 baseImageSettings: normalizeImageSettings((variation as any).imageSettings),
-                layoutSettings: normalizeLayoutSettings((variation as any).layoutSettings),
-                baseLayoutSettings: normalizeLayoutSettings((variation as any).layoutSettings),
+                layoutSettings: normalizeLayoutSettings(initialLayout),
+                baseLayoutSettings: normalizeLayoutSettings(initialLayout),
                 bgValue: (variation as any).bgValue ? cloneBgValue((variation as any).bgValue) : state.bgValue,
                 baseBgValue: (variation as any).bgValue ? cloneBgValue((variation as any).bgValue) : state.bgValue,
                 bgOverlay: normalizeBgOverlay((variation as any).bgOverlay),
@@ -359,7 +364,35 @@ export const useEditorStore = create<EditorState>((set) => ({
         })),
 
     setPlatform: (platform) => set({ platform }),
-    setAspectRatio: (aspectRatio) => set({ aspectRatio }),
+    setAspectRatio: (aspectRatio) =>
+        set((state) => {
+            if (aspectRatio === state.aspectRatio) return { aspectRatio };
+
+            const storedLayouts = {
+                ...(state.baseVariation?.layoutSettingsByAspectRatio ?? {}),
+                [state.aspectRatio]: state.baseLayoutSettings,
+            };
+            const nextLayout = normalizeLayoutSettings(
+                storedLayouts[aspectRatio] as Partial<AdvancedLayoutSettings> | undefined,
+            );
+            const patchVariation = (variation: PostVariation | null) =>
+                variation
+                    ? {
+                          ...variation,
+                          aspectRatio,
+                          layoutSettings: nextLayout,
+                          layoutSettingsByAspectRatio: storedLayouts,
+                      }
+                    : null;
+
+            return {
+                aspectRatio,
+                layoutSettings: nextLayout,
+                baseLayoutSettings: nextLayout,
+                activeVariation: patchVariation(state.activeVariation),
+                baseVariation: patchVariation(state.baseVariation),
+            };
+        }),
     setApplyScope: (applyScope) => set({ applyScope }),
 
     updateImageSettings: (settings) =>

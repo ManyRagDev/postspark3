@@ -13,15 +13,26 @@
  * O WorkbenchRefactored.tsx legado NÃO é alterado.
  */
 
-import React, { useState } from "react";
+import React from "react";
 import { Layout } from "lucide-react";
 import type { TextPosition, TextAlignment } from "@/types/editor";
+import { DEFAULT_LAYOUT_SETTINGS } from "@/types/editor";
 import { PrecisionSlider } from "@/components/ui/PrecisionSlider";
 import { useEditorStore } from "@/store/editorStore";
 
 // Todos os alvos de layout disponíveis
+type LayoutLayerId =
+    | "headline"
+    | "body"
+    | "accentBar"
+    | "badge"
+    | "sticker"
+    | "carouselArrow"
+    | "card"
+    | `section:${string}`;
+
 const LAYOUT_LAYERS: {
-    id: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow";
+    id: Exclude<LayoutLayerId, `section:${string}`>;
     label: string;
 }[] = [
         { id: "headline", label: "Título" },
@@ -30,6 +41,7 @@ const LAYOUT_LAYERS: {
         { id: "badge", label: "Badge" },
         { id: "sticker", label: "Sticker" },
         { id: "carouselArrow", label: "Seta" },
+        { id: "card", label: "Card" },
     ];
 
 // Grid 3×3 de posições
@@ -66,31 +78,48 @@ export default function LayoutBlock() {
 
     // Layer ativo é gerenciado localmente (os valores accentBar/badge/sticker
     // não são tipos válidos do Zustand global layoutTarget)
-    const [activeLayer, setActiveLayer] = useState<
-        "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow"
-    >("headline");
+    const layoutTarget = useEditorStore((s) => s.layoutTarget);
+    const setLayoutTarget = useEditorStore((s) => s.setLayoutTarget);
 
     const accentColor = activeVariation?.accentColor ?? "#a855f7";
-    const layerSettings = layoutSettings[activeLayer];
+    const sectionLayers = (activeVariation?.sections ?? []).map((section, index) => ({
+        id: `section:${section.id ?? `section-${index + 1}`}` as const,
+        label: section.label || `Bloco ${index + 1}`,
+    }));
+    const availableLayers = [...LAYOUT_LAYERS, ...sectionLayers];
+    const activeLayer: LayoutLayerId = availableLayers.some((layer) => layer.id === layoutTarget)
+        ? layoutTarget as LayoutLayerId
+        : "headline";
+    const activeSectionId = activeLayer.startsWith("section:") ? activeLayer.slice("section:".length) : null;
+    const layerSettings = activeSectionId
+        ? layoutSettings.sectionLayouts?.[activeSectionId] ?? DEFAULT_LAYOUT_SETTINGS.body
+        : layoutSettings[activeLayer as Exclude<LayoutLayerId, `section:${string}`>];
+
+    const updateActiveLayer = (patch: Record<string, unknown>) => {
+        if (activeSectionId) {
+            updateLayoutSettings({
+                sectionLayouts: {
+                    ...layoutSettings.sectionLayouts,
+                    [activeSectionId]: { ...layerSettings, ...patch },
+                },
+            });
+            return;
+        }
+
+        updateLayoutSettings({
+            [activeLayer]: { ...layerSettings, ...patch },
+        });
+    };
 
     const handlePositionClick = (pos: TextPosition) => {
-        updateLayoutSettings({
-            [activeLayer]: {
-                ...layerSettings,
-                position: pos,
-                // Limpa freePosition ao usar grid
-                freePosition: undefined,
-            },
+        updateActiveLayer({
+            position: pos,
+            freePosition: undefined,
         });
     };
 
     const handleAlignmentClick = (align: TextAlignment) => {
-        updateLayoutSettings({
-            [activeLayer]: {
-                ...layerSettings,
-                textAlign: align,
-            },
-        });
+        updateActiveLayer({ textAlign: align });
     };
 
     return (
@@ -196,12 +225,12 @@ export default function LayoutBlock() {
                     Elemento
                 </label>
                 <div className="flex flex-wrap gap-1">
-                    {LAYOUT_LAYERS.map(({ id, label }) => {
+                    {availableLayers.map(({ id, label }) => {
                         const isActive = activeLayer === id;
                         return (
                             <button
                                 key={id}
-                                onClick={() => setActiveLayer(id)}
+                                onClick={() => setLayoutTarget(id)}
                                 className="px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all"
                                 style={{
                                     background: isActive ? `${accentColor}18` : "rgba(255,255,255,0.03)",
@@ -282,9 +311,7 @@ export default function LayoutBlock() {
                 step={1}
                 unit="%"
                 onChange={(v) =>
-                    updateLayoutSettings({
-                        [activeLayer]: { ...layerSettings, width: v },
-                    })
+                    updateActiveLayer({ width: v })
                 }
             />
         </div>

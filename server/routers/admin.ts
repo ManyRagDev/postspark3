@@ -2,6 +2,8 @@ import { z } from "zod";
 import { router, adminProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getSupabase } from "../billing";
+import { getGenerationOperationalMetrics } from "../db";
+import { ENV } from "../_core/env";
 
 export const adminRouter = router({
     /**
@@ -44,4 +46,22 @@ export const adminRouter = router({
             totalUsers: count || 0,
         };
     }),
+
+    getGenerationMetrics: adminProcedure
+        .input(z.object({
+            windowDays: z.number().int().min(1).max(90).default(7),
+        }).optional())
+        .query(async ({ input }) => {
+            return getGenerationOperationalMetrics(input?.windowDays ?? 7);
+        }),
+
+    getAiRollout: adminProcedure.query(() => ({
+        siteIntelligence: ENV.aiSiteIntelligenceEnabled,
+        contentStrategy: ENV.aiContentStrategyEnabled,
+        llmJudge: ENV.aiLlmJudgeEnabled,
+        semanticEmbeddings: ENV.aiSemanticEmbeddingsEnabled,
+        modelFallback: ENV.aiModelFallbackEnabled,
+        traceStoresContent: ENV.aiTraceStoreContent,
+        uiDebug: ENV.aiUiDebugEnabled,
+    })),
 });

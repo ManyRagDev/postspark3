@@ -111,5 +111,9 @@ temp/
 .webdev/
 
 novaStackCaptura.md
-docs/
+docs/*
+!docs/AUDITORIA_IMPLEMENTACAO.md
+!docs/AI_OPERATIONS.md
+!docs/ensino/
+!docs/ensino/**
 .agent/skills/awesome-skills/

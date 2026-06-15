@@ -99,6 +99,84 @@ export type CreateBackgroundAssetInput = {
   label?: string;
 };
 
+export type SiteIntelligenceRecord = {
+  id: string;
+  user_uuid: string;
+  source_url: string;
+  normalized_url: string;
+  fingerprint: string;
+  snapshot: JsonValue;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UpsertSiteIntelligenceInput = {
+  id: string;
+  userUuid: string;
+  sourceUrl: string;
+  normalizedUrl: string;
+  fingerprint: string;
+  snapshot: JsonValue;
+};
+
+export type CreateGenerationRunInput = {
+  id: string;
+  userUuid: string;
+  siteIntelligenceId?: string;
+  status: string;
+  inputType: string;
+  inputContent: string;
+  platform: string;
+  postMode: string;
+  creationMode: string;
+  requestedModel: string;
+  effectiveModels: string[];
+  promptSnapshot?: JsonValue;
+  strategySnapshot?: JsonValue;
+  evaluationSnapshot?: JsonValue;
+  outputSnapshot?: JsonValue;
+  revisionCount: number;
+  candidateCount: number;
+  acceptedCount: number;
+  averageQualityScore: number;
+  strategyFallbackUsed: boolean;
+  originalityFallbackUsed: boolean;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
+  latencyMs: number;
+  errorMessage?: string;
+};
+
+export type CreateContentFingerprintInput = {
+  id: string;
+  userUuid: string;
+  generationRunId?: string;
+  sourceType: string;
+  sourceId: string;
+  textHash: string;
+  embedding: number[];
+  metadata?: JsonValue;
+};
+
+export type GenerationOperationalMetrics = {
+  windowDays: number;
+  totalRuns: number;
+  completedRuns: number;
+  failedRuns: number;
+  completionRate: number;
+  candidateAcceptanceRate: number;
+  revisionRate: number;
+  fallbackRate: number;
+  llmCallErrorRate: number;
+  averageQualityScore: number;
+  averageLatencyMs: number;
+  p95LatencyMs: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
+};
+
 let _supabaseDbClient: any = null;
 
 function getSupabaseDbClient() {
@@ -290,4 +368,228 @@ export async function getUserBackgroundAssets(userUuid: string, limit = 100): Pr
   }
 
   return (data ?? []) as BackgroundAssetRecord[];
+}
+
+export async function getSiteIntelligenceById(
+  id: string,
+  userUuid: string,
+): Promise<SiteIntelligenceRecord | undefined> {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db
+    .from("site_intelligence")
+    .select("*")
+    .eq("id", id)
+    .eq("user_uuid", userUuid)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`[Database] getSiteIntelligenceById failed: ${error.message}`);
+  }
+
+  return (data ?? undefined) as SiteIntelligenceRecord | undefined;
+}
+
+export async function getLatestSiteIntelligenceByUrl(
+  normalizedUrl: string,
+  userUuid: string,
+): Promise<SiteIntelligenceRecord | undefined> {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db
+    .from("site_intelligence")
+    .select("*")
+    .eq("normalized_url", normalizedUrl)
+    .eq("user_uuid", userUuid)
+    .order("updatedAt", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      `[Database] getLatestSiteIntelligenceByUrl failed: ${error.message}`,
+    );
+  }
+
+  return (data ?? undefined) as SiteIntelligenceRecord | undefined;
+}
+
+export async function upsertSiteIntelligence(
+  input: UpsertSiteIntelligenceInput,
+): Promise<SiteIntelligenceRecord> {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db
+    .from("site_intelligence")
+    .upsert(
+      {
+        id: input.id,
+        user_uuid: input.userUuid,
+        source_url: input.sourceUrl,
+        normalized_url: input.normalizedUrl,
+        fingerprint: input.fingerprint,
+        snapshot: input.snapshot,
+        updatedAt: new Date().toISOString(),
+      },
+      { onConflict: "user_uuid,normalized_url,fingerprint" },
+    )
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error(
+      `[Database] upsertSiteIntelligence failed: ${error?.message ?? "unknown error"}`,
+    );
+  }
+
+  return data as SiteIntelligenceRecord;
+}
+
+export async function createGenerationRun(
+  input: CreateGenerationRunInput,
+): Promise<void> {
+  const db = getSupabaseDbClient();
+  const { error } = await db.from("generation_runs").insert({
+    id: input.id,
+    user_uuid: input.userUuid,
+    site_intelligence_id: input.siteIntelligenceId ?? null,
+    status: input.status,
+    input_type: input.inputType,
+    input_content: input.inputContent,
+    platform: input.platform,
+    post_mode: input.postMode,
+    creation_mode: input.creationMode,
+    requested_model: input.requestedModel,
+    effective_models: input.effectiveModels,
+    prompt_snapshot: input.promptSnapshot ?? null,
+    strategy_snapshot: input.strategySnapshot ?? null,
+    evaluation_snapshot: input.evaluationSnapshot ?? null,
+    output_snapshot: input.outputSnapshot ?? null,
+    revision_count: input.revisionCount,
+    candidate_count: input.candidateCount,
+    accepted_count: input.acceptedCount,
+    average_quality_score: input.averageQualityScore,
+    strategy_fallback_used: input.strategyFallbackUsed,
+    originality_fallback_used: input.originalityFallbackUsed,
+    prompt_tokens: input.promptTokens,
+    completion_tokens: input.completionTokens,
+    total_tokens: input.totalTokens,
+    estimated_cost_usd: input.estimatedCostUsd,
+    latency_ms: input.latencyMs,
+    error_message: input.errorMessage ?? null,
+  });
+
+  if (error) {
+    throw new Error(`[Database] createGenerationRun failed: ${error.message}`);
+  }
+}
+
+export async function createContentFingerprints(
+  inputs: CreateContentFingerprintInput[],
+): Promise<void> {
+  if (inputs.length === 0) return;
+  const db = getSupabaseDbClient();
+  const { error } = await db.from("content_fingerprints").insert(
+    inputs.map((input) => ({
+      id: input.id,
+      user_uuid: input.userUuid,
+      generation_run_id: input.generationRunId ?? null,
+      source_type: input.sourceType,
+      source_id: input.sourceId,
+      text_hash: input.textHash,
+      embedding: input.embedding,
+      metadata: input.metadata ?? null,
+    })),
+  );
+
+  if (error) {
+    throw new Error(
+      `[Database] createContentFingerprints failed: ${error.message}`,
+    );
+  }
+}
+
+export async function getGenerationOperationalMetrics(
+  windowDays = 7,
+): Promise<GenerationOperationalMetrics> {
+  const db = getSupabaseDbClient();
+  const since = new Date(Date.now() - windowDays * 86_400_000).toISOString();
+  const { data, error } = await db
+    .from("generation_runs")
+    .select(
+      "status,candidate_count,accepted_count,average_quality_score,revision_count,strategy_fallback_used,originality_fallback_used,prompt_snapshot,total_tokens,estimated_cost_usd,latency_ms",
+    )
+    .gte("createdAt", since);
+
+  if (error) {
+    throw new Error(
+      `[Database] getGenerationOperationalMetrics failed: ${error.message}`,
+    );
+  }
+
+  const rows = (data ?? []) as Array<Record<string, any>>;
+  const totalRuns = rows.length;
+  const completedRuns = rows.filter((row) => row.status === "completed").length;
+  const failedRuns = rows.filter((row) => row.status === "failed").length;
+  const candidateCount = rows.reduce(
+    (sum, row) => sum + Number(row.candidate_count ?? 0),
+    0,
+  );
+  const acceptedCount = rows.reduce(
+    (sum, row) => sum + Number(row.accepted_count ?? 0),
+    0,
+  );
+  const completedWithQuality = rows.filter(
+    (row) => Number(row.candidate_count ?? 0) > 0,
+  );
+  const latencies = rows
+    .map((row) => Number(row.latency_ms ?? 0))
+    .sort((a, b) => a - b);
+  const llmCalls = rows.flatMap((row) =>
+    Array.isArray(row.prompt_snapshot) ? row.prompt_snapshot : [],
+  );
+  const fallbackRuns = rows.filter(
+    (row) =>
+      row.strategy_fallback_used ||
+      row.originality_fallback_used ||
+      (Array.isArray(row.prompt_snapshot) &&
+        row.prompt_snapshot.some((call: any) => Boolean(call?.fallbackFrom))),
+  ).length;
+  const revisedRuns = rows.filter(
+    (row) => Number(row.revision_count ?? 0) > 0,
+  ).length;
+  const ratio = (numerator: number, denominator: number) =>
+    denominator > 0 ? numerator / denominator : 0;
+
+  return {
+    windowDays,
+    totalRuns,
+    completedRuns,
+    failedRuns,
+    completionRate: ratio(completedRuns, totalRuns),
+    candidateAcceptanceRate: ratio(acceptedCount, candidateCount),
+    revisionRate: ratio(revisedRuns, completedRuns),
+    fallbackRate: ratio(fallbackRuns, totalRuns),
+    llmCallErrorRate: ratio(
+      llmCalls.filter((call) => Boolean(call?.error)).length,
+      llmCalls.length,
+    ),
+    averageQualityScore: completedWithQuality.length > 0
+      ? completedWithQuality.reduce(
+          (sum, row) => sum + Number(row.average_quality_score ?? 0),
+          0,
+        ) / completedWithQuality.length
+      : 0,
+    averageLatencyMs: totalRuns > 0
+      ? latencies.reduce((sum, latency) => sum + latency, 0) / totalRuns
+      : 0,
+    p95LatencyMs: latencies.length > 0
+      ? latencies[Math.min(latencies.length - 1, Math.ceil(latencies.length * 0.95) - 1)]
+      : 0,
+    totalTokens: rows.reduce(
+      (sum, row) => sum + Number(row.total_tokens ?? 0),
+      0,
+    ),
+    estimatedCostUsd: rows.reduce(
+      (sum, row) => sum + Number(row.estimated_cost_usd ?? 0),
+      0,
+    ),
+  };
 }

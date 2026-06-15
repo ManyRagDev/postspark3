@@ -5,9 +5,15 @@ import {
   useMotionValue,
   useSpring,
 } from "framer-motion";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CreationMode, InputType, PostMode } from "@shared/postspark";
+import { AlertTriangle, Clock3, Loader2, X } from "lucide-react";
 import { useAmbientIntelligence } from "@/hooks/useAmbientIntelligence";
+import {
+  formatGenerationElapsed,
+  getGenerationProgress,
+  type GenerationPhase,
+} from "@/lib/generationProgress";
 import OrganicBackground from "../OrganicBackground";
 import SparkLogo from "../SparkLogo";
 import SparkParticles from "../SparkParticles";
@@ -20,6 +26,9 @@ interface TheVoidProps {
   onPostModeChange: (mode: PostMode) => void;
   creationMode: CreationMode;
   onCreationModeChange: (mode: CreationMode) => void;
+  generationPhase?: GenerationPhase;
+  generationError?: string | null;
+  onDismissGenerationError?: () => void;
 }
 
 const BACKGROUND_CARDS = [
@@ -122,10 +131,18 @@ export default function TheVoid({
   onPostModeChange,
   creationMode,
   onCreationModeChange,
+  generationPhase = "generating",
+  generationError,
+  onDismissGenerationError,
 }: TheVoidProps) {
   const EXECUTION_ACCENT = "oklch(0.74 0.16 72)";
   const [isMobile, setIsMobile] = useState(false);
   const [inputText, setInputText] = useState("");
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [phaseElapsedSeconds, setPhaseElapsedSeconds] = useState(0);
+  const generationStartedAtRef = useRef<number | null>(null);
+  const phaseStartedAtRef = useRef<number | null>(null);
+  const previousGenerationPhaseRef = useRef<GenerationPhase>(generationPhase);
   const { state, config, confidence } = useAmbientIntelligence(inputText);
 
   const mouseX = useMotionValue(typeof window !== "undefined" ? window.innerWidth / 2 : 0);
@@ -150,6 +167,42 @@ export default function TheVoid({
     window.addEventListener("resize", updateViewportMode);
     return () => window.removeEventListener("resize", updateViewportMode);
   }, []);
+
+  useEffect(() => {
+    if (!isLoading) {
+      generationStartedAtRef.current = null;
+      phaseStartedAtRef.current = null;
+      previousGenerationPhaseRef.current = generationPhase;
+      setElapsedSeconds(0);
+      setPhaseElapsedSeconds(0);
+      return;
+    }
+
+    const now = Date.now();
+    if (generationStartedAtRef.current === null) {
+      generationStartedAtRef.current = now;
+    }
+    if (
+      phaseStartedAtRef.current === null ||
+      previousGenerationPhaseRef.current !== generationPhase
+    ) {
+      phaseStartedAtRef.current = now;
+      previousGenerationPhaseRef.current = generationPhase;
+    }
+
+    const updateElapsed = () => {
+      const currentTime = Date.now();
+      setElapsedSeconds(
+        Math.floor((currentTime - (generationStartedAtRef.current ?? currentTime)) / 1000),
+      );
+      setPhaseElapsedSeconds(
+        Math.floor((currentTime - (phaseStartedAtRef.current ?? currentTime)) / 1000),
+      );
+    };
+    updateElapsed();
+    const interval = window.setInterval(updateElapsed, 1000);
+    return () => window.clearInterval(interval);
+  }, [generationPhase, isLoading]);
 
   useEffect(() => {
     if (!isMobile) return;
@@ -186,7 +239,8 @@ export default function TheVoid({
 
   const handleTextChange = useCallback((text: string) => {
     setInputText(text);
-  }, []);
+    if (generationError) onDismissGenerationError?.();
+  }, [generationError, onDismissGenerationError]);
 
   const handleSubmit = useCallback(
     (value: string, type: InputType) => {
@@ -203,6 +257,104 @@ export default function TheVoid({
     : isAmbientActive
       ? config.theme.accent
       : "#6d28d9";
+  const generationProgress = getGenerationProgress(
+    phaseElapsedSeconds,
+    generationPhase,
+  );
+
+  const generationFeedback = (
+    <AnimatePresence mode="wait">
+      {isLoading ? (
+        <motion.div
+          key="generation-progress"
+          className="mt-3 w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-left backdrop-blur-xl"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-start gap-3">
+            <Loader2
+              size={17}
+              className="mt-0.5 shrink-0 animate-spin"
+              style={{ color: surfaceAccent }}
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-3">
+                <p className="truncate text-xs font-semibold text-white/90">
+                  {generationProgress.label}
+                </p>
+                <span className="flex shrink-0 items-center gap-1 text-[10px] tabular-nums text-white/45">
+                  <Clock3 size={11} />
+                  {formatGenerationElapsed(elapsedSeconds)}
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] leading-relaxed text-white/52">
+                {generationProgress.detail}
+              </p>
+              <div
+                className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/8"
+                role="progressbar"
+                aria-label="Progresso estimado da geração"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={generationProgress.percentage}
+              >
+                <motion.div
+                  className="h-full rounded-full"
+                  animate={{ width: `${generationProgress.percentage}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  style={{
+                    background: `linear-gradient(90deg, ${surfaceAccent}, color-mix(in oklab, ${surfaceAccent} 58%, white 42%))`,
+                    boxShadow: `0 0 14px ${surfaceAccent}70`,
+                  }}
+                />
+              </div>
+              <div className="mt-1.5 flex items-center justify-between text-[9px] uppercase tracking-[0.12em] text-white/32">
+                <span>Progresso estimado</span>
+                <span>{generationProgress.percentage}%</span>
+              </div>
+              {generationProgress.isTakingLong ? (
+                <p className="mt-2 rounded-lg border border-amber-300/12 bg-amber-300/6 px-2.5 py-2 text-[10px] leading-relaxed text-amber-100/65">
+                  Não travou: a análise continua no servidor. Você pode manter esta tela aberta.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </motion.div>
+      ) : generationError ? (
+        <motion.div
+          key="generation-error"
+          className="mt-3 w-full rounded-2xl border border-red-300/18 bg-red-950/35 px-4 py-3 text-left backdrop-blur-xl"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          role="alert"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={17} className="mt-0.5 shrink-0 text-red-200/80" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-red-50/90">
+                A geração não foi concluída
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-red-100/58">
+                {generationError} Seu conteúdo continua no campo para você revisar e enviar novamente.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onDismissGenerationError}
+              className="rounded-lg p-1 text-white/35 transition-colors hover:bg-white/8 hover:text-white/70"
+              aria-label="Fechar aviso"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
 
   const ambientBadge = (
     <AnimatePresence>
@@ -250,6 +402,7 @@ export default function TheVoid({
         creationMode={creationMode}
         onCreationModeChange={onCreationModeChange}
       />
+      {generationFeedback}
     </motion.div>
   );
 

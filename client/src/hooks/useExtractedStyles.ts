@@ -5,7 +5,7 @@
 
 import { useState, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
-import type { TemporaryTheme, StyleExtractionResult } from "@shared/postspark";
+import type { SiteIntelligenceResult, TemporaryTheme } from "@shared/postspark";
 
 interface UseExtractedStylesReturn {
     /** Extracted temporary themes */
@@ -24,7 +24,7 @@ interface UseExtractedStylesReturn {
     selectedThemeIds: string[];
 
     /** Extract Brand DNA from a URL */
-    extractStyles: (url: string) => Promise<{ brandDNA: any; themes: TemporaryTheme[]; fallbackUsed: boolean } | undefined>;
+    extractStyles: (url: string) => Promise<SiteIntelligenceResult | undefined>;
 
     /** Select/deselect a theme */
     toggleThemeSelection: (themeId: string) => void;
@@ -60,7 +60,12 @@ export function useExtractedStyles(): UseExtractedStylesReturn {
 
         try {
             setSourceUrl(normalizedUrl);
-            const result = await extractStylesMutation.mutateAsync({ url: normalizedUrl });
+            const result = await extractStylesMutation.mutateAsync({
+                url: normalizedUrl,
+                debug:
+                    import.meta.env.DEV ||
+                    import.meta.env.VITE_AI_UI_DEBUG_ENABLED === "true",
+            });
 
             console.log("[useExtractedStyles] Brand DNA extraction result:", {
                 themesCount: result.themes.length,

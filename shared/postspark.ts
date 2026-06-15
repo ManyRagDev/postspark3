@@ -382,6 +382,9 @@ export interface PostVariation {
    */
   aspectRatioOptimizations?: Partial<Record<AspectRatio, FormatOptimization>>;
 
+  /** Layouts calculated and preserved independently for each canvas format. */
+  layoutSettingsByAspectRatio?: Partial<Record<AspectRatio, any>>;
+
   /** Copy angle metadata — defines the persuasion angle of this variation */
   copyAngle?: CopyAngle;
 
@@ -393,6 +396,18 @@ export interface PostVariation {
     creationMode: CreationMode;
     fidelity?: "high" | "medium";
     interventionLevel?: ExecutionInterventionLevel;
+    siteIntelligenceId?: string;
+    strategyId?: string;
+    revisionCount?: number;
+    evaluation?: GenerationEvaluationSummary;
+    originality?: {
+      score: number;
+      maxCandidateSimilarity: number;
+      maxSiteSimilarity: number;
+      maxHistorySimilarity: number;
+      closestSource: "candidate" | "site" | "history" | "none";
+      fallbackUsed: boolean;
+    };
   };
 
   /** Editor V2 Persistence fields */
@@ -400,6 +415,69 @@ export interface PostVariation {
   layoutSettings?: any;
   bgValue?: any;
   bgOverlay?: any;
+}
+
+export interface GenerationDebugCall {
+  label: string;
+  requestedModel: AiModel;
+  effectiveModel: string;
+  provider: string;
+  promptHash: string;
+  messages: unknown[];
+  response?: unknown;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  latencyMs: number;
+  estimatedCostUsd: number;
+  attempt?: number;
+  fallbackFrom?: string;
+  translatedSchema?: boolean;
+  repairedOutput?: boolean;
+  error?: string;
+}
+
+export interface GenerationDebugEvent {
+  stage: string;
+  status: "started" | "completed" | "fallback" | "rejected" | "failed";
+  detail: string;
+  data?: unknown;
+  at: string;
+}
+
+export interface GenerationDebugTrace {
+  runId: string;
+  requestedModel: AiModel;
+  effectiveModels: string[];
+  startedAt: string;
+  durationMs: number;
+  calls: GenerationDebugCall[];
+  events: GenerationDebugEvent[];
+  strategies?: unknown;
+  evaluations?: GenerationEvaluationSummary[];
+  finalOutput?: PostVariation[];
+}
+
+export interface PostGenerationResult {
+  variations: PostVariation[];
+  generationRunId: string;
+  debug?: GenerationDebugTrace;
+}
+
+export interface GenerationEvaluationSummary {
+  overallScore: number;
+  accepted: boolean;
+  dimensions: {
+    brandAlignment: number;
+    objectiveAlignment: number;
+    audienceRelevance: number;
+    factuality: number;
+    originality: number;
+    clarity: number;
+    platformFit: number;
+    visualReadability: number;
+  };
+  feedback: string[];
 }
 
 /** App state machine */
@@ -415,6 +493,7 @@ export interface GenerationRequest {
   model?: AiModel;
   creationMode?: CreationMode;
   executionBrief?: CreativeExecutionBrief;
+  siteIntelligenceId?: string;
 }
 
 /** URL scrape result */
@@ -696,6 +775,65 @@ export interface BrandDNAExtractionResult {
   brandDNA: BrandDNA;
   themes: TemporaryTheme[];   // 3 variations (faithful, remix, disruptive)
   fallbackUsed: boolean;
+}
+
+export type SiteEvidenceKind =
+  | "title"
+  | "description"
+  | "heading"
+  | "body"
+  | "visual";
+
+export interface SiteEvidence {
+  id: string;
+  sourceUrl: string;
+  kind: SiteEvidenceKind;
+  text: string;
+}
+
+export interface SiteIntelligence {
+  id: string;
+  version: 1;
+  sourceUrl: string;
+  normalizedUrl: string;
+  fingerprint: string;
+  brand: BrandDNA;
+  business: {
+    summary: string;
+    products: string[];
+    services: string[];
+    valueProposition: string;
+    differentiators: string[];
+    audiences: string[];
+    audienceProblems: string[];
+    objections: string[];
+    goals: Array<"educate" | "authority" | "sell" | "engage" | "lead">;
+  };
+  editorial: {
+    pillars: string[];
+    priorityTopics: string[];
+    prohibitedClaims: string[];
+    toneGuidelines: string[];
+  };
+  evidence: SiteEvidence[];
+  quality: {
+    overall: number;
+    visual: number;
+    semantic: number;
+    evidenceCoverage: number;
+    fallbackUsed: boolean;
+    warnings: string[];
+  };
+  extractedAt: string;
+}
+
+export interface SiteIntelligenceResult {
+  siteIntelligence: SiteIntelligence;
+  brandDNA: BrandDNA;
+  themes: TemporaryTheme[];
+  fallbackUsed: boolean;
+  cached: boolean;
+  debug?: GenerationDebugTrace;
 }
 
 /** LLM-as-Judge evaluation of generated post variations */

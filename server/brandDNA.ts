@@ -176,6 +176,7 @@ async function analyzeWithVision(
 
     try {
         const response = await invokeLLM({
+            traceLabel: "site_visual_identity",
             messages: [
                 {
                     role: 'system',
@@ -364,12 +365,15 @@ function buildFallbackEmotional(): BrandDNA['emotionalProfile'] {
  * 4. Merge HTML data + Vision into final BrandDNA
  * 5. Composition mapping (deterministic)
  */
-export async function extractBrandDNA(url: string): Promise<BrandDNA> {
+export async function extractBrandDNA(
+    url: string,
+    options?: { discoveredPages?: DiscoveredPage[] },
+): Promise<BrandDNA> {
     console.log('[brandDNA] ══════════════════════════════════');
     console.log('[brandDNA] Starting extraction for:', url);
 
     // ── Step 1: Discover pages ────────────────────────────────────────────────
-    const discovered: DiscoveredPage[] = await discoverPages(url, 8);
+    const discovered: DiscoveredPage[] = options?.discoveredPages ?? await discoverPages(url, 8);
     const highPriority = discovered.filter((p) => p.priority === 'high').slice(0, 3);
     const urlsToCapture = [url, ...highPriority.map((p) => p.url)].slice(0, 5);
     console.log('[brandDNA] Pages to capture:', urlsToCapture);

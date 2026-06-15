@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Bookmark, Image as ImageIcon, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, Sparkles } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { useEditorStore } from "@/store/editorStore";
 import { normalizeVariationForEditor } from "@/lib/variationSnapshot";
 import type { PostVariation, PostMode, Platform, CarouselSlide, AspectRatio } from "@shared/postspark";
 import { layoutToAdvanced } from "@/components/views/WorkbenchRefactored";
+import PostRenderer from "@/components/PostRenderer";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "Sem data";
@@ -17,48 +18,71 @@ function formatDate(value: string | null | undefined) {
   }).format(date);
 }
 
+function savedPostToVariation(post: any): PostVariation {
+  const snapshot = post.variation_snapshot && typeof post.variation_snapshot === "object"
+    ? post.variation_snapshot
+    : null;
+  const slides = Array.isArray(snapshot?.slides)
+    ? snapshot.slides as CarouselSlide[]
+    : Array.isArray(post.slides)
+      ? post.slides as CarouselSlide[]
+      : [];
+
+  return normalizeVariationForEditor({
+    id: `saved-${post.id}`,
+    ...(snapshot ?? {}),
+    headline: snapshot?.headline || post.headline || "",
+    body: snapshot?.body || post.body || "",
+    caption: snapshot?.caption || post.caption || "",
+    hashtags: Array.isArray(snapshot?.hashtags) ? snapshot.hashtags : Array.isArray(post.hashtags) ? post.hashtags : [],
+    callToAction: snapshot?.callToAction || post.callToAction || "",
+    tone: snapshot?.tone || post.tone || "",
+    platform: (snapshot?.platform || post.platform || "instagram") as Platform,
+    imagePrompt: snapshot?.imagePrompt || post.imagePrompt || "",
+    imageUrl: snapshot?.imageUrl || post.imageUrl || undefined,
+    backgroundColor: snapshot?.backgroundColor || post.backgroundColor || "#0f1117",
+    textColor: snapshot?.textColor || post.textColor || "#ffffff",
+    accentColor: snapshot?.accentColor || post.accentColor || "#d4af37",
+    layout: snapshot?.layout || post.layout || "centered",
+    aspectRatio: (snapshot?.aspectRatio || "1:1") as AspectRatio,
+    postMode: (snapshot?.postMode || post.postMode || "static") as PostMode,
+    slides,
+    copyAngle: snapshot?.copyAngle || post.copy_angle || undefined,
+    textElements: Array.isArray(snapshot?.textElements) ? snapshot.textElements : Array.isArray(post.textElements) ? post.textElements : undefined,
+    imageSettings: snapshot?.imageSettings || post.image_settings || undefined,
+    layoutSettings: snapshot?.layoutSettings || post.layout_settings || layoutToAdvanced(post.layout || "centered"),
+    bgValue: snapshot?.bgValue || post.bg_value || (post.imageUrl
+      ? { type: "ai", url: post.imageUrl }
+      : { type: "solid", color: post.backgroundColor || "#0f1117" }),
+    bgOverlay: snapshot?.bgOverlay || post.bg_overlay || undefined,
+  } as PostVariation);
+}
+
+function SavedPostPreview({ post }: { post: any }) {
+  const preview = savedPostToVariation(post);
+  const width = preview.aspectRatio === "9:16" ? 90 : preview.aspectRatio === "5:6" ? 150 : 180;
+
+  return (
+    <div className="relative flex h-52 items-center justify-center overflow-hidden bg-black/25 p-3">
+      <PostRenderer
+        mode="preview"
+        snapshot={preview}
+        aspectRatio={preview.aspectRatio}
+        className="shrink-0 shadow-2xl"
+        style={{ width }}
+      />
+    </div>
+  );
+}
+
 export default function SavedPosts() {
   const [, setLocation] = useLocation();
   const { data: posts, isLoading } = trpc.post.list.useQuery();
 
   const openSavedPost = (post: any) => {
     const editorStore = useEditorStore.getState();
-    const snapshot = post.variation_snapshot && typeof post.variation_snapshot === "object"
-      ? post.variation_snapshot
-      : null;
-    const slides = Array.isArray(snapshot?.slides)
-      ? snapshot.slides as CarouselSlide[]
-      : Array.isArray(post.slides)
-        ? post.slides as CarouselSlide[]
-        : [];
-    const normalizedVariation: PostVariation = normalizeVariationForEditor({
-      id: `saved-${post.id}`,
-      ...(snapshot ?? {}),
-      headline: snapshot?.headline || post.headline || "",
-      body: snapshot?.body || post.body || "",
-      caption: snapshot?.caption || post.caption || "",
-      hashtags: Array.isArray(snapshot?.hashtags) ? snapshot.hashtags : Array.isArray(post.hashtags) ? post.hashtags : [],
-      callToAction: snapshot?.callToAction || post.callToAction || "",
-      tone: snapshot?.tone || post.tone || "",
-      platform: (snapshot?.platform || post.platform || "instagram") as Platform,
-      imagePrompt: snapshot?.imagePrompt || post.imagePrompt || "",
-      imageUrl: snapshot?.imageUrl || post.imageUrl || undefined,
-      backgroundColor: snapshot?.backgroundColor || post.backgroundColor || "#0f1117",
-      textColor: snapshot?.textColor || post.textColor || "#ffffff",
-      accentColor: snapshot?.accentColor || post.accentColor || "#d4af37",
-      layout: snapshot?.layout || post.layout || "centered",
-      aspectRatio: (snapshot?.aspectRatio || "1:1") as AspectRatio,
-      postMode: (snapshot?.postMode || post.postMode || "static") as PostMode,
-      slides,
-      copyAngle: snapshot?.copyAngle || post.copy_angle || undefined,
-      textElements: Array.isArray(snapshot?.textElements) ? snapshot.textElements : Array.isArray(post.textElements) ? post.textElements : undefined,
-      imageSettings: snapshot?.imageSettings || post.image_settings || undefined,
-      layoutSettings: snapshot?.layoutSettings || post.layout_settings || layoutToAdvanced(post.layout || "centered"),
-      bgValue: snapshot?.bgValue || post.bg_value || (post.imageUrl
-        ? { type: "ai", url: post.imageUrl }
-        : { type: "solid", color: post.backgroundColor || "#0f1117" }),
-      bgOverlay: snapshot?.bgOverlay || post.bg_overlay || undefined,
-    } as PostVariation);
+    const normalizedVariation = savedPostToVariation(post);
+    const slides = normalizedVariation.slides ?? [];
 
     editorStore.reset();
     editorStore.setActiveVariation(normalizedVariation);
@@ -70,7 +94,10 @@ export default function SavedPosts() {
     if ((normalizedVariation as any).bgOverlay) {
       editorStore.setBgOverlay((normalizedVariation as any).bgOverlay);
     }
-    if ((normalizedVariation as any).layoutSettings) {
+    if (
+      !(normalizedVariation.layoutSettingsByAspectRatio?.[normalizedVariation.aspectRatio || "1:1"]) &&
+      (normalizedVariation as any).layoutSettings
+    ) {
       editorStore.updateLayoutSettings((normalizedVariation as any).layoutSettings);
     }
 
@@ -154,22 +181,7 @@ export default function SavedPosts() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <div
-                  className="relative flex h-40 items-center justify-center overflow-hidden"
-                  style={{
-                    background: post.imageUrl
-                      ? `center / cover no-repeat url(${post.imageUrl})`
-                      : post.backgroundColor || "oklch(0.12 0.03 280)",
-                  }}
-                >
-                  {!post.imageUrl && (
-                    <div className="flex items-center gap-2 text-sm font-medium text-white/80">
-                      <ImageIcon className="h-4 w-4" />
-                      Prévia sem imagem
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/10" />
-                </div>
+                <SavedPostPreview post={post} />
 
                 <div className="space-y-4 p-5">
                   <div className="space-y-2">

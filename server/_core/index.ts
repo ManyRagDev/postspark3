@@ -70,8 +70,7 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // NEW: Endpoint Validator / Screenshot Orchestrator
 import { captureScreenshot } from "../screenshotService";
-import { extractBrandDNA as extractBrandDNAFunc } from "../brandDNA";
-import { generateThemesFromBrandDNA } from "../brandThemeGenerator";
+import { analyzeSiteIntelligence } from "../siteIntelligence";
 
 app.post("/api/extract", async (req, res) => {
   const { url } = req.body;
@@ -104,6 +103,10 @@ app.post("/api/extract", async (req, res) => {
 
 // REST endpoint for Brand DNA (direct, bypassing tRPC)
 app.post("/api/brand-dna", async (req, res) => {
+  if (!ENV.aiSiteIntelligenceEnabled) {
+    return res.status(503).json({ error: "Site intelligence is temporarily disabled" });
+  }
+
   const { url } = req.body;
 
   if (!url || typeof url !== 'string') {
@@ -111,14 +114,15 @@ app.post("/api/brand-dna", async (req, res) => {
   }
 
   try {
-    const brandDNA = await extractBrandDNAFunc(url);
-    const themes = generateThemesFromBrandDNA(brandDNA, url);
+    const result = await analyzeSiteIntelligence(
+      url,
+      "00000000-0000-0000-0000-000000000000",
+      { persist: false },
+    );
 
     res.json({
       success: true,
-      brandDNA,
-      themes,
-      fallbackUsed: !brandDNA.metadata.visionUsed
+      ...result,
     });
   } catch (error: any) {
     console.error("[/api/brand-dna] Error:", error.message);
@@ -168,4 +172,3 @@ async function startServer() {
 startServer().catch(console.error);
 
 export default app;
-

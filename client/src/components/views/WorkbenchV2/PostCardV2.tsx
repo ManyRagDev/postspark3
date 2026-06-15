@@ -26,9 +26,10 @@ import type React from "react";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { type LucideIcon, Layers, Users, Star, Zap, Heart, Globe, Calendar, Shield, Rocket, Target, Award, MessageCircle, TrendingUp, CheckCircle, Play, Camera, Music, MapPin, Clock, Gift, Sparkles, ArrowRight } from "lucide-react";
 import type { PostVariation, AspectRatio, BackgroundValue, BgOverlaySettings, ContentSection, PostTemplate, DesignTokens } from "@shared/postspark";
-import { ASPECT_RATIO_VALUES } from "@shared/postspark";
+import { ASPECT_RATIO_VALUES, DEFAULT_DESIGN_TOKENS } from "@shared/postspark";
 import type { ThemeConfig } from "@/lib/themes";
 import type { ImageSettings, AdvancedLayoutSettings, TextPosition, LayoutPosition } from "@/types/editor";
+import { DEFAULT_IMAGE_SETTINGS, DEFAULT_LAYOUT_SETTINGS } from "@/types/editor";
 import ThemeRenderer from "@/components/ThemeRenderer";
 import BrandOverlay from "@/components/BrandOverlay";
 import type { CopyAngle } from "@shared/postspark";
@@ -37,12 +38,18 @@ import type { CopyAngle } from "@shared/postspark";
 import { useResizeElement } from "@/hooks/useResizeElement";
 import { useDynamicFont } from "@/hooks/useDynamicFont";
 import { useTextAutoFit } from "@/hooks/useTextAutoFit";
-import { AdvancedTextNode } from "@/components/canvas/AdvancedTextNode";
+import { AdvancedTextNode, type AdvancedTextElement } from "@/components/canvas/AdvancedTextNode";
 import { DraggableBlock } from "@/components/canvas/DraggableBlock";
 import { useEditorStore } from "@/store/editorStore";
 import { normalizeSectionIcon, normalizeSectionLayouts, normalizeSections } from "@/lib/variationSnapshot";
 
 interface PostCardV2Props {
+  mode?: "preview" | "edit" | "export";
+  snapshot?: PostVariation;
+  aspectRatio?: AspectRatio;
+  theme?: ThemeConfig;
+  designTokens?: DesignTokens;
+  currentSlideIndex?: number;
   compact?: boolean;
   /** When true, variation colors take priority over theme colors (used in Workbench editor) */
   forceVariationColors?: boolean;
@@ -254,40 +261,74 @@ function TemplateSections({ template, sections, accentColor, textColor, bodyFont
 // Removed internal ArchitectOverlay. Using ArchitectOverlayV2 instead.
 
 // ─── PostCardV2 ────────────────────────────────────────────────────────────────
-export default function PostCardV2({
+export default function PostCardV2(props: PostCardV2Props) {
+  const activeVariation = useEditorStore((state) => state.activeVariation);
+  const variation = props.snapshot ?? activeVariation;
+
+  if (!variation) return null;
+
+  return <PostCardV2Content {...props} variation={variation} />;
+}
+
+function PostCardV2Content({
+  variation,
+  mode = "edit",
+  snapshot,
+  aspectRatio,
+  theme: themeOverride,
+  designTokens: designTokensOverride,
+  currentSlideIndex: requestedSlideIndex,
   compact = false,
   forceVariationColors = false,
   brandMeta,
   snapEnabled = true,
   isEditingCard = false,
-}: PostCardV2Props) {
+}: PostCardV2Props & { variation: PostVariation }) {
   // Consumindo dados do Zustand (Fase 1 + Fase 3)
   const {
-    activeVariation,
-    slides,
-    currentSlideIndex,
+    slides: editorSlides,
+    currentSlideIndex: editorSlideIndex,
     updateSlide,
-    imageSettings,
-    layoutSettings,
+    imageSettings: editorImageSettings,
+    layoutSettings: editorLayoutSettings,
     updateLayoutSettings,
     layoutTarget,
     setLayoutTarget,
     isMagnetActive,
-    bgValue,
-    bgOverlay,
+    bgValue: editorBgValue,
+    bgOverlay: editorBgOverlay,
     aspectRatio: globalAspectRatio
   } = useEditorStore();
 
   const [inlineEditTarget, setInlineEditTarget] = useState<'headline' | 'body' | 'badge' | 'sticker' | null>(null);
+  const [inlineSectionEditId, setInlineSectionEditId] = useState<string | null>(null);
 
   const cardRef = useRef<HTMLDivElement | null>(null);
   const layoutRef = useRef<HTMLDivElement | null>(null);
 
-  if (!activeVariation) return null;
-
-  const variation = activeVariation;
-  const designTokens = variation.designTokens;
-  const theme = undefined as ThemeConfig | undefined; // Eliminamos props theme puras na V2, focando em designTokens
+  const isEditable = mode === "edit" && !snapshot;
+  const slides = snapshot?.slides ?? editorSlides;
+  const currentSlideIndex = requestedSlideIndex ?? (snapshot ? 0 : editorSlideIndex);
+  const imageSettings = snapshot
+    ? { ...DEFAULT_IMAGE_SETTINGS, ...(snapshot.imageSettings as Partial<ImageSettings> | undefined) }
+    : editorImageSettings;
+  const layoutSettings = snapshot
+    ? { ...DEFAULT_LAYOUT_SETTINGS, ...(snapshot.layoutSettings as Partial<AdvancedLayoutSettings> | undefined) }
+    : editorLayoutSettings;
+  const explicitSectionLayouts =
+    (snapshot?.layoutSettings as Partial<AdvancedLayoutSettings> | undefined)?.sectionLayouts;
+  const hasExplicitSectionLayouts = Boolean(
+    explicitSectionLayouts && Object.keys(explicitSectionLayouts).length > 0,
+  );
+  const bgValue = snapshot
+    ? snapshot.bgValue ?? (snapshot.imageUrl
+      ? { type: "ai" as const, url: snapshot.imageUrl }
+      : { type: "solid" as const, color: snapshot.backgroundColor })
+    : editorBgValue;
+  const bgOverlay = snapshot
+    ? snapshot.bgOverlay
+    : editorBgOverlay;
+  const theme = themeOverride;
   const resolvedBrandMeta = brandMeta || (variation as any).brandMeta;
 
   const activeSlide = variation.postMode === 'carousel' && slides.length > 0
@@ -300,12 +341,48 @@ export default function PostCardV2({
   const body = activeSlide?.body || variation.body;
   const { imageUrl: variationImageUrl, backgroundColor, textColor, headlineColor, bodyColor, accentColor, layout } = variation;
 
-  // Merge: variation-level tokens override prop-level tokens
-  const baseTokens = designTokens as any;
-  const variationTokens = variation.designTokens as any;
-  const dt = (variationTokens
-    ? { ...baseTokens, ...variationTokens }
-    : baseTokens) as DesignTokens | undefined;
+  // Explicit renderer overrides represent the user's current visual selection.
+  const variationTokens = variation.designTokens;
+  const normalizedVariationTokens: DesignTokens | undefined = variationTokens
+    ? {
+        ...DEFAULT_DESIGN_TOKENS,
+        ...variationTokens,
+        colors: {
+          ...DEFAULT_DESIGN_TOKENS.colors,
+          ...variationTokens.colors,
+        },
+        typography: {
+          ...DEFAULT_DESIGN_TOKENS.typography,
+          ...variationTokens.typography,
+        },
+        structure: {
+          ...DEFAULT_DESIGN_TOKENS.structure,
+          ...variationTokens.structure,
+        },
+      }
+    : undefined;
+  const dt: DesignTokens | undefined = designTokensOverride
+    ? {
+        ...DEFAULT_DESIGN_TOKENS,
+        ...normalizedVariationTokens,
+        ...designTokensOverride,
+        colors: {
+          ...DEFAULT_DESIGN_TOKENS.colors,
+          ...normalizedVariationTokens?.colors,
+          ...designTokensOverride.colors,
+        },
+        typography: {
+          ...DEFAULT_DESIGN_TOKENS.typography,
+          ...normalizedVariationTokens?.typography,
+          ...designTokensOverride.typography,
+        },
+        structure: {
+          ...DEFAULT_DESIGN_TOKENS.structure,
+          ...normalizedVariationTokens?.structure,
+          ...designTokensOverride.structure,
+        },
+      }
+    : normalizedVariationTokens;
 
   // Dynamic font loading from design tokens and variations
   useDynamicFont(dt?.typography?.fontFamily ?? '', dt?.typography?.customFontUrl ?? '');
@@ -318,7 +395,7 @@ export default function PostCardV2({
     ? undefined
     : (bgValue?.url ?? variationImageUrl);
 
-  const ratio = globalAspectRatio ?? "1:1";
+  const ratio = aspectRatio ?? variation.aspectRatio ?? globalAspectRatio ?? "1:1";
   const aspectRatioCSS = ASPECT_RATIO_VALUES[ratio];
   const isStory = ratio === "9:16";
 
@@ -367,6 +444,7 @@ export default function PostCardV2({
   const isPlayful = dt?.decorations === 'playful';
 
   const commitCarouselAwareUpdate = (patch: Partial<{ headline: string; body: string }>) => {
+    if (!isEditable) return;
     if (variation.postMode === 'carousel' && activeSlide) {
       updateSlide(currentSlideIndex, patch);
       return;
@@ -380,6 +458,10 @@ export default function PostCardV2({
     body: body || "",
     aspectRatio: ratio,
     isCompact: compact,
+    structuredSectionCount:
+      variation.template && variation.template !== "simple"
+        ? variation.sections?.length ?? 0
+        : 0,
   });
 
   // ── Tamanhos adaptativos (sempre usa auto-fit) ──
@@ -472,16 +554,31 @@ export default function PostCardV2({
 
   const renderAdvancedTextElements = () => {
     if (!variation.textElements || variation.textElements.length === 0) return null;
+    const updateTextElement = (id: string, patch: Partial<AdvancedTextElement>) => {
+      if (!isEditable) return;
+      useEditorStore.getState().updateVariation({
+        textElements: variation.textElements?.map((element) =>
+          element.id === id ? { ...element, ...patch } : element
+        ),
+      });
+    };
+
     return (
       <div className="absolute inset-0 z-20 pointer-events-none">
         {variation.textElements.map(el => (
           <AdvancedTextNode
             key={el.id}
             element={el}
-            isSelected={false}
-            onSelect={() => { }}
-            onChange={() => { }}
+            isSelected={isEditable && layoutTarget === `textElement:${el.id}`}
+            onSelect={(event) => {
+              if (!isEditable) return;
+              event.stopPropagation();
+              setLayoutTarget(`textElement:${el.id}`);
+            }}
+            onChange={(id, text) => updateTextElement(id, { text })}
+            onElementChange={(id, patch) => updateTextElement(id, patch)}
             scale={1}
+            editable={isEditable}
           />
         ))}
       </div>
@@ -490,7 +587,7 @@ export default function PostCardV2({
 
   // ── Handlers & Wrappers for Flexbox + Draggable ──
   const handleDragPosition = (target: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow", x: number, y: number) => {
-    if (!layoutSettings) return;
+    if (!isEditable || !layoutSettings) return;
     let finalX = x;
     let finalY = y;
     if (isMagnetActive) {
@@ -506,7 +603,7 @@ export default function PostCardV2({
   };
 
   const handleResizeBlock = (target: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow", width: number) => {
-    if (!layoutSettings) return;
+    if (!isEditable || !layoutSettings) return;
     updateLayoutSettings({
       ...layoutSettings,
       [target]: { ...layoutSettings[target], width }
@@ -514,6 +611,7 @@ export default function PostCardV2({
   };
 
   const handleSelectElement = (target: "headline" | "body" | "accentBar" | "card" | "badge" | "sticker" | "carouselArrow" | "global") => {
+    if (!isEditable) return;
     if (target === 'headline' || target === 'body' || target === 'badge' || target === 'sticker' || target === 'accentBar' || target === 'carouselArrow') {
       setLayoutTarget(target);
     } else {
@@ -525,21 +623,22 @@ export default function PostCardV2({
     if (!layoutSettings || !layoutSettings[target]) return <>{children}</>;
     return (
       <DraggableBlock
+        elementId={target}
         layoutPos={layoutSettings[target] as LayoutPosition}
         padding={compact ? 12 : 24}
         containerRef={layoutRef}
-        snapEnabled={isMagnetActive && !compact}
+        snapEnabled={isEditable && isMagnetActive && !compact}
         onDragEnd={(x, y) => handleDragPosition(target, x, y)}
         onResize={(w) => handleResizeBlock(target, w)}
         onSelect={() => handleSelectElement(target)}
         onDeselect={() => setLayoutTarget("global")}
         onDoubleClick={(e) => {
           e.stopPropagation();
-          if (!compact && (target === 'headline' || target === 'body' || target === 'badge' || target === 'sticker')) setInlineEditTarget(target as any);
+          if (isEditable && !compact && (target === 'headline' || target === 'body' || target === 'badge' || target === 'sticker')) setInlineEditTarget(target as any);
         }}
         accentColor={color || effectiveText}
-        isDraggable={!compact && inlineEditTarget !== target}
-        forceSelected={layoutTarget === target}
+        isDraggable={isEditable && !compact && inlineEditTarget !== target}
+        forceSelected={isEditable && layoutTarget === target}
         defaultWidth={target === 'badge' || target === 'sticker' || target === 'carouselArrow' ? 'max-content' : '100%'}
       >
         {children}
@@ -551,7 +650,7 @@ export default function PostCardV2({
 
   // ── Helpers para UI Clone (exemplo.html) ────────────────────────────────────
   const updateSectionLayout = (sectionId: string, patch: Partial<LayoutPosition>) => {
-    if (!layoutSettings) return;
+    if (!isEditable || !layoutSettings) return;
     const existingLayouts = normalizeSectionLayouts(variation.sections, layoutSettings);
     updateLayoutSettings({
       sectionLayouts: {
@@ -576,7 +675,27 @@ export default function PostCardV2({
     updateSectionLayout(sectionId, { freePosition: { x: finalX, y: finalY } });
   };
 
-  const renderSectionContent = (section: ContentSection, index: number) => {
+  const updateSectionContent = (sectionId: string, patch: Partial<ContentSection>) => {
+    if (!isEditable) return;
+    useEditorStore.getState().updateVariation({
+      sections: normalizeSections(variation.sections)?.map((section, index) =>
+        (section.id ?? `section-${index + 1}`) === sectionId
+          ? { ...section, ...patch }
+          : section
+      ),
+    });
+  };
+
+  const editableSectionTextProps = (sectionId: string, field: "label" | "description") => ({
+    contentEditable: isEditable && inlineSectionEditId === sectionId,
+    suppressContentEditableWarning: true,
+    onBlur: (event: React.FocusEvent<HTMLElement>) => {
+      updateSectionContent(sectionId, { [field]: event.currentTarget.innerText.trim() });
+      setInlineSectionEditId(null);
+    },
+  });
+
+  const renderSectionContent = (section: ContentSection, index: number, sectionId: string) => {
     const Icon = getLucideIcon(section.icon);
 
     if (variation.template === "numbered-list") {
@@ -589,11 +708,11 @@ export default function PostCardV2({
             {section.number ?? index + 1}
           </span>
           <div className="flex flex-col min-w-0">
-            <span className="font-semibold leading-tight" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.72rem" }}>
+            <span {...editableSectionTextProps(sectionId, "label")} className="font-semibold leading-tight outline-none" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.72rem" }}>
               {section.label}
             </span>
             {section.description && (
-              <span className="opacity-60 leading-tight" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.55rem" }}>
+              <span {...editableSectionTextProps(sectionId, "description")} className="opacity-60 leading-tight outline-none" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.55rem" }}>
                 {section.description}
               </span>
             )}
@@ -619,11 +738,11 @@ export default function PostCardV2({
             {Icon ? <Icon size={14} style={{ color: effectiveAccent }} /> : section.number ?? index + 1}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-semibold leading-tight" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.72rem" }}>
+            <span {...editableSectionTextProps(sectionId, "label")} className="font-semibold leading-tight outline-none" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.72rem" }}>
               {section.label}
             </span>
             {section.description && (
-              <span className="opacity-60 leading-tight" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.55rem" }}>
+              <span {...editableSectionTextProps(sectionId, "description")} className="opacity-60 leading-tight outline-none" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.55rem" }}>
                 {section.description}
               </span>
             )}
@@ -640,11 +759,11 @@ export default function PostCardV2({
         >
           <Icon size={18} style={{ color: effectiveAccent }} />
         </div>
-        <span className="font-semibold leading-tight" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.7rem" }}>
+        <span {...editableSectionTextProps(sectionId, "label")} className="font-semibold leading-tight outline-none" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.7rem" }}>
           {section.label}
         </span>
         {section.description && (
-          <span className="opacity-60 leading-tight" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.55rem" }}>
+          <span {...editableSectionTextProps(sectionId, "description")} className="opacity-60 leading-tight outline-none" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.55rem" }}>
             {section.description}
           </span>
         )}
@@ -653,9 +772,9 @@ export default function PostCardV2({
   };
 
   const renderEditableTemplateSections = () => {
-    const sections = normalizeSections(variation.sections);
+    const sections = normalizeSections(variation.sections)?.slice(0, 3);
     if (!variation.template || variation.template === "simple" || !sections?.length) return null;
-    if (!layoutSettings) {
+    if (!isEditable && !hasExplicitSectionLayouts) {
       return (
         <TemplateSections
           template={variation.template}
@@ -671,27 +790,32 @@ export default function PostCardV2({
     const isList = variation.template === "numbered-list" || variation.template === "step-by-step";
 
     return (
-      <div className={isList ? "relative flex flex-col gap-2 w-full mt-3" : "relative grid grid-cols-3 gap-3 w-full mt-3"}>
+      <div className="absolute inset-0 z-20 pointer-events-none">
         {sections.map((section, index) => {
           const sectionId = section.id ?? `section-${index + 1}`;
           const layoutPos = existingLayouts[sectionId];
           return (
             <DraggableBlock
               key={sectionId}
+              elementId={`section:${sectionId}`}
               layoutPos={layoutPos}
               padding={compact ? 12 : 24}
               containerRef={layoutRef}
-              snapEnabled={isMagnetActive && !compact}
+              snapEnabled={isEditable && isMagnetActive && !compact}
               onDragEnd={(x, y) => handleSectionDragPosition(sectionId, x, y)}
               onResize={(width) => updateSectionLayout(sectionId, { width })}
               onSelect={() => setLayoutTarget(`section:${sectionId}`)}
               onDeselect={() => setLayoutTarget("global")}
+              onDoubleClick={(event) => {
+                event.stopPropagation();
+                if (isEditable) setInlineSectionEditId(sectionId);
+              }}
               accentColor={effectiveAccent}
-              isDraggable={!compact}
-              forceSelected={layoutTarget === `section:${sectionId}`}
+              isDraggable={isEditable && !compact && inlineSectionEditId !== sectionId}
+              forceSelected={isEditable && layoutTarget === `section:${sectionId}`}
               defaultWidth={isList ? "80%" : "100%"}
             >
-              {renderSectionContent(section, index)}
+              {renderSectionContent(section, index, sectionId)}
             </DraggableBlock>
           );
         })}
@@ -727,7 +851,7 @@ export default function PostCardV2({
             <div
               className="px-4 py-1.5 font-bold text-sm bg-white"
               style={{ borderRadius: '999px', border, color: primaryColor, boxShadow, outline: 'none' }}
-              contentEditable={inlineEditTarget === 'badge'}
+              contentEditable={isEditable && inlineEditTarget === 'badge'}
               suppressContentEditableWarning={true}
               onPaste={(e) => {
                 e.preventDefault();
@@ -736,7 +860,7 @@ export default function PostCardV2({
               }}
               onBlur={(e) => {
                 const cleanText = e.currentTarget.innerText.trim();
-                useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, badge: cleanText } });
+                if (isEditable) useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, badge: cleanText } });
                 setInlineEditTarget(null);
               }}
             >
@@ -771,7 +895,7 @@ export default function PostCardV2({
                     <span
                       className="font-bold text-sm tracking-wider uppercase"
                       style={{ color: primaryColor, outline: 'none' }}
-                      contentEditable={inlineEditTarget === 'sticker'}
+                      contentEditable={isEditable && inlineEditTarget === 'sticker'}
                       suppressContentEditableWarning={true}
                       onPaste={(e) => {
                         e.preventDefault();
@@ -781,7 +905,7 @@ export default function PostCardV2({
                       onBlur={(e) => {
                         const cleanText = e.currentTarget.innerText.trim();
                         if (copyAngle) {
-                          useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, stickerText: cleanText } });
+                          if (isEditable) useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, stickerText: cleanText } });
                         }
                         setInlineEditTarget(null);
                       }}
@@ -797,7 +921,7 @@ export default function PostCardV2({
                     background: `linear-gradient(135deg, ${effectiveAccent}, ${effectiveAccent}dd)`,
                     color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.2)', boxShadow: `0 4px 15px -3px ${effectiveAccent}40`, border: '1px solid rgba(255,255,255,0.1)', outline: 'none'
                   }}
-                  contentEditable={inlineEditTarget === 'sticker'}
+                  contentEditable={isEditable && inlineEditTarget === 'sticker'}
                   suppressContentEditableWarning={true}
                   onPaste={(e) => {
                     e.preventDefault();
@@ -807,7 +931,7 @@ export default function PostCardV2({
                   onBlur={(e) => {
                     const cleanText = e.currentTarget.innerText.trim();
                     if (copyAngle) {
-                      useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, stickerText: cleanText } });
+                      if (isEditable) useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, stickerText: cleanText } });
                     }
                     setInlineEditTarget(null);
                   }}
@@ -860,7 +984,7 @@ export default function PostCardV2({
           <Draggable target="headline" color={effectiveHeadlineText}>
             <h2
               className="font-bold"
-              contentEditable={inlineEditTarget === 'headline'}
+              contentEditable={isEditable && inlineEditTarget === 'headline'}
               suppressContentEditableWarning={true}
               onPaste={(e) => {
                 e.preventDefault();
@@ -897,7 +1021,7 @@ export default function PostCardV2({
             <Draggable target="body" color={effectiveBodyText}>
               <p
                 className={compact ? "line-clamp-2" : ""}
-                contentEditable={inlineEditTarget === 'body'}
+                contentEditable={isEditable && inlineEditTarget === 'body'}
                 suppressContentEditableWarning={true}
                 onPaste={(e) => {
                   e.preventDefault();
@@ -969,7 +1093,7 @@ export default function PostCardV2({
           <Draggable target="headline" color={effectiveHeadlineText}>
             <h2
               className={`font-bold leading-tight ${compact ? "line-clamp-2" : ""}`}
-              contentEditable={inlineEditTarget === 'headline'}
+              contentEditable={isEditable && inlineEditTarget === 'headline'}
               suppressContentEditableWarning={true}
               onPaste={(e) => {
                 e.preventDefault();
@@ -996,7 +1120,7 @@ export default function PostCardV2({
             <Draggable target="body" color={effectiveBodyText}>
               <p
                 className={`${compact ? "line-clamp-2" : ""} opacity-75 max-w-[90%] mx-auto`}
-                contentEditable={inlineEditTarget === 'body'}
+                contentEditable={isEditable && inlineEditTarget === 'body'}
                 suppressContentEditableWarning={true}
                 onPaste={(e) => {
                   e.preventDefault();
@@ -1065,7 +1189,7 @@ export default function PostCardV2({
           <Draggable target="headline" color={effectiveHeadlineText}>
             <h2
               className={`font-bold leading-tight ${compact ? "line-clamp-2" : ""}`}
-              contentEditable={inlineEditTarget === 'headline'}
+              contentEditable={isEditable && inlineEditTarget === 'headline'}
               suppressContentEditableWarning={true}
               onPaste={(e) => {
                 e.preventDefault();
@@ -1092,7 +1216,7 @@ export default function PostCardV2({
             <Draggable target="body" color={effectiveBodyText}>
               <p
                 className={`${compact ? "line-clamp-2" : ""} opacity-80`}
-                contentEditable={inlineEditTarget === 'body'}
+                contentEditable={isEditable && inlineEditTarget === 'body'}
                 suppressContentEditableWarning={true}
                 onPaste={(e) => {
                   e.preventDefault();
@@ -1179,7 +1303,7 @@ export default function PostCardV2({
         <Draggable target="headline" color={effectiveHeadlineText}>
           <h2
             className={`font-bold leading-tight ${compact ? 'line-clamp-2' : ''}`}
-            contentEditable={inlineEditTarget === 'headline'}
+            contentEditable={isEditable && inlineEditTarget === 'headline'}
             suppressContentEditableWarning={true}
             onPaste={(e) => {
               e.preventDefault();
@@ -1207,7 +1331,7 @@ export default function PostCardV2({
           <Draggable target="body" color={effectiveBodyText}>
             <p
               className={`${compact ? 'line-clamp-2' : ''} opacity-80`}
-              contentEditable={inlineEditTarget === 'body'}
+              contentEditable={isEditable && inlineEditTarget === 'body'}
               suppressContentEditableWarning={true}
               onPaste={(e) => {
                 e.preventDefault();
@@ -1287,7 +1411,7 @@ export default function PostCardV2({
           <Draggable target="headline" color={effectiveHeadlineText}>
             <h2
               className="font-bold leading-[1.1] tracking-tight"
-              contentEditable={inlineEditTarget === 'headline'}
+              contentEditable={isEditable && inlineEditTarget === 'headline'}
               suppressContentEditableWarning={true}
               onPaste={(e) => {
                 e.preventDefault();
@@ -1374,7 +1498,7 @@ export default function PostCardV2({
             <Draggable target="headline" color={effectiveHeadlineText}>
               <h2
                 className={`font-bold leading-tight ${compact ? "line-clamp-2" : ""}`}
-                contentEditable={inlineEditTarget === 'headline'}
+                contentEditable={isEditable && inlineEditTarget === 'headline'}
                 suppressContentEditableWarning={true}
                 onPaste={(e) => {
                   e.preventDefault();
@@ -1404,7 +1528,7 @@ export default function PostCardV2({
                 <Draggable target="body" color={effectiveBodyText}>
                   <p
                     className={`${compact ? "line-clamp-2" : ""} opacity-80`}
-                    contentEditable={inlineEditTarget === 'body'}
+                    contentEditable={isEditable && inlineEditTarget === 'body'}
                     suppressContentEditableWarning={true}
                     onPaste={(e) => {
                       e.preventDefault();
@@ -1488,7 +1612,7 @@ export default function PostCardV2({
               const useEditorStore = (await import("@/store/editorStore")).useEditorStore;
               useEditorStore.getState().updateLayoutSettings({ card: { ...layoutSettings?.card, width: w } as any });
             }}
-            isEditingCard={isEditingCard}
+            isEditingCard={isEditable && isEditingCard}
           >
             {resolvedBrandMeta && (
               <BrandOverlay
@@ -1534,7 +1658,7 @@ export default function PostCardV2({
               const useEditorStore = (await import("@/store/editorStore")).useEditorStore;
               useEditorStore.getState().updateLayoutSettings({ card: { ...layoutSettings?.card, width: w } as any });
             }}
-            isEditingCard={isEditingCard}
+            isEditingCard={isEditable && isEditingCard}
           >
             {resolvedBrandMeta && (
               <BrandOverlay

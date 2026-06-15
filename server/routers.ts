@@ -11,9 +11,16 @@ import { analyzeBrandFromUrl, generateCardThemeVariations } from "./chameleon";
 import { generateBackgroundImage } from "./imageGenerateBackground";
 import { extractStyleFromUrlWithMeta } from "./styleExtractor";
 import { analyzeDesignPattern, generateThemesFromPatterns } from "./designPatternAnalyzer";
-import { extractBrandDNA } from "./brandDNA";
-import { generateThemesFromBrandDNA } from "./brandThemeGenerator";
 import { evaluatePostQuality } from "./postJudge";
+import type { SiteIntelligence } from "@shared/postspark";
+import {
+  analyzeSiteIntelligence,
+  loadSiteIntelligence,
+  siteIntelligenceToDesignTokens,
+  siteIntelligenceToPrompt,
+} from "./siteIntelligence";
+import { scrapeUrl as scrapeSiteUrl } from "./siteContent";
+import { extractBrandDNA } from "./brandDNA";
 import { chameleonVision } from "./chameleonVision";
 import { captureScreenshot } from "./screenshotService";
 import { chameleonResultToDesignTokens } from "@shared/postspark";
@@ -31,6 +38,29 @@ import {
 } from "./billing";
 import { ENV } from "./_core/env";
 import { TRPCError } from "@trpc/server";
+import { variationsNeedDiversification } from "./ai/variationDiversity";
+import { prepareGenerationPlan } from "./ai/generationPipeline";
+import { evaluateAndReviseCandidates } from "./ai/postEvaluation";
+import {
+  buildGenerationDebugTrace,
+  finishGenerationTrace,
+  recordGenerationEvent,
+  startGenerationTrace,
+} from "./ai/generationTrace";
+import {
+  assessSemanticOriginality,
+  persistCandidateFingerprints,
+} from "./ai/semanticOriginality";
+import {
+  assertVariationSet,
+  hasValidStaticSections,
+  POST_VARIATION_TARGET,
+  validateVariationSet,
+} from "./ai/generationValidation";
+
+function isLegacySitePipelineEnabled(): boolean {
+  return false;
+}
 /**
  * Helper to safely parse JSON from LLM responses, handling markdown blocks and basic malformations.
  */
@@ -120,64 +150,6 @@ function safeJsonParse<T>(str: string, fallback: T): T {
   console.error("[safeJsonParse] Failed to parse JSON even after repair.");
   console.error("[safeJsonParse] Input snippet (100 chars):", str.substring(0, 100));
   return fallback;
-}
-
-function normalizeVariationText(value: string | undefined): string {
-  return (value || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s#]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function tokenizeVariationText(value: string | undefined): string[] {
-  return normalizeVariationText(value)
-    .split(" ")
-    .filter((token) => token.length > 2);
-}
-
-function jaccardSimilarity(a: string[], b: string[]): number {
-  if (a.length === 0 && b.length === 0) return 1;
-  const aSet = new Set(a);
-  const bSet = new Set(b);
-  let intersection = 0;
-
-  for (const token of Array.from(aSet)) {
-    if (bSet.has(token)) intersection += 1;
-  }
-
-  const union = new Set([...Array.from(aSet), ...Array.from(bSet)]).size;
-  return union === 0 ? 0 : intersection / union;
-}
-
-function variationsNeedDiversification(variations: Array<any>): boolean {
-  if (variations.length < 3) return true;
-
-  for (let i = 0; i < variations.length; i++) {
-    for (let j = i + 1; j < variations.length; j++) {
-      const a = variations[i];
-      const b = variations[j];
-      const aText = tokenizeVariationText(`${a.headline} ${a.body} ${a.callToAction} ${a.caption}`);
-      const bText = tokenizeVariationText(`${b.headline} ${b.body} ${b.callToAction} ${b.caption}`);
-      const copySimilarity = jaccardSimilarity(aText, bText);
-
-      const sameHeadline = normalizeVariationText(a.headline) === normalizeVariationText(b.headline);
-      const sameBody = normalizeVariationText(a.body) === normalizeVariationText(b.body);
-      const sameTone = normalizeVariationText(a.tone) === normalizeVariationText(b.tone);
-      const sameLayout = a.layout === b.layout;
-      const sameColors = a.backgroundColor === b.backgroundColor
-        && a.textColor === b.textColor
-        && a.accentColor === b.accentColor;
-
-      if (sameHeadline || (sameBody && sameLayout) || (copySimilarity >= 0.78 && sameLayout) || (copySimilarity >= 0.9 && sameColors) || (sameTone && sameLayout && sameColors)) {
-        return true;
-      }
-    }
-  }
-
-  return false;
 }
 
 const CAROUSEL_SLIDE_TARGET = 5;
@@ -514,6 +486,8 @@ export const appRouter = router({
         model: z.enum(["gemini", "llama"]).optional(),
         creationMode: z.enum(["ideation", "execution"]).default("ideation"),
         executionBrief: executionBriefSchema.optional(),
+        siteIntelligenceId: z.string().uuid().optional(),
+        debug: z.boolean().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         // Debita Sparks antes de gerar
@@ -527,15 +501,37 @@ export const appRouter = router({
             message: "Sparks insuficientes. Faça upgrade ou adquira um pacote de recarga.",
           });
         }
+        const generationTrace = startGenerationTrace({
+          userUuid: ctx.user.id,
+          inputType: input.inputType,
+          inputContent: input.content,
+          platform: input.platform,
+          postMode: input.postMode,
+          creationMode: input.creationMode,
+          requestedModel: input.model ?? "gemini",
+          siteIntelligenceId: input.siteIntelligenceId,
+        });
+        const debugEnabled = Boolean(input.debug && ENV.aiUiDebugEnabled);
+        try {
+        recordGenerationEvent({
+          stage: "generation",
+          status: "started",
+          detail: "Generation pipeline started.",
+        });
+        const recentPostsPromise = getUserPosts(ctx.user.id, 20).catch((error) => {
+          console.warn("[post.generate] Recent post history unavailable:", error);
+          return [];
+        });
         let contextContent = input.content;
         let brandDnaContext = "";
         let chameleonResult: import("@shared/postspark").ChameleonVisionResult | null = null;
+        let siteIntelligence: SiteIntelligence | null = null;
         const normalizedExecutionBrief = input.creationMode === "execution" && input.executionBrief
           ? normalizeExecutionBrief(input.executionBrief)
           : null;
 
         // If URL, scrape it first and extract Brand DNA for visual cloning
-        if (input.inputType === "url") {
+        if (isLegacySitePipelineEnabled() && input.inputType === "url") {
           try {
             // 1. Extração de conteúdo bruto
             const scrapeResult = await scrapeUrl(input.content);
@@ -589,6 +585,49 @@ REGRA CARDINAL DE CORES (A FONTE É URL):
           }
         }
 
+        const siteUrl = input.inputType === "url"
+          ? input.content
+          : normalizedExecutionBrief?.brandInput?.websiteUrl;
+
+        if (ENV.aiSiteIntelligenceEnabled && input.siteIntelligenceId) {
+          siteIntelligence = await loadSiteIntelligence(
+            input.siteIntelligenceId,
+            ctx.user.id,
+          );
+        }
+
+        if (ENV.aiSiteIntelligenceEnabled && siteUrl && !siteIntelligence) {
+          try {
+            const result = await analyzeSiteIntelligence(siteUrl, ctx.user.id);
+            siteIntelligence = result.siteIntelligence;
+          } catch (error) {
+            console.warn("[post.generate] Site intelligence unavailable:", error);
+          }
+        }
+
+        if (siteIntelligence) {
+          contextContent = siteIntelligence.evidence
+            .map((item) => `[${item.kind}] ${item.text}`)
+            .join("\n")
+            .slice(0, 24_000);
+          brandDnaContext = siteIntelligenceToPrompt(siteIntelligence);
+        } else if (siteUrl) {
+          const scrapeResult = await scrapeSiteUrl(siteUrl);
+          contextContent = `URL: ${siteUrl}\nTitulo: ${scrapeResult.title}\nDescricao: ${scrapeResult.description}\nConteudo: ${scrapeResult.content}`;
+        }
+
+        const generationPlan = await prepareGenerationPlan({
+          sourceContent: contextContent,
+          siteIntelligence,
+          executionBrief: normalizedExecutionBrief,
+        });
+        recordGenerationEvent({
+          stage: "content_strategy",
+          status: generationPlan.strategies.fallbackUsed ? "fallback" : "completed",
+          detail: `${generationPlan.strategies.selected.length} strategies selected.`,
+          data: generationPlan.strategies,
+        });
+
         const platformSpecs: Record<string, { label: string; maxChars: number }> = {
           instagram: { label: "Instagram", maxChars: 2200 },
           twitter: { label: "Twitter/X", maxChars: 280 },
@@ -632,6 +671,7 @@ Gere EXATAMENTE 3 variações de post para ${spec.label}.${modeInstruction}
 ${normalizedExecutionBrief ? "As 3 variações devem ser próximas entre si e altamente fiéis ao briefing." : "Cada variação deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado."}${toneHint}
 ${brandDnaContext}
 ${executionSystemContext}
+${generationPlan.promptContext}
 
 REGRAS DE COPY — SIGA COM RIGOR:
 - Headline: máximo 60 caracteres. Seja direto e impactante. Sem ponto final.
@@ -669,7 +709,11 @@ PRINCÍPIOS DE DESIGN VISUAL E MIMETISMO:
    - Cada variação deve fluir formatada no aspectRatio correspondente.
 
 6. TEMPLATES ESTRUTURADOS:
-   - Use 'feature-grid' ou 'step-by-step' onde listagem for detectada. Default: 'simple'.
+   - Use 'simple' quando headline e body forem suficientes. Não invente seções apenas para preencher o layout.
+   - Use 'feature-grid', 'numbered-list' ou 'step-by-step' somente quando a mensagem realmente exigir itens distintos.
+   - Todo template estruturado deve ter EXATAMENTE 3 seções. Nunca gere 4 ou 5 itens em um único post estático.
+   - Cada label deve ter no máximo 24 caracteres e cada description no máximo 48 caracteres.
+   - Resuma cada item em uma única ideia. Não repita no item o que já está no headline ou body.
 
 7. FLOATING CARDS & ELEMENT STYLING (NEW):
    - O card PRINCIPAL não precisa estar sempre centralizado ou ocupar 100% da tela.
@@ -803,14 +847,15 @@ ${buildExecutionBriefContext(normalizedExecutionBrief)}`
                 type: "object",
                 properties: {
                   icon: { type: "string", description: "Nome de ícone lucide (ex: Users, Star, Zap, Heart, Globe)" },
-                  label: { type: "string", description: "Título curto da seção" },
-                  description: { type: "string", description: "Texto de suporte opcional" },
+                  label: { type: "string", maxLength: 24, description: "Título curto da seção, máximo 24 caracteres" },
+                  description: { type: "string", maxLength: 48, description: "Texto de suporte opcional, máximo 48 caracteres" },
                   number: { type: "integer", description: "Número para listas numeradas" },
                 },
                 required: ["icon", "label", "description", "number"],
                 additionalProperties: false,
               },
-              description: "Seções de conteúdo estruturado (3-5 itens). Obrigatório quando template != 'simple'.",
+              maxItems: 3,
+              description: "Use [] para template simple. Para templates estruturados, gere exatamente 3 itens curtos.",
             },
             aspectRatioOptimizations: {
               type: "object",
@@ -838,46 +883,110 @@ ${buildExecutionBriefContext(normalizedExecutionBrief)}`
           additionalProperties: false,
         };
 
-        const response = await invokeLLM({
-          model: input.model as any,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          response_format: {
-            type: "json_schema",
-            json_schema: {
-              name: "post_variations",
-              strict: true,
-              schema: {
-                type: "object",
-                properties: {
-                  variations: {
-                    type: "array",
-                    items: variationSchema,
+        const slotResponses = await Promise.all(
+          generationPlan.strategies.selected.map(async (strategy, index) => {
+            const slotPrompt = `${userPrompt}
+
+TAREFA DESTE AGENTE:
+- Gere somente a variacao ${index + 1} de 3.
+- Execute exclusivamente este contrato estrategico:
+${JSON.stringify(strategy, null, 2)}
+- Nao misture os outros angulos.
+- Retorne um array "variations" com exatamente 1 item.`;
+            const generateSlot = async (attempt: number) => {
+              const response = await invokeLLM({
+                traceLabel: attempt === 1
+                  ? `post_generation_${index + 1}`
+                  : `post_generation_${index + 1}_retry`,
+                model: input.model as any,
+                messages: [
+                  {
+                    role: "system",
+                    content: `${systemPrompt}
+
+Para esta chamada isolada, ignore apenas a instrucao de quantidade global:
+produza exatamente UMA variacao, correspondente ao slot solicitado.`,
+                  },
+                  {
+                    role: "user",
+                    content: attempt === 1
+                      ? slotPrompt
+                      : `${slotPrompt}
+
+A tentativa anterior retornou um item ausente ou incompleto.
+Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategico.`,
+                  },
+                ],
+                response_format: {
+                  type: "json_schema",
+                  json_schema: {
+                    name: `post_variation_${index + 1}`,
+                    strict: true,
+                    schema: {
+                      type: "object",
+                      properties: {
+                        variations: {
+                          type: "array",
+                          minItems: 1,
+                          maxItems: 1,
+                          items: variationSchema,
+                        },
+                      },
+                      required: ["variations"],
+                      $defs: layoutDefs,
+                      additionalProperties: false,
+                    },
                   },
                 },
-                required: ["variations"],
-                $defs: layoutDefs,
-                additionalProperties: false,
-              },
-            },
-          },
-        });
+              });
+              const content = response.choices[0]?.message?.content;
+              const contentStr = typeof content === "string"
+                ? content
+                : Array.isArray(content)
+                  ? content.filter(c => "text" in c).map(c => (c as any).text).join("\n")
+                  : "{}";
+              return safeJsonParse<{ variations: any[] }>(
+                contentStr,
+                { variations: [] },
+              ).variations[0];
+            };
 
-        const content = response.choices[0]?.message?.content;
-        const contentStr = typeof content === "string"
-          ? content
-          : Array.isArray(content)
-            ? content.filter(c => 'text' in c).map(c => (c as any).text).join("\n")
-            : "{}";
-        const parsed = safeJsonParse<{ variations: any[] }>(contentStr, { variations: [] });
-        let variations = (parsed.variations || []).slice(0, 3);
+            const first = await generateSlot(1);
+            const firstIsComplete = Boolean(
+              first?.headline?.trim() &&
+              first?.body?.trim() &&
+              first?.caption?.trim() &&
+              first?.callToAction?.trim() &&
+              first?.imagePrompt?.trim() &&
+              first?.copyAngle?.type &&
+              (input.postMode === "carousel" ||
+                hasValidStaticSections(first)) &&
+              (input.postMode !== "carousel" ||
+                first?.slides?.length === CAROUSEL_SLIDE_TARGET),
+            );
+            if (firstIsComplete) return first;
+
+            recordGenerationEvent({
+              stage: `post_generation_${index + 1}`,
+              status: "rejected",
+              detail: "Slot incomplete; requesting one targeted retry.",
+              data: first,
+            });
+            return generateSlot(2);
+          }),
+        );
+        let variations = slotResponses.filter(Boolean).slice(0, POST_VARIATION_TARGET);
+        recordGenerationEvent({
+          stage: "post_generation",
+          status: variations.length === POST_VARIATION_TARGET ? "completed" : "rejected",
+          detail: `Primary generation returned ${variations.length} variation(s).`,
+          data: variations,
+        });
 
         // --------------------------------------------------------------------------------
         // QA PASSPORT / BRAND SOUL GUARDIAN (Apenas ativado em clonagens de site / URL)
         // --------------------------------------------------------------------------------
-        if (input.inputType === "url" && brandDnaContext.length > 0) {
+        if (siteIntelligence && brandDnaContext.length > 0) {
           try {
             console.log("[QA Guard] Validating Brand Mimetism...");
             const qaPrompt = `Você é um Quality Assurance rigoroso de Design Visual e Acessibilidade técnica (WCAG).
@@ -901,6 +1010,7 @@ Retorne um JSON contendo O MESMO ARRAY, de mesmo formato, substituindo estritame
 Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
 
             const qaResponse = await invokeLLM({
+              traceLabel: "brand_visual_qa",
               model: "gemini", // O QA pode rodar no gemini-flash fixo pela velocidade
               messages: [{ role: "user", content: qaPrompt }],
               response_format: {
@@ -913,6 +1023,8 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
                     properties: {
                       variations: {
                         type: "array",
+                        minItems: POST_VARIATION_TARGET,
+                        maxItems: POST_VARIATION_TARGET,
                         items: variationSchema
                       }
                     },
@@ -931,9 +1043,21 @@ Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
                 ? qaContent.filter(c => 'text' in c).map(c => (c as any).text).join("\n")
                 : "{}";
             const qaParsed = safeJsonParse<{ variations: any[] }>(qaContentStr, { variations: [] });
-            if (qaParsed.variations && qaParsed.variations.length > 0) {
+            if (qaParsed.variations?.length === variations.length) {
               variations = qaParsed.variations.slice(0, 3);
               console.log("[QA Guard] Mimetism validation approved & patched.");
+              recordGenerationEvent({
+                stage: "brand_visual_qa",
+                status: "completed",
+                detail: "Brand visual QA preserved the complete variation set.",
+                data: variations,
+              });
+            } else {
+              recordGenerationEvent({
+                stage: "brand_visual_qa",
+                status: "rejected",
+                detail: `Brand visual QA returned ${qaParsed.variations?.length ?? 0} items; previous set preserved.`,
+              });
             }
           } catch (qaErr) {
             console.warn("[QA Guard] Failing gracefull. Returning raw variations.", qaErr);
@@ -960,6 +1084,7 @@ ${JSON.stringify(variations, null, 2)}
 Responda APENAS com JSON válido.`;
 
             const diversificationResponse = await invokeLLM({
+              traceLabel: "lexical_diversification",
               model: input.model as any,
               messages: [
                 { role: "system", content: systemPrompt },
@@ -975,6 +1100,8 @@ Responda APENAS com JSON válido.`;
                     properties: {
                       variations: {
                         type: "array",
+                        minItems: POST_VARIATION_TARGET,
+                        maxItems: POST_VARIATION_TARGET,
                         items: variationSchema,
                       },
                     },
@@ -996,8 +1123,16 @@ Responda APENAS com JSON válido.`;
             const diversifiedVariations = (diversifiedParsed.variations || []).slice(0, 3);
 
             if (diversifiedVariations.length > 0 && !variationsNeedDiversification(diversifiedVariations)) {
-              variations = diversifiedVariations;
+              if (diversifiedVariations.length === POST_VARIATION_TARGET) {
+                variations = diversifiedVariations;
+              }
               console.log("[Variation Guard] Diversified variations accepted.");
+              recordGenerationEvent({
+                stage: "diversification",
+                status: diversifiedVariations.length === POST_VARIATION_TARGET ? "completed" : "rejected",
+                detail: `Diversification returned ${diversifiedVariations.length} variation(s).`,
+                data: diversifiedVariations,
+              });
             } else {
               console.warn("[Variation Guard] Diversification attempt still too similar. Keeping original output.");
             }
@@ -1006,16 +1141,93 @@ Responda APENAS com JSON válido.`;
           }
         }
 
+        const recentPosts = await recentPostsPromise;
+        const initialOriginality = await assessSemanticOriginality({
+          candidates: variations as import("@shared/postspark").PostVariation[],
+          siteIntelligence,
+          recentPosts,
+        });
+
+        const evaluationPipeline = await evaluateAndReviseCandidates({
+          candidates: variations,
+          strategies: generationPlan.strategies.selected,
+          siteIntelligence,
+          platform: input.platform,
+          originalityScores: initialOriginality.assessments.map(
+            (assessment) => assessment.score,
+          ),
+          revise: async (currentVariations, evaluations) => {
+            const revisionResponse = await invokeLLM({
+              traceLabel: "quality_revision",
+              model: input.model as any,
+              messages: [
+                { role: "system", content: systemPrompt },
+                {
+                  role: "user",
+                  content: `Revise as variacoes abaixo uma unica vez.
+Corrija apenas os problemas apontados, preserve o contrato estrategico de cada indice e mantenha o mesmo schema.
+Nao invente fatos nem misture estrategias.
+
+Avaliacoes:
+${JSON.stringify(evaluations, null, 2)}
+
+Variacoes:
+${JSON.stringify(currentVariations, null, 2)}
+
+Retorne apenas JSON valido.`,
+                },
+              ],
+              response_format: {
+                type: "json_schema",
+                json_schema: {
+                  name: "post_variations_revised",
+                  strict: true,
+                  schema: {
+                    type: "object",
+                    properties: {
+                      variations: {
+                        type: "array",
+                        minItems: POST_VARIATION_TARGET,
+                        maxItems: POST_VARIATION_TARGET,
+                        items: variationSchema,
+                      },
+                    },
+                    required: ["variations"],
+                    $defs: layoutDefs,
+                    additionalProperties: false,
+                  },
+                },
+              },
+            });
+            const revisedContent = revisionResponse.choices[0]?.message?.content;
+            const revisedText =
+              typeof revisedContent === "string" ? revisedContent : "{}";
+            return safeJsonParse<{ variations: any[] }>(revisedText, {
+              variations: currentVariations,
+            }).variations.slice(0, 3);
+          },
+        });
+        variations = evaluationPipeline.candidates;
+        const originality = evaluationPipeline.revisionCount > 0
+          ? await assessSemanticOriginality({
+              candidates: variations as import("@shared/postspark").PostVariation[],
+              siteIntelligence,
+              recentPosts,
+            })
+          : initialOriginality;
+
         // Build DesignTokens from Chameleon Vision result if available
-        const chameleonDesignTokens = chameleonResult
-          ? chameleonResultToDesignTokens(chameleonResult)
-          : undefined;
+        const chameleonDesignTokens = siteIntelligence
+          ? siteIntelligenceToDesignTokens(siteIntelligence)
+          : chameleonResult
+            ? chameleonResultToDesignTokens(chameleonResult)
+            : undefined;
 
         // Map Chameleon Vision copy angles to variations
         const chameleonPosts = chameleonResult?.posts || [];
 
         // Generate unique IDs and return — enrich with Chameleon Vision data
-        return variations.map((v: any, i: number) => {
+        const generatedVariations = variations.map((v: any, i: number) => {
           const chameleonPost = chameleonPosts[i];
           const normalizedSlides = isCarousel ? normalizeCarouselSlides(v) : undefined;
           return {
@@ -1040,9 +1252,76 @@ Responda APENAS com JSON válido.`;
               creationMode: input.creationMode,
               fidelity: normalizedExecutionBrief ? "high" : "medium",
               interventionLevel: normalizedExecutionBrief?.interventionLevel,
+              siteIntelligenceId: siteIntelligence?.id,
+              strategyId: generationPlan.strategies.selected[i]?.id,
+              revisionCount: evaluationPipeline.revisionCount,
+              evaluation: evaluationPipeline.evaluations[i],
+              originality: originality.assessments[i],
             },
           };
         });
+        const finalValidation = validateVariationSet(
+          generatedVariations,
+          input.postMode,
+        );
+        recordGenerationEvent({
+          stage: "final_validation",
+          status: finalValidation.valid ? "completed" : "rejected",
+          detail: finalValidation.valid
+            ? "Exactly three complete and distinct variations approved."
+            : finalValidation.errors.join("; "),
+          data: finalValidation,
+        });
+        try {
+          assertVariationSet(generatedVariations, input.postMode);
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_GATEWAY",
+            message:
+              "A IA não conseguiu produzir três variações válidas e distintas. Tente novamente.",
+            cause: error,
+          });
+        }
+        generationTrace.siteIntelligenceId = siteIntelligence?.id;
+        await persistCandidateFingerprints({
+          userUuid: ctx.user.id,
+          generationRunId: generationTrace.id,
+          candidates: generatedVariations,
+          embeddings: originality.embeddings,
+          assessments: originality.assessments,
+        });
+        await finishGenerationTrace({
+          trace: generationTrace,
+          status: "completed",
+          strategies: generationPlan.strategies,
+          evaluations: evaluationPipeline.evaluations,
+          revisionCount: evaluationPipeline.revisionCount,
+          strategyFallbackUsed: generationPlan.strategies.fallbackUsed,
+          originalityFallbackUsed: originality.fallbackUsed,
+          output: generatedVariations,
+        });
+        return {
+          variations: generatedVariations,
+          generationRunId: generationTrace.id,
+          ...(debugEnabled
+            ? {
+                debug: buildGenerationDebugTrace({
+                  trace: generationTrace,
+                  strategies: generationPlan.strategies,
+                  evaluations: evaluationPipeline.evaluations,
+                  output: generatedVariations,
+                }),
+              }
+            : {}),
+        };
+        } catch (error) {
+          await finishGenerationTrace({
+            trace: generationTrace,
+            status: "failed",
+            error: error instanceof Error ? error.message : "Generation failed",
+          });
+          throw error;
+        }
       }),
 
     /** Generate image for a post */
@@ -1243,6 +1522,11 @@ CRÍTICO SOBRE X e Y: As coordenadas (x, y) representam o **CENTRO EXATO** do bl
 
 JSON ESTADO ATUAL:
 ${JSON.stringify(input.currentState, null, 2)}
+
+O campo "elements" contem a geometria medida de cada bloco visivel. Trate esses ids
+como contrato: devolva uma sugestao para cada elemento recebido, sem inventar ids.
+Evite qualquer intersecao entre caixas, preserve margens de seguranca e considere
+o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
 `;
 
         const response = await invokeLLM({
@@ -1267,6 +1551,24 @@ ${JSON.stringify(input.currentState, null, 2)}
                 properties: {
                   score: { type: "number", description: "Sua nota para o design inicial (0 a 100)" },
                   feedback: { type: "string", description: "Descrição curta em português sobre o erro visível e por que você corrigiu do jeito que corrigiu." },
+                  textColor: { type: "string", description: "Cor HEX sugerida para os textos principais" },
+                  suggestedElements: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        x: { type: "number" },
+                        y: { type: "number" },
+                        width: { type: "number" },
+                        textAlign: { type: "string", enum: ["left", "center", "right"] },
+                        backgroundColor: { type: "string" },
+                        borderRadius: { type: "number" }
+                      },
+                      required: ["id", "x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
+                      additionalProperties: false
+                    }
+                  },
                   suggestedLayoutMoves: {
                     type: "object",
                     properties: {
@@ -1302,7 +1604,7 @@ ${JSON.stringify(input.currentState, null, 2)}
                     additionalProperties: false
                   }
                 },
-                required: ["score", "feedback", "suggestedLayoutMoves"],
+                required: ["score", "feedback", "textColor", "suggestedElements", "suggestedLayoutMoves"],
                 additionalProperties: false
               }
             }
@@ -1441,8 +1743,16 @@ ${JSON.stringify(input.currentState, null, 2)}
     extractBrandDNA: protectedProcedure
       .input(z.object({
         url: z.string().url(),
+        debug: z.boolean().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        if (!ENV.aiSiteIntelligenceEnabled) {
+          throw new TRPCError({
+            code: "SERVICE_UNAVAILABLE",
+            message: "A inteligencia de site esta temporariamente desativada.",
+          });
+        }
+
         const email = ctx.user.email ?? "dev@local.dev";
         const profile = await getBillingProfile(email);
         const debit = await debitSparks(profile.id, 20, "Brand DNA — extração multi-página + análise visual");
@@ -1453,13 +1763,39 @@ ${JSON.stringify(input.currentState, null, 2)}
           });
         }
 
-        const brandDNA = await extractBrandDNA(input.url);
-        const themes = generateThemesFromBrandDNA(brandDNA, input.url);
-
+        const extractionTrace = startGenerationTrace({
+          userUuid: ctx.user.id,
+          inputType: "url",
+          inputContent: input.url,
+          platform: "site-intelligence",
+          postMode: "analysis",
+          creationMode: "site-intelligence",
+          requestedModel: "gemini",
+        });
+        recordGenerationEvent({
+          stage: "site_collection",
+          status: "started",
+          detail: "Shared site collection and specialist analysis started.",
+        });
+        const result = await analyzeSiteIntelligence(input.url, ctx.user.id);
+        recordGenerationEvent({
+          stage: "site_compilation",
+          status: result.fallbackUsed ? "fallback" : "completed",
+          detail: "Semantic and visual analyses compiled into SiteIntelligence.",
+          data: {
+            siteIntelligenceId: result.siteIntelligence.id,
+            quality: result.siteIntelligence.quality,
+          },
+        });
         return {
-          brandDNA,
-          themes,
-          fallbackUsed: !brandDNA.metadata.visionUsed,
+          ...result,
+          ...(input.debug && ENV.aiUiDebugEnabled
+            ? {
+                debug: buildGenerationDebugTrace({
+                  trace: extractionTrace,
+                }),
+              }
+            : {}),
         };
       }),
 

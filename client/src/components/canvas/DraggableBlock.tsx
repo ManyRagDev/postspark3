@@ -56,6 +56,7 @@ const HANDLES = [
 ] as const;
 
 interface DraggableBlockProps {
+    elementId?: string;
     layoutPos: LayoutPosition;
     padding: number;
     containerRef: React.RefObject<HTMLElement | null>;
@@ -73,6 +74,7 @@ interface DraggableBlockProps {
 }
 
 export function DraggableBlock({
+    elementId,
     layoutPos,
     padding,
     containerRef,
@@ -95,6 +97,7 @@ export function DraggableBlock({
 
     const { isDragging, dragPos, handlers } = useDragElement({
         containerRef,
+        elementRef: blockRef,
         onDragEnd,
     });
 
@@ -162,9 +165,8 @@ export function DraggableBlock({
         return (
             <div
                 ref={blockRef}
+                data-layout-id={elementId}
                 onPointerDown={handlePointerDown}
-                onPointerMove={(handlers as any).onPointerMove}
-                onPointerUp={(handlers as any).onPointerUp}
                 onClick={() => {
                     if (!isDragging && isDraggable) {
                         setIsSelected(true);
@@ -246,9 +248,8 @@ export function DraggableBlock({
 
             <div
                 ref={blockRef}
+                data-layout-id={elementId}
                 onPointerDown={handlePointerDown}
-                onPointerMove={(handlers as any).onPointerMove}
-                onPointerUp={(handlers as any).onPointerUp}
                 onClick={() => {
                     if (!isDragging && isDraggable) {
                         setIsSelected(true);
@@ -261,6 +262,7 @@ export function DraggableBlock({
                     ...currentStyle,
                     width: widthStyle,
                     cursor: isDragging ? "grabbing" : isDraggable ? "grab" : "default",
+                    pointerEvents: isDraggable ? "auto" : "none",
                     touchAction: "none",
                     outline: (showOutline || isDragging || isResizing) ? `1.5px solid ${boxBorder}` : "none",
                     outlineOffset: "3px",
@@ -269,7 +271,7 @@ export function DraggableBlock({
                     padding: layoutPos.backgroundColor ? "0.5rem 1rem" : undefined,
                 }}
             >
-                <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+                <div style={{ width: "100%" }}>
                     {children}
                 </div>
 

@@ -97,6 +97,7 @@ Fato observado:
 - [`api/index.js`](./api/index.js): artefato gerado para execução/deploy do backend.
 - [`dist/`](./dist) e [`dist-server/`](./dist-server): artefatos de build.
 - [`docs/`](./docs): documentação de apoio. Útil para histórico, mas não confiável como fonte única.
+- [`docs/ensino/`](./docs/ensino): trilha didática para explicar stack, camadas, fluxo de requisição, auth, dados, billing, build, deploy, Git e Docker usando o PostSpark 3 como exemplo.
 - [`tours/`](./tours): automação/geração de tours visuais; não parece participar do runtime principal do produto.
 
 ## 4. Pontos de entrada
@@ -319,6 +320,9 @@ Expor as operações de geração, persistência, billing e análise.
 - `post.saveBackgroundAsset`
 - `post.listSavedBackgrounds`
 - `post.autoPilotDesign`
+  - recebe screenshot do canvas, estado visual atual e geometria medida dos elementos identificados;
+  - retorna ajustes por `id` para headline, body, decoracoes, secoes e textos avancados;
+  - as coordenadas retornadas representam o centro do bloco em percentual do canvas.
 - `post.listBackgrounds`
 - `post.analyzeBrand`
 - `post.extractStyles`
@@ -527,6 +531,7 @@ Gerenciar o estado editável do post e suas variantes/overrides por slide.
 **Arquivos centrais**
 
 - [`client/src/store/editorStore.ts`](./client/src/store/editorStore.ts)
+- [`client/src/lib/variationSnapshot.ts`](./client/src/lib/variationSnapshot.ts)
 - [`client/src/components/views/WorkbenchV2/WorkbenchV2.tsx`](./client/src/components/views/WorkbenchV2/WorkbenchV2.tsx)
 - [`client/src/components/views/WorkbenchV2/PostCardV2.tsx`](./client/src/components/views/WorkbenchV2/PostCardV2.tsx)
 
@@ -539,12 +544,25 @@ Gerenciar o estado editável do post e suas variantes/overrides por slide.
 **Saídas**
 
 - estado persistível com `imageSettings`, `layoutSettings`, `bgValue`, `bgOverlay`, `slides`.
+- snapshot visual completo em `variation_snapshot` ao salvar posts novos.
 
 **Riscos e observações**
 
 - O store trata diferenciação entre base global e override por slide; mudanças aqui têm alto risco de regressão de editor.
 - Posts salvos novos usam `variation_snapshot` como fonte preferencial para reabrir o estado visual rico do Workbench. Esse snapshot preserva templates estruturados, `sections`, tokens visuais e ajustes do editor que não cabem integralmente nos campos legados.
 - Itens centrais de templates estruturados (`sections`) são normalizados com `id` estável e podem ter layouts individuais persistidos em `layoutSettings.sectionLayouts`.
+- `client/src/lib/variationSnapshot.ts` centraliza a normalização da variação antes de entrar no editor e antes de persistir. Isso evita que campos exibidos no HoloDeck, mas não representados por campos legados (`headline`, `body`, `layout` etc.), fiquem fora do salvamento.
+- `sections` deixam de ser apenas renderização auxiliar de template no Workbench: cada item ganha `id`, fallback de ícone e alvo de layout `section:<id>`, permitindo drag/resize e persistência individual.
+- A seleção de elementos no canvas pode ser removida clicando fora dos blocos editáveis ou pressionando `Escape`, reduzindo estado preso de edição.
+- Validação funcional confirmada em uso real: post novo salvo após essa mudança reabre visualmente igual ao post gerado e exibido no HoloDeck.
+
+### 5.8.1 Layout responsivo e interacao no canvas
+
+- Novas variacoes normalizadas recebem `layoutSettingsByAspectRatio`, com composicoes calculadas separadamente para `1:1`, `5:6` e `9:16`.
+- Ao trocar o formato, o store preserva o layout atual e hidrata o layout correspondente ao destino.
+- A distribuicao inicial de `sections` considera template, quantidade de itens e proporcao. Grades usam multiplas linhas e listas usam uma coluna, evitando concentrar todos os itens no mesmo eixo horizontal.
+- O drag usa o retangulo visual real para preservar o ponto de grab, captura o gesto no documento e limita o centro conforme as dimensoes do elemento.
+- O botao `Ajustar com IA` captura a imagem e um snapshot geometrico com `id`, centro, largura e altura de cada bloco visivel. A resposta de visao e aplicada por identificador, inclusive em `section:<id>` e `textElement:<id>`.
 
 ## 6. Fluxos principais
 
@@ -579,6 +597,17 @@ Observação:
 7. O usuário seleciona uma variação e abre o `WorkbenchV2`.
 8. O usuário edita o post e salva via `post.save`.
 9. O post salvo pode ser reaberto em `SavedPosts`.
+
+Durante as etapas de extração e geração, `Home.tsx` mantém um estado único que
+cobre tanto a identidade visual quanto a mutation `post.generate`. O `TheVoid`
+exibe tempo decorrido, etapa corrente e uma barra de progresso estimada, limitada
+abaixo de 100% até a resposta real. Em processamentos longos, a interface informa
+explicitamente que a análise continua no servidor. Falhas retornam para um aviso
+inline e preservam o conteúdo digitado para revisão e novo envio.
+
+O percentual não representa progresso emitido pelo backend. Ele é uma indicação
+visual baseada em tempo e fase (`extracting` ou `generating`) centralizada em
+`client/src/lib/generationProgress.ts`.
 
 ### 6.3 Fluxo de execução estruturada
 
@@ -620,6 +649,21 @@ Observação:
 3. Se o snapshot não existir, o frontend reconstrói uma `PostVariation` pelos campos legados.
 4. O store do editor é hidratado com layout, bg, slides, settings persistidos e layouts individuais de `sections`.
 5. O app redireciona para `/`, e `Home.tsx` abre o editor a partir de `sessionStorage`.
+
+### 6.8 Fluxo de salvamento visual fiel ao HoloDeck
+
+1. A geração retorna uma `PostVariation` que pode conter campos estruturados como `template` e `sections`.
+2. Antes de abrir o Workbench, `HoloDeck` normaliza a variação para garantir `sections` com `id` estável e ícones consistentes.
+3. No Workbench, `PostCardV2` renderiza `sections` estruturadas como blocos editáveis individuais, com alvo de layout `section:<id>`.
+4. Movimentos e redimensionamentos desses blocos são gravados em `layoutSettings.sectionLayouts`.
+5. Ao salvar, `Home.tsx` monta um `variation_snapshot` com a variação normalizada, estilos, layout, background, overlays, slides e campos ricos do editor.
+6. `post.save` persiste esse snapshot em `postspark.posts.variation_snapshot`, além dos campos legados usados para listagem e compatibilidade.
+7. Ao reabrir, `SavedPosts` usa o snapshot como fonte principal e só cai para campos legados se o snapshot não existir.
+
+Resultado confirmado:
+
+- Posts novos salvos após essa mudança preservam a composição visual exibida no HoloDeck, incluindo itens centrais gerados em `sections`.
+- Posts antigos sem `variation_snapshot` continuam abrindo pelo fallback legado, mas não recuperam dados que nunca foram persistidos.
 
 ## 7. Dados e persistência
 
@@ -674,6 +718,13 @@ Campos principais confirmados:
 - `variation_snapshot`
 - `exported`
 - timestamps
+
+Observações sobre `variation_snapshot`:
+
+- Campo `jsonb` usado para preservar o estado visual rico de posts novos.
+- Armazena a `PostVariation` normalizada e ajustes de editor que não cabem completamente nos campos legados.
+- Preserva `template`, `sections`, `imageSettings`, `layoutSettings`, `bgValue`, `bgOverlay`, `slides`, tokens visuais e demais dados necessários para reabrir o post no Workbench com fidelidade.
+- É a fonte preferencial de reabertura em `SavedPosts`; campos como `headline`, `body`, `caption`, `imageUrl` e `layout` seguem úteis para listagem, busca, compatibilidade e fallback.
 
 #### `postspark.background_assets`
 
@@ -781,7 +832,11 @@ Variáveis relevantes:
 
 Observação:
 
-- `invokeLLM()` prioriza Gemini quando `GEMINI_API_KEY` está presente; Forge aparece como endpoint alternativo.
+- `invokeLLM()` prioriza Gemini quando `GEMINI_API_KEY` está presente; Forge aparece como endpoint alternativo de configuração.
+- Falhas transitórias (`408`, `429`, `500`, `502`, `503`, `504`, timeout ou rede) recebem retry exponencial com jitter e respeito limitado ao header `Retry-After`.
+- Após esgotar retries de uma chamada textual Gemini, o runtime pode usar Groq com `llama-3.3-70b-versatile`.
+- O fallback não reutiliza cegamente o payload: `server/ai/providers/modelAdapters.ts` converte `json_schema` para `json_object`, injeta o schema no prompt, valida a resposta localmente e permite um reparo único.
+- Imagens, arquivos e chamadas com tools não migram automaticamente para o fallback textual.
 
 ### Pollinations
 
@@ -958,6 +1013,7 @@ Fato observado:
 ### Build gerado dentro do repositório
 
 - `api/index.js`, `dist/` e `dist-server/` podem induzir leitura errada se forem tomados como fonte principal.
+- Como o deploy atual aponta para `api/index.js`, mudanças de backend/tRPC só chegam à produção se o build for regenerado e o artefato correto for enviado no deploy. Isso foi relevante na correção de `variation_snapshot`: o código fonte já estava atualizado, mas um `api/index.js` antigo ainda não continha o novo contrato de salvamento.
 
 ### Billing dependente de estruturas externas ao schema local
 
@@ -1035,10 +1091,169 @@ Migration `postspark_rls_hardening` aplicada:
 4. `SCREENSHOT_SERVICE_URL`.
 5. `BYPASS_AUTH` em ambiente de desenvolvimento.
 
+### Auditoria do pipeline de IA para sites e geracao de posts
+
+Fatos observados:
+
+- O fluxo de URL executa duas extracoes independentes de identidade:
+  - `Home.tsx` dispara `post.extractBrandDNA` para alimentar os temas do HoloDeck;
+  - `post.generate` executa novamente `extractBrandDNA` e `chameleonVision` para gerar os posts.
+- Os dois resultados nao compartilham um snapshot unico. Como usam LLM, podem produzir classificacoes, cores e interpretacoes diferentes para o mesmo site.
+- `BrandDNA` descreve identidade visual, setor, personalidade, composicao e perfil emocional, mas nao modela explicitamente proposta de valor, produtos, publico, diferenciais, objetivos de negocio, pilares editoriais ou topicos prioritarios.
+- `generateThemesFromBrandDNA` gera sempre tres familias fixas (`Original`, `Remix`, `Contraste`) por regras deterministicas de cor, ritmo, alinhamento e card style. Nao existe avaliacao semantica posterior que confirme se cada tema combina com o assunto e o objetivo comercial do site.
+- A geracao de copy usa o texto da homepage obtido por `scrapeUrl`, limitado aos primeiros 10.000 caracteres. A analise visual pode capturar varias paginas, mas o contexto semantico da geracao nao sintetiza o conteudo dessas paginas internas.
+- `chameleonVision` recebe no maximo 2.000 caracteres do contexto textual e gera angulos de copy junto com tokens visuais.
+- A diversidade das tres variacoes e validada por similaridade Jaccard de palavras e igualdade de alguns campos. Nao ha comparacao semantica com posts salvos, geracoes anteriores, concorrentes, frases do site ou cliches do setor.
+- `post.evaluateQuality` existe como endpoint separado, mas nao e chamado automaticamente pelo fluxo principal. Sua avaliacao nao inclui uma dimensao especifica de originalidade nem de aderencia aos objetivos do site.
+- O parametro `model` recebido por `invokeLLM` nao e aplicado ao payload: o runtime fixa `gemini-2.5-flash`. Portanto, a selecao `gemini`/`llama` exposta no contrato nao altera o modelo efetivamente utilizado.
+- No modo execution, `brandInput.websiteUrl` e incluido como texto no briefing, mas nao aciona a extracao de Brand DNA dentro de `post.generate`, pois a requisicao usa `inputType: "text"`.
+
+Riscos confirmados:
+
+1. Temas do HoloDeck e posts gerados podem refletir interpretacoes diferentes do mesmo site.
+2. Temas visualmente coerentes podem ser semanticamente inadequados ao produto, publico ou objetivo do site.
+3. Variacoes lexicalmente diferentes podem continuar sendo conceitualmente genericas ou pouco originais.
+4. A avaliacao de qualidade pode existir no backend sem proteger efetivamente a entrega principal.
+5. O seletor de modelo pode induzir o usuario a acreditar que escolheu um provedor que nao esta sendo usado.
+
+### Baseline executavel da auditoria
+
+- [`docs/AUDITORIA_IMPLEMENTACAO.md`](./docs/AUDITORIA_IMPLEMENTACAO.md) registra os casos representativos, metricas e metas das fases de melhoria.
+- [`tests/fixtures/postspark.ts`](./tests/fixtures/postspark.ts) concentra fixtures deterministicas de sites e composicoes visuais ricas para testes.
+- [`server/ai/variationDiversity.ts`](./server/ai/variationDiversity.ts) isola, sem alterar o comportamento, o guard lexical de diversidade antes embutido em `server/routers.ts`.
+- A baseline automatizada cobre snapshot visual, estado estatico, overrides de carrossel, aplicacao global e diversidade lexical.
+
+### SiteIntelligence: snapshot unico de site
+
+- [`shared/postspark.ts`](./shared/postspark.ts) define `SiteIntelligence`, reunindo Brand DNA visual, negocio, publico, objetivos, estrategia editorial, evidencias e qualidade.
+- [`server/siteContent.ts`](./server/siteContent.ts) normaliza URLs, coleta ate cinco paginas priorizadas, extrai texto legivel e calcula fingerprint SHA-256.
+- [`server/siteIntelligence.ts`](./server/siteIntelligence.ts) orquestra conteudo, Brand DNA, sintese semantica, cache, persistencia, contexto de prompt e tokens visuais.
+- [`drizzle/0005_add_site_intelligence.sql`](./drizzle/0005_add_site_intelligence.sql) cria `postspark.site_intelligence`, com isolamento por `user_uuid`, unicidade por URL/fingerprint e RLS.
+- `post.extractBrandDNA` preserva os campos legados e passa a retornar tambem `siteIntelligence` e `cached`.
+- `post.generate` aceita `siteIntelligenceId`; URL em ideacao e `brandInput.websiteUrl` em execution usam o mesmo pipeline.
+- `Home.tsx` aguarda a extracao antes da geracao e repassa o ID, eliminando snapshots concorrentes entre temas e posts.
+- O endpoint REST `/api/brand-dna` usa o mesmo pipeline sem persistencia porque nao possui identidade autenticada.
+
+### Planejamento estrategico antes da geracao
+
+- [`server/ai/contentStrategy.ts`](./server/ai/contentStrategy.ts) gera cinco estrategias, pontua relevancia, objetivo, evidencia e distincao, e seleciona tres.
+- [`server/ai/postGenerator.ts`](./server/ai/postGenerator.ts) converte as estrategias selecionadas em contratos de prompt por variacao.
+- [`server/ai/generationPipeline.ts`](./server/ai/generationPipeline.ts) prepara o plano consumido por `post.generate`.
+- O objetivo vem do briefing execution ou dos objetivos observados no `SiteIntelligence`.
+- A geracao possui fallback deterministico quando a etapa de estrategia falha, sem perder o vinculo com o conteudo de origem.
+
+### Avaliacao e revisao automatica da geracao
+
+- [`server/ai/postEvaluation.ts`](./server/ai/postEvaluation.ts) avalia marca, objetivo, publico, factualidade, originalidade, clareza, plataforma e legibilidade.
+- Regras deterministicas validam contraste WCAG, tamanho de copy, numeros sem evidencia e similaridade lexical.
+- Juizes LLM por candidato executam em paralelo e sao agregados as regras deterministicas.
+- Candidatos reprovados podem passar por uma unica revisao orientada pelos feedbacks; nao ha loop aberto.
+- `PostVariation.generationMeta` registra estrategia, avaliacao e quantidade de revisoes.
+
+### Modelos efetivos e observabilidade
+
+- [`server/_core/llm.ts`](./server/_core/llm.ts) roteia `gemini` para `gemini-2.5-flash` no Google e `llama` para `llama-3.3-70b-versatile` no Groq.
+- Llama selecionado diretamente exige `GROQ_API_KEY`; não existe fallback silencioso de Llama para Gemini.
+- Chamadas textuais solicitadas como Gemini possuem fallback operacional explícito para Groq após retries transitórios, controlado por `AI_MODEL_FALLBACK_ENABLED`.
+- [`server/ai/providers/modelAdapters.ts`](./server/ai/providers/modelAdapters.ts) preserva mensagens e instruções essenciais, traduz capacidades de saída estruturada e valida o contrato antes de aceitar a resposta do Groq.
+- O trace registra tentativa, provedor, modelo efetivo, `fallbackFrom`, tradução de schema e reparo de output.
+- [`server/ai/generationTrace.ts`](./server/ai/generationTrace.ts) agrega chamadas, prompts, hashes, modelos, tokens, latencia e custo configuravel.
+- [`drizzle/0006_add_generation_runs.sql`](./drizzle/0006_add_generation_runs.sql) cria `postspark.generation_runs` para estrategias, avaliacoes, revisoes e saidas.
+- `.env.example` documenta `GEMINI_API_KEY`, `GROQ_API_KEY`, Supabase e taxas opcionais de custo por milhao de tokens.
+- Snapshots visuais novos registram `snapshotVersion: 1`.
+
+### Originalidade semantica
+
+- [`server/ai/semanticOriginality.ts`](./server/ai/semanticOriginality.ts) gera embeddings de candidatos e referencias com `gemini-embedding-001`, task `SEMANTIC_SIMILARITY` e 768 dimensoes.
+- Cada candidato e comparado aos demais, as evidencias do site e a ate vinte posts recentes do usuario.
+- Na indisponibilidade da API, um embedding deterministico local preserva a checagem, marcado como fallback.
+- A nota de originalidade alimenta `postEvaluation` e fica exposta em `generationMeta.originality`.
+- [`drizzle/0007_add_content_fingerprints.sql`](./drizzle/0007_add_content_fingerprints.sql) persiste hashes, vetores e metadados ligados a execucao.
+
+### Renderer unico e capacidades do editor
+
+- [`client/src/components/PostRenderer.tsx`](./client/src/components/PostRenderer.tsx) e a entrada unica do fluxo ativo para `preview`, `edit` e `export`.
+- HoloDeck, Workbench V2 e SavedPosts renderizam `PostCardV2` a partir do mesmo snapshot.
+- Previews externos usam defaults isolados e nao leem ajustes residuais do Zustand.
+- A referencia de exportacao envolve somente o post em tamanho logico; escala do workspace e controles ficam fora da captura.
+- `layoutTarget` sincroniza canvas e `LayoutBlock`, incluindo `card`, `section:<id>` e `textElement:<id>`.
+- Sections permitem editar label, descricao e icone, alem de movimento e largura.
+- Text elements avancados permitem editar texto, tipografia, cor, tamanho, rotacao, posicao, largura e altura.
+- Formas decorativas automaticas de tema nao sao expostas como layers independentes.
+
+### Operacao, rollout e privacidade da IA
+
+- [`drizzle/0008_add_generation_quality_metrics.sql`](./drizzle/0008_add_generation_quality_metrics.sql) adiciona metricas denormalizadas em `generation_runs`.
+- Runs com falha e chamadas LLM com erro passam a ser rastreadas, alem das runs concluidas.
+- `AI_TRACE_STORE_CONTENT=false` e o default: input e substituido por hash e prompts/outputs brutos nao sao persistidos.
+- `admin.getGenerationMetrics` agrega conclusao, aceitacao, revisao, fallback, erros de chamada, qualidade, latencia, tokens e custo.
+- `admin.getAiRollout` informa as flags efetivas, tambem exibidas no painel Admin.
+- Flags independentes controlam Site Intelligence, estrategia LLM, juiz LLM e embeddings semanticos.
+- [`docs/AI_OPERATIONS.md`](./docs/AI_OPERATIONS.md) documenta deploy, alertas, rollback, diagnostico e retencao.
+
+Hipoteses antigas invalidadas pela implementacao:
+
+1. HoloDeck e generate nao produzem mais snapshots independentes quando o cliente envia `siteIntelligenceId`.
+2. O endpoint separado de qualidade deixou de ser a unica protecao; a avaliacao faz parte do fluxo principal.
+3. O seletor de modelo agora altera o provedor/modelo efetivo e falha explicitamente quando a chave exigida nao existe.
+4. Originalidade deixou de ser apenas lexical e passa a considerar historico, site e candidatos por embeddings.
+
 ### Pontos que deveriam ser validados futuramente
 
-1. Atualizar `.env.example` para refletir variáveis atuais.
+1. Confirmar em producao as taxas reais de custo por modelo e recalibrar os alertas operacionais.
 2. Confirmar o schema e as RPCs reais de billing e documentá-los de forma explícita.
 3. Confirmar se Drizzle ainda é a estratégia de evolução do banco ou apenas documentação de parte do modelo.
+
+## 24. Auditoria da geracao de posts - 2026-06-12
+
+Fatos confirmados no codigo:
+
+- `post.generate` retorna um objeto com `variations`, `generationRunId` e,
+  quando autorizado, `debug`.
+- A redacao das tres variacoes usa tres chamadas LLM paralelas. Cada chamada
+  recebe um contrato estrategico exclusivo e deve retornar exatamente um post.
+- O conjunto final so e entregue quando possui exatamente tres variacoes
+  completas e distintas. Conjuntos parciais, carrosseis sem cinco slides e
+  variacoes excessivamente semelhantes geram falha explicita.
+- Schemas de QA visual, diversificacao e revisao exigem exatamente tres itens.
+  Uma etapa intermediaria incompleta nao pode substituir silenciosamente o
+  conjunto anterior.
+- Para URL, `analyzeSiteIntelligence` coleta conteudo e paginas uma vez e, apos
+  essa coleta compartilhada, executa em paralelo a sintese semantica e a
+  extracao visual de Brand DNA. O `SiteIntelligence` e compilado somente depois
+  que as duas analises terminam.
+- O trace efemero registra prompts, respostas, provedor, modelo solicitado,
+  modelo efetivo, fallback, tokens, latencia e eventos do pipeline.
+- O trace bruto so e retornado quando `AI_UI_DEBUG_ENABLED` e a solicitacao de
+  debug estao ativos. HoloDeck e Workbench exibem o mesmo trace em um painel
+  marcado por `AUDIT_DEBUG_START` / `AUDIT_DEBUG_END`.
+- Prompts e respostas brutas nao entram em `generation_runs`. A persistencia
+  remove `messages` e `response` das chamadas e mantem hashes, modelos,
+  metricas, erros e contadores.
+- `AI_TRACE_STORE_CONTENT` continua controlando snapshots persistidos de input,
+  estrategias e output; ele nao e necessario para o painel efemero.
+
+Risco operacional confirmado:
+
+- A nova estrategia faz tres chamadas de redacao em paralelo, alem das chamadas
+  de estrategia, avaliacao e eventuais correcoes. Isso aumenta o numero de
+  chamadas por run e deve ser acompanhado por latencia, tokens e custo em
+  `generation_runs`.
+
+### Correcao de densidade dos templates estruturados
+
+- O renderer de preview so usa posicionamento absoluto de `sections` quando o
+  snapshot possui `layoutSettings.sectionLayouts` explicito. Variacoes novas
+  sem layout salvo usam o fluxo normal do template.
+- Quando ha layout explicito, as coordenadas percentuais das secoes sao
+  aplicadas sobre a area integral do post, e nao sobre um container interno de
+  altura reduzida.
+- Posts estaticos exibem no maximo tres secoes estruturadas. O backend exige
+  exatamente tres itens para `feature-grid`, `numbered-list` e `step-by-step`,
+  com `label` de ate 24 caracteres e `description` de ate 48 caracteres.
+- O template `simple` deve retornar `sections: []`. A validacao de completude
+  rejeita e tenta novamente respostas que violem essas regras.
+- O calculo de auto-fit reduz tipografia e padding quando existem secoes
+  estruturadas, reservando espaco para os elementos auxiliares.
 4. Validar o endpoint `post.listBackgrounds` e o formato real dos paths retornados.
 5. Revisar e alinhar `docs/` legados ao estado atual do código, ou marcar claramente o que é histórico.

@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Eye, Sparkles, Loader2, Magnet, ChevronLeft, ChevronRight } from "lucide-react";
 import html2canvas from "html2canvas-pro";
-import PostCardV2 from "./PostCardV2";
+import PostRenderer, { type PostRendererMode } from "@/components/PostRenderer";
 import OrganicBackground from "../../OrganicBackground";
 import { useEditorStore } from "@/store/editorStore";
 import { trpc } from "@/lib/trpc";
@@ -24,16 +24,21 @@ interface CanvasWorkspaceProps {
     canvasRef?: React.RefObject<HTMLDivElement | null>;
     /** Mostra borda de edição no card raiz */
     isEditingCard?: boolean;
+    renderMode?: Extract<PostRendererMode, "edit" | "export">;
 }
 
 export default function CanvasWorkspace({
     canvasRef,
     isEditingCard = false,
+    renderMode = "edit",
 }: CanvasWorkspaceProps) {
     const isMobile = useIsMobile();
     const aspectRatio = useEditorStore((s) => s.aspectRatio);
     const activeVariation = useEditorStore((s) => s.activeVariation);
     const updateLayoutSettings = useEditorStore((s) => s.updateLayoutSettings);
+    const layoutSettings = useEditorStore((s) => s.layoutSettings);
+    const imageSettings = useEditorStore((s) => s.imageSettings);
+    const bgOverlay = useEditorStore((s) => s.bgOverlay);
     const updateVariation = useEditorStore((s) => s.updateVariation);
     const bgValue = useEditorStore((s) => s.bgValue);
     const isMagnetActive = useEditorStore((s) => s.isMagnetActive);
@@ -44,6 +49,7 @@ export default function CanvasWorkspace({
     const setCurrentSlideIndex = useEditorStore((s) => s.setCurrentSlideIndex);
     const applyScope = useEditorStore((s) => s.applyScope);
     const setApplyScope = useEditorStore((s) => s.setApplyScope);
+    const layoutTarget = useEditorStore((s) => s.layoutTarget);
     const setLayoutTarget = useEditorStore((s) => s.setLayoutTarget);
 
     const [isAutoPiloting, setIsAutoPiloting] = useState(false);
@@ -64,11 +70,93 @@ export default function CanvasWorkspace({
             });
 
             const imageBase64 = canvas.toDataURL("image/webp", 0.8);
+            const rootRect = canvasRef.current.getBoundingClientRect();
+            const elements = Array.from(
+                canvasRef.current.querySelectorAll<HTMLElement>("[data-layout-id]"),
+            ).map((element) => {
+                const rect = element.getBoundingClientRect();
+                return {
+                    id: element.dataset.layoutId!,
+                    x: ((rect.left + rect.width / 2 - rootRect.left) / rootRect.width) * 100,
+                    y: ((rect.top + rect.height / 2 - rootRect.top) / rootRect.height) * 100,
+                    width: (rect.width / rootRect.width) * 100,
+                    height: (rect.height / rootRect.height) * 100,
+                };
+            });
 
             const result = await autoPilotMutation.mutateAsync({
                 imageBase64,
-                currentState: activeVariation,
+                currentState: {
+                    variation: activeVariation,
+                    aspectRatio,
+                    layoutSettings,
+                    imageSettings,
+                    bgValue,
+                    bgOverlay,
+                    canvas: { width: rootRect.width, height: rootRect.height },
+                    elements,
+                },
             });
+
+            if (Array.isArray(result.suggestedElements)) {
+                const nextLayout: Record<string, any> = {};
+                const nextSectionLayouts = { ...(layoutSettings.sectionLayouts ?? {}) };
+                const textElementSuggestions = new Map<string, any>();
+
+                for (const suggestion of result.suggestedElements) {
+                    const x = Math.min(95, Math.max(5, Number(suggestion.x)));
+                    const y = Math.min(95, Math.max(5, Number(suggestion.y)));
+                    const width = Math.min(96, Math.max(12, Number(suggestion.width)));
+                    if (![x, y, width].every(Number.isFinite)) continue;
+
+                    const patch = {
+                        freePosition: { x, y },
+                        width,
+                        textAlign: suggestion.textAlign,
+                        ...(suggestion.backgroundColor ? { backgroundColor: suggestion.backgroundColor } : {}),
+                        ...(Number.isFinite(suggestion.borderRadius) ? { borderRadius: suggestion.borderRadius } : {}),
+                    };
+
+                    if (suggestion.id.startsWith("textElement:")) {
+                        textElementSuggestions.set(
+                            suggestion.id.slice("textElement:".length),
+                            { suggestion, measured: elements.find((item) => item.id === suggestion.id) },
+                        );
+                    } else if (suggestion.id.startsWith("section:")) {
+                        const sectionId = suggestion.id.slice("section:".length);
+                        if (nextSectionLayouts[sectionId]) {
+                            nextSectionLayouts[sectionId] = { ...nextSectionLayouts[sectionId], ...patch };
+                        }
+                    } else if (suggestion.id in layoutSettings && suggestion.id !== "card") {
+                        nextLayout[suggestion.id] = { ...(layoutSettings as any)[suggestion.id], ...patch };
+                    }
+                }
+
+                updateLayoutSettings({ ...nextLayout, sectionLayouts: nextSectionLayouts });
+
+                if (textElementSuggestions.size && activeVariation.textElements?.length) {
+                    const logicalWidth = canvasRef.current.clientWidth;
+                    const logicalHeight = canvasRef.current.clientHeight;
+                    updateVariation({
+                        textElements: activeVariation.textElements.map((element) => {
+                            const entry = textElementSuggestions.get(element.id);
+                            if (!entry) return element;
+                            const measuredHeight = Number(entry.measured?.height) || 8;
+                            const suggestedWidth = Math.min(96, Math.max(12, Number(entry.suggestion.width)));
+                            return {
+                                ...element,
+                                x: Math.max(0, ((Number(entry.suggestion.x) - suggestedWidth / 2) / 100) * logicalWidth),
+                                y: Math.max(0, ((Number(entry.suggestion.y) - measuredHeight / 2) / 100) * logicalHeight),
+                                width: (suggestedWidth / 100) * logicalWidth,
+                                styles: {
+                                    ...element.styles,
+                                    textAlign: entry.suggestion.textAlign,
+                                },
+                            };
+                        }),
+                    });
+                }
+            }
 
             if (result.suggestedLayoutMoves) {
                 const moves = result.suggestedLayoutMoves;
@@ -192,7 +280,6 @@ export default function CanvasWorkspace({
                 className={`relative group flex items-center justify-center ${isMobile ? "px-3 pt-5 pb-4 h-full w-full" : "px-8 pt-24 pb-8 max-h-[85vh]"}`}
             >
                 <div
-                    ref={canvasRef}
                     className="relative z-10 rounded-2xl shadow-2xl transition-transform duration-300 ease-in-out ease-out transform-gpu shrink-0"
                     style={{
                         transform: `scale(${scale})`,
@@ -200,7 +287,14 @@ export default function CanvasWorkspace({
                         aspectRatio: aspectRatio === '9:16' ? '9/16' : aspectRatio === '5:6' ? '5/6' : '1/1',
                     }}
                 >
-                    <PostCardV2 isEditingCard={isEditingCard} />
+                    <div ref={canvasRef} className="h-full w-full" data-post-export-root>
+                        <PostRenderer
+                            mode={renderMode}
+                            aspectRatio={aspectRatio}
+                            isEditingCard={renderMode === "edit" && (isEditingCard || layoutTarget === "card")}
+                            className="h-full w-full"
+                        />
+                    </div>
 
                     {/* Loading Overlay durante IA */}
                     <AnimatePresence>

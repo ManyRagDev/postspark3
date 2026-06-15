@@ -75,6 +75,7 @@ function DragHandle({
     accentColor,
     onPositionChange,
 }: DragHandleProps) {
+    const handleRef = useRef<HTMLDivElement>(null);
     const handleDragEnd = useCallback(
         (x: number, y: number) => {
             if (snapEnabled) {
@@ -93,6 +94,7 @@ function DragHandle({
 
     const { isDragging, dragPos, handlers } = useDragElement({
         containerRef,
+        elementRef: handleRef,
         onDragEnd: handleDragEnd,
     });
 
@@ -102,6 +104,7 @@ function DragHandle({
         <>
             {/* Drag Handle */}
             <motion.div
+                ref={handleRef}
                 {...(handlers as React.ComponentProps<typeof motion.div>)}
                 className="absolute z-30 flex items-center gap-1 cursor-grab active:cursor-grabbing select-none"
                 style={{

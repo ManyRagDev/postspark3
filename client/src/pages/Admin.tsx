@@ -7,6 +7,10 @@ import { useMemo } from "react";
 export default function Admin() {
     const profilesQuery = trpcHooks.admin.listProfiles.useQuery();
     const statsQuery = trpcHooks.admin.getStats.useQuery();
+    const generationMetricsQuery = trpcHooks.admin.getGenerationMetrics.useQuery({
+        windowDays: 7,
+    });
+    const aiRolloutQuery = trpcHooks.admin.getAiRollout.useQuery();
 
     const formattedProfiles = useMemo(() => {
         if (!profilesQuery.data) return [];
@@ -15,6 +19,18 @@ export default function Admin() {
             dateFormatted: new Date(p.created_at).toLocaleDateString("pt-BR"),
         }));
     }, [profilesQuery.data]);
+
+    const generationMetrics = generationMetricsQuery.data;
+    const metricCards = generationMetrics ? [
+        { label: "Runs", value: generationMetrics.totalRuns.toLocaleString("pt-BR") },
+        { label: "Conclusão", value: `${(generationMetrics.completionRate * 100).toFixed(1)}%` },
+        { label: "Aceitação", value: `${(generationMetrics.candidateAcceptanceRate * 100).toFixed(1)}%` },
+        { label: "Nota média", value: generationMetrics.averageQualityScore.toFixed(1) },
+        { label: "Revisão", value: `${(generationMetrics.revisionRate * 100).toFixed(1)}%` },
+        { label: "Fallback", value: `${(generationMetrics.fallbackRate * 100).toFixed(1)}%` },
+        { label: "P95", value: `${Math.round(generationMetrics.p95LatencyMs)} ms` },
+        { label: "Custo estimado", value: generationMetrics.estimatedCostUsd.toLocaleString("pt-BR", { style: "currency", currency: "USD" }) },
+    ] : [];
 
     return (
         <div className="min-h-screen p-8 pt-24" style={{ backgroundColor: "oklch(0.04 0.06 280)" }}>
@@ -31,6 +47,47 @@ export default function Admin() {
                         </span>
                     </div>
                 </header>
+
+                <Card className="border-white/10 bg-white/5 backdrop-blur-lg">
+                    <CardHeader>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="text-xl">Qualidade da IA · últimos 7 dias</CardTitle>
+                            <div className="flex flex-wrap gap-1.5">
+                                {aiRolloutQuery.data && Object.entries(aiRolloutQuery.data).map(([key, enabled]) => (
+                                    <Badge
+                                        key={key}
+                                        variant="outline"
+                                        className={enabled
+                                            ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                                            : "border-slate-500/40 bg-slate-500/10 text-slate-400"}
+                                    >
+                                        {key}: {enabled ? "on" : "off"}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {generationMetricsQuery.isLoading ? (
+                            <div className="h-24 animate-pulse rounded-xl bg-white/5" />
+                        ) : generationMetricsQuery.error ? (
+                            <p className="text-sm text-red-300">
+                                Não foi possível carregar as métricas de geração.
+                            </p>
+                        ) : (
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                {metricCards.map((metric) => (
+                                    <div key={metric.label} className="rounded-xl border border-white/10 bg-black/20 p-4">
+                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                            {metric.label}
+                                        </span>
+                                        <p className="mt-2 text-xl font-mono text-cyan-300">{metric.value}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
 
                 <Card className="border-white/10 bg-white/5 backdrop-blur-lg overflow-hidden">
                     <CardHeader>

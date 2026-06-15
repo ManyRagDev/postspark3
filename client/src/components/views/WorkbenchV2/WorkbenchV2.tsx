@@ -21,7 +21,7 @@ import { useArcDrawer, TabId } from "@/hooks/useArcDrawer";
 import MobileEditSheet from "@/components/MobileEditSheet";
 import { trpc } from "@/lib/trpc";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
-import type { AspectRatio } from "@shared/postspark";
+import type { AspectRatio, GenerationDebugTrace } from "@shared/postspark";
 import { ASPECT_RATIO_LABELS } from "@shared/postspark";
 import { toast } from "sonner";
 import RatioIcon from "../../RatioIcon";
@@ -33,6 +33,8 @@ import FontColorBlock from "./blocks/FontColorBlock";
 import ImageBlock from "./blocks/ImageBlock";
 import LayoutBlock from "./blocks/LayoutBlock";
 import CaptionBlock from "./blocks/CaptionBlock";
+import ElementContentBlock from "./blocks/ElementContentBlock";
+import GenerationAuditPanel from "@/components/GenerationAuditPanel";
 
 interface WorkbenchV2Props {
     /** Callback para voltar ao HoloDeck */
@@ -43,6 +45,7 @@ interface WorkbenchV2Props {
     isSaving?: boolean;
     /** Callback de exportação (html2canvas) */
     onExport?: () => void;
+    generationDebug?: GenerationDebugTrace;
 }
 
 const DESKTOP_ACCOUNT_SAFE_WIDTH = 240;
@@ -66,9 +69,12 @@ function LeftSidebar({ onGenerateImage, isGenerating, accentColor }: LeftSidebar
 
     const isTextContext = layoutTarget === 'headline' || layoutTarget === 'body';
     const isBrandContext = layoutTarget === 'badge' || layoutTarget === 'sticker' || layoutTarget === 'accentBar' || layoutTarget === 'carouselArrow';
+    const isSectionContext = layoutTarget.startsWith('section:');
+    const isAdvancedTextContext = layoutTarget.startsWith('textElement:');
+    const isCardContext = layoutTarget === 'card';
 
     // MODO CONTEXTUAL (Foco isolado no elemento clicado)
-    if (isTextContext || isBrandContext) {
+    if (isTextContext || isBrandContext || isSectionContext || isAdvancedTextContext || isCardContext) {
         const labels: Record<string, string> = {
             headline: "Título Principal",
             body: "Corpo de Texto",
@@ -76,6 +82,7 @@ function LeftSidebar({ onGenerateImage, isGenerating, accentColor }: LeftSidebar
             sticker: "Sticker Decorativo",
             accentBar: "Barra de Destaque",
             carouselArrow: "Seta do Carrossel",
+            card: "Card Principal",
         };
         return (
             <aside
@@ -102,6 +109,8 @@ function LeftSidebar({ onGenerateImage, isGenerating, accentColor }: LeftSidebar
                 {/* Renderiza os blocos necessários para o contexto */}
                 {(isTextContext || layoutTarget === 'badge' || layoutTarget === 'sticker') && <FontColorBlock />}
                 {isBrandContext && <DesignBlock />}
+                {(isSectionContext || isAdvancedTextContext) && <ElementContentBlock />}
+                {!isAdvancedTextContext && <LayoutBlock />}
             </aside>
         );
     }
@@ -290,7 +299,7 @@ function RightPanel({ topClearance = 0 }: { topClearance?: number }) {
 }
 
 // ─── WorkbenchV2 (raiz) ───────────────────────────────────────────────────────
-export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: WorkbenchV2Props) {
+export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, generationDebug }: WorkbenchV2Props) {
     const activeVariation = useEditorStore((s) => s.activeVariation);
     const baseVariation = useEditorStore((s) => s.baseVariation);
     const aspectRatio = useEditorStore((s) => s.aspectRatio);
@@ -336,9 +345,12 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: Work
 
         setIsExporting(true);
         try {
+            await new Promise<void>((resolve) => {
+                requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+            });
             const { default: html2canvas } = await import("html2canvas-pro");
             const canvas = await html2canvas(canvasRef.current, {
-                scale: 2,
+                scale: 3,
                 backgroundColor: null,
                 useCORS: true,
             });
@@ -448,7 +460,10 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: Work
                     />
                 )}
 
-                <CanvasWorkspace canvasRef={canvasRef} />
+                <CanvasWorkspace
+                    canvasRef={canvasRef}
+                    renderMode={isExporting ? "export" : "edit"}
+                />
 
                 {!isMobile && <RightPanel topClearance={DESKTOP_ACCOUNT_SAFE_HEIGHT} />}
             </div>
@@ -521,6 +536,7 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: Work
                     <div className="space-y-8 pb-10">
                         {activeTab === "text" && (
                             <>
+                                <ElementContentBlock />
                                 <FontColorBlock />
                                 <CaptionBlock />
                             </>
@@ -536,6 +552,9 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport }: Work
                     </div>
                 </MobileEditSheet>
             )}
+            {/* AUDIT_DEBUG_START */}
+            <GenerationAuditPanel trace={generationDebug} title="Auditoria do Workbench" />
+            {/* AUDIT_DEBUG_END */}
         </div>
     );
 }

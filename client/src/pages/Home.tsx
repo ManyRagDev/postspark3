@@ -11,6 +11,7 @@ import type { InputType, PostVariation, AppState, AiModel, PostMode, CreationMod
 import { useUpgradePrompt, UpgradePromptModal } from "@/components/UpgradePrompt";
 import { useEditorStore } from "@/store/editorStore";
 import { buildVariationSnapshot } from "@/lib/variationSnapshot";
+import type { GenerationDebugTrace } from "@shared/postspark";
 
 export default function Home() {
   const [appState, setAppState] = useState<AppState>("void");
@@ -25,11 +26,37 @@ export default function Home() {
   const { showUpgradePrompt, open: upgradeOpen, setOpen: setUpgradeOpen } = useUpgradePrompt();
   const [variations, setVariations] = useState<PostVariation[]>([]);
   const [loadingImageId, setLoadingImageId] = useState<string | null>(null);
+  const [isGenerationActive, setIsGenerationActive] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [generationDebug, setGenerationDebug] = useState<GenerationDebugTrace | undefined>();
   const activeVariation = useEditorStore((state) => state.activeVariation);
 
   const generateMutation = trpc.post.generate.useMutation();
   const generateImageMutation = trpc.post.generateBackground.useMutation();
   const saveMutation = trpc.post.save.useMutation();
+  const debugRequested =
+    import.meta.env.DEV ||
+    import.meta.env.VITE_AI_UI_DEBUG_ENABLED === "true";
+  const mergeDebugTraces = useCallback(
+    (
+      extraction: GenerationDebugTrace | undefined,
+      generation: GenerationDebugTrace | undefined,
+    ): GenerationDebugTrace | undefined => {
+      if (!extraction) return generation;
+      if (!generation) return extraction;
+      return {
+        ...generation,
+        startedAt: extraction.startedAt,
+        durationMs: extraction.durationMs + generation.durationMs,
+        effectiveModels: Array.from(
+          new Set([...extraction.effectiveModels, ...generation.effectiveModels]),
+        ),
+        calls: [...extraction.calls, ...generation.calls],
+        events: [...extraction.events, ...generation.events],
+      };
+    },
+    [],
+  );
 
   // Extracted styles hook
   const {
@@ -71,11 +98,16 @@ export default function Home() {
         return;
       }
 
-      // If URL, extract styles in parallel with content generation
+      setGenerationError(null);
+      setGenerationDebug(undefined);
+      setIsGenerationActive(true);
+
+      // If URL, extract styles before generation so both steps share one snapshot.
+      let siteIntelligencePromise: ReturnType<typeof extractStyles> | null = null;
       if (type === "url") {
         clearExtractedStyles();
-        // Fire and forget with logging
-        extractStyles(value)
+        // Keep extraction visible and reuse its persisted snapshot in generation.
+        (siteIntelligencePromise = extractStyles(value))
           .then((result) => {
             console.log("[Home] Style extraction complete:", result?.themes?.length, "themes");
             if (result && result.themes.length > 0) {
@@ -88,6 +120,10 @@ export default function Home() {
       }
 
       try {
+        const siteResult = siteIntelligencePromise
+          ? await siteIntelligencePromise.catch(() => undefined)
+          : undefined;
+        const resolvedSiteIntelligenceId = siteResult?.siteIntelligence.id;
         const result = await generateMutation.mutateAsync({
           inputType: type,
           content: value,
@@ -96,12 +132,16 @@ export default function Home() {
           tone: detectedState,
           postMode: postMode,
           model: selectedModel,
+          siteIntelligenceId: resolvedSiteIntelligenceId,
+          debug: debugRequested,
         });
 
-        if (result && result.length > 0) {
-          setVariations(result as PostVariation[]);
+        if (result?.variations.length === 3) {
+          setVariations(result.variations as PostVariation[]);
+          setGenerationDebug(mergeDebugTraces(siteResult?.debug, result.debug));
           setAppState("holodeck");
         } else {
+          setGenerationError("A IA não retornou variações utilizáveis.");
           toast.error("Não foi possível sintetizar variações. Tente novamente.");
         }
       } catch (err: any) {
@@ -109,26 +149,47 @@ export default function Home() {
         if (err?.data?.httpStatus === 402 || err?.message?.includes("Sparks insuficientes")) {
           showUpgradePrompt();
         } else {
+          setGenerationError(
+            err?.message || "Houve uma falha temporária durante a síntese.",
+          );
           toast.error(err?.message || "Falha na síntese. Verifique o conteúdo e tente novamente.");
         }
+      } finally {
+        setIsGenerationActive(false);
       }
     },
-    [creationMode, generateMutation, postMode, extractStyles, clearExtractedStyles]
+    [
+      clearExtractedStyles,
+      creationMode,
+      extractStyles,
+      generateMutation,
+      postMode,
+      selectedModel,
+      showUpgradePrompt,
+      mergeDebugTraces,
+    ]
   );
 
   const handleExecutionBriefSubmit = useCallback(
     async (brief: CreativeExecutionBrief) => {
       setExecutionBriefDraft(brief);
       setInputMeta({ type: "text", content: brief.rawInput });
+      setGenerationDebug(undefined);
+      setIsGenerationActive(true);
 
+      let siteIntelligencePromise: ReturnType<typeof extractStyles> | null = null;
       if (brief.brandInput?.websiteUrl) {
         clearExtractedStyles();
-        extractStyles(brief.brandInput.websiteUrl).catch((err) => {
+        (siteIntelligencePromise = extractStyles(brief.brandInput.websiteUrl)).catch((err) => {
           console.error("[Home] Style extraction error:", err);
         });
       }
 
       try {
+        const siteResult = siteIntelligencePromise
+          ? await siteIntelligencePromise.catch(() => undefined)
+          : undefined;
+        const resolvedSiteIntelligenceId = siteResult?.siteIntelligence.id;
         const result = await generateMutation.mutateAsync({
           inputType: "text",
           content: brief.rawInput,
@@ -137,10 +198,13 @@ export default function Home() {
           model: selectedModel,
           creationMode: "execution",
           executionBrief: brief,
+          siteIntelligenceId: resolvedSiteIntelligenceId,
+          debug: debugRequested,
         });
 
-        if (result && result.length > 0) {
-          setVariations(result as PostVariation[]);
+        if (result?.variations.length === 3) {
+          setVariations(result.variations as PostVariation[]);
+          setGenerationDebug(mergeDebugTraces(siteResult?.debug, result.debug));
           setAppState("holodeck");
         } else {
           toast.error("Nao foi possivel executar o briefing. Tente novamente.");
@@ -152,9 +216,11 @@ export default function Home() {
         } else {
           toast.error(err?.message || "Falha ao executar briefing.");
         }
+      } finally {
+        setIsGenerationActive(false);
       }
     },
-    [clearExtractedStyles, extractStyles, generateMutation, selectedModel, showUpgradePrompt]
+    [clearExtractedStyles, extractStyles, generateMutation, selectedModel, showUpgradePrompt, mergeDebugTraces]
   );
 
   // State 2 → State 3: Select a variation to edit
@@ -258,7 +324,8 @@ export default function Home() {
   // Navigation
   const goToVoid = useCallback(() => {
     setAppState("void");
-    setVariations([]);
+      setVariations([]);
+      setGenerationDebug(undefined);
   }, []);
 
   const goToExecutionBrief = useCallback(() => {
@@ -294,11 +361,18 @@ export default function Home() {
           <TheVoid
             key="void"
             onSubmit={handleVoidSubmit}
-            isLoading={generateMutation.isPending}
+            isLoading={isGenerationActive}
             postMode={postMode}
             onPostModeChange={setPostMode}
             creationMode={creationMode}
             onCreationModeChange={setCreationMode}
+            generationPhase={
+              isExtracting && !generateMutation.isPending
+                ? "extracting"
+                : "generating"
+            }
+            generationError={generationError}
+            onDismissGenerationError={() => setGenerationError(null)}
           />
         )}
 
@@ -308,7 +382,7 @@ export default function Home() {
             initialInput={inputMeta}
             defaultPostMode={postMode}
             initialBrief={executionBriefDraft}
-            isLoading={generateMutation.isPending}
+            isLoading={isGenerationActive}
             onBack={goToVoid}
             onSubmit={handleExecutionBriefSubmit}
           />
@@ -326,6 +400,7 @@ export default function Home() {
             isExtractingStyles={isExtracting}
             executionBrief={creationMode === "execution" ? executionBriefDraft ?? undefined : undefined}
             onBackToBrief={creationMode === "execution" ? goToExecutionBrief : undefined}
+            generationDebug={generationDebug}
           />
         )}
 
@@ -335,6 +410,7 @@ export default function Home() {
             onBack={goToHoloDeck}
             onSave={handleSave}
             isSaving={saveMutation.isPending}
+            generationDebug={generationDebug}
           />
         )}
       </AnimatePresence>

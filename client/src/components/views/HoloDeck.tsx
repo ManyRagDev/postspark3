@@ -1,10 +1,10 @@
 ﻿import { useState, useCallback, useEffect, useRef, type MutableRefObject } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { ArrowLeft, Layers, Sparkles, ImagePlus, Loader2, Palette, LayoutGrid, AlignJustify, Globe, Check, Settings2, PenTool, BriefcaseBusiness } from "lucide-react";
-import type { PostVariation, AspectRatio, TemporaryTheme, DesignTokens, CreativeExecutionBrief } from "@shared/postspark";
+import type { PostVariation, AspectRatio, TemporaryTheme, DesignTokens, CreativeExecutionBrief, GenerationDebugTrace } from "@shared/postspark";
 import { ASPECT_RATIO_LABELS } from "@shared/postspark";
 import OrganicBackground from "../OrganicBackground";
-import PostCard from "../PostCard";
+import PostRenderer from "../PostRenderer";
 import RatioIcon from "../RatioIcon";
 import StyleSelector from "../StyleSelector";
 import CopyEditorPanel from "../CopyEditorPanel";
@@ -14,6 +14,7 @@ import { useAIProcessingStages, useCompletionFlash } from "@/hooks/useAIProcessi
 import { useEditorStore } from "@/store/editorStore";
 import { normalizeVariationForEditor } from "@/lib/variationSnapshot";
 import { layoutToAdvanced } from "./WorkbenchRefactored";
+import GenerationAuditPanel from "../GenerationAuditPanel";
 
 const RATIOS: AspectRatio[] = ["1:1", "5:6", "9:16"];
 
@@ -27,6 +28,7 @@ interface HoloDeckProps {
   isExtractingStyles?: boolean;
   executionBrief?: CreativeExecutionBrief;
   onBackToBrief?: () => void;
+  generationDebug?: GenerationDebugTrace;
 }
 
 type ViewMode = "peek" | "wallet";
@@ -134,7 +136,7 @@ function WalletCard({
         }}
         transition={{ type: "spring", stiffness: 280, damping: 28 }}
       >
-        <PostCard variation={variation} aspectRatio={aspectRatio} />
+        <PostRenderer mode="preview" snapshot={variation} aspectRatio={aspectRatio} />
       </motion.div>
     );
   }
@@ -159,7 +161,7 @@ function WalletCard({
         className="absolute inset-0 rounded-2xl pointer-events-none z-10"
         style={{ background: overlayBg }}
       />
-      <PostCard variation={variation} aspectRatio={aspectRatio} />
+      <PostRenderer mode="preview" snapshot={variation} aspectRatio={aspectRatio} />
     </motion.div>
   );
 }
@@ -359,6 +361,7 @@ export default function HoloDeck({
   isExtractingStyles = false,
   executionBrief,
   onBackToBrief,
+  generationDebug,
 }: HoloDeckProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("peek");
@@ -476,7 +479,10 @@ export default function HoloDeck({
       editorStore.setBgOverlay((parsedVariation as any).bgOverlay);
     }
 
-    if ((parsedVariation as any).layoutSettings) {
+    if (
+      !(parsedVariation.layoutSettingsByAspectRatio?.[aspectRatio]) &&
+      (parsedVariation as any).layoutSettings
+    ) {
       editorStore.updateLayoutSettings((parsedVariation as any).layoutSettings);
     } else if (parsedVariation.layout) {
       const advanced = layoutToAdvanced(parsedVariation.layout);
@@ -724,8 +730,9 @@ export default function HoloDeck({
                     animate={{ boxShadow: `0 0 0 1px ${accentColor}38, 0 20px 70px ${accentColor}22` }}
                     transition={{ duration: 1.2, ease: "easeInOut" }}
                   />
-                  <PostCard
-                    variation={activePreviewVariation}
+                  <PostRenderer
+                    mode="preview"
+                    snapshot={activePreviewVariation}
                     theme={customTokens ? undefined : selectedTheme}
                     designTokens={customTokens}
                     aspectRatio={aspectRatio}
@@ -1067,6 +1074,9 @@ export default function HoloDeck({
         onSelect={handleThemeSelect}
         currentThemeId={selectedTheme?.id}
       />
+      {/* AUDIT_DEBUG_START */}
+      <GenerationAuditPanel trace={generationDebug} title="Auditoria do HoloDeck" />
+      {/* AUDIT_DEBUG_END */}
     </motion.div>
   );
 }
