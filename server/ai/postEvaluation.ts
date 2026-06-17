@@ -25,6 +25,8 @@ export interface EvaluationPipelineResult<T extends EvaluatedCandidate> {
   candidates: T[];
   evaluations: GenerationEvaluationSummary[];
   revisionCount: number;
+  revisedIndexes: number[];
+  revisionFailedIndexes: number[];
 }
 
 type Dimensions = GenerationEvaluationSummary["dimensions"];
@@ -190,6 +192,7 @@ async function llmEvaluation(input: {
   try {
     const response = await invokeLLM({
       traceLabel: "post_evaluation",
+      taskRoute: "post_evaluation",
       messages: [
         {
           role: "system",
@@ -338,9 +341,10 @@ export async function evaluateAndReviseCandidates<
   platform: Platform;
   originalityScores?: number[];
   revise: (
-    candidates: T[],
-    evaluations: GenerationEvaluationSummary[],
-  ) => Promise<T[]>;
+    candidate: T,
+    evaluation: GenerationEvaluationSummary,
+    index: number,
+  ) => Promise<T | null>;
 }): Promise<EvaluationPipelineResult<T>> {
   let candidates = input.candidates;
   let evaluations = await evaluateCandidates({
@@ -352,29 +356,48 @@ export async function evaluateAndReviseCandidates<
   });
 
   if (evaluations.every((evaluation) => evaluation.accepted)) {
-    return { candidates, evaluations, revisionCount: 0 };
+    return { candidates, evaluations, revisionCount: 0, revisedIndexes: [], revisionFailedIndexes: [] };
   }
 
   if (!ENV.aiLlmJudgeEnabled) {
-    return { candidates, evaluations, revisionCount: 0 };
+    return { candidates, evaluations, revisionCount: 0, revisedIndexes: [], revisionFailedIndexes: [] };
   }
 
-  try {
-    const revised = await input.revise(candidates, evaluations);
-    if (revised.length === candidates.length) {
-      candidates = revised;
-      evaluations = await evaluateCandidates({
-        candidates,
-        strategies: input.strategies,
-        siteIntelligence: input.siteIntelligence,
-        platform: input.platform,
-        originalityScores: input.originalityScores,
-      });
-      return { candidates, evaluations, revisionCount: 1 };
-    }
-  } catch (error) {
-    console.warn("[postEvaluation] Revision failed:", error);
+  const revisedCandidates = [...candidates];
+  const revisedIndexes: number[] = [];
+  const revisionFailedIndexes: number[] = [];
+  let revisionCount = 0;
+
+  await Promise.all(
+    evaluations.map(async (evaluation, index) => {
+      if (evaluation.accepted) return;
+      try {
+        const revised = await input.revise(candidates[index], evaluation, index);
+        if (revised) {
+          revisedCandidates[index] = revised;
+          revisedIndexes.push(index);
+          revisionCount += 1;
+        } else {
+          revisionFailedIndexes.push(index);
+        }
+      } catch (error) {
+        console.warn(`[postEvaluation] Revision failed for candidate ${index + 1}:`, error);
+        revisionFailedIndexes.push(index);
+      }
+    }),
+  );
+
+  if (revisionCount === 0) {
+    return { candidates, evaluations, revisionCount: 0, revisedIndexes: [], revisionFailedIndexes };
   }
 
-  return { candidates, evaluations, revisionCount: 0 };
+  candidates = revisedCandidates;
+  evaluations = await evaluateCandidates({
+    candidates,
+    strategies: input.strategies,
+    siteIntelligence: input.siteIntelligence,
+    platform: input.platform,
+    originalityScores: input.originalityScores,
+  });
+  return { candidates, evaluations, revisionCount, revisedIndexes, revisionFailedIndexes };
 }

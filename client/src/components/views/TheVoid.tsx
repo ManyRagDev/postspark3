@@ -7,12 +7,13 @@ import {
 } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CreationMode, InputType, PostMode } from "@shared/postspark";
-import { AlertTriangle, Clock3, Loader2, X } from "lucide-react";
+import { AlertTriangle, Clock3, X } from "lucide-react";
 import { useAmbientIntelligence } from "@/hooks/useAmbientIntelligence";
 import {
   formatGenerationElapsed,
   getGenerationProgress,
   type GenerationPhase,
+  type GenerationProgressState,
 } from "@/lib/generationProgress";
 import OrganicBackground from "../OrganicBackground";
 import SparkLogo from "../SparkLogo";
@@ -123,6 +124,138 @@ const BACKGROUND_CARDS = [
     style: { bottom: "40%", right: "-2%", rotate: "-30deg", zIndex: 0 },
   },
 ] as const;
+
+function GenerationStatusDock({
+  isLoading,
+  progress,
+  elapsedSeconds,
+  accentColor,
+  generationError,
+  onDismissGenerationError,
+}: {
+  isLoading: boolean;
+  progress: GenerationProgressState;
+  elapsedSeconds: number;
+  accentColor: string;
+  generationError?: string | null;
+  onDismissGenerationError?: () => void;
+}) {
+  return (
+    <AnimatePresence mode="wait">
+      {isLoading ? (
+        <motion.div
+          key="generation-progress"
+          className="mt-3 w-full px-1.5 text-left"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          role="status"
+          aria-live="polite"
+        >
+          <div className="rounded-b-2xl px-3 pb-1.5 pt-1">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className="relative flex h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: accentColor }}
+                  aria-hidden
+                >
+                  <motion.span
+                    className="absolute inset-0 rounded-full"
+                    animate={{ opacity: [0.55, 0.08, 0.55], scale: [1, 2.6, 1] }}
+                    transition={{ duration: 1.9, repeat: Infinity, ease: "easeInOut" }}
+                    style={{ backgroundColor: accentColor }}
+                  />
+                </span>
+                <p className="truncate text-xs font-semibold text-white/86">
+                  {progress.label}
+                </p>
+              </div>
+              <span className="flex shrink-0 items-center gap-1 text-[10px] tabular-nums text-white/36">
+                <Clock3 size={11} />
+                {formatGenerationElapsed(elapsedSeconds)}
+              </span>
+            </div>
+
+            <div
+              className="relative mt-2 h-px overflow-visible rounded-full bg-white/10"
+              role="progressbar"
+              aria-label="Progresso estimado da geração"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress.percentage}
+            >
+              <motion.div
+                className="absolute left-0 top-0 h-px rounded-full"
+                animate={{ width: `${progress.percentage}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                style={{
+                  background: `linear-gradient(90deg, ${accentColor}, color-mix(in oklab, ${accentColor} 42%, white 58%))`,
+                  boxShadow: `0 0 12px ${accentColor}80`,
+                }}
+              />
+              <motion.span
+                className="absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full"
+                animate={{ left: `${progress.percentage}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                style={{
+                  backgroundColor: "white",
+                  boxShadow: `0 0 14px ${accentColor}`,
+                }}
+              />
+            </div>
+
+            <div className="mt-2 flex items-start justify-between gap-3">
+              <p className="min-w-0 text-[11px] leading-relaxed text-white/42">
+                {progress.detail}
+              </p>
+              <span className="shrink-0 text-[9px] tabular-nums text-white/28">
+                {progress.percentage}%
+              </span>
+            </div>
+
+            {progress.isTakingLong ? (
+              <p className="mt-2 text-[10px] leading-relaxed text-white/36">
+                Nao travou: a analise continua no servidor. Mantenha esta tela aberta.
+              </p>
+            ) : null}
+          </div>
+        </motion.div>
+      ) : generationError ? (
+        <motion.div
+          key="generation-error"
+          className="mt-3 w-full px-1.5 text-left"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          role="alert"
+        >
+          <div className="rounded-2xl border border-red-300/14 bg-red-950/22 px-4 py-3 backdrop-blur-md">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0 text-red-200/72" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-red-50/88">
+                  A geracao nao foi concluida
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed text-red-100/54">
+                  {generationError} Seu conteudo continua no campo para voce revisar e enviar novamente.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onDismissGenerationError}
+                className="rounded-lg p-1 text-white/35 transition-colors hover:bg-white/8 hover:text-white/70"
+                aria-label="Fechar aviso"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
 
 export default function TheVoid({
   onSubmit,
@@ -263,97 +396,14 @@ export default function TheVoid({
   );
 
   const generationFeedback = (
-    <AnimatePresence mode="wait">
-      {isLoading ? (
-        <motion.div
-          key="generation-progress"
-          className="mt-3 w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-left backdrop-blur-xl"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          role="status"
-          aria-live="polite"
-        >
-          <div className="flex items-start gap-3">
-            <Loader2
-              size={17}
-              className="mt-0.5 shrink-0 animate-spin"
-              style={{ color: surfaceAccent }}
-            />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-3">
-                <p className="truncate text-xs font-semibold text-white/90">
-                  {generationProgress.label}
-                </p>
-                <span className="flex shrink-0 items-center gap-1 text-[10px] tabular-nums text-white/45">
-                  <Clock3 size={11} />
-                  {formatGenerationElapsed(elapsedSeconds)}
-                </span>
-              </div>
-              <p className="mt-1 text-[11px] leading-relaxed text-white/52">
-                {generationProgress.detail}
-              </p>
-              <div
-                className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/8"
-                role="progressbar"
-                aria-label="Progresso estimado da geração"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={generationProgress.percentage}
-              >
-                <motion.div
-                  className="h-full rounded-full"
-                  animate={{ width: `${generationProgress.percentage}%` }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                  style={{
-                    background: `linear-gradient(90deg, ${surfaceAccent}, color-mix(in oklab, ${surfaceAccent} 58%, white 42%))`,
-                    boxShadow: `0 0 14px ${surfaceAccent}70`,
-                  }}
-                />
-              </div>
-              <div className="mt-1.5 flex items-center justify-between text-[9px] uppercase tracking-[0.12em] text-white/32">
-                <span>Progresso estimado</span>
-                <span>{generationProgress.percentage}%</span>
-              </div>
-              {generationProgress.isTakingLong ? (
-                <p className="mt-2 rounded-lg border border-amber-300/12 bg-amber-300/6 px-2.5 py-2 text-[10px] leading-relaxed text-amber-100/65">
-                  Não travou: a análise continua no servidor. Você pode manter esta tela aberta.
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </motion.div>
-      ) : generationError ? (
-        <motion.div
-          key="generation-error"
-          className="mt-3 w-full rounded-2xl border border-red-300/18 bg-red-950/35 px-4 py-3 text-left backdrop-blur-xl"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          role="alert"
-        >
-          <div className="flex items-start gap-3">
-            <AlertTriangle size={17} className="mt-0.5 shrink-0 text-red-200/80" />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-red-50/90">
-                A geração não foi concluída
-              </p>
-              <p className="mt-1 text-[11px] leading-relaxed text-red-100/58">
-                {generationError} Seu conteúdo continua no campo para você revisar e enviar novamente.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onDismissGenerationError}
-              className="rounded-lg p-1 text-white/35 transition-colors hover:bg-white/8 hover:text-white/70"
-              aria-label="Fechar aviso"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+    <GenerationStatusDock
+      isLoading={isLoading}
+      progress={generationProgress}
+      elapsedSeconds={elapsedSeconds}
+      accentColor={surfaceAccent}
+      generationError={generationError}
+      onDismissGenerationError={onDismissGenerationError}
+    />
   );
 
   const ambientBadge = (

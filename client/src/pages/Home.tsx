@@ -17,7 +17,7 @@ export default function Home() {
   const [appState, setAppState] = useState<AppState>("void");
   const [creationMode, setCreationMode] = useState<CreationMode>("ideation");
   const [postMode, setPostMode] = useState<PostMode>("static");
-  const [selectedModel, setSelectedModel] = useState<AiModel>("gemini");
+  const [selectedModel, setSelectedModel] = useState<AiModel>("llama");
   const [inputMeta, setInputMeta] = useState<{ type: InputType; content: string }>({
     type: "text",
     content: "",

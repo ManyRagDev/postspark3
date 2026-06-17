@@ -103,6 +103,8 @@ Variation ${i + 1}:
     // ── LLM evaluation ─────────────────────────────────────────────────────────
     try {
         const response = await invokeLLM({
+            traceLabel: "post_quality_judge",
+            taskRoute: "post_evaluation",
             messages: [
                 {
                     role: 'system',

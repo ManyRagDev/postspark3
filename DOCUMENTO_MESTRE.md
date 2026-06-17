@@ -161,7 +161,7 @@ Conduzir o usuário do insumo inicial até a geração, seleção e edição do 
 - texto, URL ou imagem;
 - modo de criação (`ideation` ou `execution`);
 - modo de post (`static` ou `carousel`);
-- modelo selecionado (`gemini` ou `llama`, embora o backend atual privilegie Gemini/Forge).
+- modelo selecionado permanece no contrato por compatibilidade, mas o backend resolve provedor/modelo por `taskRoute`.
 
 **Saídas**
 
@@ -482,10 +482,11 @@ Gerar textos, imagens, extrações visuais, Brand DNA e avaliação de qualidade
 
 **Dependências externas**
 
-- Gemini via endpoint OpenAI-compatible;
-- Forge API como alternativa/custom endpoint;
-- Groq API para fallback em alguns cenários;
-- Pollinations para geração de background.
+- OpenRouter PAYG via endpoint OpenAI-compatible como primario para geracao textual forte, carrossel, vision criativa e imagem;
+- Groq via endpoint OpenAI-compatible para microcopy (`openai/gpt-oss-120b`) e vision rapida (`meta-llama/llama-4-scout-17b-16e-instruct`);
+- Gemini via endpoint OpenAI-compatible para fallback textual e fallback multimodal/vision;
+- Forge API como alternativa/custom endpoint para o caminho Gemini quando configurado;
+- Pollinations apenas como fallback legacy de background.
 
 **Riscos e observações**
 
@@ -558,9 +559,9 @@ Gerenciar o estado editável do post e suas variantes/overrides por slide.
 
 ### 5.8.1 Layout responsivo e interacao no canvas
 
-- Novas variacoes normalizadas recebem `layoutSettingsByAspectRatio`, com composicoes calculadas separadamente para `1:1`, `5:6` e `9:16`.
-- Ao trocar o formato, o store preserva o layout atual e hidrata o layout correspondente ao destino.
-- A distribuicao inicial de `sections` considera template, quantidade de itens e proporcao. Grades usam multiplas linhas e listas usam uma coluna, evitando concentrar todos os itens no mesmo eixo horizontal.
+- A normalizacao de uma variacao nao cria coordenadas absolutas nem `layoutSettingsByAspectRatio`; HoloDeck e Workbench iniciam com o mesmo fluxo responsivo de `PostCardV2`.
+- Ao trocar o formato, o store preserva o layout manual do formato atual e hidrata o layout salvo do destino. Quando nao existe layout salvo, usa o layout estrutural correspondente a `PostVariation.layout`.
+- `layoutSettings.sectionLayouts` contem somente posicoes criadas explicitamente pelo usuario ou aplicadas pelo AutoPilot. Sections sem override continuam ocupando seu lugar no fluxo do template.
 - O drag usa o retangulo visual real para preservar o ponto de grab, captura o gesto no documento e limita o centro conforme as dimensoes do elemento.
 - O botao `Ajustar com IA` captura a imagem e um snapshot geometrico com `id`, centro, largura e altura de cada bloco visivel. A resposta de visao e aplicada por identificador, inclusive em `section:<id>` e `textElement:<id>`.
 
@@ -629,7 +630,7 @@ visual baseada em tempo e fase (`extracting` ou `generating`) centralizada em
 
 1. O usuário pede geração de imagem.
 2. O backend debita Sparks.
-3. `generateBackgroundImage()` chama Pollinations.
+3. `generateBackgroundImage()` chama OpenRouter/Nano Banana 2 e usa Pollinations apenas como fallback legacy.
 4. O backend devolve `data:image/...;base64,...`.
 5. O frontend injeta a imagem diretamente no editor.
 
@@ -825,6 +826,11 @@ Uso confirmado para:
 
 Variáveis relevantes:
 
+- `OPENROUTER_API_KEY`
+- `OPENROUTER_TEXT_MODEL`
+- `OPENROUTER_VISION_MODEL`
+- `OPENROUTER_IMAGE_MODEL`
+- `OPENROUTER_PLATFORM_FEE_PERCENT`
 - `GEMINI_API_KEY`
 - `BUILT_IN_FORGE_API_URL`
 - `BUILT_IN_FORGE_API_KEY`
@@ -832,11 +838,12 @@ Variáveis relevantes:
 
 Observação:
 
-- `invokeLLM()` prioriza Gemini quando `GEMINI_API_KEY` está presente; Forge aparece como endpoint alternativo de configuração.
+- `invokeLLM()` prioriza OpenRouter/GPT-5 mini por `taskRoute` para texto forte, carrossel e vision criativa; Groq fica restrito a microcopy e vision rapida; Gemini/Forge aparecem como fallback quando configurados.
 - Falhas transitórias (`408`, `429`, `500`, `502`, `503`, `504`, timeout ou rede) recebem retry exponencial com jitter e respeito limitado ao header `Retry-After`.
-- Após esgotar retries de uma chamada textual Gemini, o runtime pode usar Groq com `llama-3.3-70b-versatile`.
-- O fallback não reutiliza cegamente o payload: `server/ai/providers/modelAdapters.ts` converte `json_schema` para `json_object`, injeta o schema no prompt, valida a resposta localmente e permite um reparo único.
-- Imagens, arquivos e chamadas com tools não migram automaticamente para o fallback textual.
+- Após esgotar retries de uma chamada OpenRouter/Groq sem tools, o runtime pode usar Gemini como fallback.
+- `server/ai/providers/modelAdapters.ts` usa `json_schema` nativo no OpenRouter/GPT-5 mini e no Groq `openai/gpt-oss-120b`; se o Groq rejeitar esse formato com erro de contrato, rebaixa a chamada para `json_object` com schema textual.
+- Para modelos Groq sem suporte explícito a schema nativo, o adapter preserva o caminho textual: converte `json_schema` para `json_object`, injeta o schema no prompt, valida localmente e permite um reparo único.
+- Chamadas com tools não migram automaticamente para o fallback textual.
 
 ### Pollinations
 
@@ -1105,7 +1112,7 @@ Fatos observados:
 - `chameleonVision` recebe no maximo 2.000 caracteres do contexto textual e gera angulos de copy junto com tokens visuais.
 - A diversidade das tres variacoes e validada por similaridade Jaccard de palavras e igualdade de alguns campos. Nao ha comparacao semantica com posts salvos, geracoes anteriores, concorrentes, frases do site ou cliches do setor.
 - `post.evaluateQuality` existe como endpoint separado, mas nao e chamado automaticamente pelo fluxo principal. Sua avaliacao nao inclui uma dimensao especifica de originalidade nem de aderencia aos objetivos do site.
-- O parametro `model` recebido por `invokeLLM` nao e aplicado ao payload: o runtime fixa `gemini-2.5-flash`. Portanto, a selecao `gemini`/`llama` exposta no contrato nao altera o modelo efetivamente utilizado.
+- O parametro `model` recebido por `invokeLLM` permanece para compatibilidade, mas a selecao efetiva de provedor/modelo e feita por `taskRoute`; chamadas sem rota explicita usam OpenRouter/GPT-5 mini, e chamadas multimodais usam `vision_analysis` com fallback Gemini.
 - No modo execution, `brandInput.websiteUrl` e incluido como texto no briefing, mas nao aciona a extracao de Brand DNA dentro de `post.generate`, pois a requisicao usa `inputType: "text"`.
 
 Riscos confirmados:
@@ -1114,7 +1121,7 @@ Riscos confirmados:
 2. Temas visualmente coerentes podem ser semanticamente inadequados ao produto, publico ou objetivo do site.
 3. Variacoes lexicalmente diferentes podem continuar sendo conceitualmente genericas ou pouco originais.
 4. A avaliacao de qualidade pode existir no backend sem proteger efetivamente a entrega principal.
-5. O seletor de modelo pode induzir o usuario a acreditar que escolheu um provedor que nao esta sendo usado.
+5. O seletor de modelo permanece como compatibilidade de contrato; a decisao efetiva ocorre no backend por `taskRoute`, com OpenRouter como rota principal e Gemini como fallback.
 
 ### Baseline executavel da auditoria
 
@@ -1147,20 +1154,37 @@ Riscos confirmados:
 - [`server/ai/postEvaluation.ts`](./server/ai/postEvaluation.ts) avalia marca, objetivo, publico, factualidade, originalidade, clareza, plataforma e legibilidade.
 - Regras deterministicas validam contraste WCAG, tamanho de copy, numeros sem evidencia e similaridade lexical.
 - Juizes LLM por candidato executam em paralelo e sao agregados as regras deterministicas.
-- Candidatos reprovados podem passar por uma unica revisao orientada pelos feedbacks; nao ha loop aberto.
-- `PostVariation.generationMeta` registra estrategia, avaliacao e quantidade de revisoes.
+- Candidatos reprovados podem passar por uma unica revisao cirurgica orientada apenas pelo candidato, pela estrategia daquele indice e pela avaliacao daquele indice; nao ha loop aberto nem revisao do pacote inteiro quando apenas um item falha.
+- Se a revisao falhar, o candidato original e preservado e `generationMeta.revisionFailed` marca o ocorrido; revisoes bem-sucedidas usam `generationMeta.revisionApplied`.
+- Antes de acionar ou persistir resultados, guardas deterministicas reduzem textos longos, limitam hashtags e ajustam CTAs simples quando possivel.
+- `PostVariation.generationMeta` registra estrategia, avaliacao, quantidade de revisoes e flags de revisao aplicada/falha.
 
 ### Modelos efetivos e observabilidade
 
-- [`server/_core/llm.ts`](./server/_core/llm.ts) roteia `gemini` para `gemini-2.5-flash` no Google e `llama` para `llama-3.3-70b-versatile` no Groq.
-- Llama selecionado diretamente exige `GROQ_API_KEY`; não existe fallback silencioso de Llama para Gemini.
-- Chamadas textuais solicitadas como Gemini possuem fallback operacional explícito para Groq após retries transitórios, controlado por `AI_MODEL_FALLBACK_ENABLED`.
-- [`server/ai/providers/modelAdapters.ts`](./server/ai/providers/modelAdapters.ts) preserva mensagens e instruções essenciais, traduz capacidades de saída estruturada e valida o contrato antes de aceitar a resposta do Groq.
-- O trace registra tentativa, provedor, modelo efetivo, `fallbackFrom`, tradução de schema e reparo de output.
+- [`server/ai/modelRouter.ts`](./server/ai/modelRouter.ts) centraliza a matriz de IA por `taskRoute`, substituindo o default operacional baseado apenas em `gemini`/`llama`.
+- OpenRouter PAYG e o caminho principal para geracao forte: `content_strategy`, `static_generation`, `carousel_generation`, `post_evaluation`, `quality_revision` e `vision_analysis` usam `OPENROUTER_TEXT_MODEL`/`OPENROUTER_VISION_MODEL`, com default `openai/gpt-5-mini`.
+- Groq permanece na stack para tarefas curtas: `microcopy` usa `openai/gpt-oss-120b` e `fast_vision` usa `meta-llama/llama-4-scout-17b-16e-instruct`.
+- Gemini direto (`gemini-2.5-flash` via Google ou Forge) nao e rota principal; ele e fallback apos erros transitorios, quota/429, 5xx ou indisponibilidade, controlado por `AI_MODEL_FALLBACK_ENABLED`.
+- [`server/ai/providers/modelAdapters.ts`](./server/ai/providers/modelAdapters.ts) preserva `json_schema` nativo para OpenRouter/GPT-5 mini e Groq GPT-OSS; para Groq sem suporte explicito ou rejeicao 400/422, rebaixa para `json_object` com schema textual.
+- Para `openai/gpt-oss-120b`, `invokeLLM` aplica defaults de estabilidade quando a chamada nao informa valores: `temperature: 0.45`, `top_p: 0.9`, `reasoning_effort: "low"` e `max_completion_tokens: 2048`.
+- Para OpenRouter, `invokeLLM` aplica politica por `taskRoute`: `content_strategy` usa `reasoning_effort: "minimal"`, `temperature: 0.35`, `top_p: 0.85` e timeout de 12s; `static_generation` usa `minimal`, `0.4`, `0.85` e 35s; `carousel_generation` usa `low`, `0.45`, `0.85` e 60s; `post_evaluation` e `quality_revision` usam `minimal` com timeouts de 20s e 25s. Em todas essas rotas, o payload envia `reasoning: { exclude: true }` para evitar tokens de raciocinio na resposta.
+- Chamadas OpenRouter sem politica especifica preservam defaults gerais: `temperature: 0.55`, `top_p: 0.9`, `max_tokens: 2048` e provider routing com `allow_fallbacks` e `data_collection: "deny"`.
+- O pipeline principal aumenta o teto apenas onde precisa de mais saida estruturada: estrategia usa `1024`, slots estaticos usam `3072` na primeira tentativa e `2048` na tentativa curta, slots de carrossel usam `4096` e `3072`, e revisoes usam orcamento curto por candidato.
+- A geracao principal por slot usa um prompt dedicado de exatamente uma variacao, sem carregar a instrucao global contraditoria de tres variacoes; o schema continua exigindo `variations` com um item por slot.
+- Respostas estruturadas vazias ou truncadas (`finish_reason`/`native_finish_reason` de limite) sao classificadas como `empty_content` ou `truncated` e nao disparam reparo generico; falhas de estrategia caem no fallback deterministico, slots fazem no maximo uma tentativa curta adicional e revisao truncada preserva o candidato original.
+- O trace registra `taskRoute`, tentativa, provedor, modelo efetivo, `fallbackFrom`, modo de saida estruturada (`native_schema` ou `text_schema`), parametros efetivos do payload, traducao de schema, reparo de output, `reasoningTokens`, `finishReason`, `nativeFinishReason`, `contentLength` e `structuredFailureType`.
 - [`server/ai/generationTrace.ts`](./server/ai/generationTrace.ts) agrega chamadas, prompts, hashes, modelos, tokens, latencia e custo configuravel.
 - [`drizzle/0006_add_generation_runs.sql`](./drizzle/0006_add_generation_runs.sql) cria `postspark.generation_runs` para estrategias, avaliacoes, revisoes e saidas.
-- `.env.example` documenta `GEMINI_API_KEY`, `GROQ_API_KEY`, Supabase e taxas opcionais de custo por milhao de tokens.
+- `.env.example` documenta `OPENROUTER_API_KEY`, modelos OpenRouter, taxa PAYG de 5,5%, `GEMINI_API_KEY`, `GROQ_API_KEY`, Supabase e taxas opcionais de custo por milhao de tokens.
 - Snapshots visuais novos registram `snapshotVersion: 1`.
+
+Mapa atual de uso de LLM:
+
+- Texto/estrategia/geracao: `contentStrategy`, slots de `post.generate`, diversificacao, revisao de qualidade, `postEvaluation`, `postJudge`, `siteIntelligence` e `designPatternAnalyzer` usam OpenRouter/GPT-5 mini via `taskRoute`.
+- Vision/multimodal criativa: `brandDNA.analyzeWithVision`, `chameleonVision`, `visionExtractor.extractStylesFromScreenshot`, `post.autoPilotDesign` e slots de geracao com `inputType=image` usam OpenRouter/GPT-5 mini.
+- Microcopy: `sentiment` usa Groq GPT-OSS por `taskRoute: "microcopy"`; novas legendas/CTAs/hashtags curtos devem seguir a mesma rota.
+- Embeddings: `semanticOriginality` usa `@google/genai` com `gemini-embedding-001`; nao passa por `invokeLLM`.
+- Imagem/background: `imageGenerateBackground` e `_core/imageGeneration` usam OpenRouter `OPENROUTER_IMAGE_MODEL` (Nano Banana 2 por default operacional) e mantem Pollinations apenas como fallback legacy.
 
 ### Originalidade semantica
 
@@ -1177,9 +1201,27 @@ Riscos confirmados:
 - Previews externos usam defaults isolados e nao leem ajustes residuais do Zustand.
 - A referencia de exportacao envolve somente o post em tamanho logico; escala do workspace e controles ficam fora da captura.
 - `layoutTarget` sincroniza canvas e `LayoutBlock`, incluindo `card`, `section:<id>` e `textElement:<id>`.
-- Sections permitem editar label, descricao e icone, alem de movimento e largura.
+- Sections permitem editar label, descricao, numero e icone, alem de selecao direta no canvas, movimento e largura.
+- Sections novas continuam nascendo no fluxo responsivo do template (`feature-grid`, `numbered-list` ou `step-by-step`); `sectionLayouts` so e criado e persistido quando o usuario altera posicao, largura ou disposicao manualmente.
 - Text elements avancados permitem editar texto, tipografia, cor, tamanho, rotacao, posicao, largura e altura.
 - Formas decorativas automaticas de tema nao sao expostas como layers independentes.
+- O recurso `post.autoPilotDesign` permanece implementado, mas o Workbench nao exibe acesso ao botao "Ajustar com IA" enquanto a experiencia estiver em revisao.
+- O fluxo oficial do editor e `Home -> HoloDeck -> WorkbenchV2`; os componentes `Workbench`, `WorkbenchRefactored`, `ArchitectOverlayV2` e o antigo `EditorContext` foram removidos por nao integrarem a arvore ativa.
+- `layoutToAdvanced` foi isolado em [`client/src/lib/layoutToAdvanced.ts`](./client/src/lib/layoutToAdvanced.ts) e continua atendendo o store, CanvasWorkspace e o fallback legado de SavedPosts.
+- Componentes auxiliares exclusivos dos workbenches removidos tambem foram excluidos: `PostCard`, `DraggableCardOverlay`, `MagnetToggle`, `WorkbenchModeToggle`, `AdvancedModeToggle`, `AdvancedTextPropertyBar`, `AdvancedTextSidebar` e `TextFitIndicator`.
+- O estado `isMagnetActive` permanece no Zustand porque e consumido por `CanvasWorkspace` e `PostCardV2` no snap do editor ativo.
+
+### Contrato estrito de variacoes e editor
+
+- [`shared/postspark.ts`](./shared/postspark.ts) define os contratos compartilhados `ImageSettings` e `AdvancedLayoutSettings`.
+- [`client/src/types/editor.ts`](./client/src/types/editor.ts) e apenas uma fachada de reexportacao; nao mantem copias locais desses contratos.
+- [`shared/postsparkSchemas.ts`](./shared/postsparkSchemas.ts) valida em runtime o mesmo estado visual nas rotas `post.save` e `post.update`, eliminando `z.any()` dos campos persistidos do editor.
+- `PostVariation` nao aceita mais `any` em `layoutSettingsByAspectRatio`, `imageSettings`, `layoutSettings`, `bgValue` e `bgOverlay`.
+- O alinhamento de `textElements.styles.textAlign` e restrito a `left`, `center` ou `right`.
+- `editorStore.setPlatform` e `editorStore.setAspectRatio` sincronizam atomicamente plataforma e proporcao com `activeVariation` e `baseVariation`, evitando snapshots persistidos com metadados antigos.
+- `editorStore.setActiveVariation` e a unica operacao de hidratacao usada por HoloDeck e SavedPosts; plataforma, proporcao, slides, background, imagem e layout entram no Zustand na mesma transacao.
+- `post.autoPilotDesign` trata a geometria enviada em `currentState.elements` como ancora: preserva o posicionamento manual e limita sua atuacao a margens de seguranca, legibilidade, largura e microcorrecoes de sobreposicao ao adaptar o aspect ratio.
+- `TheVoid` apresenta o progresso de geracao como parte nativa do fluxo do `SmartInput`: um trilho fino com etapa atual, tempo discreto, percentual secundario e nota suave para geracoes longas. A logica funcional continua centralizada em `getGenerationProgress`.
 
 ### Operacao, rollout e privacidade da IA
 
@@ -1190,6 +1232,7 @@ Riscos confirmados:
 - `admin.getAiRollout` informa as flags efetivas, tambem exibidas no painel Admin.
 - Flags independentes controlam Site Intelligence, estrategia LLM, juiz LLM e embeddings semanticos.
 - [`docs/AI_OPERATIONS.md`](./docs/AI_OPERATIONS.md) documenta deploy, alertas, rollback, diagnostico e retencao.
+- [`OPERATIONAL_ERRORS.txt`](./OPERATIONAL_ERRORS.txt) recebe entradas append-only geradas por [`server/_core/operationalLog.ts`](./server/_core/operationalLog.ts), com timestamp ISO, `console.error`, excecoes nao tratadas, respostas HTTP com status diferente de 200, chamadas de provedores de IA com status 200 ou erro, e o ciclo completo de `post.generate` (`POST_GENERATION_REJECTED`, `POST_GENERATION_STARTED`, `POST_GENERATION_COMPLETED`, `POST_GENERATION_FAILED`). Sucessos de geracao registram `generationRunId`, metadados, chamadas LLM, validacao final e resumo das variacoes retornadas. O logger redige tokens/cookies/autorizacao e trunca campos longos para reduzir risco de vazamento e crescimento excessivo.
 
 Hipoteses antigas invalidadas pela implementacao:
 
@@ -1242,9 +1285,12 @@ Risco operacional confirmado:
 
 ### Correcao de densidade dos templates estruturados
 
-- O renderer de preview so usa posicionamento absoluto de `sections` quando o
-  snapshot possui `layoutSettings.sectionLayouts` explicito. Variacoes novas
-  sem layout salvo usam o fluxo normal do template.
+- Preview, edicao e exportacao usam o fluxo normal do template quando nao ha
+  `layoutSettings.sectionLayouts` explicito. Variacoes novas nao recebem
+  coordenadas artificiais ao entrar no Workbench.
+- Quando somente algumas sections possuem posicao manual, o fluxo preserva
+  placeholders invisiveis para manter a geometria das demais e sobrepoe apenas
+  os itens explicitamente movidos.
 - Quando ha layout explicito, as coordenadas percentuais das secoes sao
   aplicadas sobre a area integral do post, e nao sobre um container interno de
   altura reduzida.
@@ -1255,5 +1301,22 @@ Risco operacional confirmado:
   rejeita e tenta novamente respostas que violem essas regras.
 - O calculo de auto-fit reduz tipografia e padding quando existem secoes
   estruturadas, reservando espaco para os elementos auxiliares.
+
 4. Validar o endpoint `post.listBackgrounds` e o formato real dos paths retornados.
 5. Revisar e alinhar `docs/` legados ao estado atual do código, ou marcar claramente o que é histórico.
+
+## 25. Design system do PostSpark - 2026-06-16
+
+Fato observado:
+
+- [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md) documenta o design system atual do PostSpark com base no código ativo.
+- A documentação separa duas camadas: a interface dark studio do produto e o sistema visual dos posts gerados.
+- A UI do app usa Tailwind CSS 4, shadcn/Radix, tokens CSS em [`client/src/index.css`](./client/src/index.css), ícones `lucide-react`, Framer Motion e componentes próprios como `GlassCard`, `SmartInput`, `OrganicBackground` e `SparkLogo`.
+- O tema operacional é dark-only na prática, pois [`client/src/App.tsx`](./client/src/App.tsx) monta `ThemeProvider` com `defaultTheme="dark"` sem alternância habilitada.
+- O sistema visual dos posts é centralizado em [`client/src/components/PostRenderer.tsx`](./client/src/components/PostRenderer.tsx), [`client/src/components/ThemeRenderer.tsx`](./client/src/components/ThemeRenderer.tsx), [`client/src/components/views/WorkbenchV2/PostCardV2.tsx`](./client/src/components/views/WorkbenchV2/PostCardV2.tsx), [`client/src/lib/themes.ts`](./client/src/lib/themes.ts) e no contrato `DesignTokens` de [`shared/postspark.ts`](./shared/postspark.ts).
+- `guia_design.md` permanece como referência conceitual para composição de posts, mas não deve ser tratado como fonte primária da UI atual.
+
+Lacunas registradas:
+
+- `--bg-panel` e `--accent-primary` aparecem em alguns componentes com fallback local, mas não foram encontrados como tokens globais definidos em `client/src/index.css`.
+- Existem tokens legados e novos coexistindo em `client/src/index.css`, incluindo nomes de Captain/Architect que ainda aparecem em componentes específicos.

@@ -11,73 +11,73 @@ export type InputType = "text" | "url" | "image";
  */
 export interface DesignTokens {
   colors: {
-    background: string;  // Post background (HEX)
-    primary: string;     // CTA / accent / highlight (HEX)
-    secondary: string;   // Supporting elements (HEX)
-    text: string;        // Main text (HEX)
-    card: string;        // Card/surface background (HEX)
+    background: string; // Post background (HEX)
+    primary: string; // CTA / accent / highlight (HEX)
+    secondary: string; // Supporting elements (HEX)
+    text: string; // Main text (HEX)
+    card: string; // Card/surface background (HEX)
   };
   typography: {
-    fontFamily: string;       // Active Google Fonts name (e.g. "Playfair Display")
-    customFontUrl: string;    // Custom Google Fonts URL (overrides fontFamily when set)
-    originalFont: string;     // Font detected from source site by AI
-    textTransform: 'none' | 'uppercase';
-    textAlign: 'left' | 'center';
+    fontFamily: string; // Active Google Fonts name (e.g. "Playfair Display")
+    customFontUrl: string; // Custom Google Fonts URL (overrides fontFamily when set)
+    originalFont: string; // Font detected from source site by AI
+    textTransform: "none" | "uppercase";
+    textAlign: "left" | "center";
   };
   structure: {
-    borderRadius: string;  // CSS value: "0px", "8px", "16px", "24px", "40px"
-    boxShadow: string;     // CSS value: "none", "0 10px 25px rgba(0,0,0,0.1)", etc.
-    border: string;        // CSS value: "none", "1px solid rgba(0,0,0,0.1)", etc.
+    borderRadius: string; // CSS value: "0px", "8px", "16px", "24px", "40px"
+    boxShadow: string; // CSS value: "none", "0 10px 25px rgba(0,0,0,0.1)", etc.
+    border: string; // CSS value: "none", "1px solid rgba(0,0,0,0.1)", etc.
   };
-  decorations: 'minimal' | 'playful';
+  decorations: "minimal" | "playful";
 }
 
 /** Default design tokens (fallback) */
 export const DEFAULT_DESIGN_TOKENS: DesignTokens = {
   colors: {
-    background: '#1a1a2e',
-    primary: '#a855f7',
-    secondary: '#f0f5f2',
-    text: '#ffffff',
-    card: '#242a26',
+    background: "#1a1a2e",
+    primary: "#a855f7",
+    secondary: "#f0f5f2",
+    text: "#ffffff",
+    card: "#242a26",
   },
   typography: {
-    fontFamily: 'Inter',
-    customFontUrl: '',
-    originalFont: '',
-    textTransform: 'none',
-    textAlign: 'left',
+    fontFamily: "Inter",
+    customFontUrl: "",
+    originalFont: "",
+    textTransform: "none",
+    textAlign: "left",
   },
   structure: {
-    borderRadius: '16px',
-    boxShadow: 'none',
-    border: 'none',
+    borderRadius: "16px",
+    boxShadow: "none",
+    border: "none",
   },
-  decorations: 'minimal',
+  decorations: "minimal",
 };
 
 // ─── Copy Angles ──────────────────────────────────────────────────────────────
 
 /** Named copywriting angle for post variations */
-export type CopyAngleType = 'dor' | 'beneficio' | 'objecao' | 'autoridade' | 'escassez' | 'storytelling' | 'mito_vs_verdade';
+export type CopyAngleType = "dor" | "beneficio" | "objecao" | "autoridade" | "escassez" | "storytelling" | "mito_vs_verdade";
 
 /** Copy angle metadata attached to each variation */
 export interface CopyAngle {
   type: CopyAngleType;
-  label: string;        // Display label, e.g. "Foco na Dor"
-  badge: string;        // Short brand badge shown on card (e.g. "Cozinha IA")
-  stickerText: string;  // Decorative sticker word (e.g. "Magia", "Prático")
+  label: string; // Display label, e.g. "Foco na Dor"
+  badge: string; // Short brand badge shown on card (e.g. "Cozinha IA")
+  stickerText: string; // Decorative sticker word (e.g. "Magia", "Prático")
 }
 
 /** Labels for copy angle types */
 export const COPY_ANGLE_LABELS: Record<CopyAngleType, string> = {
-  dor: 'Foco na Dor',
-  beneficio: 'Foco no Benefício',
-  objecao: 'Foco em Objeção',
-  autoridade: 'Autoridade',
-  escassez: 'Escassez',
-  storytelling: 'Storytelling',
-  mito_vs_verdade: 'Mito vs Verdade',
+  dor: "Foco na Dor",
+  beneficio: "Foco no Benefício",
+  objecao: "Foco em Objeção",
+  autoridade: "Autoridade",
+  escassez: "Escassez",
+  storytelling: "Storytelling",
+  mito_vs_verdade: "Mito vs Verdade",
 };
 
 /**
@@ -85,25 +85,25 @@ export const COPY_ANGLE_LABELS: Record<CopyAngleType, string> = {
  * Propagated through the full pipeline: Vision LLM → BrandDNA → TemporaryTheme → ThemeRenderer.
  */
 export type CardStyle =
-  | 'neobrutalist'  // Thick solid border, hard offset shadow, flat color, bold type
-  | 'glass'         // Backdrop blur, semi-transparent surface, soft glow border
-  | 'minimal'       // No border, no shadow, maximum whitespace, typography-led
-  | 'editorial'     // Top accent rule, serif hierarchy, print-like structure
-  | 'flat';         // Flat solid colors, no shadows, subtle or no borders (default)
+  | "neobrutalist" // Thick solid border, hard offset shadow, flat color, bold type
+  | "glass" // Backdrop blur, semi-transparent surface, soft glow border
+  | "minimal" // No border, no shadow, maximum whitespace, typography-led
+  | "editorial" // Top accent rule, serif hierarchy, print-like structure
+  | "flat"; // Flat solid colors, no shadows, subtle or no borders (default)
 
 /**
  * Post template — determines the visual layout structure of the post content.
  * AI selects the appropriate template based on content type.
  */
-export type PostTemplate = 'simple' | 'feature-grid' | 'numbered-list' | 'step-by-step';
+export type PostTemplate = "simple" | "feature-grid" | "numbered-list" | "step-by-step";
 
 /** A single content section within a structured post template */
 export interface ContentSection {
-  id?: string;            // Stable editor id for selection/drag persistence
-  icon?: string;         // Lucide icon name (e.g., 'Users', 'Star', 'Zap')
-  label: string;         // Short title (e.g., "Conexões reais")
-  description?: string;  // Supporting text
-  number?: number;       // For numbered items
+  id?: string; // Stable editor id for selection/drag persistence
+  icon?: string; // Lucide icon name (e.g., 'Users', 'Star', 'Zap')
+  label: string; // Short title (e.g., "Conexões reais")
+  description?: string; // Supporting text
+  number?: number; // For numbered items
 }
 
 /** AI Model selection */
@@ -116,23 +116,13 @@ export type CreationMode = "ideation" | "execution";
 export type PostMode = "static" | "carousel";
 
 /** Execution mode intervention level */
-export type ExecutionInterventionLevel =
-  | "visual_only"
-  | "light_optimize"
-  | "optimize_structure";
+export type ExecutionInterventionLevel = "visual_only" | "light_optimize" | "optimize_structure";
 
 /** Source format used to build the execution brief */
-export type ExecutionContentSourceType =
-  | "freeform"
-  | "carousel_topics"
-  | "carousel_slides"
-  | "caption_ready";
+export type ExecutionContentSourceType = "freeform" | "carousel_topics" | "carousel_slides" | "caption_ready";
 
 /** Brand adaptation strategy */
-export type BrandAdaptationMode =
-  | "strict"
-  | "adaptive"
-  | "reference_clone";
+export type BrandAdaptationMode = "strict" | "adaptive" | "reference_clone";
 
 /** Single slide input used by the execution brief */
 export interface ExecutionSlideInput {
@@ -172,11 +162,14 @@ export interface CreativeExecutionBrief {
 }
 
 /** Post mode configuration */
-export const POST_MODE_CONFIG: Record<PostMode, {
-  label: string;
-  description: string;
-  icon: string;
-}> = {
+export const POST_MODE_CONFIG: Record<
+  PostMode,
+  {
+    label: string;
+    description: string;
+    icon: string;
+  }
+> = {
   static: {
     label: "Post Estático",
     description: "Uma única imagem",
@@ -202,9 +195,9 @@ export type Platform = "instagram" | "twitter" | "linkedin" | "facebook";
 /** Platform aspect ratio options */
 export const PLATFORM_ASPECT_RATIOS: Record<Platform, AspectRatio[]> = {
   instagram: ["1:1", "5:6", "9:16"], // Feed, Portrait, Stories/Reels
-  twitter: ["1:1", "5:6"],           // Feed, Portrait
-  linkedin: ["1:1", "5:6"],          // Feed, Portrait
-  facebook: ["1:1", "5:6"],          // Feed, Portrait
+  twitter: ["1:1", "5:6"], // Feed, Portrait
+  linkedin: ["1:1", "5:6"], // Feed, Portrait
+  facebook: ["1:1", "5:6"], // Feed, Portrait
 };
 
 /** Platform default aspect ratio */
@@ -216,21 +209,24 @@ export const PLATFORM_DEFAULT_RATIO: Record<Platform, AspectRatio> = {
 };
 
 /** Platform dimensions and specs */
-export const PLATFORM_SPECS: Record<Platform, {
-  width: number;
-  height: number;
-  label: string;
-  maxChars: number;
-  icon: string;
-  description: string;
-}> = {
+export const PLATFORM_SPECS: Record<
+  Platform,
+  {
+    width: number;
+    height: number;
+    label: string;
+    maxChars: number;
+    icon: string;
+    description: string;
+  }
+> = {
   instagram: {
     width: 1080,
     height: 1080,
     label: "Instagram",
     maxChars: 2200,
     icon: "📷",
-    description: "Feed, Stories ou Reels"
+    description: "Feed, Stories ou Reels",
   },
   twitter: {
     width: 1200,
@@ -238,7 +234,7 @@ export const PLATFORM_SPECS: Record<Platform, {
     label: "Twitter/X",
     maxChars: 280,
     icon: "🐦",
-    description: "Post com imagem"
+    description: "Post com imagem",
   },
   linkedin: {
     width: 1200,
@@ -246,7 +242,7 @@ export const PLATFORM_SPECS: Record<Platform, {
     label: "LinkedIn",
     maxChars: 3000,
     icon: "💼",
-    description: "Post profissional"
+    description: "Post profissional",
   },
   facebook: {
     width: 1200,
@@ -254,7 +250,7 @@ export const PLATFORM_SPECS: Record<Platform, {
     label: "Facebook",
     maxChars: 63206,
     icon: "👥",
-    description: "Post com imagem"
+    description: "Post com imagem",
   },
 };
 
@@ -291,8 +287,8 @@ export interface CarouselSlide {
 
 export interface CarouselSlideEditorState {
   variation?: Partial<Omit<PostVariation, "slides">>;
-  imageSettings?: Record<string, unknown>;
-  layoutSettings?: Record<string, unknown>;
+  imageSettings?: Partial<ImageSettings>;
+  layoutSettings?: Partial<AdvancedLayoutSettings>;
   bgValue?: BackgroundValue;
   bgOverlay?: Partial<BgOverlaySettings>;
 }
@@ -307,10 +303,105 @@ export interface FormatOptimization {
   bodyFontSize?: number;
   padding?: number;
   /** Sugestões granulares para elementos específicos */
-  headline?: { x?: number; y?: number; width?: number; textAlign?: 'left' | 'center' | 'right'; backgroundColor?: string; borderRadius?: number };
-  body?: { x?: number; y?: number; width?: number; textAlign?: 'left' | 'center' | 'right'; backgroundColor?: string; borderRadius?: number };
-  card?: { x?: number; y?: number; width?: number; textAlign?: 'left' | 'center' | 'right'; backgroundColor?: string; borderRadius?: number };
+  headline?: {
+    x?: number;
+    y?: number;
+    width?: number;
+    textAlign?: "left" | "center" | "right";
+    backgroundColor?: string;
+    borderRadius?: number;
+  };
+  body?: {
+    x?: number;
+    y?: number;
+    width?: number;
+    textAlign?: "left" | "center" | "right";
+    backgroundColor?: string;
+    borderRadius?: number;
+  };
+  card?: {
+    x?: number;
+    y?: number;
+    width?: number;
+    textAlign?: "left" | "center" | "right";
+    backgroundColor?: string;
+    borderRadius?: number;
+  };
 }
+
+export type BlendMode = "normal" | "multiply" | "screen" | "overlay" | "darken" | "lighten";
+
+export type TextPosition = "top-left" | "top-center" | "top-right" | "center-left" | "center" | "center-right" | "bottom-left" | "bottom-center" | "bottom-right";
+
+export type TextAlignment = "left" | "center" | "right";
+
+export interface FreePosition {
+  x: number;
+  y: number;
+}
+
+export interface LayoutPosition {
+  position: TextPosition;
+  textAlign: TextAlignment;
+  freePosition?: FreePosition;
+  width?: number;
+  backgroundColor?: string;
+  borderRadius?: number;
+}
+
+export interface ImageSettings {
+  zoom: number;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  blur: number;
+  overlayOpacity: number;
+  overlayColor: string;
+  blendMode: BlendMode;
+  panX: number;
+  panY: number;
+}
+
+export interface AdvancedLayoutSettings {
+  headline: LayoutPosition;
+  body: LayoutPosition;
+  accentBar: LayoutPosition;
+  badge: LayoutPosition;
+  sticker: LayoutPosition;
+  carouselArrow: LayoutPosition;
+  card: LayoutPosition;
+  sectionLayouts?: Record<string, LayoutPosition>;
+  padding: number;
+}
+
+export const DEFAULT_IMAGE_SETTINGS: ImageSettings = {
+  zoom: 1,
+  brightness: 1,
+  contrast: 1,
+  saturation: 1,
+  blur: 0,
+  overlayOpacity: 0,
+  overlayColor: "#000000",
+  blendMode: "normal",
+  panX: 50,
+  panY: 50,
+};
+
+export const DEFAULT_LAYOUT_SETTINGS: AdvancedLayoutSettings = {
+  headline: { position: "bottom-left", textAlign: "left" },
+  body: { position: "bottom-left", textAlign: "left" },
+  accentBar: { position: "top-left", textAlign: "left", width: 15 },
+  badge: { position: "top-center", textAlign: "center" },
+  sticker: { position: "bottom-center", textAlign: "center" },
+  carouselArrow: {
+    position: "bottom-right",
+    textAlign: "right",
+    width: 12,
+  },
+  card: { position: "center", textAlign: "center" },
+  sectionLayouts: {},
+  padding: 24,
+};
 
 /** A single generated post variation */
 export interface PostVariation {
@@ -344,7 +435,7 @@ export interface PostVariation {
   postMode?: PostMode;
   slides?: CarouselSlide[];
   /** Posição da imagem no layout Bipartido. 'top' = imagem em cima (padrão), 'bottom' = imagem embaixo. */
-  splitImagePosition?: 'top' | 'bottom';
+  splitImagePosition?: "top" | "bottom";
 
   /** Structured content template — determines rich layout (feature grid, numbered list, etc.) */
   template?: PostTemplate;
@@ -360,8 +451,8 @@ export interface PostVariation {
     text: string;
     x: number;
     y: number;
-    width: number | 'auto';
-    height: number | 'auto';
+    width: number | "auto";
+    height: number | "auto";
     rotation: number;
     styles: {
       fontSize: string;
@@ -370,7 +461,7 @@ export interface PostVariation {
       fontWeight: string;
       fontStyle: string;
       textDecoration: string;
-      textAlign: string;
+      textAlign: "left" | "center" | "right";
       lineHeight: string;
       opacity: string;
     };
@@ -383,13 +474,18 @@ export interface PostVariation {
   aspectRatioOptimizations?: Partial<Record<AspectRatio, FormatOptimization>>;
 
   /** Layouts calculated and preserved independently for each canvas format. */
-  layoutSettingsByAspectRatio?: Partial<Record<AspectRatio, any>>;
+  layoutSettingsByAspectRatio?: Partial<Record<AspectRatio, AdvancedLayoutSettings>>;
 
   /** Copy angle metadata — defines the persuasion angle of this variation */
   copyAngle?: CopyAngle;
 
   /** Design tokens override — when set, these drive the visual rendering directly */
   designTokens?: Partial<DesignTokens>;
+  brandMeta?: {
+    logoUrl?: string;
+    brandName?: string;
+    favicon?: string;
+  };
 
   /** Metadata about how the variation was generated */
   generationMeta?: {
@@ -399,6 +495,8 @@ export interface PostVariation {
     siteIntelligenceId?: string;
     strategyId?: string;
     revisionCount?: number;
+    revisionApplied?: boolean;
+    revisionFailed?: boolean;
     evaluation?: GenerationEvaluationSummary;
     originality?: {
       score: number;
@@ -411,15 +509,26 @@ export interface PostVariation {
   };
 
   /** Editor V2 Persistence fields */
-  imageSettings?: any;
-  layoutSettings?: any;
-  bgValue?: any;
-  bgOverlay?: any;
+  imageSettings?: ImageSettings;
+  layoutSettings?: AdvancedLayoutSettings;
+  bgValue?: BackgroundValue;
+  bgOverlay?: BgOverlaySettings;
+}
+
+export interface PostVisualSnapshot extends PostVariation {
+  snapshotVersion: 1;
+  aspectRatio: AspectRatio;
+  postMode: PostMode;
+  imageSettings: ImageSettings;
+  layoutSettings: AdvancedLayoutSettings;
+  bgValue: BackgroundValue;
+  bgOverlay: BgOverlaySettings;
 }
 
 export interface GenerationDebugCall {
   label: string;
-  requestedModel: AiModel;
+  requestedModel: AiModel | string;
+  taskRoute?: string;
   effectiveModel: string;
   provider: string;
   promptHash: string;
@@ -433,6 +542,13 @@ export interface GenerationDebugCall {
   attempt?: number;
   fallbackFrom?: string;
   translatedSchema?: boolean;
+  structuredOutputMode?: "native_schema" | "text_schema";
+  payloadOptions?: Record<string, unknown>;
+  reasoningTokens?: number;
+  finishReason?: string | null;
+  nativeFinishReason?: string | null;
+  contentLength?: number;
+  structuredFailureType?: string;
   repairedOutput?: boolean;
   error?: string;
 }
@@ -447,7 +563,7 @@ export interface GenerationDebugEvent {
 
 export interface GenerationDebugTrace {
   runId: string;
-  requestedModel: AiModel;
+  requestedModel: AiModel | string;
   effectiveModels: string[];
   startedAt: string;
   durationMs: number;
@@ -513,14 +629,14 @@ export type BackgroundType = "none" | "gallery" | "upload" | "ai" | "solid";
 /** Current background value */
 export interface BackgroundValue {
   type: BackgroundType;
-  url?: string;    // gallery / upload / ai (data URI or public path)
-  color?: string;  // solid color (hex)
+  url?: string; // gallery / upload / ai (data URI or public path)
+  color?: string; // solid color (hex)
 }
 
 /** Overlay settings applied on top of the background image */
 export interface BgOverlaySettings {
-  opacity: number;              // 0–1, default 0.5
-  color: string;                // hex, default '#000000'
+  opacity: number; // 0–1, default 0.5
+  color: string; // hex, default '#000000'
   position: { x: number; y: number }; // 0–100 %, default { x: 50, y: 50 }
 }
 
@@ -534,44 +650,44 @@ export const DEFAULT_BG_OVERLAY: BgOverlaySettings = {
 
 /** Design pattern categories for website classification */
 export type DesignPatternCategory =
-  | 'modern'           // Clean, minimal, whitespace
-  | 'brutalist'        // Raw, bold, unconventional
-  | 'neon'             // Cyberpunk, glowing, dark backgrounds
-  | 'classic'          // Traditional, serif, elegant
-  | 'playful'          // Colorful, rounded, fun
-  | 'corporate'        // Professional, blue tones, structured
-  | 'artistic'         // Creative, unique layouts
-  | 'minimalist'       // Ultra-simple, essential only
-  | 'retro'            // Vintage aesthetics
-  | 'futuristic';      // Sci-fi, advanced feel
+  | "modern" // Clean, minimal, whitespace
+  | "brutalist" // Raw, bold, unconventional
+  | "neon" // Cyberpunk, glowing, dark backgrounds
+  | "classic" // Traditional, serif, elegant
+  | "playful" // Colorful, rounded, fun
+  | "corporate" // Professional, blue tones, structured
+  | "artistic" // Creative, unique layouts
+  | "minimalist" // Ultra-simple, essential only
+  | "retro" // Vintage aesthetics
+  | "futuristic"; // Sci-fi, advanced feel
 
 /** Spacing density detected from website */
-export type SpacingDensity = 'compact' | 'normal' | 'spacious';
+export type SpacingDensity = "compact" | "normal" | "spacious";
 
 /** Border radius style detected from website */
-export type BorderRadiusStyle = 'square' | 'rounded' | 'pill';
+export type BorderRadiusStyle = "square" | "rounded" | "pill";
 
 /** Padding style detected from website */
-export type PaddingStyle = 'tight' | 'normal' | 'loose';
+export type PaddingStyle = "tight" | "normal" | "loose";
 
 /** Extracted style data from a website */
 export interface ExtractedStyleData {
   // Cores extraídas
   colors: {
-    primary: string;       // Cor dominante (hex)
-    secondary: string;     // Cor secundária (hex)
-    background: string;    // Cor de fundo predominante (hex)
-    text: string;          // Cor de texto principal (hex)
-    accent: string;        // Cor de destaque (hex)
-    palette: string[];     // Paleta completa extraída (máx 8 cores)
+    primary: string; // Cor dominante (hex)
+    secondary: string; // Cor secundária (hex)
+    background: string; // Cor de fundo predominante (hex)
+    text: string; // Cor de texto principal (hex)
+    accent: string; // Cor de destaque (hex)
+    palette: string[]; // Paleta completa extraída (máx 8 cores)
   };
 
   // Tipografia
   typography: {
-    headingFont: string;   // Família da fonte de título
-    bodyFont: string;      // Família da fonte de corpo
+    headingFont: string; // Família da fonte de título
+    bodyFont: string; // Família da fonte de corpo
     headingWeight: string; // Peso da fonte de título
-    bodyWeight: string;    // Peso da fonte de corpo
+    bodyWeight: string; // Peso da fonte de corpo
   };
 
   // Espaçamento e Layout
@@ -583,18 +699,18 @@ export interface ExtractedStyleData {
 
   // Efeitos visuais detectados
   effects: {
-    shadows: boolean;       // Presença de sombras
-    gradients: boolean;     // Presença de gradientes
-    animations: boolean;    // Presença de animações
+    shadows: boolean; // Presença de sombras
+    gradients: boolean; // Presença de gradientes
+    animations: boolean; // Presença de animações
     glassmorphism: boolean; // Efeito glass/blur
-    noise: boolean;         // Textura de ruído
+    noise: boolean; // Textura de ruído
   };
 
   // Metadados do site
   metadata: {
-    favicon?: string;       // URL do favicon
-    logo?: string;          // URL do logo detectado
-    siteName?: string;      // Nome do site
+    favicon?: string; // URL do favicon
+    logo?: string; // URL do logo detectado
+    siteName?: string; // Nome do site
   };
 }
 
@@ -617,15 +733,15 @@ export interface DesignPattern {
 
 /** Temporary theme generated from website extraction */
 export interface TemporaryTheme {
-  id: string;                           // ID único com prefixo 'temp-'
-  label: string;                        // Nome exibido ao usuário
-  description: string;                  // Descrição do tema
-  category: 'brand' | 'remix' | 'disruptive';
-  source: 'website-extraction';         // Origem do tema
-  sourceUrl: string;                    // URL do site original
-  designPattern: DesignPattern;         // Padrão de design detectado
-  isTemporary: true;                    // Flag indicando tema temporário
-  createdAt: number;                    // Timestamp de criação
+  id: string; // ID único com prefixo 'temp-'
+  label: string; // Nome exibido ao usuário
+  description: string; // Descrição do tema
+  category: "brand" | "remix" | "disruptive";
+  source: "website-extraction"; // Origem do tema
+  sourceUrl: string; // URL do site original
+  designPattern: DesignPattern; // Padrão de design detectado
+  isTemporary: true; // Flag indicando tema temporário
+  createdAt: number; // Timestamp de criação
   colors: {
     bg: string;
     text: string;
@@ -639,9 +755,9 @@ export interface TemporaryTheme {
     bodySize: string;
   };
   layout: {
-    alignment: 'left' | 'center' | 'right';
-    borderStyle: 'square' | 'rounded' | 'pill';
-    decoration: 'none' | 'noise' | 'glitch' | 'grid';
+    alignment: "left" | "center" | "right";
+    borderStyle: "square" | "rounded" | "pill";
+    decoration: "none" | "noise" | "glitch" | "grid";
     padding: string;
     /** Visual card style derived from the site's design language */
     cardStyle?: CardStyle;
@@ -665,11 +781,11 @@ export interface TemporaryTheme {
 
 /** Result from style extraction endpoint */
 export interface StyleExtractionResult {
-  extractedData: ExtractedStyleData;    // Dados brutos extraídos
-  designPatterns: DesignPattern[];      // Padrões classificados (1-3)
-  themes: TemporaryTheme[];             // Temas gerados (2-3 variações)
-  fallbackUsed: boolean;                // Se usou fallback LLM-only
-  visionUsed: boolean;                  // Se usou Gemini Vision (screenshot analysis)
+  extractedData: ExtractedStyleData; // Dados brutos extraídos
+  designPatterns: DesignPattern[]; // Padrões classificados (1-3)
+  themes: TemporaryTheme[]; // Temas gerados (2-3 variações)
+  fallbackUsed: boolean; // Se usou fallback LLM-only
+  visionUsed: boolean; // Se usou Gemini Vision (screenshot analysis)
 }
 
 // ─── Brand DNA System ─────────────────────────────────────────────────────────
@@ -677,13 +793,13 @@ export interface StyleExtractionResult {
 /** Musical-metaphor composition rules derived from brand personality */
 export interface CompositionRules {
   /** Rhythm → spacing pattern (staccato=tight, legato=flowing, syncopated=varied) */
-  rhythm: 'staccato' | 'legato' | 'syncopated';
+  rhythm: "staccato" | "legato" | "syncopated";
   /** Harmony → color relationship strategy (consonant=safe analogous, dissonant=complementary tension, resolved=triadic balance) */
-  harmony: 'consonant' | 'dissonant' | 'resolved';
+  harmony: "consonant" | "dissonant" | "resolved";
   /** Dynamics → visual weight and contrast level (forte=bold/high-contrast, mezzo=balanced, piano=subtle/low-weight) */
-  dynamics: 'forte' | 'mezzo' | 'piano';
+  dynamics: "forte" | "mezzo" | "piano";
   /** Tempo → content density and breathing room (allegro=compact, andante=normal, adagio=spacious) */
-  tempo: 'allegro' | 'andante' | 'adagio';
+  tempo: "allegro" | "andante" | "adagio";
 }
 
 /** Full brand identity extracted from multi-page analysis */
@@ -713,9 +829,9 @@ export interface BrandDNA {
     accent: string;
     palette: string[];
     colorRelationships: {
-      harmony: 'complementary' | 'analogous' | 'triadic' | 'monochromatic' | 'split-complementary';
-      contrast: 'high' | 'medium' | 'low';
-      temperature: 'warm' | 'cool' | 'neutral';
+      harmony: "complementary" | "analogous" | "triadic" | "monochromatic" | "split-complementary";
+      contrast: "high" | "medium" | "low";
+      temperature: "warm" | "cool" | "neutral";
     };
   };
 
@@ -725,7 +841,7 @@ export interface BrandDNA {
     headingWeight: string;
     bodyWeight: string;
     /** How heading and body fonts relate to each other */
-    fontPairing: 'matching' | 'contrasting' | 'complementary';
+    fontPairing: "matching" | "contrasting" | "complementary";
   };
 
   /** Musical-metaphor layout composition rules (derived deterministically from personality) */
@@ -735,7 +851,7 @@ export interface BrandDNA {
     density: SpacingDensity;
     borderRadius: BorderRadiusStyle;
     padding: PaddingStyle;
-    preferredAlignment: 'left' | 'center' | 'right';
+    preferredAlignment: "left" | "center" | "right";
     /** Visual card style detected from the site's design language */
     cardStyle: CardStyle;
   };
@@ -773,16 +889,11 @@ export interface BrandDNA {
 /** Result from the extractBrandDNA endpoint */
 export interface BrandDNAExtractionResult {
   brandDNA: BrandDNA;
-  themes: TemporaryTheme[];   // 3 variations (faithful, remix, disruptive)
+  themes: TemporaryTheme[]; // 3 variations (faithful, remix, disruptive)
   fallbackUsed: boolean;
 }
 
-export type SiteEvidenceKind =
-  | "title"
-  | "description"
-  | "heading"
-  | "body"
-  | "visual";
+export type SiteEvidenceKind = "title" | "description" | "heading" | "body" | "visual";
 
 export interface SiteEvidence {
   id: string;
@@ -854,12 +965,12 @@ export interface PostEvaluation {
   };
   /** Up to 3 actionable improvement suggestions */
   suggestions: string[];
-  verdict: 'excellent' | 'good' | 'needs-improvement';
+  verdict: "excellent" | "good" | "needs-improvement";
 }
 
 /** Result from the evaluateQuality endpoint */
 export interface PostQualityResult {
-  evaluations: PostEvaluation[];  // One per variation
+  evaluations: PostEvaluation[]; // One per variation
 }
 
 // ─── Chameleon Vision Result ──────────────────────────────────────────────────
@@ -881,11 +992,11 @@ export interface ChameleonVisionResult {
     borderRadius: string;
     boxShadow: string;
     border: string;
-    textAlign: 'left' | 'center';
+    textAlign: "left" | "center";
     originalFont: string;
     fontFamily: string;
-    textTransform: 'none' | 'uppercase';
-    decorations: 'minimal' | 'playful';
+    textTransform: "none" | "uppercase";
+    decorations: "minimal" | "playful";
   };
   posts: Array<{
     label: string;
@@ -903,7 +1014,7 @@ export function chameleonResultToDesignTokens(result: ChameleonVisionResult): De
     colors: result.colors,
     typography: {
       fontFamily: result.designTokens.fontFamily,
-      customFontUrl: '',
+      customFontUrl: "",
       originalFont: result.designTokens.originalFont,
       textTransform: result.designTokens.textTransform,
       textAlign: result.designTokens.textAlign,

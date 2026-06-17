@@ -114,6 +114,7 @@ novaStackCaptura.md
 docs/*
 !docs/AUDITORIA_IMPLEMENTACAO.md
 !docs/AI_OPERATIONS.md
+!docs/DESIGN_SYSTEM.md
 !docs/ensino/
 !docs/ensino/**
 .agent/skills/awesome-skills/

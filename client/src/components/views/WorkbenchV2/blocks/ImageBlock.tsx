@@ -1,7 +1,5 @@
 /**
- * ImageBlock — Bloco de Imagem & Fundo do WorkbenchV2 (Passo 4.5).
- *
- * Extrai a seção de Fundo, Overlay e Calibração Fotográfica do Workbench legado.
+ * ImageBlock — Bloco de Imagem & Fundo do WorkbenchV2.
  *
  * Responsabilidades:
  *  - Seletor de tipo de fundo: Nenhum | Galeria | Cor Sólida | Upload
@@ -9,8 +7,7 @@
  *  - Controles de sobreposição (overlay): cor + opacidade
  *  - Calibração fotográfica com <PrecisionSlider />: Zoom, Pan X/Y, Brilho, Contraste, Saturação, Blur
  *
- * Fonte de dados: 100% Zustand (setBgValue, setBgOverlay, updateImageSettings).
- * O WorkbenchRefactored.tsx legado NÃO é alterado.
+ * Fonte de dados: Zustand (setBgValue, setBgOverlay, updateImageSettings).
  */
 
 import React, { useRef } from "react";

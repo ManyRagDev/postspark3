@@ -1,7 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomUUID } from "node:crypto";
 import type {
-  AiModel,
   GenerationDebugEvent,
   GenerationDebugTrace,
   GenerationEvaluationSummary,
@@ -12,7 +11,8 @@ import { ENV } from "../_core/env";
 
 export interface LlmTraceCall {
   label: string;
-  requestedModel: AiModel;
+  requestedModel: string;
+  taskRoute?: string;
   effectiveModel: string;
   provider: string;
   promptHash: string;
@@ -26,6 +26,20 @@ export interface LlmTraceCall {
   attempt?: number;
   fallbackFrom?: string;
   translatedSchema?: boolean;
+  structuredOutputMode?: "native_schema" | "text_schema";
+  payloadOptions?: {
+    temperature?: unknown;
+    top_p?: unknown;
+    reasoning?: unknown;
+    reasoning_effort?: unknown;
+    max_tokens?: unknown;
+    max_completion_tokens?: unknown;
+  };
+  reasoningTokens?: number;
+  finishReason?: string | null;
+  nativeFinishReason?: string | null;
+  contentLength?: number;
+  structuredFailureType?: string;
   repairedOutput?: boolean;
   error?: string;
 }
@@ -38,7 +52,7 @@ export interface GenerationTrace {
   platform: string;
   postMode: string;
   creationMode: string;
-  requestedModel: AiModel;
+  requestedModel: string;
   siteIntelligenceId?: string;
   startedAt: number;
   calls: LlmTraceCall[];

@@ -1,7 +1,5 @@
 /**
- * DesignBlock — Bloco de Identidade Visual do WorkbenchV2 (Passo 4.3).
- *
- * Extrai e modulariza a seção "Marca & Temas" do WorkbenchRefactored legado.
+ * DesignBlock — Bloco de Identidade Visual do WorkbenchV2.
  *
  * Responsabilidades:
  *  - Exibir e editar os Design Tokens (DesignTokens) da variação ativa
@@ -9,8 +7,7 @@
  *  - Controlar a cor de destaque (accentColor) e cor de fundo (backgroundColor)
  *    da variation ativa
  *
- * Fonte de dados: 100% Zustand (useEditorStore). Zero props de estado.
- * O WorkbenchRefactored.tsx NÃO é alterado.
+ * Fonte de dados: Zustand (useEditorStore). Zero props de estado.
  */
 
 import React from "react";

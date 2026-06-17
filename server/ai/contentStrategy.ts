@@ -175,6 +175,8 @@ ${evidence}`
   try {
     const response = await invokeLLM({
       traceLabel: "content_strategy",
+      taskRoute: "content_strategy",
+      maxCompletionTokens: 1024,
       messages: [
         {
           role: "system",

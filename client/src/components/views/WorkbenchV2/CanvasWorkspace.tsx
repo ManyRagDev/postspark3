@@ -9,14 +9,14 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
-import { Eye, Sparkles, Loader2, Magnet, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, Loader2, Magnet, ChevronLeft, ChevronRight } from "lucide-react";
 import html2canvas from "html2canvas-pro";
 import PostRenderer, { type PostRendererMode } from "@/components/PostRenderer";
 import OrganicBackground from "../../OrganicBackground";
 import { useEditorStore } from "@/store/editorStore";
 import { trpc } from "@/lib/trpc";
 import { motion, AnimatePresence } from "framer-motion";
-import { layoutToAdvanced } from "../WorkbenchRefactored";
+import { layoutToAdvanced } from "@/lib/layoutToAdvanced";
 import { useIsMobile } from "@/hooks/useMobile";
 
 interface CanvasWorkspaceProps {
@@ -418,35 +418,6 @@ export default function CanvasWorkspace({
                         </button>
                     </div>
                 )}
-                <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2">
-                    {canAutoPilot ? (
-                        <button
-                            onClick={handleAutoPilotDesign}
-                            disabled={isAutoPiloting}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/80 border border-white/10 text-white hover:bg-black transition-all shadow-xl active:scale-95 disabled:opacity-50"
-                            title="Ajustar com IA (Visão)"
-                        >
-                            {isAutoPiloting ? (
-                                <Loader2 size={16} className="animate-spin" />
-                            ) : (
-                                <Eye size={16} className="text-purple-400" />
-                            )}
-                            <span className="text-[10px] font-bold uppercase tracking-tighter">
-                                Ajustar com IA
-                            </span>
-                        </button>
-                    ) : (
-                        <div
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/50 border border-white/5 text-white/40 cursor-not-allowed shadow-xl"
-                            title="Adicione um background (IA ou Galeria) para usar a Inteligência de Layout"
-                        >
-                            <Eye size={16} className="opacity-50" />
-                            <span className="text-[10px] font-bold uppercase tracking-tighter">
-                                Ajustar com IA
-                            </span>
-                        </div>
-                    )}
-                </div>
             </div>
         </div>
     );

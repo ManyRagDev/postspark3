@@ -13,12 +13,7 @@ import { extractStyleFromUrlWithMeta } from "./styleExtractor";
 import { analyzeDesignPattern, generateThemesFromPatterns } from "./designPatternAnalyzer";
 import { evaluatePostQuality } from "./postJudge";
 import type { SiteIntelligence } from "@shared/postspark";
-import {
-  analyzeSiteIntelligence,
-  loadSiteIntelligence,
-  siteIntelligenceToDesignTokens,
-  siteIntelligenceToPrompt,
-} from "./siteIntelligence";
+import { analyzeSiteIntelligence, loadSiteIntelligence, siteIntelligenceToDesignTokens, siteIntelligenceToPrompt } from "./siteIntelligence";
 import { scrapeUrl as scrapeSiteUrl } from "./siteContent";
 import { extractBrandDNA } from "./brandDNA";
 import { chameleonVision } from "./chameleonVision";
@@ -26,41 +21,111 @@ import { captureScreenshot } from "./screenshotService";
 import { chameleonResultToDesignTokens } from "@shared/postspark";
 import * as fs from "fs";
 import * as path from "path";
-import {
-  getBillingProfile,
-  debitSparks,
-  getTopupPackages,
-  createSubscriptionCheckout,
-  createTopupCheckout,
-  getSubscriptionPriceId,
-  getSupabase,
-  SPARK_COSTS,
-} from "./billing";
+import { getBillingProfile, debitSparks, getTopupPackages, createSubscriptionCheckout, createTopupCheckout, getSubscriptionPriceId, getSupabase, SPARK_COSTS } from "./billing";
 import { ENV } from "./_core/env";
+import { appendOperationalLog } from "./_core/operationalLog";
 import { TRPCError } from "@trpc/server";
 import { variationsNeedDiversification } from "./ai/variationDiversity";
 import { prepareGenerationPlan } from "./ai/generationPipeline";
 import { evaluateAndReviseCandidates } from "./ai/postEvaluation";
+import { buildGenerationDebugTrace, finishGenerationTrace, recordGenerationEvent, startGenerationTrace } from "./ai/generationTrace";
+import { assessSemanticOriginality, persistCandidateFingerprints } from "./ai/semanticOriginality";
+import { assertVariationSet, hasValidStaticSections, POST_VARIATION_TARGET, validateVariationSet } from "./ai/generationValidation";
 import {
-  buildGenerationDebugTrace,
-  finishGenerationTrace,
-  recordGenerationEvent,
-  startGenerationTrace,
-} from "./ai/generationTrace";
-import {
-  assessSemanticOriginality,
-  persistCandidateFingerprints,
-} from "./ai/semanticOriginality";
-import {
-  assertVariationSet,
-  hasValidStaticSections,
-  POST_VARIATION_TARGET,
-  validateVariationSet,
-} from "./ai/generationValidation";
+  advancedLayoutSettingsSchema,
+  backgroundValueSchema,
+  bgOverlaySettingsSchema,
+  carouselSlideSchema,
+  copyAngleSchema,
+  imageSettingsSchema,
+  inputTypeSchema,
+  platformSchema,
+  postLayoutSchema,
+  postModeSchema,
+  postVisualSnapshotSchema,
+  textElementSchema,
+} from "@shared/postsparkSchemas";
 
 function isLegacySitePipelineEnabled(): boolean {
   return false;
 }
+
+const logSnippet = (value: unknown, maxLength = 320): string | undefined => {
+  if (value === undefined || value === null) return undefined;
+  const text = String(value).replace(/\s+/g, " ").trim();
+  if (!text) return undefined;
+  return text.length > maxLength ? `${text.slice(0, maxLength)}...[truncated]` : text;
+};
+
+const summarizeGeneratedVariation = (variation: any, index: number) => ({
+  index,
+  id: variation?.id,
+  layout: variation?.layout,
+  platform: variation?.platform,
+  postMode: variation?.postMode,
+  headline: logSnippet(variation?.headline),
+  body: logSnippet(variation?.body),
+  caption: logSnippet(variation?.caption, 500),
+  callToAction: logSnippet(variation?.callToAction),
+  hashtags: Array.isArray(variation?.hashtags) ? variation.hashtags.slice(0, 8) : [],
+  colors: {
+    backgroundColor: variation?.backgroundColor,
+    textColor: variation?.textColor,
+    accentColor: variation?.accentColor,
+  },
+  copyAngle: variation?.copyAngle
+    ? {
+        type: variation.copyAngle.type,
+        label: logSnippet(variation.copyAngle.label),
+        badge: logSnippet(variation.copyAngle.badge),
+        stickerText: logSnippet(variation.copyAngle.stickerText),
+      }
+    : undefined,
+  sections: Array.isArray(variation?.sections)
+    ? variation.sections.map((section: any, sectionIndex: number) => ({
+        index: sectionIndex,
+        id: section?.id,
+        number: section?.number,
+        icon: section?.icon,
+        label: logSnippet(section?.label),
+        description: logSnippet(section?.description),
+      }))
+    : [],
+  slides: Array.isArray(variation?.slides)
+    ? variation.slides.map((slide: any, slideIndex: number) => ({
+        index: slideIndex,
+        headline: logSnippet(slide?.headline),
+        body: logSnippet(slide?.body),
+        slideNumber: slide?.slideNumber,
+        isTitleSlide: slide?.isTitleSlide,
+        isCtaSlide: slide?.isCtaSlide,
+      }))
+    : [],
+  generationMeta: variation?.generationMeta
+    ? {
+        creationMode: variation.generationMeta.creationMode,
+        fidelity: variation.generationMeta.fidelity,
+        interventionLevel: variation.generationMeta.interventionLevel,
+        siteIntelligenceId: variation.generationMeta.siteIntelligenceId,
+        strategyId: variation.generationMeta.strategyId,
+        revisionCount: variation.generationMeta.revisionCount,
+        evaluation: variation.generationMeta.evaluation
+          ? {
+              accepted: variation.generationMeta.evaluation.accepted,
+              overallScore: variation.generationMeta.evaluation.overallScore,
+              reasons: variation.generationMeta.evaluation.reasons,
+            }
+          : undefined,
+        originality: variation.generationMeta.originality
+          ? {
+              score: variation.generationMeta.originality.score,
+              verdict: variation.generationMeta.originality.verdict,
+              reason: variation.generationMeta.originality.reason,
+            }
+          : undefined,
+      }
+    : undefined,
+});
 /**
  * Helper to safely parse JSON from LLM responses, handling markdown blocks and basic malformations.
  */
@@ -69,9 +134,15 @@ function safeJsonParse<T>(str: string, fallback: T): T {
 
   // 1. Markdown stripping
   if (cleaned.startsWith("```json")) {
-    cleaned = cleaned.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
+    cleaned = cleaned
+      .replace(/^```json\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
   } else if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+    cleaned = cleaned
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
   }
 
   // 2. Bound recovery (find the outermost { ... })
@@ -193,9 +264,9 @@ function normalizeExecutionBrief(input: any) {
   const brief = executionBriefSchema.parse(input);
   const normalizedSlides = Array.isArray(brief.slides)
     ? brief.slides
-      .filter((slide) => slide.rawText.trim().length > 0)
-      .sort((a, b) => a.slideNumber - b.slideNumber)
-      .slice(0, CAROUSEL_SLIDE_TARGET)
+        .filter(slide => slide.rawText.trim().length > 0)
+        .sort((a, b) => a.slideNumber - b.slideNumber)
+        .slice(0, CAROUSEL_SLIDE_TARGET)
     : [];
 
   return {
@@ -206,28 +277,27 @@ function normalizeExecutionBrief(input: any) {
     forbiddenTerms: brief.forbiddenTerms || [],
     brandInput: brief.brandInput
       ? {
-        ...brief.brandInput,
-        brandColors: brief.brandInput.brandColors || [],
-      }
+          ...brief.brandInput,
+          brandColors: brief.brandInput.brandColors || [],
+        }
       : undefined,
   };
 }
 
 function buildExecutionBriefContext(brief: ReturnType<typeof normalizeExecutionBrief>) {
-  const slidesBlock = brief.slides.length > 0
-    ? brief.slides
-      .map((slide) => `Slide ${slide.slideNumber} [${slide.role || "custom"}${slide.locked ? ", travado" : ""}]: ${slide.rawText}`)
-      .join("\n")
-    : "Nenhum slide estruturado foi fornecido.";
+  const slidesBlock =
+    brief.slides.length > 0
+      ? brief.slides.map(slide => `Slide ${slide.slideNumber} [${slide.role || "custom"}${slide.locked ? ", travado" : ""}]: ${slide.rawText}`).join("\n")
+      : "Nenhum slide estruturado foi fornecido.";
 
   const brandBlock = brief.brandInput
     ? [
-      `- Site: ${brief.brandInput.websiteUrl || "não informado"}`,
-      `- Referência visual: ${brief.brandInput.referenceImageUrl || "não informada"}`,
-      `- Cores: ${brief.brandInput.brandColors?.join(", ") || "não informadas"}`,
-      `- Fonte sugerida: ${brief.brandInput.fontHint || "não informada"}`,
-      `- Modo de adaptação: ${brief.brandInput.adaptationMode}`,
-    ].join("\n")
+        `- Site: ${brief.brandInput.websiteUrl || "não informado"}`,
+        `- Referência visual: ${brief.brandInput.referenceImageUrl || "não informada"}`,
+        `- Cores: ${brief.brandInput.brandColors?.join(", ") || "não informadas"}`,
+        `- Fonte sugerida: ${brief.brandInput.fontHint || "não informada"}`,
+        `- Modo de adaptação: ${brief.brandInput.adaptationMode}`,
+      ].join("\n")
     : "- Nenhuma identidade visual estruturada foi enviada.";
 
   const mustKeepBlock = brief.mustKeep.length > 0 ? brief.mustKeep.join(" | ") : "nenhum";
@@ -271,7 +341,7 @@ function buildFallbackCarouselSlides(variation: any): Array<any> {
   const callToAction = String(variation?.callToAction || "Saiba mais").trim();
   const bodyParts = baseBody
     .split(/(?<=[.!?])\s+/)
-    .map((part) => part.trim())
+    .map(part => part.trim())
     .filter(Boolean);
 
   const fallbackBodies = [
@@ -282,13 +352,7 @@ function buildFallbackCarouselSlides(variation: any): Array<any> {
     callToAction || "Dê o próximo passo com segurança.",
   ];
 
-  const fallbackHeadlines = [
-    baseHeadline,
-    "O problema",
-    "O que muda",
-    "Na prática",
-    callToAction || "Próximo passo",
-  ];
+  const fallbackHeadlines = [baseHeadline, "O problema", "O que muda", "Na prática", callToAction || "Próximo passo"];
 
   return fallbackHeadlines.map((headline, index) => ({
     headline,
@@ -319,7 +383,11 @@ function normalizeCarouselSlides(variation: any): Array<any> {
   return buildFallbackCarouselSlides(variation);
 }
 
-function decodeDataUrl(dataUrl: string): { buffer: Buffer; contentType: string; extension: string } {
+function decodeDataUrl(dataUrl: string): {
+  buffer: Buffer;
+  contentType: string;
+  extension: string;
+} {
   const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
   if (!match) {
     throw new Error("Invalid data URL");
@@ -356,13 +424,14 @@ const billingRouter = router({
 
   /** Inicia trial de 7 dias (anti-abuso por e-mail + IP) */
   startTrial: protectedProcedure
-    .input(z.object({
-      plan: z.enum(["PRO", "AGENCY"]).default("PRO"),
-    }))
+    .input(
+      z.object({
+        plan: z.enum(["PRO", "AGENCY"]).default("PRO"),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const email = ctx.user.email ?? "";
-      const ip = (ctx.req.headers["x-forwarded-for"] as string | undefined)
-        ?.split(",")[0]?.trim() ?? ctx.req.socket.remoteAddress ?? "0.0.0.0";
+      const ip = (ctx.req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? ctx.req.socket.remoteAddress ?? "0.0.0.0";
 
       if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
         return { success: true, reason: "ok" };
@@ -388,19 +457,24 @@ const billingRouter = router({
 
   /** Cria Stripe Checkout Session para assinatura */
   createCheckout: protectedProcedure
-    .input(z.object({
-      plan: z.enum(["PRO", "AGENCY"]),
-      cycle: z.enum(["monthly", "annual"]).default("monthly"),
-      successPath: z.string().default("/billing/success"),
-      cancelPath: z.string().default("/pricing"),
-    }))
+    .input(
+      z.object({
+        plan: z.enum(["PRO", "AGENCY"]),
+        cycle: z.enum(["monthly", "annual"]).default("monthly"),
+        successPath: z.string().default("/billing/success"),
+        cancelPath: z.string().default("/pricing"),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const email = ctx.user.email ?? "";
       const name = ctx.user.name ?? undefined;
 
       const profile = await getBillingProfile(email);
       if (profile.id === "no-profile" || profile.id === "error") {
-        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Perfil de billing não encontrado." });
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Perfil de billing não encontrado.",
+        });
       }
 
       const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
@@ -424,22 +498,31 @@ const billingRouter = router({
 
   /** Cria Stripe Checkout Session para top-up avulso */
   createTopupCheckout: protectedProcedure
-    .input(z.object({
-      packageId: z.string(),
-      successPath: z.string().default("/billing/topup-success"),
-      cancelPath: z.string().default("/billing"),
-    }))
+    .input(
+      z.object({
+        packageId: z.string(),
+        successPath: z.string().default("/billing/topup-success"),
+        cancelPath: z.string().default("/billing"),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const email = ctx.user.email ?? "";
       const name = ctx.user.name ?? undefined;
 
       const packages = await getTopupPackages();
       const pkg = packages.find(p => p.id === input.packageId);
-      if (!pkg) throw new TRPCError({ code: "NOT_FOUND", message: "Pacote não encontrado." });
+      if (!pkg)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Pacote não encontrado.",
+        });
 
       const profile = await getBillingProfile(email);
       if (profile.id === "no-profile" || profile.id === "error") {
-        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Perfil de billing não encontrado." });
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Perfil de billing não encontrado.",
+        });
       }
 
       const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
@@ -455,7 +538,6 @@ const billingRouter = router({
 
       return { url };
     }),
-
 });
 
 import { adminRouter } from "./routers/admin";
@@ -476,19 +558,21 @@ export const appRouter = router({
   post: router({
     /** Generate 3 post variations from user input */
     generate: protectedProcedure
-      .input(z.object({
-        inputType: z.enum(["text", "url", "image"]),
-        content: z.string().min(1),
-        platform: z.enum(["instagram", "twitter", "linkedin", "facebook"]),
-        imageUrl: z.string().optional(),
-        tone: z.string().optional(),
-        postMode: z.enum(["static", "carousel"]).default("static"),
-        model: z.enum(["gemini", "llama"]).optional(),
-        creationMode: z.enum(["ideation", "execution"]).default("ideation"),
-        executionBrief: executionBriefSchema.optional(),
-        siteIntelligenceId: z.string().uuid().optional(),
-        debug: z.boolean().optional(),
-      }))
+      .input(
+        z.object({
+          inputType: z.enum(["text", "url", "image"]),
+          content: z.string().min(1),
+          platform: z.enum(["instagram", "twitter", "linkedin", "facebook"]),
+          imageUrl: z.string().optional(),
+          tone: z.string().optional(),
+          postMode: z.enum(["static", "carousel"]).default("static"),
+          model: z.enum(["gemini", "llama"]).optional(),
+          creationMode: z.enum(["ideation", "execution"]).default("ideation"),
+          executionBrief: executionBriefSchema.optional(),
+          siteIntelligenceId: z.string().uuid().optional(),
+          debug: z.boolean().optional(),
+        })
+      )
       .mutation(async ({ input, ctx }) => {
         // Debita Sparks antes de gerar
         const email = ctx.user.email ?? "dev@local.dev";
@@ -496,6 +580,20 @@ export const appRouter = router({
         const cost = input.postMode === "carousel" ? SPARK_COSTS.CAROUSEL : SPARK_COSTS.GENERATE_TEXT;
         const debit = await debitSparks(profile.id, cost, `Geração de post (${input.postMode})`);
         if (!debit.success) {
+          await appendOperationalLog("POST_GENERATION_REJECTED", {
+            reason: "INSUFFICIENT_SPARKS",
+            userUuid: ctx.user.id,
+            profileId: profile.id,
+            inputType: input.inputType,
+            platform: input.platform,
+            postMode: input.postMode,
+            creationMode: input.creationMode,
+            requestedModel: input.model ?? "llama",
+            siteIntelligenceId: input.siteIntelligenceId,
+            contentLength: input.content.length,
+            contentPreview: logSnippet(input.content, 500),
+            sparkCost: cost,
+          });
           throw new TRPCError({
             code: "PAYMENT_REQUIRED",
             message: "Sparks insuficientes. Faça upgrade ou adquira um pacote de recarga.",
@@ -508,59 +606,73 @@ export const appRouter = router({
           platform: input.platform,
           postMode: input.postMode,
           creationMode: input.creationMode,
-          requestedModel: input.model ?? "gemini",
+          requestedModel: input.model ?? "llama",
           siteIntelligenceId: input.siteIntelligenceId,
         });
         const debugEnabled = Boolean(input.debug && ENV.aiUiDebugEnabled);
+        await appendOperationalLog("POST_GENERATION_STARTED", {
+          generationRunId: generationTrace.id,
+          userUuid: ctx.user.id,
+          inputType: input.inputType,
+          platform: input.platform,
+          postMode: input.postMode,
+          creationMode: input.creationMode,
+          requestedModel: input.model ?? "llama",
+          siteIntelligenceId: input.siteIntelligenceId,
+          contentLength: input.content.length,
+          contentPreview: logSnippet(input.content, 500),
+          hasImageUrl: Boolean(input.imageUrl),
+          hasExecutionBrief: Boolean(input.executionBrief),
+          debugEnabled,
+          sparkCost: cost,
+        });
         try {
-        recordGenerationEvent({
-          stage: "generation",
-          status: "started",
-          detail: "Generation pipeline started.",
-        });
-        const recentPostsPromise = getUserPosts(ctx.user.id, 20).catch((error) => {
-          console.warn("[post.generate] Recent post history unavailable:", error);
-          return [];
-        });
-        let contextContent = input.content;
-        let brandDnaContext = "";
-        let chameleonResult: import("@shared/postspark").ChameleonVisionResult | null = null;
-        let siteIntelligence: SiteIntelligence | null = null;
-        const normalizedExecutionBrief = input.creationMode === "execution" && input.executionBrief
-          ? normalizeExecutionBrief(input.executionBrief)
-          : null;
+          recordGenerationEvent({
+            stage: "generation",
+            status: "started",
+            detail: "Generation pipeline started.",
+          });
+          const recentPostsPromise = getUserPosts(ctx.user.id, 20).catch(error => {
+            console.warn("[post.generate] Recent post history unavailable:", error);
+            return [];
+          });
+          let contextContent = input.content;
+          let brandDnaContext = "";
+          let chameleonResult: import("@shared/postspark").ChameleonVisionResult | null = null;
+          let siteIntelligence: SiteIntelligence | null = null;
+          const normalizedExecutionBrief = input.creationMode === "execution" && input.executionBrief ? normalizeExecutionBrief(input.executionBrief) : null;
 
-        // If URL, scrape it first and extract Brand DNA for visual cloning
-        if (isLegacySitePipelineEnabled() && input.inputType === "url") {
-          try {
-            // 1. Extração de conteúdo bruto
-            const scrapeResult = await scrapeUrl(input.content);
-            contextContent = `URL: ${input.content}\nTítulo: ${scrapeResult.title}\nDescrição: ${scrapeResult.description}\nConteúdo: ${scrapeResult.content}`;
+          // If URL, scrape it first and extract Brand DNA for visual cloning
+          if (isLegacySitePipelineEnabled() && input.inputType === "url") {
+            try {
+              // 1. Extração de conteúdo bruto
+              const scrapeResult = await scrapeUrl(input.content);
+              contextContent = `URL: ${input.content}\nTítulo: ${scrapeResult.title}\nDescrição: ${scrapeResult.description}\nConteúdo: ${scrapeResult.content}`;
 
-            // 2. Chameleon Vision — direct CSS extraction (parallel with BrandDNA)
-            const [screenshot, brandDNA] = await Promise.all([
-              captureScreenshot(input.content).catch(() => null),
-              extractBrandDNA(input.content).catch((err: unknown) => {
-                console.warn("Falha ao extrair Brand DNA no processamento da geração.", err);
-                return null;
-              }),
-            ]);
+              // 2. Chameleon Vision — direct CSS extraction (parallel with BrandDNA)
+              const [screenshot, brandDNA] = await Promise.all([
+                captureScreenshot(input.content).catch(() => null),
+                extractBrandDNA(input.content).catch((err: unknown) => {
+                  console.warn("Falha ao extrair Brand DNA no processamento da geração.", err);
+                  return null;
+                }),
+              ]);
 
-            // 2a. Chameleon Vision: image → CSS tokens + copy (primary source)
-            if (screenshot) {
-              try {
-                chameleonResult = await chameleonVision(screenshot, contextContent);
-                if (chameleonResult) {
-                  console.log("[Chameleon Vision] Extraction successful — CSS tokens + 5 copy angles ready");
+              // 2a. Chameleon Vision: image → CSS tokens + copy (primary source)
+              if (screenshot) {
+                try {
+                  chameleonResult = await chameleonVision(screenshot, contextContent);
+                  if (chameleonResult) {
+                    console.log("[Chameleon Vision] Extraction successful — CSS tokens + 5 copy angles ready");
+                  }
+                } catch (cvErr) {
+                  console.warn("[Chameleon Vision] Failed, falling back to BrandDNA:", cvErr);
                 }
-              } catch (cvErr) {
-                console.warn("[Chameleon Vision] Failed, falling back to BrandDNA:", cvErr);
               }
-            }
 
-            // 2b. BrandDNA context for copy generation enrichment
-            if (brandDNA) {
-              brandDnaContext = `
+              // 2b. BrandDNA context for copy generation enrichment
+              if (brandDNA) {
+                brandDnaContext = `
 
 INSTRUÇÕES DE CLONAGEM DE MARCA (BRAND SOUL):
 Você DEVE FORÇAR o post gerado a ser uma extensão orgânica do site original.
@@ -579,80 +691,73 @@ REGRA CARDINAL DE CORES (A FONTE É URL):
 2) Selecione backgroundColor, accentColor e textColor EXCLUSIVAMENTE extraídos dessa paleta extraída, garantindo ratio > 4.5:1 WCAG.
 3) Se o site for Dark Mode, gere posts escuros. Se o site for claro, gere variabilidades claras.
               `;
+              }
+            } catch {
+              contextContent = `URL fornecida: ${input.content} (não foi possível extrair conteúdo, crie baseado na URL)`;
             }
-          } catch {
-            contextContent = `URL fornecida: ${input.content} (não foi possível extrair conteúdo, crie baseado na URL)`;
           }
-        }
 
-        const siteUrl = input.inputType === "url"
-          ? input.content
-          : normalizedExecutionBrief?.brandInput?.websiteUrl;
+          const siteUrl = input.inputType === "url" ? input.content : normalizedExecutionBrief?.brandInput?.websiteUrl;
 
-        if (ENV.aiSiteIntelligenceEnabled && input.siteIntelligenceId) {
-          siteIntelligence = await loadSiteIntelligence(
-            input.siteIntelligenceId,
-            ctx.user.id,
-          );
-        }
-
-        if (ENV.aiSiteIntelligenceEnabled && siteUrl && !siteIntelligence) {
-          try {
-            const result = await analyzeSiteIntelligence(siteUrl, ctx.user.id);
-            siteIntelligence = result.siteIntelligence;
-          } catch (error) {
-            console.warn("[post.generate] Site intelligence unavailable:", error);
+          if (ENV.aiSiteIntelligenceEnabled && input.siteIntelligenceId) {
+            siteIntelligence = await loadSiteIntelligence(input.siteIntelligenceId, ctx.user.id);
           }
-        }
 
-        if (siteIntelligence) {
-          contextContent = siteIntelligence.evidence
-            .map((item) => `[${item.kind}] ${item.text}`)
-            .join("\n")
-            .slice(0, 24_000);
-          brandDnaContext = siteIntelligenceToPrompt(siteIntelligence);
-        } else if (siteUrl) {
-          const scrapeResult = await scrapeSiteUrl(siteUrl);
-          contextContent = `URL: ${siteUrl}\nTitulo: ${scrapeResult.title}\nDescricao: ${scrapeResult.description}\nConteudo: ${scrapeResult.content}`;
-        }
+          if (ENV.aiSiteIntelligenceEnabled && siteUrl && !siteIntelligence) {
+            try {
+              const result = await analyzeSiteIntelligence(siteUrl, ctx.user.id);
+              siteIntelligence = result.siteIntelligence;
+            } catch (error) {
+              console.warn("[post.generate] Site intelligence unavailable:", error);
+            }
+          }
 
-        const generationPlan = await prepareGenerationPlan({
-          sourceContent: contextContent,
-          siteIntelligence,
-          executionBrief: normalizedExecutionBrief,
-        });
-        recordGenerationEvent({
-          stage: "content_strategy",
-          status: generationPlan.strategies.fallbackUsed ? "fallback" : "completed",
-          detail: `${generationPlan.strategies.selected.length} strategies selected.`,
-          data: generationPlan.strategies,
-        });
+          if (siteIntelligence) {
+            contextContent = siteIntelligence.evidence
+              .map(item => `[${item.kind}] ${item.text}`)
+              .join("\n")
+              .slice(0, 24_000);
+            brandDnaContext = siteIntelligenceToPrompt(siteIntelligence);
+          } else if (siteUrl) {
+            const scrapeResult = await scrapeSiteUrl(siteUrl);
+            contextContent = `URL: ${siteUrl}\nTitulo: ${scrapeResult.title}\nDescricao: ${scrapeResult.description}\nConteudo: ${scrapeResult.content}`;
+          }
 
-        const platformSpecs: Record<string, { label: string; maxChars: number }> = {
-          instagram: { label: "Instagram", maxChars: 2200 },
-          twitter: { label: "Twitter/X", maxChars: 280 },
-          linkedin: { label: "LinkedIn", maxChars: 3000 },
-          facebook: { label: "Facebook", maxChars: 63206 },
-        };
-        const spec = platformSpecs[input.platform];
+          const generationPlan = await prepareGenerationPlan({
+            sourceContent: contextContent,
+            siteIntelligence,
+            executionBrief: normalizedExecutionBrief,
+          });
+          recordGenerationEvent({
+            stage: "content_strategy",
+            status: generationPlan.strategies.fallbackUsed ? "fallback" : "completed",
+            detail: `${generationPlan.strategies.selected.length} strategies selected.`,
+            data: generationPlan.strategies,
+          });
 
-        const effectiveTone = normalizedExecutionBrief?.tone || input.tone;
-        const toneHint = effectiveTone
-          ? `\nTom detectado no input do usuário: "${effectiveTone}" — calibre o conteúdo gerado para esse estado emocional.\n`
-          : "";
+          const platformSpecs: Record<string, { label: string; maxChars: number }> = {
+            instagram: { label: "Instagram", maxChars: 2200 },
+            twitter: { label: "Twitter/X", maxChars: 280 },
+            linkedin: { label: "LinkedIn", maxChars: 3000 },
+            facebook: { label: "Facebook", maxChars: 63206 },
+          };
+          const spec = platformSpecs[input.platform];
 
-        // Dynamic system prompt based on postMode
-        const isCarousel = input.postMode === "carousel";
-        const modeInstruction = normalizedExecutionBrief
-          ? isCarousel
-            ? `\nIMPORTANTE: Gere conteúdo para um CARROSSEL de execução guiada. Cada variação DEVE ter exatamente 5 slides organizados em "slides". Preserve a estrutura fornecida pelo usuário sempre que ela existir. Slide 1 = gancho, slides 2-4 = desenvolvimento, slide 5 = CTA final. Não coloque CTA nos slides 1-4.`
-            : "\nIMPORTANTE: Gere uma peça de execução guiada, fiel ao briefing, com baixa distância entre as variações."
-          : isCarousel
-            ? `\nIMPORTANTE: Gere conteúdo para um CARROSSEL (múltiplos slides). Cada variação DEVE ter exatamente 5 slides organizados em um array "slides". Não retorne array vazio, parcial ou simplificado. Estrutura obrigatória do carrossel: slide 1 = gancho forte e altamente curioso para fazer a pessoa folhear; slides 2, 3 e 4 = desenvolvimento progressivo do tema; slide 5 = CTA final, e somente ele deve conter call-to-action. Não coloque CTA nos slides 1-4. Cada slide deve ter: headline (título curto máx 50 caracteres), body (mensagem máx 80 caracteres), slideNumber (1-5), isTitleSlide (true apenas no slide 1), isCtaSlide (true apenas no slide 5). O headline/body de nível superior são apenas um resumo do carrossel; o conteúdo principal vive nos slides.`
-            : "\nGere posts individuais (estático).";
+          const effectiveTone = normalizedExecutionBrief?.tone || input.tone;
+          const toneHint = effectiveTone ? `\nTom detectado no input do usuário: "${effectiveTone}" — calibre o conteúdo gerado para esse estado emocional.\n` : "";
 
-        const executionSystemContext = normalizedExecutionBrief
-          ? `
+          // Dynamic system prompt based on postMode
+          const isCarousel = input.postMode === "carousel";
+          const modeInstruction = normalizedExecutionBrief
+            ? isCarousel
+              ? `\nIMPORTANTE: Gere conteúdo para um CARROSSEL de execução guiada. Cada variação DEVE ter exatamente 5 slides organizados em "slides". Preserve a estrutura fornecida pelo usuário sempre que ela existir. Slide 1 = gancho, slides 2-4 = desenvolvimento, slide 5 = CTA final. Não coloque CTA nos slides 1-4.`
+              : "\nIMPORTANTE: Gere uma peça de execução guiada, fiel ao briefing, com baixa distância entre as variações."
+            : isCarousel
+              ? `\nIMPORTANTE: Gere conteúdo para um CARROSSEL (múltiplos slides). Cada variação DEVE ter exatamente 5 slides organizados em um array "slides". Não retorne array vazio, parcial ou simplificado. Estrutura obrigatória do carrossel: slide 1 = gancho forte e altamente curioso para fazer a pessoa folhear; slides 2, 3 e 4 = desenvolvimento progressivo do tema; slide 5 = CTA final, e somente ele deve conter call-to-action. Não coloque CTA nos slides 1-4. Cada slide deve ter: headline (título curto máx 50 caracteres), body (mensagem máx 80 caracteres), slideNumber (1-5), isTitleSlide (true apenas no slide 1), isCtaSlide (true apenas no slide 5). O headline/body de nível superior são apenas um resumo do carrossel; o conteúdo principal vive nos slides.`
+              : "\nGere posts individuais (estático).";
+
+          const executionSystemContext = normalizedExecutionBrief
+            ? `
 MODO DE EXECUÇÃO ATIVADO:
 - Você NÃO está criando do zero. Você está executando um briefing.
 - Preserve a intenção, a estrutura, o CTA e os termos obrigatórios enviados pelo usuário.
@@ -664,10 +769,9 @@ MODO DE EXECUÇÃO ATIVADO:
 - Se o nível for "light_optimize", melhore clareza, ritmo e impacto sem alterar a estrutura principal.
 - Se o nível for "optimize_structure", você pode reorganizar trechos, mas sem trair a mensagem central.
 `
-          : "";
+            : "";
 
-        const systemPrompt = `Você é um especialista em marketing digital, design visual e criação de conteúdo para redes sociais.
-Gere EXATAMENTE 3 variações de post para ${spec.label}.${modeInstruction}
+          const generationInstructionCore = `${modeInstruction}
 ${normalizedExecutionBrief ? "As 3 variações devem ser próximas entre si e altamente fiéis ao briefing." : "Cada variação deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado."}${toneHint}
 ${brandDnaContext}
 ${executionSystemContext}
@@ -723,169 +827,357 @@ PRINCÍPIOS DE DESIGN VISUAL E MIMETISMO:
    
 Responda APENAS com JSON válido.`;
 
-        const userPrompt = normalizedExecutionBrief
-          ? `Execute este briefing com fidelidade. Otimize apenas no grau permitido.
+          const systemPrompt = `Você é um especialista em marketing digital, design visual e criação de conteúdo para redes sociais.
+Gere EXATAMENTE 3 variações de post para ${spec.label}.
+${generationInstructionCore}`;
+
+          const slotGenerationInstructionCore = generationInstructionCore
+            .replace(generationPlan.promptContext, "")
+            .replace(
+              "As 3 variações devem ser próximas entre si e altamente fiéis ao briefing.",
+              "Esta variação deve ser altamente fiel ao briefing e ao contrato estratégico do slot.",
+            )
+            .replace(
+              "Cada variação deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado.",
+              "Esta variação deve seguir exclusivamente o tom e o ângulo definidos no contrato estratégico do slot.",
+            )
+            .replace(
+              "- As 3 variações DEVEM ser claramente distinguíveis entre si. Não repita headline, body, copyAngle, CTA, hashtags ou a mesma combinação de layout + paleta.",
+              "- Esta variação DEVE ser claramente alinhada ao contrato estratégico do slot. Não reaproveite mecanicamente headline, body, copyAngle, CTA, hashtags ou combinação de layout + paleta de outros ângulos.",
+            )
+            .replace(
+              "- Faça cada variação abrir por uma ideia diferente: 1) institucional/autoridade, 2) conversa/engajamento, 3) criativa ou provocativa.",
+              "- Faça esta variação abrir por uma ideia forte e alinhada ao contrato estratégico do slot, sem cair em fórmulas genéricas.",
+            );
+
+          const slotSystemPrompt = `Você é um especialista em marketing digital, design visual e criação de conteúdo para redes sociais.
+Gere exatamente UMA variação de post para ${spec.label}, correspondente ao slot solicitado pelo usuário.
+
+PRIORIDADE CRIATIVA:
+- O schema é apenas o contêiner de entrega; a peça precisa sair pronta para produção.
+- A variação deve ter uma ideia clara, copy objetiva, coerência visual e diferença real em relação aos outros ângulos.
+- Não preencha campos mecanicamente. Cada headline, body, seção, CTA e cor deve servir ao contrato estratégico do slot.
+
+${slotGenerationInstructionCore}`;
+
+          const userPrompt = normalizedExecutionBrief
+            ? `Execute este briefing com fidelidade. Otimize apenas no grau permitido.
 
 ${buildExecutionBriefContext(normalizedExecutionBrief)}`
-          : input.inputType === "image"
-            ? `Crie posts baseados nesta imagem: ${input.imageUrl || input.content}`
-            : `Crie posts baseados neste conteúdo: ${contextContent}`;
+            : input.inputType === "image"
+              ? `Crie posts baseados nesta imagem: ${input.imageUrl || input.content}`
+              : `Crie posts baseados neste conteúdo: ${contextContent}`;
 
-        // ─── JSON Schema Layout Definitions ───
-        const layoutPositionSchema = {
-          type: "object",
-          properties: {
-            x: { type: "number", description: "Posição X em % (0-100)" },
-            y: { type: "number", description: "Posição Y em % (0-100)" },
-            width: { type: "number", description: "Largura em % (10-100)" },
-            textAlign: { type: "string", enum: ["left", "center", "right"] },
-            backgroundColor: { type: "string", description: "Cor de fundo opcional para o elemento (RGBA ou Hex)" },
-            borderRadius: { type: "number", description: "Raio da borda em px (0-40)" }
-          },
-          required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
-          additionalProperties: false,
-        };
+          // ─── JSON Schema Layout Definitions ───
+          const layoutPositionSchema = {
+            type: "object",
+            properties: {
+              x: { type: "number", description: "Posição X em % (0-100)" },
+              y: { type: "number", description: "Posição Y em % (0-100)" },
+              width: { type: "number", description: "Largura em % (10-100)" },
+              textAlign: { type: "string", enum: ["left", "center", "right"] },
+              backgroundColor: {
+                type: "string",
+                description: "Cor de fundo opcional para o elemento (RGBA ou Hex)",
+              },
+              borderRadius: {
+                type: "number",
+                description: "Raio da borda em px (0-40)",
+              },
+            },
+            required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
+            additionalProperties: false,
+          };
 
-        const formatOptimizationSchema = {
-          type: "object",
-          properties: {
-            layout: { type: "string", enum: ["centered", "left-aligned", "split", "minimal"] },
-            backgroundColor: { type: "string" },
-            textColor: { type: "string" },
-            accentColor: { type: "string" },
-            headline: { $ref: "#/$defs/layoutPosition" },
-            body: { $ref: "#/$defs/layoutPosition" },
-            card: { $ref: "#/$defs/layoutPosition" },
-            padding: { type: "number" }
-          },
-          required: ["layout", "backgroundColor", "textColor", "accentColor", "headline", "body", "card", "padding"],
-          additionalProperties: false,
-        };
+          const formatOptimizationSchema = {
+            type: "object",
+            properties: {
+              layout: {
+                type: "string",
+                enum: ["centered", "left-aligned", "split", "minimal"],
+              },
+              backgroundColor: { type: "string" },
+              textColor: { type: "string" },
+              accentColor: { type: "string" },
+              headline: { $ref: "#/$defs/layoutPosition" },
+              body: { $ref: "#/$defs/layoutPosition" },
+              card: { $ref: "#/$defs/layoutPosition" },
+              padding: { type: "number" },
+            },
+            required: ["layout", "backgroundColor", "textColor", "accentColor", "headline", "body", "card", "padding"],
+            additionalProperties: false,
+          };
 
-        const layoutDefs = {
-          layoutPosition: layoutPositionSchema,
-          formatOptimization: formatOptimizationSchema,
-        };
+          const layoutDefs = {
+            layoutPosition: layoutPositionSchema,
+            formatOptimization: formatOptimizationSchema,
+          };
 
-        // Dynamic schema based on postMode
-        const variationSchema = isCarousel ? {
-          type: "object",
-          properties: {
-            headline: { type: "string", description: "Título principal do carrossel" },
-            body: { type: "string", description: "Descrição geral do carrossel" },
-            hashtags: { type: "array", items: { type: "string" }, description: "Hashtags relevantes" },
-            callToAction: { type: "string", description: "Call to action final do carrossel" },
-            caption: { type: "string", description: "Legenda do post para a rede social, máximo 300 caracteres" },
-            tone: { type: "string", description: "Tom do post" },
-            imagePrompt: { type: "string", description: "Prompt em inglês para gerar imagem de fundo" },
-            backgroundColor: { type: "string", description: "Cor de fundo hex" },
-            textColor: { type: "string", description: "Cor do texto hex" },
-            accentColor: { type: "string", description: "Cor de destaque hex" },
-            layout: { type: "string", enum: ["centered", "left-aligned", "split", "minimal"], description: "Layout sugerido" },
-            aspectRatio: { type: "string", enum: ["1:1", "5:6", "9:16"], description: "Proporção de aspecto" },
-            slides: {
-              type: "array",
-              items: {
+          // Dynamic schema based on postMode
+          const variationSchema = isCarousel
+            ? {
                 type: "object",
                 properties: {
-                  headline: { type: "string", description: "Título do slide" },
-                  body: { type: "string", description: "Conteúdo do slide" },
-                  slideNumber: { type: "integer", description: "Número do slide (1-5)" },
-                  isTitleSlide: { type: "boolean", description: "Se é o primeiro slide" },
-                  isCtaSlide: { type: "boolean", description: "Se é o último slide" },
+                  headline: {
+                    type: "string",
+                    description: "Título principal do carrossel",
+                  },
+                  body: {
+                    type: "string",
+                    description: "Descrição geral do carrossel",
+                  },
+                  hashtags: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Hashtags relevantes",
+                  },
+                  callToAction: {
+                    type: "string",
+                    description: "Call to action final do carrossel",
+                  },
+                  caption: {
+                    type: "string",
+                    description: "Legenda do post para a rede social, máximo 300 caracteres",
+                  },
+                  tone: { type: "string", description: "Tom do post" },
+                  imagePrompt: {
+                    type: "string",
+                    description: "Prompt em inglês para gerar imagem de fundo",
+                  },
+                  backgroundColor: {
+                    type: "string",
+                    description: "Cor de fundo hex",
+                  },
+                  textColor: {
+                    type: "string",
+                    description: "Cor do texto hex",
+                  },
+                  accentColor: {
+                    type: "string",
+                    description: "Cor de destaque hex",
+                  },
+                  layout: {
+                    type: "string",
+                    enum: ["centered", "left-aligned", "split", "minimal"],
+                    description: "Layout sugerido",
+                  },
+                  aspectRatio: {
+                    type: "string",
+                    enum: ["1:1", "5:6", "9:16"],
+                    description: "Proporção de aspecto",
+                  },
+                  slides: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        headline: {
+                          type: "string",
+                          description: "Título do slide",
+                        },
+                        body: {
+                          type: "string",
+                          description: "Conteúdo do slide",
+                        },
+                        slideNumber: {
+                          type: "integer",
+                          description: "Número do slide (1-5)",
+                        },
+                        isTitleSlide: {
+                          type: "boolean",
+                          description: "Se é o primeiro slide",
+                        },
+                        isCtaSlide: {
+                          type: "boolean",
+                          description: "Se é o último slide",
+                        },
+                      },
+                      required: ["headline", "body", "slideNumber", "isTitleSlide", "isCtaSlide"],
+                      additionalProperties: false,
+                    },
+                    minItems: CAROUSEL_SLIDE_TARGET,
+                    maxItems: CAROUSEL_SLIDE_TARGET,
+                    description: "Slides do carrossel (5 itens)",
+                  },
+                  aspectRatioOptimizations: {
+                    type: "object",
+                    properties: {
+                      "1:1": { $ref: "#/$defs/formatOptimization" },
+                      "5:6": { $ref: "#/$defs/formatOptimization" },
+                      "9:16": { $ref: "#/$defs/formatOptimization" },
+                    },
+                    required: ["1:1", "5:6", "9:16"],
+                    additionalProperties: false,
+                  },
+                  copyAngle: {
+                    type: "object",
+                    properties: {
+                      type: {
+                        type: "string",
+                        enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"],
+                      },
+                      label: { type: "string" },
+                      badge: { type: "string" },
+                      stickerText: { type: "string" },
+                    },
+                    required: ["type", "label", "badge", "stickerText"],
+                    additionalProperties: false,
+                  },
                 },
-                required: ["headline", "body", "slideNumber", "isTitleSlide", "isCtaSlide"],
+                required: [
+                  "headline",
+                  "body",
+                  "hashtags",
+                  "callToAction",
+                  "caption",
+                  "tone",
+                  "imagePrompt",
+                  "backgroundColor",
+                  "textColor",
+                  "accentColor",
+                  "layout",
+                  "aspectRatio",
+                  "slides",
+                  "aspectRatioOptimizations",
+                  "copyAngle",
+                ],
                 additionalProperties: false,
-              },
-              minItems: CAROUSEL_SLIDE_TARGET,
-              maxItems: CAROUSEL_SLIDE_TARGET,
-              description: "Slides do carrossel (5 itens)",
-            },
-            aspectRatioOptimizations: {
-              type: "object",
-              properties: {
-                "1:1": { $ref: "#/$defs/formatOptimization" },
-                "5:6": { $ref: "#/$defs/formatOptimization" },
-                "9:16": { $ref: "#/$defs/formatOptimization" },
-              },
-              required: ["1:1", "5:6", "9:16"],
-              additionalProperties: false,
-            },
-            copyAngle: {
-              type: "object",
-              properties: {
-                type: { type: "string", enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"] },
-                label: { type: "string" },
-                badge: { type: "string" },
-                stickerText: { type: "string" }
-              },
-              required: ["type", "label", "badge", "stickerText"],
-              additionalProperties: false
-            }
-          },
-          required: ["headline", "body", "hashtags", "callToAction", "caption", "tone", "imagePrompt", "backgroundColor", "textColor", "accentColor", "layout", "aspectRatio", "slides", "aspectRatioOptimizations", "copyAngle"],
-          additionalProperties: false,
-        } : {
-          type: "object",
-          properties: {
-            headline: { type: "string", description: "Título chamativo do post" },
-            body: { type: "string", description: "Corpo principal do post" },
-            hashtags: { type: "array", items: { type: "string" }, description: "Hashtags relevantes" },
-            callToAction: { type: "string", description: "Call to action final" },
-            caption: { type: "string", description: "Legenda do post para a rede social, máximo 300 caracteres" },
-            tone: { type: "string", description: "Tom do post" },
-            imagePrompt: { type: "string", description: "Prompt em inglês para gerar imagem de fundo do post. Deve ser visual, artístico e relevante ao conteúdo." },
-            backgroundColor: { type: "string", description: "Cor de fundo hex" },
-            textColor: { type: "string", description: "Cor do texto hex" },
-            accentColor: { type: "string", description: "Cor de destaque hex" },
-            layout: { type: "string", enum: ["centered", "left-aligned", "split", "minimal"], description: "Layout sugerido" },
-            aspectRatio: { type: "string", enum: ["1:1", "5:6", "9:16"], description: "Proporção de aspecto: 1:1 quadrado, 5:6 retrato, 9:16 story/reels — varie entre as variações para oferecer diversidade" },
-            template: { type: "string", enum: ["simple", "feature-grid", "numbered-list", "step-by-step"], description: "Template de conteúdo estruturado. Use 'simple' para mensagens únicas, outros para conteúdo rico." },
-            sections: {
-              type: "array",
-              items: {
+              }
+            : {
                 type: "object",
                 properties: {
-                  icon: { type: "string", description: "Nome de ícone lucide (ex: Users, Star, Zap, Heart, Globe)" },
-                  label: { type: "string", maxLength: 24, description: "Título curto da seção, máximo 24 caracteres" },
-                  description: { type: "string", maxLength: 48, description: "Texto de suporte opcional, máximo 48 caracteres" },
-                  number: { type: "integer", description: "Número para listas numeradas" },
+                  headline: {
+                    type: "string",
+                    description: "Título chamativo do post",
+                  },
+                  body: {
+                    type: "string",
+                    description: "Corpo principal do post",
+                  },
+                  hashtags: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Hashtags relevantes",
+                  },
+                  callToAction: {
+                    type: "string",
+                    description: "Call to action final",
+                  },
+                  caption: {
+                    type: "string",
+                    description: "Legenda do post para a rede social, máximo 300 caracteres",
+                  },
+                  tone: { type: "string", description: "Tom do post" },
+                  imagePrompt: {
+                    type: "string",
+                    description: "Prompt em inglês para gerar imagem de fundo do post. Deve ser visual, artístico e relevante ao conteúdo.",
+                  },
+                  backgroundColor: {
+                    type: "string",
+                    description: "Cor de fundo hex",
+                  },
+                  textColor: {
+                    type: "string",
+                    description: "Cor do texto hex",
+                  },
+                  accentColor: {
+                    type: "string",
+                    description: "Cor de destaque hex",
+                  },
+                  layout: {
+                    type: "string",
+                    enum: ["centered", "left-aligned", "split", "minimal"],
+                    description: "Layout sugerido",
+                  },
+                  aspectRatio: {
+                    type: "string",
+                    enum: ["1:1", "5:6", "9:16"],
+                    description: "Proporção de aspecto: 1:1 quadrado, 5:6 retrato, 9:16 story/reels — varie entre as variações para oferecer diversidade",
+                  },
+                  template: {
+                    type: "string",
+                    enum: ["simple", "feature-grid", "numbered-list", "step-by-step"],
+                    description: "Template de conteúdo estruturado. Use 'simple' para mensagens únicas, outros para conteúdo rico.",
+                  },
+                  sections: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        icon: {
+                          type: "string",
+                          description: "Nome de ícone lucide (ex: Users, Star, Zap, Heart, Globe)",
+                        },
+                        label: {
+                          type: "string",
+                          maxLength: 24,
+                          description: "Título curto da seção, máximo 24 caracteres",
+                        },
+                        description: {
+                          type: "string",
+                          maxLength: 48,
+                          description: "Texto de suporte opcional, máximo 48 caracteres",
+                        },
+                        number: {
+                          type: "integer",
+                          description: "Número para listas numeradas",
+                        },
+                      },
+                      required: ["icon", "label", "description", "number"],
+                      additionalProperties: false,
+                    },
+                    maxItems: 3,
+                    description: "Use [] para template simple. Para templates estruturados, gere exatamente 3 itens curtos.",
+                  },
+                  aspectRatioOptimizations: {
+                    type: "object",
+                    properties: {
+                      "1:1": { $ref: "#/$defs/formatOptimization" },
+                      "5:6": { $ref: "#/$defs/formatOptimization" },
+                      "9:16": { $ref: "#/$defs/formatOptimization" },
+                    },
+                    required: ["1:1", "5:6", "9:16"],
+                    additionalProperties: false,
+                  },
+                  copyAngle: {
+                    type: "object",
+                    properties: {
+                      type: {
+                        type: "string",
+                        enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"],
+                      },
+                      label: { type: "string" },
+                      badge: { type: "string" },
+                      stickerText: { type: "string" },
+                    },
+                    required: ["type", "label", "badge", "stickerText"],
+                    additionalProperties: false,
+                  },
                 },
-                required: ["icon", "label", "description", "number"],
+                required: [
+                  "headline",
+                  "body",
+                  "hashtags",
+                  "callToAction",
+                  "caption",
+                  "tone",
+                  "imagePrompt",
+                  "backgroundColor",
+                  "textColor",
+                  "accentColor",
+                  "layout",
+                  "aspectRatio",
+                  "template",
+                  "sections",
+                  "aspectRatioOptimizations",
+                  "copyAngle",
+                ],
                 additionalProperties: false,
-              },
-              maxItems: 3,
-              description: "Use [] para template simple. Para templates estruturados, gere exatamente 3 itens curtos.",
-            },
-            aspectRatioOptimizations: {
-              type: "object",
-              properties: {
-                "1:1": { $ref: "#/$defs/formatOptimization" },
-                "5:6": { $ref: "#/$defs/formatOptimization" },
-                "9:16": { $ref: "#/$defs/formatOptimization" },
-              },
-              required: ["1:1", "5:6", "9:16"],
-              additionalProperties: false,
-            },
-            copyAngle: {
-              type: "object",
-              properties: {
-                type: { type: "string", enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"] },
-                label: { type: "string" },
-                badge: { type: "string" },
-                stickerText: { type: "string" }
-              },
-              required: ["type", "label", "badge", "stickerText"],
-              additionalProperties: false
-            }
-          },
-          required: ["headline", "body", "hashtags", "callToAction", "caption", "tone", "imagePrompt", "backgroundColor", "textColor", "accentColor", "layout", "aspectRatio", "template", "sections", "aspectRatioOptimizations", "copyAngle"],
-          additionalProperties: false,
-        };
+              };
 
-        const slotResponses = await Promise.all(
-          generationPlan.strategies.selected.map(async (strategy, index) => {
-            const slotPrompt = `${userPrompt}
+          const slotResponses = await Promise.all(
+            generationPlan.strategies.selected.map(async (strategy, index) => {
+              const slotPrompt = `${userPrompt}
 
 TAREFA DESTE AGENTE:
 - Gere somente a variacao ${index + 1} de 3.
@@ -893,103 +1185,146 @@ TAREFA DESTE AGENTE:
 ${JSON.stringify(strategy, null, 2)}
 - Nao misture os outros angulos.
 - Retorne um array "variations" com exatamente 1 item.`;
-            const generateSlot = async (attempt: number) => {
-              const response = await invokeLLM({
-                traceLabel: attempt === 1
-                  ? `post_generation_${index + 1}`
-                  : `post_generation_${index + 1}_retry`,
-                model: input.model as any,
-                messages: [
-                  {
-                    role: "system",
-                    content: `${systemPrompt}
+              const generateSlot = async (attempt: number) => {
+                const userContent =
+                  input.inputType === "image" && (input.imageUrl || input.content)
+                    ? [
+                        {
+                          type: "text" as const,
+                          text:
+                            attempt === 1
+                              ? slotPrompt
+                              : `${slotPrompt}
 
-Para esta chamada isolada, ignore apenas a instrucao de quantidade global:
-produza exatamente UMA variacao, correspondente ao slot solicitado.`,
-                  },
-                  {
-                    role: "user",
-                    content: attempt === 1
+A tentativa anterior retornou um item ausente ou incompleto.
+Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategico.`,
+                        },
+                        {
+                          type: "image_url" as const,
+                          image_url: { url: input.imageUrl || input.content, detail: "high" as const },
+                        },
+                      ]
+                    : attempt === 1
                       ? slotPrompt
                       : `${slotPrompt}
 
 A tentativa anterior retornou um item ausente ou incompleto.
-Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategico.`,
-                  },
-                ],
-                response_format: {
-                  type: "json_schema",
-                  json_schema: {
-                    name: `post_variation_${index + 1}`,
-                    strict: true,
-                    schema: {
-                      type: "object",
-                      properties: {
-                        variations: {
-                          type: "array",
-                          minItems: 1,
-                          maxItems: 1,
-                          items: variationSchema,
+Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategico.`;
+                const response = await invokeLLM({
+                  traceLabel: attempt === 1 ? `post_generation_${index + 1}` : `post_generation_${index + 1}_retry`,
+                  taskRoute: isCarousel ? "carousel_generation" : "static_generation",
+                  model: input.model as any,
+                  maxCompletionTokens:
+                    attempt === 1
+                      ? isCarousel ? 4096 : 3072
+                      : isCarousel ? 3072 : 2048,
+                  messages: [
+                    {
+                      role: "system",
+                      content: slotSystemPrompt,
+                    },
+                    {
+                      role: "user",
+                      content: userContent,
+                    },
+                  ],
+                  response_format: {
+                    type: "json_schema",
+                    json_schema: {
+                      name: `post_variation_${index + 1}`,
+                      strict: true,
+                      schema: {
+                        type: "object",
+                        properties: {
+                          variations: {
+                            type: "array",
+                            minItems: 1,
+                            maxItems: 1,
+                            items: variationSchema,
+                          },
                         },
+                        required: ["variations"],
+                        $defs: layoutDefs,
+                        additionalProperties: false,
                       },
-                      required: ["variations"],
-                      $defs: layoutDefs,
-                      additionalProperties: false,
                     },
                   },
-                },
+                });
+                const content = response.choices[0]?.message?.content;
+                const contentStr =
+                  typeof content === "string"
+                    ? content
+                    : Array.isArray(content)
+                      ? content
+                          .filter(c => "text" in c)
+                          .map(c => (c as any).text)
+                          .join("\n")
+                      : "{}";
+                return safeJsonParse<{ variations: any[] }>(contentStr, {
+                  variations: [],
+                }).variations[0];
+              };
+
+              let first: any = null;
+              try {
+                first = await generateSlot(1);
+              } catch (error) {
+                recordGenerationEvent({
+                  stage: `post_generation_${index + 1}`,
+                  status: "rejected",
+                  detail: "Slot generation failed fast; requesting one targeted retry.",
+                  data: error instanceof Error ? error.message : String(error),
+                });
+              }
+              const firstIsComplete = Boolean(
+                first?.headline?.trim() &&
+                  first?.body?.trim() &&
+                  first?.caption?.trim() &&
+                  first?.callToAction?.trim() &&
+                  first?.imagePrompt?.trim() &&
+                  first?.copyAngle?.type &&
+                  (input.postMode === "carousel" || hasValidStaticSections(first)) &&
+                  (input.postMode !== "carousel" || first?.slides?.length === CAROUSEL_SLIDE_TARGET)
+              );
+              if (firstIsComplete) return first;
+
+              recordGenerationEvent({
+                stage: `post_generation_${index + 1}`,
+                status: "rejected",
+                detail: "Slot incomplete; requesting one targeted retry.",
+                data: first,
               });
-              const content = response.choices[0]?.message?.content;
-              const contentStr = typeof content === "string"
-                ? content
-                : Array.isArray(content)
-                  ? content.filter(c => "text" in c).map(c => (c as any).text).join("\n")
-                  : "{}";
-              return safeJsonParse<{ variations: any[] }>(
-                contentStr,
-                { variations: [] },
-              ).variations[0];
-            };
+              try {
+                return await generateSlot(2);
+              } catch (error) {
+                recordGenerationEvent({
+                  stage: `post_generation_${index + 1}`,
+                  status: "failed",
+                  detail: "Targeted retry failed; slot will be omitted.",
+                  data: error instanceof Error ? error.message : String(error),
+                });
+                return null;
+              }
+            })
+          );
+          let variations = slotResponses
+            .filter(Boolean)
+            .slice(0, POST_VARIATION_TARGET)
+            .map((variation) => applyDeterministicCopyGuards(variation));
+          recordGenerationEvent({
+            stage: "post_generation",
+            status: variations.length === POST_VARIATION_TARGET ? "completed" : "rejected",
+            detail: `Primary generation returned ${variations.length} variation(s).`,
+            data: variations,
+          });
 
-            const first = await generateSlot(1);
-            const firstIsComplete = Boolean(
-              first?.headline?.trim() &&
-              first?.body?.trim() &&
-              first?.caption?.trim() &&
-              first?.callToAction?.trim() &&
-              first?.imagePrompt?.trim() &&
-              first?.copyAngle?.type &&
-              (input.postMode === "carousel" ||
-                hasValidStaticSections(first)) &&
-              (input.postMode !== "carousel" ||
-                first?.slides?.length === CAROUSEL_SLIDE_TARGET),
-            );
-            if (firstIsComplete) return first;
-
-            recordGenerationEvent({
-              stage: `post_generation_${index + 1}`,
-              status: "rejected",
-              detail: "Slot incomplete; requesting one targeted retry.",
-              data: first,
-            });
-            return generateSlot(2);
-          }),
-        );
-        let variations = slotResponses.filter(Boolean).slice(0, POST_VARIATION_TARGET);
-        recordGenerationEvent({
-          stage: "post_generation",
-          status: variations.length === POST_VARIATION_TARGET ? "completed" : "rejected",
-          detail: `Primary generation returned ${variations.length} variation(s).`,
-          data: variations,
-        });
-
-        // --------------------------------------------------------------------------------
-        // QA PASSPORT / BRAND SOUL GUARDIAN (Apenas ativado em clonagens de site / URL)
-        // --------------------------------------------------------------------------------
-        if (siteIntelligence && brandDnaContext.length > 0) {
-          try {
-            console.log("[QA Guard] Validating Brand Mimetism...");
-            const qaPrompt = `Você é um Quality Assurance rigoroso de Design Visual e Acessibilidade técnica (WCAG).
+          // --------------------------------------------------------------------------------
+          // QA PASSPORT / BRAND SOUL GUARDIAN (Apenas ativado em clonagens de site / URL)
+          // --------------------------------------------------------------------------------
+          if (siteIntelligence && brandDnaContext.length > 0) {
+            try {
+              console.log("[QA Guard] Validating Brand Mimetism...");
+              const qaPrompt = `Você é um Quality Assurance rigoroso de Design Visual e Acessibilidade técnica (WCAG).
 O LLM Anterior gerou 3 variações de Post. O seu único objetivo é VARRER falhas e ARRUMAR o JSON.
 
 DIRETRIZES CARDINAIS DO BRAND SOUL (Não podem ser violadas):
@@ -1009,65 +1344,69 @@ ${isCarousel ? "CRÍTICO: preserve exatamente os 5 slides de cada variação. N�
 Retorne um JSON contendo O MESMO ARRAY, de mesmo formato, substituindo estritamente as propriedades listadas caso estejam ruins. Mantenha os textos inteiramente idênticos.
 Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
 
-            const qaResponse = await invokeLLM({
-              traceLabel: "brand_visual_qa",
-              model: "gemini", // O QA pode rodar no gemini-flash fixo pela velocidade
-              messages: [{ role: "user", content: qaPrompt }],
-              response_format: {
-                type: "json_schema",
-                json_schema: {
-                  name: "post_variations_qa",
-                  strict: true,
-                  schema: {
-                    type: "object",
-                    properties: {
-                      variations: {
-                        type: "array",
-                        minItems: POST_VARIATION_TARGET,
-                        maxItems: POST_VARIATION_TARGET,
-                        items: variationSchema
-                      }
+              const qaResponse = await invokeLLM({
+                traceLabel: "brand_visual_qa",
+                taskRoute: "post_evaluation",
+                messages: [{ role: "user", content: qaPrompt }],
+                response_format: {
+                  type: "json_schema",
+                  json_schema: {
+                    name: "post_variations_qa",
+                    strict: true,
+                    schema: {
+                      type: "object",
+                      properties: {
+                        variations: {
+                          type: "array",
+                          minItems: POST_VARIATION_TARGET,
+                          maxItems: POST_VARIATION_TARGET,
+                          items: variationSchema,
+                        },
+                      },
+                      required: ["variations"],
+                      $defs: layoutDefs,
+                      additionalProperties: false,
                     },
-                    required: ["variations"],
-                    $defs: layoutDefs,
-                    additionalProperties: false
-                  }
-                }
+                  },
+                },
+              });
+
+              const qaContent = qaResponse.choices[0]?.message?.content;
+              const qaContentStr =
+                typeof qaContent === "string"
+                  ? qaContent
+                  : Array.isArray(qaContent)
+                    ? qaContent
+                        .filter(c => "text" in c)
+                        .map(c => (c as any).text)
+                        .join("\n")
+                    : "{}";
+              const qaParsed = safeJsonParse<{ variations: any[] }>(qaContentStr, { variations: [] });
+              if (qaParsed.variations?.length === variations.length) {
+                variations = qaParsed.variations.slice(0, 3);
+                console.log("[QA Guard] Mimetism validation approved & patched.");
+                recordGenerationEvent({
+                  stage: "brand_visual_qa",
+                  status: "completed",
+                  detail: "Brand visual QA preserved the complete variation set.",
+                  data: variations,
+                });
+              } else {
+                recordGenerationEvent({
+                  stage: "brand_visual_qa",
+                  status: "rejected",
+                  detail: `Brand visual QA returned ${qaParsed.variations?.length ?? 0} items; previous set preserved.`,
+                });
               }
-            });
-
-            const qaContent = qaResponse.choices[0]?.message?.content;
-            const qaContentStr = typeof qaContent === "string"
-              ? qaContent
-              : Array.isArray(qaContent)
-                ? qaContent.filter(c => 'text' in c).map(c => (c as any).text).join("\n")
-                : "{}";
-            const qaParsed = safeJsonParse<{ variations: any[] }>(qaContentStr, { variations: [] });
-            if (qaParsed.variations?.length === variations.length) {
-              variations = qaParsed.variations.slice(0, 3);
-              console.log("[QA Guard] Mimetism validation approved & patched.");
-              recordGenerationEvent({
-                stage: "brand_visual_qa",
-                status: "completed",
-                detail: "Brand visual QA preserved the complete variation set.",
-                data: variations,
-              });
-            } else {
-              recordGenerationEvent({
-                stage: "brand_visual_qa",
-                status: "rejected",
-                detail: `Brand visual QA returned ${qaParsed.variations?.length ?? 0} items; previous set preserved.`,
-              });
+            } catch (qaErr) {
+              console.warn("[QA Guard] Failing gracefull. Returning raw variations.", qaErr);
             }
-          } catch (qaErr) {
-            console.warn("[QA Guard] Failing gracefull. Returning raw variations.", qaErr);
           }
-        }
 
-        if (!normalizedExecutionBrief && variationsNeedDiversification(variations)) {
-          try {
-            console.warn("[Variation Guard] Similar variations detected. Requesting diversified rewrite...");
-            const diversificationPrompt = `Você recebeu 3 variações de post que ficaram parecidas demais.
+          if (!normalizedExecutionBrief && variationsNeedDiversification(variations)) {
+            try {
+              console.warn("[Variation Guard] Similar variations detected. Requesting diversified rewrite...");
+              const diversificationPrompt = `Você recebeu 3 variações de post que ficaram parecidas demais.
 Reescreva o array para entregar EXATAMENTE 3 variações nitidamente diferentes entre si.
 
 REGRAS OBRIGATÓRIAS:
@@ -1083,242 +1422,311 @@ ${JSON.stringify(variations, null, 2)}
 
 Responda APENAS com JSON válido.`;
 
-            const diversificationResponse = await invokeLLM({
-              traceLabel: "lexical_diversification",
-              model: input.model as any,
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: diversificationPrompt },
-              ],
-              response_format: {
-                type: "json_schema",
-                json_schema: {
-                  name: "post_variations_diversified",
-                  strict: true,
-                  schema: {
-                    type: "object",
-                    properties: {
-                      variations: {
-                        type: "array",
-                        minItems: POST_VARIATION_TARGET,
-                        maxItems: POST_VARIATION_TARGET,
-                        items: variationSchema,
+              const diversificationResponse = await invokeLLM({
+                traceLabel: "lexical_diversification",
+                taskRoute: isCarousel ? "carousel_generation" : "static_generation",
+                model: input.model as any,
+                maxCompletionTokens: 4096,
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: diversificationPrompt },
+                ],
+                response_format: {
+                  type: "json_schema",
+                  json_schema: {
+                    name: "post_variations_diversified",
+                    strict: true,
+                    schema: {
+                      type: "object",
+                      properties: {
+                        variations: {
+                          type: "array",
+                          minItems: POST_VARIATION_TARGET,
+                          maxItems: POST_VARIATION_TARGET,
+                          items: variationSchema,
+                        },
                       },
+                      required: ["variations"],
+                      $defs: layoutDefs,
+                      additionalProperties: false,
                     },
-                    required: ["variations"],
-                    $defs: layoutDefs,
-                    additionalProperties: false,
                   },
                 },
-              },
-            });
-
-            const diversifiedContent = diversificationResponse.choices[0]?.message?.content;
-            const diversifiedContentStr = typeof diversifiedContent === "string"
-              ? diversifiedContent
-              : Array.isArray(diversifiedContent)
-                ? diversifiedContent.filter(c => "text" in c).map(c => (c as any).text).join("\n")
-                : "{}";
-            const diversifiedParsed = safeJsonParse<{ variations: any[] }>(diversifiedContentStr, { variations: [] });
-            const diversifiedVariations = (diversifiedParsed.variations || []).slice(0, 3);
-
-            if (diversifiedVariations.length > 0 && !variationsNeedDiversification(diversifiedVariations)) {
-              if (diversifiedVariations.length === POST_VARIATION_TARGET) {
-                variations = diversifiedVariations;
-              }
-              console.log("[Variation Guard] Diversified variations accepted.");
-              recordGenerationEvent({
-                stage: "diversification",
-                status: diversifiedVariations.length === POST_VARIATION_TARGET ? "completed" : "rejected",
-                detail: `Diversification returned ${diversifiedVariations.length} variation(s).`,
-                data: diversifiedVariations,
               });
-            } else {
-              console.warn("[Variation Guard] Diversification attempt still too similar. Keeping original output.");
+
+              const diversifiedContent = diversificationResponse.choices[0]?.message?.content;
+              const diversifiedContentStr =
+                typeof diversifiedContent === "string"
+                  ? diversifiedContent
+                  : Array.isArray(diversifiedContent)
+                    ? diversifiedContent
+                        .filter(c => "text" in c)
+                        .map(c => (c as any).text)
+                        .join("\n")
+                    : "{}";
+              const diversifiedParsed = safeJsonParse<{ variations: any[] }>(diversifiedContentStr, { variations: [] });
+              const diversifiedVariations = (diversifiedParsed.variations || []).slice(0, 3);
+
+              if (diversifiedVariations.length > 0 && !variationsNeedDiversification(diversifiedVariations)) {
+                if (diversifiedVariations.length === POST_VARIATION_TARGET) {
+                  variations = diversifiedVariations;
+                }
+                console.log("[Variation Guard] Diversified variations accepted.");
+                recordGenerationEvent({
+                  stage: "diversification",
+                  status: diversifiedVariations.length === POST_VARIATION_TARGET ? "completed" : "rejected",
+                  detail: `Diversification returned ${diversifiedVariations.length} variation(s).`,
+                  data: diversifiedVariations,
+                });
+              } else {
+                console.warn("[Variation Guard] Diversification attempt still too similar. Keeping original output.");
+              }
+            } catch (diversificationErr) {
+              console.warn("[Variation Guard] Diversification retry failed. Keeping original output.", diversificationErr);
             }
-          } catch (diversificationErr) {
-            console.warn("[Variation Guard] Diversification retry failed. Keeping original output.", diversificationErr);
           }
-        }
 
-        const recentPosts = await recentPostsPromise;
-        const initialOriginality = await assessSemanticOriginality({
-          candidates: variations as import("@shared/postspark").PostVariation[],
-          siteIntelligence,
-          recentPosts,
-        });
+          const recentPosts = await recentPostsPromise;
+          const initialOriginality = await assessSemanticOriginality({
+            candidates: variations as import("@shared/postspark").PostVariation[],
+            siteIntelligence,
+            recentPosts,
+          });
 
-        const evaluationPipeline = await evaluateAndReviseCandidates({
-          candidates: variations,
-          strategies: generationPlan.strategies.selected,
-          siteIntelligence,
-          platform: input.platform,
-          originalityScores: initialOriginality.assessments.map(
-            (assessment) => assessment.score,
-          ),
-          revise: async (currentVariations, evaluations) => {
-            const revisionResponse = await invokeLLM({
-              traceLabel: "quality_revision",
-              model: input.model as any,
-              messages: [
-                { role: "system", content: systemPrompt },
-                {
-                  role: "user",
-                  content: `Revise as variacoes abaixo uma unica vez.
-Corrija apenas os problemas apontados, preserve o contrato estrategico de cada indice e mantenha o mesmo schema.
-Nao invente fatos nem misture estrategias.
+          const evaluationPipeline = await evaluateAndReviseCandidates({
+            candidates: variations,
+            strategies: generationPlan.strategies.selected,
+            siteIntelligence,
+            platform: input.platform,
+            originalityScores: initialOriginality.assessments.map(assessment => assessment.score),
+            revise: async (candidate, evaluation, index) => {
+              const revisionResponse = await invokeLLM({
+                traceLabel: `quality_revision_${index + 1}`,
+                taskRoute: "quality_revision",
+                model: input.model as any,
+                maxCompletionTokens: isCarousel ? 3072 : 2048,
+                messages: [
+                  {
+                    role: "system",
+                    content: `Voce e um revisor cirurgico do PostSpark.
+Revise exatamente UMA variacao rejeitada, preservando a estrategia, o layout e a estrutura.
+Corrija apenas os problemas apontados na avaliacao.
+Nao reescreva do zero, nao misture estrategias, nao invente fatos e responda somente JSON valido.`,
+                  },
+                  {
+                    role: "user",
+                    content: `Indice: ${index + 1}
 
-Avaliacoes:
-${JSON.stringify(evaluations, null, 2)}
+Contrato estrategico:
+${JSON.stringify(generationPlan.strategies.selected[index], null, 2)}
 
-Variacoes:
-${JSON.stringify(currentVariations, null, 2)}
+Avaliacao:
+${JSON.stringify(evaluation, null, 2)}
 
-Retorne apenas JSON valido.`,
-                },
-              ],
-              response_format: {
-                type: "json_schema",
-                json_schema: {
-                  name: "post_variations_revised",
-                  strict: true,
-                  schema: {
-                    type: "object",
-                    properties: {
-                      variations: {
-                        type: "array",
-                        minItems: POST_VARIATION_TARGET,
-                        maxItems: POST_VARIATION_TARGET,
-                        items: variationSchema,
+Variacao:
+${JSON.stringify(candidate, null, 2)}
+
+Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
+                  },
+                ],
+                response_format: {
+                  type: "json_schema",
+                  json_schema: {
+                    name: `post_variation_revised_${index + 1}`,
+                    strict: true,
+                    schema: {
+                      type: "object",
+                      properties: {
+                        variations: {
+                          type: "array",
+                          minItems: 1,
+                          maxItems: 1,
+                          items: variationSchema,
+                        },
                       },
+                      required: ["variations"],
+                      $defs: layoutDefs,
+                      additionalProperties: false,
                     },
-                    required: ["variations"],
-                    $defs: layoutDefs,
-                    additionalProperties: false,
                   },
                 },
-              },
-            });
-            const revisedContent = revisionResponse.choices[0]?.message?.content;
-            const revisedText =
-              typeof revisedContent === "string" ? revisedContent : "{}";
-            return safeJsonParse<{ variations: any[] }>(revisedText, {
-              variations: currentVariations,
-            }).variations.slice(0, 3);
-          },
-        });
-        variations = evaluationPipeline.candidates;
-        const originality = evaluationPipeline.revisionCount > 0
-          ? await assessSemanticOriginality({
-              candidates: variations as import("@shared/postspark").PostVariation[],
-              siteIntelligence,
-              recentPosts,
-            })
-          : initialOriginality;
-
-        // Build DesignTokens from Chameleon Vision result if available
-        const chameleonDesignTokens = siteIntelligence
-          ? siteIntelligenceToDesignTokens(siteIntelligence)
-          : chameleonResult
-            ? chameleonResultToDesignTokens(chameleonResult)
-            : undefined;
-
-        // Map Chameleon Vision copy angles to variations
-        const chameleonPosts = chameleonResult?.posts || [];
-
-        // Generate unique IDs and return — enrich with Chameleon Vision data
-        const generatedVariations = variations.map((v: any, i: number) => {
-          const chameleonPost = chameleonPosts[i];
-          const normalizedSlides = isCarousel ? normalizeCarouselSlides(v) : undefined;
-          return {
-            id: `var-${Date.now()}-${i}`,
-            ...v,
-            caption: v.caption || "",
-            platform: input.platform,
-            hashtags: v.hashtags || [],
-            postMode: input.postMode,
-            slides: normalizedSlides,
-            // Chameleon Vision enrichments
-            ...(chameleonDesignTokens ? { designTokens: chameleonDesignTokens } : {}),
-            ...(chameleonPost ? {
-              copyAngle: {
-                type: chameleonPost.angle,
-                label: chameleonPost.label,
-                badge: chameleonPost.badge,
-                stickerText: chameleonPost.stickerText,
-              },
-            } : {}),
-            generationMeta: {
-              creationMode: input.creationMode,
-              fidelity: normalizedExecutionBrief ? "high" : "medium",
-              interventionLevel: normalizedExecutionBrief?.interventionLevel,
-              siteIntelligenceId: siteIntelligence?.id,
-              strategyId: generationPlan.strategies.selected[i]?.id,
-              revisionCount: evaluationPipeline.revisionCount,
-              evaluation: evaluationPipeline.evaluations[i],
-              originality: originality.assessments[i],
+              });
+              const revisedContent = revisionResponse.choices[0]?.message?.content;
+              const revisedText = typeof revisedContent === "string" ? revisedContent : "{}";
+              return safeJsonParse<{ variations: any[] }>(revisedText, {
+                variations: [],
+              }).variations[0] ?? null;
             },
-          };
-        });
-        const finalValidation = validateVariationSet(
-          generatedVariations,
-          input.postMode,
-        );
-        recordGenerationEvent({
-          stage: "final_validation",
-          status: finalValidation.valid ? "completed" : "rejected",
-          detail: finalValidation.valid
-            ? "Exactly three complete and distinct variations approved."
-            : finalValidation.errors.join("; "),
-          data: finalValidation,
-        });
-        try {
-          assertVariationSet(generatedVariations, input.postMode);
-        } catch (error) {
-          throw new TRPCError({
-            code: "BAD_GATEWAY",
-            message:
-              "A IA não conseguiu produzir três variações válidas e distintas. Tente novamente.",
-            cause: error,
           });
-        }
-        generationTrace.siteIntelligenceId = siteIntelligence?.id;
-        await persistCandidateFingerprints({
-          userUuid: ctx.user.id,
-          generationRunId: generationTrace.id,
-          candidates: generatedVariations,
-          embeddings: originality.embeddings,
-          assessments: originality.assessments,
-        });
-        await finishGenerationTrace({
-          trace: generationTrace,
-          status: "completed",
-          strategies: generationPlan.strategies,
-          evaluations: evaluationPipeline.evaluations,
-          revisionCount: evaluationPipeline.revisionCount,
-          strategyFallbackUsed: generationPlan.strategies.fallbackUsed,
-          originalityFallbackUsed: originality.fallbackUsed,
-          output: generatedVariations,
-        });
-        return {
-          variations: generatedVariations,
-          generationRunId: generationTrace.id,
-          ...(debugEnabled
-            ? {
-                debug: buildGenerationDebugTrace({
-                  trace: generationTrace,
-                  strategies: generationPlan.strategies,
-                  evaluations: evaluationPipeline.evaluations,
-                  output: generatedVariations,
-                }),
-              }
-            : {}),
-        };
+          variations = evaluationPipeline.candidates.map((variation) =>
+            applyDeterministicCopyGuards(variation),
+          );
+          const originality =
+            evaluationPipeline.revisionCount > 0
+              ? await assessSemanticOriginality({
+                  candidates: variations as import("@shared/postspark").PostVariation[],
+                  siteIntelligence,
+                  recentPosts,
+                })
+              : initialOriginality;
+
+          // Build DesignTokens from Chameleon Vision result if available
+          const chameleonDesignTokens = siteIntelligence ? siteIntelligenceToDesignTokens(siteIntelligence) : chameleonResult ? chameleonResultToDesignTokens(chameleonResult) : undefined;
+
+          // Map Chameleon Vision copy angles to variations
+          const chameleonPosts = chameleonResult?.posts || [];
+
+          // Generate unique IDs and return — enrich with Chameleon Vision data
+          const generatedVariations = variations.map((v: any, i: number) => {
+            const chameleonPost = chameleonPosts[i];
+            const normalizedSlides = isCarousel ? normalizeCarouselSlides(v) : undefined;
+            return {
+              id: `var-${Date.now()}-${i}`,
+              ...v,
+              caption: v.caption || "",
+              platform: input.platform,
+              hashtags: v.hashtags || [],
+              postMode: input.postMode,
+              slides: normalizedSlides,
+              // Chameleon Vision enrichments
+              ...(chameleonDesignTokens ? { designTokens: chameleonDesignTokens } : {}),
+              ...(chameleonPost
+                ? {
+                    copyAngle: {
+                      type: chameleonPost.angle,
+                      label: chameleonPost.label,
+                      badge: chameleonPost.badge,
+                      stickerText: chameleonPost.stickerText,
+                    },
+                  }
+                : {}),
+              generationMeta: {
+                creationMode: input.creationMode,
+                fidelity: normalizedExecutionBrief ? "high" : "medium",
+                interventionLevel: normalizedExecutionBrief?.interventionLevel,
+                siteIntelligenceId: siteIntelligence?.id,
+                strategyId: generationPlan.strategies.selected[i]?.id,
+                revisionCount: evaluationPipeline.revisionCount,
+                revisionApplied: evaluationPipeline.revisedIndexes.includes(i),
+                revisionFailed: evaluationPipeline.revisionFailedIndexes.includes(i),
+                evaluation: evaluationPipeline.evaluations[i],
+                originality: originality.assessments[i],
+              },
+            };
+          });
+          const finalValidation = validateVariationSet(generatedVariations, input.postMode);
+          recordGenerationEvent({
+            stage: "final_validation",
+            status: finalValidation.valid ? "completed" : "rejected",
+            detail: finalValidation.valid ? "Exactly three complete and distinct variations approved." : finalValidation.errors.join("; "),
+            data: finalValidation,
+          });
+          try {
+            assertVariationSet(generatedVariations, input.postMode);
+          } catch (error) {
+            throw new TRPCError({
+              code: "BAD_GATEWAY",
+              message: "A IA não conseguiu produzir três variações válidas e distintas. Tente novamente.",
+              cause: error,
+            });
+          }
+          generationTrace.siteIntelligenceId = siteIntelligence?.id;
+          await persistCandidateFingerprints({
+            userUuid: ctx.user.id,
+            generationRunId: generationTrace.id,
+            candidates: generatedVariations,
+            embeddings: originality.embeddings,
+            assessments: originality.assessments,
+          });
+          await finishGenerationTrace({
+            trace: generationTrace,
+            status: "completed",
+            strategies: generationPlan.strategies,
+            evaluations: evaluationPipeline.evaluations,
+            revisionCount: evaluationPipeline.revisionCount,
+            strategyFallbackUsed: generationPlan.strategies.fallbackUsed,
+            originalityFallbackUsed: originality.fallbackUsed,
+            output: generatedVariations,
+          });
+          await appendOperationalLog("POST_GENERATION_COMPLETED", {
+            generationRunId: generationTrace.id,
+            userUuid: ctx.user.id,
+            durationMs: Date.now() - generationTrace.startedAt,
+            inputType: input.inputType,
+            platform: input.platform,
+            postMode: input.postMode,
+            creationMode: input.creationMode,
+            requestedModel: input.model ?? "llama",
+            effectiveModels: Array.from(
+              new Set(generationTrace.calls.map((call) => call.effectiveModel)),
+            ),
+            siteIntelligenceId: siteIntelligence?.id,
+            variationCount: generatedVariations.length,
+            revisionCount: evaluationPipeline.revisionCount,
+            strategyFallbackUsed: generationPlan.strategies.fallbackUsed,
+            originalityFallbackUsed: originality.fallbackUsed,
+            finalValidation,
+            llmCalls: generationTrace.calls.map((call) => ({
+              label: call.label,
+              provider: call.provider,
+              effectiveModel: call.effectiveModel,
+              attempt: call.attempt,
+              fallbackFrom: call.fallbackFrom,
+              promptHash: call.promptHash,
+              promptTokens: call.promptTokens,
+              completionTokens: call.completionTokens,
+              totalTokens: call.totalTokens,
+              latencyMs: call.latencyMs,
+              estimatedCostUsd: call.estimatedCostUsd,
+              error: call.error,
+            })),
+            outputSummary: generatedVariations.map(summarizeGeneratedVariation),
+          });
+          return {
+            variations: generatedVariations,
+            generationRunId: generationTrace.id,
+            ...(debugEnabled
+              ? {
+                  debug: buildGenerationDebugTrace({
+                    trace: generationTrace,
+                    strategies: generationPlan.strategies,
+                    evaluations: evaluationPipeline.evaluations,
+                    output: generatedVariations,
+                  }),
+                }
+              : {}),
+          };
         } catch (error) {
           await finishGenerationTrace({
             trace: generationTrace,
             status: "failed",
             error: error instanceof Error ? error.message : "Generation failed",
+          });
+          await appendOperationalLog("POST_GENERATION_FAILED", {
+            generationRunId: generationTrace.id,
+            userUuid: ctx.user.id,
+            durationMs: Date.now() - generationTrace.startedAt,
+            inputType: input.inputType,
+            platform: input.platform,
+            postMode: input.postMode,
+            creationMode: input.creationMode,
+            requestedModel: input.model ?? "llama",
+            siteIntelligenceId: generationTrace.siteIntelligenceId,
+            llmCalls: generationTrace.calls.map((call) => ({
+              label: call.label,
+              provider: call.provider,
+              effectiveModel: call.effectiveModel,
+              attempt: call.attempt,
+              fallbackFrom: call.fallbackFrom,
+              promptHash: call.promptHash,
+              promptTokens: call.promptTokens,
+              completionTokens: call.completionTokens,
+              totalTokens: call.totalTokens,
+              latencyMs: call.latencyMs,
+              estimatedCostUsd: call.estimatedCostUsd,
+              error: call.error,
+            })),
+            error,
           });
           throw error;
         }
@@ -1326,9 +1734,11 @@ Retorne apenas JSON valido.`,
 
     /** Generate image for a post */
     generateImage: protectedProcedure
-      .input(z.object({
-        prompt: z.string().min(1),
-      }))
+      .input(
+        z.object({
+          prompt: z.string().min(1),
+        })
+      )
       .mutation(async ({ input, ctx }) => {
         // Debita Sparks antes de gerar imagem
         const email = ctx.user.email ?? "dev@local.dev";
@@ -1349,41 +1759,45 @@ Retorne apenas JSON valido.`,
 
     /** Scrape URL for content extraction */
     scrapeUrl: protectedProcedure
-      .input(z.object({
-        url: z.string().url(),
-      }))
+      .input(
+        z.object({
+          url: z.string().url(),
+        })
+      )
       .mutation(async ({ input }) => {
         return scrapeUrl(input.url);
       }),
 
     /** Save a post to the database */
     save: protectedProcedure
-      .input(z.object({
-        inputType: z.string(),
-        inputContent: z.string(),
-        platform: z.string(),
-        headline: z.string().optional(),
-        body: z.string().optional(),
-        caption: z.string().optional(),
-        hashtags: z.array(z.string()).optional(),
-        callToAction: z.string().optional(),
-        tone: z.string().optional(),
-        imagePrompt: z.string().optional(),
-        imageUrl: z.string().optional(),
-        backgroundColor: z.string().optional(),
-        textColor: z.string().optional(),
-        accentColor: z.string().optional(),
-        layout: z.string().optional(),
-        postMode: z.string().optional(),
-        slides: z.array(z.any()).optional(),
-        textElements: z.array(z.any()).optional(),
-        imageSettings: z.any().optional(),
-        layoutSettings: z.any().optional(),
-        bgValue: z.any().optional(),
-        bgOverlay: z.any().optional(),
-        copyAngle: z.any().optional(),
-        variationSnapshot: z.any().optional(),
-      }))
+      .input(
+        z.object({
+          inputType: inputTypeSchema,
+          inputContent: z.string(),
+          platform: platformSchema,
+          headline: z.string().optional(),
+          body: z.string().optional(),
+          caption: z.string().optional(),
+          hashtags: z.array(z.string()).optional(),
+          callToAction: z.string().optional(),
+          tone: z.string().optional(),
+          imagePrompt: z.string().optional(),
+          imageUrl: z.string().optional(),
+          backgroundColor: z.string().optional(),
+          textColor: z.string().optional(),
+          accentColor: z.string().optional(),
+          layout: postLayoutSchema.optional(),
+          postMode: postModeSchema.optional(),
+          slides: z.array(carouselSlideSchema).optional(),
+          textElements: z.array(textElementSchema).optional(),
+          imageSettings: imageSettingsSchema.optional(),
+          layoutSettings: advancedLayoutSettingsSchema.optional(),
+          bgValue: backgroundValueSchema.optional(),
+          bgOverlay: bgOverlaySettingsSchema.optional(),
+          copyAngle: copyAngleSchema.optional(),
+          variationSnapshot: postVisualSnapshotSchema.optional(),
+        })
+      )
       .mutation(async ({ input, ctx }) => {
         try {
           const postId = await createPost({
@@ -1406,28 +1820,30 @@ Retorne apenas JSON valido.`,
 
     /** Update a post */
     update: protectedProcedure
-      .input(z.object({
-        id: z.number(),
-        headline: z.string().optional(),
-        body: z.string().optional(),
-        caption: z.string().optional(),
-        hashtags: z.array(z.string()).optional(),
-        callToAction: z.string().optional(),
-        imageUrl: z.string().optional(),
-        backgroundColor: z.string().optional(),
-        textColor: z.string().optional(),
-        accentColor: z.string().optional(),
-        layout: z.string().optional(),
-        postMode: z.string().optional(),
-        slides: z.array(z.any()).optional(),
-        textElements: z.array(z.any()).optional(),
-        imageSettings: z.any().optional(),
-        layoutSettings: z.any().optional(),
-        bgValue: z.any().optional(),
-        bgOverlay: z.any().optional(),
-        copyAngle: z.any().optional(),
-        variationSnapshot: z.any().optional(),
-      }))
+      .input(
+        z.object({
+          id: z.number(),
+          headline: z.string().optional(),
+          body: z.string().optional(),
+          caption: z.string().optional(),
+          hashtags: z.array(z.string()).optional(),
+          callToAction: z.string().optional(),
+          imageUrl: z.string().optional(),
+          backgroundColor: z.string().optional(),
+          textColor: z.string().optional(),
+          accentColor: z.string().optional(),
+          layout: postLayoutSchema.optional(),
+          postMode: postModeSchema.optional(),
+          slides: z.array(carouselSlideSchema).optional(),
+          textElements: z.array(textElementSchema).optional(),
+          imageSettings: imageSettingsSchema.optional(),
+          layoutSettings: advancedLayoutSettingsSchema.optional(),
+          bgValue: backgroundValueSchema.optional(),
+          bgOverlay: bgOverlaySettingsSchema.optional(),
+          copyAngle: copyAngleSchema.optional(),
+          variationSnapshot: postVisualSnapshotSchema.optional(),
+        })
+      )
       .mutation(async ({ input, ctx }) => {
         await updatePost(input.id, ctx.user.id, input);
         return { success: true };
@@ -1439,18 +1855,18 @@ Retorne apenas JSON valido.`,
     }),
 
     /** Get single post */
-    get: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .query(async ({ input, ctx }) => {
-        return getPostById(input.id, ctx.user.id);
-      }),
+    get: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ input, ctx }) => {
+      return getPostById(input.id, ctx.user.id);
+    }),
 
     /** Generate background image via Pollinations or Gemini */
     generateBackground: protectedProcedure
-      .input(z.object({
-        prompt: z.string().min(1),
-        provider: z.enum(['pollinations_fast', 'pollinations_hd']).default('pollinations_fast'),
-      }))
+      .input(
+        z.object({
+          prompt: z.string().min(1),
+          provider: z.enum(["pollinations_fast", "pollinations_hd"]).default("pollinations_fast"),
+        })
+      )
       .mutation(async ({ input, ctx }) => {
         // Debita Sparks para geração de imagem de fundo
         const email = ctx.user.email ?? "dev@local.dev";
@@ -1468,12 +1884,14 @@ Retorne apenas JSON valido.`,
       }),
 
     saveBackgroundAsset: protectedProcedure
-      .input(z.object({
-        imageUrl: z.string().min(1),
-        sourceType: z.enum(["ai", "upload", "gallery"]),
-        prompt: z.string().optional(),
-        label: z.string().optional(),
-      }))
+      .input(
+        z.object({
+          imageUrl: z.string().min(1),
+          sourceType: z.enum(["ai", "upload", "gallery"]),
+          prompt: z.string().optional(),
+          label: z.string().optional(),
+        })
+      )
       .mutation(async ({ input, ctx }) => {
         let finalImageUrl = input.imageUrl;
 
@@ -1501,45 +1919,47 @@ Retorne apenas JSON valido.`,
 
     /** Automatically adjust layout based on current canvas */
     autoPilotDesign: protectedProcedure
-      .input(z.object({
-        imageBase64: z.string(),
-        currentState: z.any(),
-      }))
+      .input(
+        z.object({
+          imageBase64: z.string(),
+          currentState: z.any(),
+        })
+      )
       .mutation(async ({ input }) => {
-        const systemPrompt = `Você é um Diretor de Arte Sênior e Especialista em Qualidade Visual (QA) e Acessibilidade (WCAG).
-Seu trabalho é avaliar a imagem logada (fotografia do render do post) com o JSON do estado atual fornecido.
-O objetivo é garantir Legibilidade perfeita, Hierarquia e Margens de Respiro.
+        const systemPrompt = `
+Você é um Diretor de Arte Assistente focado estritamente em Ajuste de Proporção, Margens de Respiro e Legibilidade Adaptativa (WCAG).
 
-REGRAS:
-1. Contraste (WCAG): Verifique se o texto está legível contra o fundo. Se o fundo na área delimitada pelo texto for muito claro, force a cor do texto para bem escuro (ex: #000000). Se o fundo for muito escuro, texto claro (ex: #FFFFFF). Use hexadecimais de estilo de acordo com a foto caso encontre uma cor que contrasta perfeitamente (color picking).
-2. Layout: Sugira novas posições X e Y (em porcentagem 0-100) para evitar que o texto corte nas bordas, e mantenha alinhamento harmonioso de design premium (esquerda, centro).
-CRÍTICO SOBRE X e Y: As coordenadas (x, y) representam o **CENTRO EXATO** do bloco de texto, e não o canto superior esquerdo (pois usamos \`transform: translate(-50%, -50%)\` no Frontend).
-- Se você quer alinhar um bloco de \`width: 80\` à esquerda com margem de \`10%\`, o X (centro) NÃO deve ser 10, e sim \`50\` (10 de margem + 40 da metade da largura).
-- Se você usar X=10 para um bloco largo, metade do bloco ficará PARA FORA da tela!
-- Reflita antes de definir o X e Y, garantindo que o \`width\` inteiro caiba na tela somando/subtraindo do centro.
-3. Caso o texto esteja "vazando" do card, reduza \`width\` ou reposicione o \`x\` e \`y\` (lembrando da regra do centro).
-4. Retorne as coordenadas ajustadas e corrigidas, para que possamos plugar direto e o texto se alinhar graciosamente no fundo.
+O usuário fez alterações Manuais de posicionamento (drag and drop) nos elementos visuais do post. Você recebeu o estado atual desses elementos no campo "elements" do JSON e a imagem correspondente.
 
-JSON ESTADO ATUAL:
+SUA MISSÃO NÃO É REINVENTAR O DESIGN, MAS SIM ADAPTÁ-LO PARA O NOVO ASPECT RATIO (${input.currentState.aspectRatio}) PROTEGENDO A INTENÇÃO DO USUÁRIO.
+
+DIRETRIZES RÍGIDAS:
+1. Respeite as posições centrais enviadas em "elements". Se um elemento foi movido para perto de uma borda ou canto, mantenha a intenção de proximidade daquele canto, aplicando apenas pequenos recuos (paddings de segurança) para o texto não vazar a tela física.
+2. Não mude elementos de lugar drasticamente (ex: se o título está no topo, não o jogue para a base).
+3. Ajuste o tamanho do bloco (width) ou o tamanho da fonte apenas se o novo aspectRatio encolheu o espaço horizontal disponível, forçando quebras de linha mais elegantes.
+4. Se houver sobreposição (interseção indesejada) criada pela mudança de proporção de tela, faça uma micro-correção no eixo Y para afastar os blocos, preservando a ordem de leitura de cima para baixo.
+
+JSON DO ESTADO ATUAL DO USUÁRIO:
 ${JSON.stringify(input.currentState, null, 2)}
 
-O campo "elements" contem a geometria medida de cada bloco visivel. Trate esses ids
-como contrato: devolva uma sugestao para cada elemento recebido, sem inventar ids.
-Evite qualquer intersecao entre caixas, preserve margens de seguranca e considere
-o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
+Devolva as sugestões respeitando estritamente os IDs recebidos. Não invente novos elementos.
 `;
 
         const response = await invokeLLM({
-          model: "gemini-2.5-flash" as any,
+          traceLabel: "auto_pilot_design",
+          taskRoute: "vision_analysis",
           messages: [
             { role: "system", content: systemPrompt },
             {
               role: "user",
               content: [
-                { type: "text", text: "Analise a imagem e o posicionamento abaixo para gerar o JSON refatorado." },
-                { type: "image_url", image_url: { url: input.imageBase64 } }
-              ]
-            }
+                {
+                  type: "text",
+                  text: "Analise a imagem e o posicionamento abaixo para gerar o JSON refatorado.",
+                },
+                { type: "image_url", image_url: { url: input.imageBase64 } },
+              ],
+            },
           ],
           response_format: {
             type: "json_schema",
@@ -1549,9 +1969,18 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
               schema: {
                 type: "object",
                 properties: {
-                  score: { type: "number", description: "Sua nota para o design inicial (0 a 100)" },
-                  feedback: { type: "string", description: "Descrição curta em português sobre o erro visível e por que você corrigiu do jeito que corrigiu." },
-                  textColor: { type: "string", description: "Cor HEX sugerida para os textos principais" },
+                  score: {
+                    type: "number",
+                    description: "Sua nota para o design inicial (0 a 100)",
+                  },
+                  feedback: {
+                    type: "string",
+                    description: "Descrição curta em português sobre o erro visível e por que você corrigiu do jeito que corrigiu.",
+                  },
+                  textColor: {
+                    type: "string",
+                    description: "Cor HEX sugerida para os textos principais",
+                  },
                   suggestedElements: {
                     type: "array",
                     items: {
@@ -1561,13 +1990,16 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
                         x: { type: "number" },
                         y: { type: "number" },
                         width: { type: "number" },
-                        textAlign: { type: "string", enum: ["left", "center", "right"] },
+                        textAlign: {
+                          type: "string",
+                          enum: ["left", "center", "right"],
+                        },
                         backgroundColor: { type: "string" },
-                        borderRadius: { type: "number" }
+                        borderRadius: { type: "number" },
                       },
                       required: ["id", "x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
-                      additionalProperties: false
-                    }
+                      additionalProperties: false,
+                    },
                   },
                   suggestedLayoutMoves: {
                     type: "object",
@@ -1580,10 +2012,10 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
                           width: { type: "number" },
                           textAlign: { type: "string" },
                           backgroundColor: { type: "string" },
-                          borderRadius: { type: "number" }
+                          borderRadius: { type: "number" },
                         },
                         required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
-                        additionalProperties: false
+                        additionalProperties: false,
                       },
                       body: {
                         type: "object",
@@ -1593,30 +2025,37 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
                           width: { type: "number" },
                           textAlign: { type: "string" },
                           backgroundColor: { type: "string" },
-                          borderRadius: { type: "number" }
+                          borderRadius: { type: "number" },
                         },
                         required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
-                        additionalProperties: false
+                        additionalProperties: false,
                       },
-                      textColor: { type: "string", description: "Cor HEX sugerida para todos os textos" }
+                      textColor: {
+                        type: "string",
+                        description: "Cor HEX sugerida para todos os textos",
+                      },
                     },
                     required: ["textColor"],
-                    additionalProperties: false
-                  }
+                    additionalProperties: false,
+                  },
                 },
                 required: ["score", "feedback", "textColor", "suggestedElements", "suggestedLayoutMoves"],
-                additionalProperties: false
-              }
-            }
-          }
+                additionalProperties: false,
+              },
+            },
+          },
         });
 
         const content = response.choices[0]?.message?.content;
-        const contentStr = typeof content === "string"
-          ? content
-          : Array.isArray(content)
-            ? content.filter((c: any) => c.type === 'text').map((c: any) => c.text).join("\n")
-            : "{}";
+        const contentStr =
+          typeof content === "string"
+            ? content
+            : Array.isArray(content)
+              ? content
+                  .filter((c: any) => c.type === "text")
+                  .map((c: any) => c.text)
+                  .join("\n")
+              : "{}";
         const parsed = safeJsonParse(contentStr, {} as any);
         return parsed;
       }),
@@ -1628,16 +2067,16 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
       try {
         const categories = fs
           .readdirSync(bgRoot, { withFileTypes: true })
-          .filter((d) => d.isDirectory())
-          .map((dir) => {
+          .filter(d => d.isDirectory())
+          .map(dir => {
             const catPath = path.join(bgRoot, dir.name);
             const images = fs
               .readdirSync(catPath)
-              .filter((f) => /\.(webp|jpg|jpeg|png|gif|svg)$/i.test(f))
-              .map((f) => `/ images / backgrounds / ${dir.name} / ${f}`);
+              .filter(f => /\.(webp|jpg|jpeg|png|gif|svg)$/i.test(f))
+              .map(f => `/ images / backgrounds / ${dir.name} / ${f}`);
             return { id: dir.name, name: dir.name, images };
           })
-          .filter((c) => c.images.length > 0);
+          .filter(c => c.images.length > 0);
 
         return categories;
       } catch {
@@ -1647,9 +2086,11 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
 
     /** Analyze brand from URL and return theme variations */
     analyzeBrand: protectedProcedure
-      .input(z.object({
-        url: z.string().url(),
-      }))
+      .input(
+        z.object({
+          url: z.string().url(),
+        })
+      )
       .mutation(async ({ input, ctx }) => {
         // ChameleonProtocol debita Sparks
         const email = ctx.user.email ?? "dev@local.dev";
@@ -1671,9 +2112,11 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
 
     /** Extract visual styles from a website URL (Pomelli-inspired hybrid pipeline) */
     extractStyles: protectedProcedure
-      .input(z.object({
-        url: z.string().url(),
-      }))
+      .input(
+        z.object({
+          url: z.string().url(),
+        })
+      )
       .mutation(async ({ input }) => {
         console.log("[extractStyles] ==========================================");
         console.log("[extractStyles] Starting extraction for:", input.url);
@@ -1741,10 +2184,12 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
      * Cost: 20 Sparks (replaces the 15✦ ChameleonProtocol)
      */
     extractBrandDNA: protectedProcedure
-      .input(z.object({
-        url: z.string().url(),
-        debug: z.boolean().optional(),
-      }))
+      .input(
+        z.object({
+          url: z.string().url(),
+          debug: z.boolean().optional(),
+        })
+      )
       .mutation(async ({ input, ctx }) => {
         if (!ENV.aiSiteIntelligenceEnabled) {
           throw new TRPCError({
@@ -1807,33 +2252,39 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
      * Variations are passed directly from the client (already in memory after generation).
      */
     evaluateQuality: protectedProcedure
-      .input(z.object({
-        variations: z.array(z.object({
-          id: z.string(),
-          headline: z.string(),
-          body: z.string(),
-          callToAction: z.string(),
-          backgroundColor: z.string(),
-          textColor: z.string(),
-          accentColor: z.string(),
-          layout: z.string(),
-          platform: z.string(),
-        })),
-        brandDNA: z.object({
-          brandName: z.string(),
-          industry: z.string(),
-          colors: z.object({ primary: z.string() }),
-          composition: z.object({ dynamics: z.string() }),
-          personality: z.object({
-            seriousPlayful: z.number(),
-            boldSubtle: z.number(),
-            luxuryAccessible: z.number(),
-            modernClassic: z.number(),
-            warmCool: z.number(),
-          }),
-          emotionalProfile: z.object({ mood: z.string() }),
-        }).optional(),
-      }))
+      .input(
+        z.object({
+          variations: z.array(
+            z.object({
+              id: z.string(),
+              headline: z.string(),
+              body: z.string(),
+              callToAction: z.string(),
+              backgroundColor: z.string(),
+              textColor: z.string(),
+              accentColor: z.string(),
+              layout: z.string(),
+              platform: z.string(),
+            })
+          ),
+          brandDNA: z
+            .object({
+              brandName: z.string(),
+              industry: z.string(),
+              colors: z.object({ primary: z.string() }),
+              composition: z.object({ dynamics: z.string() }),
+              personality: z.object({
+                seriousPlayful: z.number(),
+                boldSubtle: z.number(),
+                luxuryAccessible: z.number(),
+                modernClassic: z.number(),
+                warmCool: z.number(),
+              }),
+              emotionalProfile: z.object({ mood: z.string() }),
+            })
+            .optional(),
+        })
+      )
       .mutation(async ({ input }) => {
         if (input.variations.length === 0) {
           return { evaluations: [] };
@@ -1850,7 +2301,7 @@ async function scrapeUrl(url: string) {
     const response = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; PostSpark/1.0)",
-        "Accept": "text/html",
+        Accept: "text/html",
       },
       signal: AbortSignal.timeout(10000),
     });
@@ -1896,6 +2347,26 @@ async function scrapeUrl(url: string) {
       content: "",
     };
   }
+}
+
+function applyDeterministicCopyGuards<T extends Record<string, any>>(variation: T): T {
+  const next: Record<string, any> = { ...variation };
+  if (typeof next.headline === "string") next.headline = next.headline.slice(0, 60).trim();
+  if (typeof next.body === "string") next.body = next.body.slice(0, 140).trim();
+  if (typeof next.caption === "string") {
+    next.caption = next.caption
+      .replace(/veja\s+3\s+checagens?\s+r(?:a|\u00e1)pidas?/i, "faca checagens simples")
+      .slice(0, 300)
+      .trim();
+  }
+  if (typeof next.callToAction === "string") next.callToAction = next.callToAction.slice(0, 40).trim();
+  if (Array.isArray(next.hashtags)) {
+    next.hashtags = next.hashtags
+      .filter((item: unknown): item is string => typeof item === "string" && item.trim().startsWith("#"))
+      .map((item: string) => item.trim())
+      .slice(0, 4);
+  }
+  return next as T;
 }
 
 export type AppRouter = typeof appRouter;

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+import { invokeLLM } from "./_core/llm";
 
 // Mock the LLM module
 vi.mock("./_core/llm", () => ({
@@ -148,6 +149,24 @@ describe("post.generate", () => {
     expect(typeof result.variations[0].caption).toBe("string");
     expect(result.variations[0].platform).toBe("instagram");
     expect(result.variations[0].id).toMatch(/^var-/);
+
+    const slotCall = vi.mocked(invokeLLM).mock.calls.find(
+      ([params]) => params.traceLabel === "post_generation_1",
+    );
+    const slotSystemMessage = slotCall?.[0].messages.find(
+      (message) => message.role === "system",
+    );
+    const slotSchema = slotCall?.[0].response_format;
+    expect(slotSystemMessage?.content).toContain("Gere exatamente UMA variação");
+    expect(slotSystemMessage?.content).not.toContain("Gere EXATAMENTE 3 variações");
+    expect(slotSystemMessage?.content).not.toContain("As 3 variações");
+    expect(slotCall?.[0].maxCompletionTokens).toBe(3072);
+    expect(slotSchema?.type).toBe("json_schema");
+    if (slotSchema?.type === "json_schema") {
+      const schema = slotSchema.json_schema.schema as any;
+      expect(schema.properties.variations.minItems).toBe(1);
+      expect(schema.properties.variations.maxItems).toBe(1);
+    }
   });
 
   it("rejects unauthenticated users", async () => {

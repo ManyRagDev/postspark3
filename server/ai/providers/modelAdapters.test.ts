@@ -30,9 +30,50 @@ const schema = {
 } as const;
 
 describe("model provider adapters", () => {
-  it("translates Groq json_schema into json_object plus schema instructions", () => {
+  it("keeps native json_schema for Groq GPT-OSS", () => {
     const adapted = adaptRequestForProvider({
       provider: "groq",
+      effectiveModel: "openai/gpt-oss-120b",
+      messages: [{ role: "user", content: "Gere o resultado" }],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: schema,
+      },
+    });
+
+    expect(adapted.responseFormat).toEqual({
+      type: "json_schema",
+      json_schema: schema,
+    });
+    expect(adapted.schema).toEqual(schema);
+    expect(adapted.structuredOutputMode).toBe("native_schema");
+    expect(String(adapted.messages[0].content)).not.toContain("JSON Schema");
+  });
+
+  it("keeps native json_schema for OpenRouter GPT-5 mini", () => {
+    const adapted = adaptRequestForProvider({
+      provider: "openrouter",
+      effectiveModel: "openai/gpt-5-mini",
+      messages: [{ role: "user", content: "Gere o resultado" }],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: schema,
+      },
+    });
+
+    expect(adapted.responseFormat).toEqual({
+      type: "json_schema",
+      json_schema: schema,
+    });
+    expect(adapted.schema).toEqual(schema);
+    expect(adapted.structuredOutputMode).toBe("native_schema");
+    expect(String(adapted.messages[0].content)).not.toContain("JSON Schema");
+  });
+
+  it("translates unsupported Groq json_schema into json_object plus schema instructions", () => {
+    const adapted = adaptRequestForProvider({
+      provider: "groq",
+      effectiveModel: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: "Gere o resultado" }],
       responseFormat: {
         type: "json_schema",
@@ -42,6 +83,7 @@ describe("model provider adapters", () => {
 
     expect(adapted.responseFormat).toEqual({ type: "json_object" });
     expect(adapted.schema).toEqual(schema);
+    expect(adapted.structuredOutputMode).toBe("text_schema");
     expect(String(adapted.messages[0].content)).toContain("JSON Schema");
   });
 

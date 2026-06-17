@@ -24,7 +24,31 @@
 
 import type React from "react";
 import { useRef, useState, useEffect, useCallback } from "react";
-import { type LucideIcon, Layers, Users, Star, Zap, Heart, Globe, Calendar, Shield, Rocket, Target, Award, MessageCircle, TrendingUp, CheckCircle, Play, Camera, Music, MapPin, Clock, Gift, Sparkles, ArrowRight } from "lucide-react";
+import {
+  type LucideIcon,
+  Layers,
+  Users,
+  Star,
+  Zap,
+  Heart,
+  Globe,
+  Calendar,
+  Shield,
+  Rocket,
+  Target,
+  Award,
+  MessageCircle,
+  TrendingUp,
+  CheckCircle,
+  Play,
+  Camera,
+  Music,
+  MapPin,
+  Clock,
+  Gift,
+  Sparkles,
+  ArrowRight,
+} from "lucide-react";
 import type { PostVariation, AspectRatio, BackgroundValue, BgOverlaySettings, ContentSection, PostTemplate, DesignTokens } from "@shared/postspark";
 import { ASPECT_RATIO_VALUES, DEFAULT_DESIGN_TOKENS } from "@shared/postspark";
 import type { ThemeConfig } from "@/lib/themes";
@@ -61,9 +85,14 @@ interface PostCardV2Props {
   isEditingCard?: boolean;
 }
 
-
 // ─── AccentBar Component ─────────────────────────────────────────────────────
-function AccentBar({ color, width = "3rem", height = "3px", align = "flex-start", style }: {
+function AccentBar({
+  color,
+  width = "3rem",
+  height = "3px",
+  align = "flex-start",
+  style,
+}: {
   color: string;
   width?: string | number;
   height?: string;
@@ -74,7 +103,7 @@ function AccentBar({ color, width = "3rem", height = "3px", align = "flex-start"
     <div
       className="rounded-full shrink-0"
       style={{
-        width: typeof width === 'number' ? `${width}%` : width,
+        width: typeof width === "number" ? `${width}%` : width,
         height,
         background: color,
         alignSelf: align,
@@ -85,9 +114,34 @@ function AccentBar({ color, width = "3rem", height = "3px", align = "flex-start"
 }
 
 // ─── Lucide Icon Map ─────────────────────────────────────────────────────────
-const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
-  Users, Star, Zap, Heart, Globe, Calendar, Shield, Rocket, Target, Award,
-  MessageCircle, TrendingUp, CheckCircle, Play, Camera, Music, MapPin, Clock, Gift, Sparkles,
+const ICON_MAP: Record<
+  string,
+  React.ComponentType<{
+    size?: number;
+    className?: string;
+    style?: React.CSSProperties;
+  }>
+> = {
+  Users,
+  Star,
+  Zap,
+  Heart,
+  Globe,
+  Calendar,
+  Shield,
+  Rocket,
+  Target,
+  Award,
+  MessageCircle,
+  TrendingUp,
+  CheckCircle,
+  Play,
+  Camera,
+  Music,
+  MapPin,
+  Clock,
+  Gift,
+  Sparkles,
 };
 
 function getLucideIcon(name?: string) {
@@ -96,29 +150,43 @@ function getLucideIcon(name?: string) {
   const exact = ICON_MAP[normalized];
   if (exact) return exact;
 
-  const key = Object.keys(ICON_MAP).find((item) => item.toLowerCase() === normalized.toLowerCase());
+  const key = Object.keys(ICON_MAP).find(item => item.toLowerCase() === normalized.toLowerCase());
   return key ? ICON_MAP[key] : Zap;
 }
 
 // ─── Template Section Renderers ──────────────────────────────────────────────
 
-function FeatureGrid({ sections, accentColor, textColor, bodyFont }: {
+function FeatureGrid({
+  sections,
+  accentColor,
+  textColor,
+  bodyFont,
+  hiddenSectionIds,
+}: {
   sections: ContentSection[];
   accentColor: string;
   textColor: string;
   bodyFont: string;
+  hiddenSectionIds?: Set<string>;
 }) {
   return (
     <div className="grid grid-cols-3 gap-3 w-full mt-3">
       {sections.slice(0, 3).map((section, i) => {
         const Icon = getLucideIcon(section.icon);
         return (
-          <div key={i} className="flex flex-col items-center gap-1.5 text-center">
+          <div
+            key={section.id ?? i}
+            className="flex flex-col items-center gap-1.5 text-center"
+            style={{
+              visibility: hiddenSectionIds?.has(section.id ?? `section-${i + 1}`) ? "hidden" : "visible",
+            }}
+          >
             {Icon && (
               <div
                 className="flex items-center justify-center rounded-lg"
                 style={{
-                  width: 36, height: 36,
+                  width: 36,
+                  height: 36,
                   backgroundColor: `${accentColor}20`,
                 }}
               >
@@ -127,14 +195,22 @@ function FeatureGrid({ sections, accentColor, textColor, bodyFont }: {
             )}
             <span
               className="font-semibold leading-tight"
-              style={{ color: textColor, fontFamily: bodyFont, fontSize: "0.7rem" }}
+              style={{
+                color: textColor,
+                fontFamily: bodyFont,
+                fontSize: "0.7rem",
+              }}
             >
               {section.label}
             </span>
             {section.description && (
               <span
                 className="opacity-60 leading-tight"
-                style={{ color: textColor, fontFamily: bodyFont, fontSize: "0.55rem" }}
+                style={{
+                  color: textColor,
+                  fontFamily: bodyFont,
+                  fontSize: "0.55rem",
+                }}
               >
                 {section.description}
               </span>
@@ -146,20 +222,34 @@ function FeatureGrid({ sections, accentColor, textColor, bodyFont }: {
   );
 }
 
-function NumberedList({ sections, accentColor, textColor, bodyFont }: {
+function NumberedList({
+  sections,
+  accentColor,
+  textColor,
+  bodyFont,
+  hiddenSectionIds,
+}: {
   sections: ContentSection[];
   accentColor: string;
   textColor: string;
   bodyFont: string;
+  hiddenSectionIds?: Set<string>;
 }) {
   return (
     <div className="flex flex-col gap-2 w-full mt-3">
       {sections.slice(0, 5).map((section, i) => (
-        <div key={i} className="flex items-start gap-2.5">
+        <div
+          key={section.id ?? i}
+          className="flex items-start gap-2.5"
+          style={{
+            visibility: hiddenSectionIds?.has(section.id ?? `section-${i + 1}`) ? "hidden" : "visible",
+          }}
+        >
           <span
             className="font-bold shrink-0 flex items-center justify-center rounded-full"
             style={{
-              width: 22, height: 22,
+              width: 22,
+              height: 22,
               fontSize: "0.65rem",
               backgroundColor: accentColor,
               color: textColor,
@@ -170,14 +260,22 @@ function NumberedList({ sections, accentColor, textColor, bodyFont }: {
           <div className="flex flex-col">
             <span
               className="font-semibold leading-tight"
-              style={{ color: textColor, fontFamily: bodyFont, fontSize: "0.72rem" }}
+              style={{
+                color: textColor,
+                fontFamily: bodyFont,
+                fontSize: "0.72rem",
+              }}
             >
               {section.label}
             </span>
             {section.description && (
               <span
                 className="opacity-60 leading-tight"
-                style={{ color: textColor, fontFamily: bodyFont, fontSize: "0.55rem" }}
+                style={{
+                  color: textColor,
+                  fontFamily: bodyFont,
+                  fontSize: "0.55rem",
+                }}
               >
                 {section.description}
               </span>
@@ -189,22 +287,36 @@ function NumberedList({ sections, accentColor, textColor, bodyFont }: {
   );
 }
 
-function StepByStep({ sections, accentColor, textColor, bodyFont }: {
+function StepByStep({
+  sections,
+  accentColor,
+  textColor,
+  bodyFont,
+  hiddenSectionIds,
+}: {
   sections: ContentSection[];
   accentColor: string;
   textColor: string;
   bodyFont: string;
+  hiddenSectionIds?: Set<string>;
 }) {
   return (
     <div className="flex flex-col gap-3 w-full mt-3">
       {sections.slice(0, 3).map((section, i) => {
         const Icon = getLucideIcon(section.icon);
         return (
-          <div key={i} className="flex items-center gap-3">
+          <div
+            key={section.id ?? i}
+            className="flex items-center gap-3"
+            style={{
+              visibility: hiddenSectionIds?.has(section.id ?? `section-${i + 1}`) ? "hidden" : "visible",
+            }}
+          >
             <div
               className="flex items-center justify-center shrink-0 rounded-full font-bold"
               style={{
-                width: 28, height: 28,
+                width: 28,
+                height: 28,
                 fontSize: "0.7rem",
                 backgroundColor: `${accentColor}25`,
                 color: accentColor,
@@ -216,14 +328,22 @@ function StepByStep({ sections, accentColor, textColor, bodyFont }: {
             <div className="flex flex-col">
               <span
                 className="font-semibold leading-tight"
-                style={{ color: textColor, fontFamily: bodyFont, fontSize: "0.72rem" }}
+                style={{
+                  color: textColor,
+                  fontFamily: bodyFont,
+                  fontSize: "0.72rem",
+                }}
               >
                 {section.label}
               </span>
               {section.description && (
                 <span
                   className="opacity-60 leading-tight"
-                  style={{ color: textColor, fontFamily: bodyFont, fontSize: "0.55rem" }}
+                  style={{
+                    color: textColor,
+                    fontFamily: bodyFont,
+                    fontSize: "0.55rem",
+                  }}
                 >
                   {section.description}
                 </span>
@@ -237,32 +357,38 @@ function StepByStep({ sections, accentColor, textColor, bodyFont }: {
 }
 
 /** Renders structured content sections below headline/body based on template type */
-function TemplateSections({ template, sections, accentColor, textColor, bodyFont }: {
+function TemplateSections({
+  template,
+  sections,
+  accentColor,
+  textColor,
+  bodyFont,
+  hiddenSectionIds,
+}: {
   template?: PostTemplate;
   sections?: ContentSection[];
   accentColor: string;
   textColor: string;
   bodyFont: string;
+  hiddenSectionIds?: Set<string>;
 }) {
-  if (!template || template === 'simple' || !sections?.length) return null;
+  if (!template || template === "simple" || !sections?.length) return null;
 
   switch (template) {
-    case 'feature-grid':
-      return <FeatureGrid sections={sections} accentColor={accentColor} textColor={textColor} bodyFont={bodyFont} />;
-    case 'numbered-list':
-      return <NumberedList sections={sections} accentColor={accentColor} textColor={textColor} bodyFont={bodyFont} />;
-    case 'step-by-step':
-      return <StepByStep sections={sections} accentColor={accentColor} textColor={textColor} bodyFont={bodyFont} />;
+    case "feature-grid":
+      return <FeatureGrid sections={sections} accentColor={accentColor} textColor={textColor} bodyFont={bodyFont} hiddenSectionIds={hiddenSectionIds} />;
+    case "numbered-list":
+      return <NumberedList sections={sections} accentColor={accentColor} textColor={textColor} bodyFont={bodyFont} hiddenSectionIds={hiddenSectionIds} />;
+    case "step-by-step":
+      return <StepByStep sections={sections} accentColor={accentColor} textColor={textColor} bodyFont={bodyFont} hiddenSectionIds={hiddenSectionIds} />;
     default:
       return null;
   }
 }
 
-// Removed internal ArchitectOverlay. Using ArchitectOverlayV2 instead.
-
 // ─── PostCardV2 ────────────────────────────────────────────────────────────────
 export default function PostCardV2(props: PostCardV2Props) {
-  const activeVariation = useEditorStore((state) => state.activeVariation);
+  const activeVariation = useEditorStore(state => state.activeVariation);
   const variation = props.snapshot ?? activeVariation;
 
   if (!variation) return null;
@@ -297,10 +423,10 @@ function PostCardV2Content({
     isMagnetActive,
     bgValue: editorBgValue,
     bgOverlay: editorBgOverlay,
-    aspectRatio: globalAspectRatio
+    aspectRatio: globalAspectRatio,
   } = useEditorStore();
 
-  const [inlineEditTarget, setInlineEditTarget] = useState<'headline' | 'body' | 'badge' | 'sticker' | null>(null);
+  const [inlineEditTarget, setInlineEditTarget] = useState<"headline" | "body" | "badge" | "sticker" | null>(null);
   const [inlineSectionEditId, setInlineSectionEditId] = useState<string | null>(null);
 
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -310,31 +436,24 @@ function PostCardV2Content({
   const slides = snapshot?.slides ?? editorSlides;
   const currentSlideIndex = requestedSlideIndex ?? (snapshot ? 0 : editorSlideIndex);
   const imageSettings = snapshot
-    ? { ...DEFAULT_IMAGE_SETTINGS, ...(snapshot.imageSettings as Partial<ImageSettings> | undefined) }
+    ? {
+        ...DEFAULT_IMAGE_SETTINGS,
+        ...(snapshot.imageSettings as Partial<ImageSettings> | undefined),
+      }
     : editorImageSettings;
   const layoutSettings = snapshot
-    ? { ...DEFAULT_LAYOUT_SETTINGS, ...(snapshot.layoutSettings as Partial<AdvancedLayoutSettings> | undefined) }
+    ? {
+        ...DEFAULT_LAYOUT_SETTINGS,
+        ...(snapshot.layoutSettings as Partial<AdvancedLayoutSettings> | undefined),
+      }
     : editorLayoutSettings;
-  const explicitSectionLayouts =
-    (snapshot?.layoutSettings as Partial<AdvancedLayoutSettings> | undefined)?.sectionLayouts;
-  const hasExplicitSectionLayouts = Boolean(
-    explicitSectionLayouts && Object.keys(explicitSectionLayouts).length > 0,
-  );
-  const bgValue = snapshot
-    ? snapshot.bgValue ?? (snapshot.imageUrl
-      ? { type: "ai" as const, url: snapshot.imageUrl }
-      : { type: "solid" as const, color: snapshot.backgroundColor })
-    : editorBgValue;
-  const bgOverlay = snapshot
-    ? snapshot.bgOverlay
-    : editorBgOverlay;
+  const bgValue = snapshot ? (snapshot.bgValue ?? (snapshot.imageUrl ? { type: "ai" as const, url: snapshot.imageUrl } : { type: "solid" as const, color: snapshot.backgroundColor })) : editorBgValue;
+  const bgOverlay = snapshot ? snapshot.bgOverlay : editorBgOverlay;
   const theme = themeOverride;
-  const resolvedBrandMeta = brandMeta || (variation as any).brandMeta;
+  const resolvedBrandMeta = brandMeta || variation.brandMeta;
 
-  const activeSlide = variation.postMode === 'carousel' && slides.length > 0
-    ? slides[currentSlideIndex] || slides[0]
-    : null;
-  const isCarousel = variation.postMode === 'carousel' && slides.length > 0;
+  const activeSlide = variation.postMode === "carousel" && slides.length > 0 ? slides[currentSlideIndex] || slides[0] : null;
+  const isCarousel = variation.postMode === "carousel" && slides.length > 0;
   const isCtaSlide = Boolean(activeSlide?.isCtaSlide) || (isCarousel && currentSlideIndex === slides.length - 1);
   const showCarouselArrow = isCarousel && !isCtaSlide;
   const headline = activeSlide?.headline || variation.headline;
@@ -385,30 +504,22 @@ function PostCardV2Content({
     : normalizedVariationTokens;
 
   // Dynamic font loading from design tokens and variations
-  useDynamicFont(dt?.typography?.fontFamily ?? '', dt?.typography?.customFontUrl ?? '');
-  useDynamicFont(variation.headlineFontFamily ?? '');
-  useDynamicFont(variation.bodyFontFamily ?? '');
+  useDynamicFont(dt?.typography?.fontFamily ?? "", dt?.typography?.customFontUrl ?? "");
+  useDynamicFont(variation.headlineFontFamily ?? "");
+  useDynamicFont(variation.bodyFontFamily ?? "");
 
   // ── Background resolution (priority: solid > bgValue.url > variation.imageUrl) ──
   const isSolid = bgValue?.type === "solid";
-  const resolvedImageUrl = isSolid
-    ? undefined
-    : (bgValue?.url ?? variationImageUrl);
+  const resolvedImageUrl = isSolid ? undefined : (bgValue?.url ?? variationImageUrl);
 
   const ratio = aspectRatio ?? variation.aspectRatio ?? globalAspectRatio ?? "1:1";
   const aspectRatioCSS = ASPECT_RATIO_VALUES[ratio];
   const isStory = ratio === "9:16";
 
   // ── Cores ──
-  const effectiveBg = isSolid && bgValue?.color
-    ? bgValue.color
-    : backgroundColor
-      ? backgroundColor
-      : (dt != null || theme != null) ? "transparent" : "#1a1a2e";
+  const effectiveBg = isSolid && bgValue?.color ? bgValue.color : backgroundColor ? backgroundColor : dt != null || theme != null ? "transparent" : "#1a1a2e";
 
-  const protectionColor = isSolid && bgValue?.color
-    ? bgValue.color
-    : backgroundColor || dt?.colors?.background || theme?.colors?.bg || "#1a1a2e";
+  const protectionColor = isSolid && bgValue?.color ? bgValue.color : backgroundColor || dt?.colors?.background || theme?.colors?.bg || "#1a1a2e";
   const effectiveText = textColor || dt?.colors?.text || theme?.colors?.text || "#ffffff";
 
   // Cores independentes por elemento — fazem fallback para effectiveText quando não definidas
@@ -426,26 +537,32 @@ function PostCardV2Content({
     ? `"${variation.headlineFontFamily}", sans-serif`
     : dt?.typography?.fontFamily
       ? `"${dt.typography.fontFamily}", sans-serif`
-      : theme?.typography?.headingFont ? theme.typography.headingFont : "var(--font-display)";
+      : theme?.typography?.headingFont
+        ? theme.typography.headingFont
+        : "var(--font-display)";
   const bodyFont = variation.bodyFontFamily
     ? `"${variation.bodyFontFamily}", sans-serif`
     : dt?.typography?.fontFamily
       ? `"${dt.typography.fontFamily}", sans-serif`
-      : theme?.typography?.bodyFont ? theme.typography.bodyFont : "inherit";
+      : theme?.typography?.bodyFont
+        ? theme.typography.bodyFont
+        : "inherit";
   const textAlign = dt?.typography?.textAlign
     ? (dt.typography.textAlign as React.CSSProperties["textAlign"])
-    : theme?.layout?.alignment ? (theme.layout.alignment as React.CSSProperties["textAlign"]) : undefined;
+    : theme?.layout?.alignment
+      ? (theme.layout.alignment as React.CSSProperties["textAlign"])
+      : undefined;
 
   // Text transform from design tokens
-  const headlineTextTransform = dt?.typography?.textTransform ?? 'none';
+  const headlineTextTransform = dt?.typography?.textTransform ?? "none";
 
   // Decorations: sticker + badge from copyAngle
   const copyAngle = variation.copyAngle;
-  const isPlayful = dt?.decorations === 'playful';
+  const isPlayful = dt?.decorations === "playful";
 
   const commitCarouselAwareUpdate = (patch: Partial<{ headline: string; body: string }>) => {
     if (!isEditable) return;
-    if (variation.postMode === 'carousel' && activeSlide) {
+    if (variation.postMode === "carousel" && activeSlide) {
       updateSlide(currentSlideIndex, patch);
       return;
     }
@@ -458,10 +575,7 @@ function PostCardV2Content({
     body: body || "",
     aspectRatio: ratio,
     isCompact: compact,
-    structuredSectionCount:
-      variation.template && variation.template !== "simple"
-        ? variation.sections?.length ?? 0
-        : 0,
+    structuredSectionCount: variation.template && variation.template !== "simple" ? (variation.sections?.length ?? 0) : 0,
   });
 
   // ── Tamanhos adaptativos (sempre usa auto-fit) ──
@@ -478,11 +592,13 @@ function PostCardV2Content({
   const dynamicPadding = autoFit.padding;
 
   // ── Layout patterns distintos ──
-  {/*const isLayoutCentered = layout === "centered";
+  {
+    /*const isLayoutCentered = layout === "centered";
   const isLayoutLeftAligned = layout === "left-aligned";
   const isLayoutSplit = layout === "split";
   const isLayoutMinimal = layout === "minimal";
-  const isLayoutModern = (layout as string) === "modern-card" || !!dt;*/}
+  const isLayoutModern = (layout as string) === "modern-card" || !!dt;*/
+  }
 
   // ── Layout patterns distintos ──
   const isLayoutCentered = layout === "centered";
@@ -493,7 +609,8 @@ function PostCardV2Content({
 
   // ── Imagem de fundo com filtros ──────────────────────────────────────────────
   const is = imageSettings;
-  {/*const objPos = bgOverlay
+  {
+    /*const objPos = bgOverlay
     ? `${bgOverlay.position.x}% ${bgOverlay.position.y}%`
     : `${is?.panX ?? 50}% ${is?.panY ?? 50}%`;
 
@@ -505,7 +622,8 @@ function PostCardV2Content({
     height: "100%",
     objectFit: "cover" as const,
     objectPosition: objPos,
-  };*/}
+  };*/
+  }
 
   // O PAN agora olha exclusivamente para o imageSettings (is), conectado direto aos sliders do Zustand
   const objPos = `${is?.panX ?? 50}% ${is?.panY ?? 50}%`;
@@ -526,17 +644,18 @@ function PostCardV2Content({
   const overlayOpacity = bgOverlay?.opacity ?? 0;
   const blendMode = is?.blendMode ?? "normal";
 
-  const overlayDiv = overlayOpacity > 0 ? (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        backgroundColor: overlayColor,
-        opacity: overlayOpacity,
-        mixBlendMode: blendMode as React.CSSProperties["mixBlendMode"],
-      }}
-    />
-  ) : null;
+  const overlayDiv =
+    overlayOpacity > 0 ? (
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: overlayColor,
+          opacity: overlayOpacity,
+          mixBlendMode: blendMode as React.CSSProperties["mixBlendMode"],
+        }}
+      />
+    ) : null;
 
   const renderBgImage = (gradientStyle: string) => {
     if (dt || theme) return null; // A imagem agora vai no nível raiz (Canvas)
@@ -544,10 +663,7 @@ function PostCardV2Content({
       <div className="absolute inset-0">
         <img src={resolvedImageUrl} alt="" style={imgStyle} />
         {overlayDiv}
-        <div
-          className="absolute inset-0"
-          style={{ background: gradientStyle }}
-        />
+        <div className="absolute inset-0" style={{ background: gradientStyle }} />
       </div>
     ) : null;
   };
@@ -557,9 +673,7 @@ function PostCardV2Content({
     const updateTextElement = (id: string, patch: Partial<AdvancedTextElement>) => {
       if (!isEditable) return;
       useEditorStore.getState().updateVariation({
-        textElements: variation.textElements?.map((element) =>
-          element.id === id ? { ...element, ...patch } : element
-        ),
+        textElements: variation.textElements?.map(element => (element.id === id ? { ...element, ...patch } : element)),
       });
     };
 
@@ -570,7 +684,7 @@ function PostCardV2Content({
             key={el.id}
             element={el}
             isSelected={isEditable && layoutTarget === `textElement:${el.id}`}
-            onSelect={(event) => {
+            onSelect={event => {
               if (!isEditable) return;
               event.stopPropagation();
               setLayoutTarget(`textElement:${el.id}`);
@@ -592,13 +706,16 @@ function PostCardV2Content({
     let finalY = y;
     if (isMagnetActive) {
       const SNAP_POINTS = [10, 30, 50, 70, 90];
-      const snap = (val: number) => SNAP_POINTS.reduce((prev, curr) => Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev);
+      const snap = (val: number) => SNAP_POINTS.reduce((prev, curr) => (Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev));
       finalX = snap(x);
       finalY = snap(y);
     }
     updateLayoutSettings({
       ...layoutSettings,
-      [target]: { ...layoutSettings[target], freePosition: { x: finalX, y: finalY } }
+      [target]: {
+        ...layoutSettings[target],
+        freePosition: { x: finalX, y: finalY },
+      },
     });
   };
 
@@ -606,20 +723,20 @@ function PostCardV2Content({
     if (!isEditable || !layoutSettings) return;
     updateLayoutSettings({
       ...layoutSettings,
-      [target]: { ...layoutSettings[target], width }
+      [target]: { ...layoutSettings[target], width },
     });
   };
 
   const handleSelectElement = (target: "headline" | "body" | "accentBar" | "card" | "badge" | "sticker" | "carouselArrow" | "global") => {
     if (!isEditable) return;
-    if (target === 'headline' || target === 'body' || target === 'badge' || target === 'sticker' || target === 'accentBar' || target === 'carouselArrow') {
+    if (target === "headline" || target === "body" || target === "badge" || target === "sticker" || target === "accentBar" || target === "carouselArrow") {
       setLayoutTarget(target);
     } else {
-      setLayoutTarget('global');
+      setLayoutTarget("global");
     }
   };
 
-  const Draggable = ({ target, children, color }: { target: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow", children: React.ReactNode, color?: string }) => {
+  const Draggable = ({ target, children, color }: { target: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow"; children: React.ReactNode; color?: string }) => {
     if (!layoutSettings || !layoutSettings[target]) return <>{children}</>;
     return (
       <DraggableBlock
@@ -629,34 +746,33 @@ function PostCardV2Content({
         containerRef={layoutRef}
         snapEnabled={isEditable && isMagnetActive && !compact}
         onDragEnd={(x, y) => handleDragPosition(target, x, y)}
-        onResize={(w) => handleResizeBlock(target, w)}
+        onResize={w => handleResizeBlock(target, w)}
         onSelect={() => handleSelectElement(target)}
         onDeselect={() => setLayoutTarget("global")}
-        onDoubleClick={(e) => {
+        onDoubleClick={e => {
           e.stopPropagation();
-          if (isEditable && !compact && (target === 'headline' || target === 'body' || target === 'badge' || target === 'sticker')) setInlineEditTarget(target as any);
+          if (isEditable && !compact && (target === "headline" || target === "body" || target === "badge" || target === "sticker")) setInlineEditTarget(target as any);
         }}
         accentColor={color || effectiveText}
         isDraggable={isEditable && !compact && inlineEditTarget !== target}
         forceSelected={isEditable && layoutTarget === target}
-        defaultWidth={target === 'badge' || target === 'sticker' || target === 'carouselArrow' ? 'max-content' : '100%'}
+        defaultWidth={target === "badge" || target === "sticker" || target === "carouselArrow" ? "max-content" : "100%"}
       >
         {children}
       </DraggableBlock>
     );
   };
 
-
-
   // ── Helpers para UI Clone (exemplo.html) ────────────────────────────────────
   const updateSectionLayout = (sectionId: string, patch: Partial<LayoutPosition>) => {
     if (!isEditable || !layoutSettings) return;
     const existingLayouts = normalizeSectionLayouts(variation.sections, layoutSettings);
+    const baseLayout = existingLayouts[sectionId] ?? DEFAULT_LAYOUT_SETTINGS.body;
     updateLayoutSettings({
       sectionLayouts: {
         ...existingLayouts,
         [sectionId]: {
-          ...existingLayouts[sectionId],
+          ...baseLayout,
           ...patch,
         },
       },
@@ -668,7 +784,7 @@ function PostCardV2Content({
     let finalY = y;
     if (isMagnetActive) {
       const SNAP_POINTS = [10, 30, 50, 70, 90];
-      const snap = (val: number) => SNAP_POINTS.reduce((prev, curr) => Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev);
+      const snap = (val: number) => SNAP_POINTS.reduce((prev, curr) => (Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev));
       finalX = snap(x);
       finalY = snap(y);
     }
@@ -678,11 +794,7 @@ function PostCardV2Content({
   const updateSectionContent = (sectionId: string, patch: Partial<ContentSection>) => {
     if (!isEditable) return;
     useEditorStore.getState().updateVariation({
-      sections: normalizeSections(variation.sections)?.map((section, index) =>
-        (section.id ?? `section-${index + 1}`) === sectionId
-          ? { ...section, ...patch }
-          : section
-      ),
+      sections: normalizeSections(variation.sections)?.map((section, index) => ((section.id ?? `section-${index + 1}`) === sectionId ? { ...section, ...patch } : section)),
     });
   };
 
@@ -690,7 +802,9 @@ function PostCardV2Content({
     contentEditable: isEditable && inlineSectionEditId === sectionId,
     suppressContentEditableWarning: true,
     onBlur: (event: React.FocusEvent<HTMLElement>) => {
-      updateSectionContent(sectionId, { [field]: event.currentTarget.innerText.trim() });
+      updateSectionContent(sectionId, {
+        [field]: event.currentTarget.innerText.trim(),
+      });
       setInlineSectionEditId(null);
     },
   });
@@ -703,16 +817,38 @@ function PostCardV2Content({
         <div className="flex items-start gap-2.5 text-left">
           <span
             className="font-bold shrink-0 flex items-center justify-center rounded-full"
-            style={{ width: 22, height: 22, fontSize: "0.65rem", backgroundColor: effectiveAccent, color: effectiveText }}
+            style={{
+              width: 22,
+              height: 22,
+              fontSize: "0.65rem",
+              backgroundColor: effectiveAccent,
+              color: effectiveText,
+            }}
           >
             {section.number ?? index + 1}
           </span>
           <div className="flex flex-col min-w-0">
-            <span {...editableSectionTextProps(sectionId, "label")} className="font-semibold leading-tight outline-none" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.72rem" }}>
+            <span
+              {...editableSectionTextProps(sectionId, "label")}
+              className="font-semibold leading-tight outline-none"
+              style={{
+                color: effectiveText,
+                fontFamily: bodyFont,
+                fontSize: "0.72rem",
+              }}
+            >
               {section.label}
             </span>
             {section.description && (
-              <span {...editableSectionTextProps(sectionId, "description")} className="opacity-60 leading-tight outline-none" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.55rem" }}>
+              <span
+                {...editableSectionTextProps(sectionId, "description")}
+                className="opacity-60 leading-tight outline-none"
+                style={{
+                  color: effectiveText,
+                  fontFamily: bodyFont,
+                  fontSize: "0.55rem",
+                }}
+              >
                 {section.description}
               </span>
             )}
@@ -735,14 +871,30 @@ function PostCardV2Content({
               border: `1.5px solid ${effectiveAccent}40`,
             }}
           >
-            {Icon ? <Icon size={14} style={{ color: effectiveAccent }} /> : section.number ?? index + 1}
+            {Icon ? <Icon size={14} style={{ color: effectiveAccent }} /> : (section.number ?? index + 1)}
           </div>
           <div className="flex flex-col min-w-0">
-            <span {...editableSectionTextProps(sectionId, "label")} className="font-semibold leading-tight outline-none" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.72rem" }}>
+            <span
+              {...editableSectionTextProps(sectionId, "label")}
+              className="font-semibold leading-tight outline-none"
+              style={{
+                color: effectiveText,
+                fontFamily: bodyFont,
+                fontSize: "0.72rem",
+              }}
+            >
               {section.label}
             </span>
             {section.description && (
-              <span {...editableSectionTextProps(sectionId, "description")} className="opacity-60 leading-tight outline-none" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.55rem" }}>
+              <span
+                {...editableSectionTextProps(sectionId, "description")}
+                className="opacity-60 leading-tight outline-none"
+                style={{
+                  color: effectiveText,
+                  fontFamily: bodyFont,
+                  fontSize: "0.55rem",
+                }}
+              >
                 {section.description}
               </span>
             )}
@@ -755,15 +907,35 @@ function PostCardV2Content({
       <div className="flex flex-col items-center gap-1.5 text-center">
         <div
           className="flex items-center justify-center rounded-lg"
-          style={{ width: 36, height: 36, backgroundColor: `${effectiveAccent}20` }}
+          style={{
+            width: 36,
+            height: 36,
+            backgroundColor: `${effectiveAccent}20`,
+          }}
         >
           <Icon size={18} style={{ color: effectiveAccent }} />
         </div>
-        <span {...editableSectionTextProps(sectionId, "label")} className="font-semibold leading-tight outline-none" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.7rem" }}>
+        <span
+          {...editableSectionTextProps(sectionId, "label")}
+          className="font-semibold leading-tight outline-none"
+          style={{
+            color: effectiveText,
+            fontFamily: bodyFont,
+            fontSize: "0.7rem",
+          }}
+        >
           {section.label}
         </span>
         {section.description && (
-          <span {...editableSectionTextProps(sectionId, "description")} className="opacity-60 leading-tight outline-none" style={{ color: effectiveText, fontFamily: bodyFont, fontSize: "0.55rem" }}>
+          <span
+            {...editableSectionTextProps(sectionId, "description")}
+            className="opacity-60 leading-tight outline-none"
+            style={{
+              color: effectiveText,
+              fontFamily: bodyFont,
+              fontSize: "0.55rem",
+            }}
+          >
             {section.description}
           </span>
         )}
@@ -774,53 +946,51 @@ function PostCardV2Content({
   const renderEditableTemplateSections = () => {
     const sections = normalizeSections(variation.sections)?.slice(0, 3);
     if (!variation.template || variation.template === "simple" || !sections?.length) return null;
-    if (!isEditable && !hasExplicitSectionLayouts) {
-      return (
-        <TemplateSections
-          template={variation.template}
-          sections={sections}
-          accentColor={effectiveAccent}
-          textColor={effectiveText}
-          bodyFont={bodyFont}
-        />
-      );
+    if (!isEditable || !layoutSettings) {
+      return <TemplateSections template={variation.template} sections={sections} accentColor={effectiveAccent} textColor={effectiveText} bodyFont={bodyFont} />;
     }
 
-    const existingLayouts = normalizeSectionLayouts(sections, layoutSettings);
-    const isList = variation.template === "numbered-list" || variation.template === "step-by-step";
+    const sectionLayouts = layoutSettings.sectionLayouts ?? {};
+    const renderDraggableSection = (section: ContentSection, index: number) => {
+      const sectionId = section.id ?? `section-${index + 1}`;
+      const layoutPos = sectionLayouts[sectionId] ?? DEFAULT_LAYOUT_SETTINGS.body;
 
-    return (
-      <div className="absolute inset-0 z-20 pointer-events-none">
-        {sections.map((section, index) => {
-          const sectionId = section.id ?? `section-${index + 1}`;
-          const layoutPos = existingLayouts[sectionId];
-          return (
-            <DraggableBlock
-              key={sectionId}
-              elementId={`section:${sectionId}`}
-              layoutPos={layoutPos}
-              padding={compact ? 12 : 24}
-              containerRef={layoutRef}
-              snapEnabled={isEditable && isMagnetActive && !compact}
-              onDragEnd={(x, y) => handleSectionDragPosition(sectionId, x, y)}
-              onResize={(width) => updateSectionLayout(sectionId, { width })}
-              onSelect={() => setLayoutTarget(`section:${sectionId}`)}
-              onDeselect={() => setLayoutTarget("global")}
-              onDoubleClick={(event) => {
-                event.stopPropagation();
-                if (isEditable) setInlineSectionEditId(sectionId);
-              }}
-              accentColor={effectiveAccent}
-              isDraggable={isEditable && !compact && inlineSectionEditId !== sectionId}
-              forceSelected={isEditable && layoutTarget === `section:${sectionId}`}
-              defaultWidth={isList ? "80%" : "100%"}
-            >
-              {renderSectionContent(section, index, sectionId)}
-            </DraggableBlock>
-          );
-        })}
-      </div>
-    );
+      return (
+        <DraggableBlock
+          key={sectionId}
+          elementId={`section:${sectionId}`}
+          layoutPos={layoutPos}
+          padding={compact ? 12 : 24}
+          containerRef={layoutRef}
+          snapEnabled={isEditable && isMagnetActive && !compact}
+          onDragEnd={(x, y) => handleSectionDragPosition(sectionId, x, y)}
+          onResize={width => updateSectionLayout(sectionId, { width })}
+          onSelect={() => setLayoutTarget(`section:${sectionId}`)}
+          onDeselect={() => setLayoutTarget("global")}
+          onDoubleClick={event => {
+            event.stopPropagation();
+            if (isEditable) setInlineSectionEditId(sectionId);
+          }}
+          accentColor={effectiveAccent}
+          isDraggable={isEditable && !compact && inlineSectionEditId !== sectionId}
+          forceSelected={isEditable && layoutTarget === `section:${sectionId}`}
+          defaultWidth="100%"
+        >
+          {renderSectionContent(section, index, sectionId)}
+        </DraggableBlock>
+      );
+    };
+
+    switch (variation.template) {
+      case "feature-grid":
+        return <div className="grid grid-cols-3 gap-3 w-full mt-3">{sections.map(renderDraggableSection)}</div>;
+      case "numbered-list":
+        return <div className="flex flex-col gap-2 w-full mt-3">{sections.map(renderDraggableSection)}</div>;
+      case "step-by-step":
+        return <div className="flex flex-col gap-3 w-full mt-3">{sections.map(renderDraggableSection)}</div>;
+      default:
+        return null;
+    }
   };
 
   const renderHeadline = (text: string, highlightColor: string, isPlayfulTheme: boolean) => {
@@ -830,8 +1000,7 @@ function PostCardV2Content({
     const lastWord = words.pop();
     return (
       <>
-        {words.join(" ")}{" "}
-        <span style={{ color: highlightColor }}>{lastWord}</span>
+        {words.join(" ")} <span style={{ color: highlightColor }}>{lastWord}</span>
       </>
     );
   };
@@ -839,9 +1008,9 @@ function PostCardV2Content({
   const renderTopBar = () => {
     if (!copyAngle?.badge || compact) return null;
 
-    const borderRadius = dt?.structure?.borderRadius || '999px';
-    const border = dt?.structure?.border || 'none';
-    const boxShadow = dt?.structure?.boxShadow && dt.structure.boxShadow !== 'none' && dt.structure.boxShadow.includes('0px 0px') ? '2px 2px 0px 0px rgba(0,0,0,0.1)' : 'none';
+    const borderRadius = dt?.structure?.borderRadius || "999px";
+    const border = dt?.structure?.border || "none";
+    const boxShadow = dt?.structure?.boxShadow && dt.structure.boxShadow !== "none" && dt.structure.boxShadow.includes("0px 0px") ? "2px 2px 0px 0px rgba(0,0,0,0.1)" : "none";
     const primaryColor = effectiveAccent;
 
     return (
@@ -850,17 +1019,26 @@ function PostCardV2Content({
           <Draggable target="badge" color={primaryColor}>
             <div
               className="px-4 py-1.5 font-bold text-sm bg-white"
-              style={{ borderRadius: '999px', border, color: primaryColor, boxShadow, outline: 'none' }}
-              contentEditable={isEditable && inlineEditTarget === 'badge'}
+              style={{
+                borderRadius: "999px",
+                border,
+                color: primaryColor,
+                boxShadow,
+                outline: "none",
+              }}
+              contentEditable={isEditable && inlineEditTarget === "badge"}
               suppressContentEditableWarning={true}
-              onPaste={(e) => {
+              onPaste={e => {
                 e.preventDefault();
                 const text = e.clipboardData.getData("text/plain");
                 document.execCommand("insertText", false, text);
               }}
-              onBlur={(e) => {
+              onBlur={e => {
                 const cleanText = e.currentTarget.innerText.trim();
-                if (isEditable) useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, badge: cleanText } });
+                if (isEditable)
+                  useEditorStore.getState().updateVariation({
+                    copyAngle: { ...copyAngle, badge: cleanText },
+                  });
                 setInlineEditTarget(null);
               }}
             >
@@ -876,36 +1054,39 @@ function PostCardV2Content({
     const hasSticker = Boolean(copyAngle?.stickerText);
     if ((!hasSticker && !showCarouselArrow) || compact) return null;
 
-    const isCenter = dt?.typography?.textAlign === 'center';
-    const border = dt?.structure?.border || 'none';
+    const isCenter = dt?.typography?.textAlign === "center";
+    const border = dt?.structure?.border || "none";
     const primaryColor = effectiveAccent;
 
     return (
-      <div className={`w-full flex mt-6 transition-all duration-500 font-sans z-10 mt-auto pointer-events-none ${isCenter ? 'justify-center gap-6' : 'justify-between items-end'}`}>
+      <div className={`w-full flex mt-6 transition-all duration-500 font-sans z-10 mt-auto pointer-events-none ${isCenter ? "justify-center gap-6" : "justify-between items-end"}`}>
         {hasSticker && (
           <div className="pointer-events-auto">
             <Draggable target="sticker" color={primaryColor}>
               {isPlayful ? (
                 <div className="relative group transition-transform">
                   <div className="absolute inset-0 bg-black translate-x-1 translate-y-1 transition-all"></div>
-                  <div
-                    className="relative px-3 py-2 flex items-center justify-center rotate-[-8deg] bg-white transition-all"
-                    style={{ border }}
-                  >
+                  <div className="relative px-3 py-2 flex items-center justify-center rotate-[-8deg] bg-white transition-all" style={{ border }}>
                     <span
                       className="font-bold text-sm tracking-wider uppercase"
-                      style={{ color: primaryColor, outline: 'none' }}
-                      contentEditable={isEditable && inlineEditTarget === 'sticker'}
+                      style={{ color: primaryColor, outline: "none" }}
+                      contentEditable={isEditable && inlineEditTarget === "sticker"}
                       suppressContentEditableWarning={true}
-                      onPaste={(e) => {
+                      onPaste={e => {
                         e.preventDefault();
                         const text = e.clipboardData.getData("text/plain");
                         document.execCommand("insertText", false, text);
                       }}
-                      onBlur={(e) => {
+                      onBlur={e => {
                         const cleanText = e.currentTarget.innerText.trim();
                         if (copyAngle) {
-                          if (isEditable) useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, stickerText: cleanText } });
+                          if (isEditable)
+                            useEditorStore.getState().updateVariation({
+                              copyAngle: {
+                                ...copyAngle,
+                                stickerText: cleanText,
+                              },
+                            });
                         }
                         setInlineEditTarget(null);
                       }}
@@ -919,19 +1100,26 @@ function PostCardV2Content({
                   className="px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-widest transition-all duration-500"
                   style={{
                     background: `linear-gradient(135deg, ${effectiveAccent}, ${effectiveAccent}dd)`,
-                    color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.2)', boxShadow: `0 4px 15px -3px ${effectiveAccent}40`, border: '1px solid rgba(255,255,255,0.1)', outline: 'none'
+                    color: "#fff",
+                    textShadow: "0 1px 2px rgba(0,0,0,0.2)",
+                    boxShadow: `0 4px 15px -3px ${effectiveAccent}40`,
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    outline: "none",
                   }}
-                  contentEditable={isEditable && inlineEditTarget === 'sticker'}
+                  contentEditable={isEditable && inlineEditTarget === "sticker"}
                   suppressContentEditableWarning={true}
-                  onPaste={(e) => {
+                  onPaste={e => {
                     e.preventDefault();
                     const text = e.clipboardData.getData("text/plain");
                     document.execCommand("insertText", false, text);
                   }}
-                  onBlur={(e) => {
+                  onBlur={e => {
                     const cleanText = e.currentTarget.innerText.trim();
                     if (copyAngle) {
-                      if (isEditable) useEditorStore.getState().updateVariation({ copyAngle: { ...copyAngle, stickerText: cleanText } });
+                      if (isEditable)
+                        useEditorStore.getState().updateVariation({
+                          copyAngle: { ...copyAngle, stickerText: cleanText },
+                        });
                     }
                     setInlineEditTarget(null);
                   }}
@@ -953,7 +1141,6 @@ function PostCardV2Content({
     );
   };
 
-
   // ══════════════════════════════════════════════════════════════════
   // STORY LAYOUT (9:16)
   // ══════════════════════════════════════════════════════════════════
@@ -962,7 +1149,7 @@ function PostCardV2Content({
       ref={layoutRef}
       className="relative flex flex-col w-full overflow-hidden"
       style={{
-        background: dt || theme ? 'transparent' : effectiveBg,
+        background: dt || theme ? "transparent" : effectiveBg,
         aspectRatio: compact ? undefined : aspectRatioCSS,
         minHeight: compact ? 80 : undefined,
         padding: compact ? "1rem" : dynamicPadding,
@@ -984,14 +1171,14 @@ function PostCardV2Content({
           <Draggable target="headline" color={effectiveHeadlineText}>
             <h2
               className="font-bold"
-              contentEditable={isEditable && inlineEditTarget === 'headline'}
+              contentEditable={isEditable && inlineEditTarget === "headline"}
               suppressContentEditableWarning={true}
-              onPaste={(e) => {
+              onPaste={e => {
                 e.preventDefault();
                 const text = e.clipboardData.getData("text/plain");
                 document.execCommand("insertText", false, text);
               }}
-              onBlur={(e) => {
+              onBlur={e => {
                 const cleanText = e.currentTarget.innerText.trim();
                 commitCarouselAwareUpdate({ headline: cleanText });
                 setInlineEditTarget(null);
@@ -1008,27 +1195,22 @@ function PostCardV2Content({
                 outline: "none",
               }}
             >
-              {inlineEditTarget === 'headline' ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
+              {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
             </h2>
           </Draggable>
-          {body && !compact && (
-            <div
-              className="w-full rounded-full"
-              style={{ height: "1px", background: `${effectiveAccent}30` }}
-            />
-          )}
+          {body && !compact && <div className="w-full rounded-full" style={{ height: "1px", background: `${effectiveAccent}30` }} />}
           {body && (
             <Draggable target="body" color={effectiveBodyText}>
               <p
                 className={compact ? "line-clamp-2" : ""}
-                contentEditable={isEditable && inlineEditTarget === 'body'}
+                contentEditable={isEditable && inlineEditTarget === "body"}
                 suppressContentEditableWarning={true}
-                onPaste={(e) => {
+                onPaste={e => {
                   e.preventDefault();
                   const text = e.clipboardData.getData("text/plain");
                   document.execCommand("insertText", false, text);
                 }}
-                onBlur={(e) => {
+                onBlur={e => {
                   const cleanText = e.currentTarget.innerText.trim();
                   commitCarouselAwareUpdate({ body: cleanText });
                   setInlineEditTarget(null);
@@ -1052,13 +1234,11 @@ function PostCardV2Content({
         </div>
         {renderBottomBar()}
 
-
         {/* Absolute text elements from Architect 2.0 */}
         {renderAdvancedTextElements()}
       </div>
     </div>
   );
-
 
   // ══════════════════════════════════════════════════════════════════
   // LAYOUT: CENTERED - Texto centralizado verticalmente
@@ -1068,7 +1248,7 @@ function PostCardV2Content({
       ref={layoutRef}
       className="relative flex flex-col w-full overflow-hidden"
       style={{
-        background: dt || theme ? 'transparent' : effectiveBg,
+        background: dt || theme ? "transparent" : effectiveBg,
         aspectRatio: compact ? undefined : aspectRatioCSS,
         minHeight: compact ? 80 : undefined,
         padding: compact ? "1rem" : dynamicPadding,
@@ -1078,7 +1258,7 @@ function PostCardV2Content({
 
       <div className="z-10 flex flex-col justify-center items-center flex-1 text-center gap-3 h-full w-full">
         {renderTopBar()}
-        {variation.postMode === 'carousel' && !compact && (
+        {variation.postMode === "carousel" && !compact && (
           <div className="absolute top-0 right-0 bg-black/40 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1 border border-white/10">
             <Layers size={12} className="text-white" />
             <span className="text-[10px] font-medium text-white">Carrossel</span>
@@ -1093,14 +1273,14 @@ function PostCardV2Content({
           <Draggable target="headline" color={effectiveHeadlineText}>
             <h2
               className={`font-bold leading-tight ${compact ? "line-clamp-2" : ""}`}
-              contentEditable={isEditable && inlineEditTarget === 'headline'}
+              contentEditable={isEditable && inlineEditTarget === "headline"}
               suppressContentEditableWarning={true}
-              onPaste={(e) => {
+              onPaste={e => {
                 e.preventDefault();
                 const text = e.clipboardData.getData("text/plain");
                 document.execCommand("insertText", false, text);
               }}
-              onBlur={(e) => {
+              onBlur={e => {
                 const cleanText = e.currentTarget.innerText.trim();
                 commitCarouselAwareUpdate({ headline: cleanText });
                 setInlineEditTarget(null);
@@ -1113,21 +1293,21 @@ function PostCardV2Content({
                 outline: "none",
               }}
             >
-              {inlineEditTarget === 'headline' ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
+              {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
             </h2>
           </Draggable>
           {body && (
             <Draggable target="body" color={effectiveBodyText}>
               <p
                 className={`${compact ? "line-clamp-2" : ""} opacity-75 max-w-[90%] mx-auto`}
-                contentEditable={isEditable && inlineEditTarget === 'body'}
+                contentEditable={isEditable && inlineEditTarget === "body"}
                 suppressContentEditableWarning={true}
-                onPaste={(e) => {
+                onPaste={e => {
                   e.preventDefault();
                   const text = e.clipboardData.getData("text/plain");
                   document.execCommand("insertText", false, text);
                 }}
-                onBlur={(e) => {
+                onBlur={e => {
                   const cleanText = e.currentTarget.innerText.trim();
                   commitCarouselAwareUpdate({ body: cleanText });
                   setInlineEditTarget(null);
@@ -1149,7 +1329,6 @@ function PostCardV2Content({
         </div>
         {renderBottomBar()}
 
-
         {/* Absolute text elements from Architect 2.0 */}
         {renderAdvancedTextElements()}
       </div>
@@ -1164,7 +1343,7 @@ function PostCardV2Content({
       ref={layoutRef}
       className="relative flex flex-col w-full overflow-hidden"
       style={{
-        background: dt || theme ? 'transparent' : effectiveBg,
+        background: dt || theme ? "transparent" : effectiveBg,
         aspectRatio: compact ? undefined : aspectRatioCSS,
         minHeight: compact ? 80 : undefined,
         padding: compact ? "1.25rem" : dynamicPadding,
@@ -1174,7 +1353,7 @@ function PostCardV2Content({
 
       <div className="z-10 flex flex-col gap-2 h-full w-full text-left items-start">
         {renderTopBar()}
-        {variation.postMode === 'carousel' && !compact && (
+        {variation.postMode === "carousel" && !compact && (
           <div className="absolute top-[-30px] right-0 bg-black/40 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1 border border-white/10">
             <Layers size={12} className="text-white" />
             <span className="text-[10px] font-medium text-white">Carrossel</span>
@@ -1189,14 +1368,14 @@ function PostCardV2Content({
           <Draggable target="headline" color={effectiveHeadlineText}>
             <h2
               className={`font-bold leading-tight ${compact ? "line-clamp-2" : ""}`}
-              contentEditable={isEditable && inlineEditTarget === 'headline'}
+              contentEditable={isEditable && inlineEditTarget === "headline"}
               suppressContentEditableWarning={true}
-              onPaste={(e) => {
+              onPaste={e => {
                 e.preventDefault();
                 const text = e.clipboardData.getData("text/plain");
                 document.execCommand("insertText", false, text);
               }}
-              onBlur={(e) => {
+              onBlur={e => {
                 const cleanText = e.currentTarget.innerText.trim();
                 commitCarouselAwareUpdate({ headline: cleanText });
                 setInlineEditTarget(null);
@@ -1209,21 +1388,21 @@ function PostCardV2Content({
                 outline: "none",
               }}
             >
-              {inlineEditTarget === 'headline' ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
+              {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
             </h2>
           </Draggable>
           {body && (
             <Draggable target="body" color={effectiveBodyText}>
               <p
                 className={`${compact ? "line-clamp-2" : ""} opacity-80`}
-                contentEditable={isEditable && inlineEditTarget === 'body'}
+                contentEditable={isEditable && inlineEditTarget === "body"}
                 suppressContentEditableWarning={true}
-                onPaste={(e) => {
+                onPaste={e => {
                   e.preventDefault();
                   const text = e.clipboardData.getData("text/plain");
                   document.execCommand("insertText", false, text);
                 }}
-                onBlur={(e) => {
+                onBlur={e => {
                   const cleanText = e.currentTarget.innerText.trim();
                   commitCarouselAwareUpdate({ body: cleanText });
                   setInlineEditTarget(null);
@@ -1256,27 +1435,33 @@ function PostCardV2Content({
   // variation.splitImagePosition controla qual metade tem a imagem ('top' | 'bottom')
   // ══════════════════════════════════════════════════════════════════
   const splitLayout = (() => {
-    const imageOnTop = variation.splitImagePosition !== 'bottom';
+    const imageOnTop = variation.splitImagePosition !== "bottom";
 
     const ImageHalf = (
-      <div
-        className="relative w-full overflow-hidden"
-        style={{ flex: '0 0 50%', minHeight: compact ? 60 : undefined }}
-      >
+      <div className="relative w-full overflow-hidden" style={{ flex: "0 0 50%", minHeight: compact ? 60 : undefined }}>
         {resolvedImageUrl ? (
           <img
             src={resolvedImageUrl}
             alt=""
-            style={{ ...imgStyle, objectFit: 'cover', width: '100%', height: '100%', position: 'absolute', inset: 0 }}
+            style={{
+              ...imgStyle,
+              objectFit: "cover",
+              width: "100%",
+              height: "100%",
+              position: "absolute",
+              inset: 0,
+            }}
           />
         ) : (
           // Placeholder quando não há imagem
           <div
             className="w-full h-full flex items-center justify-center"
-            style={{ background: `color-mix(in srgb, ${cardBg} 80%, white 20%)`, minHeight: compact ? 60 : 120 }}
+            style={{
+              background: `color-mix(in srgb, ${cardBg} 80%, white 20%)`,
+              minHeight: compact ? 60 : 120,
+            }}
           >
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
-              style={{ color: `${cardText}40`, opacity: 0.5 }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ color: `${cardText}40`, opacity: 0.5 }}>
               <rect x="3" y="3" width="18" height="18" rx="2" />
               <circle cx="8.5" cy="8.5" r="1.5" />
               <path d="m21 15-5-5L5 21" />
@@ -1290,8 +1475,8 @@ function PostCardV2Content({
       <div
         className="flex flex-col justify-center items-start gap-2"
         style={{
-          flex: '1 1 50%',
-          padding: compact ? '0.75rem' : dynamicPadding,
+          flex: "1 1 50%",
+          padding: compact ? "0.75rem" : dynamicPadding,
           background: cardBg,
         }}
       >
@@ -1302,15 +1487,15 @@ function PostCardV2Content({
         )}
         <Draggable target="headline" color={effectiveHeadlineText}>
           <h2
-            className={`font-bold leading-tight ${compact ? 'line-clamp-2' : ''}`}
-            contentEditable={isEditable && inlineEditTarget === 'headline'}
+            className={`font-bold leading-tight ${compact ? "line-clamp-2" : ""}`}
+            contentEditable={isEditable && inlineEditTarget === "headline"}
             suppressContentEditableWarning={true}
-            onPaste={(e) => {
+            onPaste={e => {
               e.preventDefault();
               const text = e.clipboardData.getData("text/plain");
               document.execCommand("insertText", false, text);
             }}
-            onBlur={(e) => {
+            onBlur={e => {
               const cleanText = e.currentTarget.innerText.trim();
               commitCarouselAwareUpdate({ headline: cleanText });
               setInlineEditTarget(null);
@@ -1319,26 +1504,26 @@ function PostCardV2Content({
               color: effectiveHeadlineText,
               fontFamily: headingFont,
               fontSize: headingSize,
-              whiteSpace: 'pre-wrap',
-              overflowWrap: 'break-word',
-              outline: 'none',
+              whiteSpace: "pre-wrap",
+              overflowWrap: "break-word",
+              outline: "none",
             }}
           >
-            {inlineEditTarget === 'headline' ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
+            {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
           </h2>
         </Draggable>
         {body && (
           <Draggable target="body" color={effectiveBodyText}>
             <p
-              className={`${compact ? 'line-clamp-2' : ''} opacity-80`}
-              contentEditable={isEditable && inlineEditTarget === 'body'}
+              className={`${compact ? "line-clamp-2" : ""} opacity-80`}
+              contentEditable={isEditable && inlineEditTarget === "body"}
               suppressContentEditableWarning={true}
-              onPaste={(e) => {
+              onPaste={e => {
                 e.preventDefault();
                 const text = e.clipboardData.getData("text/plain");
                 document.execCommand("insertText", false, text);
               }}
-              onBlur={(e) => {
+              onBlur={e => {
                 const cleanText = e.currentTarget.innerText.trim();
                 commitCarouselAwareUpdate({ body: cleanText });
                 setInlineEditTarget(null);
@@ -1348,9 +1533,9 @@ function PostCardV2Content({
                 fontFamily: bodyFont,
                 fontSize: bodySize,
                 lineHeight: 1.55,
-                whiteSpace: 'pre-wrap',
-                overflowWrap: 'break-word',
-                outline: 'none',
+                whiteSpace: "pre-wrap",
+                overflowWrap: "break-word",
+                outline: "none",
               }}
             >
               {body}
@@ -1363,9 +1548,9 @@ function PostCardV2Content({
     return (
       <div
         ref={layoutRef}
-        className={`relative flex ${imageOnTop ? 'flex-col' : 'flex-col-reverse'} w-full overflow-hidden`}
+        className={`relative flex ${imageOnTop ? "flex-col" : "flex-col-reverse"} w-full overflow-hidden`}
         style={{
-          background: dt || theme ? 'transparent' : cardBg,
+          background: dt || theme ? "transparent" : cardBg,
           aspectRatio: compact ? undefined : aspectRatioCSS,
           minHeight: compact ? 80 : undefined,
         }}
@@ -1373,14 +1558,11 @@ function PostCardV2Content({
         {ImageHalf}
         {TextHalf}
 
-
         {/* Absolute text elements from Architect 2.0 */}
         {renderAdvancedTextElements()}
       </div>
     );
   })();
-
-
 
   // ══════════════════════════════════════════════════════════════════
   // LAYOUT: MINIMAL - Apenas headline centralizado, sem corpo, ultra-clean
@@ -1390,10 +1572,10 @@ function PostCardV2Content({
       ref={layoutRef}
       className="relative flex flex-col w-full overflow-hidden"
       style={{
-        background: dt || theme ? 'transparent' : effectiveBg,
+        background: dt || theme ? "transparent" : effectiveBg,
         aspectRatio: compact ? undefined : aspectRatioCSS,
         minHeight: compact ? 80 : undefined,
-        padding: compact ? "1.5rem" : (typeof dynamicPadding === 'number' ? dynamicPadding * 1.5 : dynamicPadding),
+        padding: compact ? "1.5rem" : typeof dynamicPadding === "number" ? dynamicPadding * 1.5 : dynamicPadding,
       }}
     >
       {renderBgImage(`linear-gradient(to bottom, ${effectiveBg}00 0%, ${effectiveBg}22 100%)`)}
@@ -1401,7 +1583,7 @@ function PostCardV2Content({
       {/* MINIMAL: Apenas headline, tipografia grande, muito espaço negativo */}
       <div className="z-10 flex flex-col justify-center items-center flex-1 text-center w-full h-full">
         {renderTopBar()}
-        {variation.postMode === 'carousel' && !compact && (
+        {variation.postMode === "carousel" && !compact && (
           <div className="absolute top-0 right-0 bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1">
             <Layers size={10} className="text-white/80" />
             <span className="text-[9px] font-medium text-white/80">Carrossel</span>
@@ -1411,14 +1593,14 @@ function PostCardV2Content({
           <Draggable target="headline" color={effectiveHeadlineText}>
             <h2
               className="font-bold leading-[1.1] tracking-tight"
-              contentEditable={isEditable && inlineEditTarget === 'headline'}
+              contentEditable={isEditable && inlineEditTarget === "headline"}
               suppressContentEditableWarning={true}
-              onPaste={(e) => {
+              onPaste={e => {
                 e.preventDefault();
                 const text = e.clipboardData.getData("text/plain");
                 document.execCommand("insertText", false, text);
               }}
-              onBlur={(e) => {
+              onBlur={e => {
                 const cleanText = e.currentTarget.innerText.trim();
                 commitCarouselAwareUpdate({ headline: cleanText });
                 setInlineEditTarget(null);
@@ -1432,7 +1614,7 @@ function PostCardV2Content({
                 outline: "none",
               }}
             >
-              {inlineEditTarget === 'headline' ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
+              {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
             </h2>
           </Draggable>
           {/* Corpo NÃO aparece no layout minimal - apenas headline */}
@@ -1453,7 +1635,7 @@ function PostCardV2Content({
       ref={layoutRef}
       className="relative flex flex-col w-full h-full overflow-hidden"
       style={{
-        background: dt || theme ? 'transparent' : effectiveBg,
+        background: dt || theme ? "transparent" : effectiveBg,
         aspectRatio: compact ? undefined : aspectRatioCSS,
         padding: compact ? "1rem" : dynamicPadding,
       }}
@@ -1462,10 +1644,34 @@ function PostCardV2Content({
       {/* Elementos Decorativos Playful de Fundo */}
       {isPlayful && (
         <div className="absolute inset-0 pointer-events-none opacity-80 z-0">
-          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #000 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }}></div>
-          <div className="absolute top-10 left-8 w-3 h-5 -rotate-12 transition-all duration-300" style={{ backgroundColor: effectiveBodyText, border: dt?.structure?.border }}></div>
-          <div className="absolute bottom-16 right-10 w-5 h-5 rounded-full transition-all duration-300" style={{ backgroundColor: effectiveAccent, border: dt?.structure?.border }}></div>
-          <div className="absolute top-32 right-6 w-3 h-3 rotate-45 transition-all duration-300" style={{ backgroundColor: effectiveHeadlineText, border: dt?.structure?.border }}></div>
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage: "radial-gradient(circle, #000 1.5px, transparent 1.5px)",
+              backgroundSize: "24px 24px",
+            }}
+          ></div>
+          <div
+            className="absolute top-10 left-8 w-3 h-5 -rotate-12 transition-all duration-300"
+            style={{
+              backgroundColor: effectiveBodyText,
+              border: dt?.structure?.border,
+            }}
+          ></div>
+          <div
+            className="absolute bottom-16 right-10 w-5 h-5 rounded-full transition-all duration-300"
+            style={{
+              backgroundColor: effectiveAccent,
+              border: dt?.structure?.border,
+            }}
+          ></div>
+          <div
+            className="absolute top-32 right-6 w-3 h-3 rotate-45 transition-all duration-300"
+            style={{
+              backgroundColor: effectiveHeadlineText,
+              border: dt?.structure?.border,
+            }}
+          ></div>
           <div className="absolute bottom-10 left-12 w-4 h-2 -rotate-[20deg] transition-all duration-300" style={{ backgroundColor: cardBg, border: dt?.structure?.border }}></div>
         </div>
       )}
@@ -1473,12 +1679,12 @@ function PostCardV2Content({
         {renderTopBar()}
         <div className="flex-1 flex items-center justify-center w-full mt-4">
           {/* Sombra Brutalista Hachurada */}
-          {isPlayful && dt?.structure?.boxShadow?.includes('0px 0px') && (
+          {isPlayful && dt?.structure?.boxShadow?.includes("0px 0px") && (
             <div
               className="absolute inset-0 bg-black/10 transform translate-x-3 translate-y-3 transition-all duration-500"
               style={{
-                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.1) 5px, rgba(0,0,0,0.1) 10px)',
-                borderRadius: dt?.structure?.borderRadius || '16px'
+                backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.1) 5px, rgba(0,0,0,0.1) 10px)",
+                borderRadius: dt?.structure?.borderRadius || "16px",
               }}
             />
           )}
@@ -1487,25 +1693,25 @@ function PostCardV2Content({
             className="w-full flex flex-col justify-center transition-all duration-500 ease-in-out min-w-0"
             style={{
               backgroundColor: cardBg,
-              boxShadow: dt?.structure?.boxShadow || 'none',
-              border: dt?.structure?.border || 'none',
-              borderRadius: dt?.structure?.borderRadius || '16px',
-              alignItems: textAlign === 'center' ? 'center' : 'flex-start',
-              textAlign: textAlign || 'left',
+              boxShadow: dt?.structure?.boxShadow || "none",
+              border: dt?.structure?.border || "none",
+              borderRadius: dt?.structure?.borderRadius || "16px",
+              alignItems: textAlign === "center" ? "center" : "flex-start",
+              textAlign: textAlign || "left",
               padding: compact ? "1.5rem" : "2rem",
             }}
           >
             <Draggable target="headline" color={effectiveHeadlineText}>
               <h2
                 className={`font-bold leading-tight ${compact ? "line-clamp-2" : ""}`}
-                contentEditable={isEditable && inlineEditTarget === 'headline'}
+                contentEditable={isEditable && inlineEditTarget === "headline"}
                 suppressContentEditableWarning={true}
-                onPaste={(e) => {
+                onPaste={e => {
                   e.preventDefault();
                   const text = e.clipboardData.getData("text/plain");
                   document.execCommand("insertText", false, text);
                 }}
-                onBlur={(e) => {
+                onBlur={e => {
                   const cleanText = e.currentTarget.innerText.trim();
                   commitCarouselAwareUpdate({ headline: cleanText });
                   setInlineEditTarget(null);
@@ -1520,7 +1726,7 @@ function PostCardV2Content({
                   textTransform: headlineTextTransform as any,
                 }}
               >
-                {inlineEditTarget === 'headline' ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
+                {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
               </h2>
             </Draggable>
             {body && (
@@ -1528,14 +1734,14 @@ function PostCardV2Content({
                 <Draggable target="body" color={effectiveBodyText}>
                   <p
                     className={`${compact ? "line-clamp-2" : ""} opacity-80`}
-                    contentEditable={isEditable && inlineEditTarget === 'body'}
+                    contentEditable={isEditable && inlineEditTarget === "body"}
                     suppressContentEditableWarning={true}
-                    onPaste={(e) => {
+                    onPaste={e => {
                       e.preventDefault();
                       const text = e.clipboardData.getData("text/plain");
                       document.execCommand("insertText", false, text);
                     }}
-                    onBlur={(e) => {
+                    onBlur={e => {
                       const cleanText = e.currentTarget.innerText.trim();
                       commitCarouselAwareUpdate({ body: cleanText });
                       setInlineEditTarget(null);
@@ -1554,9 +1760,7 @@ function PostCardV2Content({
                 </Draggable>
               </div>
             )}
-            <div className="mt-8 w-full">
-              {renderBottomBar()}
-            </div>
+            <div className="mt-8 w-full">{renderBottomBar()}</div>
           </div>
         </div>
       </div>
@@ -1568,29 +1772,35 @@ function PostCardV2Content({
   // ══════════════════════════════════════════════════════════════════
   // Seletor de layout
   // ══════════════════════════════════════════════════════════════════
-  const visual = isStory
-    ? storyContent
-    : isLayoutModern
-      ? modernCardLayout
-      : isLayoutCentered
-        ? centeredLayout
-        : isLayoutSplit
-          ? splitLayout
-          : isLayoutMinimal
-            ? minimalLayout
-            : leftAlignedLayout; // fallback padrão (clássico)
+  const visual = isStory ? storyContent : isLayoutModern ? modernCardLayout : isLayoutCentered ? centeredLayout : isLayoutSplit ? splitLayout : isLayoutMinimal ? minimalLayout : leftAlignedLayout; // fallback padrão (clássico)
 
   // DesignTokens path — ThemeRenderer handles structure, PostCard adds decorations
   if (dt) {
-    const canvasBg = resolvedImageUrl ? 'transparent' : (dt.colors.background || effectiveBg);
+    const canvasBg = resolvedImageUrl ? "transparent" : dt.colors.background || effectiveBg;
     return (
-      <div style={{ aspectRatio: aspectRatioCSS, position: "relative", width: "100%", overflow: "hidden", backgroundColor: effectiveBg }} className={compact ? "rounded-xl" : "rounded-2xl"}>
+      <div
+        style={{
+          aspectRatio: aspectRatioCSS,
+          position: "relative",
+          width: "100%",
+          overflow: "hidden",
+          backgroundColor: effectiveBg,
+        }}
+        className={compact ? "rounded-xl" : "rounded-2xl"}
+      >
         {/* A Imagem de Fundo Raiz (z-0) */}
         {resolvedImageUrl && (
           <div className="absolute inset-0 z-0 pointer-events-none">
             <img src={resolvedImageUrl} alt="" style={imgStyle} />
             {overlayDiv}
-            <div className="absolute inset-0" style={{ background: isStory ? `linear-gradient(to bottom, ${protectionColor}22 0%, ${protectionColor}88 50%, ${protectionColor}cc 100%)` : `linear-gradient(to bottom, ${protectionColor}11 0%, ${protectionColor}66 100%)` }} />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: isStory
+                  ? `linear-gradient(to bottom, ${protectionColor}22 0%, ${protectionColor}88 50%, ${protectionColor}cc 100%)`
+                  : `linear-gradient(to bottom, ${protectionColor}11 0%, ${protectionColor}66 100%)`,
+              }}
+            />
           </div>
         )}
 
@@ -1599,29 +1809,30 @@ function PostCardV2Content({
           <ThemeRenderer
             designTokens={{
               ...dt,
-              colors: { ...dt.colors, background: canvasBg, card: canvasBg }
+              colors: { ...dt.colors, background: canvasBg, card: canvasBg },
             }}
             className="w-full h-full pointer-events-auto"
             cardRef={cardRef}
             cardLayout={layoutSettings?.card}
             onDragCard={async (x, y) => {
               const useEditorStore = (await import("@/store/editorStore")).useEditorStore;
-              useEditorStore.getState().updateLayoutSettings({ card: { ...layoutSettings?.card, freePosition: { x, y } } as any });
+              useEditorStore.getState().updateLayoutSettings({
+                card: {
+                  ...layoutSettings?.card,
+                  freePosition: { x, y },
+                } as any,
+              });
             }}
-            onResizeCard={async (w) => {
+            onResizeCard={async w => {
               const useEditorStore = (await import("@/store/editorStore")).useEditorStore;
-              useEditorStore.getState().updateLayoutSettings({ card: { ...layoutSettings?.card, width: w } as any });
+              useEditorStore.getState().updateLayoutSettings({
+                card: { ...layoutSettings?.card, width: w } as any,
+              });
             }}
             isEditingCard={isEditable && isEditingCard}
           >
             {resolvedBrandMeta && (
-              <BrandOverlay
-                logoUrl={resolvedBrandMeta.logoUrl}
-                brandName={resolvedBrandMeta.brandName}
-                platform={variation.platform}
-                accentColor={dt.colors.primary}
-                textColor={dt.colors.text}
-              />
+              <BrandOverlay logoUrl={resolvedBrandMeta.logoUrl} brandName={resolvedBrandMeta.brandName} platform={variation.platform} accentColor={dt.colors.primary} textColor={dt.colors.text} />
             )}
             {visual}
           </ThemeRenderer>
@@ -1631,14 +1842,30 @@ function PostCardV2Content({
   }
 
   if (theme) {
-    const canvasBg = resolvedImageUrl ? 'transparent' : (theme.colors.bg || effectiveBg);
+    const canvasBg = resolvedImageUrl ? "transparent" : theme.colors.bg || effectiveBg;
     return (
-      <div style={{ aspectRatio: aspectRatioCSS, position: "relative", width: "100%", overflow: "hidden", backgroundColor: effectiveBg }} className={compact ? "rounded-xl" : "rounded-2xl"}>
+      <div
+        style={{
+          aspectRatio: aspectRatioCSS,
+          position: "relative",
+          width: "100%",
+          overflow: "hidden",
+          backgroundColor: effectiveBg,
+        }}
+        className={compact ? "rounded-xl" : "rounded-2xl"}
+      >
         {resolvedImageUrl && (
           <div className="absolute inset-0 z-0 pointer-events-none">
             <img src={resolvedImageUrl} alt="" style={imgStyle} />
             {overlayDiv}
-            <div className="absolute inset-0" style={{ background: isStory ? `linear-gradient(to bottom, ${protectionColor}22 0%, ${protectionColor}99 40%, ${protectionColor}ee 100%)` : `linear-gradient(to bottom, ${protectionColor}11 0%, ${protectionColor}66 100%)` }} />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: isStory
+                  ? `linear-gradient(to bottom, ${protectionColor}22 0%, ${protectionColor}99 40%, ${protectionColor}ee 100%)`
+                  : `linear-gradient(to bottom, ${protectionColor}11 0%, ${protectionColor}66 100%)`,
+              }}
+            />
           </div>
         )}
         <div className="absolute inset-0 z-10 pointer-events-none">
@@ -1652,11 +1879,18 @@ function PostCardV2Content({
             cardLayout={layoutSettings?.card}
             onDragCard={async (x, y) => {
               const useEditorStore = (await import("@/store/editorStore")).useEditorStore;
-              useEditorStore.getState().updateLayoutSettings({ card: { ...layoutSettings?.card, freePosition: { x, y } } as any });
+              useEditorStore.getState().updateLayoutSettings({
+                card: {
+                  ...layoutSettings?.card,
+                  freePosition: { x, y },
+                } as any,
+              });
             }}
-            onResizeCard={async (w) => {
+            onResizeCard={async w => {
               const useEditorStore = (await import("@/store/editorStore")).useEditorStore;
-              useEditorStore.getState().updateLayoutSettings({ card: { ...layoutSettings?.card, width: w } as any });
+              useEditorStore.getState().updateLayoutSettings({
+                card: { ...layoutSettings?.card, width: w } as any,
+              });
             }}
             isEditingCard={isEditable && isEditingCard}
           >
@@ -1681,7 +1915,12 @@ function PostCardV2Content({
     <div
       ref={cardRef}
       className={compact ? "rounded-xl overflow-hidden" : "rounded-2xl overflow-hidden"}
-      style={{ background: effectiveBg, aspectRatio: aspectRatioCSS, width: "100%", position: "relative" }}
+      style={{
+        background: effectiveBg,
+        aspectRatio: aspectRatioCSS,
+        width: "100%",
+        position: "relative",
+      }}
     >
       {visual}
     </div>

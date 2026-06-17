@@ -34,6 +34,7 @@ export default function MobileEditSheet({
 
           {/* Sheet */}
           <motion.div
+            data-workbench-editor-surface
             key="sheet-panel"
             className="fixed inset-x-0 bottom-0 z-[70] flex flex-col"
             style={{

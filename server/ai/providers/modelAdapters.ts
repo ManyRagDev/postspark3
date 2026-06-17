@@ -5,13 +5,15 @@ import type {
   ResponseFormat,
 } from "../../_core/llm";
 
-export type LlmProvider = "google" | "groq" | "forge";
+export type LlmProvider = "google" | "groq" | "forge" | "openrouter";
 
 export interface ProviderModelConfig {
   provider: LlmProvider;
   apiUrl: string;
   apiKey: string;
   effectiveModel: string;
+  headers?: Record<string, string>;
+  providerOptions?: Record<string, unknown>;
 }
 
 interface NormalizedMessage {
@@ -25,6 +27,7 @@ export interface AdaptedProviderRequest {
   messages: NormalizedMessage[];
   responseFormat?: ResponseFormat;
   schema?: JsonSchema;
+  structuredOutputMode?: "native_schema" | "text_schema";
 }
 
 function contentParts(content: MessageContent | MessageContent[]): MessageContent[] {
@@ -65,6 +68,8 @@ function appendSystemInstruction(
 
 export function adaptRequestForProvider(input: {
   provider: LlmProvider;
+  effectiveModel?: string;
+  forceTextSchema?: boolean;
   messages: NormalizedMessage[];
   responseFormat?: ResponseFormat;
 }): AdaptedProviderRequest {
@@ -79,10 +84,24 @@ export function adaptRequestForProvider(input: {
         input.responseFormat?.type === "json_schema"
           ? input.responseFormat.json_schema
           : undefined,
+      structuredOutputMode:
+        input.responseFormat?.type === "json_schema" ? "native_schema" : undefined,
     };
   }
 
   const schema = input.responseFormat.json_schema;
+  if (
+    input.effectiveModel === "openai/gpt-oss-120b" &&
+    !input.forceTextSchema
+  ) {
+    return {
+      messages: input.messages,
+      responseFormat: input.responseFormat,
+      schema,
+      structuredOutputMode: "native_schema",
+    };
+  }
+
   const schemaInstruction = `ADAPTADOR DE SAIDA ESTRUTURADA:
 Retorne SOMENTE um objeto JSON valido, sem markdown ou comentarios.
 O objeto deve respeitar integralmente o JSON Schema abaixo.
@@ -94,6 +113,7 @@ ${JSON.stringify(schema.schema)}`;
     messages: appendSystemInstruction(input.messages, schemaInstruction),
     responseFormat: { type: "json_object" },
     schema,
+    structuredOutputMode: "text_schema",
   };
 }
 

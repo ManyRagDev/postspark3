@@ -30,6 +30,8 @@ const THEME_MAPPING: Record<SentimentType, string[]> = {
 export async function analyzeSentiment(text: string): Promise<SentimentAnalysis> {
   try {
     const response = await invokeLLM({
+      traceLabel: "sentiment_analysis",
+      taskRoute: "microcopy",
       messages: [
         {
           role: "system",

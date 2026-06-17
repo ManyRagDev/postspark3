@@ -131,6 +131,7 @@ async function synthesizeBusiness(
   try {
     const response = await invokeLLM({
       traceLabel: "site_semantic_analysis",
+      taskRoute: "content_strategy",
       messages: [
         {
           role: "system",

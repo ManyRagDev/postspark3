@@ -110,14 +110,17 @@ export function DraggableBlock({
     useEffect(() => {
         if (!isSelected) return;
         const handleClickOutside = (e: MouseEvent) => {
-            if (blockRef.current && !blockRef.current.contains(e.target as Node)) {
+            const target = e.target;
+            if (!(target instanceof Element)) return;
+            if (target.closest("[data-workbench-editor-surface]")) return;
+            if (blockRef.current && !blockRef.current.contains(target)) {
                 setIsSelected(false);
                 onDeselect?.();
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [isSelected]);
+    }, [isSelected, onDeselect]);
 
     const hasExplicitWidth = layoutPos.width != null;
     const getWidthStyle = () => {

@@ -9,6 +9,10 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { getStripe, handleStripeWebhook } from "../billing";
 import { ENV } from "./env";
+import {
+  httpStatusFileLogger,
+  installConsoleErrorFileLogging,
+} from "./operationalLog";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -29,7 +33,10 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+installConsoleErrorFileLogging();
+
 const app = express();
+app.use(httpStatusFileLogger);
 
 // ─── Stripe webhook (raw body ANTES do json parser) ───────────────────────────
 // Deve vir antes de express.json() para preservar o body raw que o Stripe exige.

@@ -149,6 +149,8 @@ export async function chameleonVision(
 
   try {
     const response = await invokeLLM({
+      traceLabel: "chameleon_vision",
+      taskRoute: "vision_analysis",
       messages: [
         {
           role: 'system',

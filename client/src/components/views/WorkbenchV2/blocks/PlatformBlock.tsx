@@ -1,11 +1,10 @@
 /**
  * PlatformBlock — Bloco de Plataforma & Proporção do WorkbenchV2.
  *
- * Ejeta a UI de seleção de plataforma (Instagram, LinkedIn…) e
- * de proporção (1:1, 5:6, 9:16) do WorkbenchRefactored antigo.
+ * Exibe a seleção de plataforma (Instagram, LinkedIn…) e
+ * de proporção (1:1, 5:6, 9:16).
  *
- * Lê e muta APENAS o Zustand (sem props de estado).
- * Fiel ao design original do WorkbenchRefactored, linhas 686-823.
+ * Lê e muta o Zustand sem props de estado.
  */
 
 import React, { useEffect } from "react";

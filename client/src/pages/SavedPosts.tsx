@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 import { useEditorStore } from "@/store/editorStore";
 import { normalizeVariationForEditor } from "@/lib/variationSnapshot";
 import type { PostVariation, PostMode, Platform, CarouselSlide, AspectRatio } from "@shared/postspark";
-import { layoutToAdvanced } from "@/components/views/WorkbenchRefactored";
+import { layoutToAdvanced } from "@/lib/layoutToAdvanced";
 import PostRenderer from "@/components/PostRenderer";
 
 function formatDate(value: string | null | undefined) {
@@ -19,14 +19,8 @@ function formatDate(value: string | null | undefined) {
 }
 
 function savedPostToVariation(post: any): PostVariation {
-  const snapshot = post.variation_snapshot && typeof post.variation_snapshot === "object"
-    ? post.variation_snapshot
-    : null;
-  const slides = Array.isArray(snapshot?.slides)
-    ? snapshot.slides as CarouselSlide[]
-    : Array.isArray(post.slides)
-      ? post.slides as CarouselSlide[]
-      : [];
+  const snapshot = post.variation_snapshot && typeof post.variation_snapshot === "object" ? post.variation_snapshot : null;
+  const slides = Array.isArray(snapshot?.slides) ? (snapshot.slides as CarouselSlide[]) : Array.isArray(post.slides) ? (post.slides as CarouselSlide[]) : [];
 
   return normalizeVariationForEditor({
     id: `saved-${post.id}`,
@@ -51,9 +45,7 @@ function savedPostToVariation(post: any): PostVariation {
     textElements: Array.isArray(snapshot?.textElements) ? snapshot.textElements : Array.isArray(post.textElements) ? post.textElements : undefined,
     imageSettings: snapshot?.imageSettings || post.image_settings || undefined,
     layoutSettings: snapshot?.layoutSettings || post.layout_settings || layoutToAdvanced(post.layout || "centered"),
-    bgValue: snapshot?.bgValue || post.bg_value || (post.imageUrl
-      ? { type: "ai", url: post.imageUrl }
-      : { type: "solid", color: post.backgroundColor || "#0f1117" }),
+    bgValue: snapshot?.bgValue || post.bg_value || (post.imageUrl ? { type: "ai", url: post.imageUrl } : { type: "solid", color: post.backgroundColor || "#0f1117" }),
     bgOverlay: snapshot?.bgOverlay || post.bg_overlay || undefined,
   } as PostVariation);
 }
@@ -64,13 +56,7 @@ function SavedPostPreview({ post }: { post: any }) {
 
   return (
     <div className="relative flex h-52 items-center justify-center overflow-hidden bg-black/25 p-3">
-      <PostRenderer
-        mode="preview"
-        snapshot={preview}
-        aspectRatio={preview.aspectRatio}
-        className="shrink-0 shadow-2xl"
-        style={{ width }}
-      />
+      <PostRenderer mode="preview" snapshot={preview} aspectRatio={preview.aspectRatio} className="shrink-0 shadow-2xl" style={{ width }} />
     </div>
   );
 }
@@ -82,29 +68,17 @@ export default function SavedPosts() {
   const openSavedPost = (post: any) => {
     const editorStore = useEditorStore.getState();
     const normalizedVariation = savedPostToVariation(post);
-    const slides = normalizedVariation.slides ?? [];
 
     editorStore.reset();
     editorStore.setActiveVariation(normalizedVariation);
-    editorStore.setPlatform(normalizedVariation.platform);
-    editorStore.setAspectRatio(normalizedVariation.aspectRatio || "1:1");
-    editorStore.setPostMode(normalizedVariation.postMode || "static");
-    editorStore.setSlides(slides);
-    editorStore.setBgValue((normalizedVariation as any).bgValue);
-    if ((normalizedVariation as any).bgOverlay) {
-      editorStore.setBgOverlay((normalizedVariation as any).bgOverlay);
-    }
-    if (
-      !(normalizedVariation.layoutSettingsByAspectRatio?.[normalizedVariation.aspectRatio || "1:1"]) &&
-      (normalizedVariation as any).layoutSettings
-    ) {
-      editorStore.updateLayoutSettings((normalizedVariation as any).layoutSettings);
-    }
 
-    sessionStorage.setItem("postspark.open_saved_post", JSON.stringify({
-      type: post.inputType || "text",
-      content: post.inputContent || "",
-    }));
+    sessionStorage.setItem(
+      "postspark.open_saved_post",
+      JSON.stringify({
+        type: post.inputType || "text",
+        content: post.inputContent || "",
+      })
+    );
 
     setLocation("/");
   };
@@ -112,10 +86,7 @@ export default function SavedPosts() {
   return (
     <div className="min-h-screen bg-soul-deep px-4 py-12 text-foreground">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-        <button
-          onClick={() => setLocation("/")}
-          className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
+        <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="h-4 w-4" />
           Voltar
         </button>
@@ -137,9 +108,7 @@ export default function SavedPosts() {
                 <span className="text-xs font-semibold uppercase tracking-[0.2em]">Posts Salvos</span>
               </div>
               <h1 className="text-2xl font-semibold tracking-tight text-foreground">Sua biblioteca</h1>
-              <p className="max-w-2xl text-sm text-muted-foreground">
-                Acesse rapidamente os posts que você já consolidou no PostSpark.
-              </p>
+              <p className="max-w-2xl text-sm text-muted-foreground">Acesse rapidamente os posts que você já consolidou no PostSpark.</p>
             </div>
             <div
               className="rounded-2xl border px-4 py-3 text-right"
@@ -156,7 +125,7 @@ export default function SavedPosts() {
 
         {isLoading ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {[1, 2, 3, 4].map((item) => (
+            {[1, 2, 3, 4].map(item => (
               <div
                 key={item}
                 className="h-56 animate-pulse rounded-3xl border"
@@ -169,7 +138,7 @@ export default function SavedPosts() {
           </div>
         ) : posts && posts.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {posts.map((post) => (
+            {posts.map(post => (
               <motion.article
                 key={post.id}
                 className="overflow-hidden rounded-3xl border"
@@ -186,18 +155,19 @@ export default function SavedPosts() {
                 <div className="space-y-4 p-5">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-thermal-orange"
-                        style={{ borderColor: "oklch(0.7 0.22 40 / 35%)", background: "oklch(0.7 0.22 40 / 10%)" }}>
+                      <span
+                        className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-thermal-orange"
+                        style={{
+                          borderColor: "oklch(0.7 0.22 40 / 35%)",
+                          background: "oklch(0.7 0.22 40 / 10%)",
+                        }}
+                      >
                         {post.platform}
                       </span>
                       <span className="text-[11px] text-muted-foreground">{formatDate(post.createdAt)}</span>
                     </div>
-                    <h2 className="line-clamp-2 text-lg font-semibold tracking-tight text-foreground">
-                      {post.headline || "Sem título"}
-                    </h2>
-                    <p className="line-clamp-3 text-sm text-muted-foreground">
-                      {post.body || post.inputContent}
-                    </p>
+                    <h2 className="line-clamp-2 text-lg font-semibold tracking-tight text-foreground">{post.headline || "Sem título"}</h2>
+                    <p className="line-clamp-3 text-sm text-muted-foreground">{post.body || post.inputContent}</p>
                   </div>
 
                   <div className="flex items-center justify-between gap-3 border-t border-white/6 pt-4">
@@ -231,9 +201,7 @@ export default function SavedPosts() {
             <div className="mx-auto flex max-w-md flex-col items-center gap-3">
               <Bookmark className="h-8 w-8 text-thermal-orange" />
               <h2 className="text-xl font-semibold text-foreground">Nenhum post salvo ainda</h2>
-              <p className="text-sm text-muted-foreground">
-                Quando você consolidar um post no editor, ele vai aparecer aqui.
-              </p>
+              <p className="text-sm text-muted-foreground">Quando você consolidar um post no editor, ele vai aparecer aqui.</p>
             </div>
           </motion.div>
         )}

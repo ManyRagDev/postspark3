@@ -1,12 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createPostVariation } from "../../../tests/fixtures/postspark";
 import { useEditorStore } from "../store/editorStore";
-import {
-  buildVariationSnapshot,
-  buildResponsiveSectionLayouts,
-  normalizeSections,
-  normalizeVariationForEditor,
-} from "./variationSnapshot";
+import { buildVariationSnapshot, hasManualSectionLayouts, normalizeSections, normalizeVariationForEditor } from "./variationSnapshot";
 
 describe("variationSnapshot", () => {
   beforeEach(() => {
@@ -18,8 +13,16 @@ describe("variationSnapshot", () => {
 
     expect(sections).toEqual([
       expect.objectContaining({ id: "section-1", icon: "Target", number: 1 }),
-      expect.objectContaining({ id: "section-plan", icon: "Target", number: 2 }),
-      expect.objectContaining({ id: "section-3", icon: "TrendingUp", number: 3 }),
+      expect.objectContaining({
+        id: "section-plan",
+        icon: "Target",
+        number: 2,
+      }),
+      expect.objectContaining({
+        id: "section-3",
+        icon: "TrendingUp",
+        number: 3,
+      }),
     ]);
   });
 
@@ -31,28 +34,29 @@ describe("variationSnapshot", () => {
     expect(normalized.designTokens).toEqual(variation.designTokens);
     expect(normalized.textElements).toEqual(variation.textElements);
     expect(normalized.template).toBe("feature-grid");
-    expect(normalized.layoutSettingsByAspectRatio?.["1:1"]).toBeDefined();
-    expect(normalized.layoutSettingsByAspectRatio?.["5:6"]).toBeDefined();
-    expect(normalized.layoutSettingsByAspectRatio?.["9:16"]).toBeDefined();
+    expect(normalized.layoutSettingsByAspectRatio).toEqual(variation.layoutSettingsByAspectRatio);
+    expect(normalized.layoutSettings?.sectionLayouts).toEqual(variation.layoutSettings?.sectionLayouts);
   });
 
-  it("distributes feature sections across rows without sharing the same center", () => {
-    const sections = Array.from({ length: 5 }, (_, index) => ({
-      id: `section-${index + 1}`,
-      label: `Item ${index + 1}`,
-    }));
+  it("does not invent absolute section geometry during editor normalization", () => {
+    const normalized = normalizeVariationForEditor(
+      createPostVariation({
+        layoutSettings: undefined,
+        layoutSettingsByAspectRatio: undefined,
+      })
+    );
 
-    const square = buildResponsiveSectionLayouts(sections, "feature-grid", "1:1");
-    const story = buildResponsiveSectionLayouts(sections, "feature-grid", "9:16");
-
-    expect(new Set(Object.values(square).map((layout) => layout.freePosition?.y)).size).toBe(2);
-    expect(new Set(Object.values(story).map((layout) => layout.freePosition?.y)).size).toBe(3);
-    expect(Object.values(story).every((layout) => (layout.width ?? 100) <= 36)).toBe(true);
+    expect(normalized.layoutSettings).toBeUndefined();
+    expect(normalized.layoutSettingsByAspectRatio).toBeUndefined();
+    expect(hasManualSectionLayouts(normalized.layoutSettings)).toBe(false);
   });
 
   it("builds a complete persistence snapshot from editor state", () => {
     const variation = createPostVariation({
-      bgValue: { type: "gallery", url: "https://fixture.example/background.jpg" },
+      bgValue: {
+        type: "gallery",
+        url: "https://fixture.example/background.jpg",
+      },
       imageSettings: { zoom: 1.25, brightness: 1.1 },
     });
     const store = useEditorStore.getState();
@@ -68,11 +72,7 @@ describe("variationSnapshot", () => {
       },
     });
 
-    const snapshot = buildVariationSnapshot(
-      useEditorStore.getState(),
-      variation,
-      "5:6",
-    );
+    const snapshot = buildVariationSnapshot(useEditorStore.getState(), variation, "5:6");
 
     expect(snapshot).toMatchObject({
       headline: "Headline editada",
@@ -83,11 +83,37 @@ describe("variationSnapshot", () => {
       designTokens: variation.designTokens,
       bgValue: variation.bgValue,
     });
-    expect(snapshot.sections?.every((section) => Boolean(section.id))).toBe(true);
-    expect(snapshot.layoutSettings.sectionLayouts).toHaveProperty("section-1");
+    expect(snapshot.sections?.every(section => Boolean(section.id))).toBe(true);
+    expect(snapshot.layoutSettings.sectionLayouts).toEqual({});
     expect(snapshot.layoutSettings.headline).toMatchObject({
       width: 64,
       freePosition: { x: 50, y: 22 },
+    });
+  });
+
+  it("persists only section positions explicitly created by the user", () => {
+    const variation = createPostVariation();
+    const store = useEditorStore.getState();
+
+    store.setActiveVariation(variation);
+    store.updateLayoutSettings({
+      sectionLayouts: {
+        "section-1": {
+          position: "center",
+          textAlign: "center",
+          width: 30,
+          freePosition: { x: 22, y: 68 },
+        },
+      },
+    });
+
+    const snapshot = buildVariationSnapshot(useEditorStore.getState(), variation, "1:1");
+
+    expect(snapshot.layoutSettings.sectionLayouts).toEqual({
+      "section-1": expect.objectContaining({
+        width: 30,
+        freePosition: { x: 22, y: 68 },
+      }),
     });
   });
 });

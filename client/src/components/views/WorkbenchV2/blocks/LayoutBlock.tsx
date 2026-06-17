@@ -1,7 +1,7 @@
 /**
- * LayoutBlock — Bloco de Disposição do WorkbenchV2 (Passo 4.6).
+ * LayoutBlock — Bloco de Disposição do WorkbenchV2.
  *
- * Extrai os controles técnicos de layout do Workbench legado:
+ * Controles técnicos de layout:
  *  - Padding global (Respiro) via <PrecisionSlider />
  *  - Grid de posições 3×3 (clique para posicionar Título, Corpo, Destaque)
  *  - Seletor de "layer" alvo: headline | body | accentBar | badge | sticker | carouselArrow
@@ -9,8 +9,6 @@
  * Conectado exclusivamente ao Zustand:
  *  - Lê: layoutSettings, layoutTarget
  *  - Muta: updateLayoutSettings, setLayoutTarget
- *
- * O WorkbenchRefactored.tsx legado NÃO é alterado.
  */
 
 import React from "react";

@@ -20,6 +20,8 @@ export async function analyzeDesignPattern(
 ): Promise<DesignPattern[]> {
     try {
         const response = await invokeLLM({
+            traceLabel: "design_pattern_analysis",
+            taskRoute: "content_strategy",
             messages: [
                 {
                     role: "system",

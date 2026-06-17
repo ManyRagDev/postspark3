@@ -1,82 +1,188 @@
 /**
- * imageGenerateBackground.ts
+ * Background image generation.
  *
- * Provider exclusivo: Pollinations.ai via GET nativo
- *   • pollinations_fast — nanobanana (Gemini 2.5 Flash), extremo custo benefício e velocidade
- *   • pollinations_hd — nanobanana-pro (Gemini 3 Pro), alta qualidade 4K e complexidade textual
+ * Primary provider: OpenRouter image model (Nano Banana 2 by default).
+ * Legacy fallback: Pollinations.ai.
  *
- * Retorna sempre uma data URI: data:image/jpeg;base64,...
+ * Public contract: always returns a data URI: data:image/...;base64,...
  */
+import { ENV } from "./_core/env";
+import { appendOperationalLog } from "./_core/operationalLog";
 
-// ── Prompt wrappers ────────────────────────────────────────────────────────────
+export type ImageProvider = "pollinations_fast" | "pollinations_hd";
 
 function wrapPrompt(userPrompt: string): string {
-  // Otimização agressiva para abstração e não tipografia nas imagens
   return (
     `Photorealistic or abstract background art for a social media post. Theme: ${userPrompt}. ` +
-    `High quality, vibrant colors. Absolutely no text, no letters, no words, no logos, no typography, no UI elements.`
+    "High quality, vibrant colors. Absolutely no text, no letters, no words, no logos, no typography, no watermarks, no fake app UI elements. " +
+    "Leave clean visual breathing room for editable foreground copy."
   );
 }
 
-// ── Public API ─────────────────────────────────────────────────────────────────
+function collectImageCandidates(value: unknown, output: string[] = []): string[] {
+  if (!value) return output;
 
-export type ImageProvider = 'pollinations_fast' | 'pollinations_hd';
+  if (typeof value === "string") {
+    if (
+      value.startsWith("data:image/") ||
+      /^https?:\/\//i.test(value) ||
+      (value.length > 500 && /^[A-Za-z0-9+/=\s]+$/.test(value))
+    ) {
+      output.push(value.trim());
+    }
+    return output;
+  }
 
-/**
- * Generate a background image using Pollinations.ai
- * @param prompt  — user description (natural language)
- * @param provider — 'pollinations_fast' ou 'pollinations_hd'
- * @returns data URI string
- */
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectImageCandidates(item, output));
+    return output;
+  }
+
+  if (typeof value === "object") {
+    Object.values(value as Record<string, unknown>).forEach((item) =>
+      collectImageCandidates(item, output),
+    );
+  }
+
+  return output;
+}
+
+async function toDataUri(candidate: string): Promise<string> {
+  if (candidate.startsWith("data:image/")) return candidate;
+
+  if (/^https?:\/\//i.test(candidate)) {
+    const response = await fetch(candidate);
+    if (!response.ok) {
+      throw new Error(`Image URL fetch failed: ${response.status} ${response.statusText}`);
+    }
+    const contentType = response.headers.get("content-type") || "image/png";
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  }
+
+  return `data:image/png;base64,${candidate.replace(/\s/g, "")}`;
+}
+
+async function generateWithOpenRouter(
+  prompt: string,
+  provider: ImageProvider,
+): Promise<string> {
+  if (!ENV.openRouterApiKey) {
+    throw new Error("OPENROUTER_API_KEY is not configured for image generation");
+  }
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${ENV.openRouterApiKey}`,
+      "HTTP-Referer": ENV.openRouterSiteUrl,
+      "X-Title": ENV.openRouterAppName,
+    },
+    body: JSON.stringify({
+      model: ENV.openRouterImageModel,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `${wrapPrompt(prompt)}
+
+Output requirements:
+- Generate one square 1080x1080 social media background image.
+- Quality level: ${provider === "pollinations_hd" ? "high detail" : "fast production quality"}.
+- Return the image result; do not return explanatory text.`,
+            },
+          ],
+        },
+      ],
+      modalities: ["image", "text"],
+      provider: {
+        allow_fallbacks: true,
+        data_collection: "deny",
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const body = (await response.text()).slice(0, 500);
+    void appendOperationalLog("IMAGE_PROVIDER_NON_200", {
+      provider: "openrouter",
+      model: ENV.openRouterImageModel,
+      statusCode: response.status,
+      statusText: response.statusText,
+      body,
+    });
+    throw new Error(`OpenRouter image generation failed: ${response.status} ${response.statusText}`);
+  }
+
+  const json = await response.json();
+  const candidate = collectImageCandidates(json)[0];
+  if (!candidate) {
+    throw new Error("OpenRouter image response did not contain an image payload");
+  }
+
+  return toDataUri(candidate);
+}
+
+async function generateWithPollinations(
+  prompt: string,
+  provider: ImageProvider,
+): Promise<string> {
+  const modelId = provider === "pollinations_hd" ? "nanobanana-pro" : "nanobanana";
+  const encodedPrompt = encodeURIComponent(wrapPrompt(prompt));
+  const url = `https://gen.pollinations.ai/image/${encodedPrompt}?model=${modelId}&nologo=true&width=1080&height=1080&enhance=true`;
+
+  const headers: Record<string, string> = {
+    "User-Agent": "PostSpark/1.0",
+    Accept: "image/jpeg, image/png, image/*",
+  };
+
+  if (process.env.POLLINATIONS_API_KEY) {
+    headers.Authorization = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
+  }
+
+  const response = await fetch(url, { method: "GET", headers });
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "No error body");
+    void appendOperationalLog("IMAGE_PROVIDER_NON_200", {
+      provider: "pollinations",
+      model: modelId,
+      statusCode: response.status,
+      statusText: response.statusText,
+      body: errorText.slice(0, 500),
+    });
+    throw new Error(`Pollinations API failed: ${response.status} ${response.statusText}`);
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return `data:image/jpeg;base64,${buffer.toString("base64")}`;
+}
+
 export async function generateBackgroundImage(
   prompt: string,
-  provider: ImageProvider = 'pollinations_fast'
+  provider: ImageProvider = "pollinations_fast",
 ): Promise<string> {
   console.log(`[ImageGen] Request: provider=${provider}, prompt="${prompt.substring(0, 50)}..."`);
 
-  // Extrair o modelo específico de acordo com o nível de qualidade solicitado
-  const modelId = provider === 'pollinations_hd' ? 'nanobanana-pro' : 'nanobanana';
-
-  // Formatamos o prompt para garantir abstração
-  const enhancedPrompt = wrapPrompt(prompt);
-  const encodedPrompt = encodeURIComponent(enhancedPrompt);
-
-  // Construir a URL do Pollinations.ai (GET)
-  const url = `https://gen.pollinations.ai/image/${encodedPrompt}?model=${modelId}&nologo=true&width=1080&height=1080&enhance=true`;
-
-  console.log(`[ImageGen] Pollinations Model Select: ${modelId}`);
-
-  // Preparar os Headers (Injetando Autenticação)
-  const headers: Record<string, string> = {
-    "User-Agent": "PostSpark/1.0",
-    "Accept": "image/jpeg, image/png, image/*",
-  };
-
-  const apiKey = process.env.POLLINATIONS_API_KEY;
-  if (apiKey) {
-    headers["Authorization"] = `Bearer ${apiKey}`;
-  } else {
-    console.warn("[ImageGen] WARNING: POLLINATIONS_API_KEY is missing. Using unauthenticated public endpoint (Rate Limits may apply).");
-  }
-
-  // Realizar o Fetch nativo
   try {
-    const response = await fetch(url, { method: 'GET', headers });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "No error body");
-      console.error(`[ImageGen] Pollinations Error: ${response.status} ${response.statusText} - ${errorText}`);
-      throw new Error(`Pollinations API failed: ${response.status} ${response.statusText}`);
-    }
-
-    // Converter ArrayBuffer de resposta para uma string Base64 compatível com Data URI do FabricJS
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64 = buffer.toString('base64');
-
-    return `data:image/jpeg;base64,${base64}`;
+    const image = await generateWithOpenRouter(prompt, provider);
+    void appendOperationalLog("IMAGE_PROVIDER_200", {
+      provider: "openrouter",
+      model: ENV.openRouterImageModel,
+      imageProvider: provider,
+    });
+    return image;
   } catch (error) {
-    console.error(`[ImageGen] Critical Request Error:`, error);
-    throw error;
+    console.warn("[ImageGen] OpenRouter image generation failed; falling back to Pollinations.", error);
+    void appendOperationalLog("IMAGE_PROVIDER_FALLBACK", {
+      fromProvider: "openrouter",
+      fromModel: ENV.openRouterImageModel,
+      toProvider: "pollinations",
+      error,
+    });
   }
+
+  return generateWithPollinations(prompt, provider);
 }

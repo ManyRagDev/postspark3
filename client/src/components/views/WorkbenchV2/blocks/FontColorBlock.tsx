@@ -1,7 +1,5 @@
 /**
- * FontColorBlock — Bloco de Tipografia & Cor do WorkbenchV2 (Passo 4.4).
- *
- * Extrai e modulariza a seção de fontes e cores de texto do WorkbenchRefactored legado.
+ * FontColorBlock — Bloco de Tipografia & Cor do WorkbenchV2.
  *
  * Responsabilidades:
  *  - Seletor de fonte para Título, Corpo ou Ambos (<FontDropdown />)
@@ -9,8 +7,7 @@
  *  - Controles de cor: headlineColor, bodyColor, accentColor
  *  - Multiplicadores de tamanho de fonte: headlineFontSize, bodyFontSize
  *
- * Fonte de dados: 100% Zustand. Zero props de estado.
- * O WorkbenchRefactored.tsx NÃO é alterado.
+ * Fonte de dados: Zustand. Zero props de estado.
  */
 
 import React from "react";

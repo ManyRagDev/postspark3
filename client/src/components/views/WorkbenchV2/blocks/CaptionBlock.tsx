@@ -1,14 +1,13 @@
 /**
- * CaptionBlock — Bloco de Legenda & Texto do WorkbenchV2 (Passo 4.7).
+ * CaptionBlock — Bloco de Legenda & Texto do WorkbenchV2.
  *
- * Extrai a edição de conteúdo textual do Workbench legado:
+ * Responsabilidades:
  *  - Edição de Título (headline) e Corpo (body) do post
  *  - Edição de Legenda (caption) com contagem de caracteres
  *  - Preview de hashtags via <CaptionPreview />
  *  - Edição de Call-to-Action e controle de hashtags
  *
- * Fonte de dados: 100% Zustand.
- * O WorkbenchRefactored.tsx NÃO é alterado.
+ * Fonte de dados: Zustand.
  */
 
 import React, { useState } from "react";

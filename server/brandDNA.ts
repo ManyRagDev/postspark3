@@ -177,6 +177,7 @@ async function analyzeWithVision(
     try {
         const response = await invokeLLM({
             traceLabel: "site_visual_identity",
+            taskRoute: "vision_analysis",
             messages: [
                 {
                     role: 'system',

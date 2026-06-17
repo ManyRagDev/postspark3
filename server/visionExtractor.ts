@@ -44,6 +44,8 @@ export async function extractStylesFromScreenshot(
     console.log("[visionExtractor] Analyzing screenshot for:", url);
 
     const response = await invokeLLM({
+        traceLabel: "vision_style_extraction",
+        taskRoute: "vision_analysis",
         messages: [
             {
                 role: "system",
