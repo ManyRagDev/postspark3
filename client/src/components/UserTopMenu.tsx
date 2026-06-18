@@ -174,6 +174,19 @@ export default function UserTopMenu() {
               Configurações e plano
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setLocation("/privacy")}>
+              Privacidade
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocation("/terms")}>
+              Termos de Uso
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocation("/cookies")}>
+              Cookies
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocation("/privacy-settings")}>
+              Meus Dados
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => logout()} variant="destructive">
               <LogOut size={14} />
               Sair
