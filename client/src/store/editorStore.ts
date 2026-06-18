@@ -4,6 +4,7 @@ import { DEFAULT_BG_OVERLAY } from '@shared/postspark';
 import type { ImageSettings, AdvancedLayoutSettings } from '@/types/editor';
 import { DEFAULT_IMAGE_SETTINGS, DEFAULT_LAYOUT_SETTINGS } from '@/types/editor';
 import { layoutToAdvanced } from '@/lib/layoutToAdvanced';
+import { applyAspectRatioToVariation } from '@/lib/variationSnapshot';
 
 type LayoutTarget = 'headline' | 'body' | 'image' | 'global' | 'badge' | 'sticker' | 'accentBar' | 'carouselArrow' | 'card' | `section:${string}` | `textElement:${string}`;
 
@@ -221,17 +222,21 @@ export const useEditorStore = create<EditorState>(set => ({
 
             const aspectRatio = variation.aspectRatio ?? state.aspectRatio;
             const platform = variation.platform ?? state.platform;
-            const slides = variation.slides ?? [];
-            const postMode = variation.postMode ?? (slides.length > 0 ? 'carousel' : 'static');
-            const responsiveLayouts = variation.layoutSettingsByAspectRatio ?? {};
-            const initialLayout = responsiveLayouts[aspectRatio] ?? variation.layoutSettings ?? layoutToAdvanced(variation.layout);
-            const imageSettings = normalizeImageSettings(variation.imageSettings);
+            // "Fonte única da verdade": aplica aspectRatioOptimizations[aspectRatio]
+            // sobre a variação ANTES de derivar cores e bgValue. Isso garante que
+            // HoloDeck e Workbench leiam a mesma fonte para cores/layout por formato.
+            const arAdjustedVariation = applyAspectRatioToVariation(variation, aspectRatio);
+            const slides = arAdjustedVariation.slides ?? [];
+            const postMode = arAdjustedVariation.postMode ?? (slides.length > 0 ? 'carousel' : 'static');
+            const responsiveLayouts = arAdjustedVariation.layoutSettingsByAspectRatio ?? {};
+            const initialLayout = responsiveLayouts[aspectRatio] ?? arAdjustedVariation.layoutSettings ?? layoutToAdvanced(arAdjustedVariation.layout);
+            const imageSettings = normalizeImageSettings(arAdjustedVariation.imageSettings);
             const layoutSettings = normalizeLayoutSettings(initialLayout);
-            const bgValue = variation.bgValue
-                ? cloneBgValue(variation.bgValue)
-                : variation.imageUrl
-                  ? { type: 'ai' as const, url: variation.imageUrl }
-                  : { type: 'solid' as const, color: variation.backgroundColor };
+            const bgValue = arAdjustedVariation.bgValue
+                ? cloneBgValue(arAdjustedVariation.bgValue)
+                : arAdjustedVariation.imageUrl
+                  ? { type: 'ai' as const, url: arAdjustedVariation.imageUrl }
+                  : { type: 'solid' as const, color: arAdjustedVariation.backgroundColor };
             const bgOverlay = normalizeBgOverlay(variation.bgOverlay);
             const slideOverrides = slides.map(overridesFromSlide);
             const nextVariation = {
@@ -395,23 +400,40 @@ export const useEditorStore = create<EditorState>(set => ({
 
             const nextLayout = normalizeLayoutSettings(storedLayouts[currentRatio] ?? layoutToAdvanced(state.baseVariation?.layout ?? 'centered'));
 
-            const patchVariation = (variation: PostVariation | null) =>
-                variation
-                    ? {
-                          ...variation,
-                          aspectRatio: currentRatio,
-                          platform: state.platform,
-                          layoutSettings: nextLayout,
-                          layoutSettingsByAspectRatio: storedLayouts,
-                      }
-                    : null;
+            // "Fonte única da verdade": ao trocar de aspect ratio, aplica
+            // aspectRatioOptimizations[currentRatio] sobre a variação para
+            // refletir cores/layout específicos daquele formato.
+            const patchVariation = (variation: PostVariation | null) => {
+                if (!variation) return null;
+                const arPatched = applyAspectRatioToVariation(variation, currentRatio);
+                return {
+                    ...arPatched,
+                    platform: state.platform,
+                    layoutSettings: nextLayout,
+                    layoutSettingsByAspectRatio: storedLayouts,
+                };
+            };
+
+            const nextActiveVariation = patchVariation(state.activeVariation);
+            const nextBaseVariation = patchVariation(state.baseVariation);
+
+            // Recria bgValue a partir da cor efetiva do novo aspect ratio
+            const effectiveBgColor = nextActiveVariation?.backgroundColor;
+            const nextBgValue =
+                state.baseBgValue.type === 'ai' || state.baseBgValue.type === 'gallery' || state.baseBgValue.type === 'upload'
+                    ? state.baseBgValue
+                    : effectiveBgColor
+                      ? { type: 'solid' as const, color: effectiveBgColor }
+                      : state.baseBgValue;
 
             return {
                 aspectRatio: currentRatio,
                 layoutSettings: nextLayout,
                 baseLayoutSettings: nextLayout,
-                activeVariation: patchVariation(state.activeVariation),
-                baseVariation: patchVariation(state.baseVariation),
+                activeVariation: nextActiveVariation,
+                baseVariation: nextBaseVariation,
+                bgValue: nextBgValue,
+                baseBgValue: nextBgValue,
             };
         }),
     setApplyScope: applyScope => set({ applyScope }),

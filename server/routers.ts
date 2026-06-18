@@ -26,7 +26,9 @@ import { ENV } from "./_core/env";
 import { appendOperationalLog } from "./_core/operationalLog";
 import { TRPCError } from "@trpc/server";
 import { variationsNeedDiversification } from "./ai/variationDiversity";
+import { enforceBrandVisualGuardian } from "./ai/brandVisualGuardian";
 import { prepareGenerationPlan } from "./ai/generationPipeline";
+import { synthesizeCaptionsForVariations } from "./ai/captionSynthesis";
 import { evaluateAndReviseCandidates } from "./ai/postEvaluation";
 import { buildGenerationDebugTrace, finishGenerationTrace, recordGenerationEvent, startGenerationTrace } from "./ai/generationTrace";
 import { assessSemanticOriginality, persistCandidateFingerprints } from "./ai/semanticOriginality";
@@ -541,11 +543,13 @@ const billingRouter = router({
 });
 
 import { adminRouter } from "./routers/admin";
+import { privacyRouter } from "./routers/privacy";
 
 export const appRouter = router({
   system: systemRouter,
   billing: billingRouter,
   admin: adminRouter,
+  privacy: privacyRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -780,7 +784,7 @@ ${generationPlan.promptContext}
 REGRAS DE COPY — SIGA COM RIGOR:
 - Headline: máximo 60 caracteres. Seja direto e impactante. Sem ponto final.
 - Body: máximo 2 frases curtas. Máximo 100 caracteres no total. Sem rodeios.
-- Caption/Legenda: texto para acompanhar o post na rede social. Máximo 300 caracteres. Engajador, complementando o conteúdo visual. Pode ter emojis moderados.
+- Caption/Legenda: forneça uma legenda INICIAL curta (1-2 frases). Esta legenda será substituída por uma versão mais rica e coerente em um passo dedicado posterior, então não precisa ser longa — apenas garantida.
 - NUNCA coloque hashtags ou emojis dentro do headline ou body.
 - Hashtags: máximo 4, somente no campo separado "hashtags".
 - CallToAction: máximo 40 caracteres. Verbo de ação. Ex: "Saiba mais", "Experimente agora".
@@ -937,7 +941,7 @@ ${buildExecutionBriefContext(normalizedExecutionBrief)}`
                   },
                   caption: {
                     type: "string",
-                    description: "Legenda do post para a rede social, máximo 300 caracteres",
+                    description: "Legenda inicial do post. Será refinada posteriormente.",
                   },
                   tone: { type: "string", description: "Tom do post" },
                   imagePrompt: {
@@ -1065,7 +1069,7 @@ ${buildExecutionBriefContext(normalizedExecutionBrief)}`
                   },
                   caption: {
                     type: "string",
-                    description: "Legenda do post para a rede social, máximo 300 caracteres",
+                    description: "Legenda inicial do post. Será refinada posteriormente.",
                   },
                   tone: { type: "string", description: "Tom do post" },
                   imagePrompt: {
@@ -1319,87 +1323,31 @@ Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategi
           });
 
           // --------------------------------------------------------------------------------
-          // QA PASSPORT / BRAND SOUL GUARDIAN (Apenas ativado em clonagens de site / URL)
+          // BRAND SOUL GUARDIAN — deterministic WCAG + palette enforcement
+          // (Substitui o antigo `brand_visual_qa` baseado em LLM, que estava
+          // falhando repetidamente: 3 aborts + Gemini 400 schema-too-complex.)
           // --------------------------------------------------------------------------------
           if (siteIntelligence && brandDnaContext.length > 0) {
             try {
-              console.log("[QA Guard] Validating Brand Mimetism...");
-              const qaPrompt = `Você é um Quality Assurance rigoroso de Design Visual e Acessibilidade técnica (WCAG).
-O LLM Anterior gerou 3 variações de Post. O seu único objetivo é VARRER falhas e ARRUMAR o JSON.
-
-DIRETRIZES CARDINAIS DO BRAND SOUL (Não podem ser violadas):
-${brandDnaContext}
-
-AVALIAÇÕES A FAZER EM CADA VARIAÇÃO:
-1) A \`backgroundColor\` e a \`textColor\` escolhidas são EXATAMENTE (hex) derivadas das Sugeridas pela Marca acima? Se ele alocou hexes azuis num site laranja/vermelho, OVERRIDE para o laranja/vermelho sugerido.
-2) O contraste WCAG entre \`backgroundColor\` e \`textColor\` é viável (>4.5:1)? Se não for (ex: texto cinza no fundo cinza, texto branco no fundo creme), inverta a cor de um deles.
-3) A \`accentColor\` é chamativa dentro do Brand DNA?
-4) O \`layout\` faz sentido analiticamente para o tipo de conteúdo?
-
-Variations Originais Brutas:
-${JSON.stringify(variations, null, 2)}
-
-${isCarousel ? "CRÍTICO: preserve exatamente os 5 slides de cada variação. Não colapse o carrossel para um post estático, não remova slides, não troque a ordem narrativa e não retorne array vazio em `slides`." : ""}
-
-Retorne um JSON contendo O MESMO ARRAY, de mesmo formato, substituindo estritamente as propriedades listadas caso estejam ruins. Mantenha os textos inteiramente idênticos.
-Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
-
-              const qaResponse = await invokeLLM({
-                traceLabel: "brand_visual_qa",
-                taskRoute: "post_evaluation",
-                messages: [{ role: "user", content: qaPrompt }],
-                response_format: {
-                  type: "json_schema",
-                  json_schema: {
-                    name: "post_variations_qa",
-                    strict: true,
-                    schema: {
-                      type: "object",
-                      properties: {
-                        variations: {
-                          type: "array",
-                          minItems: POST_VARIATION_TARGET,
-                          maxItems: POST_VARIATION_TARGET,
-                          items: variationSchema,
-                        },
-                      },
-                      required: ["variations"],
-                      $defs: layoutDefs,
-                      additionalProperties: false,
-                    },
-                  },
-                },
+              console.log("[Brand Guardian] Deterministically enforcing brand palette + WCAG contrast...");
+              const beforeCount = variations.length;
+              variations = enforceBrandVisualGuardian(
+                variations,
+                siteIntelligence,
+                { enforcePalette: true, backgroundSnapTolerance: 40 },
+              ) as typeof variations;
+              console.log(
+                "[Brand Guardian] Enforced %d variation(s) against brand palette.",
+                variations.length,
+              );
+              recordGenerationEvent({
+                stage: "brand_visual_qa",
+                status: variations.length === beforeCount ? "completed" : "rejected",
+                detail: "Deterministic brand visual guardian applied palette + WCAG corrections.",
+                data: variations,
               });
-
-              const qaContent = qaResponse.choices[0]?.message?.content;
-              const qaContentStr =
-                typeof qaContent === "string"
-                  ? qaContent
-                  : Array.isArray(qaContent)
-                    ? qaContent
-                        .filter(c => "text" in c)
-                        .map(c => (c as any).text)
-                        .join("\n")
-                    : "{}";
-              const qaParsed = safeJsonParse<{ variations: any[] }>(qaContentStr, { variations: [] });
-              if (qaParsed.variations?.length === variations.length) {
-                variations = qaParsed.variations.slice(0, 3);
-                console.log("[QA Guard] Mimetism validation approved & patched.");
-                recordGenerationEvent({
-                  stage: "brand_visual_qa",
-                  status: "completed",
-                  detail: "Brand visual QA preserved the complete variation set.",
-                  data: variations,
-                });
-              } else {
-                recordGenerationEvent({
-                  stage: "brand_visual_qa",
-                  status: "rejected",
-                  detail: `Brand visual QA returned ${qaParsed.variations?.length ?? 0} items; previous set preserved.`,
-                });
-              }
-            } catch (qaErr) {
-              console.warn("[QA Guard] Failing gracefull. Returning raw variations.", qaErr);
+            } catch (guardianErr) {
+              console.warn("[Brand Guardian] Failing gracefully. Returning raw variations.", guardianErr);
             }
           }
 
@@ -1511,7 +1459,8 @@ Responda APENAS com JSON válido.`;
                     content: `Voce e um revisor cirurgico do PostSpark.
 Revise exatamente UMA variacao rejeitada, preservando a estrategia, o layout e a estrutura.
 Corrija apenas os problemas apontados na avaliacao.
-Nao reescreva do zero, nao misture estrategias, nao invente fatos e responda somente JSON valido.`,
+Nao reescreva do zero, nao misture estrategias, nao invente fatos e responda somente JSON valido.
+COERENCIA DA LEGENDA: se houver slides ou secoes, a caption deve refletir o mesmo numero de topicos. Se os slides apresentam 5 dicas, a legenda nao deve dizer "3 dicas".`,
                   },
                   {
                     role: "user",
@@ -1561,6 +1510,43 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
           variations = evaluationPipeline.candidates.map((variation) =>
             applyDeterministicCopyGuards(variation),
           );
+
+          // ─── Caption Synthesis Pass ────────────────────────────────────────
+          // Gera legendas coerentes com o conteúdo visual FINAL (slides/seções)
+          // em um passo dedicado, posterior a toda a pipeline de geração/revisão.
+          // Isto garante que a legenda NUNCA contradiga ou invente conteúdo
+          // diferente do que aparece nos slides ou seções do post visual.
+          recordGenerationEvent({
+            stage: "caption_synthesis",
+            status: "started",
+            detail: "Synthesizing captions from final visual content.",
+          });
+          try {
+            const synthesized = await synthesizeCaptionsForVariations(
+              variations,
+              {
+                platform: input.platform,
+                tone: effectiveTone,
+                strategies: generationPlan.strategies.selected,
+                isCarousel,
+              },
+            );
+            variations = synthesized.map((variation) =>
+              applyDeterministicCopyGuards(variation),
+            );
+            recordGenerationEvent({
+              stage: "caption_synthesis",
+              status: "completed",
+              detail: "Captions synthesized from final visual content.",
+            });
+          } catch (synthesisError) {
+            recordGenerationEvent({
+              stage: "caption_synthesis",
+              status: "fallback",
+              detail: "Caption synthesis failed; original captions preserved.",
+              data: synthesisError instanceof Error ? synthesisError.message : String(synthesisError),
+            });
+          }
           const originality =
             evaluationPipeline.revisionCount > 0
               ? await assessSemanticOriginality({
@@ -2354,10 +2340,7 @@ function applyDeterministicCopyGuards<T extends Record<string, any>>(variation: 
   if (typeof next.headline === "string") next.headline = next.headline.slice(0, 60).trim();
   if (typeof next.body === "string") next.body = next.body.slice(0, 140).trim();
   if (typeof next.caption === "string") {
-    next.caption = next.caption
-      .replace(/veja\s+3\s+checagens?\s+r(?:a|\u00e1)pidas?/i, "faca checagens simples")
-      .slice(0, 300)
-      .trim();
+    next.caption = next.caption.slice(0, 1500).trim();
   }
   if (typeof next.callToAction === "string") next.callToAction = next.callToAction.slice(0, 40).trim();
   if (Array.isArray(next.hashtags)) {

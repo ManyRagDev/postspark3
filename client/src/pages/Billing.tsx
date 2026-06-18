@@ -9,6 +9,7 @@ import { Zap, Crown, ShoppingBag, ArrowLeft, Building2, Check, Sparkles } from "
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import Footer from "@/components/Footer";
 
 const PLAN_LABELS: Record<string, string> = {
   FREE: "START",
@@ -181,6 +182,7 @@ export default function Billing() {
   const annualDiscount = 20;
 
   return (
+    <>
     <div className="min-h-screen flex flex-col items-center py-12 px-4 bg-soul-deep pb-24">
       <button
         onClick={() => setLocation("/")}
@@ -447,5 +449,7 @@ export default function Billing() {
 
       </div>
     </div>
+    <Footer />
+    </>
   );
 }

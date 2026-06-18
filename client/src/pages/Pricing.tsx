@@ -8,6 +8,7 @@ import { Check, Zap, Crown, Building2, Sparkles, ArrowLeft } from "lucide-react"
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import Footer from "@/components/Footer";
 
 type BillingCycle = "monthly" | "annual";
 type PaidPlan = "PRO" | "AGENCY";
@@ -137,6 +138,7 @@ export default function Pricing() {
   const annualDiscount = 20;
 
   return (
+    <>
     <div className="min-h-screen flex flex-col items-center justify-start py-16 px-4 bg-soul-deep">
       <button
         onClick={() => setLocation("/")}
@@ -306,5 +308,7 @@ export default function Pricing() {
         </p>
       </motion.div>
     </div>
+    <Footer />
+    </>
   );
 }

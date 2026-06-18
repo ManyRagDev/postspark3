@@ -493,26 +493,26 @@ Gerar textos, imagens, extrações visuais, Brand DNA e avaliação de qualidade
 - Há múltiplos pipelines de análise visual coexistindo (`extractStyles`, `extractBrandDNA`, `analyzeBrand`, `chameleon`, `Brand DNA`), o que aumenta sobreposição conceitual.
 - A nomenclatura sugere evolução incremental com camadas novas mantendo rotas legadas.
 
+#### 5.6.1 Caption Synthesis Pass (coerência legenda ↔ conteúdo visual)
+
+Fato observado:
+
+- A legenda (`caption`) de cada variação é gerada em um passo dedicado, posterior a toda a pipeline de geração, QA, diversificação e revisão de qualidade.
+- O módulo responsável é [`server/ai/captionSynthesis.ts`](./server/ai/captionSynthesis.ts) e é invocado em `server/routers.ts` imediatamente após `evaluateAndReviseCandidates`.
+- A síntese extrai o conteúdo visual final da variação (slides, seções ou headline+body) e o fornece como input obrigatório para um LLM dedicado via `taskRoute: "caption_synthesis"`.
+- O LLM recebe instruções explícitas de: sintetizar, expandir e dar contexto ao conteúdo visual; nunca inventar tópicos/números diferentes; respeitar o limite de caracteres da plataforma; incluir gancho + contexto + síntese + CTA.
+- O schema de saída é simples: `{ caption: string }`, com fallback resiliente — se a síntese falhar, a caption original da geração primária é preservada.
+- O limite de truncamento em `applyDeterministicCopyGuards` aumentou de 300 para 1500 caracteres para respeitar limites reais das plataformas (Instagram: 2200, LinkedIn: 3000).
+- O regex band-aid anterior (`/veja\s+3\s+checagens?\s+r(?:a|á)pidas?/`) foi removido pois a síntese estrutural torna patches manuais desnecessários.
+- A dimensão `captionCoherence` foi adicionada a `GenerationEvaluationSummary.dimensions` e à avaliação determinística em `postEvaluation.ts`, detectando discrepâncias de número de itens (ex: caption diz "3 dicas" quando há 5 slides) e penalizando a aceitação do candidato.
+- A nova `taskRoute` `"caption_synthesis"` usa OpenRouter com política própria: `temperature: 0.5`, `topP: 0.9`, `reasoningEffort: "minimal"`, `timeoutMs: 25000`.
+
+Motivação estrutural:
+
+- Antes desta mudança, a caption era um campo secundário gerado no mesmo passe do LLM que produzia slides, cores, layout, seções e copyAngle — um schema de 15+ campos. Não havia garantia de coerência entre a legenda e o conteúdo visual, resultando em discrepâncias como "3 dicas" na legenda quando os slides apresentavam 5 dicas.
+- A solução estrutural garante que a legenda seja sempre sintetizada a partir do conteúdo visual final, eliminando a possibilidade de inconsistência.
+
 ### 5.7 Screenshot service
-
-**Responsabilidade principal**
-
-Intermediar capturas e descoberta de páginas de sites externos para análise visual.
-
-**Arquivos centrais**
-
-- [`server/screenshotService.ts`](./server/screenshotService.ts)
-- uso em [`server/_core/index.ts`](./server/_core/index.ts) e módulos de análise.
-
-**Entradas**
-
-- URL do site;
-- tipo de captura;
-- seletores e lista de páginas.
-
-**Saídas**
-
-- screenshots em `ArrayBuffer`;
 - lista de páginas descobertas.
 
 **Dependências externas**
@@ -1320,3 +1320,28 @@ Lacunas registradas:
 
 - `--bg-panel` e `--accent-primary` aparecem em alguns componentes com fallback local, mas não foram encontrados como tokens globais definidos em `client/src/index.css`.
 - Existem tokens legados e novos coexistindo em `client/src/index.css`, incluindo nomes de Captain/Architect que ainda aparecem em componentes específicos.
+
+## 26. Brand Soul Guardian e fonte unica da verdade de cores - 2026-06-17
+
+Contexto da mudanca:
+
+- A geracao por URL apresentava inconsistencia de cores entre HoloDeck e Workbench, e o passo de QA visual baseado em LLM falhava de forma recorrente.
+- `siteIntelligenceToDesignTokens` devolvia cores neutras que ignoravam o palette extraido do site.
+- O editorStore ignorava completamente `aspectRatioOptimizations`, usando apenas o nivel superior da variacao para derivar cores e `bgValue`.
+
+Comportamento implantado:
+
+- [`server/siteIntelligence.ts`](./server/siteIntelligence.ts) agora possui utilitarios de cor (WCAG, brilho, saturacao) e escolhe `primary` como a cor mais saturada do palette, `background` como a cor escura adequada da marca, e `text` com contraste WCAG >= 4.5:1.
+- `siteIntelligenceToPrompt` emite regras de CORES OBRIGATORIAS explicitas.
+- [`server/ai/brandVisualGuardian.ts`](./server/ai/brandVisualGuardian.ts) substitui o LLM `brand_visual_qa` por correcao deterministica (snap de palette + WCAG).
+- [`client/src/lib/variationSnapshot.ts`](./client/src/lib/variationSnapshot.ts) expoe `applyAspectRatioToVariation(variation, aspectRatio)`: aplica `aspectRatioOptimizations[aspectRatio]` sobre a variacao. Esta e a "fonte unica da verdade" usada por HoloDeck e Workbench.
+- `editorStore.setActiveVariation` aplica o helper ANTES de derivar cores e `bgValue`.
+- `editorStore.setAspectRatio` aplica o helper ao trocar de formato, atualizando cores e recriando `bgValue`.
+- HoloDeck `getPreviewVariation` aplica o helper ao aspect ratio atual.
+
+Contrato de prioridade de cor por aspect ratio:
+
+1. `aspectRatioOptimizations[aspectRatio].backgroundColor/textColor/accentColor`
+2. `variation.backgroundColor/textColor/accentColor` (nivel superior)
+3. `variation.designTokens.colors.*`
+4. fallback neutro (`#171717` / `#a855f7` / `#ffffff`)

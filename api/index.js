@@ -1,345 +1,79 @@
-// server/_core/index.ts
-import "dotenv/config";
-import express2 from "express";
-import { createServer } from "http";
-import net from "net";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
-
-// server/_core/supabaseAuth.ts
-import { createClient as createClient2 } from "@supabase/supabase-js";
-
-// shared/const.ts
-var COOKIE_NAME = "app_session_id";
-var ONE_YEAR_MS = 1e3 * 60 * 60 * 24 * 365;
-var UNAUTHED_ERR_MSG = "Please login (10001)";
-var NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
-
-// server/_core/cookies.ts
-function isSecureRequest(req) {
-  if (req.protocol === "https") return true;
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  if (!forwardedProto) return false;
-  const protoList = Array.isArray(forwardedProto) ? forwardedProto : forwardedProto.split(",");
-  return protoList.some((proto) => proto.trim().toLowerCase() === "https");
-}
-function getSessionCookieOptions(req) {
-  return {
-    httpOnly: true,
-    path: "/",
-    sameSite: "lax",
-    secure: isSecureRequest(req)
-  };
-}
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 
 // server/_core/env.ts
-var envFlag = (name, defaultValue) => {
-  const value = process.env[name];
-  if (value === void 0) return defaultValue;
-  return ["1", "true", "yes", "on"].includes(value.toLowerCase());
-};
-var envInteger = (name, defaultValue, minimum, maximum) => {
-  const parsed = Number.parseInt(process.env[name] ?? "", 10);
-  if (!Number.isFinite(parsed)) return defaultValue;
-  return Math.min(maximum, Math.max(minimum, parsed));
-};
-var isProduction = process.env.NODE_ENV === "production";
-var ENV = {
-  isProduction,
-  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
-  geminiApiKey: process.env.GEMINI_API_KEY ?? "",
-  groqApiKey: process.env.GROQ_API_KEY ?? "",
-  llmInputCostPerMillion: parseFloat(process.env.LLM_INPUT_COST_PER_MILLION || "0"),
-  llmOutputCostPerMillion: parseFloat(process.env.LLM_OUTPUT_COST_PER_MILLION || "0"),
-  aiSiteIntelligenceEnabled: envFlag("AI_SITE_INTELLIGENCE_ENABLED", true),
-  aiContentStrategyEnabled: envFlag("AI_CONTENT_STRATEGY_ENABLED", true),
-  aiLlmJudgeEnabled: envFlag("AI_LLM_JUDGE_ENABLED", true),
-  aiSemanticEmbeddingsEnabled: envFlag("AI_SEMANTIC_EMBEDDINGS_ENABLED", true),
-  aiTraceStoreContent: envFlag("AI_TRACE_STORE_CONTENT", false),
-  aiUiDebugEnabled: envFlag("AI_UI_DEBUG_ENABLED", !isProduction),
-  aiModelFallbackEnabled: envFlag("AI_MODEL_FALLBACK_ENABLED", true),
-  llmTransientRetries: envInteger("LLM_TRANSIENT_RETRIES", 2, 0, 4),
-  llmRetryBaseDelayMs: envInteger("LLM_RETRY_BASE_DELAY_MS", 700, 100, 1e4),
-  llmRequestTimeoutMs: envInteger("LLM_REQUEST_TIMEOUT_MS", 9e4, 5e3, 18e4),
-  // Supabase (service role — backend only)
-  supabaseUrl: process.env.SUPABASE_URL ?? "",
-  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
-  // Stripe
-  stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
-  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
-  stripePriceProMonthly: process.env.STRIPE_PRICE_PRO_MONTHLY ?? "",
-  stripePriceProAnnual: process.env.STRIPE_PRICE_PRO_ANNUAL ?? "",
-  stripePriceAgencyMonthly: process.env.STRIPE_PRICE_AGENCY_MONTHLY ?? "",
-  stripePriceAgencyAnnual: process.env.STRIPE_PRICE_AGENCY_ANNUAL ?? "",
-  stripePriceTopupStarter: process.env.STRIPE_PRICE_TOPUP_STARTER ?? "",
-  stripePriceTopupPower: process.env.STRIPE_PRICE_TOPUP_POWER ?? "",
-  stripePriceTopupMega: process.env.STRIPE_PRICE_TOPUP_MEGA ?? "",
-  // SMTP (Hostinger)
-  smtpHost: process.env.SMTP_HOST ?? "",
-  smtpPort: parseInt(process.env.SMTP_PORT || "465"),
-  smtpUser: process.env.SMTP_USER ?? "",
-  smtpPass: process.env.SMTP_PASS ?? "",
-  smtpFrom: process.env.SMTP_FROM ?? ""
-};
-
-// server/_core/manylabs.ts
-import { createClient } from "@supabase/supabase-js";
-var _postsparkAdminClient = null;
-function getPostSparkAdminClient() {
-  if (!_postsparkAdminClient) {
-    if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
-      throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
-    }
-    _postsparkAdminClient = createClient(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
-      auth: { persistSession: false },
-      db: { schema: "postspark" }
-    });
-  }
-  return _postsparkAdminClient;
-}
-async function hasPostSparkAccess(userId) {
-  try {
-    const supabase = getPostSparkAdminClient();
-    const { data, error } = await supabase.rpc("has_manylabs_app_access", {
-      p_user_id: userId
-    });
-    if (error) {
-      console.error("[ManyLabs] has_manylabs_app_access RPC error:", error.message);
-      return false;
-    }
-    return Boolean(data);
-  } catch (err) {
-    console.error("[ManyLabs] has_manylabs_app_access unexpected error:", err);
-    return false;
-  }
-}
-async function ensurePostSparkAccess(userId, email, name) {
-  try {
-    const supabase = getPostSparkAdminClient();
-    const { data, error } = await supabase.rpc("ensure_manylabs_app_access", {
-      p_user_id: userId,
-      p_email: email,
-      p_display_name: name
-    });
-    if (error) {
-      console.error("[ManyLabs] ensure_manylabs_app_access RPC error:", error.message);
-      return false;
-    }
-    return Boolean(data);
-  } catch (err) {
-    console.error("[ManyLabs] ensure_manylabs_app_access unexpected error:", err);
-    return false;
-  }
-}
-
-// server/_core/supabaseAuth.ts
-function getSupabaseAdmin() {
-  if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
-    throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
-  }
-  return createClient2(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
-    auth: { persistSession: false }
-  });
-}
-function registerSupabaseAuthRoutes(app2) {
-  app2.post("/api/auth/supabase-session", async (req, res) => {
-    const { access_token } = req.body;
-    if (!access_token || typeof access_token !== "string") {
-      res.status(400).json({ error: "access_token is required" });
-      return;
-    }
-    try {
-      const supabase = getSupabaseAdmin();
-      const {
-        data: { user },
-        error
-      } = await supabase.auth.getUser(access_token);
-      if (error || !user) {
-        res.status(401).json({ error: "Invalid or expired token" });
-        return;
-      }
-      if (!(process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true")) {
-        const metadata2 = user.user_metadata ?? {};
-        const name2 = typeof metadata2.full_name === "string" ? metadata2.full_name : typeof metadata2.name === "string" ? metadata2.name : null;
-        const hasAccess = await ensurePostSparkAccess(user.id, user.email ?? null, name2);
-        if (!hasAccess) {
-          res.status(403).json({ error: "postspark_access_required" });
-          return;
-        }
-      }
-      const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, access_token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      const metadata = user.user_metadata ?? {};
-      const name = typeof metadata.full_name === "string" ? metadata.full_name : typeof metadata.name === "string" ? metadata.name : null;
-      res.json({ ok: true, id: user.id, email: user.email ?? null, name });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Session creation failed";
-      res.status(500).json({ error: "Session creation failed", detail: message });
-    }
-  });
-  app2.post("/api/auth/supabase-logout", (req, res) => {
-    const cookieOptions = getSessionCookieOptions(req);
-    res.clearCookie(COOKIE_NAME, cookieOptions);
-    res.json({ ok: true });
-  });
-}
-
-// server/_core/systemRouter.ts
-import { z } from "zod";
-
-// server/_core/notification.ts
-import { TRPCError } from "@trpc/server";
-var TITLE_MAX_LENGTH = 1200;
-var CONTENT_MAX_LENGTH = 2e4;
-var trimValue = (value) => value.trim();
-var isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
-var buildEndpointUrl = (baseUrl) => {
-  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  return new URL(
-    "webdevtoken.v1.WebDevService/SendNotification",
-    normalizedBase
-  ).toString();
-};
-var validatePayload = (input) => {
-  if (!isNonEmptyString(input.title)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Notification title is required."
-    });
-  }
-  if (!isNonEmptyString(input.content)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Notification content is required."
-    });
-  }
-  const title = trimValue(input.title);
-  const content = trimValue(input.content);
-  if (title.length > TITLE_MAX_LENGTH) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: `Notification title must be at most ${TITLE_MAX_LENGTH} characters.`
-    });
-  }
-  if (content.length > CONTENT_MAX_LENGTH) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: `Notification content must be at most ${CONTENT_MAX_LENGTH} characters.`
-    });
-  }
-  return { title, content };
-};
-async function notifyOwner(payload) {
-  const { title, content } = validatePayload(payload);
-  if (!ENV.forgeApiUrl) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Notification service URL is not configured."
-    });
-  }
-  if (!ENV.forgeApiKey) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Notification service API key is not configured."
-    });
-  }
-  const endpoint = buildEndpointUrl(ENV.forgeApiUrl);
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${ENV.forgeApiKey}`,
-        "content-type": "application/json",
-        "connect-protocol-version": "1"
-      },
-      body: JSON.stringify({ title, content })
-    });
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      console.warn(
-        `[Notification] Failed to notify owner (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
-      );
-      return false;
-    }
-    return true;
-  } catch (error) {
-    console.warn("[Notification] Error calling notification service:", error);
-    return false;
-  }
-}
-
-// server/_core/trpc.ts
-import { initTRPC, TRPCError as TRPCError2 } from "@trpc/server";
-import superjson from "superjson";
-var t = initTRPC.context().create({
-  transformer: superjson
-});
-var router = t.router;
-var publicProcedure = t.procedure;
-var requireUser = t.middleware(async (opts) => {
-  const { ctx, next } = opts;
-  if (!ctx.user) {
-    throw new TRPCError2({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
-  }
-  return next({
-    ctx: {
-      ...ctx,
-      user: ctx.user
-    }
-  });
-});
-var protectedProcedure = t.procedure.use(requireUser);
-var adminProcedure = t.procedure.use(
-  t.middleware(async (opts) => {
-    const { ctx, next } = opts;
-    if (!ctx.user || ctx.user.role !== "admin") {
-      throw new TRPCError2({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
-    }
-    return next({
-      ctx: {
-        ...ctx,
-        user: ctx.user
-      }
-    });
-  })
-);
-
-// server/_core/systemRouter.ts
-var systemRouter = router({
-  health: publicProcedure.input(
-    z.object({
-      timestamp: z.number().min(0, "timestamp cannot be negative")
-    })
-  ).query(() => ({
-    ok: true
-  })),
-  notifyOwner: adminProcedure.input(
-    z.object({
-      title: z.string().min(1, "title is required"),
-      content: z.string().min(1, "content is required")
-    })
-  ).mutation(async ({ input }) => {
-    const delivered = await notifyOwner(input);
-    return {
-      success: delivered
+var envFlag, envInteger, isProduction, ENV;
+var init_env = __esm({
+  "server/_core/env.ts"() {
+    "use strict";
+    envFlag = (name, defaultValue) => {
+      const value = process.env[name];
+      if (value === void 0) return defaultValue;
+      return ["1", "true", "yes", "on"].includes(value.toLowerCase());
     };
-  })
+    envInteger = (name, defaultValue, minimum, maximum) => {
+      const parsed = Number.parseInt(process.env[name] ?? "", 10);
+      if (!Number.isFinite(parsed)) return defaultValue;
+      return Math.min(maximum, Math.max(minimum, parsed));
+    };
+    isProduction = process.env.NODE_ENV === "production";
+    ENV = {
+      isProduction,
+      forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
+      forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+      geminiApiKey: process.env.GEMINI_API_KEY ?? "",
+      groqApiKey: process.env.GROQ_API_KEY ?? "",
+      openRouterApiKey: process.env.OPENROUTER_API_KEY ?? "",
+      openRouterSiteUrl: process.env.OPENROUTER_SITE_URL ?? "https://postspark.app",
+      openRouterAppName: process.env.OPENROUTER_APP_NAME ?? "PostSpark",
+      openRouterTextModel: process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5-mini",
+      openRouterVisionModel: process.env.OPENROUTER_VISION_MODEL ?? "openai/gpt-5-mini",
+      openRouterImageModel: process.env.OPENROUTER_IMAGE_MODEL ?? "google/gemini-3.1-flash-image",
+      openRouterPlatformFeePercent: parseFloat(process.env.OPENROUTER_PLATFORM_FEE_PERCENT || "5.5"),
+      llmInputCostPerMillion: parseFloat(process.env.LLM_INPUT_COST_PER_MILLION || "0"),
+      llmOutputCostPerMillion: parseFloat(process.env.LLM_OUTPUT_COST_PER_MILLION || "0"),
+      aiSiteIntelligenceEnabled: envFlag("AI_SITE_INTELLIGENCE_ENABLED", true),
+      aiContentStrategyEnabled: envFlag("AI_CONTENT_STRATEGY_ENABLED", true),
+      aiLlmJudgeEnabled: envFlag("AI_LLM_JUDGE_ENABLED", true),
+      aiSemanticEmbeddingsEnabled: envFlag("AI_SEMANTIC_EMBEDDINGS_ENABLED", true),
+      aiTraceStoreContent: envFlag("AI_TRACE_STORE_CONTENT", false),
+      aiUiDebugEnabled: envFlag("AI_UI_DEBUG_ENABLED", !isProduction),
+      aiModelFallbackEnabled: envFlag("AI_MODEL_FALLBACK_ENABLED", true),
+      llmTransientRetries: envInteger("LLM_TRANSIENT_RETRIES", 2, 0, 4),
+      llmRetryBaseDelayMs: envInteger("LLM_RETRY_BASE_DELAY_MS", 700, 100, 1e4),
+      llmRequestTimeoutMs: envInteger("LLM_REQUEST_TIMEOUT_MS", 9e4, 5e3, 18e4),
+      // Supabase (service role — backend only)
+      supabaseUrl: process.env.SUPABASE_URL ?? "",
+      supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+      // Stripe
+      stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
+      stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+      stripePriceProMonthly: process.env.STRIPE_PRICE_PRO_MONTHLY ?? "",
+      stripePriceProAnnual: process.env.STRIPE_PRICE_PRO_ANNUAL ?? "",
+      stripePriceAgencyMonthly: process.env.STRIPE_PRICE_AGENCY_MONTHLY ?? "",
+      stripePriceAgencyAnnual: process.env.STRIPE_PRICE_AGENCY_ANNUAL ?? "",
+      stripePriceTopupStarter: process.env.STRIPE_PRICE_TOPUP_STARTER ?? "",
+      stripePriceTopupPower: process.env.STRIPE_PRICE_TOPUP_POWER ?? "",
+      stripePriceTopupMega: process.env.STRIPE_PRICE_TOPUP_MEGA ?? "",
+      // SMTP (Hostinger)
+      smtpHost: process.env.SMTP_HOST ?? "",
+      smtpPort: parseInt(process.env.SMTP_PORT || "465"),
+      smtpUser: process.env.SMTP_USER ?? "",
+      smtpPass: process.env.SMTP_PASS ?? "",
+      smtpFrom: process.env.SMTP_FROM ?? ""
+    };
+  }
 });
-
-// server/routers.ts
-import { z as z3 } from "zod";
-
-// server/_core/llm.ts
-import { TRPCError as TRPCError3 } from "@trpc/server";
-
-// server/ai/generationTrace.ts
-import { AsyncLocalStorage } from "node:async_hooks";
-import { createHash, randomUUID } from "node:crypto";
 
 // server/db.ts
 import { createClient as createClient3 } from "@supabase/supabase-js";
-var _supabaseDbClient = null;
 function getSupabaseDbClient() {
   if (!_supabaseDbClient) {
     if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
@@ -356,6 +90,9 @@ function removeUndefined(payload) {
   return Object.fromEntries(
     Object.entries(payload).filter(([, value]) => value !== void 0)
   );
+}
+function getDb() {
+  return getSupabaseDbClient();
 }
 async function createPost(post) {
   const db = getSupabaseDbClient();
@@ -624,8 +361,503 @@ async function getGenerationOperationalMetrics(windowDays = 7) {
     )
   };
 }
+var _supabaseDbClient;
+var init_db = __esm({
+  "server/db.ts"() {
+    "use strict";
+    init_env();
+    _supabaseDbClient = null;
+  }
+});
+
+// server/_core/privacyLog.ts
+var privacyLog_exports = {};
+__export(privacyLog_exports, {
+  getPrivacyLogs: () => getPrivacyLogs,
+  logAdminDataAccess: () => logAdminDataAccess,
+  logConsentGiven: () => logConsentGiven,
+  logConsentRevoked: () => logConsentRevoked,
+  logPrivacyEvent: () => logPrivacyEvent
+});
+async function logPrivacyEvent(event) {
+  try {
+    const { userId, action, timestamp = /* @__PURE__ */ new Date(), metadata = {} } = event;
+    const sanitizedMetadata = sanitizeMetadata(metadata);
+    try {
+      await getDb().schema("postspark").from("privacy_logs").insert({
+        user_id: userId,
+        action,
+        timestamp: timestamp.toISOString(),
+        metadata: sanitizedMetadata,
+        created_at: /* @__PURE__ */ new Date()
+      });
+    } catch (error) {
+      console.log("[PrivacyLog]", {
+        userId,
+        action,
+        timestamp: timestamp.toISOString(),
+        metadata: sanitizedMetadata
+      });
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[PrivacyLog] Table privacy_logs does not exist. Create it for proper logging.");
+      }
+    }
+  } catch (error) {
+    console.error("[PrivacyLog] Error logging event:", error);
+  }
+}
+function sanitizeMetadata(metadata) {
+  const sanitized = {};
+  const sensitiveKeys = ["password", "token", "apiKey", "secret", "creditCard", "ssn", "cpf"];
+  for (const [key, value] of Object.entries(metadata)) {
+    const lowerKey = key.toLowerCase();
+    if (sensitiveKeys.some((sensitive) => lowerKey.includes(sensitive.toLowerCase()))) {
+      sanitized[key] = "[REDACTED]";
+      continue;
+    }
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      sanitized[key] = sanitizeMetadata(value);
+    } else if (Array.isArray(value)) {
+      sanitized[key] = value.map(
+        (item) => typeof item === "object" && item !== null ? sanitizeMetadata(item) : item
+      );
+    } else if (typeof value === "string") {
+      sanitized[key] = value.length > 1e3 ? value.substring(0, 1e3) + "...[truncated]" : value;
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
+async function getPrivacyLogs(userId, limit = 50) {
+  try {
+    const logs = await getDb().schema("postspark").from("privacy_logs").where("user_id", userId).select("action", "timestamp", "metadata").orderBy("created_at", { ascending: false }).limit(limit);
+    return logs || [];
+  } catch (error) {
+    console.error("[PrivacyLog] Error fetching logs:", error);
+    return [];
+  }
+}
+async function logAdminDataAccess(adminId, targetUserId, reason) {
+  await logPrivacyEvent({
+    userId: targetUserId,
+    action: "admin_data_access",
+    metadata: {
+      adminId,
+      reason,
+      timestamp: (/* @__PURE__ */ new Date()).toISOString()
+    }
+  });
+}
+async function logConsentGiven(userId, version, aiImprovements) {
+  await logPrivacyEvent({
+    userId,
+    action: "consent_given",
+    metadata: {
+      version,
+      aiImprovements,
+      ipAddress: "[REDACTED]",
+      // IP não armazenado por padrão
+      userAgent: "[REDACTED]"
+    }
+  });
+}
+async function logConsentRevoked(userId, fields) {
+  await logPrivacyEvent({
+    userId,
+    action: "consent_revoked",
+    metadata: {
+      fields
+    }
+  });
+}
+var init_privacyLog = __esm({
+  "server/_core/privacyLog.ts"() {
+    "use strict";
+    init_db();
+  }
+});
+
+// server/_core/index.ts
+import "dotenv/config";
+import express2 from "express";
+import { createServer } from "http";
+import net from "net";
+import { createExpressMiddleware } from "@trpc/server/adapters/express";
+
+// server/_core/supabaseAuth.ts
+import { createClient as createClient2 } from "@supabase/supabase-js";
+
+// shared/const.ts
+var COOKIE_NAME = "app_session_id";
+var ONE_YEAR_MS = 1e3 * 60 * 60 * 24 * 365;
+var UNAUTHED_ERR_MSG = "Please login (10001)";
+var NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
+
+// server/_core/cookies.ts
+function isSecureRequest(req) {
+  if (req.protocol === "https") return true;
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  if (!forwardedProto) return false;
+  const protoList = Array.isArray(forwardedProto) ? forwardedProto : forwardedProto.split(",");
+  return protoList.some((proto) => proto.trim().toLowerCase() === "https");
+}
+function getSessionCookieOptions(req) {
+  return {
+    httpOnly: true,
+    path: "/",
+    sameSite: "lax",
+    secure: isSecureRequest(req)
+  };
+}
+
+// server/_core/supabaseAuth.ts
+init_env();
+
+// server/_core/manylabs.ts
+init_env();
+import { createClient } from "@supabase/supabase-js";
+var _postsparkAdminClient = null;
+function getPostSparkAdminClient() {
+  if (!_postsparkAdminClient) {
+    if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
+      throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
+    }
+    _postsparkAdminClient = createClient(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
+      auth: { persistSession: false },
+      db: { schema: "postspark" }
+    });
+  }
+  return _postsparkAdminClient;
+}
+async function hasPostSparkAccess(userId) {
+  try {
+    const supabase = getPostSparkAdminClient();
+    const { data, error } = await supabase.rpc("has_manylabs_app_access", {
+      p_user_id: userId
+    });
+    if (error) {
+      console.error("[ManyLabs] has_manylabs_app_access RPC error:", error.message);
+      return false;
+    }
+    return Boolean(data);
+  } catch (err) {
+    console.error("[ManyLabs] has_manylabs_app_access unexpected error:", err);
+    return false;
+  }
+}
+async function ensurePostSparkAccess(userId, email, name) {
+  try {
+    const supabase = getPostSparkAdminClient();
+    const { data, error } = await supabase.rpc("ensure_manylabs_app_access", {
+      p_user_id: userId,
+      p_email: email,
+      p_display_name: name
+    });
+    if (error) {
+      console.error("[ManyLabs] ensure_manylabs_app_access RPC error:", error.message);
+      return false;
+    }
+    return Boolean(data);
+  } catch (err) {
+    console.error("[ManyLabs] ensure_manylabs_app_access unexpected error:", err);
+    return false;
+  }
+}
+
+// server/_core/supabaseAuth.ts
+function getSupabaseAdmin() {
+  if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
+    throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured");
+  }
+  return createClient2(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
+    auth: { persistSession: false }
+  });
+}
+function registerSupabaseAuthRoutes(app2) {
+  app2.post("/api/auth/supabase-session", async (req, res) => {
+    const { access_token } = req.body;
+    if (!access_token || typeof access_token !== "string") {
+      res.status(400).json({ error: "access_token is required" });
+      return;
+    }
+    try {
+      const supabase = getSupabaseAdmin();
+      const {
+        data: { user },
+        error
+      } = await supabase.auth.getUser(access_token);
+      if (error || !user) {
+        res.status(401).json({ error: "Invalid or expired token" });
+        return;
+      }
+      if (!(process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true")) {
+        const metadata2 = user.user_metadata ?? {};
+        const name2 = typeof metadata2.full_name === "string" ? metadata2.full_name : typeof metadata2.name === "string" ? metadata2.name : null;
+        const hasAccess = await ensurePostSparkAccess(user.id, user.email ?? null, name2);
+        if (!hasAccess) {
+          res.status(403).json({ error: "postspark_access_required" });
+          return;
+        }
+      }
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, access_token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      const metadata = user.user_metadata ?? {};
+      const name = typeof metadata.full_name === "string" ? metadata.full_name : typeof metadata.name === "string" ? metadata.name : null;
+      res.json({ ok: true, id: user.id, email: user.email ?? null, name });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Session creation failed";
+      res.status(500).json({ error: "Session creation failed", detail: message });
+    }
+  });
+  app2.post("/api/auth/supabase-logout", (req, res) => {
+    const cookieOptions = getSessionCookieOptions(req);
+    res.clearCookie(COOKIE_NAME, cookieOptions);
+    res.json({ ok: true });
+  });
+}
+
+// server/_core/systemRouter.ts
+import { z } from "zod";
+
+// server/_core/notification.ts
+init_env();
+import { TRPCError } from "@trpc/server";
+var TITLE_MAX_LENGTH = 1200;
+var CONTENT_MAX_LENGTH = 2e4;
+var trimValue = (value) => value.trim();
+var isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
+var buildEndpointUrl = (baseUrl) => {
+  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  return new URL(
+    "webdevtoken.v1.WebDevService/SendNotification",
+    normalizedBase
+  ).toString();
+};
+var validatePayload = (input) => {
+  if (!isNonEmptyString(input.title)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Notification title is required."
+    });
+  }
+  if (!isNonEmptyString(input.content)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Notification content is required."
+    });
+  }
+  const title = trimValue(input.title);
+  const content = trimValue(input.content);
+  if (title.length > TITLE_MAX_LENGTH) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Notification title must be at most ${TITLE_MAX_LENGTH} characters.`
+    });
+  }
+  if (content.length > CONTENT_MAX_LENGTH) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Notification content must be at most ${CONTENT_MAX_LENGTH} characters.`
+    });
+  }
+  return { title, content };
+};
+async function notifyOwner(payload) {
+  const { title, content } = validatePayload(payload);
+  if (!ENV.forgeApiUrl) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Notification service URL is not configured."
+    });
+  }
+  if (!ENV.forgeApiKey) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Notification service API key is not configured."
+    });
+  }
+  const endpoint = buildEndpointUrl(ENV.forgeApiUrl);
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${ENV.forgeApiKey}`,
+        "content-type": "application/json",
+        "connect-protocol-version": "1"
+      },
+      body: JSON.stringify({ title, content })
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      console.warn(
+        `[Notification] Failed to notify owner (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
+      );
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.warn("[Notification] Error calling notification service:", error);
+    return false;
+  }
+}
+
+// server/_core/trpc.ts
+import { initTRPC, TRPCError as TRPCError2 } from "@trpc/server";
+import superjson from "superjson";
+var t = initTRPC.context().create({
+  transformer: superjson
+});
+var router = t.router;
+var publicProcedure = t.procedure;
+var requireUser = t.middleware(async (opts) => {
+  const { ctx, next } = opts;
+  if (!ctx.user) {
+    throw new TRPCError2({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user
+    }
+  });
+});
+var protectedProcedure = t.procedure.use(requireUser);
+var adminProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+    if (!ctx.user || ctx.user.role !== "admin") {
+      throw new TRPCError2({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
+    }
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user
+      }
+    });
+  })
+);
+
+// server/_core/systemRouter.ts
+var systemRouter = router({
+  health: publicProcedure.input(
+    z.object({
+      timestamp: z.number().min(0, "timestamp cannot be negative")
+    })
+  ).query(() => ({
+    ok: true
+  })),
+  notifyOwner: adminProcedure.input(
+    z.object({
+      title: z.string().min(1, "title is required"),
+      content: z.string().min(1, "content is required")
+    })
+  ).mutation(async ({ input }) => {
+    const delivered = await notifyOwner(input);
+    return {
+      success: delivered
+    };
+  })
+});
+
+// server/routers.ts
+import { z as z5 } from "zod";
+
+// server/_core/llm.ts
+init_env();
+
+// server/_core/operationalLog.ts
+import { appendFile } from "fs/promises";
+import path from "path";
+import { inspect } from "util";
+var LOG_FILE = path.resolve(process.cwd(), "OPERATIONAL_ERRORS.txt");
+var MAX_FIELD_LENGTH = 4e3;
+var redact = (value) => value.replace(/(authorization\s*[:=]\s*)(bearer\s+)?[^\s,;}]+/gi, "$1[REDACTED]").replace(/(cookie\s*[:=]\s*)[^,;}]+/gi, "$1[REDACTED]").replace(/(access_token\s*[:=]\s*)[^,;}]+/gi, "$1[REDACTED]").replace(/(refresh_token\s*[:=]\s*)[^,;}]+/gi, "$1[REDACTED]").replace(/(api[_-]?key\s*[:=]\s*)[^,;}]+/gi, "$1[REDACTED]");
+var truncate = (value) => value.length > MAX_FIELD_LENGTH ? `${value.slice(0, MAX_FIELD_LENGTH)}...[truncated ${value.length - MAX_FIELD_LENGTH} chars]` : value;
+var serialize = (value) => {
+  if (value instanceof Error) {
+    return truncate(redact(value.stack || value.message));
+  }
+  if (typeof value === "string") {
+    return truncate(redact(value));
+  }
+  return truncate(
+    redact(
+      inspect(value, {
+        depth: 5,
+        breakLength: 160,
+        maxArrayLength: 50,
+        maxStringLength: MAX_FIELD_LENGTH
+      })
+    )
+  );
+};
+async function appendOperationalLog(event, details = {}) {
+  const lines = [
+    `[${(/* @__PURE__ */ new Date()).toISOString()}] ${event}`,
+    ...Object.entries(details).map(([key, value]) => `${key}: ${serialize(value)}`),
+    ""
+  ];
+  try {
+    await appendFile(LOG_FILE, `${lines.join("\n")}
+`, "utf8");
+  } catch {
+  }
+}
+function installConsoleErrorFileLogging() {
+  const originalError = console.error.bind(console);
+  console.error = (...args) => {
+    originalError(...args);
+    void appendOperationalLog("CONSOLE_ERROR", {
+      message: args.map(serialize).join(" ")
+    });
+  };
+  process.on("unhandledRejection", (reason) => {
+    void appendOperationalLog("UNHANDLED_REJECTION", { reason });
+  });
+  process.on("uncaughtException", (error) => {
+    void appendOperationalLog("UNCAUGHT_EXCEPTION", { error });
+  });
+}
+function httpStatusFileLogger(req, res, next) {
+  const startedAt = Date.now();
+  let responseBody;
+  const originalJson = res.json.bind(res);
+  res.json = ((body) => {
+    responseBody = body;
+    return originalJson(body);
+  });
+  const originalSend = res.send.bind(res);
+  res.send = ((body) => {
+    if (responseBody === void 0) {
+      responseBody = body;
+    }
+    return originalSend(body);
+  });
+  res.on("finish", () => {
+    if (res.statusCode === 200) return;
+    void appendOperationalLog("HTTP_NON_200", {
+      method: req.method,
+      url: req.originalUrl || req.url,
+      statusCode: res.statusCode,
+      durationMs: Date.now() - startedAt,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+      responseBody
+    });
+  });
+  next();
+}
+
+// server/_core/llm.ts
+import { TRPCError as TRPCError3 } from "@trpc/server";
 
 // server/ai/generationTrace.ts
+init_db();
+init_env();
+import { AsyncLocalStorage } from "node:async_hooks";
+import { createHash, randomUUID } from "node:crypto";
 var storage = new AsyncLocalStorage();
 function startGenerationTrace(input) {
   const trace = {
@@ -754,10 +986,19 @@ function adaptRequestForProvider(input) {
     return {
       messages: input.messages,
       responseFormat: input.responseFormat,
-      schema: input.responseFormat?.type === "json_schema" ? input.responseFormat.json_schema : void 0
+      schema: input.responseFormat?.type === "json_schema" ? input.responseFormat.json_schema : void 0,
+      structuredOutputMode: input.responseFormat?.type === "json_schema" ? "native_schema" : void 0
     };
   }
   const schema = input.responseFormat.json_schema;
+  if (input.effectiveModel === "openai/gpt-oss-120b" && !input.forceTextSchema) {
+    return {
+      messages: input.messages,
+      responseFormat: input.responseFormat,
+      schema,
+      structuredOutputMode: "native_schema"
+    };
+  }
   const schemaInstruction = `ADAPTADOR DE SAIDA ESTRUTURADA:
 Retorne SOMENTE um objeto JSON valido, sem markdown ou comentarios.
 O objeto deve respeitar integralmente o JSON Schema abaixo.
@@ -767,7 +1008,8 @@ ${JSON.stringify(schema.schema)}`;
   return {
     messages: appendSystemInstruction(input.messages, schemaInstruction),
     responseFormat: { type: "json_object" },
-    schema
+    schema,
+    structuredOutputMode: "text_schema"
   };
 }
 function resolveReference(root, reference) {
@@ -779,18 +1021,18 @@ function resolveReference(root, reference) {
   }
   return current && typeof current === "object" ? current : null;
 }
-function validateNode(value, schema, root, path3, errors) {
+function validateNode(value, schema, root, path4, errors) {
   if (typeof schema.$ref === "string") {
     const resolved = resolveReference(root, schema.$ref);
     if (!resolved) {
-      errors.push(`${path3}: referencia de schema nao resolvida`);
+      errors.push(`${path4}: referencia de schema nao resolvida`);
       return;
     }
-    validateNode(value, resolved, root, path3, errors);
+    validateNode(value, resolved, root, path4, errors);
     return;
   }
   if ("const" in schema && value !== schema.const) {
-    errors.push(`${path3}: valor diferente do const`);
+    errors.push(`${path4}: valor diferente do const`);
     return;
   }
   if (Array.isArray(schema.allOf)) {
@@ -800,7 +1042,7 @@ function validateNode(value, schema, root, path3, errors) {
           value,
           childSchema,
           root,
-          path3,
+          path4,
           errors
         );
       }
@@ -815,18 +1057,18 @@ function validateNode(value, schema, root, path3, errors) {
         value,
         childSchema,
         root,
-        path3,
+        path4,
         candidateErrors
       );
       return candidateErrors.length === 0;
     }).length;
     if (combinator === "anyOf" && matches === 0 || combinator === "oneOf" && matches !== 1) {
-      errors.push(`${path3}: nao satisfaz ${combinator}`);
+      errors.push(`${path4}: nao satisfaz ${combinator}`);
       return;
     }
   }
   if (Array.isArray(schema.enum) && !schema.enum.includes(value)) {
-    errors.push(`${path3}: valor fora do enum`);
+    errors.push(`${path4}: valor fora do enum`);
     return;
   }
   const type = schema.type;
@@ -837,47 +1079,47 @@ function validateNode(value, schema, root, path3, errors) {
         value,
         { ...schema, type: candidateType },
         root,
-        path3,
+        path4,
         candidateErrors
       );
       return candidateErrors.length === 0;
     });
-    if (!matchesType) errors.push(`${path3}: tipo nao permitido`);
+    if (!matchesType) errors.push(`${path4}: tipo nao permitido`);
     return;
   }
   if (type === "object") {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
-      errors.push(`${path3}: deveria ser objeto`);
+      errors.push(`${path4}: deveria ser objeto`);
       return;
     }
     const record = value;
     const properties = schema.properties && typeof schema.properties === "object" ? schema.properties : {};
     const required = Array.isArray(schema.required) ? schema.required.filter((item) => typeof item === "string") : [];
     for (const key of required) {
-      if (!(key in record)) errors.push(`${path3}.${key}: campo obrigatorio ausente`);
+      if (!(key in record)) errors.push(`${path4}.${key}: campo obrigatorio ausente`);
     }
     if (schema.additionalProperties === false) {
       for (const key of Object.keys(record)) {
-        if (!(key in properties)) errors.push(`${path3}.${key}: propriedade extra`);
+        if (!(key in properties)) errors.push(`${path4}.${key}: propriedade extra`);
       }
     }
     for (const [key, childSchema] of Object.entries(properties)) {
       if (key in record) {
-        validateNode(record[key], childSchema, root, `${path3}.${key}`, errors);
+        validateNode(record[key], childSchema, root, `${path4}.${key}`, errors);
       }
     }
     return;
   }
   if (type === "array") {
     if (!Array.isArray(value)) {
-      errors.push(`${path3}: deveria ser array`);
+      errors.push(`${path4}: deveria ser array`);
       return;
     }
     if (typeof schema.minItems === "number" && value.length < schema.minItems) {
-      errors.push(`${path3}: itens abaixo do minimo`);
+      errors.push(`${path4}: itens abaixo do minimo`);
     }
     if (typeof schema.maxItems === "number" && value.length > schema.maxItems) {
-      errors.push(`${path3}: itens acima do maximo`);
+      errors.push(`${path4}: itens acima do maximo`);
     }
     if (schema.items && typeof schema.items === "object") {
       value.forEach(
@@ -885,7 +1127,7 @@ function validateNode(value, schema, root, path3, errors) {
           item,
           schema.items,
           root,
-          `${path3}[${index}]`,
+          `${path4}[${index}]`,
           errors
         )
       );
@@ -894,33 +1136,33 @@ function validateNode(value, schema, root, path3, errors) {
   }
   if (type === "string") {
     if (typeof value !== "string") {
-      errors.push(`${path3}: deveria ser string`);
+      errors.push(`${path4}: deveria ser string`);
       return;
     }
     if (typeof schema.minLength === "number" && value.length < schema.minLength) {
-      errors.push(`${path3}: texto abaixo do tamanho minimo`);
+      errors.push(`${path4}: texto abaixo do tamanho minimo`);
     }
     if (typeof schema.maxLength === "number" && value.length > schema.maxLength) {
-      errors.push(`${path3}: texto acima do tamanho maximo`);
+      errors.push(`${path4}: texto acima do tamanho maximo`);
     }
     if (typeof schema.pattern === "string" && !new RegExp(schema.pattern).test(value)) {
-      errors.push(`${path3}: texto fora do pattern`);
+      errors.push(`${path4}: texto fora do pattern`);
     }
   } else if (type === "number" && (typeof value !== "number" || !Number.isFinite(value))) {
-    errors.push(`${path3}: deveria ser number`);
+    errors.push(`${path4}: deveria ser number`);
   } else if (type === "integer" && (typeof value !== "number" || !Number.isInteger(value))) {
-    errors.push(`${path3}: deveria ser integer`);
+    errors.push(`${path4}: deveria ser integer`);
   } else if (type === "boolean" && typeof value !== "boolean") {
-    errors.push(`${path3}: deveria ser boolean`);
+    errors.push(`${path4}: deveria ser boolean`);
   } else if (type === "null" && value !== null) {
-    errors.push(`${path3}: deveria ser null`);
+    errors.push(`${path4}: deveria ser null`);
   }
   if ((type === "number" || type === "integer") && typeof value === "number") {
     if (typeof schema.minimum === "number" && value < schema.minimum) {
-      errors.push(`${path3}: numero abaixo do minimo`);
+      errors.push(`${path4}: numero abaixo do minimo`);
     }
     if (typeof schema.maximum === "number" && value > schema.maximum) {
-      errors.push(`${path3}: numero acima do maximo`);
+      errors.push(`${path4}: numero acima do maximo`);
     }
   }
 }
@@ -951,6 +1193,117 @@ ${input.errors.map((error) => `- ${error}`).join("\n")}
 Corrija a resposta e devolva SOMENTE o objeto JSON completo conforme o schema ${input.schema.name}.`
     }
   ];
+}
+
+// server/ai/modelRouter.ts
+init_env();
+var OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
+var GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
+var GOOGLE_OPENAI_COMPAT_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+var GROQ_TEXT_MODEL = "openai/gpt-oss-120b";
+var GROQ_SCOUT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+var GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
+var MODEL_COSTS = {
+  "openai/gpt-5-mini": {
+    inputCostPerMillion: 0.25,
+    outputCostPerMillion: 2,
+    platformFeePercent: ENV.openRouterPlatformFeePercent
+  },
+  "openai/gpt-oss-120b": {
+    inputCostPerMillion: 0,
+    outputCostPerMillion: 0
+  },
+  "meta-llama/llama-4-scout-17b-16e-instruct": {
+    inputCostPerMillion: 0,
+    outputCostPerMillion: 0
+  },
+  "gemini-2.5-flash": {
+    inputCostPerMillion: 0.3,
+    outputCostPerMillion: 2.5
+  }
+};
+function normalizeModelForCost(model) {
+  if (model.startsWith("openai/gpt-5-mini")) return "openai/gpt-5-mini";
+  if (model.startsWith("gemini-2.5-flash")) return "gemini-2.5-flash";
+  return model;
+}
+function getModelCostConfig(model) {
+  return MODEL_COSTS[normalizeModelForCost(model)] ?? {
+    inputCostPerMillion: ENV.llmInputCostPerMillion,
+    outputCostPerMillion: ENV.llmOutputCostPerMillion
+  };
+}
+function estimateModelCostUsd(input) {
+  const costs = getModelCostConfig(input.model);
+  const base = input.promptTokens / 1e6 * costs.inputCostPerMillion + input.completionTokens / 1e6 * costs.outputCostPerMillion;
+  return base * (1 + (costs.platformFeePercent ?? 0) / 100);
+}
+function openRouterConfig(model) {
+  if (!ENV.openRouterApiKey) {
+    throw new Error("OPENROUTER_API_KEY is required for the selected AI route.");
+  }
+  return {
+    provider: "openrouter",
+    apiUrl: OPENROUTER_CHAT_URL,
+    apiKey: ENV.openRouterApiKey,
+    effectiveModel: model,
+    headers: {
+      "HTTP-Referer": ENV.openRouterSiteUrl,
+      "X-Title": ENV.openRouterAppName
+    },
+    providerOptions: {
+      allow_fallbacks: true,
+      data_collection: "deny"
+    }
+  };
+}
+function groqConfig(model) {
+  if (!ENV.groqApiKey) {
+    throw new Error("GROQ_API_KEY is required for the selected AI route.");
+  }
+  return {
+    provider: "groq",
+    apiUrl: GROQ_CHAT_URL,
+    apiKey: ENV.groqApiKey,
+    effectiveModel: model
+  };
+}
+function resolveGeminiFallbackConfig() {
+  if (ENV.geminiApiKey) {
+    return {
+      provider: "google",
+      apiUrl: GOOGLE_OPENAI_COMPAT_URL,
+      apiKey: ENV.geminiApiKey,
+      effectiveModel: GEMINI_FALLBACK_MODEL
+    };
+  }
+  if (ENV.forgeApiUrl && ENV.forgeApiKey) {
+    return {
+      provider: "forge",
+      apiUrl: `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`,
+      apiKey: ENV.forgeApiKey,
+      effectiveModel: GEMINI_FALLBACK_MODEL
+    };
+  }
+  throw new Error("Gemini fallback requires GEMINI_API_KEY or Forge configuration.");
+}
+function resolveTaskModelConfig(input) {
+  const route = input.taskRoute;
+  if (route === "microcopy") return groqConfig(GROQ_TEXT_MODEL);
+  if (route === "fast_vision") return groqConfig(GROQ_SCOUT_MODEL);
+  if (route === "fallback_text_or_vision") return resolveGeminiFallbackConfig();
+  if (route === "content_strategy" || route === "static_generation" || route === "carousel_generation" || route === "post_evaluation" || route === "quality_revision" || route === "caption_synthesis") {
+    return openRouterConfig(ENV.openRouterTextModel);
+  }
+  if (route === "vision_analysis" || input.containsMultimodalContent) {
+    return openRouterConfig(ENV.openRouterVisionModel);
+  }
+  if (input.requestedModel === "gemini") return resolveGeminiFallbackConfig();
+  if (input.requestedModel === "llama") return groqConfig(GROQ_TEXT_MODEL);
+  return openRouterConfig(ENV.openRouterTextModel);
+}
+function canUseGeminiFallback() {
+  return Boolean(ENV.geminiApiKey || ENV.forgeApiUrl && ENV.forgeApiKey);
 }
 
 // server/_core/llm.ts
@@ -1024,38 +1377,6 @@ var normalizeToolChoice = (toolChoice, tools) => {
   }
   return toolChoice;
 };
-function resolveModelConfig(model = "gemini") {
-  if (model === "llama") {
-    if (!ENV.groqApiKey) {
-      throw new Error(
-        "O modelo Llama requer GROQ_API_KEY; nenhum fallback silencioso foi aplicado."
-      );
-    }
-    return {
-      provider: "groq",
-      apiUrl: "https://api.groq.com/openai/v1/chat/completions",
-      apiKey: ENV.groqApiKey,
-      effectiveModel: "llama-3.3-70b-versatile"
-    };
-  }
-  if (ENV.geminiApiKey) {
-    return {
-      provider: "google",
-      apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-      apiKey: ENV.geminiApiKey,
-      effectiveModel: "gemini-2.5-flash"
-    };
-  }
-  if (ENV.forgeApiUrl && ENV.forgeApiKey) {
-    return {
-      provider: "forge",
-      apiUrl: `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`,
-      apiKey: ENV.forgeApiKey,
-      effectiveModel: "gemini-2.5-flash"
-    };
-  }
-  throw new Error("Nenhuma API configurada. Defina GEMINI_API_KEY no .env");
-}
 var normalizeResponseFormat = ({
   responseFormat,
   response_format,
@@ -1085,9 +1406,94 @@ var normalizeResponseFormat = ({
     }
   };
 };
+var StructuredOutputError = class extends Error {
+  constructor(failureType, message) {
+    super(message);
+    this.failureType = failureType;
+    this.name = "StructuredOutputError";
+  }
+};
+var OPENROUTER_TASK_POLICY = {
+  content_strategy: {
+    temperature: 0.35,
+    topP: 0.85,
+    reasoningEffort: "minimal",
+    timeoutMs: 12e3
+  },
+  static_generation: {
+    temperature: 0.4,
+    topP: 0.85,
+    reasoningEffort: "minimal",
+    timeoutMs: 35e3
+  },
+  carousel_generation: {
+    temperature: 0.45,
+    topP: 0.85,
+    reasoningEffort: "low",
+    timeoutMs: 6e4
+  },
+  post_evaluation: {
+    temperature: 0.25,
+    topP: 0.85,
+    reasoningEffort: "minimal",
+    timeoutMs: 2e4
+  },
+  quality_revision: {
+    temperature: 0.3,
+    topP: 0.85,
+    reasoningEffort: "minimal",
+    timeoutMs: 25e3
+  },
+  caption_synthesis: {
+    temperature: 0.5,
+    topP: 0.9,
+    reasoningEffort: "minimal",
+    timeoutMs: 25e3
+  }
+};
+function timeoutForTaskRoute(route) {
+  return route ? OPENROUTER_TASK_POLICY[route]?.timeoutMs ?? ENV.llmRequestTimeoutMs : ENV.llmRequestTimeoutMs;
+}
+function isAiTaskRoute(value) {
+  return value === "content_strategy" || value === "static_generation" || value === "carousel_generation" || value === "vision_analysis" || value === "microcopy" || value === "fast_vision" || value === "fallback_text_or_vision" || value === "post_evaluation" || value === "quality_revision" || value === "caption_synthesis";
+}
+function isTruncatedResult(result) {
+  const choice = result.choices[0];
+  const finish = `${choice?.finish_reason ?? ""} ${choice?.native_finish_reason ?? ""}`.toLowerCase();
+  return finish.includes("length") || finish.includes("max_token") || finish.includes("max_output") || finish.includes("limit");
+}
+function classifyStructuredFailure(result, validationErrors) {
+  const content = responseText(result).trim();
+  if (!content) return "empty_content";
+  if (isTruncatedResult(result)) return "truncated";
+  if (validationErrors.some((error) => error.includes("JSON invalido"))) {
+    return "invalid_json";
+  }
+  return "schema_mismatch";
+}
+function shouldAttemptStructuredRepair(type) {
+  return type === "invalid_json" || type === "schema_mismatch";
+}
+function contentLength(result) {
+  return result ? responseText(result).length : void 0;
+}
+function reasoningTokens(result) {
+  return result?.usage?.completion_tokens_details?.reasoning_tokens ?? 0;
+}
+function realOrEstimatedCostUsd(input) {
+  if (typeof input.result?.usage?.cost === "number") {
+    return input.result.usage.cost;
+  }
+  return estimateModelCostUsd({
+    model: input.model,
+    promptTokens: input.promptTokens,
+    completionTokens: input.completionTokens
+  });
+}
 async function invokeLLM(params) {
   const {
-    model = "gemini",
+    model,
+    taskRoute,
     traceLabel = "llm",
     messages,
     tools,
@@ -1100,15 +1506,23 @@ async function invokeLLM(params) {
     disableFallback = false
   } = params;
   const normalizedMessages = messages.map(normalizeMessage);
+  const containsMultimodalContent = hasMultimodalContent(normalizedMessages);
+  const requestedModel = taskRoute ?? model ?? (containsMultimodalContent ? "vision_analysis" : "static_generation");
+  const effectiveTaskRoute = taskRoute ?? (isAiTaskRoute(requestedModel) ? requestedModel : void 0);
   const configurationStartedAt = Date.now();
   let primaryConfig;
   try {
-    primaryConfig = resolveModelConfig(model);
+    primaryConfig = resolveTaskModelConfig({
+      taskRoute,
+      requestedModel: model,
+      containsMultimodalContent
+    });
   } catch (error) {
     recordLlmTraceCall({
       label: traceLabel,
-      requestedModel: model,
-      effectiveModel: model,
+      requestedModel,
+      taskRoute: effectiveTaskRoute,
+      effectiveModel: requestedModel,
       provider: "unconfigured",
       promptHash: hashPrompt(normalizedMessages),
       messages: normalizedMessages,
@@ -1133,22 +1547,73 @@ async function invokeLLM(params) {
     output_schema
   });
   const buildPayload = (config, adaptedMessages, adaptedFormat) => {
+    const isGroqGptOss = config.provider === "groq" && config.effectiveModel === GROQ_TEXT_MODEL;
+    const isScout = config.provider === "groq" && config.effectiveModel === GROQ_SCOUT_MODEL;
+    const completionTokenLimit = params.maxCompletionTokens ?? params.max_completion_tokens ?? params.maxTokens ?? params.max_tokens ?? 2048;
     const payload = {
       model: config.effectiveModel,
-      messages: adaptedMessages,
-      max_tokens: params.maxTokens ?? params.max_tokens ?? 8192
+      messages: adaptedMessages
     };
+    if (isGroqGptOss) {
+      payload.max_completion_tokens = completionTokenLimit;
+      payload.temperature = params.temperature ?? 0.45;
+      payload.top_p = params.topP ?? params.top_p ?? 0.9;
+      payload.reasoning_effort = params.reasoningEffort ?? params.reasoning_effort ?? "low";
+    } else if (config.provider === "openrouter") {
+      const taskPolicy = effectiveTaskRoute ? OPENROUTER_TASK_POLICY[effectiveTaskRoute] : void 0;
+      const reasoningEffort = params.reasoningEffort ?? params.reasoning_effort ?? taskPolicy?.reasoningEffort;
+      payload.max_tokens = completionTokenLimit;
+      payload.temperature = params.temperature ?? taskPolicy?.temperature ?? 0.55;
+      payload.top_p = params.topP ?? params.top_p ?? taskPolicy?.topP ?? 0.9;
+      if (reasoningEffort) {
+        payload.reasoning_effort = reasoningEffort;
+        payload.reasoning = { effort: reasoningEffort, exclude: true };
+      }
+      if (config.providerOptions) {
+        payload.provider = config.providerOptions;
+      }
+    } else {
+      payload.max_tokens = completionTokenLimit;
+      if (typeof params.temperature === "number") {
+        payload.temperature = params.temperature;
+      }
+      const topP = params.topP ?? params.top_p;
+      if (typeof topP === "number") {
+        payload.top_p = topP;
+      }
+    }
+    if (isScout && completionTokenLimit > 2048) {
+      payload.max_tokens = 2048;
+    }
     if (tools && tools.length > 0) payload.tools = tools;
     if (normalizedToolChoice) payload.tool_choice = normalizedToolChoice;
     if (adaptedFormat) payload.response_format = adaptedFormat;
     return payload;
   };
+  const extractPayloadOptions = (payload) => ({
+    temperature: payload.temperature,
+    top_p: payload.top_p,
+    reasoning: payload.reasoning,
+    reasoning_effort: payload.reasoning_effort,
+    max_tokens: payload.max_tokens,
+    max_completion_tokens: payload.max_completion_tokens
+  });
   const estimateAndRecord = (input) => {
     const promptTokens = input.result?.usage?.prompt_tokens ?? 0;
     const completionTokens = input.result?.usage?.completion_tokens ?? 0;
+    const totalTokens = input.result?.usage?.total_tokens ?? promptTokens + completionTokens;
+    const latencyMs = Date.now() - input.startedAt;
+    const estimatedCostUsd = realOrEstimatedCostUsd({
+      result: input.result,
+      model: input.result?.model || input.config.effectiveModel,
+      promptTokens,
+      completionTokens
+    });
+    const error = input.error instanceof Error ? input.error.message.slice(0, 500) : input.error ? String(input.error).slice(0, 500) : void 0;
     recordLlmTraceCall({
       label: traceLabel,
-      requestedModel: model,
+      requestedModel,
+      taskRoute: effectiveTaskRoute,
       effectiveModel: input.result?.model || input.config.effectiveModel,
       provider: input.config.provider,
       promptHash: hashPrompt(input.adaptedMessages),
@@ -1156,44 +1621,92 @@ async function invokeLLM(params) {
       response: input.result,
       promptTokens,
       completionTokens,
-      totalTokens: input.result?.usage?.total_tokens ?? promptTokens + completionTokens,
-      latencyMs: Date.now() - input.startedAt,
-      estimatedCostUsd: promptTokens / 1e6 * ENV.llmInputCostPerMillion + completionTokens / 1e6 * ENV.llmOutputCostPerMillion,
+      totalTokens,
+      latencyMs,
+      estimatedCostUsd,
       attempt: input.attempt,
       fallbackFrom: input.fallbackFrom,
       translatedSchema: input.translatedSchema,
+      structuredOutputMode: input.structuredOutputMode,
+      payloadOptions: input.payloadOptions,
+      reasoningTokens: reasoningTokens(input.result),
+      finishReason: input.result?.choices?.[0]?.finish_reason,
+      nativeFinishReason: input.result?.choices?.[0]?.native_finish_reason,
+      contentLength: contentLength(input.result),
+      structuredFailureType: input.structuredFailureType,
       repairedOutput: input.repairedOutput,
-      error: input.error instanceof Error ? input.error.message.slice(0, 500) : input.error ? String(input.error).slice(0, 500) : void 0
+      error
+    });
+    void appendOperationalLog(input.result ? "AI_PROVIDER_200" : "AI_PROVIDER_ATTEMPT_FAILED", {
+      traceLabel,
+      requestedModel,
+      taskRoute: effectiveTaskRoute,
+      provider: input.config.provider,
+      effectiveModel: input.result?.model || input.config.effectiveModel,
+      attempt: input.attempt,
+      fallbackFrom: input.fallbackFrom,
+      translatedSchema: input.translatedSchema,
+      structuredOutputMode: input.structuredOutputMode,
+      payloadOptions: input.payloadOptions,
+      reasoningTokens: reasoningTokens(input.result),
+      finishReason: input.result?.choices?.[0]?.finish_reason,
+      nativeFinishReason: input.result?.choices?.[0]?.native_finish_reason,
+      contentLength: contentLength(input.result),
+      structuredFailureType: input.structuredFailureType,
+      repairedOutput: input.repairedOutput,
+      promptHash: hashPrompt(input.adaptedMessages),
+      promptTokens,
+      completionTokens,
+      totalTokens,
+      latencyMs,
+      estimatedCostUsd,
+      responseId: input.result?.id,
+      error
     });
   };
   const callProvider = async (config, payload) => {
     const controller = new AbortController();
     const timeout = setTimeout(
       () => controller.abort(),
-      ENV.llmRequestTimeoutMs
+      timeoutForTaskRoute(effectiveTaskRoute)
     );
     try {
       const response = await fetch(config.apiUrl, {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          authorization: `Bearer ${config.apiKey}`
+          authorization: `Bearer ${config.apiKey}`,
+          ...config.headers
         },
         body: JSON.stringify(payload),
         signal: controller.signal
       });
       if (!response.ok) {
+        const errorBody = (await response.text()).slice(0, 500);
+        void appendOperationalLog("AI_PROVIDER_NON_200", {
+          provider: config.provider,
+          model: config.effectiveModel,
+          statusCode: response.status,
+          statusText: response.statusText,
+          retryAfter: response.headers.get("retry-after"),
+          body: errorBody
+        });
         throw new ProviderRequestError(
           config.provider,
           response.status,
           response.statusText,
-          (await response.text()).slice(0, 500),
+          errorBody,
           parseRetryAfterMs(response.headers.get("retry-after"))
         );
       }
       return await response.json();
     } catch (error) {
       if (error instanceof ProviderRequestError) throw error;
+      void appendOperationalLog("AI_PROVIDER_REQUEST_ERROR", {
+        provider: config.provider,
+        model: config.effectiveModel,
+        error
+      });
       throw new ProviderRequestError(
         config.provider,
         void 0,
@@ -1217,7 +1730,11 @@ async function invokeLLM(params) {
     try {
       const result = await callProvider(
         input.config,
-        buildPayload(input.config, repairMessages, { type: "json_object" })
+        buildPayload(
+          input.config,
+          repairMessages,
+          input.adapted.responseFormat ?? { type: "json_object" }
+        )
       );
       const content = responseText(result);
       const validation = validateStructuredContent(
@@ -1226,7 +1743,7 @@ async function invokeLLM(params) {
       );
       if (!validation.valid) {
         throw new Error(
-          `Groq repair did not satisfy schema: ${validation.errors.join("; ")}`
+          `Structured output repair did not satisfy schema: ${validation.errors.join("; ")}`
         );
       }
       estimateAndRecord({
@@ -1236,7 +1753,15 @@ async function invokeLLM(params) {
         startedAt,
         attempt: 1,
         fallbackFrom: input.fallbackFrom,
-        translatedSchema: true,
+        translatedSchema: input.adapted.structuredOutputMode === "text_schema",
+        structuredOutputMode: input.adapted.structuredOutputMode,
+        payloadOptions: extractPayloadOptions(
+          buildPayload(
+            input.config,
+            repairMessages,
+            input.adapted.responseFormat ?? { type: "json_object" }
+          )
+        ),
         repairedOutput: true
       });
       return result;
@@ -1247,7 +1772,15 @@ async function invokeLLM(params) {
         startedAt,
         attempt: 1,
         fallbackFrom: input.fallbackFrom,
-        translatedSchema: true,
+        translatedSchema: input.adapted.structuredOutputMode === "text_schema",
+        structuredOutputMode: input.adapted.structuredOutputMode,
+        payloadOptions: extractPayloadOptions(
+          buildPayload(
+            input.config,
+            repairMessages,
+            input.adapted.responseFormat ?? { type: "json_object" }
+          )
+        ),
         repairedOutput: true,
         error
       });
@@ -1255,23 +1788,30 @@ async function invokeLLM(params) {
     }
   };
   const executeWithRetries = async (config, fallbackFrom) => {
-    const adapted = adaptRequestForProvider({
+    const buildAdaptedRequest = (forceTextSchema = false) => adaptRequestForProvider({
       provider: config.provider,
+      effectiveModel: config.effectiveModel,
+      forceTextSchema,
       messages: normalizedMessages,
       responseFormat: normalizedResponseFormat
     });
+    let adapted = buildAdaptedRequest();
     let lastError;
-    for (let attempt = 1; attempt <= ENV.llmTransientRetries + 1; attempt += 1) {
+    let maxAttempts = ENV.llmTransientRetries + 1;
+    let downgradedNativeSchema = false;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       const startedAt = Date.now();
+      const payload = buildPayload(config, adapted.messages, adapted.responseFormat);
       try {
-        const result = await callProvider(
-          config,
-          buildPayload(config, adapted.messages, adapted.responseFormat)
-        );
-        if (config.provider === "groq" && adapted.schema) {
+        const result = await callProvider(config, payload);
+        if (adapted.schema) {
           const content = responseText(result);
           const validation = validateStructuredContent(content, adapted.schema);
           if (!validation.valid) {
+            const structuredFailureType = classifyStructuredFailure(
+              result,
+              validation.errors
+            );
             estimateAndRecord({
               config,
               result,
@@ -1279,11 +1819,20 @@ async function invokeLLM(params) {
               startedAt,
               attempt,
               fallbackFrom,
-              translatedSchema: true,
+              translatedSchema: adapted.structuredOutputMode === "text_schema",
+              structuredOutputMode: adapted.structuredOutputMode,
+              payloadOptions: extractPayloadOptions(payload),
+              structuredFailureType,
               error: new Error(
                 `Structured output validation failed: ${validation.errors.join("; ")}`
               )
             });
+            if (!shouldAttemptStructuredRepair(structuredFailureType)) {
+              throw new StructuredOutputError(
+                structuredFailureType,
+                `Structured output ${structuredFailureType}; skipping repair`
+              );
+            }
             return repairGroqOutput({
               config,
               adapted,
@@ -1300,7 +1849,9 @@ async function invokeLLM(params) {
           startedAt,
           attempt,
           fallbackFrom,
-          translatedSchema: config.provider === "groq" && Boolean(adapted.schema)
+          translatedSchema: adapted.structuredOutputMode === "text_schema",
+          structuredOutputMode: adapted.structuredOutputMode,
+          payloadOptions: extractPayloadOptions(payload)
         });
         return result;
       } catch (error) {
@@ -1311,10 +1862,19 @@ async function invokeLLM(params) {
           startedAt,
           attempt,
           fallbackFrom,
-          translatedSchema: config.provider === "groq" && Boolean(adapted.schema),
+          translatedSchema: adapted.structuredOutputMode === "text_schema",
+          structuredOutputMode: adapted.structuredOutputMode,
+          payloadOptions: extractPayloadOptions(payload),
+          structuredFailureType: error instanceof StructuredOutputError ? error.failureType : void 0,
           error
         });
-        if (attempt > ENV.llmTransientRetries || !isTransientProviderError(error)) {
+        if (shouldDowngradeGroqSchema(error, config, adapted) && !downgradedNativeSchema) {
+          adapted = buildAdaptedRequest(true);
+          downgradedNativeSchema = true;
+          maxAttempts += 1;
+          continue;
+        }
+        if (attempt >= maxAttempts || !isTransientProviderError(error)) {
           throw error;
         }
         const providerDelay = error instanceof ProviderRequestError ? error.retryAfterMs : void 0;
@@ -1326,12 +1886,12 @@ async function invokeLLM(params) {
   try {
     return await executeWithRetries(primaryConfig);
   } catch (primaryError) {
-    const canFallback = model === "gemini" && !disableFallback && ENV.aiModelFallbackEnabled && Boolean(ENV.groqApiKey) && !hasMultimodalContent(messages) && (!tools || tools.length === 0) && isTransientProviderError(primaryError);
+    const canFallback = primaryConfig.provider !== "google" && primaryConfig.provider !== "forge" && !disableFallback && ENV.aiModelFallbackEnabled && canUseGeminiFallback() && (!tools || tools.length === 0) && isTransientProviderError(primaryError);
     if (!canFallback) {
       throw toPublicLlmError(primaryError);
     }
     try {
-      const fallbackConfig = resolveModelConfig("llama");
+      const fallbackConfig = resolveGeminiFallbackConfig();
       return await executeWithRetries(
         fallbackConfig,
         primaryConfig.effectiveModel
@@ -1372,6 +1932,9 @@ function isTransientStatus(status) {
 function isTransientProviderError(error) {
   return error instanceof ProviderRequestError && (error.status === void 0 || isTransientStatus(error.status));
 }
+function shouldDowngradeGroqSchema(error, config, adapted) {
+  return config.provider === "groq" && adapted.structuredOutputMode === "native_schema" && error instanceof ProviderRequestError && (error.status === 400 || error.status === 422);
+}
 function retryDelayMs(attempt) {
   const exponential = ENV.llmRetryBaseDelayMs * 2 ** Math.max(0, attempt - 1);
   const jitter = Math.round(Math.random() * ENV.llmRetryBaseDelayMs * 0.35);
@@ -1405,6 +1968,7 @@ function toPublicLlmError(error) {
 }
 
 // server/storage.ts
+init_env();
 function getStorageConfig() {
   const baseUrl = ENV.forgeApiUrl;
   const apiKey = ENV.forgeApiKey;
@@ -1455,57 +2019,178 @@ async function storagePut(relKey, data, contentType = "application/octet-stream"
   return { key, url };
 }
 
-// server/_core/imageGeneration.ts
-async function generateImage(options) {
-  if (!ENV.forgeApiUrl) {
-    throw new Error("BUILT_IN_FORGE_API_URL is not configured");
+// server/imageGenerateBackground.ts
+init_env();
+function wrapPrompt(userPrompt) {
+  return `Photorealistic or abstract background art for a social media post. Theme: ${userPrompt}. High quality, vibrant colors. Absolutely no text, no letters, no words, no logos, no typography, no watermarks, no fake app UI elements. Leave clean visual breathing room for editable foreground copy.`;
+}
+function collectImageCandidates(value, output = []) {
+  if (!value) return output;
+  if (typeof value === "string") {
+    if (value.startsWith("data:image/") || /^https?:\/\//i.test(value) || value.length > 500 && /^[A-Za-z0-9+/=\s]+$/.test(value)) {
+      output.push(value.trim());
+    }
+    return output;
   }
-  if (!ENV.forgeApiKey) {
-    throw new Error("BUILT_IN_FORGE_API_KEY is not configured");
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectImageCandidates(item, output));
+    return output;
   }
-  const baseUrl = ENV.forgeApiUrl.endsWith("/") ? ENV.forgeApiUrl : `${ENV.forgeApiUrl}/`;
-  const fullUrl = new URL(
-    "images.v1.ImageService/GenerateImage",
-    baseUrl
-  ).toString();
-  const response = await fetch(fullUrl, {
+  if (typeof value === "object") {
+    Object.values(value).forEach(
+      (item) => collectImageCandidates(item, output)
+    );
+  }
+  return output;
+}
+async function toDataUri(candidate) {
+  if (candidate.startsWith("data:image/")) return candidate;
+  if (/^https?:\/\//i.test(candidate)) {
+    const response = await fetch(candidate);
+    if (!response.ok) {
+      throw new Error(`Image URL fetch failed: ${response.status} ${response.statusText}`);
+    }
+    const contentType = response.headers.get("content-type") || "image/png";
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  }
+  return `data:image/png;base64,${candidate.replace(/\s/g, "")}`;
+}
+async function generateWithOpenRouter(prompt, provider) {
+  if (!ENV.openRouterApiKey) {
+    throw new Error("OPENROUTER_API_KEY is not configured for image generation");
+  }
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
-      accept: "application/json",
       "content-type": "application/json",
-      "connect-protocol-version": "1",
-      authorization: `Bearer ${ENV.forgeApiKey}`
+      authorization: `Bearer ${ENV.openRouterApiKey}`,
+      "HTTP-Referer": ENV.openRouterSiteUrl,
+      "X-Title": ENV.openRouterAppName
     },
     body: JSON.stringify({
-      prompt: options.prompt,
-      original_images: options.originalImages || []
+      model: ENV.openRouterImageModel,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `${wrapPrompt(prompt)}
+
+Output requirements:
+- Generate one square 1080x1080 social media background image.
+- Quality level: ${provider === "pollinations_hd" ? "high detail" : "fast production quality"}.
+- Return the image result; do not return explanatory text.`
+            }
+          ]
+        }
+      ],
+      modalities: ["image", "text"],
+      provider: {
+        allow_fallbacks: true,
+        data_collection: "deny"
+      }
     })
   });
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(
-      `Image generation request failed (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
-    );
+    const body = (await response.text()).slice(0, 500);
+    void appendOperationalLog("IMAGE_PROVIDER_NON_200", {
+      provider: "openrouter",
+      model: ENV.openRouterImageModel,
+      statusCode: response.status,
+      statusText: response.statusText,
+      body
+    });
+    throw new Error(`OpenRouter image generation failed: ${response.status} ${response.statusText}`);
   }
-  const result = await response.json();
-  const base64Data = result.image.b64Json;
+  const json = await response.json();
+  const candidate = collectImageCandidates(json)[0];
+  if (!candidate) {
+    throw new Error("OpenRouter image response did not contain an image payload");
+  }
+  return toDataUri(candidate);
+}
+async function generateWithPollinations(prompt, provider) {
+  const modelId = provider === "pollinations_hd" ? "nanobanana-pro" : "nanobanana";
+  const encodedPrompt = encodeURIComponent(wrapPrompt(prompt));
+  const url = `https://gen.pollinations.ai/image/${encodedPrompt}?model=${modelId}&nologo=true&width=1080&height=1080&enhance=true`;
+  const headers = {
+    "User-Agent": "PostSpark/1.0",
+    Accept: "image/jpeg, image/png, image/*"
+  };
+  if (process.env.POLLINATIONS_API_KEY) {
+    headers.Authorization = `Bearer ${process.env.POLLINATIONS_API_KEY}`;
+  }
+  const response = await fetch(url, { method: "GET", headers });
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "No error body");
+    void appendOperationalLog("IMAGE_PROVIDER_NON_200", {
+      provider: "pollinations",
+      model: modelId,
+      statusCode: response.status,
+      statusText: response.statusText,
+      body: errorText.slice(0, 500)
+    });
+    throw new Error(`Pollinations API failed: ${response.status} ${response.statusText}`);
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return `data:image/jpeg;base64,${buffer.toString("base64")}`;
+}
+async function generateBackgroundImage(prompt, provider = "pollinations_fast") {
+  console.log(`[ImageGen] Request: provider=${provider}, prompt="${prompt.substring(0, 50)}..."`);
+  try {
+    const image = await generateWithOpenRouter(prompt, provider);
+    void appendOperationalLog("IMAGE_PROVIDER_200", {
+      provider: "openrouter",
+      model: ENV.openRouterImageModel,
+      imageProvider: provider
+    });
+    return image;
+  } catch (error) {
+    console.warn("[ImageGen] OpenRouter image generation failed; falling back to Pollinations.", error);
+    void appendOperationalLog("IMAGE_PROVIDER_FALLBACK", {
+      fromProvider: "openrouter",
+      fromModel: ENV.openRouterImageModel,
+      toProvider: "pollinations",
+      error
+    });
+  }
+  return generateWithPollinations(prompt, provider);
+}
+
+// server/_core/imageGeneration.ts
+async function generateImage(options) {
+  const sourceImageNote = options.originalImages && options.originalImages.length > 0 ? " Use the provided reference image(s) as style/content guidance when supported." : "";
+  const dataUri = await generateBackgroundImage(
+    `${options.prompt}.${sourceImageNote}`,
+    "pollinations_hd"
+  );
+  const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUri);
+  if (!match) {
+    throw new Error("Image generation returned an invalid data URI");
+  }
+  const [, mimeType, base64Data] = match;
   const buffer = Buffer.from(base64Data, "base64");
   const { url } = await storagePut(
     `generated/${Date.now()}.png`,
     buffer,
-    result.image.mimeType
+    mimeType
   );
   return {
     url
   };
 }
 
+// server/routers.ts
+init_db();
+
 // server/screenshotService.ts
 var SCREENSHOT_SERVICE_URL = process.env.SCREENSHOT_SERVICE_URL;
 var DEFAULT_TIMEOUT_MS = 3e4;
 var BATCH_TIMEOUT_MS = 9e4;
-function serviceUrl(path3) {
-  return `${SCREENSHOT_SERVICE_URL}${path3}`;
+function serviceUrl(path4) {
+  return `${SCREENSHOT_SERVICE_URL}${path4}`;
 }
 function warnMissing(fn) {
   console.warn(`[screenshotService] ${fn}: SCREENSHOT_SERVICE_URL not configured`);
@@ -1632,6 +2317,8 @@ async function discoverPages(url, maxLinks = 8) {
 async function extractStylesFromScreenshot(screenshotBase64, url) {
   console.log("[visionExtractor] Analyzing screenshot for:", url);
   const response = await invokeLLM({
+    traceLabel: "vision_style_extraction",
+    taskRoute: "vision_analysis",
     messages: [
       {
         role: "system",
@@ -2334,6 +3021,7 @@ async function analyzeWithVision(screenshots, elementScreenshots, url) {
   try {
     const response = await invokeLLM({
       traceLabel: "site_visual_identity",
+      taskRoute: "vision_analysis",
       messages: [
         {
           role: "system",
@@ -2952,48 +3640,12 @@ function generateCardThemeVariations(brandAnalysis) {
   ];
 }
 
-// server/imageGenerateBackground.ts
-function wrapPrompt(userPrompt) {
-  return `Photorealistic or abstract background art for a social media post. Theme: ${userPrompt}. High quality, vibrant colors. Absolutely no text, no letters, no words, no logos, no typography, no UI elements.`;
-}
-async function generateBackgroundImage(prompt, provider = "pollinations_fast") {
-  console.log(`[ImageGen] Request: provider=${provider}, prompt="${prompt.substring(0, 50)}..."`);
-  const modelId = provider === "pollinations_hd" ? "nanobanana-pro" : "nanobanana";
-  const enhancedPrompt = wrapPrompt(prompt);
-  const encodedPrompt = encodeURIComponent(enhancedPrompt);
-  const url = `https://gen.pollinations.ai/image/${encodedPrompt}?model=${modelId}&nologo=true&width=1080&height=1080&enhance=true`;
-  console.log(`[ImageGen] Pollinations Model Select: ${modelId}`);
-  const headers = {
-    "User-Agent": "PostSpark/1.0",
-    "Accept": "image/jpeg, image/png, image/*"
-  };
-  const apiKey = process.env.POLLINATIONS_API_KEY;
-  if (apiKey) {
-    headers["Authorization"] = `Bearer ${apiKey}`;
-  } else {
-    console.warn("[ImageGen] WARNING: POLLINATIONS_API_KEY is missing. Using unauthenticated public endpoint (Rate Limits may apply).");
-  }
-  try {
-    const response = await fetch(url, { method: "GET", headers });
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "No error body");
-      console.error(`[ImageGen] Pollinations Error: ${response.status} ${response.statusText} - ${errorText}`);
-      throw new Error(`Pollinations API failed: ${response.status} ${response.statusText}`);
-    }
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64 = buffer.toString("base64");
-    return `data:image/jpeg;base64,${base64}`;
-  } catch (error) {
-    console.error(`[ImageGen] Critical Request Error:`, error);
-    throw error;
-  }
-}
-
 // server/designPatternAnalyzer.ts
 async function analyzeDesignPattern(data, url) {
   try {
     const response = await invokeLLM({
+      traceLabel: "design_pattern_analysis",
+      taskRoute: "content_strategy",
       messages: [
         {
           role: "system",
@@ -3487,6 +4139,8 @@ Variation ${i + 1}:
   ).join("\n");
   try {
     const response = await invokeLLM({
+      traceLabel: "post_quality_judge",
+      taskRoute: "post_evaluation",
       messages: [
         {
           role: "system",
@@ -3597,6 +4251,7 @@ Evaluate all ${variations.length} variation(s). Return JSON matching the schema 
 
 // server/siteIntelligence.ts
 import { randomUUID as randomUUID2 } from "node:crypto";
+init_db();
 
 // server/siteContent.ts
 import { createHash as createHash2 } from "node:crypto";
@@ -3791,6 +4446,7 @@ ${item.text}`
   try {
     const response = await invokeLLM({
       traceLabel: "site_semantic_analysis",
+      taskRoute: "content_strategy",
       messages: [
         {
           role: "system",
@@ -3989,6 +4645,15 @@ async function analyzeSiteIntelligence(rawUrl, userUuid, options = {}) {
   };
 }
 function siteIntelligenceToPrompt(intelligence) {
+  const palette = intelligence.brand.colors.palette ?? [
+    intelligence.brand.colors.primary,
+    intelligence.brand.colors.secondary,
+    intelligence.brand.colors.background,
+    intelligence.brand.colors.text,
+    intelligence.brand.colors.accent
+  ];
+  const brandAccent = pickBrandAccent(palette) ?? intelligence.brand.colors.accent ?? intelligence.brand.colors.primary ?? "#ff6f61";
+  const canvasBackground = pickCanvasBackground(palette);
   return `SITE INTELLIGENCE (fonte unica):
 - Snapshot: ${intelligence.id}
 - Marca/setor: ${intelligence.brand.brandName} (${intelligence.brand.industry})
@@ -4004,24 +4669,128 @@ function siteIntelligenceToPrompt(intelligence) {
 - Temas prioritarios: ${intelligence.editorial.priorityTopics.join("; ")}
 - Tom: ${intelligence.editorial.toneGuidelines.join("; ")}
 - Alegacoes proibidas: ${intelligence.editorial.prohibitedClaims.join("; ")}
-- Cores: ${intelligence.brand.colors.palette.join(", ")}
+- Cores: ${palette.join(", ")}
 - Ritmo/dinamica: ${intelligence.brand.composition.rhythm}/${intelligence.brand.composition.dynamics}
 
 REGRAS:
 1. Cada tema e post deve se conectar explicitamente a assunto, publico e objetivo acima.
 2. Nao invente oferta, numero, cliente, certificacao ou resultado ausente nas evidencias.
 3. Use os temas prioritarios como materia-prima, sem copiar frases do site literalmente.
-4. Preserve a identidade visual da marca e contraste legivel.`;
+4. Preserve a identidade visual da marca e contraste legivel.
+
+REGRAS DE CORES OBRIGATORIAS (BRAND SOUL):
+- O post DEVE pertencer visualmente ao site. As cores abaixo sao MANDATORIAS.
+- backgroundColor DEVE ser um destes hexes: ${[canvasBackground, ...palette].slice(0, 4).join(", ")}.
+- accentColor DEVE ser o hex mais saturado da marca: ${brandAccent}.
+- textColor deve garantir contraste WCAG >= 4.5:1 contra o backgroundColor escolhido.
+- NUNCA use preto puro (#000000) nem branco puro (#ffffff) quando a paleta da marca oferece alternativas.`;
+}
+function hexToRgb2(hex) {
+  let clean = hex.trim().replace(/^#/, "");
+  if (clean.length === 3) {
+    clean = clean.split("").map((c) => c + c).join("");
+  }
+  if (clean.length !== 6) return null;
+  const num = parseInt(clean, 16);
+  if (Number.isNaN(num)) return null;
+  return {
+    r: num >> 16 & 255,
+    g: num >> 8 & 255,
+    b: num & 255
+  };
+}
+function relativeLuminance2(rgb) {
+  const normalize2 = (c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * normalize2(rgb.r) + 0.7152 * normalize2(rgb.g) + 0.0722 * normalize2(rgb.b);
+}
+function wcagContrast(hexA, hexB) {
+  const a = hexToRgb2(hexA);
+  const b = hexToRgb2(hexB);
+  if (!a || !b) return 0;
+  const la = relativeLuminance2(a);
+  const lb = relativeLuminance2(b);
+  const lighter = Math.max(la, lb);
+  const darker = Math.min(la, lb);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+function colorSaturation(hex) {
+  const rgb = hexToRgb2(hex);
+  if (!rgb) return 0;
+  const max = Math.max(rgb.r, rgb.g, rgb.b);
+  const min = Math.min(rgb.r, rgb.g, rgb.b);
+  return max === 0 ? 0 : (max - min) / max;
+}
+function colorBrightness(hex) {
+  const rgb = hexToRgb2(hex);
+  if (!rgb) return 128;
+  return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1e3;
+}
+var NEUTRAL_FALLBACK_HEXES = /* @__PURE__ */ new Set([
+  "#ffffff",
+  "#fff",
+  "#1a1a1a",
+  "#1f2937",
+  "#262626",
+  "#4a4a4a",
+  "#000000",
+  "#000"
+]);
+function isNeutralOrFallback(hex) {
+  return NEUTRAL_FALLBACK_HEXES.has(hex.trim().toLowerCase());
+}
+function pickBrandAccent(palette) {
+  const candidates = palette.filter((hex) => hexToRgb2(hex) !== null).filter((hex) => !isNeutralOrFallback(hex)).sort((a, b) => colorSaturation(b) - colorSaturation(a));
+  return candidates[0] ?? null;
+}
+function pickCanvasBackground(palette) {
+  const valid = palette.filter((hex) => hexToRgb2(hex) !== null);
+  if (valid.length === 0) return "#171717";
+  const darks = valid.filter((hex) => {
+    const b = colorBrightness(hex);
+    return b > 12 && b < 80;
+  }).sort((a, b) => colorBrightness(a) - colorBrightness(b));
+  if (darks.length > 0) return darks[0];
+  const notPureBlack = valid.filter((hex) => colorBrightness(hex) > 12);
+  const pool = notPureBlack.length > 0 ? notPureBlack : valid;
+  return pool.sort((a, b) => colorBrightness(a) - colorBrightness(b))[0];
+}
+function readableTextFor(background, candidates) {
+  for (const candidate of candidates) {
+    if (hexToRgb2(candidate) && wcagContrast(background, candidate) >= 4.5) {
+      return candidate;
+    }
+  }
+  return colorBrightness(background) < 128 ? "#FFFFFF" : "#1A1A1A";
 }
 function siteIntelligenceToDesignTokens(intelligence) {
   const brand = intelligence.brand;
+  const palette = brand.colors.palette ?? [
+    brand.colors.primary,
+    brand.colors.secondary,
+    brand.colors.background,
+    brand.colors.text,
+    brand.colors.accent
+  ];
+  const brandAccent = pickBrandAccent(palette) ?? brand.colors.accent ?? brand.colors.primary ?? "#ff6f61";
+  const background = pickCanvasBackground(palette);
+  const text = readableTextFor(background, [
+    brand.colors.text,
+    ...palette.filter((hex) => !isNeutralOrFallback(hex))
+  ]);
+  const secondary = pickBrandAccent(
+    palette.filter((hex) => hex.toLowerCase() !== brandAccent.toLowerCase())
+  ) ?? brand.colors.secondary ?? brandAccent;
+  const card = secondary && wcagContrast(background, secondary) >= 3 ? secondary : background;
   return {
     colors: {
-      background: brand.colors.background,
-      primary: brand.colors.primary,
-      secondary: brand.colors.secondary,
-      text: brand.colors.text,
-      card: brand.colors.secondary
+      background,
+      primary: brandAccent,
+      secondary,
+      text,
+      card
     },
     typography: {
       fontFamily: brand.typography.headingFont,
@@ -4157,6 +4926,8 @@ async function chameleonVision(screenshot, siteContent) {
   const promptText = buildChameleonPrompt(siteContent);
   try {
     const response = await invokeLLM({
+      traceLabel: "chameleon_vision",
+      taskRoute: "vision_analysis",
       messages: [
         {
           role: "system",
@@ -4219,6 +4990,40 @@ async function chameleonVision(screenshot, siteContent) {
 }
 
 // shared/postspark.ts
+var PLATFORM_SPECS = {
+  instagram: {
+    width: 1080,
+    height: 1080,
+    label: "Instagram",
+    maxChars: 2200,
+    icon: "\u{1F4F7}",
+    description: "Feed, Stories ou Reels"
+  },
+  twitter: {
+    width: 1200,
+    height: 675,
+    label: "Twitter/X",
+    maxChars: 280,
+    icon: "\u{1F426}",
+    description: "Post com imagem"
+  },
+  linkedin: {
+    width: 1200,
+    height: 627,
+    label: "LinkedIn",
+    maxChars: 3e3,
+    icon: "\u{1F4BC}",
+    description: "Post profissional"
+  },
+  facebook: {
+    width: 1200,
+    height: 630,
+    label: "Facebook",
+    maxChars: 63206,
+    icon: "\u{1F465}",
+    description: "Post com imagem"
+  }
+};
 function chameleonResultToDesignTokens(result) {
   return {
     colors: result.colors,
@@ -4240,9 +5045,10 @@ function chameleonResultToDesignTokens(result) {
 
 // server/routers.ts
 import * as fs from "fs";
-import * as path from "path";
+import * as path2 from "path";
 
 // server/billing.ts
+init_env();
 import Stripe from "stripe";
 import { createClient as createClient4 } from "@supabase/supabase-js";
 var SPARK_COSTS = {
@@ -4476,6 +5282,7 @@ function mapStripeStatus(status) {
 }
 
 // server/routers.ts
+init_env();
 import { TRPCError as TRPCError5 } from "@trpc/server";
 
 // server/ai/variationDiversity.ts
@@ -4522,7 +5329,141 @@ function variationsNeedDiversification(variations) {
   return false;
 }
 
+// server/ai/brandVisualGuardian.ts
+function hexToRgb3(hex) {
+  let clean = hex.trim().replace(/^#/, "");
+  if (clean.length === 3) {
+    clean = clean.split("").map((c) => c + c).join("");
+  }
+  if (clean.length !== 6) return null;
+  const num = parseInt(clean, 16);
+  if (Number.isNaN(num)) return null;
+  return {
+    r: num >> 16 & 255,
+    g: num >> 8 & 255,
+    b: num & 255
+  };
+}
+function colorBrightness2(hex) {
+  const rgb = hexToRgb3(hex);
+  if (!rgb) return 128;
+  return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1e3;
+}
+function colorDistance(a, b) {
+  const ra = hexToRgb3(a);
+  const rb = hexToRgb3(b);
+  if (!ra || !rb) return Number.POSITIVE_INFINITY;
+  return Math.sqrt(
+    (ra.r - rb.r) ** 2 + (ra.g - rb.g) ** 2 + (ra.b - rb.b) ** 2
+  );
+}
+function nearestPaletteColor(candidate, palette) {
+  const valid = palette.filter((hex) => hexToRgb3(hex) !== null);
+  if (valid.length === 0) return null;
+  let best = valid[0];
+  let bestDist = colorDistance(candidate, best);
+  for (const hex of valid) {
+    const dist = colorDistance(candidate, hex);
+    if (dist < bestDist) {
+      best = hex;
+      bestDist = dist;
+    }
+  }
+  return { hex: best, distance: bestDist };
+}
+var ACCENT_SNAP_TOLERANCE = 60;
+function snapAccentToPalette(candidate, palette, fallback) {
+  if (!candidate) return fallback;
+  const nearest = nearestPaletteColor(candidate, palette);
+  if (!nearest) return fallback;
+  return nearest.distance > ACCENT_SNAP_TOLERANCE ? nearest.hex : candidate;
+}
+function ensureReadableText(background, text, palette) {
+  const currentText = text ?? "#FFFFFF";
+  if (wcagContrast(background, currentText) >= 4.5) return currentText;
+  const bgBright = colorBrightness2(background);
+  const wantLight = bgBright < 128;
+  const candidates = palette.filter((hex) => hexToRgb3(hex) !== null).filter((hex) => {
+    const b = colorBrightness2(hex);
+    return wantLight ? b > 180 : b < 80;
+  }).sort((a, b) => {
+    const ca = wcagContrast(background, a);
+    const cb = wcagContrast(background, b);
+    return cb - ca;
+  });
+  for (const candidate of candidates) {
+    if (wcagContrast(background, candidate) >= 4.5) return candidate;
+  }
+  return wantLight ? "#FFFFFF" : "#1A1A1A";
+}
+function enforceBrandVisualGuardian(variations, siteIntelligence, options = {}) {
+  const enforcePalette = options.enforcePalette !== false;
+  const bgSnapTol = options.backgroundSnapTolerance ?? 40;
+  if (!siteIntelligence) return variations.slice();
+  const palette = siteIntelligence.brand.colors.palette ?? [
+    siteIntelligence.brand.colors.primary,
+    siteIntelligence.brand.colors.secondary,
+    siteIntelligence.brand.colors.background,
+    siteIntelligence.brand.colors.text,
+    siteIntelligence.brand.colors.accent
+  ].filter(Boolean);
+  if (palette.length === 0) return variations.slice();
+  return variations.map((variation) => {
+    const patched = { ...variation };
+    if (enforcePalette && patched.backgroundColor) {
+      const nearest = nearestPaletteColor(patched.backgroundColor, palette);
+      if (nearest && nearest.distance > bgSnapTol) {
+        patched.backgroundColor = nearest.hex;
+      }
+    }
+    if (enforcePalette && patched.accentColor) {
+      patched.accentColor = snapAccentToPalette(
+        patched.accentColor,
+        palette,
+        siteIntelligence.brand.colors.accent ?? patched.accentColor
+      );
+    }
+    if (patched.backgroundColor && patched.textColor) {
+      patched.textColor = ensureReadableText(
+        patched.backgroundColor,
+        patched.textColor,
+        palette
+      );
+    }
+    if (patched.aspectRatioOptimizations) {
+      const arClone = {};
+      for (const [ratio, opt] of Object.entries(patched.aspectRatioOptimizations)) {
+        const fixedOpt = { ...opt };
+        if (enforcePalette && fixedOpt.backgroundColor) {
+          const nearest = nearestPaletteColor(fixedOpt.backgroundColor, palette);
+          if (nearest && nearest.distance > bgSnapTol) {
+            fixedOpt.backgroundColor = nearest.hex;
+          }
+        }
+        if (enforcePalette && fixedOpt.accentColor) {
+          fixedOpt.accentColor = snapAccentToPalette(
+            fixedOpt.accentColor,
+            palette,
+            siteIntelligence.brand.colors.accent ?? fixedOpt.accentColor
+          );
+        }
+        if (fixedOpt.backgroundColor && fixedOpt.textColor) {
+          fixedOpt.textColor = ensureReadableText(
+            fixedOpt.backgroundColor,
+            fixedOpt.textColor,
+            palette
+          );
+        }
+        arClone[ratio] = fixedOpt;
+      }
+      patched.aspectRatioOptimizations = arClone;
+    }
+    return patched;
+  });
+}
+
 // server/ai/contentStrategy.ts
+init_env();
 var ANGLES = [
   "pain",
   "benefit",
@@ -4596,6 +5537,8 @@ ${sourceContent.slice(0, 18e3)}`;
   try {
     const response = await invokeLLM({
       traceLabel: "content_strategy",
+      taskRoute: "content_strategy",
+      maxCompletionTokens: 1024,
       messages: [
         {
           role: "system",
@@ -4801,11 +5744,192 @@ async function prepareGenerationPlan(input) {
   };
 }
 
+// server/ai/captionSynthesis.ts
+function extractVisualContent(variation) {
+  const slides = variation.slides ?? [];
+  if (slides.length > 0) {
+    const text = slides.map((slide, index) => {
+      const headline2 = slide.headline?.trim() ?? "";
+      const body2 = slide.body?.trim() ?? "";
+      return `Slide ${index + 1}: ${headline2}${body2 ? ` \u2014 ${body2}` : ""}`;
+    }).join("\n");
+    return { text, source: "slides" };
+  }
+  const sections = variation.sections ?? [];
+  if (sections.length > 0) {
+    const text = sections.map((section, index) => {
+      const label = section.label?.trim() ?? "";
+      const description = section.description?.trim() ?? "";
+      return `Item ${index + 1}: ${label}${description ? ` \u2014 ${description}` : ""}`;
+    }).join("\n");
+    return { text, source: "sections" };
+  }
+  const headline = variation.headline?.trim() ?? "";
+  const body = variation.body?.trim() ?? "";
+  return {
+    text: `${headline}${body ? ` \u2014 ${body}` : ""}`,
+    source: "headline_body"
+  };
+}
+function buildCaptionSystemPrompt(platform, source) {
+  const maxChars = PLATFORM_SPECS[platform].maxChars;
+  const targetMin = Math.min(400, maxChars);
+  const targetMax = Math.min(Math.max(800, targetMin), maxChars);
+  const sourceDescription = source === "slides" ? "os SLIDES do carrossel" : source === "sections" ? "os ITENS/SE\xC7\xD5ES estruturados do post" : "o HEADLINE e BODY do post";
+  return `Voce e um copywriter especialista em legendas para redes sociais.
+
+Sua tarefa: escrever a legenda (caption) que acompanha um post publicado.
+
+FONTE OBRIGATORIA: A legenda DEVE ser coerente com ${sourceDescription}.
+- Voce recebe o conteudo visual real do post como input.
+- A legenda deve SINTETIZAR, EXPANDIR e DAR CONTEXTO ao que esta no post visual.
+- NUNCA invente topicos, numeros ou informacoes que nao estao no post.
+- Se o post tem ${source === "slides" ? "5 slides" : source === "sections" ? "3 itens" : "1 mensagem central"}, a legenda deve referenciar esse mesmo conteudo.
+- Se o post lista dicas ou passos, a legenda deve mencionar o MESMO numero de dicas/passos ou fazer referencia geral sem contradizer.
+
+ESTRUTURA DA LEGENDA:
+1. GANCHO (1-2 frases): abertura que desperta curiosidade e conecta com a dor/desejo do publico.
+2. CONTEXTO/VALOR (2-4 frases): expande o tema do post, explica por que importa, agrega valor real.
+3. S\xCDNTESE DO CONTE\xDADO (2-4 frases): referencia os topicos do post de forma fluida (nao copie literalmente, mas reflita o conteudo).
+4. CTA/PERGUNTA (1 frase): convite ao engajamento ou proximo passo.
+
+REGRAS:
+- Tamanho: entre ${targetMin} e ${targetMax} caracteres (limite da plataforma: ${maxChars}).
+- Tom: alinhado ao tom informado pela marca/estrategia.
+- Pode usar emojis moderados (3-5 no total, bem distribuidos).
+- Pode usar quebras de linha para legibilidade.
+- NUNCA use hashtags na legenda (elas ficam em campo separado).
+- NUNCA repita literalmente o headline \u2014 adicione perspectiva nova.
+- Escreva em portugues natural e envolvente.
+
+Responda APENAS com JSON valido no formato: {"caption": "texto da legenda aqui"}`;
+}
+function buildCaptionUserPrompt(input) {
+  const toneLine = input.tone ? `Tom desejado: ${input.tone}` : "Tom desejado: natural e envolvente";
+  const strategyLine = input.strategy ? `Angulo estrategico: ${input.strategy.angle} \u2014 ${input.strategy.hook}. Promessa: ${input.strategy.promise}` : "Angulo estrategico: nenhum especifico";
+  const existingHint = input.existingCaption?.trim() ? `
+
+Legenda anterior (use apenas como referencia de tom, NAO copie):
+"${input.existingCaption.trim()}"` : "";
+  return `CONTEUDO VISUAL DO POST (${input.source.toUpperCase()}):
+${input.contentText}
+
+PLATAFORMA: ${PLATFORM_SPECS[input.platform].label}
+${toneLine}
+${strategyLine}${existingHint}
+
+Escreva a legenda coerente com o conteudo acima.`;
+}
+function safeParseCaption(content) {
+  const text = typeof content === "string" ? content : Array.isArray(content) ? content.filter(
+    (part) => Boolean(part) && typeof part === "object" && "type" in part && part.type === "text" && "text" in part
+  ).map((part) => part.text).join("\n") : "";
+  if (!text.trim()) return null;
+  try {
+    const cleaned = text.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
+    const parsed = JSON.parse(cleaned);
+    if (typeof parsed.caption === "string" && parsed.caption.trim()) {
+      return parsed.caption.trim();
+    }
+  } catch {
+    const startIdx = text.indexOf("{");
+    const endIdx = text.lastIndexOf("}");
+    if (startIdx !== -1 && endIdx > startIdx) {
+      try {
+        const jsonSub = text.substring(startIdx, endIdx + 1);
+        const parsed = JSON.parse(jsonSub);
+        if (typeof parsed.caption === "string" && parsed.caption.trim()) {
+          return parsed.caption.trim();
+        }
+      } catch {
+      }
+    }
+  }
+  return null;
+}
+async function synthesizeCaption(input) {
+  const { variation, platform } = input;
+  const { text: contentText, source } = extractVisualContent(variation);
+  if (!contentText.trim()) {
+    return variation.caption ?? "";
+  }
+  const systemPrompt = buildCaptionSystemPrompt(platform, source);
+  const userPrompt = buildCaptionUserPrompt({
+    contentText,
+    source,
+    platform,
+    tone: input.tone,
+    strategy: input.strategy,
+    existingCaption: variation.caption
+  });
+  try {
+    const response = await invokeLLM({
+      traceLabel: "caption_synthesis",
+      taskRoute: "caption_synthesis",
+      maxCompletionTokens: 1024,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "caption_synthesis",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              caption: {
+                type: "string",
+                description: "Legenda coerente com o conteudo visual do post"
+              }
+            },
+            required: ["caption"],
+            additionalProperties: false
+          }
+        }
+      }
+    });
+    const content = response.choices[0]?.message?.content;
+    const caption = safeParseCaption(content);
+    if (caption && caption.length >= 100) {
+      const maxChars = PLATFORM_SPECS[platform].maxChars;
+      return caption.slice(0, maxChars).trim();
+    }
+    return variation.caption ?? "";
+  } catch (error) {
+    console.warn(
+      "[captionSynthesis] Failed, using original caption:",
+      error
+    );
+    return variation.caption ?? "";
+  }
+}
+async function synthesizeCaptionsForVariations(variations, options) {
+  return Promise.all(
+    variations.map(async (variation, index) => {
+      try {
+        const caption = await synthesizeCaption({
+          variation,
+          platform: options.platform,
+          tone: options.tone,
+          strategy: options.strategies?.[index],
+          isCarousel: options.isCarousel
+        });
+        return { ...variation, caption };
+      } catch {
+        return variation;
+      }
+    })
+  );
+}
+
 // server/ai/postEvaluation.ts
+init_env();
 function clampScore(value) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
-function hexToRgb2(hex) {
+function hexToRgb4(hex) {
   if (!hex) return null;
   const normalized = hex.replace("#", "");
   if (!/^[0-9a-f]{6}$/i.test(normalized)) return null;
@@ -4823,8 +5947,8 @@ function luminance(rgb) {
   return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
 }
 function contrastRatio2(foreground, background) {
-  const fg = hexToRgb2(foreground);
-  const bg = hexToRgb2(background);
+  const fg = hexToRgb4(foreground);
+  const bg = hexToRgb4(background);
   if (!fg || !bg) return 1;
   const a = luminance(fg);
   const b = luminance(bg);
@@ -4876,23 +6000,61 @@ function deterministicEvaluation(input) {
     platformFit: clampScore(
       100 - Math.max(0, captionLength - platformLimit) * 0.5
     ),
-    visualReadability: contrast >= 4.5 ? 100 : clampScore(contrast * 20)
+    visualReadability: contrast >= 4.5 ? 100 : clampScore(contrast * 20),
+    captionCoherence: computeCaptionCoherence(candidate)
   };
   return summarize(dimensions, []);
 }
 function normalizeNumbers(value) {
   return value.match(/\b\d+(?:[.,]\d+)?%?\b/g) ?? [];
 }
+function computeCaptionCoherence(candidate) {
+  const caption = candidate.caption?.trim() ?? "";
+  if (!caption) return 40;
+  const slides = candidate.slides ?? [];
+  const sections = candidate.sections ?? [];
+  let visualContent = "";
+  let itemCount = 0;
+  if (slides.length > 0) {
+    visualContent = slides.map((s) => `${s.headline ?? ""} ${s.body ?? ""}`).join(" ");
+    itemCount = slides.length;
+  } else if (sections.length > 0) {
+    visualContent = sections.map((s) => `${s.label ?? ""} ${s.description ?? ""}`).join(" ");
+    itemCount = sections.length;
+  } else {
+    visualContent = `${candidate.headline ?? ""} ${candidate.body ?? ""}`;
+    itemCount = 1;
+  }
+  if (!visualContent.trim()) return 50;
+  const captionTokens = tokenizeVariationText(caption);
+  const visualTokens = tokenizeVariationText(visualContent);
+  const overlap = captionTokens.length > 0 ? captionTokens.filter((t2) => new Set(visualTokens).has(t2)).length / captionTokens.length : 0;
+  const overlapScore2 = clampScore(40 + overlap * 70);
+  const captionNumbers = caption.match(/\b(\d+)\b/g)?.map(Number) ?? [];
+  const relevantNumbers = captionNumbers.filter((n) => n >= 2 && n <= 20);
+  let numberCoherence = 100;
+  if (itemCount > 1 && relevantNumbers.length > 0) {
+    const matchingNumber = relevantNumbers.some((n) => n === itemCount);
+    if (!matchingNumber) {
+      numberCoherence = 25;
+    }
+  }
+  const lengthScore = caption.length < 80 ? 45 : caption.length > 2e3 ? 80 : 90;
+  return clampScore(
+    overlapScore2 * 0.45 + numberCoherence * 0.4 + lengthScore * 0.15
+  );
+}
 function summarize(dimensions, feedback) {
   const weights = {
-    brandAlignment: 0.14,
-    objectiveAlignment: 0.16,
-    audienceRelevance: 0.12,
-    factuality: 0.16,
-    originality: 0.12,
-    clarity: 0.1,
-    platformFit: 0.08,
-    visualReadability: 0.12
+    brandAlignment: 0.12,
+    objectiveAlignment: 0.14,
+    audienceRelevance: 0.1,
+    factuality: 0.14,
+    originality: 0.1,
+    clarity: 0.08,
+    platformFit: 0.06,
+    visualReadability: 0.1,
+    captionCoherence: 0.16
   };
   const overallScore = clampScore(
     Object.keys(dimensions).reduce(
@@ -4900,7 +6062,7 @@ function summarize(dimensions, feedback) {
       0
     )
   );
-  const accepted = overallScore >= 70 && dimensions.factuality >= 65 && dimensions.visualReadability >= 65 && dimensions.objectiveAlignment >= 60;
+  const accepted = overallScore >= 70 && dimensions.factuality >= 65 && dimensions.visualReadability >= 65 && dimensions.objectiveAlignment >= 60 && dimensions.captionCoherence >= 50;
   return {
     overallScore,
     accepted,
@@ -4913,6 +6075,7 @@ async function llmEvaluation(input) {
   try {
     const response = await invokeLLM({
       traceLabel: "post_evaluation",
+      taskRoute: "post_evaluation",
       messages: [
         {
           role: "system",
@@ -4956,7 +6119,8 @@ ${JSON.stringify(
                   originality: { type: "number" },
                   clarity: { type: "number" },
                   platformFit: { type: "number" },
-                  visualReadability: { type: "number" }
+                  visualReadability: { type: "number" },
+                  captionCoherence: { type: "number" }
                 },
                 required: [
                   "brandAlignment",
@@ -4966,7 +6130,8 @@ ${JSON.stringify(
                   "originality",
                   "clarity",
                   "platformFit",
-                  "visualReadability"
+                  "visualReadability",
+                  "captionCoherence"
                 ],
                 additionalProperties: false
               },
@@ -4989,7 +6154,8 @@ ${JSON.stringify(
       "originality",
       "clarity",
       "platformFit",
-      "visualReadability"
+      "visualReadability",
+      "captionCoherence"
     ];
     if (!parsed.dimensions || !dimensionKeys.every(
       (key) => typeof parsed.dimensions[key] === "number"
@@ -5043,31 +6209,50 @@ async function evaluateAndReviseCandidates(input) {
     originalityScores: input.originalityScores
   });
   if (evaluations.every((evaluation) => evaluation.accepted)) {
-    return { candidates, evaluations, revisionCount: 0 };
+    return { candidates, evaluations, revisionCount: 0, revisedIndexes: [], revisionFailedIndexes: [] };
   }
   if (!ENV.aiLlmJudgeEnabled) {
-    return { candidates, evaluations, revisionCount: 0 };
+    return { candidates, evaluations, revisionCount: 0, revisedIndexes: [], revisionFailedIndexes: [] };
   }
-  try {
-    const revised = await input.revise(candidates, evaluations);
-    if (revised.length === candidates.length) {
-      candidates = revised;
-      evaluations = await evaluateCandidates({
-        candidates,
-        strategies: input.strategies,
-        siteIntelligence: input.siteIntelligence,
-        platform: input.platform,
-        originalityScores: input.originalityScores
-      });
-      return { candidates, evaluations, revisionCount: 1 };
-    }
-  } catch (error) {
-    console.warn("[postEvaluation] Revision failed:", error);
+  const revisedCandidates = [...candidates];
+  const revisedIndexes = [];
+  const revisionFailedIndexes = [];
+  let revisionCount = 0;
+  await Promise.all(
+    evaluations.map(async (evaluation, index) => {
+      if (evaluation.accepted) return;
+      try {
+        const revised = await input.revise(candidates[index], evaluation, index);
+        if (revised) {
+          revisedCandidates[index] = revised;
+          revisedIndexes.push(index);
+          revisionCount += 1;
+        } else {
+          revisionFailedIndexes.push(index);
+        }
+      } catch (error) {
+        console.warn(`[postEvaluation] Revision failed for candidate ${index + 1}:`, error);
+        revisionFailedIndexes.push(index);
+      }
+    })
+  );
+  if (revisionCount === 0) {
+    return { candidates, evaluations, revisionCount: 0, revisedIndexes: [], revisionFailedIndexes };
   }
-  return { candidates, evaluations, revisionCount: 0 };
+  candidates = revisedCandidates;
+  evaluations = await evaluateCandidates({
+    candidates,
+    strategies: input.strategies,
+    siteIntelligence: input.siteIntelligence,
+    platform: input.platform,
+    originalityScores: input.originalityScores
+  });
+  return { candidates, evaluations, revisionCount, revisedIndexes, revisionFailedIndexes };
 }
 
 // server/ai/semanticOriginality.ts
+init_env();
+init_db();
 import { createHash as createHash3, randomUUID as randomUUID3 } from "node:crypto";
 import { GoogleGenAI } from "@google/genai";
 function variationText(variation) {
@@ -5269,9 +6454,285 @@ function assertVariationSet(variations, postMode) {
   }
 }
 
-// server/routers/admin.ts
+// shared/postsparkSchemas.ts
 import { z as z2 } from "zod";
+var inputTypeSchema = z2.enum(["text", "url", "image"]);
+var platformSchema = z2.enum(["instagram", "twitter", "linkedin", "facebook"]);
+var aspectRatioSchema = z2.enum(["1:1", "5:6", "9:16"]);
+var postModeSchema = z2.enum(["static", "carousel"]);
+var postLayoutSchema = z2.enum(["centered", "left-aligned", "split", "minimal"]);
+var postTemplateSchema = z2.enum(["simple", "feature-grid", "numbered-list", "step-by-step"]);
+var layoutPositionSchema = z2.object({
+  position: z2.enum(["top-left", "top-center", "top-right", "center-left", "center", "center-right", "bottom-left", "bottom-center", "bottom-right"]),
+  textAlign: z2.enum(["left", "center", "right"]),
+  freePosition: z2.object({
+    x: z2.number(),
+    y: z2.number()
+  }).optional(),
+  width: z2.number().optional(),
+  backgroundColor: z2.string().optional(),
+  borderRadius: z2.number().optional()
+});
+var advancedLayoutSettingsSchema = z2.object({
+  headline: layoutPositionSchema,
+  body: layoutPositionSchema,
+  accentBar: layoutPositionSchema,
+  badge: layoutPositionSchema,
+  sticker: layoutPositionSchema,
+  carouselArrow: layoutPositionSchema,
+  card: layoutPositionSchema,
+  sectionLayouts: z2.record(z2.string(), layoutPositionSchema).optional(),
+  padding: z2.number()
+});
+var imageSettingsSchema = z2.object({
+  zoom: z2.number(),
+  brightness: z2.number(),
+  contrast: z2.number(),
+  saturation: z2.number(),
+  blur: z2.number(),
+  overlayOpacity: z2.number(),
+  overlayColor: z2.string(),
+  blendMode: z2.enum(["normal", "multiply", "screen", "overlay", "darken", "lighten"]),
+  panX: z2.number(),
+  panY: z2.number()
+});
+var backgroundValueSchema = z2.object({
+  type: z2.enum(["none", "gallery", "upload", "ai", "solid"]),
+  url: z2.string().optional(),
+  color: z2.string().optional()
+});
+var bgOverlaySettingsSchema = z2.object({
+  opacity: z2.number(),
+  color: z2.string(),
+  position: z2.object({
+    x: z2.number(),
+    y: z2.number()
+  })
+});
+var copyAngleSchema = z2.object({
+  type: z2.enum(["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"]),
+  label: z2.string(),
+  badge: z2.string(),
+  stickerText: z2.string()
+});
+var contentSectionSchema = z2.object({
+  id: z2.string().optional(),
+  icon: z2.string().optional(),
+  label: z2.string(),
+  description: z2.string().optional(),
+  number: z2.number().optional()
+});
+var textElementSchema = z2.object({
+  id: z2.string(),
+  text: z2.string(),
+  x: z2.number(),
+  y: z2.number(),
+  width: z2.union([z2.number(), z2.literal("auto")]),
+  height: z2.union([z2.number(), z2.literal("auto")]),
+  rotation: z2.number(),
+  styles: z2.object({
+    fontSize: z2.string(),
+    fontFamily: z2.string(),
+    color: z2.string(),
+    fontWeight: z2.string(),
+    fontStyle: z2.string(),
+    textDecoration: z2.string(),
+    textAlign: z2.enum(["left", "center", "right"]),
+    lineHeight: z2.string(),
+    opacity: z2.string()
+  })
+});
+var designTokensSchema = z2.object({
+  colors: z2.object({
+    background: z2.string(),
+    primary: z2.string(),
+    secondary: z2.string(),
+    text: z2.string(),
+    card: z2.string()
+  }),
+  typography: z2.object({
+    fontFamily: z2.string(),
+    customFontUrl: z2.string(),
+    originalFont: z2.string(),
+    textTransform: z2.enum(["none", "uppercase"]),
+    textAlign: z2.enum(["left", "center"])
+  }),
+  structure: z2.object({
+    borderRadius: z2.string(),
+    boxShadow: z2.string(),
+    border: z2.string()
+  }),
+  decorations: z2.enum(["minimal", "playful"])
+});
+var formatOptimizationSchema = z2.object({
+  layout: postLayoutSchema,
+  backgroundColor: z2.string(),
+  textColor: z2.string(),
+  accentColor: z2.string(),
+  headlineFontSize: z2.number().optional(),
+  bodyFontSize: z2.number().optional(),
+  padding: z2.number().optional(),
+  headline: z2.object({
+    x: z2.number().optional(),
+    y: z2.number().optional(),
+    width: z2.number().optional(),
+    textAlign: z2.enum(["left", "center", "right"]).optional(),
+    backgroundColor: z2.string().optional(),
+    borderRadius: z2.number().optional()
+  }).optional(),
+  body: z2.object({
+    x: z2.number().optional(),
+    y: z2.number().optional(),
+    width: z2.number().optional(),
+    textAlign: z2.enum(["left", "center", "right"]).optional(),
+    backgroundColor: z2.string().optional(),
+    borderRadius: z2.number().optional()
+  }).optional(),
+  card: z2.object({
+    x: z2.number().optional(),
+    y: z2.number().optional(),
+    width: z2.number().optional(),
+    textAlign: z2.enum(["left", "center", "right"]).optional(),
+    backgroundColor: z2.string().optional(),
+    borderRadius: z2.number().optional()
+  }).optional()
+});
+var generationEvaluationSchema = z2.object({
+  overallScore: z2.number(),
+  accepted: z2.boolean(),
+  dimensions: z2.object({
+    brandAlignment: z2.number(),
+    objectiveAlignment: z2.number(),
+    audienceRelevance: z2.number(),
+    factuality: z2.number(),
+    originality: z2.number(),
+    clarity: z2.number(),
+    platformFit: z2.number(),
+    visualReadability: z2.number()
+  }),
+  feedback: z2.array(z2.string())
+});
+var generationMetaSchema = z2.object({
+  creationMode: z2.enum(["ideation", "execution"]),
+  fidelity: z2.enum(["high", "medium"]).optional(),
+  interventionLevel: z2.enum(["visual_only", "light_optimize", "optimize_structure"]).optional(),
+  siteIntelligenceId: z2.string().optional(),
+  strategyId: z2.string().optional(),
+  revisionCount: z2.number().optional(),
+  revisionApplied: z2.boolean().optional(),
+  revisionFailed: z2.boolean().optional(),
+  evaluation: generationEvaluationSchema.optional(),
+  originality: z2.object({
+    score: z2.number(),
+    maxCandidateSimilarity: z2.number(),
+    maxSiteSimilarity: z2.number(),
+    maxHistorySimilarity: z2.number(),
+    closestSource: z2.enum(["candidate", "site", "history", "none"]),
+    fallbackUsed: z2.boolean()
+  }).optional()
+});
+var variationVisualPatchSchema = z2.object({
+  headline: z2.string().optional(),
+  body: z2.string().optional(),
+  caption: z2.string().optional(),
+  hashtags: z2.array(z2.string()).optional(),
+  callToAction: z2.string().optional(),
+  tone: z2.string().optional(),
+  platform: platformSchema.optional(),
+  imagePrompt: z2.string().optional(),
+  imageUrl: z2.string().optional(),
+  backgroundColor: z2.string().optional(),
+  textColor: z2.string().optional(),
+  headlineColor: z2.string().optional(),
+  bodyColor: z2.string().optional(),
+  headlineFontSize: z2.number().optional(),
+  bodyFontSize: z2.number().optional(),
+  headlineFontFamily: z2.string().optional(),
+  bodyFontFamily: z2.string().optional(),
+  accentColor: z2.string().optional(),
+  layout: postLayoutSchema.optional(),
+  aspectRatio: aspectRatioSchema.optional(),
+  postMode: postModeSchema.optional(),
+  splitImagePosition: z2.enum(["top", "bottom"]).optional(),
+  template: postTemplateSchema.optional(),
+  sections: z2.array(contentSectionSchema).optional(),
+  textElements: z2.array(textElementSchema).optional(),
+  imageSettings: imageSettingsSchema.optional(),
+  layoutSettings: advancedLayoutSettingsSchema.optional(),
+  bgValue: backgroundValueSchema.optional(),
+  bgOverlay: bgOverlaySettingsSchema.optional(),
+  copyAngle: copyAngleSchema.optional(),
+  designTokens: designTokensSchema.partial().optional(),
+  brandMeta: z2.object({
+    logoUrl: z2.string().optional(),
+    brandName: z2.string().optional(),
+    favicon: z2.string().optional()
+  }).optional()
+});
+var carouselSlideSchema = z2.object({
+  headline: z2.string(),
+  body: z2.string(),
+  slideNumber: z2.number(),
+  isTitleSlide: z2.boolean().optional(),
+  isCtaSlide: z2.boolean().optional(),
+  editorState: z2.object({
+    variation: variationVisualPatchSchema.optional(),
+    imageSettings: imageSettingsSchema.partial().optional(),
+    layoutSettings: advancedLayoutSettingsSchema.partial().optional(),
+    bgValue: backgroundValueSchema.optional(),
+    bgOverlay: bgOverlaySettingsSchema.partial().optional()
+  }).optional()
+});
+var postVisualSnapshotSchema = z2.object({
+  snapshotVersion: z2.literal(1),
+  id: z2.string(),
+  headline: z2.string(),
+  body: z2.string(),
+  caption: z2.string(),
+  hashtags: z2.array(z2.string()),
+  callToAction: z2.string(),
+  tone: z2.string(),
+  platform: platformSchema,
+  imagePrompt: z2.string(),
+  imageUrl: z2.string().optional(),
+  backgroundColor: z2.string(),
+  textColor: z2.string(),
+  headlineColor: z2.string().optional(),
+  bodyColor: z2.string().optional(),
+  headlineFontSize: z2.number().optional(),
+  bodyFontSize: z2.number().optional(),
+  headlineFontFamily: z2.string().optional(),
+  bodyFontFamily: z2.string().optional(),
+  accentColor: z2.string(),
+  layout: postLayoutSchema,
+  aspectRatio: aspectRatioSchema,
+  postMode: postModeSchema,
+  slides: z2.array(carouselSlideSchema).optional(),
+  splitImagePosition: z2.enum(["top", "bottom"]).optional(),
+  template: postTemplateSchema.optional(),
+  sections: z2.array(contentSectionSchema).optional(),
+  textElements: z2.array(textElementSchema).optional(),
+  aspectRatioOptimizations: z2.partialRecord(aspectRatioSchema, formatOptimizationSchema).optional(),
+  layoutSettingsByAspectRatio: z2.partialRecord(aspectRatioSchema, advancedLayoutSettingsSchema).optional(),
+  copyAngle: copyAngleSchema.optional(),
+  designTokens: designTokensSchema.partial().optional(),
+  brandMeta: z2.object({
+    logoUrl: z2.string().optional(),
+    brandName: z2.string().optional(),
+    favicon: z2.string().optional()
+  }).optional(),
+  generationMeta: generationMetaSchema.optional(),
+  imageSettings: imageSettingsSchema,
+  layoutSettings: advancedLayoutSettingsSchema,
+  bgValue: backgroundValueSchema,
+  bgOverlay: bgOverlaySettingsSchema
+});
+
+// server/routers/admin.ts
+import { z as z3 } from "zod";
 import { TRPCError as TRPCError4 } from "@trpc/server";
+init_db();
+init_env();
 var adminRouter = router({
   /**
    * List all user profiles for administrative management.
@@ -5299,8 +6760,8 @@ var adminRouter = router({
       totalUsers: count || 0
     };
   }),
-  getGenerationMetrics: adminProcedure.input(z2.object({
-    windowDays: z2.number().int().min(1).max(90).default(7)
+  getGenerationMetrics: adminProcedure.input(z3.object({
+    windowDays: z3.number().int().min(1).max(90).default(7)
   }).optional()).query(async ({ input }) => {
     return getGenerationOperationalMetrics(input?.windowDays ?? 7);
   }),
@@ -5315,10 +6776,309 @@ var adminRouter = router({
   }))
 });
 
+// server/routers/privacy.ts
+import { z as z4 } from "zod";
+
+// server/_core/gdpr.ts
+init_db();
+init_privacyLog();
+async function softDeleteUser(userId, mode = "anonymize") {
+  try {
+    const scheduledAt = /* @__PURE__ */ new Date();
+    scheduledAt.setDate(scheduledAt.getDate() + 30);
+    await getDb().schema("postspark").from("users").where("id", userId).update({
+      deleted_at: /* @__PURE__ */ new Date(),
+      deletion_scheduled_at: scheduledAt,
+      deletion_mode: mode,
+      email: null,
+      name: null,
+      openId: `deleted_${userId.substring(0, 8)}`,
+      updated_at: /* @__PURE__ */ new Date()
+    });
+    await logPrivacyEvent({
+      userId,
+      action: "soft_delete_initiated",
+      metadata: {
+        mode,
+        scheduledFor: scheduledAt.toISOString()
+      }
+    });
+    return { success: true, scheduledAt };
+  } catch (error) {
+    console.error("[GDPR] Error in softDeleteUser:", error);
+    throw error;
+  }
+}
+async function cancelDeletion(userId) {
+  try {
+    const user = await getDb().schema("postspark").from("users").where("id", userId).select("*").single();
+    if (!user) {
+      throw new Error("User not found");
+    }
+    if (!user.deletion_scheduled_at) {
+      throw new Error("No deletion scheduled");
+    }
+    const now = /* @__PURE__ */ new Date();
+    const scheduled = new Date(user.deletion_scheduled_at);
+    if (now > scheduled) {
+      throw new Error("Reflection period expired");
+    }
+    await getDb().schema("postspark").from("users").where("id", userId).update({
+      deleted_at: null,
+      deletion_scheduled_at: null,
+      deletion_mode: null,
+      updated_at: /* @__PURE__ */ new Date()
+    });
+    await logPrivacyEvent({
+      userId,
+      action: "deletion_cancelled",
+      metadata: {
+        timestamp: (/* @__PURE__ */ new Date()).toISOString()
+      }
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("[GDPR] Error in cancelDeletion:", error);
+    throw error;
+  }
+}
+async function exportUserData(userId) {
+  try {
+    const user = await getDb().schema("postspark").from("users").where("id", userId).select("*").single();
+    const posts = await getDb().schema("postspark").from("posts").where("user_uuid", userId).select("*");
+    const backgrounds = await getDb().schema("postspark").from("background_assets").where("user_uuid", userId).select("*");
+    let generations = [];
+    try {
+      generations = await getDb().schema("postspark").from("generation_runs").where("user_uuid", userId).select("*");
+    } catch {
+    }
+    const billing = {
+      profile: null,
+      subscriptions: [],
+      transactions: []
+    };
+    try {
+      const profileResult = await getDb().rpc("get_billing_profile", {
+        p_user_id: userId
+      });
+      billing.profile = profileResult;
+      const subscriptionsResult = await getDb().schema("postspark").from("subscriptions").where("user_id", userId).select("*");
+      billing.subscriptions = subscriptionsResult;
+    } catch {
+    }
+    await logPrivacyEvent({
+      userId,
+      action: "data_exported",
+      metadata: {
+        postsCount: posts?.length || 0,
+        backgroundsCount: backgrounds?.length || 0,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString()
+      }
+    });
+    return {
+      user: user || {},
+      posts: posts || [],
+      backgrounds: backgrounds || [],
+      generations,
+      billing
+    };
+  } catch (error) {
+    console.error("[GDPR] Error in exportUserData:", error);
+    throw error;
+  }
+}
+async function getUserDataStats(userId) {
+  try {
+    const { count: postsCount } = await getDb().schema("postspark").from("posts").where("user_uuid", userId).select("*", { count: "exact", head: true });
+    const { count: backgroundsCount } = await getDb().schema("postspark").from("background_assets").where("user_uuid", userId).select("*", { count: "exact", head: true });
+    let generationsCount = 0;
+    try {
+      const { count } = await getDb().schema("postspark").from("generation_runs").where("user_uuid", userId).select("*", { count: "exact", head: true });
+      generationsCount = count || 0;
+    } catch {
+    }
+    const user = await getDb().schema("postspark").from("users").where("id", userId).select("created_at").single();
+    const avgPostSize = 5e4;
+    const avgBackgroundSize = 2e5;
+    const totalBytes = (postsCount || 0) * avgPostSize + (backgroundsCount || 0) * avgBackgroundSize;
+    const storageUsed = formatBytes(totalBytes);
+    const storagePercent = Math.min(totalBytes / (100 * 1024 * 1024) * 100, 100);
+    return {
+      postsCount: postsCount || 0,
+      backgroundsCount: backgroundsCount || 0,
+      generationsCount,
+      memberSince: user?.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "N/A",
+      storageUsed,
+      storagePercent
+    };
+  } catch (error) {
+    console.error("[GDPR] Error in getUserDataStats:", error);
+    throw error;
+  }
+}
+function formatBytes(bytes) {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${Math.round(bytes / Math.pow(k, i) * 100) / 100} ${sizes[i]}`;
+}
+
+// server/routers/privacy.ts
+init_privacyLog();
+var privacyRouter = router({
+  /**
+   * Obtém estatísticas dos dados do usuário
+   * Para visão geral na página de privacidade
+   */
+  getMyData: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.user.id;
+    const stats = await getUserDataStats(userId);
+    return stats;
+  }),
+  /**
+   * Exporta todos os dados do usuário em formato JSON
+   * Conforme Art. 18, V da LGPD (portabilidade)
+   */
+  exportData: protectedProcedure.mutation(async ({ ctx }) => {
+    const userId = ctx.user.id;
+    const data = await exportUserData(userId);
+    return data;
+  }),
+  /**
+   * Solicita exclusão da conta e dados
+   * Conforme Art. 18, III da LGPD (eliminação)
+   *
+   * Inicia soft delete com período de reflexão de 30 dias
+   */
+  requestDeletion: protectedProcedure.input(
+    z4.object({
+      mode: z4.enum(["anonymize", "delete"]).default("anonymize")
+    })
+  ).mutation(async ({ ctx, input }) => {
+    const userId = ctx.user.id;
+    const { mode } = input;
+    const result = await softDeleteUser(userId, mode);
+    return {
+      success: true,
+      scheduledFor: result.scheduledAt,
+      message: "Solicita\xE7\xE3o recebida. Seus dados ser\xE3o exclu\xEDdos em 30 dias. Voc\xEA pode cancelar entrando em contato com suporte@postspark.com"
+    };
+  }),
+  /**
+   * Cancela solicitação de exclusão (dentro do período de reflexão)
+   */
+  cancelDeletion: protectedProcedure.mutation(async ({ ctx }) => {
+    const userId = ctx.user.id;
+    await cancelDeletion(userId);
+    return {
+      success: true,
+      message: "Solicita\xE7\xE3o de exclus\xE3o cancelada. Sua conta permanece ativa."
+    };
+  }),
+  /**
+   * Atualiza preferências de consentimento
+   */
+  updateConsent: protectedProcedure.input(
+    z4.object({
+      aiImprovements: z4.boolean()
+    })
+  ).mutation(async ({ ctx, input }) => {
+    const userId = ctx.user.id;
+    const { aiImprovements } = input;
+    if (aiImprovements) {
+      await logConsentGiven(userId, "1.0", true);
+    } else {
+      await logConsentRevoked(userId, ["aiImprovements"]);
+    }
+    return {
+      success: true,
+      message: "Prefer\xEAncias atualizadas."
+    };
+  }),
+  /**
+   * Obtém logs de privacidade do usuário
+   */
+  getLogs: protectedProcedure.input(
+    z4.object({
+      limit: z4.number().min(1).max(100).default(50)
+    })
+  ).query(async ({ ctx, input }) => {
+    const userId = ctx.user.id;
+    const { limit } = input;
+    const { getPrivacyLogs: getPrivacyLogs2 } = await Promise.resolve().then(() => (init_privacyLog(), privacyLog_exports));
+    const logs = await getPrivacyLogs2(userId, limit);
+    return logs;
+  })
+});
+
 // server/routers.ts
 function isLegacySitePipelineEnabled() {
   return false;
 }
+var logSnippet = (value, maxLength = 320) => {
+  if (value === void 0 || value === null) return void 0;
+  const text = String(value).replace(/\s+/g, " ").trim();
+  if (!text) return void 0;
+  return text.length > maxLength ? `${text.slice(0, maxLength)}...[truncated]` : text;
+};
+var summarizeGeneratedVariation = (variation, index) => ({
+  index,
+  id: variation?.id,
+  layout: variation?.layout,
+  platform: variation?.platform,
+  postMode: variation?.postMode,
+  headline: logSnippet(variation?.headline),
+  body: logSnippet(variation?.body),
+  caption: logSnippet(variation?.caption, 500),
+  callToAction: logSnippet(variation?.callToAction),
+  hashtags: Array.isArray(variation?.hashtags) ? variation.hashtags.slice(0, 8) : [],
+  colors: {
+    backgroundColor: variation?.backgroundColor,
+    textColor: variation?.textColor,
+    accentColor: variation?.accentColor
+  },
+  copyAngle: variation?.copyAngle ? {
+    type: variation.copyAngle.type,
+    label: logSnippet(variation.copyAngle.label),
+    badge: logSnippet(variation.copyAngle.badge),
+    stickerText: logSnippet(variation.copyAngle.stickerText)
+  } : void 0,
+  sections: Array.isArray(variation?.sections) ? variation.sections.map((section, sectionIndex) => ({
+    index: sectionIndex,
+    id: section?.id,
+    number: section?.number,
+    icon: section?.icon,
+    label: logSnippet(section?.label),
+    description: logSnippet(section?.description)
+  })) : [],
+  slides: Array.isArray(variation?.slides) ? variation.slides.map((slide, slideIndex) => ({
+    index: slideIndex,
+    headline: logSnippet(slide?.headline),
+    body: logSnippet(slide?.body),
+    slideNumber: slide?.slideNumber,
+    isTitleSlide: slide?.isTitleSlide,
+    isCtaSlide: slide?.isCtaSlide
+  })) : [],
+  generationMeta: variation?.generationMeta ? {
+    creationMode: variation.generationMeta.creationMode,
+    fidelity: variation.generationMeta.fidelity,
+    interventionLevel: variation.generationMeta.interventionLevel,
+    siteIntelligenceId: variation.generationMeta.siteIntelligenceId,
+    strategyId: variation.generationMeta.strategyId,
+    revisionCount: variation.generationMeta.revisionCount,
+    evaluation: variation.generationMeta.evaluation ? {
+      accepted: variation.generationMeta.evaluation.accepted,
+      overallScore: variation.generationMeta.evaluation.overallScore,
+      reasons: variation.generationMeta.evaluation.reasons
+    } : void 0,
+    originality: variation.generationMeta.originality ? {
+      score: variation.generationMeta.originality.score,
+      verdict: variation.generationMeta.originality.verdict,
+      reason: variation.generationMeta.originality.reason
+    } : void 0
+  } : void 0
+});
 function safeJsonParse(str, fallback) {
   let cleaned = str.trim();
   if (cleaned.startsWith("```json")) {
@@ -5385,35 +7145,35 @@ function safeJsonParse(str, fallback) {
 }
 var CAROUSEL_SLIDE_TARGET2 = 5;
 var EXECUTION_VARIATION_TARGET = 3;
-var executionSlideInputSchema = z3.object({
-  slideNumber: z3.number().int().min(1).max(CAROUSEL_SLIDE_TARGET2),
-  rawText: z3.string(),
-  role: z3.enum(["hook", "development", "cta", "custom"]).optional(),
-  locked: z3.boolean().optional()
+var executionSlideInputSchema = z5.object({
+  slideNumber: z5.number().int().min(1).max(CAROUSEL_SLIDE_TARGET2),
+  rawText: z5.string(),
+  role: z5.enum(["hook", "development", "cta", "custom"]).optional(),
+  locked: z5.boolean().optional()
 });
-var executionBrandInputSchema = z3.object({
-  websiteUrl: z3.string().optional(),
-  logoUrl: z3.string().optional(),
-  referenceImageUrl: z3.string().optional(),
-  brandColors: z3.array(z3.string()).optional(),
-  fontHint: z3.string().optional(),
-  adaptationMode: z3.enum(["strict", "adaptive", "reference_clone"])
+var executionBrandInputSchema = z5.object({
+  websiteUrl: z5.string().optional(),
+  logoUrl: z5.string().optional(),
+  referenceImageUrl: z5.string().optional(),
+  brandColors: z5.array(z5.string()).optional(),
+  fontHint: z5.string().optional(),
+  adaptationMode: z5.enum(["strict", "adaptive", "reference_clone"])
 });
-var executionBriefSchema = z3.object({
-  creationMode: z3.literal("execution"),
-  format: z3.enum(["static", "carousel", "story", "ad"]),
-  platform: z3.enum(["instagram", "twitter", "linkedin", "facebook"]),
-  objective: z3.enum(["educate", "authority", "sell", "engage", "lead"]),
-  tone: z3.string().optional(),
-  callToAction: z3.string().optional(),
-  interventionLevel: z3.enum(["visual_only", "light_optimize", "optimize_structure"]),
-  contentSourceType: z3.enum(["freeform", "carousel_topics", "carousel_slides", "caption_ready"]),
-  rawInput: z3.string(),
-  slides: z3.array(executionSlideInputSchema).optional(),
-  mustKeep: z3.array(z3.string()).optional(),
-  mustInclude: z3.array(z3.string()).optional(),
-  forbiddenTerms: z3.array(z3.string()).optional(),
-  notes: z3.string().optional(),
+var executionBriefSchema = z5.object({
+  creationMode: z5.literal("execution"),
+  format: z5.enum(["static", "carousel", "story", "ad"]),
+  platform: z5.enum(["instagram", "twitter", "linkedin", "facebook"]),
+  objective: z5.enum(["educate", "authority", "sell", "engage", "lead"]),
+  tone: z5.string().optional(),
+  callToAction: z5.string().optional(),
+  interventionLevel: z5.enum(["visual_only", "light_optimize", "optimize_structure"]),
+  contentSourceType: z5.enum(["freeform", "carousel_topics", "carousel_slides", "caption_ready"]),
+  rawInput: z5.string(),
+  slides: z5.array(executionSlideInputSchema).optional(),
+  mustKeep: z5.array(z5.string()).optional(),
+  mustInclude: z5.array(z5.string()).optional(),
+  forbiddenTerms: z5.array(z5.string()).optional(),
+  notes: z5.string().optional(),
   brandInput: executionBrandInputSchema.optional()
 });
 function normalizeExecutionBrief(input) {
@@ -5485,13 +7245,7 @@ function buildFallbackCarouselSlides(variation) {
     bodyParts[2] || bodyParts[1] || "Veja como aplicar isso no dia a dia.",
     callToAction || "D\xEA o pr\xF3ximo passo com seguran\xE7a."
   ];
-  const fallbackHeadlines = [
-    baseHeadline,
-    "O problema",
-    "O que muda",
-    "Na pr\xE1tica",
-    callToAction || "Pr\xF3ximo passo"
-  ];
+  const fallbackHeadlines = [baseHeadline, "O problema", "O que muda", "Na pr\xE1tica", callToAction || "Pr\xF3ximo passo"];
   return fallbackHeadlines.map((headline, index) => ({
     headline,
     body: fallbackBodies[index],
@@ -5544,9 +7298,11 @@ var billingRouter = router({
     return getBillingProfile(email);
   }),
   /** Inicia trial de 7 dias (anti-abuso por e-mail + IP) */
-  startTrial: protectedProcedure.input(z3.object({
-    plan: z3.enum(["PRO", "AGENCY"]).default("PRO")
-  })).mutation(async ({ input, ctx }) => {
+  startTrial: protectedProcedure.input(
+    z5.object({
+      plan: z5.enum(["PRO", "AGENCY"]).default("PRO")
+    })
+  ).mutation(async ({ input, ctx }) => {
     const email = ctx.user.email ?? "";
     const ip = ctx.req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ?? ctx.req.socket.remoteAddress ?? "0.0.0.0";
     if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
@@ -5567,17 +7323,22 @@ var billingRouter = router({
     return data;
   }),
   /** Cria Stripe Checkout Session para assinatura */
-  createCheckout: protectedProcedure.input(z3.object({
-    plan: z3.enum(["PRO", "AGENCY"]),
-    cycle: z3.enum(["monthly", "annual"]).default("monthly"),
-    successPath: z3.string().default("/billing/success"),
-    cancelPath: z3.string().default("/pricing")
-  })).mutation(async ({ input, ctx }) => {
+  createCheckout: protectedProcedure.input(
+    z5.object({
+      plan: z5.enum(["PRO", "AGENCY"]),
+      cycle: z5.enum(["monthly", "annual"]).default("monthly"),
+      successPath: z5.string().default("/billing/success"),
+      cancelPath: z5.string().default("/pricing")
+    })
+  ).mutation(async ({ input, ctx }) => {
     const email = ctx.user.email ?? "";
     const name = ctx.user.name ?? void 0;
     const profile = await getBillingProfile(email);
     if (profile.id === "no-profile" || profile.id === "error") {
-      throw new TRPCError5({ code: "PRECONDITION_FAILED", message: "Perfil de billing n\xE3o encontrado." });
+      throw new TRPCError5({
+        code: "PRECONDITION_FAILED",
+        message: "Perfil de billing n\xE3o encontrado."
+      });
     }
     const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
     const priceId = getSubscriptionPriceId(input.plan, input.cycle);
@@ -5596,19 +7357,28 @@ var billingRouter = router({
     return getTopupPackages();
   }),
   /** Cria Stripe Checkout Session para top-up avulso */
-  createTopupCheckout: protectedProcedure.input(z3.object({
-    packageId: z3.string(),
-    successPath: z3.string().default("/billing/topup-success"),
-    cancelPath: z3.string().default("/billing")
-  })).mutation(async ({ input, ctx }) => {
+  createTopupCheckout: protectedProcedure.input(
+    z5.object({
+      packageId: z5.string(),
+      successPath: z5.string().default("/billing/topup-success"),
+      cancelPath: z5.string().default("/billing")
+    })
+  ).mutation(async ({ input, ctx }) => {
     const email = ctx.user.email ?? "";
     const name = ctx.user.name ?? void 0;
     const packages = await getTopupPackages();
     const pkg = packages.find((p) => p.id === input.packageId);
-    if (!pkg) throw new TRPCError5({ code: "NOT_FOUND", message: "Pacote n\xE3o encontrado." });
+    if (!pkg)
+      throw new TRPCError5({
+        code: "NOT_FOUND",
+        message: "Pacote n\xE3o encontrado."
+      });
     const profile = await getBillingProfile(email);
     if (profile.id === "no-profile" || profile.id === "error") {
-      throw new TRPCError5({ code: "PRECONDITION_FAILED", message: "Perfil de billing n\xE3o encontrado." });
+      throw new TRPCError5({
+        code: "PRECONDITION_FAILED",
+        message: "Perfil de billing n\xE3o encontrado."
+      });
     }
     const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
     const url = await createTopupCheckout({
@@ -5627,6 +7397,7 @@ var appRouter = router({
   system: systemRouter,
   billing: billingRouter,
   admin: adminRouter,
+  privacy: privacyRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -5637,24 +7408,40 @@ var appRouter = router({
   }),
   post: router({
     /** Generate 3 post variations from user input */
-    generate: protectedProcedure.input(z3.object({
-      inputType: z3.enum(["text", "url", "image"]),
-      content: z3.string().min(1),
-      platform: z3.enum(["instagram", "twitter", "linkedin", "facebook"]),
-      imageUrl: z3.string().optional(),
-      tone: z3.string().optional(),
-      postMode: z3.enum(["static", "carousel"]).default("static"),
-      model: z3.enum(["gemini", "llama"]).optional(),
-      creationMode: z3.enum(["ideation", "execution"]).default("ideation"),
-      executionBrief: executionBriefSchema.optional(),
-      siteIntelligenceId: z3.string().uuid().optional(),
-      debug: z3.boolean().optional()
-    })).mutation(async ({ input, ctx }) => {
+    generate: protectedProcedure.input(
+      z5.object({
+        inputType: z5.enum(["text", "url", "image"]),
+        content: z5.string().min(1),
+        platform: z5.enum(["instagram", "twitter", "linkedin", "facebook"]),
+        imageUrl: z5.string().optional(),
+        tone: z5.string().optional(),
+        postMode: z5.enum(["static", "carousel"]).default("static"),
+        model: z5.enum(["gemini", "llama"]).optional(),
+        creationMode: z5.enum(["ideation", "execution"]).default("ideation"),
+        executionBrief: executionBriefSchema.optional(),
+        siteIntelligenceId: z5.string().uuid().optional(),
+        debug: z5.boolean().optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
       const email = ctx.user.email ?? "dev@local.dev";
       const profile = await getBillingProfile(email);
       const cost = input.postMode === "carousel" ? SPARK_COSTS.CAROUSEL : SPARK_COSTS.GENERATE_TEXT;
       const debit = await debitSparks(profile.id, cost, `Gera\xE7\xE3o de post (${input.postMode})`);
       if (!debit.success) {
+        await appendOperationalLog("POST_GENERATION_REJECTED", {
+          reason: "INSUFFICIENT_SPARKS",
+          userUuid: ctx.user.id,
+          profileId: profile.id,
+          inputType: input.inputType,
+          platform: input.platform,
+          postMode: input.postMode,
+          creationMode: input.creationMode,
+          requestedModel: input.model ?? "llama",
+          siteIntelligenceId: input.siteIntelligenceId,
+          contentLength: input.content.length,
+          contentPreview: logSnippet(input.content, 500),
+          sparkCost: cost
+        });
         throw new TRPCError5({
           code: "PAYMENT_REQUIRED",
           message: "Sparks insuficientes. Fa\xE7a upgrade ou adquira um pacote de recarga."
@@ -5667,10 +7454,26 @@ var appRouter = router({
         platform: input.platform,
         postMode: input.postMode,
         creationMode: input.creationMode,
-        requestedModel: input.model ?? "gemini",
+        requestedModel: input.model ?? "llama",
         siteIntelligenceId: input.siteIntelligenceId
       });
       const debugEnabled = Boolean(input.debug && ENV.aiUiDebugEnabled);
+      await appendOperationalLog("POST_GENERATION_STARTED", {
+        generationRunId: generationTrace.id,
+        userUuid: ctx.user.id,
+        inputType: input.inputType,
+        platform: input.platform,
+        postMode: input.postMode,
+        creationMode: input.creationMode,
+        requestedModel: input.model ?? "llama",
+        siteIntelligenceId: input.siteIntelligenceId,
+        contentLength: input.content.length,
+        contentPreview: logSnippet(input.content, 500),
+        hasImageUrl: Boolean(input.imageUrl),
+        hasExecutionBrief: Boolean(input.executionBrief),
+        debugEnabled,
+        sparkCost: cost
+      });
       try {
         recordGenerationEvent({
           stage: "generation",
@@ -5737,10 +7540,7 @@ REGRA CARDINAL DE CORES (A FONTE \xC9 URL):
         }
         const siteUrl = input.inputType === "url" ? input.content : normalizedExecutionBrief?.brandInput?.websiteUrl;
         if (ENV.aiSiteIntelligenceEnabled && input.siteIntelligenceId) {
-          siteIntelligence = await loadSiteIntelligence(
-            input.siteIntelligenceId,
-            ctx.user.id
-          );
+          siteIntelligence = await loadSiteIntelligence(input.siteIntelligenceId, ctx.user.id);
         }
         if (ENV.aiSiteIntelligenceEnabled && siteUrl && !siteIntelligence) {
           try {
@@ -5798,8 +7598,7 @@ MODO DE EXECU\xC7\xC3O ATIVADO:
 - Se o n\xEDvel for "light_optimize", melhore clareza, ritmo e impacto sem alterar a estrutura principal.
 - Se o n\xEDvel for "optimize_structure", voc\xEA pode reorganizar trechos, mas sem trair a mensagem central.
 ` : "";
-        const systemPrompt = `Voc\xEA \xE9 um especialista em marketing digital, design visual e cria\xE7\xE3o de conte\xFAdo para redes sociais.
-Gere EXATAMENTE 3 varia\xE7\xF5es de post para ${spec.label}.${modeInstruction}
+        const generationInstructionCore = `${modeInstruction}
 ${normalizedExecutionBrief ? "As 3 varia\xE7\xF5es devem ser pr\xF3ximas entre si e altamente fi\xE9is ao briefing." : "Cada varia\xE7\xE3o deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado."}${toneHint}
 ${brandDnaContext}
 ${executionSystemContext}
@@ -5808,7 +7607,7 @@ ${generationPlan.promptContext}
 REGRAS DE COPY \u2014 SIGA COM RIGOR:
 - Headline: m\xE1ximo 60 caracteres. Seja direto e impactante. Sem ponto final.
 - Body: m\xE1ximo 2 frases curtas. M\xE1ximo 100 caracteres no total. Sem rodeios.
-- Caption/Legenda: texto para acompanhar o post na rede social. M\xE1ximo 300 caracteres. Engajador, complementando o conte\xFAdo visual. Pode ter emojis moderados.
+- Caption/Legenda: forne\xE7a uma legenda INICIAL curta (1-2 frases). Esta legenda ser\xE1 substitu\xEDda por uma vers\xE3o mais rica e coerente em um passo dedicado posterior, ent\xE3o n\xE3o precisa ser longa \u2014 apenas garantida.
 - NUNCA coloque hashtags ou emojis dentro do headline ou body.
 - Hashtags: m\xE1ximo 4, somente no campo separado "hashtags".
 - CallToAction: m\xE1ximo 40 caracteres. Verbo de a\xE7\xE3o. Ex: "Saiba mais", "Experimente agora".
@@ -5854,26 +7653,60 @@ PRINC\xCDPIOS DE DESIGN VISUAL E MIMETISMO:
    - Use 'backgroundColor' e 'borderRadius' em 'headline' ou 'body' para criar efeitos de BADGE ou STIKER (texto com fundo colorido e cantos arredondados). Isso ajuda a destacar informa\xE7\xF5es de forma "divertida" e moderna. Use cores contrastantes.
    
 Responda APENAS com JSON v\xE1lido.`;
+        const systemPrompt = `Voc\xEA \xE9 um especialista em marketing digital, design visual e cria\xE7\xE3o de conte\xFAdo para redes sociais.
+Gere EXATAMENTE 3 varia\xE7\xF5es de post para ${spec.label}.
+${generationInstructionCore}`;
+        const slotGenerationInstructionCore = generationInstructionCore.replace(generationPlan.promptContext, "").replace(
+          "As 3 varia\xE7\xF5es devem ser pr\xF3ximas entre si e altamente fi\xE9is ao briefing.",
+          "Esta varia\xE7\xE3o deve ser altamente fiel ao briefing e ao contrato estrat\xE9gico do slot."
+        ).replace(
+          "Cada varia\xE7\xE3o deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado.",
+          "Esta varia\xE7\xE3o deve seguir exclusivamente o tom e o \xE2ngulo definidos no contrato estrat\xE9gico do slot."
+        ).replace(
+          "- As 3 varia\xE7\xF5es DEVEM ser claramente distingu\xEDveis entre si. N\xE3o repita headline, body, copyAngle, CTA, hashtags ou a mesma combina\xE7\xE3o de layout + paleta.",
+          "- Esta varia\xE7\xE3o DEVE ser claramente alinhada ao contrato estrat\xE9gico do slot. N\xE3o reaproveite mecanicamente headline, body, copyAngle, CTA, hashtags ou combina\xE7\xE3o de layout + paleta de outros \xE2ngulos."
+        ).replace(
+          "- Fa\xE7a cada varia\xE7\xE3o abrir por uma ideia diferente: 1) institucional/autoridade, 2) conversa/engajamento, 3) criativa ou provocativa.",
+          "- Fa\xE7a esta varia\xE7\xE3o abrir por uma ideia forte e alinhada ao contrato estrat\xE9gico do slot, sem cair em f\xF3rmulas gen\xE9ricas."
+        );
+        const slotSystemPrompt = `Voc\xEA \xE9 um especialista em marketing digital, design visual e cria\xE7\xE3o de conte\xFAdo para redes sociais.
+Gere exatamente UMA varia\xE7\xE3o de post para ${spec.label}, correspondente ao slot solicitado pelo usu\xE1rio.
+
+PRIORIDADE CRIATIVA:
+- O schema \xE9 apenas o cont\xEAiner de entrega; a pe\xE7a precisa sair pronta para produ\xE7\xE3o.
+- A varia\xE7\xE3o deve ter uma ideia clara, copy objetiva, coer\xEAncia visual e diferen\xE7a real em rela\xE7\xE3o aos outros \xE2ngulos.
+- N\xE3o preencha campos mecanicamente. Cada headline, body, se\xE7\xE3o, CTA e cor deve servir ao contrato estrat\xE9gico do slot.
+
+${slotGenerationInstructionCore}`;
         const userPrompt = normalizedExecutionBrief ? `Execute este briefing com fidelidade. Otimize apenas no grau permitido.
 
 ${buildExecutionBriefContext(normalizedExecutionBrief)}` : input.inputType === "image" ? `Crie posts baseados nesta imagem: ${input.imageUrl || input.content}` : `Crie posts baseados neste conte\xFAdo: ${contextContent}`;
-        const layoutPositionSchema = {
+        const layoutPositionSchema2 = {
           type: "object",
           properties: {
             x: { type: "number", description: "Posi\xE7\xE3o X em % (0-100)" },
             y: { type: "number", description: "Posi\xE7\xE3o Y em % (0-100)" },
             width: { type: "number", description: "Largura em % (10-100)" },
             textAlign: { type: "string", enum: ["left", "center", "right"] },
-            backgroundColor: { type: "string", description: "Cor de fundo opcional para o elemento (RGBA ou Hex)" },
-            borderRadius: { type: "number", description: "Raio da borda em px (0-40)" }
+            backgroundColor: {
+              type: "string",
+              description: "Cor de fundo opcional para o elemento (RGBA ou Hex)"
+            },
+            borderRadius: {
+              type: "number",
+              description: "Raio da borda em px (0-40)"
+            }
           },
           required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
           additionalProperties: false
         };
-        const formatOptimizationSchema = {
+        const formatOptimizationSchema2 = {
           type: "object",
           properties: {
-            layout: { type: "string", enum: ["centered", "left-aligned", "split", "minimal"] },
+            layout: {
+              type: "string",
+              enum: ["centered", "left-aligned", "split", "minimal"]
+            },
             backgroundColor: { type: "string" },
             textColor: { type: "string" },
             accentColor: { type: "string" },
@@ -5886,34 +7719,85 @@ ${buildExecutionBriefContext(normalizedExecutionBrief)}` : input.inputType === "
           additionalProperties: false
         };
         const layoutDefs = {
-          layoutPosition: layoutPositionSchema,
-          formatOptimization: formatOptimizationSchema
+          layoutPosition: layoutPositionSchema2,
+          formatOptimization: formatOptimizationSchema2
         };
         const variationSchema = isCarousel ? {
           type: "object",
           properties: {
-            headline: { type: "string", description: "T\xEDtulo principal do carrossel" },
-            body: { type: "string", description: "Descri\xE7\xE3o geral do carrossel" },
-            hashtags: { type: "array", items: { type: "string" }, description: "Hashtags relevantes" },
-            callToAction: { type: "string", description: "Call to action final do carrossel" },
-            caption: { type: "string", description: "Legenda do post para a rede social, m\xE1ximo 300 caracteres" },
+            headline: {
+              type: "string",
+              description: "T\xEDtulo principal do carrossel"
+            },
+            body: {
+              type: "string",
+              description: "Descri\xE7\xE3o geral do carrossel"
+            },
+            hashtags: {
+              type: "array",
+              items: { type: "string" },
+              description: "Hashtags relevantes"
+            },
+            callToAction: {
+              type: "string",
+              description: "Call to action final do carrossel"
+            },
+            caption: {
+              type: "string",
+              description: "Legenda inicial do post. Ser\xE1 refinada posteriormente."
+            },
             tone: { type: "string", description: "Tom do post" },
-            imagePrompt: { type: "string", description: "Prompt em ingl\xEAs para gerar imagem de fundo" },
-            backgroundColor: { type: "string", description: "Cor de fundo hex" },
-            textColor: { type: "string", description: "Cor do texto hex" },
-            accentColor: { type: "string", description: "Cor de destaque hex" },
-            layout: { type: "string", enum: ["centered", "left-aligned", "split", "minimal"], description: "Layout sugerido" },
-            aspectRatio: { type: "string", enum: ["1:1", "5:6", "9:16"], description: "Propor\xE7\xE3o de aspecto" },
+            imagePrompt: {
+              type: "string",
+              description: "Prompt em ingl\xEAs para gerar imagem de fundo"
+            },
+            backgroundColor: {
+              type: "string",
+              description: "Cor de fundo hex"
+            },
+            textColor: {
+              type: "string",
+              description: "Cor do texto hex"
+            },
+            accentColor: {
+              type: "string",
+              description: "Cor de destaque hex"
+            },
+            layout: {
+              type: "string",
+              enum: ["centered", "left-aligned", "split", "minimal"],
+              description: "Layout sugerido"
+            },
+            aspectRatio: {
+              type: "string",
+              enum: ["1:1", "5:6", "9:16"],
+              description: "Propor\xE7\xE3o de aspecto"
+            },
             slides: {
               type: "array",
               items: {
                 type: "object",
                 properties: {
-                  headline: { type: "string", description: "T\xEDtulo do slide" },
-                  body: { type: "string", description: "Conte\xFAdo do slide" },
-                  slideNumber: { type: "integer", description: "N\xFAmero do slide (1-5)" },
-                  isTitleSlide: { type: "boolean", description: "Se \xE9 o primeiro slide" },
-                  isCtaSlide: { type: "boolean", description: "Se \xE9 o \xFAltimo slide" }
+                  headline: {
+                    type: "string",
+                    description: "T\xEDtulo do slide"
+                  },
+                  body: {
+                    type: "string",
+                    description: "Conte\xFAdo do slide"
+                  },
+                  slideNumber: {
+                    type: "integer",
+                    description: "N\xFAmero do slide (1-5)"
+                  },
+                  isTitleSlide: {
+                    type: "boolean",
+                    description: "Se \xE9 o primeiro slide"
+                  },
+                  isCtaSlide: {
+                    type: "boolean",
+                    description: "Se \xE9 o \xFAltimo slide"
+                  }
                 },
                 required: ["headline", "body", "slideNumber", "isTitleSlide", "isCtaSlide"],
                 additionalProperties: false
@@ -5935,7 +7819,10 @@ ${buildExecutionBriefContext(normalizedExecutionBrief)}` : input.inputType === "
             copyAngle: {
               type: "object",
               properties: {
-                type: { type: "string", enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"] },
+                type: {
+                  type: "string",
+                  enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"]
+                },
                 label: { type: "string" },
                 badge: { type: "string" },
                 stickerText: { type: "string" }
@@ -5944,33 +7831,103 @@ ${buildExecutionBriefContext(normalizedExecutionBrief)}` : input.inputType === "
               additionalProperties: false
             }
           },
-          required: ["headline", "body", "hashtags", "callToAction", "caption", "tone", "imagePrompt", "backgroundColor", "textColor", "accentColor", "layout", "aspectRatio", "slides", "aspectRatioOptimizations", "copyAngle"],
+          required: [
+            "headline",
+            "body",
+            "hashtags",
+            "callToAction",
+            "caption",
+            "tone",
+            "imagePrompt",
+            "backgroundColor",
+            "textColor",
+            "accentColor",
+            "layout",
+            "aspectRatio",
+            "slides",
+            "aspectRatioOptimizations",
+            "copyAngle"
+          ],
           additionalProperties: false
         } : {
           type: "object",
           properties: {
-            headline: { type: "string", description: "T\xEDtulo chamativo do post" },
-            body: { type: "string", description: "Corpo principal do post" },
-            hashtags: { type: "array", items: { type: "string" }, description: "Hashtags relevantes" },
-            callToAction: { type: "string", description: "Call to action final" },
-            caption: { type: "string", description: "Legenda do post para a rede social, m\xE1ximo 300 caracteres" },
+            headline: {
+              type: "string",
+              description: "T\xEDtulo chamativo do post"
+            },
+            body: {
+              type: "string",
+              description: "Corpo principal do post"
+            },
+            hashtags: {
+              type: "array",
+              items: { type: "string" },
+              description: "Hashtags relevantes"
+            },
+            callToAction: {
+              type: "string",
+              description: "Call to action final"
+            },
+            caption: {
+              type: "string",
+              description: "Legenda inicial do post. Ser\xE1 refinada posteriormente."
+            },
             tone: { type: "string", description: "Tom do post" },
-            imagePrompt: { type: "string", description: "Prompt em ingl\xEAs para gerar imagem de fundo do post. Deve ser visual, art\xEDstico e relevante ao conte\xFAdo." },
-            backgroundColor: { type: "string", description: "Cor de fundo hex" },
-            textColor: { type: "string", description: "Cor do texto hex" },
-            accentColor: { type: "string", description: "Cor de destaque hex" },
-            layout: { type: "string", enum: ["centered", "left-aligned", "split", "minimal"], description: "Layout sugerido" },
-            aspectRatio: { type: "string", enum: ["1:1", "5:6", "9:16"], description: "Propor\xE7\xE3o de aspecto: 1:1 quadrado, 5:6 retrato, 9:16 story/reels \u2014 varie entre as varia\xE7\xF5es para oferecer diversidade" },
-            template: { type: "string", enum: ["simple", "feature-grid", "numbered-list", "step-by-step"], description: "Template de conte\xFAdo estruturado. Use 'simple' para mensagens \xFAnicas, outros para conte\xFAdo rico." },
+            imagePrompt: {
+              type: "string",
+              description: "Prompt em ingl\xEAs para gerar imagem de fundo do post. Deve ser visual, art\xEDstico e relevante ao conte\xFAdo."
+            },
+            backgroundColor: {
+              type: "string",
+              description: "Cor de fundo hex"
+            },
+            textColor: {
+              type: "string",
+              description: "Cor do texto hex"
+            },
+            accentColor: {
+              type: "string",
+              description: "Cor de destaque hex"
+            },
+            layout: {
+              type: "string",
+              enum: ["centered", "left-aligned", "split", "minimal"],
+              description: "Layout sugerido"
+            },
+            aspectRatio: {
+              type: "string",
+              enum: ["1:1", "5:6", "9:16"],
+              description: "Propor\xE7\xE3o de aspecto: 1:1 quadrado, 5:6 retrato, 9:16 story/reels \u2014 varie entre as varia\xE7\xF5es para oferecer diversidade"
+            },
+            template: {
+              type: "string",
+              enum: ["simple", "feature-grid", "numbered-list", "step-by-step"],
+              description: "Template de conte\xFAdo estruturado. Use 'simple' para mensagens \xFAnicas, outros para conte\xFAdo rico."
+            },
             sections: {
               type: "array",
               items: {
                 type: "object",
                 properties: {
-                  icon: { type: "string", description: "Nome de \xEDcone lucide (ex: Users, Star, Zap, Heart, Globe)" },
-                  label: { type: "string", maxLength: 24, description: "T\xEDtulo curto da se\xE7\xE3o, m\xE1ximo 24 caracteres" },
-                  description: { type: "string", maxLength: 48, description: "Texto de suporte opcional, m\xE1ximo 48 caracteres" },
-                  number: { type: "integer", description: "N\xFAmero para listas numeradas" }
+                  icon: {
+                    type: "string",
+                    description: "Nome de \xEDcone lucide (ex: Users, Star, Zap, Heart, Globe)"
+                  },
+                  label: {
+                    type: "string",
+                    maxLength: 24,
+                    description: "T\xEDtulo curto da se\xE7\xE3o, m\xE1ximo 24 caracteres"
+                  },
+                  description: {
+                    type: "string",
+                    maxLength: 48,
+                    description: "Texto de suporte opcional, m\xE1ximo 48 caracteres"
+                  },
+                  number: {
+                    type: "integer",
+                    description: "N\xFAmero para listas numeradas"
+                  }
                 },
                 required: ["icon", "label", "description", "number"],
                 additionalProperties: false
@@ -5991,7 +7948,10 @@ ${buildExecutionBriefContext(normalizedExecutionBrief)}` : input.inputType === "
             copyAngle: {
               type: "object",
               properties: {
-                type: { type: "string", enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"] },
+                type: {
+                  type: "string",
+                  enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"]
+                },
                 label: { type: "string" },
                 badge: { type: "string" },
                 stickerText: { type: "string" }
@@ -6000,7 +7960,24 @@ ${buildExecutionBriefContext(normalizedExecutionBrief)}` : input.inputType === "
               additionalProperties: false
             }
           },
-          required: ["headline", "body", "hashtags", "callToAction", "caption", "tone", "imagePrompt", "backgroundColor", "textColor", "accentColor", "layout", "aspectRatio", "template", "sections", "aspectRatioOptimizations", "copyAngle"],
+          required: [
+            "headline",
+            "body",
+            "hashtags",
+            "callToAction",
+            "caption",
+            "tone",
+            "imagePrompt",
+            "backgroundColor",
+            "textColor",
+            "accentColor",
+            "layout",
+            "aspectRatio",
+            "template",
+            "sections",
+            "aspectRatioOptimizations",
+            "copyAngle"
+          ],
           additionalProperties: false
         };
         const slotResponses = await Promise.all(
@@ -6014,23 +7991,35 @@ ${JSON.stringify(strategy, null, 2)}
 - Nao misture os outros angulos.
 - Retorne um array "variations" com exatamente 1 item.`;
             const generateSlot = async (attempt) => {
-              const response = await invokeLLM({
-                traceLabel: attempt === 1 ? `post_generation_${index + 1}` : `post_generation_${index + 1}_retry`,
-                model: input.model,
-                messages: [
-                  {
-                    role: "system",
-                    content: `${systemPrompt}
-
-Para esta chamada isolada, ignore apenas a instrucao de quantidade global:
-produza exatamente UMA variacao, correspondente ao slot solicitado.`
-                  },
-                  {
-                    role: "user",
-                    content: attempt === 1 ? slotPrompt : `${slotPrompt}
+              const userContent = input.inputType === "image" && (input.imageUrl || input.content) ? [
+                {
+                  type: "text",
+                  text: attempt === 1 ? slotPrompt : `${slotPrompt}
 
 A tentativa anterior retornou um item ausente ou incompleto.
 Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategico.`
+                },
+                {
+                  type: "image_url",
+                  image_url: { url: input.imageUrl || input.content, detail: "high" }
+                }
+              ] : attempt === 1 ? slotPrompt : `${slotPrompt}
+
+A tentativa anterior retornou um item ausente ou incompleto.
+Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategico.`;
+              const response = await invokeLLM({
+                traceLabel: attempt === 1 ? `post_generation_${index + 1}` : `post_generation_${index + 1}_retry`,
+                taskRoute: isCarousel ? "carousel_generation" : "static_generation",
+                model: input.model,
+                maxCompletionTokens: attempt === 1 ? isCarousel ? 4096 : 3072 : isCarousel ? 3072 : 2048,
+                messages: [
+                  {
+                    role: "system",
+                    content: slotSystemPrompt
+                  },
+                  {
+                    role: "user",
+                    content: userContent
                   }
                 ],
                 response_format: {
@@ -6057,12 +8046,21 @@ Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategi
               });
               const content = response.choices[0]?.message?.content;
               const contentStr = typeof content === "string" ? content : Array.isArray(content) ? content.filter((c) => "text" in c).map((c) => c.text).join("\n") : "{}";
-              return safeJsonParse(
-                contentStr,
-                { variations: [] }
-              ).variations[0];
+              return safeJsonParse(contentStr, {
+                variations: []
+              }).variations[0];
             };
-            const first = await generateSlot(1);
+            let first = null;
+            try {
+              first = await generateSlot(1);
+            } catch (error) {
+              recordGenerationEvent({
+                stage: `post_generation_${index + 1}`,
+                status: "rejected",
+                detail: "Slot generation failed fast; requesting one targeted retry.",
+                data: error instanceof Error ? error.message : String(error)
+              });
+            }
             const firstIsComplete = Boolean(
               first?.headline?.trim() && first?.body?.trim() && first?.caption?.trim() && first?.callToAction?.trim() && first?.imagePrompt?.trim() && first?.copyAngle?.type && (input.postMode === "carousel" || hasValidStaticSections(first)) && (input.postMode !== "carousel" || first?.slides?.length === CAROUSEL_SLIDE_TARGET2)
             );
@@ -6073,10 +8071,20 @@ Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategi
               detail: "Slot incomplete; requesting one targeted retry.",
               data: first
             });
-            return generateSlot(2);
+            try {
+              return await generateSlot(2);
+            } catch (error) {
+              recordGenerationEvent({
+                stage: `post_generation_${index + 1}`,
+                status: "failed",
+                detail: "Targeted retry failed; slot will be omitted.",
+                data: error instanceof Error ? error.message : String(error)
+              });
+              return null;
+            }
           })
         );
-        let variations = slotResponses.filter(Boolean).slice(0, POST_VARIATION_TARGET);
+        let variations = slotResponses.filter(Boolean).slice(0, POST_VARIATION_TARGET).map((variation) => applyDeterministicCopyGuards(variation));
         recordGenerationEvent({
           stage: "post_generation",
           status: variations.length === POST_VARIATION_TARGET ? "completed" : "rejected",
@@ -6085,74 +8093,25 @@ Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategi
         });
         if (siteIntelligence && brandDnaContext.length > 0) {
           try {
-            console.log("[QA Guard] Validating Brand Mimetism...");
-            const qaPrompt = `Voc\xEA \xE9 um Quality Assurance rigoroso de Design Visual e Acessibilidade t\xE9cnica (WCAG).
-O LLM Anterior gerou 3 varia\xE7\xF5es de Post. O seu \xFAnico objetivo \xE9 VARRER falhas e ARRUMAR o JSON.
-
-DIRETRIZES CARDINAIS DO BRAND SOUL (N\xE3o podem ser violadas):
-${brandDnaContext}
-
-AVALIA\xC7\xD5ES A FAZER EM CADA VARIA\xC7\xC3O:
-1) A \`backgroundColor\` e a \`textColor\` escolhidas s\xE3o EXATAMENTE (hex) derivadas das Sugeridas pela Marca acima? Se ele alocou hexes azuis num site laranja/vermelho, OVERRIDE para o laranja/vermelho sugerido.
-2) O contraste WCAG entre \`backgroundColor\` e \`textColor\` \xE9 vi\xE1vel (>4.5:1)? Se n\xE3o for (ex: texto cinza no fundo cinza, texto branco no fundo creme), inverta a cor de um deles.
-3) A \`accentColor\` \xE9 chamativa dentro do Brand DNA?
-4) O \`layout\` faz sentido analiticamente para o tipo de conte\xFAdo?
-
-Variations Originais Brutas:
-${JSON.stringify(variations, null, 2)}
-
-${isCarousel ? "CR\xCDTICO: preserve exatamente os 5 slides de cada varia\xE7\xE3o. N\xE3o colapse o carrossel para um post est\xE1tico, n\xE3o remova slides, n\xE3o troque a ordem narrativa e n\xE3o retorne array vazio em `slides`." : ""}
-
-Retorne um JSON contendo O MESMO ARRAY, de mesmo formato, substituindo estritamente as propriedades listadas caso estejam ruins. Mantenha os textos inteiramente id\xEAnticos.
-Respond APENAS COM JSON, usando o mesmo VariationSchema.`;
-            const qaResponse = await invokeLLM({
-              traceLabel: "brand_visual_qa",
-              model: "gemini",
-              // O QA pode rodar no gemini-flash fixo pela velocidade
-              messages: [{ role: "user", content: qaPrompt }],
-              response_format: {
-                type: "json_schema",
-                json_schema: {
-                  name: "post_variations_qa",
-                  strict: true,
-                  schema: {
-                    type: "object",
-                    properties: {
-                      variations: {
-                        type: "array",
-                        minItems: POST_VARIATION_TARGET,
-                        maxItems: POST_VARIATION_TARGET,
-                        items: variationSchema
-                      }
-                    },
-                    required: ["variations"],
-                    $defs: layoutDefs,
-                    additionalProperties: false
-                  }
-                }
-              }
+            console.log("[Brand Guardian] Deterministically enforcing brand palette + WCAG contrast...");
+            const beforeCount = variations.length;
+            variations = enforceBrandVisualGuardian(
+              variations,
+              siteIntelligence,
+              { enforcePalette: true, backgroundSnapTolerance: 40 }
+            );
+            console.log(
+              "[Brand Guardian] Enforced %d variation(s) against brand palette.",
+              variations.length
+            );
+            recordGenerationEvent({
+              stage: "brand_visual_qa",
+              status: variations.length === beforeCount ? "completed" : "rejected",
+              detail: "Deterministic brand visual guardian applied palette + WCAG corrections.",
+              data: variations
             });
-            const qaContent = qaResponse.choices[0]?.message?.content;
-            const qaContentStr = typeof qaContent === "string" ? qaContent : Array.isArray(qaContent) ? qaContent.filter((c) => "text" in c).map((c) => c.text).join("\n") : "{}";
-            const qaParsed = safeJsonParse(qaContentStr, { variations: [] });
-            if (qaParsed.variations?.length === variations.length) {
-              variations = qaParsed.variations.slice(0, 3);
-              console.log("[QA Guard] Mimetism validation approved & patched.");
-              recordGenerationEvent({
-                stage: "brand_visual_qa",
-                status: "completed",
-                detail: "Brand visual QA preserved the complete variation set.",
-                data: variations
-              });
-            } else {
-              recordGenerationEvent({
-                stage: "brand_visual_qa",
-                status: "rejected",
-                detail: `Brand visual QA returned ${qaParsed.variations?.length ?? 0} items; previous set preserved.`
-              });
-            }
-          } catch (qaErr) {
-            console.warn("[QA Guard] Failing gracefull. Returning raw variations.", qaErr);
+          } catch (guardianErr) {
+            console.warn("[Brand Guardian] Failing gracefully. Returning raw variations.", guardianErr);
           }
         }
         if (!normalizedExecutionBrief && variationsNeedDiversification(variations)) {
@@ -6175,7 +8134,9 @@ ${JSON.stringify(variations, null, 2)}
 Responda APENAS com JSON v\xE1lido.`;
             const diversificationResponse = await invokeLLM({
               traceLabel: "lexical_diversification",
+              taskRoute: isCarousel ? "carousel_generation" : "static_generation",
               model: input.model,
+              maxCompletionTokens: 4096,
               messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: diversificationPrompt }
@@ -6235,42 +8196,50 @@ Responda APENAS com JSON v\xE1lido.`;
           strategies: generationPlan.strategies.selected,
           siteIntelligence,
           platform: input.platform,
-          originalityScores: initialOriginality.assessments.map(
-            (assessment) => assessment.score
-          ),
-          revise: async (currentVariations, evaluations) => {
+          originalityScores: initialOriginality.assessments.map((assessment) => assessment.score),
+          revise: async (candidate, evaluation, index) => {
             const revisionResponse = await invokeLLM({
-              traceLabel: "quality_revision",
+              traceLabel: `quality_revision_${index + 1}`,
+              taskRoute: "quality_revision",
               model: input.model,
+              maxCompletionTokens: isCarousel ? 3072 : 2048,
               messages: [
-                { role: "system", content: systemPrompt },
+                {
+                  role: "system",
+                  content: `Voce e um revisor cirurgico do PostSpark.
+Revise exatamente UMA variacao rejeitada, preservando a estrategia, o layout e a estrutura.
+Corrija apenas os problemas apontados na avaliacao.
+Nao reescreva do zero, nao misture estrategias, nao invente fatos e responda somente JSON valido.
+COERENCIA DA LEGENDA: se houver slides ou secoes, a caption deve refletir o mesmo numero de topicos. Se os slides apresentam 5 dicas, a legenda nao deve dizer "3 dicas".`
+                },
                 {
                   role: "user",
-                  content: `Revise as variacoes abaixo uma unica vez.
-Corrija apenas os problemas apontados, preserve o contrato estrategico de cada indice e mantenha o mesmo schema.
-Nao invente fatos nem misture estrategias.
+                  content: `Indice: ${index + 1}
 
-Avaliacoes:
-${JSON.stringify(evaluations, null, 2)}
+Contrato estrategico:
+${JSON.stringify(generationPlan.strategies.selected[index], null, 2)}
 
-Variacoes:
-${JSON.stringify(currentVariations, null, 2)}
+Avaliacao:
+${JSON.stringify(evaluation, null, 2)}
 
-Retorne apenas JSON valido.`
+Variacao:
+${JSON.stringify(candidate, null, 2)}
+
+Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`
                 }
               ],
               response_format: {
                 type: "json_schema",
                 json_schema: {
-                  name: "post_variations_revised",
+                  name: `post_variation_revised_${index + 1}`,
                   strict: true,
                   schema: {
                     type: "object",
                     properties: {
                       variations: {
                         type: "array",
-                        minItems: POST_VARIATION_TARGET,
-                        maxItems: POST_VARIATION_TARGET,
+                        minItems: 1,
+                        maxItems: 1,
                         items: variationSchema
                       }
                     },
@@ -6284,11 +8253,44 @@ Retorne apenas JSON valido.`
             const revisedContent = revisionResponse.choices[0]?.message?.content;
             const revisedText = typeof revisedContent === "string" ? revisedContent : "{}";
             return safeJsonParse(revisedText, {
-              variations: currentVariations
-            }).variations.slice(0, 3);
+              variations: []
+            }).variations[0] ?? null;
           }
         });
-        variations = evaluationPipeline.candidates;
+        variations = evaluationPipeline.candidates.map(
+          (variation) => applyDeterministicCopyGuards(variation)
+        );
+        recordGenerationEvent({
+          stage: "caption_synthesis",
+          status: "started",
+          detail: "Synthesizing captions from final visual content."
+        });
+        try {
+          const synthesized = await synthesizeCaptionsForVariations(
+            variations,
+            {
+              platform: input.platform,
+              tone: effectiveTone,
+              strategies: generationPlan.strategies.selected,
+              isCarousel
+            }
+          );
+          variations = synthesized.map(
+            (variation) => applyDeterministicCopyGuards(variation)
+          );
+          recordGenerationEvent({
+            stage: "caption_synthesis",
+            status: "completed",
+            detail: "Captions synthesized from final visual content."
+          });
+        } catch (synthesisError) {
+          recordGenerationEvent({
+            stage: "caption_synthesis",
+            status: "fallback",
+            detail: "Caption synthesis failed; original captions preserved.",
+            data: synthesisError instanceof Error ? synthesisError.message : String(synthesisError)
+          });
+        }
         const originality = evaluationPipeline.revisionCount > 0 ? await assessSemanticOriginality({
           candidates: variations,
           siteIntelligence,
@@ -6324,15 +8326,14 @@ Retorne apenas JSON valido.`
               siteIntelligenceId: siteIntelligence?.id,
               strategyId: generationPlan.strategies.selected[i]?.id,
               revisionCount: evaluationPipeline.revisionCount,
+              revisionApplied: evaluationPipeline.revisedIndexes.includes(i),
+              revisionFailed: evaluationPipeline.revisionFailedIndexes.includes(i),
               evaluation: evaluationPipeline.evaluations[i],
               originality: originality.assessments[i]
             }
           };
         });
-        const finalValidation = validateVariationSet(
-          generatedVariations,
-          input.postMode
-        );
+        const finalValidation = validateVariationSet(generatedVariations, input.postMode);
         recordGenerationEvent({
           stage: "final_validation",
           status: finalValidation.valid ? "completed" : "rejected",
@@ -6366,6 +8367,40 @@ Retorne apenas JSON valido.`
           originalityFallbackUsed: originality.fallbackUsed,
           output: generatedVariations
         });
+        await appendOperationalLog("POST_GENERATION_COMPLETED", {
+          generationRunId: generationTrace.id,
+          userUuid: ctx.user.id,
+          durationMs: Date.now() - generationTrace.startedAt,
+          inputType: input.inputType,
+          platform: input.platform,
+          postMode: input.postMode,
+          creationMode: input.creationMode,
+          requestedModel: input.model ?? "llama",
+          effectiveModels: Array.from(
+            new Set(generationTrace.calls.map((call) => call.effectiveModel))
+          ),
+          siteIntelligenceId: siteIntelligence?.id,
+          variationCount: generatedVariations.length,
+          revisionCount: evaluationPipeline.revisionCount,
+          strategyFallbackUsed: generationPlan.strategies.fallbackUsed,
+          originalityFallbackUsed: originality.fallbackUsed,
+          finalValidation,
+          llmCalls: generationTrace.calls.map((call) => ({
+            label: call.label,
+            provider: call.provider,
+            effectiveModel: call.effectiveModel,
+            attempt: call.attempt,
+            fallbackFrom: call.fallbackFrom,
+            promptHash: call.promptHash,
+            promptTokens: call.promptTokens,
+            completionTokens: call.completionTokens,
+            totalTokens: call.totalTokens,
+            latencyMs: call.latencyMs,
+            estimatedCostUsd: call.estimatedCostUsd,
+            error: call.error
+          })),
+          outputSummary: generatedVariations.map(summarizeGeneratedVariation)
+        });
         return {
           variations: generatedVariations,
           generationRunId: generationTrace.id,
@@ -6384,13 +8419,41 @@ Retorne apenas JSON valido.`
           status: "failed",
           error: error instanceof Error ? error.message : "Generation failed"
         });
+        await appendOperationalLog("POST_GENERATION_FAILED", {
+          generationRunId: generationTrace.id,
+          userUuid: ctx.user.id,
+          durationMs: Date.now() - generationTrace.startedAt,
+          inputType: input.inputType,
+          platform: input.platform,
+          postMode: input.postMode,
+          creationMode: input.creationMode,
+          requestedModel: input.model ?? "llama",
+          siteIntelligenceId: generationTrace.siteIntelligenceId,
+          llmCalls: generationTrace.calls.map((call) => ({
+            label: call.label,
+            provider: call.provider,
+            effectiveModel: call.effectiveModel,
+            attempt: call.attempt,
+            fallbackFrom: call.fallbackFrom,
+            promptHash: call.promptHash,
+            promptTokens: call.promptTokens,
+            completionTokens: call.completionTokens,
+            totalTokens: call.totalTokens,
+            latencyMs: call.latencyMs,
+            estimatedCostUsd: call.estimatedCostUsd,
+            error: call.error
+          })),
+          error
+        });
         throw error;
       }
     }),
     /** Generate image for a post */
-    generateImage: protectedProcedure.input(z3.object({
-      prompt: z3.string().min(1)
-    })).mutation(async ({ input, ctx }) => {
+    generateImage: protectedProcedure.input(
+      z5.object({
+        prompt: z5.string().min(1)
+      })
+    ).mutation(async ({ input, ctx }) => {
       const email = ctx.user.email ?? "dev@local.dev";
       const profile = await getBillingProfile(email);
       const debit = await debitSparks(profile.id, SPARK_COSTS.GENERATE_IMAGE, "Gera\xE7\xE3o de imagem IA");
@@ -6406,38 +8469,42 @@ Retorne apenas JSON valido.`
       return { imageUrl: result.url || "" };
     }),
     /** Scrape URL for content extraction */
-    scrapeUrl: protectedProcedure.input(z3.object({
-      url: z3.string().url()
-    })).mutation(async ({ input }) => {
+    scrapeUrl: protectedProcedure.input(
+      z5.object({
+        url: z5.string().url()
+      })
+    ).mutation(async ({ input }) => {
       return scrapeUrl2(input.url);
     }),
     /** Save a post to the database */
-    save: protectedProcedure.input(z3.object({
-      inputType: z3.string(),
-      inputContent: z3.string(),
-      platform: z3.string(),
-      headline: z3.string().optional(),
-      body: z3.string().optional(),
-      caption: z3.string().optional(),
-      hashtags: z3.array(z3.string()).optional(),
-      callToAction: z3.string().optional(),
-      tone: z3.string().optional(),
-      imagePrompt: z3.string().optional(),
-      imageUrl: z3.string().optional(),
-      backgroundColor: z3.string().optional(),
-      textColor: z3.string().optional(),
-      accentColor: z3.string().optional(),
-      layout: z3.string().optional(),
-      postMode: z3.string().optional(),
-      slides: z3.array(z3.any()).optional(),
-      textElements: z3.array(z3.any()).optional(),
-      imageSettings: z3.any().optional(),
-      layoutSettings: z3.any().optional(),
-      bgValue: z3.any().optional(),
-      bgOverlay: z3.any().optional(),
-      copyAngle: z3.any().optional(),
-      variationSnapshot: z3.any().optional()
-    })).mutation(async ({ input, ctx }) => {
+    save: protectedProcedure.input(
+      z5.object({
+        inputType: inputTypeSchema,
+        inputContent: z5.string(),
+        platform: platformSchema,
+        headline: z5.string().optional(),
+        body: z5.string().optional(),
+        caption: z5.string().optional(),
+        hashtags: z5.array(z5.string()).optional(),
+        callToAction: z5.string().optional(),
+        tone: z5.string().optional(),
+        imagePrompt: z5.string().optional(),
+        imageUrl: z5.string().optional(),
+        backgroundColor: z5.string().optional(),
+        textColor: z5.string().optional(),
+        accentColor: z5.string().optional(),
+        layout: postLayoutSchema.optional(),
+        postMode: postModeSchema.optional(),
+        slides: z5.array(carouselSlideSchema).optional(),
+        textElements: z5.array(textElementSchema).optional(),
+        imageSettings: imageSettingsSchema.optional(),
+        layoutSettings: advancedLayoutSettingsSchema.optional(),
+        bgValue: backgroundValueSchema.optional(),
+        bgOverlay: bgOverlaySettingsSchema.optional(),
+        copyAngle: copyAngleSchema.optional(),
+        variationSnapshot: postVisualSnapshotSchema.optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
       try {
         const postId = await createPost({
           ...input,
@@ -6457,28 +8524,30 @@ Retorne apenas JSON valido.`
       }
     }),
     /** Update a post */
-    update: protectedProcedure.input(z3.object({
-      id: z3.number(),
-      headline: z3.string().optional(),
-      body: z3.string().optional(),
-      caption: z3.string().optional(),
-      hashtags: z3.array(z3.string()).optional(),
-      callToAction: z3.string().optional(),
-      imageUrl: z3.string().optional(),
-      backgroundColor: z3.string().optional(),
-      textColor: z3.string().optional(),
-      accentColor: z3.string().optional(),
-      layout: z3.string().optional(),
-      postMode: z3.string().optional(),
-      slides: z3.array(z3.any()).optional(),
-      textElements: z3.array(z3.any()).optional(),
-      imageSettings: z3.any().optional(),
-      layoutSettings: z3.any().optional(),
-      bgValue: z3.any().optional(),
-      bgOverlay: z3.any().optional(),
-      copyAngle: z3.any().optional(),
-      variationSnapshot: z3.any().optional()
-    })).mutation(async ({ input, ctx }) => {
+    update: protectedProcedure.input(
+      z5.object({
+        id: z5.number(),
+        headline: z5.string().optional(),
+        body: z5.string().optional(),
+        caption: z5.string().optional(),
+        hashtags: z5.array(z5.string()).optional(),
+        callToAction: z5.string().optional(),
+        imageUrl: z5.string().optional(),
+        backgroundColor: z5.string().optional(),
+        textColor: z5.string().optional(),
+        accentColor: z5.string().optional(),
+        layout: postLayoutSchema.optional(),
+        postMode: postModeSchema.optional(),
+        slides: z5.array(carouselSlideSchema).optional(),
+        textElements: z5.array(textElementSchema).optional(),
+        imageSettings: imageSettingsSchema.optional(),
+        layoutSettings: advancedLayoutSettingsSchema.optional(),
+        bgValue: backgroundValueSchema.optional(),
+        bgOverlay: bgOverlaySettingsSchema.optional(),
+        copyAngle: copyAngleSchema.optional(),
+        variationSnapshot: postVisualSnapshotSchema.optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
       await updatePost(input.id, ctx.user.id, input);
       return { success: true };
     }),
@@ -6487,14 +8556,16 @@ Retorne apenas JSON valido.`
       return getUserPosts(ctx.user.id);
     }),
     /** Get single post */
-    get: protectedProcedure.input(z3.object({ id: z3.number() })).query(async ({ input, ctx }) => {
+    get: protectedProcedure.input(z5.object({ id: z5.number() })).query(async ({ input, ctx }) => {
       return getPostById(input.id, ctx.user.id);
     }),
     /** Generate background image via Pollinations or Gemini */
-    generateBackground: protectedProcedure.input(z3.object({
-      prompt: z3.string().min(1),
-      provider: z3.enum(["pollinations_fast", "pollinations_hd"]).default("pollinations_fast")
-    })).mutation(async ({ input, ctx }) => {
+    generateBackground: protectedProcedure.input(
+      z5.object({
+        prompt: z5.string().min(1),
+        provider: z5.enum(["pollinations_fast", "pollinations_hd"]).default("pollinations_fast")
+      })
+    ).mutation(async ({ input, ctx }) => {
       const email = ctx.user.email ?? "dev@local.dev";
       const profile = await getBillingProfile(email);
       const debit = await debitSparks(profile.id, SPARK_COSTS.GENERATE_IMAGE, "Gera\xE7\xE3o de imagem de fundo");
@@ -6507,12 +8578,14 @@ Retorne apenas JSON valido.`
       const imageData = await generateBackgroundImage(input.prompt, input.provider);
       return { imageData };
     }),
-    saveBackgroundAsset: protectedProcedure.input(z3.object({
-      imageUrl: z3.string().min(1),
-      sourceType: z3.enum(["ai", "upload", "gallery"]),
-      prompt: z3.string().optional(),
-      label: z3.string().optional()
-    })).mutation(async ({ input, ctx }) => {
+    saveBackgroundAsset: protectedProcedure.input(
+      z5.object({
+        imageUrl: z5.string().min(1),
+        sourceType: z5.enum(["ai", "upload", "gallery"]),
+        prompt: z5.string().optional(),
+        label: z5.string().optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
       let finalImageUrl = input.imageUrl;
       if (input.imageUrl.startsWith("data:image/")) {
         const { buffer, contentType, extension } = decodeDataUrl(input.imageUrl);
@@ -6533,40 +8606,42 @@ Retorne apenas JSON valido.`
       return getUserBackgroundAssets(ctx.user.id);
     }),
     /** Automatically adjust layout based on current canvas */
-    autoPilotDesign: protectedProcedure.input(z3.object({
-      imageBase64: z3.string(),
-      currentState: z3.any()
-    })).mutation(async ({ input }) => {
-      const systemPrompt = `Voc\xEA \xE9 um Diretor de Arte S\xEAnior e Especialista em Qualidade Visual (QA) e Acessibilidade (WCAG).
-Seu trabalho \xE9 avaliar a imagem logada (fotografia do render do post) com o JSON do estado atual fornecido.
-O objetivo \xE9 garantir Legibilidade perfeita, Hierarquia e Margens de Respiro.
+    autoPilotDesign: protectedProcedure.input(
+      z5.object({
+        imageBase64: z5.string(),
+        currentState: z5.any()
+      })
+    ).mutation(async ({ input }) => {
+      const systemPrompt = `
+Voc\xEA \xE9 um Diretor de Arte Assistente focado estritamente em Ajuste de Propor\xE7\xE3o, Margens de Respiro e Legibilidade Adaptativa (WCAG).
 
-REGRAS:
-1. Contraste (WCAG): Verifique se o texto est\xE1 leg\xEDvel contra o fundo. Se o fundo na \xE1rea delimitada pelo texto for muito claro, force a cor do texto para bem escuro (ex: #000000). Se o fundo for muito escuro, texto claro (ex: #FFFFFF). Use hexadecimais de estilo de acordo com a foto caso encontre uma cor que contrasta perfeitamente (color picking).
-2. Layout: Sugira novas posi\xE7\xF5es X e Y (em porcentagem 0-100) para evitar que o texto corte nas bordas, e mantenha alinhamento harmonioso de design premium (esquerda, centro).
-CR\xCDTICO SOBRE X e Y: As coordenadas (x, y) representam o **CENTRO EXATO** do bloco de texto, e n\xE3o o canto superior esquerdo (pois usamos \`transform: translate(-50%, -50%)\` no Frontend).
-- Se voc\xEA quer alinhar um bloco de \`width: 80\` \xE0 esquerda com margem de \`10%\`, o X (centro) N\xC3O deve ser 10, e sim \`50\` (10 de margem + 40 da metade da largura).
-- Se voc\xEA usar X=10 para um bloco largo, metade do bloco ficar\xE1 PARA FORA da tela!
-- Reflita antes de definir o X e Y, garantindo que o \`width\` inteiro caiba na tela somando/subtraindo do centro.
-3. Caso o texto esteja "vazando" do card, reduza \`width\` ou reposicione o \`x\` e \`y\` (lembrando da regra do centro).
-4. Retorne as coordenadas ajustadas e corrigidas, para que possamos plugar direto e o texto se alinhar graciosamente no fundo.
+O usu\xE1rio fez altera\xE7\xF5es Manuais de posicionamento (drag and drop) nos elementos visuais do post. Voc\xEA recebeu o estado atual desses elementos no campo "elements" do JSON e a imagem correspondente.
 
-JSON ESTADO ATUAL:
+SUA MISS\xC3O N\xC3O \xC9 REINVENTAR O DESIGN, MAS SIM ADAPT\xC1-LO PARA O NOVO ASPECT RATIO (${input.currentState.aspectRatio}) PROTEGENDO A INTEN\xC7\xC3O DO USU\xC1RIO.
+
+DIRETRIZES R\xCDGIDAS:
+1. Respeite as posi\xE7\xF5es centrais enviadas em "elements". Se um elemento foi movido para perto de uma borda ou canto, mantenha a inten\xE7\xE3o de proximidade daquele canto, aplicando apenas pequenos recuos (paddings de seguran\xE7a) para o texto n\xE3o vazar a tela f\xEDsica.
+2. N\xE3o mude elementos de lugar drasticamente (ex: se o t\xEDtulo est\xE1 no topo, n\xE3o o jogue para a base).
+3. Ajuste o tamanho do bloco (width) ou o tamanho da fonte apenas se o novo aspectRatio encolheu o espa\xE7o horizontal dispon\xEDvel, for\xE7ando quebras de linha mais elegantes.
+4. Se houver sobreposi\xE7\xE3o (interse\xE7\xE3o indesejada) criada pela mudan\xE7a de propor\xE7\xE3o de tela, fa\xE7a uma micro-corre\xE7\xE3o no eixo Y para afastar os blocos, preservando a ordem de leitura de cima para baixo.
+
+JSON DO ESTADO ATUAL DO USU\xC1RIO:
 ${JSON.stringify(input.currentState, null, 2)}
 
-O campo "elements" contem a geometria medida de cada bloco visivel. Trate esses ids
-como contrato: devolva uma sugestao para cada elemento recebido, sem inventar ids.
-Evite qualquer intersecao entre caixas, preserve margens de seguranca e considere
-o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
+Devolva as sugest\xF5es respeitando estritamente os IDs recebidos. N\xE3o invente novos elementos.
 `;
       const response = await invokeLLM({
-        model: "gemini-2.5-flash",
+        traceLabel: "auto_pilot_design",
+        taskRoute: "vision_analysis",
         messages: [
           { role: "system", content: systemPrompt },
           {
             role: "user",
             content: [
-              { type: "text", text: "Analise a imagem e o posicionamento abaixo para gerar o JSON refatorado." },
+              {
+                type: "text",
+                text: "Analise a imagem e o posicionamento abaixo para gerar o JSON refatorado."
+              },
               { type: "image_url", image_url: { url: input.imageBase64 } }
             ]
           }
@@ -6579,9 +8654,18 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
             schema: {
               type: "object",
               properties: {
-                score: { type: "number", description: "Sua nota para o design inicial (0 a 100)" },
-                feedback: { type: "string", description: "Descri\xE7\xE3o curta em portugu\xEAs sobre o erro vis\xEDvel e por que voc\xEA corrigiu do jeito que corrigiu." },
-                textColor: { type: "string", description: "Cor HEX sugerida para os textos principais" },
+                score: {
+                  type: "number",
+                  description: "Sua nota para o design inicial (0 a 100)"
+                },
+                feedback: {
+                  type: "string",
+                  description: "Descri\xE7\xE3o curta em portugu\xEAs sobre o erro vis\xEDvel e por que voc\xEA corrigiu do jeito que corrigiu."
+                },
+                textColor: {
+                  type: "string",
+                  description: "Cor HEX sugerida para os textos principais"
+                },
                 suggestedElements: {
                   type: "array",
                   items: {
@@ -6591,7 +8675,10 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
                       x: { type: "number" },
                       y: { type: "number" },
                       width: { type: "number" },
-                      textAlign: { type: "string", enum: ["left", "center", "right"] },
+                      textAlign: {
+                        type: "string",
+                        enum: ["left", "center", "right"]
+                      },
                       backgroundColor: { type: "string" },
                       borderRadius: { type: "number" }
                     },
@@ -6628,7 +8715,10 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
                       required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
                       additionalProperties: false
                     },
-                    textColor: { type: "string", description: "Cor HEX sugerida para todos os textos" }
+                    textColor: {
+                      type: "string",
+                      description: "Cor HEX sugerida para todos os textos"
+                    }
                   },
                   required: ["textColor"],
                   additionalProperties: false
@@ -6647,10 +8737,10 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
     }),
     /** List curated background images grouped by category */
     listBackgrounds: publicProcedure.query(() => {
-      const bgRoot = path.join(process.cwd(), "client", "public", "images", "backgrounds");
+      const bgRoot = path2.join(process.cwd(), "client", "public", "images", "backgrounds");
       try {
         const categories = fs.readdirSync(bgRoot, { withFileTypes: true }).filter((d) => d.isDirectory()).map((dir) => {
-          const catPath = path.join(bgRoot, dir.name);
+          const catPath = path2.join(bgRoot, dir.name);
           const images = fs.readdirSync(catPath).filter((f) => /\.(webp|jpg|jpeg|png|gif|svg)$/i.test(f)).map((f) => `/ images / backgrounds / ${dir.name} / ${f}`);
           return { id: dir.name, name: dir.name, images };
         }).filter((c) => c.images.length > 0);
@@ -6660,9 +8750,11 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
       }
     }),
     /** Analyze brand from URL and return theme variations */
-    analyzeBrand: protectedProcedure.input(z3.object({
-      url: z3.string().url()
-    })).mutation(async ({ input, ctx }) => {
+    analyzeBrand: protectedProcedure.input(
+      z5.object({
+        url: z5.string().url()
+      })
+    ).mutation(async ({ input, ctx }) => {
       const email = ctx.user.email ?? "dev@local.dev";
       const profile = await getBillingProfile(email);
       const debit = await debitSparks(profile.id, SPARK_COSTS.CHAMELEON, "ChameleonProtocol \u2014 an\xE1lise de marca");
@@ -6680,9 +8772,11 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
       };
     }),
     /** Extract visual styles from a website URL (Pomelli-inspired hybrid pipeline) */
-    extractStyles: protectedProcedure.input(z3.object({
-      url: z3.string().url()
-    })).mutation(async ({ input }) => {
+    extractStyles: protectedProcedure.input(
+      z5.object({
+        url: z5.string().url()
+      })
+    ).mutation(async ({ input }) => {
       console.log("[extractStyles] ==========================================");
       console.log("[extractStyles] Starting extraction for:", input.url);
       console.log("[extractStyles] Timestamp:", (/* @__PURE__ */ new Date()).toISOString());
@@ -6738,10 +8832,12 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
      * Multi-page screenshots + Gemini Vision + synthesis + musical composition mapping.
      * Cost: 20 Sparks (replaces the 15✦ ChameleonProtocol)
      */
-    extractBrandDNA: protectedProcedure.input(z3.object({
-      url: z3.string().url(),
-      debug: z3.boolean().optional()
-    })).mutation(async ({ input, ctx }) => {
+    extractBrandDNA: protectedProcedure.input(
+      z5.object({
+        url: z5.string().url(),
+        debug: z5.boolean().optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
       if (!ENV.aiSiteIntelligenceEnabled) {
         throw new TRPCError5({
           code: "SERVICE_UNAVAILABLE",
@@ -6797,33 +8893,37 @@ o aspectRatio atual. Para secoes, use os ids no formato "section:<id>".
      *
      * Variations are passed directly from the client (already in memory after generation).
      */
-    evaluateQuality: protectedProcedure.input(z3.object({
-      variations: z3.array(z3.object({
-        id: z3.string(),
-        headline: z3.string(),
-        body: z3.string(),
-        callToAction: z3.string(),
-        backgroundColor: z3.string(),
-        textColor: z3.string(),
-        accentColor: z3.string(),
-        layout: z3.string(),
-        platform: z3.string()
-      })),
-      brandDNA: z3.object({
-        brandName: z3.string(),
-        industry: z3.string(),
-        colors: z3.object({ primary: z3.string() }),
-        composition: z3.object({ dynamics: z3.string() }),
-        personality: z3.object({
-          seriousPlayful: z3.number(),
-          boldSubtle: z3.number(),
-          luxuryAccessible: z3.number(),
-          modernClassic: z3.number(),
-          warmCool: z3.number()
-        }),
-        emotionalProfile: z3.object({ mood: z3.string() })
-      }).optional()
-    })).mutation(async ({ input }) => {
+    evaluateQuality: protectedProcedure.input(
+      z5.object({
+        variations: z5.array(
+          z5.object({
+            id: z5.string(),
+            headline: z5.string(),
+            body: z5.string(),
+            callToAction: z5.string(),
+            backgroundColor: z5.string(),
+            textColor: z5.string(),
+            accentColor: z5.string(),
+            layout: z5.string(),
+            platform: z5.string()
+          })
+        ),
+        brandDNA: z5.object({
+          brandName: z5.string(),
+          industry: z5.string(),
+          colors: z5.object({ primary: z5.string() }),
+          composition: z5.object({ dynamics: z5.string() }),
+          personality: z5.object({
+            seriousPlayful: z5.number(),
+            boldSubtle: z5.number(),
+            luxuryAccessible: z5.number(),
+            modernClassic: z5.number(),
+            warmCool: z5.number()
+          }),
+          emotionalProfile: z5.object({ mood: z5.string() })
+        }).optional()
+      })
+    ).mutation(async ({ input }) => {
       if (input.variations.length === 0) {
         return { evaluations: [] };
       }
@@ -6837,7 +8937,7 @@ async function scrapeUrl2(url) {
     const response = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; PostSpark/1.0)",
-        "Accept": "text/html"
+        Accept: "text/html"
       },
       signal: AbortSignal.timeout(1e4)
     });
@@ -6872,6 +8972,19 @@ async function scrapeUrl2(url) {
     };
   }
 }
+function applyDeterministicCopyGuards(variation) {
+  const next = { ...variation };
+  if (typeof next.headline === "string") next.headline = next.headline.slice(0, 60).trim();
+  if (typeof next.body === "string") next.body = next.body.slice(0, 140).trim();
+  if (typeof next.caption === "string") {
+    next.caption = next.caption.slice(0, 1500).trim();
+  }
+  if (typeof next.callToAction === "string") next.callToAction = next.callToAction.slice(0, 40).trim();
+  if (Array.isArray(next.hashtags)) {
+    next.hashtags = next.hashtags.filter((item) => typeof item === "string" && item.trim().startsWith("#")).map((item) => item.trim()).slice(0, 4);
+  }
+  return next;
+}
 
 // shared/_core/errors.ts
 var HttpError = class extends Error {
@@ -6884,6 +8997,7 @@ var HttpError = class extends Error {
 var ForbiddenError = (msg) => new HttpError(403, msg);
 
 // server/_core/sdk.ts
+init_env();
 import { parse as parseCookieHeader } from "cookie";
 import { createClient as createClient5 } from "@supabase/supabase-js";
 var _supabaseAuthClient = null;
@@ -6975,7 +9089,7 @@ async function createContext(opts) {
 import express from "express";
 import fs2 from "fs";
 import { nanoid } from "nanoid";
-import path2 from "path";
+import path3 from "path";
 async function setupVite(app2, server) {
   const serverOptions = {
     middlewareMode: true,
@@ -6993,7 +9107,7 @@ async function setupVite(app2, server) {
   app2.use("*", async (req, res, next) => {
     const url = req.originalUrl;
     try {
-      const clientTemplate = path2.resolve(
+      const clientTemplate = path3.resolve(
         import.meta.dirname,
         "../..",
         "client",
@@ -7013,7 +9127,7 @@ async function setupVite(app2, server) {
   });
 }
 function serveStatic(app2) {
-  const distPath = process.env.NODE_ENV === "development" ? path2.resolve(import.meta.dirname, "../..", "dist", "public") : fs2.existsSync(path2.resolve(import.meta.dirname, "public")) ? path2.resolve(import.meta.dirname, "public") : path2.resolve(import.meta.dirname, "..", "client", "dist");
+  const distPath = process.env.NODE_ENV === "development" ? path3.resolve(import.meta.dirname, "../..", "dist", "public") : fs2.existsSync(path3.resolve(import.meta.dirname, "public")) ? path3.resolve(import.meta.dirname, "public") : path3.resolve(import.meta.dirname, "..", "client", "dist");
   if (!fs2.existsSync(distPath)) {
     console.error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`
@@ -7021,8 +9135,114 @@ function serveStatic(app2) {
   }
   app2.use(express.static(distPath));
   app2.use("*", (_req, res) => {
-    res.sendFile(path2.resolve(distPath, "index.html"));
+    res.sendFile(path3.resolve(distPath, "index.html"));
   });
+}
+
+// server/_core/index.ts
+init_env();
+
+// server/_core/analytics.ts
+init_db();
+async function trackPageView(data) {
+  try {
+    const { path: path4, referrer, timestamp } = data;
+    const pathCategory = categorizePath(path4);
+    let referrerDomain;
+    if (referrer) {
+      try {
+        const url = new URL(referrer);
+        referrerDomain = url.hostname;
+      } catch {
+      }
+    }
+    try {
+      await getDb().schema("postspark").from("analytics_pageviews").insert({
+        path: path4,
+        path_category: pathCategory,
+        referrer_domain: referrerDomain || null,
+        timestamp: new Date(timestamp).toISOString(),
+        created_at: /* @__PURE__ */ new Date()
+      });
+    } catch (error) {
+      console.log("[Analytics] PageView:", {
+        path: path4,
+        pathCategory,
+        referrerDomain
+      });
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[Analytics] Table analytics_pageviews does not exist. Create it for proper analytics."
+        );
+      }
+    }
+  } catch (error) {
+    console.error("[Analytics] Error tracking page view:", error);
+  }
+}
+async function trackEvent(data) {
+  try {
+    const { event, properties, timestamp } = data;
+    const sanitizedProperties = sanitizeProperties(properties || {});
+    try {
+      await getDb().schema("postspark").from("analytics_events").insert({
+        event_name: event,
+        properties: sanitizedProperties,
+        timestamp: new Date(timestamp).toISOString(),
+        created_at: /* @__PURE__ */ new Date()
+      });
+    } catch (error) {
+      console.log("[Analytics] Event:", {
+        event,
+        properties: sanitizedProperties
+      });
+    }
+  } catch (error) {
+    console.error("[Analytics] Error tracking event:", error);
+  }
+}
+function categorizePath(path4) {
+  if (path4 === "/") return "home";
+  if (path4.startsWith("/pricing")) return "pricing";
+  if (path4.startsWith("/billing")) return "billing";
+  if (path4.startsWith("/privacy")) return "privacy";
+  if (path4.startsWith("/terms")) return "legal";
+  if (path4.startsWith("/cookies")) return "legal";
+  if (path4.includes("/post/")) return "post_detail";
+  if (path4.includes("/settings")) return "settings";
+  return "other";
+}
+function sanitizeProperties(properties) {
+  const sanitized = {};
+  const sensitiveKeys = [
+    "email",
+    "uuid",
+    "userid",
+    "user_id",
+    "token",
+    "password",
+    "secret",
+    "apikey",
+    "api_key"
+  ];
+  for (const [key, value] of Object.entries(properties)) {
+    const lowerKey = key.toLowerCase();
+    if (sensitiveKeys.some((sensitive) => lowerKey.includes(sensitive))) {
+      continue;
+    }
+    if (typeof value === "string") {
+      sanitized[key] = value.length > 500 ? value.substring(0, 500) + "..." : value;
+    } else if (typeof value === "object" && value !== null) {
+      if (Array.isArray(value)) {
+        sanitized[key] = value.slice(0, 10);
+      } else {
+        sanitized[key] = sanitizeProperties(value);
+      }
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
 }
 
 // server/_core/index.ts
@@ -7043,7 +9263,9 @@ async function findAvailablePort(startPort = 3e3) {
   }
   throw new Error(`No available port found starting from ${startPort}`);
 }
+installConsoleErrorFileLogging();
 var app = express2();
+app.use(httpStatusFileLogger);
 app.post(
   "/api/stripe/webhook",
   express2.raw({ type: "application/json" }),
@@ -7096,6 +9318,26 @@ app.post("/api/extract", async (req, res) => {
   } catch (error) {
     console.error("[/api/extract] Error:", error.message);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+app.post("/api/analytics/pageview", async (req, res) => {
+  try {
+    const { path: path4, referrer, timestamp } = req.body;
+    await trackPageView({ path: path4, referrer, timestamp });
+    res.json({ received: true });
+  } catch (error) {
+    console.error("[Analytics] Error:", error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+app.post("/api/analytics/event", async (req, res) => {
+  try {
+    const { event, properties, timestamp } = req.body;
+    await trackEvent({ event, properties, timestamp });
+    res.json({ received: true });
+  } catch (error) {
+    console.error("[Analytics] Error:", error.message);
+    res.status(400).json({ error: error.message });
   }
 });
 app.post("/api/brand-dna", async (req, res) => {

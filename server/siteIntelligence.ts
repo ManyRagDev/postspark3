@@ -359,9 +359,33 @@ export async function analyzeSiteIntelligence(
   };
 }
 
+/**
+ * Build the SITE INTELLIGENCE prompt block injected into post generation.
+ *
+ * Beyond listing business/editorial data, this now emits MANDATORY color
+ * constraints derived from the brand palette so the LLM cannot drift to
+ * generic black/white when a richer brand identity was extracted.
+ */
 export function siteIntelligenceToPrompt(
   intelligence: SiteIntelligence,
 ): string {
+  const palette = intelligence.brand.colors.palette ?? [
+    intelligence.brand.colors.primary,
+    intelligence.brand.colors.secondary,
+    intelligence.brand.colors.background,
+    intelligence.brand.colors.text,
+    intelligence.brand.colors.accent,
+  ];
+
+  // Pre-compute brand-aware suggestions (same logic as design tokens) so the
+  // prompt and the deterministic fallback stay in sync.
+  const brandAccent =
+    pickBrandAccent(palette) ??
+    intelligence.brand.colors.accent ??
+    intelligence.brand.colors.primary ??
+    "#ff6f61";
+  const canvasBackground = pickCanvasBackground(palette);
+
   return `SITE INTELLIGENCE (fonte unica):
 - Snapshot: ${intelligence.id}
 - Marca/setor: ${intelligence.brand.brandName} (${intelligence.brand.industry})
@@ -377,27 +401,186 @@ export function siteIntelligenceToPrompt(
 - Temas prioritarios: ${intelligence.editorial.priorityTopics.join("; ")}
 - Tom: ${intelligence.editorial.toneGuidelines.join("; ")}
 - Alegacoes proibidas: ${intelligence.editorial.prohibitedClaims.join("; ")}
-- Cores: ${intelligence.brand.colors.palette.join(", ")}
+- Cores: ${palette.join(", ")}
 - Ritmo/dinamica: ${intelligence.brand.composition.rhythm}/${intelligence.brand.composition.dynamics}
 
 REGRAS:
 1. Cada tema e post deve se conectar explicitamente a assunto, publico e objetivo acima.
 2. Nao invente oferta, numero, cliente, certificacao ou resultado ausente nas evidencias.
 3. Use os temas prioritarios como materia-prima, sem copiar frases do site literalmente.
-4. Preserve a identidade visual da marca e contraste legivel.`;
+4. Preserve a identidade visual da marca e contraste legivel.
+
+REGRAS DE CORES OBRIGATORIAS (BRAND SOUL):
+- O post DEVE pertencer visualmente ao site. As cores abaixo sao MANDATORIAS.
+- backgroundColor DEVE ser um destes hexes: ${[canvasBackground, ...palette].slice(0, 4).join(", ")}.
+- accentColor DEVE ser o hex mais saturado da marca: ${brandAccent}.
+- textColor deve garantir contraste WCAG >= 4.5:1 contra o backgroundColor escolhido.
+- NUNCA use preto puro (#000000) nem branco puro (#ffffff) quando a paleta da marca oferece alternativas.`;
+}
+
+// ─── WCAG color utilities (local, no dependencies) ──────────────────────────
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  let clean = hex.trim().replace(/^#/, "");
+  if (clean.length === 3) {
+    clean = clean
+      .split("")
+      .map((c) => c + c)
+      .join("");
+  }
+  if (clean.length !== 6) return null;
+  const num = parseInt(clean, 16);
+  if (Number.isNaN(num)) return null;
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  };
+}
+
+function relativeLuminance(rgb: { r: number; g: number; b: number }): number {
+  const normalize = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return (
+    0.2126 * normalize(rgb.r) +
+    0.7152 * normalize(rgb.g) +
+    0.0722 * normalize(rgb.b)
+  );
+}
+
+/** WCAG contrast ratio between two hex colors (1.0 - 21.0). Returns 0 if invalid. */
+export function wcagContrast(hexA: string, hexB: string): number {
+  const a = hexToRgb(hexA);
+  const b = hexToRgb(hexB);
+  if (!a || !b) return 0;
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  const lighter = Math.max(la, lb);
+  const darker = Math.min(la, lb);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/** Saturation in HSL space (0-1). Used to pick the most "brand-like" color. */
+function colorSaturation(hex: string): number {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 0;
+  const max = Math.max(rgb.r, rgb.g, rgb.b);
+  const min = Math.min(rgb.r, rgb.g, rgb.b);
+  return max === 0 ? 0 : (max - min) / max;
+}
+
+/** Brightness 0-255 (perceptual). */
+function colorBrightness(hex: string): number {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 128;
+  return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+}
+
+const NEUTRAL_FALLBACK_HEXES = new Set([
+  "#ffffff",
+  "#fff",
+  "#1a1a1a",
+  "#1f2937",
+  "#262626",
+  "#4a4a4a",
+  "#000000",
+  "#000",
+]);
+
+function isNeutralOrFallback(hex: string): boolean {
+  return NEUTRAL_FALLBACK_HEXES.has(hex.trim().toLowerCase());
+}
+
+/**
+ * Pick the most brand-representative (saturated) color from a palette,
+ * excluding neutrals/blacks/whites when richer alternatives exist.
+ */
+function pickBrandAccent(palette: string[]): string | null {
+  const candidates = palette
+    .filter((hex) => hexToRgb(hex) !== null)
+    .filter((hex) => !isNeutralOrFallback(hex))
+    .sort((a, b) => colorSaturation(b) - colorSaturation(a));
+  return candidates[0] ?? null;
+}
+
+/**
+ * Pick a background color suitable for a POST canvas (not the site's own bg).
+ * Prefers dark brand colors so the post reads as a "piece" of the brand,
+ * falls back to the darkest palette color, and finally to #171717.
+ */
+function pickCanvasBackground(palette: string[]): string {
+  const valid = palette.filter((hex) => hexToRgb(hex) !== null);
+  if (valid.length === 0) return "#171717";
+
+  // Prefer dark colors (brightness < 60) that aren't pure black
+  const darks = valid
+    .filter((hex) => {
+      const b = colorBrightness(hex);
+      return b > 12 && b < 80;
+    })
+    .sort((a, b) => colorBrightness(a) - colorBrightness(b));
+  if (darks.length > 0) return darks[0];
+
+  // Fallback: darkest available (excluding pure black)
+  const notPureBlack = valid.filter((hex) => colorBrightness(hex) > 12);
+  const pool = notPureBlack.length > 0 ? notPureBlack : valid;
+  return pool.sort((a, b) => colorBrightness(a) - colorBrightness(b))[0];
+}
+
+/** Ensure a readable text color for the given background (WCAG >= 4.5:1). */
+function readableTextFor(background: string, candidates: string[]): string {
+  // Prefer brand-provided candidates that pass contrast
+  for (const candidate of candidates) {
+    if (hexToRgb(candidate) && wcagContrast(background, candidate) >= 4.5) {
+      return candidate;
+    }
+  }
+  // Deterministic fallback: pure white or near-black based on bg brightness
+  return colorBrightness(background) < 128 ? "#FFFFFF" : "#1A1A1A";
 }
 
 export function siteIntelligenceToDesignTokens(
   intelligence: SiteIntelligence,
 ): DesignTokens {
   const brand = intelligence.brand;
+  const palette = brand.colors.palette ?? [
+    brand.colors.primary,
+    brand.colors.secondary,
+    brand.colors.background,
+    brand.colors.text,
+    brand.colors.accent,
+  ];
+
+  // ── Resolve brand-aware colors for the POST canvas ──
+  const brandAccent =
+    pickBrandAccent(palette) ?? brand.colors.accent ?? brand.colors.primary ?? "#ff6f61";
+
+  const background = pickCanvasBackground(palette);
+
+  const text = readableTextFor(background, [
+    brand.colors.text,
+    ...palette.filter((hex) => !isNeutralOrFallback(hex)),
+  ]);
+
+  const secondary =
+    pickBrandAccent(
+      palette.filter((hex) => hex.toLowerCase() !== brandAccent.toLowerCase()),
+    ) ?? brand.colors.secondary ?? brandAccent;
+
+  const card =
+    secondary && wcagContrast(background, secondary) >= 3
+      ? secondary
+      : background;
+
   return {
     colors: {
-      background: brand.colors.background,
-      primary: brand.colors.primary,
-      secondary: brand.colors.secondary,
-      text: brand.colors.text,
-      card: brand.colors.secondary,
+      background,
+      primary: brandAccent,
+      secondary,
+      text,
+      card,
     },
     typography: {
       fontFamily: brand.typography.headingFont,

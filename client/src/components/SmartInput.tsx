@@ -187,6 +187,7 @@ export default function SmartInput({
   });
 
   const isExecutionMode = creationMode === "execution";
+  const isUrlBlocked = inputType === "url" && !isExecutionMode;
   const config = isExecutionMode ? EXECUTION_THEME : TYPE_CONFIG[inputType];
   const Icon = config.icon;
   const currentMode = POST_MODE_OPTIONS.find((option) => option.id === postMode) ?? POST_MODE_OPTIONS[0];
@@ -205,13 +206,14 @@ export default function SmartInput({
 
   const handleSubmit = useCallback(() => {
     if (isLoading) return;
+    if (isUrlBlocked) return;
     if (isExecutionMode) {
       onSubmit("", "text");
       return;
     }
     if (!value.trim()) return;
     onSubmit(value.trim(), inputType);
-  }, [inputType, isExecutionMode, isLoading, onSubmit, value]);
+  }, [inputType, isExecutionMode, isUrlBlocked, isLoading, onSubmit, value]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -263,7 +265,20 @@ export default function SmartInput({
   const statusLine = (
     <div className="relative mt-4 h-5 text-center text-xs">
       <AnimatePresence mode="wait">
-        {isLoading ? (
+        {isUrlBlocked ? (
+          <motion.p
+            key="url-blocked"
+            className="flex items-center justify-center gap-1.5"
+            style={{ color: "oklch(0.75 0.14 200)" }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Link2 size={12} />
+            Análise de URL em desenvolvimento — estará disponível em breve
+          </motion.p>
+        ) : isLoading ? (
           <motion.p
             key={stageText}
             className="ai-pulse"
@@ -287,7 +302,7 @@ export default function SmartInput({
               ? isMobile
                 ? "Ative o modo estruturado para seguir com um briefing guiado"
                 : "Selecione para executar um briefing estruturado na proxima tela"
-              : "Insira uma ideia, texto ou URL para comecar"}
+              : "Insira uma ideia para comecar"}
           </motion.p>
         )}
       </AnimatePresence>
@@ -328,14 +343,14 @@ export default function SmartInput({
             {[
               {
                 id: "ideation" as const,
-                title: "Quero ideias",
+                title: "Tenho uma ideia",
                 description: "A IA explora caminhos criativos",
                 icon: Sparkles,
                 color: "oklch(0.7 0.22 40)",
               },
               {
                 id: "execution" as const,
-                title: "Ja sei o que criar",
+                title: "Quero criar manualmente",
                 description: "Voce traz o briefing e a IA executa",
                 icon: BriefcaseBusiness,
                 color: "oklch(0.74 0.16 72)",
@@ -515,15 +530,15 @@ export default function SmartInput({
             <motion.button
               onClick={handleSubmit}
               data-tour="void-submit"
-              disabled={(!isExecutionMode && !value.trim()) || isLoading}
+              disabled={(!isExecutionMode && !value.trim()) || isLoading || isUrlBlocked}
               className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30"
               style={{
-                background: isExecutionMode || value.trim() ? config.borderColor : "oklch(1 0 0 / 8%)",
-                color: isExecutionMode || value.trim() ? "oklch(0.08 0.02 280)" : "oklch(0.6 0.03 280)",
+                background: isUrlBlocked ? "oklch(1 0 0 / 8%)" : isExecutionMode || value.trim() ? config.borderColor : "oklch(1 0 0 / 8%)",
+                color: isUrlBlocked ? "oklch(0.6 0.03 280)" : isExecutionMode || value.trim() ? "oklch(0.08 0.02 280)" : "oklch(0.6 0.03 280)",
               }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              title={isExecutionMode ? "Continuar briefing" : "Gerar ideias"}
+              whileHover={isUrlBlocked ? undefined : { scale: 1.05 }}
+              whileTap={isUrlBlocked ? undefined : { scale: 0.95 }}
+              title={isUrlBlocked ? "Análise de URL em breve" : isExecutionMode ? "Continuar briefing" : "Gerar ideias"}
             >
               {isLoading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
             </motion.button>
@@ -638,16 +653,16 @@ export default function SmartInput({
             <motion.button
               onClick={handleSubmit}
               data-tour="void-submit"
-              disabled={(!isExecutionMode && !value.trim()) || isLoading}
+              disabled={(!isExecutionMode && !value.trim()) || isLoading || isUrlBlocked}
               className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-30"
               style={{
-                background: isExecutionMode || value.trim() ? config.borderColor : "oklch(1 0 0 / 8%)",
-                color: isExecutionMode || value.trim() ? "oklch(0.08 0.02 280)" : "oklch(0.6 0.03 280)",
-                boxShadow: isExecutionMode || value.trim() ? `0 10px 26px ${config.glowColor}` : "none",
+                background: isUrlBlocked ? "oklch(1 0 0 / 8%)" : isExecutionMode || value.trim() ? config.borderColor : "oklch(1 0 0 / 8%)",
+                color: isUrlBlocked ? "oklch(0.6 0.03 280)" : isExecutionMode || value.trim() ? "oklch(0.08 0.02 280)" : "oklch(0.6 0.03 280)",
+                boxShadow: isUrlBlocked ? "none" : isExecutionMode || value.trim() ? `0 10px 26px ${config.glowColor}` : "none",
               }}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              title={isExecutionMode ? "Continuar briefing" : "Gerar ideias"}
+              whileHover={isUrlBlocked ? undefined : { scale: 1.04 }}
+              whileTap={isUrlBlocked ? undefined : { scale: 0.96 }}
+              title={isUrlBlocked ? "Análise de URL em breve" : isExecutionMode ? "Continuar briefing" : "Gerar ideias"}
             >
               {isLoading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
             </motion.button>

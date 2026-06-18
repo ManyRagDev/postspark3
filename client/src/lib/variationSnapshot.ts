@@ -48,6 +48,45 @@ export function normalizeVariationForEditor(variation: PostVariation): PostVaria
   };
 }
 
+/**
+ * Resolve as cores efetivas de uma variação para um aspect ratio específico.
+ * Prioriza `aspectRatioOptimizations[aspectRatio]` sobre o nível superior,
+ * garantindo que HoloDeck e Workbench leiam a mesma fonte de verdade.
+ */
+export function resolveVariationColorsForAspectRatio(
+  variation: PostVariation,
+  aspectRatio: AspectRatio,
+): { backgroundColor?: string; textColor?: string; accentColor?: string } {
+  const arOpt = variation.aspectRatioOptimizations?.[aspectRatio];
+  return {
+    backgroundColor: arOpt?.backgroundColor ?? variation.backgroundColor,
+    textColor: arOpt?.textColor ?? variation.textColor,
+    accentColor: arOpt?.accentColor ?? variation.accentColor,
+  };
+}
+
+/**
+ * Aplica `aspectRatioOptimizations[aspectRatio]` sobre a variação, retornando
+ * uma nova variação com cores/layout alinhados ao formato solicitado.
+ * Esta é a "fonte única da verdade" usada por HoloDeck e Workbench.
+ */
+export function applyAspectRatioToVariation(
+  variation: PostVariation,
+  aspectRatio: AspectRatio,
+): PostVariation {
+  const arOpt = variation.aspectRatioOptimizations?.[aspectRatio];
+  if (!arOpt) return { ...variation, aspectRatio };
+
+  return {
+    ...variation,
+    aspectRatio,
+    backgroundColor: arOpt.backgroundColor ?? variation.backgroundColor,
+    textColor: arOpt.textColor ?? variation.textColor,
+    accentColor: arOpt.accentColor ?? variation.accentColor,
+    layout: arOpt.layout ?? variation.layout,
+  };
+}
+
 export function normalizeSectionLayouts(sections?: ContentSection[], layoutSettings?: AdvancedLayoutSettings): Record<string, LayoutPosition> {
   const existing = layoutSettings?.sectionLayouts ?? {};
   const normalized = normalizeSections(sections) ?? [];

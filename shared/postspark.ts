@@ -592,6 +592,7 @@ export interface GenerationEvaluationSummary {
     clarity: number;
     platformFit: number;
     visualReadability: number;
+    captionCoherence: number;
   };
   feedback: string[];
 }

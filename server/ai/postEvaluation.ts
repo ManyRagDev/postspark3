@@ -19,6 +19,8 @@ export interface EvaluatedCandidate extends VariationDiversityInput {
   hashtags?: string[];
   callToAction?: string;
   platform?: Platform;
+  slides?: Array<{ headline?: string; body?: string }>;
+  sections?: Array<{ label?: string; description?: string }>;
 }
 
 export interface EvaluationPipelineResult<T extends EvaluatedCandidate> {
@@ -139,6 +141,7 @@ function deterministicEvaluation(input: {
       100 - Math.max(0, captionLength - platformLimit) * 0.5,
     ),
     visualReadability: contrast >= 4.5 ? 100 : clampScore(contrast * 20),
+    captionCoherence: computeCaptionCoherence(candidate),
   };
 
   return summarize(dimensions, []);
@@ -148,19 +151,90 @@ function normalizeNumbers(value: string): string[] {
   return value.match(/\b\d+(?:[.,]\d+)?%?\b/g) ?? [];
 }
 
+/**
+ * Calcula a coerência entre a legenda (caption) e o conteúdo visual
+ * (slides ou seções) do post.
+ *
+ * Esta dimensão detecta discrepâncias como:
+ * - Caption diz "3 dicas" quando há 5 slides
+ * - Caption menciona tópicos que não aparecem nos slides
+ * - Caption não referencia o conteúdo principal
+ */
+function computeCaptionCoherence(candidate: EvaluatedCandidate): number {
+  const caption = candidate.caption?.trim() ?? "";
+  if (!caption) return 40;
+
+  // Extrair conteúdo visual
+  const slides = candidate.slides ?? [];
+  const sections = candidate.sections ?? [];
+
+  let visualContent = "";
+  let itemCount = 0;
+
+  if (slides.length > 0) {
+    visualContent = slides
+      .map((s) => `${s.headline ?? ""} ${s.body ?? ""}`)
+      .join(" ");
+    itemCount = slides.length;
+  } else if (sections.length > 0) {
+    visualContent = sections
+      .map((s) => `${s.label ?? ""} ${s.description ?? ""}`)
+      .join(" ");
+    itemCount = sections.length;
+  } else {
+    // Sem slides/seções: compara caption com headline+body
+    visualContent = `${candidate.headline ?? ""} ${candidate.body ?? ""}`;
+    itemCount = 1;
+  }
+
+  if (!visualContent.trim()) return 50;
+
+  // 1. Overlap lexical entre caption e conteúdo visual
+  const captionTokens = tokenizeVariationText(caption);
+  const visualTokens = tokenizeVariationText(visualContent);
+  const overlap = captionTokens.length > 0
+    ? captionTokens.filter((t) => new Set(visualTokens).has(t)).length / captionTokens.length
+    : 0;
+  const overlapScore = clampScore(40 + overlap * 70);
+
+  // 2. Detecção de discrepância de números
+  // Se a caption menciona um número de itens diferente do conteúdo visual
+  const captionNumbers = caption.match(/\b(\d+)\b/g)?.map(Number) ?? [];
+  const relevantNumbers = captionNumbers.filter((n) => n >= 2 && n <= 20);
+  let numberCoherence = 100;
+  if (itemCount > 1 && relevantNumbers.length > 0) {
+    const matchingNumber = relevantNumbers.some((n) => n === itemCount);
+    if (!matchingNumber) {
+      // Caption menciona um número diferente de itens — penalidade severa
+      numberCoherence = 25;
+    }
+  }
+
+  // 3. Comprimento da caption (muito curta = baixa coerência potencial)
+  const lengthScore = caption.length < 80 ? 45 : caption.length > 2000 ? 80 : 90;
+
+  // Combinação ponderada
+  return clampScore(
+    overlapScore * 0.45 +
+    numberCoherence * 0.4 +
+    lengthScore * 0.15,
+  );
+}
+
 function summarize(
   dimensions: Dimensions,
   feedback: string[],
 ): GenerationEvaluationSummary {
   const weights: Record<keyof Dimensions, number> = {
-    brandAlignment: 0.14,
-    objectiveAlignment: 0.16,
-    audienceRelevance: 0.12,
-    factuality: 0.16,
-    originality: 0.12,
-    clarity: 0.1,
-    platformFit: 0.08,
-    visualReadability: 0.12,
+    brandAlignment: 0.12,
+    objectiveAlignment: 0.14,
+    audienceRelevance: 0.1,
+    factuality: 0.14,
+    originality: 0.1,
+    clarity: 0.08,
+    platformFit: 0.06,
+    visualReadability: 0.1,
+    captionCoherence: 0.16,
   };
   const overallScore = clampScore(
     (Object.keys(dimensions) as Array<keyof Dimensions>).reduce(
@@ -172,7 +246,8 @@ function summarize(
     overallScore >= 70 &&
     dimensions.factuality >= 65 &&
     dimensions.visualReadability >= 65 &&
-    dimensions.objectiveAlignment >= 60;
+    dimensions.objectiveAlignment >= 60 &&
+    dimensions.captionCoherence >= 50;
 
   return {
     overallScore,
@@ -239,6 +314,7 @@ ${JSON.stringify(
                   clarity: { type: "number" },
                   platformFit: { type: "number" },
                   visualReadability: { type: "number" },
+                  captionCoherence: { type: "number" },
                 },
                 required: [
                   "brandAlignment",
@@ -249,6 +325,7 @@ ${JSON.stringify(
                   "clarity",
                   "platformFit",
                   "visualReadability",
+                  "captionCoherence",
                 ],
                 additionalProperties: false,
               },
@@ -275,6 +352,7 @@ ${JSON.stringify(
       "clarity",
       "platformFit",
       "visualReadability",
+      "captionCoherence",
     ];
     if (
       !parsed.dimensions ||

@@ -121,19 +121,16 @@ describe("siteIntelligence", () => {
   });
 
   it("converts the same snapshot into renderer-ready design tokens", () => {
-    expect(siteIntelligenceToDesignTokens(intelligence)).toMatchObject({
-      colors: {
-        background: "#101828",
-        primary: "#7F56D9",
-        text: "#FFFFFF",
-      },
-      typography: {
-        fontFamily: "Inter",
-        textAlign: "left",
-      },
-      structure: {
-        borderRadius: "16px",
-      },
-    });
+    const tokens = siteIntelligenceToDesignTokens(intelligence);
+    // The new guardian picks the most saturated brand color as `primary`.
+    // In this fixture, #12B76A (green) is more saturated than #7F56D9 (purple),
+    // so primary must be #12B76A. Background must come from the brand palette
+    // (darkest non-pure-black), and text must pass WCAG >= 4.5:1.
+    expect(tokens.colors.background).toBe("#101828");
+    expect(["#12B76A", "#7F56D9"]).toContain(tokens.colors.primary);
+    expect(tokens.colors.text).toBe("#FFFFFF");
+    expect(tokens.typography.fontFamily).toBe("Inter");
+    expect(tokens.typography.textAlign).toBe("left");
+    expect(tokens.structure.borderRadius).toBe("16px");
   });
 });

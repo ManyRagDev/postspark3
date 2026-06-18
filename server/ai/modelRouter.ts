@@ -11,6 +11,7 @@ export type AiTaskRoute =
   | "fast_vision"
   | "post_evaluation"
   | "quality_revision"
+  | "caption_synthesis"
   | "fallback_text_or_vision";
 
 export type ModelCostConfig = {
@@ -145,7 +146,8 @@ export function resolveTaskModelConfig(input: {
     route === "static_generation" ||
     route === "carousel_generation" ||
     route === "post_evaluation" ||
-    route === "quality_revision"
+    route === "quality_revision" ||
+    route === "caption_synthesis"
   ) {
     return openRouterConfig(ENV.openRouterTextModel);
   }

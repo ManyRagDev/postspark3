@@ -108,6 +108,31 @@ app.post("/api/extract", async (req, res) => {
   }
 });
 
+// Analytics endpoints (LGPD-compliant, no personal data)
+import { trackPageView, trackEvent } from "./analytics";
+
+app.post("/api/analytics/pageview", async (req, res) => {
+  try {
+    const { path, referrer, timestamp } = req.body;
+    await trackPageView({ path, referrer, timestamp });
+    res.json({ received: true });
+  } catch (error: any) {
+    console.error("[Analytics] Error:", error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/api/analytics/event", async (req, res) => {
+  try {
+    const { event, properties, timestamp } = req.body;
+    await trackEvent({ event, properties, timestamp });
+    res.json({ received: true });
+  } catch (error: any) {
+    console.error("[Analytics] Error:", error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // REST endpoint for Brand DNA (direct, bypassing tRPC)
 app.post("/api/brand-dna", async (req, res) => {
   if (!ENV.aiSiteIntelligenceEnabled) {

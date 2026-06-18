@@ -355,6 +355,12 @@ const OPENROUTER_TASK_POLICY: Partial<
     reasoningEffort: "minimal",
     timeoutMs: 25_000,
   },
+  caption_synthesis: {
+    temperature: 0.5,
+    topP: 0.9,
+    reasoningEffort: "minimal",
+    timeoutMs: 25_000,
+  },
 };
 
 function timeoutForTaskRoute(route?: AiTaskRoute): number {
@@ -370,7 +376,8 @@ function isAiTaskRoute(value: string | undefined): value is AiTaskRoute {
     value === "fast_vision" ||
     value === "fallback_text_or_vision" ||
     value === "post_evaluation" ||
-    value === "quality_revision";
+    value === "quality_revision" ||
+    value === "caption_synthesis";
 }
 
 function isTruncatedResult(result: InvokeResult): boolean {

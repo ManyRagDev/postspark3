@@ -16,12 +16,14 @@ describe("postEvaluation", () => {
   });
 
   it("revises only rejected candidates once and re-evaluates the set", async () => {
+    // Candidates use rich text with good caption-body overlap and no unverified numbers.
+    // Candidate index 1 has bad contrast (#777777 / #777777) to trigger rejection.
     const candidates = Array.from({ length: 3 }, (_, index) => ({
-      headline: `Tema ${index + 1}`,
-      body: `Mensagem especifica ${index + 1}`,
-      caption: `Legenda ${index + 1}`,
+      headline: `Produto alpha ${index === 0 ? "essencial" : index === 1 ? "premium" : "inovador"}`,
+      body: `Solucao completa para equipes que buscam produtividade e foco real`,
+      caption: `Descubra como este produto traz produtividade e foco para sua equipe com solucao completa e pratica`,
       callToAction: "Saiba mais",
-      tone: `tom-${index + 1}`,
+      tone: `tom-${index === 0 ? "profissional" : index === 1 ? "direto" : "criativo"}`,
       layout: index === 0 ? "centered" : "left-aligned",
       backgroundColor: index === 1 ? "#777777" : "#000000",
       textColor: index === 1 ? "#777777" : "#FFFFFF",
@@ -58,9 +60,9 @@ describe("postEvaluation", () => {
   it("preserves rejected candidates when surgical revision fails", async () => {
     const candidates = [
       {
-        headline: "Tema",
-        body: "Mensagem especifica",
-        caption: "Legenda",
+        headline: "Produto essencial",
+        body: "Solucao completa para equipes que buscam produtividade e foco real",
+        caption: "Descubra como este produto traz produtividade e foco para sua equipe",
         callToAction: "Saiba mais",
         tone: "direto",
         layout: "centered",

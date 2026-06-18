@@ -12,7 +12,7 @@ import type { ThemeConfig } from "@/lib/themes";
 import { themeToDesignTokens } from "@/lib/themes";
 import { useAIProcessingStages, useCompletionFlash } from "@/hooks/useAIProcessingStages";
 import { useEditorStore } from "@/store/editorStore";
-import { normalizeVariationForEditor } from "@/lib/variationSnapshot";
+import { normalizeVariationForEditor, applyAspectRatioToVariation } from "@/lib/variationSnapshot";
 import GenerationAuditPanel from "../GenerationAuditPanel";
 
 const RATIOS: AspectRatio[] = ["1:1", "5:6", "9:16"];
@@ -355,7 +355,11 @@ export default function HoloDeck({
   const hasManualStyleOverride = Boolean(customTokens || selectedTheme);
   const getPreviewVariation = useCallback(
     (variation: PostVariation) => {
-      const base = hasManualStyleOverride ? variation : { ...variation, designTokens: undefined };
+      // "Fonte única da verdade": aplica aspectRatioOptimizations[aspectRatio]
+      // sobre a variação ANTES de renderizar o preview. Isso garante que o
+      // HoloDeck mostre exatamente as cores/layout que o Workbench usará.
+      const arApplied = applyAspectRatioToVariation(variation, aspectRatio);
+      const base = hasManualStyleOverride ? arApplied : { ...arApplied, designTokens: undefined };
       // Para carrosséis, renderiza o primeiro slide real em vez do resumo top-level
       if (variation.slides && variation.slides.length > 0) {
         const firstSlide = variation.slides[0];
@@ -367,7 +371,7 @@ export default function HoloDeck({
       }
       return base;
     },
-    [hasManualStyleOverride]
+    [hasManualStyleOverride, aspectRatio]
   );
   const activePreviewVariation = getPreviewVariation(activeVariation);
   // A "Alma" (accentColor) deve vir da variação ativa para o ambiente respirar a cor do post em foco
@@ -402,9 +406,9 @@ export default function HoloDeck({
         ...variation,
         aspectRatio,
         designTokens: resolvedTokens,
-        backgroundColor: customTokens?.colors.background || variationTokens?.colors?.background || variation.backgroundColor,
-        accentColor: customTokens?.colors.primary || variationTokens?.colors?.primary || variation.accentColor,
-        textColor: customTokens?.colors.text || variationTokens?.colors?.text || variation.textColor,
+        backgroundColor: variation.backgroundColor || variationTokens?.colors?.background || customTokens?.colors.background || "#171717",
+        accentColor: variation.accentColor || variationTokens?.colors?.primary || customTokens?.colors.primary || "#a855f7",
+        textColor: variation.textColor || variationTokens?.colors?.text || customTokens?.colors.text || "#ffffff",
         brandMeta: selectedTheme?.brandMeta || variation.brandMeta,
         bgValue:
           variation.bgValue ??

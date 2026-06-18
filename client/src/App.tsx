@@ -12,6 +12,12 @@ import SavedPosts from "./pages/SavedPosts";
 import Admin from "./pages/Admin";
 import TheVoid2Page from "./pages/TheVoid2Page";
 import UserTopMenu from "./components/UserTopMenu";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Cookies from "./pages/Cookies";
+import PrivacySettings from "./pages/PrivacySettings";
+import ConsentModal from "./components/ConsentModal";
+import CookieBanner from "./components/CookieBanner";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useEffect, type ComponentType } from "react";
 
@@ -177,6 +183,10 @@ function Router() {
       <Route path={"/pricing"} component={Pricing} />
       <Route path={"/billing"} component={() => <ProtectedRoute component={Billing} />} />
       <Route path={"/saved-posts"} component={() => <ProtectedRoute component={SavedPosts} />} />
+      <Route path={"/privacy"} component={Privacy} />
+      <Route path={"/terms"} component={Terms} />
+      <Route path={"/cookies"} component={Cookies} />
+      <Route path={"/privacy-settings"} component={() => <ProtectedRoute component={PrivacySettings} />} />
       <Route path={"/billing/success"} component={PostCheckoutSuccess} />
       <Route path={"/billing/topup-success"} component={TopupSuccess} />
       <Route path={"/admin"} component={() => <AdminRoute component={Admin} />} />
@@ -201,6 +211,9 @@ function AppInner() {
       <Router />
       {isAuthenticated && !isTheVoid2Route ? <UserTopMenu /> : null}
       {/* AuthGate: aparece apenas para usuários não autenticados */}
+      {/* Consentimento LGPD e Cookies */}
+      <ConsentModal />
+      <CookieBanner />
     </>
   );
 }
