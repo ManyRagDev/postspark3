@@ -8,6 +8,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Pricing from "./pages/Pricing";
 import Billing from "./pages/Billing";
+import History from "./pages/History";
 import SavedPosts from "./pages/SavedPosts";
 import Admin from "./pages/Admin";
 import TheVoid2Page from "./pages/TheVoid2Page";
@@ -182,6 +183,7 @@ function Router() {
       <Route path={"/thevoid2"} component={LegacyTheVoid2Route} />
       <Route path={"/pricing"} component={Pricing} />
       <Route path={"/billing"} component={() => <ProtectedRoute component={Billing} />} />
+      <Route path={"/history"} component={() => <ProtectedRoute component={History} />} />
       <Route path={"/saved-posts"} component={() => <ProtectedRoute component={SavedPosts} />} />
       <Route path={"/privacy"} component={Privacy} />
       <Route path={"/terms"} component={Terms} />

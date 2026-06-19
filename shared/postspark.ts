@@ -468,6 +468,21 @@ export interface PostVariation {
   }>;
 
   /**
+   * Array de elementos de imagem posicionados livremente no canvas.
+   * Permite adicionar imagens como stickers/logos sobre o post.
+   */
+  imageElements?: Array<{
+    id: string;
+    url: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number | "auto";
+    rotation: number;
+    source?: "upload" | "url";
+  }>;
+
+  /**
    * AI-generated optimizations for alternate aspect ratios.
    * Allows the UI to suggest specific layouts/colors when switching formats.
    */

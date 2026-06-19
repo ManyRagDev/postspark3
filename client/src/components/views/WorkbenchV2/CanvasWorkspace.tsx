@@ -18,6 +18,7 @@ import { trpc } from "@/lib/trpc";
 import { motion, AnimatePresence } from "framer-motion";
 import { layoutToAdvanced } from "@/lib/layoutToAdvanced";
 import { useIsMobile } from "@/hooks/useMobile";
+import { FloatingImageMenu } from "./FloatingImageMenu";
 
 interface CanvasWorkspaceProps {
     /** Referência do card para o export (html2canvas) */
@@ -51,6 +52,7 @@ export default function CanvasWorkspace({
     const setApplyScope = useEditorStore((s) => s.setApplyScope);
     const layoutTarget = useEditorStore((s) => s.layoutTarget);
     const setLayoutTarget = useEditorStore((s) => s.setLayoutTarget);
+    const addImageElement = useEditorStore((s) => s.addImageElement);
 
     const [isAutoPiloting, setIsAutoPiloting] = useState(false);
     const autoPilotMutation = trpc.post.autoPilotDesign.useMutation();
@@ -275,6 +277,34 @@ export default function CanvasWorkspace({
                     opacity: 0.028,
                 }}
             />
+
+            {/* Menu flutuante para upload de imagens */}
+            <FloatingImageMenu
+                onUpload={(file) => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        const url = ev.target?.result as string;
+                        // Posição inicial: centro do card (baseado em 360px de largura)
+                        const cardWidth = 360;
+                        const cardHeight = aspectRatio === '9:16' ? 640 : aspectRatio === '5:6' ? 432 : 360;
+                        const newElement = {
+                            id: `img-${Date.now()}`,
+                            url,
+                            x: cardWidth / 2 - 60,  // centro horizontal menos metade da largura (px)
+                            y: cardHeight / 2 - 60,  // centro vertical menos metade da altura (px)
+                            width: 120,
+                            height: 'auto' as const,
+                            rotation: 0,
+                            source: 'upload' as const,
+                        };
+                        addImageElement(newElement);
+                        setLayoutTarget(`imageElement:${newElement.id}`);
+                    };
+                    reader.readAsDataURL(file);
+                }}
+                accentColor={accentColor}
+            />
+
             {/* Container do card com scaling responsivo pra grandeza visual */}
             <div
                 className={`relative group flex items-center justify-center ${isMobile ? "px-3 pt-5 pb-4 h-full w-full" : "px-8 pt-24 pb-8 max-h-[85vh]"}`}

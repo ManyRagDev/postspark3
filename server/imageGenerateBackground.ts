@@ -118,7 +118,10 @@ Output requirements:
   }
 
   const json = await response.json();
-  const candidate = collectImageCandidates(json)[0];
+  console.log('[ImageGen] OpenRouter response structure:', JSON.stringify(json, null, 2).slice(0, 1000));
+  const candidates = collectImageCandidates(json);
+  console.log('[ImageGen] Collected image candidates:', candidates.length, candidates.map(c => c.slice(0, 100)));
+  const candidate = candidates[0];
   if (!candidate) {
     throw new Error("OpenRouter image response did not contain an image payload");
   }
@@ -157,7 +160,9 @@ async function generateWithPollinations(
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
-  return `data:image/jpeg;base64,${buffer.toString("base64")}`;
+  const dataUri = `data:image/jpeg;base64,${buffer.toString("base64")}`;
+  console.log('[ImageGen] Pollinations data URI length:', dataUri.length, 'first 100 chars:', dataUri.slice(0, 100));
+  return dataUri;
 }
 
 export async function generateBackgroundImage(

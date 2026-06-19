@@ -28,7 +28,7 @@ export const ENV = {
   openRouterAppName: process.env.OPENROUTER_APP_NAME ?? "PostSpark",
   openRouterTextModel: process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5-mini",
   openRouterVisionModel: process.env.OPENROUTER_VISION_MODEL ?? "openai/gpt-5-mini",
-  openRouterImageModel: process.env.OPENROUTER_IMAGE_MODEL ?? "google/gemini-3.1-flash-image",
+  openRouterImageModel: process.env.OPENROUTER_IMAGE_MODEL ?? "google/gemini-3.1-flash-image-preview",
   openRouterPlatformFeePercent: parseFloat(process.env.OPENROUTER_PLATFORM_FEE_PERCENT || "5.5"),
   llmInputCostPerMillion: parseFloat(process.env.LLM_INPUT_COST_PER_MILLION || "0"),
   llmOutputCostPerMillion: parseFloat(process.env.LLM_OUTPUT_COST_PER_MILLION || "0"),

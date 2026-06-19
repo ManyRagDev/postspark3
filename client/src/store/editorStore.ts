@@ -6,7 +6,19 @@ import { DEFAULT_IMAGE_SETTINGS, DEFAULT_LAYOUT_SETTINGS } from '@/types/editor'
 import { layoutToAdvanced } from '@/lib/layoutToAdvanced';
 import { applyAspectRatioToVariation } from '@/lib/variationSnapshot';
 
-type LayoutTarget = 'headline' | 'body' | 'image' | 'global' | 'badge' | 'sticker' | 'accentBar' | 'carouselArrow' | 'card' | `section:${string}` | `textElement:${string}`;
+// Tipo extraído para uso no store
+type ImageElement = {
+  id: string;
+  url: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number | "auto";
+  rotation: number;
+  source?: "upload" | "url";
+};
+
+type LayoutTarget = 'headline' | 'body' | 'image' | 'global' | 'badge' | 'sticker' | 'accentBar' | 'carouselArrow' | 'card' | `section:${string}` | `textElement:${string}` | `imageElement:${string}`;
 
 export type ApplyScope = 'current' | 'all';
 
@@ -27,6 +39,13 @@ const emptySlideOverrides = (): SlideEditorOverrides => ({
 });
 
 const cloneBgValue = (bgValue: BackgroundValue): BackgroundValue => {
+    console.log('[cloneBgValue] Cloning:', {
+        type: bgValue.type,
+        hasUrl: Boolean(bgValue.url),
+        urlLength: bgValue.url?.length || 0,
+        urlPrefix: bgValue.url?.slice(0, 30) || 'none'
+    });
+
     switch (bgValue.type) {
         case 'solid':
             return { type: 'solid', color: bgValue.color };
@@ -169,6 +188,9 @@ export interface EditorState {
     layoutTarget: LayoutTarget;
     isMagnetActive: boolean;
 
+    // Image elements (draggable images on canvas)
+    imageElements: ImageElement[];
+
     setActiveVariation: (variation: PostVariation | null) => void;
     setSlides: (slides: CarouselSlide[]) => void;
     setCurrentSlideIndex: (index: number) => void;
@@ -187,6 +209,11 @@ export interface EditorState {
 
     updateVariation: (variation: Partial<PostVariation>) => void;
     reset: () => void;
+
+    // Image element actions
+    addImageElement: (element: ImageElement) => void;
+    removeImageElement: (id: string) => void;
+    updateSingleImageElement: (id: string, patch: Partial<ImageElement>) => void;
 }
 
 export const useEditorStore = create<EditorState>(set => ({
@@ -210,6 +237,7 @@ export const useEditorStore = create<EditorState>(set => ({
     baseBgOverlay: DEFAULT_BG_OVERLAY,
     layoutTarget: 'global',
     isMagnetActive: true,
+    imageElements: [],
 
     setActiveVariation: variation =>
         set(state => {
@@ -251,6 +279,7 @@ export const useEditorStore = create<EditorState>(set => ({
                 bgOverlay,
             };
             const activeVariation = postMode === 'carousel' && slides.length > 0 ? mergeSlideIntoVariation(nextVariation, slides, slideOverrides, 0) : nextVariation;
+            const imageElements = activeVariation?.imageElements ?? [];
 
             return {
                 activeVariation,
@@ -269,6 +298,7 @@ export const useEditorStore = create<EditorState>(set => ({
                 baseBgValue: bgValue,
                 bgOverlay,
                 baseBgOverlay: bgOverlay,
+                imageElements,
                 applyScope: state.applyScope,
             };
         }),
@@ -548,6 +578,14 @@ export const useEditorStore = create<EditorState>(set => ({
 
     setBgValue: bgValue =>
         set(state => {
+            console.log('[editorStore.setBgValue] Setting bgValue:', {
+                type: bgValue.type,
+                hasUrl: Boolean(bgValue.url),
+                urlLength: bgValue.url?.length || 0,
+                urlPrefix: bgValue.url?.slice(0, 30) || 'none',
+                color: bgValue.color || 'none'
+            });
+
             if (state.postMode === 'carousel' && state.slides.length > 0) {
                 if (state.applyScope === 'all') {
                     const slideOverrides = state.slideOverrides.map(entry => ({
@@ -692,6 +730,39 @@ export const useEditorStore = create<EditorState>(set => ({
             };
         }),
 
+    // Image element actions
+    addImageElement: (element) =>
+        set(state => {
+            const next = [...state.imageElements, element];
+            return {
+                imageElements: next,
+                activeVariation: state.activeVariation ? { ...state.activeVariation, imageElements: next } : null,
+                baseVariation: state.baseVariation ? { ...state.baseVariation, imageElements: next } : null,
+            };
+        }),
+
+    removeImageElement: (id) =>
+        set(state => {
+            const next = state.imageElements.filter(e => e.id !== id);
+            return {
+                imageElements: next,
+                activeVariation: state.activeVariation ? { ...state.activeVariation, imageElements: next } : null,
+                baseVariation: state.baseVariation ? { ...state.baseVariation, imageElements: next } : null,
+            };
+        }),
+
+    updateSingleImageElement: (id, patch) =>
+        set(state => {
+            const next = state.imageElements.map(e =>
+                e.id === id ? { ...e, ...patch } : e
+            );
+            return {
+                imageElements: next,
+                activeVariation: state.activeVariation ? { ...state.activeVariation, imageElements: next } : null,
+                baseVariation: state.baseVariation ? { ...state.baseVariation, imageElements: next } : null,
+            };
+        }),
+
     reset: () =>
         set({
             activeVariation: null,
@@ -713,5 +784,6 @@ export const useEditorStore = create<EditorState>(set => ({
             baseBgOverlay: DEFAULT_BG_OVERLAY,
             layoutTarget: 'global',
             isMagnetActive: true,
+            imageElements: [],
         }),
 }));

@@ -5,7 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { invokeLLM } from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
-import { createBackgroundAsset, createPost, getPostById, getUserBackgroundAssets, getUserPosts, updatePost } from "./db";
+import { createBackgroundAsset, createPost, getGenerationRunById, getPostById, getUserBackgroundAssets, getUserGenerationRuns, getUserPosts, updatePost } from "./db";
 import { storagePut } from "./storage";
 import { analyzeBrandFromUrl, generateCardThemeVariations } from "./chameleon";
 import { generateBackgroundImage } from "./imageGenerateBackground";
@@ -1840,6 +1840,34 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
       return getUserPosts(ctx.user.id);
     }),
 
+    /** List user's generation history */
+    listGenerations: protectedProcedure
+      .input(
+        z.object({
+          limit: z.number().int().min(1).max(100).default(50),
+          offset: z.number().int().min(0).default(0),
+        }).optional(),
+      )
+      .query(async ({ input, ctx }) => {
+        const limit = input?.limit ?? 50;
+        const offset = input?.offset ?? 0;
+        return getUserGenerationRuns(ctx.user.id, limit, offset);
+      }),
+
+    /** Get single generation by ID */
+    getGeneration: protectedProcedure
+      .input(z.object({ id: z.string().uuid() }))
+      .query(async ({ input, ctx }) => {
+        const generation = await getGenerationRunById(input.id, ctx.user.id);
+        if (!generation) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Geração não encontrada.",
+          });
+        }
+        return generation;
+      }),
+
     /** Get single post */
     get: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ input, ctx }) => {
       return getPostById(input.id, ctx.user.id);
@@ -1865,7 +1893,10 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
           });
         }
 
+        console.log('[generateBackground] Starting generation:', { prompt: input.prompt.slice(0, 50), provider: input.provider });
         const imageData = await generateBackgroundImage(input.prompt, input.provider);
+        console.log('[generateBackground] Generated image data URI length:', imageData.length, 'first 150 chars:', imageData.slice(0, 150));
+        console.log('[generateBackground] Data URI prefix check:', imageData.startsWith('data:image/') ? 'VALID' : 'INVALID');
         return { imageData }; // base64 data URI
       }),
 

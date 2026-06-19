@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { refreshBridgeFromCurrentSession } from "@/lib/authBridge";
 import { supabase } from "@/lib/supabaseClient";
 import { trpc } from "@/lib/trpc";
-import { Bookmark, Building2, ChevronDown, Crown, Loader2, LogOut, Phone, Settings, UserRound } from "lucide-react";
+import { Bookmark, Building2, ChevronDown, Clock, Crown, Loader2, LogOut, Phone, Settings, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -168,6 +168,12 @@ export default function UserTopMenu() {
                 Posts salvos
               </span>
               <span className="text-xs font-semibold">{savedPosts?.length ?? 0}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLocation("/history")} className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Clock size={14} />
+                Histórico
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setLocation("/billing")}>
               <Settings size={14} />

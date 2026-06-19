@@ -127,7 +127,22 @@
       "Bash(curl -s http://127.0.0.1:3002/)",
       "Bash(curl -s http://127.0.0.1:3003/)",
       "Bash(taskkill //F //PID 19500)",
-      "Bash(taskkill //F //PID 20564)"
+      "Bash(taskkill //F //PID 20564)",
+      "Skill(glm-plan-usage:usage-query)",
+      "Skill(glm-plan-usage:usage-query-skill)",
+      "Bash(claude mcp *)",
+      "mcp__supabase__get_project_url",
+      "mcp__stripe__get_stripe_account_info",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__execute_sql",
+      "mcp__stripe__stripe_api_search",
+      "mcp__supabase__get_advisors",
+      "mcp__stripe__stripe_api_read",
+      "WebSearch"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase",
+    "stripe"
+  ]
 }

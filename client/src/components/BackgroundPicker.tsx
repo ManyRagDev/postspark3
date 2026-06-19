@@ -85,7 +85,15 @@ export default function BackgroundPicker({
 
   const generateBgMutation = trpc.post.generateBackground.useMutation({
     onSuccess: (data) => {
+      console.log('[BackgroundPicker] Received image data from server:', {
+        length: data.imageData?.length,
+        prefix: data.imageData?.slice(0, 50),
+        isValid: data.imageData?.startsWith('data:image/') || false
+      });
       onValueChange({ type: "ai", url: data.imageData });
+    },
+    onError: (error) => {
+      console.error('[BackgroundPicker] Generation failed:', error);
     },
   });
 

@@ -64,6 +64,7 @@ import { useDynamicFont } from "@/hooks/useDynamicFont";
 import { useTextAutoFit } from "@/hooks/useTextAutoFit";
 import { AdvancedTextNode, type AdvancedTextElement } from "@/components/canvas/AdvancedTextNode";
 import { DraggableBlock } from "@/components/canvas/DraggableBlock";
+import { ImageElementBlock, type ImageElement } from "@/components/canvas/ImageElementBlock";
 import { useEditorStore } from "@/store/editorStore";
 import { normalizeSectionIcon, normalizeSectionLayouts, normalizeSections } from "@/lib/variationSnapshot";
 
@@ -424,6 +425,10 @@ function PostCardV2Content({
     bgValue: editorBgValue,
     bgOverlay: editorBgOverlay,
     aspectRatio: globalAspectRatio,
+    imageElements: editorImageElements,
+    addImageElement,
+    removeImageElement,
+    updateSingleImageElement,
   } = useEditorStore();
 
   const [inlineEditTarget, setInlineEditTarget] = useState<"headline" | "body" | "badge" | "sticker" | null>(null);
@@ -511,6 +516,17 @@ function PostCardV2Content({
   // ── Background resolution (priority: solid > bgValue.url > variation.imageUrl) ──
   const isSolid = bgValue?.type === "solid";
   const resolvedImageUrl = isSolid ? undefined : (bgValue?.url ?? variationImageUrl);
+
+  // Debug: log resolved image URL
+  if (resolvedImageUrl) {
+    console.log('[PostCardV2] Resolved image URL:', {
+      length: resolvedImageUrl.length,
+      prefix: resolvedImageUrl.slice(0, 50),
+      type: bgValue?.type,
+      isVariation: Boolean(variationImageUrl),
+      isBgValue: Boolean(bgValue?.url)
+    });
+  }
 
   const ratio = aspectRatio ?? variation.aspectRatio ?? globalAspectRatio ?? "1:1";
   const aspectRatioCSS = ASPECT_RATIO_VALUES[ratio];
@@ -658,7 +674,20 @@ function PostCardV2Content({
     ) : null;
 
   const renderBgImage = (gradientStyle: string) => {
-    if (dt || theme) return null; // A imagem agora vai no nível raiz (Canvas)
+    if (dt || theme) {
+      console.log('[PostCardV2] renderBgImage skipped (dt/theme present)', {
+        hasDt: Boolean(dt),
+        hasTheme: Boolean(theme),
+        hasResolvedImageUrl: Boolean(resolvedImageUrl)
+      });
+      return null; // A imagem agora vai no nível raiz (Canvas)
+    }
+    if (resolvedImageUrl) {
+      console.log('[PostCardV2] renderBgImage rendering img tag', {
+        srcLength: resolvedImageUrl.length,
+        srcPrefix: resolvedImageUrl.slice(0, 50)
+      });
+    }
     return resolvedImageUrl ? (
       <div className="absolute inset-0">
         <img src={resolvedImageUrl} alt="" style={imgStyle} />
@@ -693,6 +722,41 @@ function PostCardV2Content({
             onElementChange={(id, patch) => updateTextElement(id, patch)}
             scale={1}
             editable={isEditable}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const renderImageElements = () => {
+    if (!variation.imageElements || variation.imageElements.length === 0) return null;
+
+    return (
+      <div className="absolute inset-0 z-20 pointer-events-none">
+        {variation.imageElements?.map(el => (
+          <ImageElementBlock
+            key={el.id}
+            element={el}
+            isSelected={isEditable && layoutTarget === `imageElement:${el.id}`}
+            onSelect={() => {
+              if (!isEditable) return;
+              setLayoutTarget(`imageElement:${el.id}`);
+            }}
+            onDeselect={() => {
+              if (!isEditable) return;
+              setLayoutTarget('global');
+            }}
+            onUpdate={(patch) => {
+              if (!isEditable) return;
+              updateSingleImageElement(el.id, patch);
+            }}
+            onDelete={() => {
+              if (!isEditable) return;
+              removeImageElement(el.id);
+              setLayoutTarget('global');
+            }}
+            containerRef={cardRef as React.RefObject<HTMLElement>}
+            accentColor={variation.accentColor ?? '#a855f7'}
           />
         ))}
       </div>
@@ -1236,6 +1300,7 @@ function PostCardV2Content({
 
         {/* Absolute text elements from Architect 2.0 */}
         {renderAdvancedTextElements()}
+        {renderImageElements()}
       </div>
     </div>
   );
@@ -1331,6 +1396,7 @@ function PostCardV2Content({
 
         {/* Absolute text elements from Architect 2.0 */}
         {renderAdvancedTextElements()}
+        {renderImageElements()}
       </div>
     </div>
   );
@@ -1425,6 +1491,7 @@ function PostCardV2Content({
 
         {/* Absolute text elements from Architect 2.0 */}
         {renderAdvancedTextElements()}
+        {renderImageElements()}
       </div>
     </div>
   );
@@ -1560,6 +1627,7 @@ function PostCardV2Content({
 
         {/* Absolute text elements from Architect 2.0 */}
         {renderAdvancedTextElements()}
+        {renderImageElements()}
       </div>
     );
   })();
@@ -1624,6 +1692,7 @@ function PostCardV2Content({
 
       {/* Absolute text elements from Architect 2.0 */}
       {renderAdvancedTextElements()}
+        {renderImageElements()}
     </div>
   );
 
@@ -1766,6 +1835,7 @@ function PostCardV2Content({
       </div>
       {/* Absolute text elements from Architect 2.0 */}
       {renderAdvancedTextElements()}
+        {renderImageElements()}
     </div>
   );
 
@@ -1777,6 +1847,12 @@ function PostCardV2Content({
   // DesignTokens path — ThemeRenderer handles structure, PostCard adds decorations
   if (dt) {
     const canvasBg = resolvedImageUrl ? "transparent" : dt.colors.background || effectiveBg;
+    console.log('[PostCardV2] Rendering with dt (DesignTokens)', {
+      hasResolvedImageUrl: Boolean(resolvedImageUrl),
+      canvasBg,
+      resolvedImageUrlLength: resolvedImageUrl?.length || 0,
+      resolvedImageUrlPrefix: resolvedImageUrl?.slice(0, 30) || 'none'
+    });
     return (
       <div
         style={{
@@ -1843,6 +1919,12 @@ function PostCardV2Content({
 
   if (theme) {
     const canvasBg = resolvedImageUrl ? "transparent" : theme.colors.bg || effectiveBg;
+    console.log('[PostCardV2] Rendering with theme', {
+      hasResolvedImageUrl: Boolean(resolvedImageUrl),
+      canvasBg,
+      resolvedImageUrlLength: resolvedImageUrl?.length || 0,
+      resolvedImageUrlPrefix: resolvedImageUrl?.slice(0, 30) || 'none'
+    });
     return (
       <div
         style={{
@@ -1911,6 +1993,15 @@ function PostCardV2Content({
     );
   }
 
+  // Default render (no dt, no theme) - debug log
+  console.log('[PostCardV2] Default render (no dt/theme)', {
+    hasResolvedImageUrl: Boolean(resolvedImageUrl),
+    resolvedImageUrlLength: resolvedImageUrl?.length || 0,
+    resolvedImageUrlPrefix: resolvedImageUrl?.slice(0, 30) || 'none',
+    isSolid,
+    bgValueType: bgValue?.type
+  });
+
   return (
     <div
       ref={cardRef}
@@ -1926,3 +2017,6 @@ function PostCardV2Content({
     </div>
   );
 }
+
+// Log de debug no final do componente para verificar renderização
+console.log('[PostCardV2] Component loaded');

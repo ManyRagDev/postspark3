@@ -160,6 +160,37 @@ export type CreateContentFingerprintInput = {
   metadata?: JsonValue;
 };
 
+export type GenerationRunRecord = {
+  id: string;
+  user_uuid: string;
+  site_intelligence_id: string | null;
+  status: string;
+  input_type: string;
+  input_content: string;
+  platform: string;
+  post_mode: string;
+  creation_mode: string;
+  requested_model: string;
+  effective_models: string[];
+  prompt_snapshot: JsonValue | null;
+  strategy_snapshot: JsonValue | null;
+  evaluation_snapshot: JsonValue | null;
+  output_snapshot: JsonValue | null;
+  revision_count: number;
+  candidate_count: number;
+  accepted_count: number;
+  average_quality_score: number;
+  strategy_fallback_used: boolean;
+  originality_fallback_used: boolean;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: number;
+  latency_ms: number;
+  error_message: string | null;
+  createdAt: string;
+};
+
 export type GenerationOperationalMetrics = {
   windowDays: number;
   totalRuns: number;
@@ -592,4 +623,54 @@ export async function getGenerationOperationalMetrics(
       0,
     ),
   };
+}
+
+/**
+ * Busca o histórico de gerações de um usuário.
+ * Retorna em ordem decrescente de criação (mais recentes primeiro).
+ */
+export async function getUserGenerationRuns(
+  userUuid: string,
+  limit = 50,
+  offset = 0,
+): Promise<GenerationRunRecord[]> {
+  const db = getSupabaseDbClient();
+
+  const { data, error } = await db
+    .from("generation_runs")
+    .select("*")
+    .eq("user_uuid", userUuid)
+    .order("createdAt", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    throw new Error(
+      `[Database] getUserGenerationRuns failed: ${error.message}`,
+    );
+  }
+
+  return (data ?? []) as GenerationRunRecord[];
+}
+
+/**
+ * Busca uma geração específica por ID.
+ */
+export async function getGenerationRunById(
+  id: string,
+  userUuid: string,
+): Promise<GenerationRunRecord | null> {
+  const db = getSupabaseDbClient();
+
+  const { data, error } = await db
+    .from("generation_runs")
+    .select("*")
+    .eq("id", id)
+    .eq("user_uuid", userUuid)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as GenerationRunRecord;
 }
