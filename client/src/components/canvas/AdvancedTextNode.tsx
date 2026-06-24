@@ -1,211 +1,133 @@
-import React, { useState, useRef, useEffect } from 'react';
-
-export interface AdvancedTextElement {
-    id: string;
-    text: string;
-    x: number;
-    y: number;
-    width: number | 'auto';
-    height: number | 'auto';
-    rotation: number;
-    styles: {
-        fontSize: string;
-        fontFamily: string;
-        color: string;
-        fontWeight: string;
-        fontStyle: string;
-        textDecoration: string;
-        textAlign: any;
-        lineHeight: string;
-        opacity: string;
-    };
-}
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import type { TextElement } from "@shared/postspark";
+import { readTextGeometry } from "@/editor/adapters";
+import { documentRect } from "@/editor/geometry";
+import { useCanvasInteraction } from "@/editor/integration/CanvasInteractionProvider";
+import { useInteractiveElement } from "@/editor/integration/InteractiveElement";
+import type { GeometryMeasurementContext } from "@/editor/integration/ElementRegistry";
+import type { InteractionIntent } from "@/editor/interaction";
 
 interface AdvancedTextNodeProps {
-    element: AdvancedTextElement;
-    isSelected: boolean;
-    onSelect: (e: React.MouseEvent | React.TouchEvent) => void;
-    onChange: (id: string, newText: string) => void;
-    onElementChange?: (id: string, patch: Partial<AdvancedTextElement>) => void;
-    scale: number;
-    editable?: boolean;
+  element: TextElement;
+  isSelected: boolean;
+  onSelect: () => void;
+  onChange: (id: string, newText: string) => void;
+  scale: number;
+  editable?: boolean;
 }
 
-export const AdvancedTextNode: React.FC<AdvancedTextNodeProps> = ({
-    element,
-    isSelected,
+export function AdvancedTextNode({
+  element,
+  isSelected,
+  onSelect,
+  onChange,
+  scale,
+  editable = true,
+}: AdvancedTextNodeProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const nodeRef = useRef<HTMLDivElement>(null);
+  const editableRef = useRef<HTMLDivElement>(null);
+  const interaction = useCanvasInteraction();
+  const target = `textElement:${element.id}` as const;
+  const descriptor = useMemo(() => ({
+    id: target,
+    kind: "text" as const,
+    nodeRef,
+    getPositioningContainer: (node: HTMLElement) => (node.offsetParent as HTMLElement | null) ?? node,
+    resolveInitialGeometry: (context: GeometryMeasurementContext) => readTextGeometry(element, context.measuredDocumentSize),
+    resolveConstraints: (context: GeometryMeasurementContext, intent: InteractionIntent) => ({
+      bounds: documentRect(0, 0, context.viewport.documentSize.width, context.viewport.documentSize.height),
+      ...(intent.type === "resize" ? { minWidth: 24, minHeight: 0 } : {}),
+    }),
+    handlePolicy: "horizontal" as const,
+    snapEligible: false,
+    accentColor: element.styles.color,
     onSelect,
-    onChange,
-    onElementChange,
-    scale,
-    editable = true,
-}) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const nodeRef = useRef<HTMLDivElement>(null);
-    const editableRef = useRef<HTMLDivElement>(null);
-    const interactionRef = useRef<{
-        type: 'drag' | 'resize';
-        pointerId: number;
-        startX: number;
-        startY: number;
-        elementX: number;
-        elementY: number;
-        width: number;
-        height: number;
-        renderScale: number;
-        parentWidth: number;
-        parentHeight: number;
-    } | null>(null);
+  }), [element, onSelect, target]);
+  const transient = useInteractiveElement(descriptor);
+  const draft = transient.draft;
 
-    const handleDoubleClick = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!editable) return;
-        e.stopPropagation();
-        setIsEditing(true);
+  const handleDoubleClick = (event: React.MouseEvent) => {
+    if (!editable) return;
+    event.stopPropagation();
+    interaction?.cancel();
+    setIsEditing(true);
+    requestAnimationFrame(() => {
+      const node = editableRef.current;
+      if (!node) return;
+      node.focus();
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      range.collapse(false);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    });
+  };
 
-        // Set focus and move caret to end
-        setTimeout(() => {
-            if (editableRef.current) {
-                editableRef.current.focus();
-                const selection = window.getSelection();
-                const range = document.createRange();
-                range.selectNodeContents(editableRef.current);
-                range.collapse(false);
-                selection?.removeAllRanges();
-                selection?.addRange(range);
-            }
-        }, 0);
-    };
+  const finishEditing = () => {
+    setIsEditing(false);
+    const text = editableRef.current?.innerText || "Texto";
+    if (text !== element.text) onChange(element.id, text);
+  };
 
-    const handleBlur = () => {
-        setIsEditing(false);
-        if (editableRef.current) {
-            onChange(element.id, editableRef.current.innerText || 'Texto');
-        }
-    };
+  useEffect(() => {
+    if (!isSelected && isEditing) finishEditing();
+  // Only selection transitions should finish the active edit.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSelected]);
 
-    useEffect(() => {
-        if (!isSelected && isEditing) {
-            setIsEditing(false);
-            if (editableRef.current) {
-                onChange(element.id, editableRef.current.innerText || 'Texto');
-            }
-        }
-    }, [isSelected, isEditing, element.id, onChange]);
+  useEffect(() => {
+    const handleFontsLoaded = () => interaction?.cancelTarget(target);
+    document.fonts?.addEventListener("loadingdone", handleFontsLoaded);
+    return () => document.fonts?.removeEventListener("loadingdone", handleFontsLoaded);
+  }, [interaction, target]);
 
-    const transformStyle = `translate(${element.x}px, ${element.y}px) rotate(${element.rotation}deg)`;
+  const x = draft?.rect.x ?? element.x;
+  const y = draft?.rect.y ?? element.y;
+  const width = draft?.rect.width ?? element.width;
+  const pointerLifecycle = {
+    ...transient.bind,
+    onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
+      if (!editable || isEditing) return;
+      transient.bind.onPointerDown(event);
+    },
+  };
 
-    const startInteraction = (event: React.PointerEvent<HTMLDivElement>, type: 'drag' | 'resize') => {
-        if (!editable || isEditing) return;
-        event.stopPropagation();
-        onSelect(event as unknown as React.MouseEvent);
-        if (!onElementChange) return;
-        nodeRef.current?.setPointerCapture(event.pointerId);
-        const bounds = editableRef.current?.getBoundingClientRect();
-        const offsetParent = nodeRef.current?.offsetParent as HTMLElement | null;
-        const parentBounds = offsetParent?.getBoundingClientRect();
-        const renderScale = offsetParent?.clientWidth && parentBounds
-            ? parentBounds.width / offsetParent.clientWidth
-            : scale;
-        interactionRef.current = {
-            type,
-            pointerId: event.pointerId,
-            startX: event.clientX,
-            startY: event.clientY,
-            elementX: element.x,
-            elementY: element.y,
-            width: element.width === 'auto' ? (bounds?.width ?? 80) / (renderScale || 1) : element.width,
-            height: element.height === 'auto' ? (bounds?.height ?? 32) / (renderScale || 1) : element.height,
-            renderScale: renderScale || 1,
-            parentWidth: offsetParent?.clientWidth ?? Number.POSITIVE_INFINITY,
-            parentHeight: offsetParent?.clientHeight ?? Number.POSITIVE_INFINITY,
-        };
-    };
+  return (
+    <div
+      ref={nodeRef}
+      data-layout-id={target}
+      className={`absolute select-none ${editable ? "pointer-events-auto cursor-move" : "pointer-events-none"}`}
+      style={{
+        transform: `translate(${x}px, ${y}px) rotate(${element.rotation}deg)`,
+        transformOrigin: "top left",
+        width: width === "auto" ? "auto" : `${width}px`,
+        height: element.height === "auto" ? "auto" : `${element.height}px`,
+        zIndex: isSelected ? 100 : 1,
+      }}
+      onDoubleClick={handleDoubleClick}
+      {...pointerLifecycle}
+    >
+      <div
+        ref={editableRef}
+        contentEditable={editable && isEditing}
+        suppressContentEditableWarning
+        onBlur={finishEditing}
+        className={`h-full min-h-[20px] min-w-[20px] w-full outline-none ${isEditing ? "cursor-text" : editable ? "cursor-move" : "cursor-default"}`}
+        style={{
+          ...element.styles,
+          fontSize: `${parseFloat(element.styles.fontSize) * scale}px`,
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          padding: "2px",
+          border: isEditing ? "1px dashed rgba(255,255,255,0.65)" : "none",
+        }}
+      >
+        {element.text}
+      </div>
+    </div>
+  );
+}
 
-    const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-        const interaction = interactionRef.current;
-        if (!interaction || interaction.pointerId !== event.pointerId || !onElementChange) return;
-        const deltaX = (event.clientX - interaction.startX) / interaction.renderScale;
-        const deltaY = (event.clientY - interaction.startY) / interaction.renderScale;
-
-        if (interaction.type === 'drag') {
-            onElementChange(element.id, {
-                x: Math.min(
-                    Math.max(0, interaction.parentWidth - interaction.width),
-                    Math.max(0, interaction.elementX + deltaX),
-                ),
-                y: Math.min(
-                    Math.max(0, interaction.parentHeight - interaction.height),
-                    Math.max(0, interaction.elementY + deltaY),
-                ),
-            });
-            return;
-        }
-
-        onElementChange(element.id, {
-            width: Math.min(
-                interaction.parentWidth - interaction.elementX,
-                Math.max(24, interaction.width + deltaX),
-            ),
-            height: Math.min(
-                interaction.parentHeight - interaction.elementY,
-                Math.max(20, interaction.height + deltaY),
-            ),
-        });
-    };
-
-    const finishInteraction = (event: React.PointerEvent<HTMLDivElement>) => {
-        if (interactionRef.current?.pointerId === event.pointerId) {
-            interactionRef.current = null;
-            if (nodeRef.current?.hasPointerCapture(event.pointerId)) {
-                nodeRef.current.releasePointerCapture(event.pointerId);
-            }
-        }
-    };
-
-    return (
-        <div
-            ref={nodeRef}
-            data-layout-id={`textElement:${element.id}`}
-            className={`absolute select-none ${editable ? 'pointer-events-auto cursor-move' : 'pointer-events-none'}`}
-            style={{
-                transform: transformStyle,
-                transformOrigin: 'top left',
-                width: element.width === 'auto' ? 'auto' : `${element.width}px`,
-                height: element.height === 'auto' ? 'auto' : `${element.height}px`,
-                zIndex: isSelected ? 100 : 1,
-            }}
-            onDoubleClick={handleDoubleClick}
-            onPointerDown={(event) => startInteraction(event, 'drag')}
-            onPointerMove={handlePointerMove}
-            onPointerUp={finishInteraction}
-            onPointerCancel={finishInteraction}
-        >
-            <div
-                ref={editableRef}
-                contentEditable={editable && isEditing}
-                suppressContentEditableWarning={true}
-                onBlur={handleBlur}
-                className={`w-full h-full min-w-[20px] min-h-[20px] outline-none ${isEditing ? 'cursor-text' : editable ? 'cursor-move' : 'cursor-default'}`}
-                style={{
-                    ...element.styles,
-                    fontSize: `${parseFloat(element.styles.fontSize) * scale}px`, // Apply zoom scale
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                    padding: '2px', // Slight padding for editing comfort
-                    border: isEditing || isSelected ? '1px dashed rgba(255,255,255,0.65)' : 'none',
-                }}
-            >
-                {element.text}
-            </div>
-            {editable && onElementChange && isSelected && !isEditing && (
-                <div
-                    role="presentation"
-                    data-resize-handle
-                    className="absolute -bottom-1.5 -right-1.5 h-3 w-3 rounded-sm border border-black/60 bg-white shadow"
-                    style={{ cursor: 'nwse-resize' }}
-                    onPointerDown={(event) => startInteraction(event, 'resize')}
-                />
-            )}
-        </div>
-    );
-};
+export type AdvancedTextElement = TextElement;

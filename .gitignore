@@ -117,4 +117,8 @@ docs/*
 !docs/DESIGN_SYSTEM.md
 !docs/ensino/
 !docs/ensino/**
+!docs/canva/
+docs/canva/*
+!docs/canva/PLANO_REFORMA_MOTOR_WORKBENCH.md
+!docs/canva/PLANO_RECUPERACAO_DEFINITIVA_WORKBENCH.md
 .agent/skills/awesome-skills/

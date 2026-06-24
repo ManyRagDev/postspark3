@@ -559,6 +559,8 @@ Gerenciar o estado editável do post e suas variantes/overrides por slide.
 
 ### 5.8.1 Layout responsivo e interacao no canvas
 
+- No desktop, o canvas do Workbench escala de acordo com o espaco central disponivel, preserva o aspect ratio e pode chegar a `2x` da base logica de 360 px. Em viewports menores, a escala e reduzida automaticamente para manter o post e seus controles dentro da area util; o dimensionamento mobile permanece independente e limitado a `1x`.
+- Quando o ima esta ativo, blocos e sections usam a mesma malha visual `9x9`, com pontos de snap entre 10% e 90% do canvas em intervalos de 10%.
 - A normalizacao de uma variacao nao cria coordenadas absolutas nem `layoutSettingsByAspectRatio`; HoloDeck e Workbench iniciam com o mesmo fluxo responsivo de `PostCardV2`.
 - Ao trocar o formato, o store preserva o layout manual do formato atual e hidrata o layout salvo do destino. Quando nao existe layout salvo, usa o layout estrutural correspondente a `PostVariation.layout`.
 - `layoutSettings.sectionLayouts` contem somente posicoes criadas explicitamente pelo usuario ou aplicadas pelo AutoPilot. Sections sem override continuam ocupando seu lugar no fluxo do template.
@@ -633,6 +635,8 @@ visual baseada em tempo e fase (`extracting` ou `generating`) centralizada em
 3. `generateBackgroundImage()` chama OpenRouter/Nano Banana 2 e usa Pollinations apenas como fallback legacy.
 4. O backend devolve `data:image/...;base64,...`.
 5. O frontend injeta a imagem diretamente no editor.
+
+O backend registra no console o servico e o modelo efetivamente chamados, o sucesso do provedor e a troca para Pollinations quando o OpenRouter falha. A resposta do OpenRouter e lida somente dos campos estruturados de imagem e validada pela assinatura binaria de PNG, JPEG, WebP ou GIF; payloads base64 que nao representam imagens validas sao rejeitados e acionam o fallback.
 
 ### 6.6 Fluxo de billing
 
@@ -1345,3 +1349,301 @@ Contrato de prioridade de cor por aspect ratio:
 2. `variation.backgroundColor/textColor/accentColor` (nivel superior)
 3. `variation.designTokens.colors.*`
 4. fallback neutro (`#171717` / `#a855f7` / `#ffffff`)
+
+## 27. Snapshot visual canônico e handoff imutável - 2026-06-23
+
+Esta seção substitui as descrições anteriores que tratavam apenas cores ou que afirmavam que a equivalência HoloDeck/Workbench era garantida por convenção.
+
+### Contrato oficial
+
+O fluxo canônico é:
+
+`post.generate -> PostVariation bruta -> createPostVisualSnapshot -> PostVisualSnapshot v2 -> HoloDeck -> editorStore.visualSnapshot -> Workbench/exportacao/post.save`
+
+Fatos observados:
+
+- A API continua retornando `variations`; não houve quebra do contrato público de geração.
+- `client/src/lib/variationSnapshot.ts` é a única fronteira autorizada a resolver otimizações por aspect ratio, cores, `designTokens`, layout avançado, background, imagem, overlay, sections e defaults.
+- O HoloDeck renderiza o snapshot completo, inclusive `designTokens`, e entrega ao editor exatamente o snapshot confirmado pelo usuário.
+- `editorStore.visualSnapshot` é o documento autoritativo durante a edição. Os campos históricos `activeVariation`, `baseVariation`, `slides`, `imageSettings`, `layoutSettings`, `bgValue` e equivalentes permanecem como projeções compatíveis para os controles existentes e são sincronizados atomicamente por `setWithSnapshot`.
+- `PostRenderer` projeta overrides de `slides[].editorState` somente para leitura. Essa projeção não promove o slide atual para o nível-base do documento.
+- `Home.handleSave` persiste diretamente `editorStore.visualSnapshot`; ele não reconstrói o post combinando fontes independentes.
+- Posts salvos v1 e registros legados são normalizados em memória para v2. O schema aceita snapshots v1 para leitura e v2 para novas gravações.
+- A restauração de histórico também atravessa a mesma fronteira canônica antes de retornar ao HoloDeck.
+
+### Invariantes de manutenção
+
+1. Renderers não resolvem design e não removem campos do snapshot.
+2. Toda ação editável precisa atualizar `visualSnapshot` na mesma transação do Zustand.
+3. Salvamento, exportação e canvas leem `visualSnapshot`, nunca uma remontagem ad hoc de projeções internas.
+4. Tema ou customização explícita atualiza o próprio snapshot, mantendo cores top-level e `designTokens.colors` coerentes.
+5. Troca de formato passa novamente pelo normalizador canônico e produz um snapshot completo para a proporção escolhida.
+6. Overrides do slide atual permanecem serializados em `slides[].editorState`.
+7. Uma mudança estrutural no snapshot exige nova versão, fallback para versões anteriores, testes e atualização deste documento.
+
+### Proteção contra regressões
+
+Os testes de `client/src/lib/variationSnapshot.test.ts` validam normalização completa, otimização por formato, sincronização de tokens, handoff HoloDeck/Store/Save e isolamento de overrides de carrossel. `shared/postsparkSchemas.test.ts` valida o contrato persistível. Esses testes são obrigatórios em refatorações do fluxo visual.
+
+## 28. Auditoria do motor de interação do Workbench - 2026-06-23
+
+Fatos confirmados no código:
+
+- O fluxo ativo possui três semânticas de geometria/interação: `DraggableBlock`
+  usa percentual com origem central; `AdvancedTextNode` usa pixels com origem no
+  canto superior esquerdo e corrige a escala do workspace; `ImageElementBlock`
+  usa pixels com origem no canto superior esquerdo, mas não corrige o delta pela
+  escala CSS externa.
+- Blocos comuns mantêm preview local e atualizam o Zustand ao final do drag.
+  Textos avançados e imagens atualizam o Zustand em cada `pointermove`, fazendo
+  `setWithSnapshot` reconstruir `visualSnapshot` repetidamente durante o gesto.
+- O ímã atual é snap para uma grade fixa de coordenadas percentuais entre 10% e
+  90%. Ele não calcula alinhamento com outros elementos e não constitui smart
+  guides.
+- `useResizeElement` possui ciclo próprio, suporta apenas alteração de largura e
+  não tem rollback explícito para `pointercancel`, embora `DraggableBlock`
+  apresente oito handles visuais.
+- `AdvancedTextCanvas` e `AdvancedTextSelectionBox` não possuem consumidores no
+  fluxo ativo.
+- A Fase 0 da reforma corrigiu a perda silenciosa de `imageElements`:
+  `ImageElement` passou a ser contrato compartilhado e o schema Zod preserva o
+  campo tanto na raiz do snapshot quanto em
+  `slides[].editorState.variation`.
+- `variationSnapshot` continua sendo a única persistência autoritativa de
+  imagens livres; não foi criado campo legado, coluna ou parâmetro tRPC
+  paralelo e `snapshotVersion` permanece em v2.
+- A projeção `editorStore.imageElements` foi removida. As APIs públicas
+  `addImageElement`, `removeImageElement` e `updateSingleImageElement` agora
+  derivam o conjunto da variação ativa e delegam a `updateVariation`.
+- Em carrossel, `applyScope=current` grava somente no override do slide atual;
+  `applyScope=all` usa o conjunto efetivo do slide atual como autoritativo e o
+  aplica à raiz e a todos os slides. IDs duplicados ou inexistentes são no-op e
+  não reconstroem o snapshot.
+- Testes cobrem schema raiz/slide, posts estáticos, isolamento de carrossel,
+  propagação global, no-ops e round-trip
+  `Store -> Snapshot -> Zod -> JSON -> Restore`.
+- Não existe histórico transacional undo/redo para ações do editor.
+
+Decisão arquitetural registrada:
+
+- A reforma será incremental e preservará `visualSnapshot` como documento
+  autoritativo.
+- O novo núcleo usará document space em pixels lógicos e estado transitório
+  separado, com adapters para os contratos v2 existentes.
+- Cada gesto terá preview transitório, um único commit no `pointerup` e rollback
+  em cancelamento.
+- A unificação do contrato persistido ficará para um snapshot v3 posterior à
+  estabilização do motor.
+- A renderização DOM e o `PostRenderer` comum serão preservados; não há evidência
+  de que uma migração para Fabric, Konva, Canvas 2D ou WebGL seja necessária.
+- Smart guides permanecem no backlog até a migração de blocos, textos e imagens
+  para o controlador comum.
+
+Plano detalhado:
+
+- [`docs/canva/PLANO_REFORMA_MOTOR_WORKBENCH.md`](./docs/canva/PLANO_REFORMA_MOTOR_WORKBENCH.md)
+
+## 29. Kernel geométrico puro do Workbench - 2026-06-23
+
+A Fase 1 da reforma introduziu `client/src/editor/geometry/` como núcleo
+matemático independente para as próximas migrações do Workbench. O kernel ainda
+não possui consumidores em runtime; portanto, esta fase não altera o
+comportamento visual ou interativo atual.
+
+Contrato implementado:
+
+- Tipos opacos distinguem pontos, deltas, retângulos e dimensões em screen space
+  e document space, além de pontos percentuais, viewport, geometria de elemento
+  e os oito handles de resize.
+- Construtores públicos rejeitam números não finitos e dimensões inválidas,
+  normalizam `-0` e aceitam retângulos de tamanho zero somente nos contratos em
+  que isso é geometricamente válido.
+- `createCanvasViewport` deriva as escalas a partir do retângulo em CSS pixels e
+  do canvas lógico, sem aplicar `devicePixelRatio`. Diferenças relativas de até
+  0,1% entre os eixos são toleradas; deformações superiores são rejeitadas.
+- Transformações puras cobrem pontos, deltas, retângulos e tolerâncias entre
+  tela e documento nos dois sentidos.
+- Operações de bounds cobrem centro, translação, união, rotação normalizada,
+  bounds de retângulos rotacionados e conversão entre centro percentual e
+  retângulo no documento.
+- Constraints cobrem clamp numérico, de ponto e de retângulo, centralização com
+  overflow simétrico quando o elemento excede o canvas e resize pelos oito
+  handles, com mínimos e bounds opcionais preservando a borda oposta.
+
+Limites arquiteturais confirmados:
+
+- O kernel não importa React, Zustand, DOM, contratos compartilhados ou
+  `variationSnapshot`, e não lê `HTMLElement` ou `DOMRect`.
+- `useDragElement`, `useResizeElement`, `DraggableBlock`, textos, imagens, store,
+  snapshot e persistência permanecem inalterados nesta fase.
+- A adaptação de eventos de ponteiro e o estado transitório pertencem à Fase 2;
+  a substituição dos motores concorrentes começa somente com os adapters da
+  Fase 3.
+- Os testes unitários do kernel cobrem 34 casos; após sua inclusão, a suíte
+  completa possui 137 testes passando.
+
+## 30. FSM e sessão transitória do Workbench - 2026-06-23
+
+A Fase 2 introduziu `client/src/editor/interaction/` como motor de interação
+isolado. Ele ainda não possui consumidores em runtime e, portanto, não altera o
+drag, o resize ou a renderização atuais do Workbench.
+
+Contrato implementado:
+
+- A interação é representada por uma união discriminada com os estados `idle`,
+  `pressing`, `dragging`, `resizing`, `committing` e `cancelling`.
+- O controller expõe início, preview, commit, cancelamento, leitura, assinatura
+  e descarte da sessão. Uma segunda interação é rejeitada enquanto houver um
+  ponteiro ativo e eventos de outros ponteiros são ignorados.
+- O limiar de 5 CSS pixels é calculado em screen space e permanece independente
+  do zoom. A geometria transitória usa o viewport capturado no início para
+  converter movimentos ao document space da Fase 1.
+- Drag e resize delegam ao kernel geométrico translação, constraints, bounds e
+  os oito handles. A rotação original é preservada.
+- Movimentos físicos são coalescidos por uma `FrameScheduler`; `pointerup`
+  cancela o frame pendente e processa a posição final antes do commit.
+- Captura e liberação do ponteiro atravessam uma `PointerCapturePort`. Falha de
+  captura rejeita o gesto; falhas de liberação ou commit não impedem a limpeza
+  do estado transitório.
+- Clique abaixo do limiar e geometria final idêntica à inicial não geram commit.
+  Cancelamento, Escape, invalidação de viewport, desmontagem e descarte também
+  encerram a sessão sem commit.
+- O transient store é próprio, imutável e independente de Zustand. O motor não
+  importa React, DOM, contratos compartilhados, `editorStore` ou
+  `variationSnapshot`.
+
+Fronteira arquitetural:
+
+- A Fase 2 garante no máximo uma chamada ao `InteractionCommitPort` por gesto.
+- Não foi criada uma ação provisória em `editorStore` e nenhum snapshot é
+  reconstruído durante preview.
+- O primeiro `setWithSnapshot` real e sua semântica `current/all` serão
+  implementados e comprovados junto ao adapter de blocos da Fase 3.
+- Adapters v2, hooks React e migração de elementos permanecem fora desta fase.
+- Os testes unitários do motor cobrem 35 casos; após sua inclusão, a suíte
+  completa possui 172 testes passando.
+
+## 31. Motor único de interação e desconcentração do Workbench - 2026-06-23
+
+As Fases 3, 4 e 5 conectaram o kernel e a FSM ao Workbench ativo. Esta seção
+substitui o diagnóstico anterior de motores concorrentes como descrição do
+runtime atual; aquele diagnóstico permanece apenas como histórico da reforma.
+
+Contrato vigente:
+
+- Blocos percentuais, sections, card, textos avançados e imagens livres iniciam
+  gestos pelo mesmo `CanvasInteractionProvider` e pelo mesmo controller.
+- O provider pertence ao stage editável do `CanvasWorkspace`, captura viewport
+  e geometria no início do gesto, mantém preview transitório e cancela em
+  Escape, resize, mudança de slide/aspect ratio, carregamento de fonte ou
+  desmontagem.
+- `editorStore.commitGeometry` é a única fronteira geométrica persistente. Cada
+  gesto gera no máximo um `setWithSnapshot`; movimentos de ponteiro não escrevem
+  no Zustand nem reconstroem `visualSnapshot`.
+- O commit preserva a semântica de carrossel: `current` altera apenas o override
+  ativo; `all` replica o conjunto efetivo para raiz e slides; IDs ausentes e
+  geometrias inalteradas são no-op.
+- `TextElement` e `ImageElement` são contratos compartilhados. Resize de texto é
+  horizontal, com mínimo de 24 px e altura `auto`; resize de imagem usa quatro
+  cantos, proporção preservada e mínimo de 40 x 40 px. Imagens com altura `auto`
+  mantêm `auto` no snapshot.
+- Bounds visuais consideram rotação. Elementos maiores que o canvas mantêm
+  overflow simétrico segundo as regras do kernel.
+
+Desconcentração originalmente pretendida (reavaliada em 2026-06-23):
+
+- A primeira implementação de `InteractiveElement` centralizava apenas handlers
+  básicos e registro. Medição, seleção e início ainda estavam distribuídos entre
+  bloco, texto e imagem. Essa lacuna foi corrigida pela Fase 5.1 descrita abaixo.
+- `InteractionOverlay` é irmão de `data-post-export-root`; outlines, handles,
+  exclusão e a grade temporária não pertencem à árvore exportável.
+- `PostRenderer`, `PostCardV2` e `ThemeRenderer` não importam o `editorStore`.
+  O stage injeta `PostEditorBindings` apenas em modo de edição; preview e export
+  consomem exclusivamente o snapshot projetado.
+- Edição de conteúdo, seleção e exclusão continuam comandos semânticos separados
+  de geometria.
+- `AdvancedTextCanvas`, `AdvancedTextSelectionBox`, `useDragElement` e
+  `useResizeElement` foram removidos após inspeção de consumidores.
+- AutoPilot/captura, loading e controles de ímã/carrossel foram extraídos do
+  `CanvasWorkspace` para módulos próprios.
+
+Não houve mudança de schema nem incremento de `snapshotVersion`: os campos
+alterados já pertenciam ao contrato v2. Smart guides, rotação interativa, crop,
+undo/redo e snapshot v3 continuam fora deste escopo.
+
+Validação em 2026-06-23: typecheck, 133 testes focados e a suíte completa com
+25 arquivos/218 testes passaram; a
+inspeção estática confirmou ausência dos motores antigos e de imports do store
+nos renderers. A validação visual automatizada permanece pendente porque o
+runtime de browser da sessão não estava disponível; o plano mantém as Fases 3,
+4 e 5 em estado de validação até esse gate ser executado.
+
+## 32. Invariância do primeiro gesto do Workbench — 2026-06-23
+
+Fato confirmado no código e em teste React/DOM:
+
+- A causa do primeiro drag irregular era a troca estrutural de
+  `DraggableBlock` ao cruzar o slop: o nó capturado passava do ramo flow para um
+  fragmento com placeholder e outro ramo absoluto durante o gesto.
+- `DraggableBlock` agora mantém um único `HTMLElement` interativo. O espaço de
+  flow é preservado por um shell sem duplicar conteúdo, e o preview usa
+  `translate3d` relativo à geometria inicial. A conversão para absoluto ocorre
+  somente após o commit.
+- `CanvasInteractionProvider` recebe a referência explícita de
+  `data-post-export-root`; todo viewport é derivado desse canvas lógico. Um
+  container interno pode posicionar CSS, mas não cria outro document space.
+- `ElementRegistry` armazena um descriptor por target com node, containing
+  block, resolução de geometria, constraints, handles, seleção e elegibilidade
+  de snap. `useInteractiveElement` é a API comum usada por blocos, texto e
+  imagem.
+- O clamp de drag preserva overflow inicial: o primeiro frame não corrige uma
+  geometria antiga, e movimentos que aumentariam o overflow são bloqueados.
+- Loading de imagem e fonte cancela somente a sessão do target afetado.
+- O overlay mede geometria em layout effect, usa o draft transitório durante o
+  gesto e não executa `getBoundingClientRect()` durante render.
+- Controller e overlay são montados apenas em modo de edição; export continua
+  contendo somente `data-post-export-root`.
+
+Validação automatizada:
+
+- `happy-dom` é a única nova dependência de desenvolvimento.
+- O teste `firstDrag.dom.test.tsx` monta React diretamente com
+  `react-dom/client` e comprova identidade do nó, captura contínua e ausência de
+  `lostpointercapture` por reconciliação.
+- Typecheck e 140 testes focados passaram após a estabilização.
+
+Lacuna ainda aberta:
+
+- A matriz visual completa dos três formatos, cinco escalas e escopos de
+  carrossel não foi executada porque os runtimes de browser disponíveis na
+  sessão estavam indisponíveis. Por isso Fases 3–5 permanecem reabertas, e
+  Snapshot v3, histórico e smart guides não foram iniciados.
+
+## 33. Reauditoria da reforma do Workbench — 2026-06-24
+
+A validação posterior com browser confirmou que as Fases 3–5 continuam
+reabertas e identificou regressões que não aparecem na suíte unitária atual.
+
+Fatos confirmados:
+
+- `buildVariationSnapshot` promove `textElements` efetivos do slide atual para a
+  raiz do snapshot de carrossel; overrides de slide, portanto, ainda podem vazar
+  para o documento-base.
+- Drag básico de texto e imagem funciona, e `applyScope=current` restaura a
+  geometria correta ao navegar entre slides.
+- Resize por handles não foi determinístico na validação browser e permanece
+  reprovado até receber teste E2E estável.
+- Geometria livre editada em 1:1 pode colidir com conteúdo estrutural ao trocar
+  para 9:16, confirmando a necessidade de geometria independente por formato no
+  snapshot v3.
+- A exportação não produziu um download observável dentro de 30 segundos no
+  cenário auditado e permanece sem gate de aceite.
+- `InteractionOverlay` mede DOM em layout effect sempre que o estado transitório
+  muda; essa leitura por frame contradiz a meta de fluidez da reforma.
+- O ciclo `register -> update -> cleanup` pode manter descriptor órfão porque o
+  cleanup compara a identidade anterior à atualização.
+- A tela de histórico falha no ambiente auditado porque o runtime ordena
+  `generation_runs` por `createdAt`, coluna ausente no banco acessado.
+
+O plano normativo de recuperação, com ordem de entregas, contratos e gates, está
+em [`docs/canva/PLANO_RECUPERACAO_DEFINITIVA_WORKBENCH.md`](./docs/canva/PLANO_RECUPERACAO_DEFINITIVA_WORKBENCH.md).

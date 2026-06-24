@@ -374,6 +374,39 @@ export interface AdvancedLayoutSettings {
   padding: number;
 }
 
+/** Imagem livre posicionada sobre o canvas do post. */
+export interface ImageElement {
+  id: string;
+  url: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number | "auto";
+  rotation: number;
+  source?: "upload" | "url";
+}
+
+export interface TextElement {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  width: number | "auto";
+  height: number | "auto";
+  rotation: number;
+  styles: {
+    fontSize: string;
+    fontFamily: string;
+    color: string;
+    fontWeight: string;
+    fontStyle: string;
+    textDecoration: string;
+    textAlign: "left" | "center" | "right";
+    lineHeight: string;
+    opacity: string;
+  };
+}
+
 export const DEFAULT_IMAGE_SETTINGS: ImageSettings = {
   zoom: 1,
   brightness: 1,
@@ -446,41 +479,13 @@ export interface PostVariation {
    * Array de elementos de texto avançados (Architect 2.0).
    * Coexiste com headline/body para transição e compatibilidade.
    */
-  textElements?: Array<{
-    id: string;
-    text: string;
-    x: number;
-    y: number;
-    width: number | "auto";
-    height: number | "auto";
-    rotation: number;
-    styles: {
-      fontSize: string;
-      fontFamily: string;
-      color: string;
-      fontWeight: string;
-      fontStyle: string;
-      textDecoration: string;
-      textAlign: "left" | "center" | "right";
-      lineHeight: string;
-      opacity: string;
-    };
-  }>;
+  textElements?: TextElement[];
 
   /**
    * Array de elementos de imagem posicionados livremente no canvas.
    * Permite adicionar imagens como stickers/logos sobre o post.
    */
-  imageElements?: Array<{
-    id: string;
-    url: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number | "auto";
-    rotation: number;
-    source?: "upload" | "url";
-  }>;
+  imageElements?: ImageElement[];
 
   /**
    * AI-generated optimizations for alternate aspect ratios.
@@ -531,7 +536,11 @@ export interface PostVariation {
 }
 
 export interface PostVisualSnapshot extends PostVariation {
-  snapshotVersion: 1;
+  /**
+   * Version 2 marks snapshots resolved by the canonical frontend pipeline.
+   * Version 1 remains readable for persisted posts created before that pipeline.
+   */
+  snapshotVersion: 1 | 2;
   aspectRatio: AspectRatio;
   postMode: PostMode;
   imageSettings: ImageSettings;

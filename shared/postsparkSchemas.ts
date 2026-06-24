@@ -97,6 +97,17 @@ export const textElementSchema = z.object({
   }),
 });
 
+export const imageElementSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.union([z.number(), z.literal("auto")]),
+  rotation: z.number(),
+  source: z.enum(["upload", "url"]).optional(),
+});
+
 const designTokensSchema = z.object({
   colors: z.object({
     background: z.string(),
@@ -224,6 +235,7 @@ const variationVisualPatchSchema = z.object({
   template: postTemplateSchema.optional(),
   sections: z.array(contentSectionSchema).optional(),
   textElements: z.array(textElementSchema).optional(),
+  imageElements: z.array(imageElementSchema).optional(),
   imageSettings: imageSettingsSchema.optional(),
   layoutSettings: advancedLayoutSettingsSchema.optional(),
   bgValue: backgroundValueSchema.optional(),
@@ -257,7 +269,7 @@ export const carouselSlideSchema = z.object({
 });
 
 export const postVisualSnapshotSchema = z.object({
-  snapshotVersion: z.literal(1),
+  snapshotVersion: z.union([z.literal(1), z.literal(2)]),
   id: z.string(),
   headline: z.string(),
   body: z.string(),
@@ -285,6 +297,7 @@ export const postVisualSnapshotSchema = z.object({
   template: postTemplateSchema.optional(),
   sections: z.array(contentSectionSchema).optional(),
   textElements: z.array(textElementSchema).optional(),
+  imageElements: z.array(imageElementSchema).optional(),
   aspectRatioOptimizations: z.partialRecord(aspectRatioSchema, formatOptimizationSchema).optional(),
   layoutSettingsByAspectRatio: z.partialRecord(aspectRatioSchema, advancedLayoutSettingsSchema).optional(),
   copyAngle: copyAngleSchema.optional(),

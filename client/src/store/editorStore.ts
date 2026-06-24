@@ -1,24 +1,25 @@
 import { create } from 'zustand';
-import type { PostVariation, AspectRatio, Platform, BackgroundValue, BgOverlaySettings, PostMode, CarouselSlide, CarouselSlideEditorState } from '@shared/postspark';
+import type { PostVariation, PostVisualSnapshot, AspectRatio, Platform, BackgroundValue, BgOverlaySettings, PostMode, CarouselSlide, CarouselSlideEditorState, ImageElement, TextElement } from '@shared/postspark';
 import { DEFAULT_BG_OVERLAY } from '@shared/postspark';
 import type { ImageSettings, AdvancedLayoutSettings } from '@/types/editor';
 import { DEFAULT_IMAGE_SETTINGS, DEFAULT_LAYOUT_SETTINGS } from '@/types/editor';
 import { layoutToAdvanced } from '@/lib/layoutToAdvanced';
-import { applyAspectRatioToVariation } from '@/lib/variationSnapshot';
+import { buildVariationSnapshot, createPostVisualSnapshot } from '@/lib/variationSnapshot';
+import {
+    isLayoutGeometryTarget,
+    isImageGeometryTarget,
+    isTextGeometryTarget,
+    imageElementFromCommit,
+    imageElementsEqual,
+    layoutPositionFromCommit,
+    layoutPositionsEqual,
+    textElementFromCommit,
+    textElementsEqual,
+    type EditorGeometryCommit,
+    type FixedLayoutGeometryTarget,
+} from '@/editor/adapters';
 
-// Tipo extraído para uso no store
-type ImageElement = {
-  id: string;
-  url: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number | "auto";
-  rotation: number;
-  source?: "upload" | "url";
-};
-
-type LayoutTarget = 'headline' | 'body' | 'image' | 'global' | 'badge' | 'sticker' | 'accentBar' | 'carouselArrow' | 'card' | `section:${string}` | `textElement:${string}` | `imageElement:${string}`;
+export type LayoutTarget = 'headline' | 'body' | 'image' | 'global' | 'badge' | 'sticker' | 'accentBar' | 'carouselArrow' | 'card' | `section:${string}` | `textElement:${string}` | `imageElement:${string}`;
 
 export type ApplyScope = 'current' | 'all';
 
@@ -167,6 +168,8 @@ const hydrateCarouselState = (
 };
 
 export interface EditorState {
+    /** Documento autoritativo usado por renderização, exportação e persistência. */
+    visualSnapshot: PostVisualSnapshot | null;
     activeVariation: PostVariation | null;
     baseVariation: PostVariation | null;
     postMode: PostMode;
@@ -188,10 +191,8 @@ export interface EditorState {
     layoutTarget: LayoutTarget;
     isMagnetActive: boolean;
 
-    // Image elements (draggable images on canvas)
-    imageElements: ImageElement[];
-
     setActiveVariation: (variation: PostVariation | null) => void;
+    loadSnapshot: (snapshot: PostVisualSnapshot) => void;
     setSlides: (slides: CarouselSlide[]) => void;
     setCurrentSlideIndex: (index: number) => void;
     updateSlide: (index: number, patch: Partial<CarouselSlide>) => void;
@@ -208,6 +209,7 @@ export interface EditorState {
     setMagnetActive: (active: boolean) => void;
 
     updateVariation: (variation: Partial<PostVariation>) => void;
+    commitGeometry: (command: EditorGeometryCommit) => void;
     reset: () => void;
 
     // Image element actions
@@ -216,7 +218,184 @@ export interface EditorState {
     updateSingleImageElement: (id: string, patch: Partial<ImageElement>) => void;
 }
 
-export const useEditorStore = create<EditorState>(set => ({
+export const useEditorStore = create<EditorState>((set, get) => {
+    const setWithSnapshot = (
+        update: Partial<EditorState> | ((state: EditorState) => Partial<EditorState> | EditorState)
+    ) => set(state => {
+        const patch = typeof update === 'function' ? update(state) : update;
+        const nextState = { ...state, ...patch } as EditorState;
+        const fallback = nextState.baseVariation ?? nextState.activeVariation;
+        return {
+            ...patch,
+            visualSnapshot: fallback
+                ? buildVariationSnapshot(nextState, fallback, nextState.aspectRatio)
+                : null,
+        };
+    });
+
+    const applyLayoutSettingsUpdate = (
+        state: EditorState,
+        settings: Partial<AdvancedLayoutSettings>,
+    ): Partial<EditorState> => {
+        if (state.postMode === 'carousel' && state.slides.length > 0) {
+            if (state.applyScope === 'all') {
+                const slideOverrides = state.slideOverrides.map(entry => ({
+                    ...entry,
+                    layoutSettings: { ...entry.layoutSettings, ...settings },
+                }));
+
+                return {
+                    slideOverrides,
+                    slides: serializeSlides(state.slides, slideOverrides),
+                    baseLayoutSettings: normalizeLayoutSettings({
+                        ...state.baseLayoutSettings,
+                        ...settings,
+                    }),
+                    layoutSettings: normalizeLayoutSettings({
+                        ...state.layoutSettings,
+                        ...settings,
+                    }),
+                };
+            }
+
+            const slideOverrides = [...state.slideOverrides];
+            slideOverrides[state.currentSlideIndex] = {
+                ...slideOverrides[state.currentSlideIndex],
+                layoutSettings: {
+                    ...(slideOverrides[state.currentSlideIndex]?.layoutSettings ?? {}),
+                    ...settings,
+                },
+            };
+
+            return {
+                slideOverrides,
+                slides: serializeSlides(state.slides, slideOverrides),
+                layoutSettings: normalizeLayoutSettings({
+                    ...state.layoutSettings,
+                    ...settings,
+                }),
+            };
+        }
+
+        return {
+            layoutSettings: normalizeLayoutSettings({
+                ...state.layoutSettings,
+                ...settings,
+            }),
+            baseLayoutSettings: normalizeLayoutSettings({
+                ...state.baseLayoutSettings,
+                ...settings,
+            }),
+        };
+    };
+
+    const normalizeVariationPatch = (newFields: Partial<PostVariation>): Partial<PostVariation> => {
+        const tokenColors = newFields.designTokens?.colors;
+        const normalizedFields: Partial<PostVariation> = {
+            ...newFields,
+            backgroundColor: newFields.backgroundColor ?? tokenColors?.background,
+            textColor: newFields.textColor ?? tokenColors?.text,
+            accentColor: newFields.accentColor ?? tokenColors?.primary,
+        };
+        if (normalizedFields.backgroundColor === undefined) delete normalizedFields.backgroundColor;
+        if (normalizedFields.textColor === undefined) delete normalizedFields.textColor;
+        if (normalizedFields.accentColor === undefined) delete normalizedFields.accentColor;
+        return normalizedFields;
+    };
+
+    const applyVariationUpdate = (
+        state: EditorState,
+        newFields: Partial<PostVariation>,
+    ): Partial<EditorState> | EditorState => {
+        if (!state.activeVariation) return state;
+        const normalizedFields = normalizeVariationPatch(newFields);
+
+        if (state.postMode === 'carousel' && state.slides.length > 0) {
+            if (state.applyScope === 'all') {
+                const baseVariation = state.baseVariation ? { ...state.baseVariation, ...normalizedFields } : null;
+                const slideOverrides = state.slideOverrides.map(entry => ({
+                    ...entry,
+                    variation: { ...entry.variation, ...normalizedFields },
+                }));
+                return {
+                    baseVariation,
+                    slideOverrides,
+                    ...hydrateCarouselState({
+                        baseVariation,
+                        slides: state.slides,
+                        slideOverrides,
+                        baseImageSettings: state.baseImageSettings,
+                        baseLayoutSettings: state.baseLayoutSettings,
+                        baseBgValue: state.baseBgValue,
+                        baseBgOverlay: state.baseBgOverlay,
+                    }, state.currentSlideIndex),
+                };
+            }
+
+            const slideOverrides = [...state.slideOverrides];
+            slideOverrides[state.currentSlideIndex] = {
+                ...slideOverrides[state.currentSlideIndex],
+                variation: {
+                    ...(slideOverrides[state.currentSlideIndex]?.variation ?? {}),
+                    ...normalizedFields,
+                },
+            };
+            return {
+                slideOverrides,
+                ...hydrateCarouselState({
+                    baseVariation: state.baseVariation,
+                    slides: state.slides,
+                    slideOverrides,
+                    baseImageSettings: state.baseImageSettings,
+                    baseLayoutSettings: state.baseLayoutSettings,
+                    baseBgValue: state.baseBgValue,
+                    baseBgOverlay: state.baseBgOverlay,
+                }, state.currentSlideIndex),
+            };
+        }
+
+        return {
+            activeVariation: { ...state.activeVariation, ...normalizedFields },
+            baseVariation: state.baseVariation ? { ...state.baseVariation, ...normalizedFields } : null,
+        };
+    };
+
+    const geometryLayoutPatch = (
+        state: EditorState,
+        command: EditorGeometryCommit,
+    ): Partial<AdvancedLayoutSettings> | null => {
+        const target = command.interaction.elementId;
+        if (!isLayoutGeometryTarget(target)) return null;
+
+        if (target.startsWith('section:')) {
+            const sectionId = target.slice('section:'.length);
+            const sectionExists = state.activeVariation?.sections?.some(
+                (section, index) => (section.id ?? `section-${index + 1}`) === sectionId,
+            );
+            if (!sectionExists) return null;
+
+            const sectionLayouts = state.layoutSettings.sectionLayouts ?? {};
+            const current = sectionLayouts[sectionId] ?? DEFAULT_LAYOUT_SETTINGS.body;
+            const next = layoutPositionFromCommit(current, command);
+            if (layoutPositionsEqual(current, next)) return null;
+
+            return {
+                sectionLayouts: {
+                    ...sectionLayouts,
+                    [sectionId]: next,
+                },
+            };
+        }
+
+        const fixedTarget = target as FixedLayoutGeometryTarget;
+        const current = state.layoutSettings[fixedTarget];
+        const next = layoutPositionFromCommit(current, command);
+        if (layoutPositionsEqual(current, next)) return null;
+        return { [fixedTarget]: next } as Partial<AdvancedLayoutSettings>;
+    };
+
+    return ({
+    visualSnapshot: null,
     activeVariation: null,
     baseVariation: null,
     postMode: 'static',
@@ -237,10 +416,8 @@ export const useEditorStore = create<EditorState>(set => ({
     baseBgOverlay: DEFAULT_BG_OVERLAY,
     layoutTarget: 'global',
     isMagnetActive: true,
-    imageElements: [],
-
     setActiveVariation: variation =>
-        set(state => {
+        setWithSnapshot(state => {
             if (!variation) {
                 return {
                     activeVariation: null,
@@ -253,7 +430,7 @@ export const useEditorStore = create<EditorState>(set => ({
             // "Fonte única da verdade": aplica aspectRatioOptimizations[aspectRatio]
             // sobre a variação ANTES de derivar cores e bgValue. Isso garante que
             // HoloDeck e Workbench leiam a mesma fonte para cores/layout por formato.
-            const arAdjustedVariation = applyAspectRatioToVariation(variation, aspectRatio);
+            const arAdjustedVariation = createPostVisualSnapshot(variation, aspectRatio);
             const slides = arAdjustedVariation.slides ?? [];
             const postMode = arAdjustedVariation.postMode ?? (slides.length > 0 ? 'carousel' : 'static');
             const responsiveLayouts = arAdjustedVariation.layoutSettingsByAspectRatio ?? {};
@@ -265,10 +442,10 @@ export const useEditorStore = create<EditorState>(set => ({
                 : arAdjustedVariation.imageUrl
                   ? { type: 'ai' as const, url: arAdjustedVariation.imageUrl }
                   : { type: 'solid' as const, color: arAdjustedVariation.backgroundColor };
-            const bgOverlay = normalizeBgOverlay(variation.bgOverlay);
+            const bgOverlay = normalizeBgOverlay(arAdjustedVariation.bgOverlay);
             const slideOverrides = slides.map(overridesFromSlide);
             const nextVariation = {
-                ...variation,
+                ...arAdjustedVariation,
                 aspectRatio,
                 platform,
                 postMode,
@@ -279,8 +456,6 @@ export const useEditorStore = create<EditorState>(set => ({
                 bgOverlay,
             };
             const activeVariation = postMode === 'carousel' && slides.length > 0 ? mergeSlideIntoVariation(nextVariation, slides, slideOverrides, 0) : nextVariation;
-            const imageElements = activeVariation?.imageElements ?? [];
-
             return {
                 activeVariation,
                 baseVariation: nextVariation,
@@ -298,13 +473,13 @@ export const useEditorStore = create<EditorState>(set => ({
                 baseBgValue: bgValue,
                 bgOverlay,
                 baseBgOverlay: bgOverlay,
-                imageElements,
                 applyScope: state.applyScope,
             };
         }),
+    loadSnapshot: snapshot => get().setActiveVariation(snapshot),
 
     setSlides: slides =>
-        set(state => {
+        setWithSnapshot(state => {
             const boundedIndex = Math.min(state.currentSlideIndex, Math.max(slides.length - 1, 0));
             const nextOverrides = slides.map((slide, index) => {
                 const existing = state.slideOverrides[index];
@@ -348,7 +523,7 @@ export const useEditorStore = create<EditorState>(set => ({
         }),
 
     setCurrentSlideIndex: currentSlideIndex =>
-        set(state => {
+        setWithSnapshot(state => {
             if (currentSlideIndex < 0 || currentSlideIndex >= state.slides.length) return state;
             if (state.postMode !== 'carousel' || state.slides.length === 0) {
                 return { currentSlideIndex };
@@ -358,7 +533,7 @@ export const useEditorStore = create<EditorState>(set => ({
         }),
 
     updateSlide: (index, patch) =>
-        set(state => {
+        setWithSnapshot(state => {
             if (index < 0 || index >= state.slides.length) return state;
 
             const slides = [...state.slides];
@@ -395,14 +570,14 @@ export const useEditorStore = create<EditorState>(set => ({
         }),
 
     setPostMode: postMode =>
-        set(state => ({
+        setWithSnapshot(state => ({
             postMode,
             baseVariation: state.baseVariation ? { ...state.baseVariation, postMode } : null,
             activeVariation: state.activeVariation ? { ...state.activeVariation, postMode } : null,
         })),
 
     setPlatform: platform =>
-        set(state => {
+        setWithSnapshot(state => {
             if (!state.activeVariation) return { platform };
 
             return {
@@ -420,7 +595,7 @@ export const useEditorStore = create<EditorState>(set => ({
             };
         }),
     setAspectRatio: aspectRatio =>
-        set(state => {
+        setWithSnapshot(state => {
             const currentRatio = aspectRatio;
 
             const storedLayouts = {
@@ -435,7 +610,7 @@ export const useEditorStore = create<EditorState>(set => ({
             // refletir cores/layout específicos daquele formato.
             const patchVariation = (variation: PostVariation | null) => {
                 if (!variation) return null;
-                const arPatched = applyAspectRatioToVariation(variation, currentRatio);
+                const arPatched = createPostVisualSnapshot(variation, currentRatio);
                 return {
                     ...arPatched,
                     platform: state.platform,
@@ -469,7 +644,7 @@ export const useEditorStore = create<EditorState>(set => ({
     setApplyScope: applyScope => set({ applyScope }),
 
     updateImageSettings: settings =>
-        set(state => {
+        setWithSnapshot(state => {
             if (state.postMode === 'carousel' && state.slides.length > 0) {
                 if (state.applyScope === 'all') {
                     const slideOverrides = state.slideOverrides.map(entry => ({
@@ -523,61 +698,10 @@ export const useEditorStore = create<EditorState>(set => ({
         }),
 
     updateLayoutSettings: settings =>
-        set(state => {
-            if (state.postMode === 'carousel' && state.slides.length > 0) {
-                if (state.applyScope === 'all') {
-                    const slideOverrides = state.slideOverrides.map(entry => ({
-                        ...entry,
-                        layoutSettings: { ...entry.layoutSettings, ...settings },
-                    }));
-
-                    return {
-                        slideOverrides,
-                        slides: serializeSlides(state.slides, slideOverrides),
-                        baseLayoutSettings: normalizeLayoutSettings({
-                            ...state.baseLayoutSettings,
-                            ...settings,
-                        }),
-                        layoutSettings: normalizeLayoutSettings({
-                            ...state.layoutSettings,
-                            ...settings,
-                        }),
-                    };
-                }
-
-                const slideOverrides = [...state.slideOverrides];
-                slideOverrides[state.currentSlideIndex] = {
-                    ...slideOverrides[state.currentSlideIndex],
-                    layoutSettings: {
-                        ...(slideOverrides[state.currentSlideIndex]?.layoutSettings ?? {}),
-                        ...settings,
-                    },
-                };
-
-                return {
-                    slideOverrides,
-                    slides: serializeSlides(state.slides, slideOverrides),
-                    layoutSettings: normalizeLayoutSettings({
-                        ...state.layoutSettings,
-                        ...settings,
-                    }),
-                };
-            }
-
-            return {
-                layoutSettings: normalizeLayoutSettings({
-                    ...state.layoutSettings,
-                    ...settings,
-                }),
-                baseLayoutSettings: normalizeLayoutSettings({
-                    ...state.baseLayoutSettings,
-                    ...settings,
-                }),
-            };
-        }),
+        setWithSnapshot(state => applyLayoutSettingsUpdate(state, settings)),
 
     setBgValue: bgValue =>
-        set(state => {
+        setWithSnapshot(state => {
             console.log('[editorStore.setBgValue] Setting bgValue:', {
                 type: bgValue.type,
                 hasUrl: Boolean(bgValue.url),
@@ -621,7 +745,7 @@ export const useEditorStore = create<EditorState>(set => ({
         }),
 
     setBgOverlay: overlay =>
-        set(state => {
+        setWithSnapshot(state => {
             if (state.postMode === 'carousel' && state.slides.length > 0) {
                 if (state.applyScope === 'all') {
                     const slideOverrides = state.slideOverrides.map(entry => ({
@@ -668,103 +792,75 @@ export const useEditorStore = create<EditorState>(set => ({
     setLayoutTarget: layoutTarget => set({ layoutTarget }),
     setMagnetActive: isMagnetActive => set({ isMagnetActive }),
 
-    updateVariation: newFields =>
-        set(state => {
-            if (!state.activeVariation) return state;
+    updateVariation: newFields => setWithSnapshot(state => applyVariationUpdate(state, newFields)),
 
-            if (state.postMode === 'carousel' && state.slides.length > 0) {
-                if (state.applyScope === 'all') {
-                    const baseVariation = state.baseVariation ? { ...state.baseVariation, ...newFields } : null;
-                    const slideOverrides = state.slideOverrides.map(entry => ({
-                        ...entry,
-                        variation: { ...entry.variation, ...newFields },
-                    }));
+    commitGeometry: command => {
+        const target = command.interaction.elementId;
+        const currentState = get();
+        const initialLayoutPatch = geometryLayoutPatch(currentState, command);
+        const textId = isTextGeometryTarget(target) ? target.slice('textElement:'.length) : null;
+        const imageId = isImageGeometryTarget(target) ? target.slice('imageElement:'.length) : null;
+        const currentText = textId
+            ? currentState.activeVariation?.textElements?.find(element => element.id === textId)
+            : undefined;
+        const currentImage = imageId
+            ? currentState.activeVariation?.imageElements?.find(element => element.id === imageId)
+            : undefined;
+        if (!initialLayoutPatch && !currentText && !currentImage) return;
+        if (currentText && textElementsEqual(currentText, textElementFromCommit(currentText, command.interaction))) return;
+        if (currentImage && imageElementsEqual(currentImage, imageElementFromCommit(currentImage, command.interaction))) return;
 
-                    return {
-                        baseVariation,
-                        slideOverrides,
-                        ...hydrateCarouselState(
-                            {
-                                baseVariation,
-                                slides: state.slides,
-                                slideOverrides,
-                                baseImageSettings: state.baseImageSettings,
-                                baseLayoutSettings: state.baseLayoutSettings,
-                                baseBgValue: state.baseBgValue,
-                                baseBgOverlay: state.baseBgOverlay,
-                            },
-                            state.currentSlideIndex
-                        ),
-                    };
-                }
+        setWithSnapshot(state => {
+            const patch = geometryLayoutPatch(state, command);
+            if (patch) return applyLayoutSettingsUpdate(state, patch);
 
-                const slideOverrides = [...state.slideOverrides];
-                slideOverrides[state.currentSlideIndex] = {
-                    ...slideOverrides[state.currentSlideIndex],
-                    variation: {
-                        ...(slideOverrides[state.currentSlideIndex]?.variation ?? {}),
-                        ...newFields,
-                    },
-                };
-
-                return {
-                    slideOverrides,
-                    ...hydrateCarouselState(
-                        {
-                            baseVariation: state.baseVariation,
-                            slides: state.slides,
-                            slideOverrides,
-                            baseImageSettings: state.baseImageSettings,
-                            baseLayoutSettings: state.baseLayoutSettings,
-                            baseBgValue: state.baseBgValue,
-                            baseBgOverlay: state.baseBgOverlay,
-                        },
-                        state.currentSlideIndex
-                    ),
-                };
+            if (textId) {
+                const elements = state.activeVariation?.textElements;
+                const current = elements?.find(element => element.id === textId);
+                if (!elements || !current) return state;
+                const next = textElementFromCommit(current, command.interaction);
+                if (textElementsEqual(current, next)) return state;
+                const textElements: TextElement[] = elements.map(element => element.id === textId ? next : element);
+                return applyVariationUpdate(state, { textElements });
             }
 
-            return {
-                activeVariation: state.activeVariation ? { ...state.activeVariation, ...newFields } : null,
-                baseVariation: state.baseVariation ? { ...state.baseVariation, ...newFields } : null,
-            };
-        }),
+            if (imageId) {
+                const elements = state.activeVariation?.imageElements;
+                const current = elements?.find(element => element.id === imageId);
+                if (!elements || !current) return state;
+                const next = imageElementFromCommit(current, command.interaction);
+                if (imageElementsEqual(current, next)) return state;
+                const imageElements: ImageElement[] = elements.map(element => element.id === imageId ? next : element);
+                return applyVariationUpdate(state, { imageElements });
+            }
 
-    // Image element actions
-    addImageElement: (element) =>
-        set(state => {
-            const next = [...state.imageElements, element];
-            return {
-                imageElements: next,
-                activeVariation: state.activeVariation ? { ...state.activeVariation, imageElements: next } : null,
-                baseVariation: state.baseVariation ? { ...state.baseVariation, imageElements: next } : null,
-            };
-        }),
+            return state;
+        });
+    },
 
-    removeImageElement: (id) =>
-        set(state => {
-            const next = state.imageElements.filter(e => e.id !== id);
-            return {
-                imageElements: next,
-                activeVariation: state.activeVariation ? { ...state.activeVariation, imageElements: next } : null,
-                baseVariation: state.baseVariation ? { ...state.baseVariation, imageElements: next } : null,
-            };
-        }),
+    // Image element actions delegate to the canonical carousel-aware variation path.
+    addImageElement: element => {
+        const current = get().activeVariation?.imageElements ?? [];
+        if (current.some(item => item.id === element.id)) return;
+        get().updateVariation({ imageElements: [...current, element] });
+    },
 
-    updateSingleImageElement: (id, patch) =>
-        set(state => {
-            const next = state.imageElements.map(e =>
-                e.id === id ? { ...e, ...patch } : e
-            );
-            return {
-                imageElements: next,
-                activeVariation: state.activeVariation ? { ...state.activeVariation, imageElements: next } : null,
-                baseVariation: state.baseVariation ? { ...state.baseVariation, imageElements: next } : null,
-            };
-        }),
+    removeImageElement: id => {
+        const current = get().activeVariation?.imageElements ?? [];
+        if (!current.some(item => item.id === id)) return;
+        get().updateVariation({ imageElements: current.filter(item => item.id !== id) });
+    },
+
+    updateSingleImageElement: (id, patch) => {
+        const current = get().activeVariation?.imageElements ?? [];
+        if (!current.some(item => item.id === id)) return;
+        get().updateVariation({
+            imageElements: current.map(item => (item.id === id ? { ...item, ...patch } : item)),
+        });
+    },
 
     reset: () =>
-        set({
+        setWithSnapshot({
             activeVariation: null,
             baseVariation: null,
             postMode: 'static',
@@ -784,6 +880,6 @@ export const useEditorStore = create<EditorState>(set => ({
             baseBgOverlay: DEFAULT_BG_OVERLAY,
             layoutTarget: 'global',
             isMagnetActive: true,
-            imageElements: [],
         }),
-}));
+    });
+});

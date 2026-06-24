@@ -344,10 +344,50 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
     }
 
     setIsExporting(true);
+    const EXPORT_TIMEOUT_MS = 30_000;
+    let timedOut = false;
+
     try {
-      await new Promise<void>(resolve => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      const exportRoot = canvasRef.current.querySelector("[data-post-export-root]") as HTMLElement | null;
+      if (!exportRoot) {
+        throw new Error("Export root element not found");
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          timedOut = true;
+          reject(new Error("Export timeout: fonts or images did not settle"));
+        }, EXPORT_TIMEOUT_MS);
+
+        const resolveIfReady = () => {
+          clearTimeout(timeout);
+          resolve();
+        };
+
+        document.fonts.ready.then(() => {
+          const images = exportRoot.querySelectorAll("img");
+          if (images.length === 0) {
+            requestAnimationFrame(() => requestAnimationFrame(resolveIfReady));
+            return;
+          }
+          let pending = images.length;
+          const decrement = () => {
+            pending--;
+            if (pending === 0) requestAnimationFrame(() => requestAnimationFrame(resolveIfReady));
+          };
+          images.forEach((img) => {
+            if (img.complete) {
+              decrement();
+            } else {
+              img.addEventListener("load", decrement, { once: true });
+              img.addEventListener("error", decrement, { once: true });
+            }
+          });
+        }).catch(() => {
+          requestAnimationFrame(() => requestAnimationFrame(resolveIfReady));
+        });
       });
+
       const { default: html2canvas } = await import("html2canvas-pro");
       const canvas = await html2canvas(canvasRef.current, {
         scale: 3,
@@ -360,7 +400,11 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
       link.click();
     } catch (error) {
       console.error("Export failed:", error);
-      toast.error("A exportacao falhou. Tente novamente.");
+      if (timedOut) {
+        toast.error("A exportacao excedeu o tempo limite. Tente novamente.");
+      } else {
+        toast.error("A exportacao falhou. Tente novamente.");
+      }
     } finally {
       setIsExporting(false);
     }

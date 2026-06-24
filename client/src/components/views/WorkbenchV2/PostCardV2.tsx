@@ -52,38 +52,34 @@ import {
 import type { PostVariation, AspectRatio, BackgroundValue, BgOverlaySettings, ContentSection, PostTemplate, DesignTokens } from "@shared/postspark";
 import { ASPECT_RATIO_VALUES, DEFAULT_DESIGN_TOKENS } from "@shared/postspark";
 import type { ThemeConfig } from "@/lib/themes";
-import type { ImageSettings, AdvancedLayoutSettings, TextPosition, LayoutPosition } from "@/types/editor";
+import type { ImageSettings, AdvancedLayoutSettings, LayoutPosition } from "@/types/editor";
 import { DEFAULT_IMAGE_SETTINGS, DEFAULT_LAYOUT_SETTINGS } from "@/types/editor";
 import ThemeRenderer from "@/components/ThemeRenderer";
 import BrandOverlay from "@/components/BrandOverlay";
 import type { CopyAngle } from "@shared/postspark";
 
 // --- Hooks & Utilities ---
-import { useResizeElement } from "@/hooks/useResizeElement";
 import { useDynamicFont } from "@/hooks/useDynamicFont";
 import { useTextAutoFit } from "@/hooks/useTextAutoFit";
 import { AdvancedTextNode, type AdvancedTextElement } from "@/components/canvas/AdvancedTextNode";
 import { DraggableBlock } from "@/components/canvas/DraggableBlock";
-import { ImageElementBlock, type ImageElement } from "@/components/canvas/ImageElementBlock";
-import { useEditorStore } from "@/store/editorStore";
-import { normalizeSectionIcon, normalizeSectionLayouts, normalizeSections } from "@/lib/variationSnapshot";
+import { ImageElementBlock } from "@/components/canvas/ImageElementBlock";
+import { normalizeSectionIcon, normalizeSections } from "@/lib/variationSnapshot";
+import type { PostEditorBindings } from "@/editor/integration/editorBindings";
 
 interface PostCardV2Props {
   mode?: "preview" | "edit" | "export";
-  snapshot?: PostVariation;
+  snapshot: PostVariation;
   aspectRatio?: AspectRatio;
   theme?: ThemeConfig;
   designTokens?: DesignTokens;
   currentSlideIndex?: number;
   compact?: boolean;
-  /** When true, variation colors take priority over theme colors (used in Workbench editor) */
-  forceVariationColors?: boolean;
   /** Brand identity metadata for overlay rendering (logo, platform icon, decorative shapes) */
   brandMeta?: { logoUrl?: string; brandName?: string; favicon?: string };
-  /** Se o snap magnético está ativo (usado junto com onDragPosition) */
-  snapEnabled?: boolean;
   /** Se o card em si está em modo de edição (exibe borda e alças do card) */
   isEditingCard?: boolean;
+  editorBindings?: PostEditorBindings;
 }
 
 // ─── AccentBar Component ─────────────────────────────────────────────────────
@@ -389,10 +385,7 @@ function TemplateSections({
 
 // ─── PostCardV2 ────────────────────────────────────────────────────────────────
 export default function PostCardV2(props: PostCardV2Props) {
-  const activeVariation = useEditorStore(state => state.activeVariation);
-  const variation = props.snapshot ?? activeVariation;
-
-  if (!variation) return null;
+  const variation = props.snapshot;
 
   return <PostCardV2Content {...props} variation={variation} />;
 }
@@ -406,30 +399,16 @@ function PostCardV2Content({
   designTokens: designTokensOverride,
   currentSlideIndex: requestedSlideIndex,
   compact = false,
-  forceVariationColors = false,
   brandMeta,
-  snapEnabled = true,
   isEditingCard = false,
+  editorBindings,
 }: PostCardV2Props & { variation: PostVariation }) {
-  // Consumindo dados do Zustand (Fase 1 + Fase 3)
-  const {
-    slides: editorSlides,
-    currentSlideIndex: editorSlideIndex,
-    updateSlide,
-    imageSettings: editorImageSettings,
-    layoutSettings: editorLayoutSettings,
-    updateLayoutSettings,
-    layoutTarget,
-    setLayoutTarget,
-    isMagnetActive,
-    bgValue: editorBgValue,
-    bgOverlay: editorBgOverlay,
-    aspectRatio: globalAspectRatio,
-    imageElements: editorImageElements,
-    addImageElement,
-    removeImageElement,
-    updateSingleImageElement,
-  } = useEditorStore();
+  const layoutTarget = editorBindings?.layoutTarget ?? "global";
+  const isMagnetActive = editorBindings?.isMagnetActive ?? false;
+  const setLayoutTarget = editorBindings?.setLayoutTarget ?? (() => undefined);
+  const updateSlide = editorBindings?.updateSlide ?? (() => undefined);
+  const removeImageElement = editorBindings?.removeImageElement ?? (() => undefined);
+  const updateVariation = editorBindings?.updateVariation ?? (() => undefined);
 
   const [inlineEditTarget, setInlineEditTarget] = useState<"headline" | "body" | "badge" | "sticker" | null>(null);
   const [inlineSectionEditId, setInlineSectionEditId] = useState<string | null>(null);
@@ -437,23 +416,22 @@ function PostCardV2Content({
   const cardRef = useRef<HTMLDivElement | null>(null);
   const layoutRef = useRef<HTMLDivElement | null>(null);
 
-  const isEditable = mode === "edit" && !snapshot;
-  const slides = snapshot?.slides ?? editorSlides;
-  const currentSlideIndex = requestedSlideIndex ?? (snapshot ? 0 : editorSlideIndex);
-  const imageSettings = snapshot
-    ? {
-        ...DEFAULT_IMAGE_SETTINGS,
-        ...(snapshot.imageSettings as Partial<ImageSettings> | undefined),
-      }
-    : editorImageSettings;
-  const layoutSettings = snapshot
-    ? {
-        ...DEFAULT_LAYOUT_SETTINGS,
-        ...(snapshot.layoutSettings as Partial<AdvancedLayoutSettings> | undefined),
-      }
-    : editorLayoutSettings;
-  const bgValue = snapshot ? (snapshot.bgValue ?? (snapshot.imageUrl ? { type: "ai" as const, url: snapshot.imageUrl } : { type: "solid" as const, color: snapshot.backgroundColor })) : editorBgValue;
-  const bgOverlay = snapshot ? snapshot.bgOverlay : editorBgOverlay;
+  // Editability is controlled by the renderer mode. Supplying the canonical
+  // snapshot must not turn the Workbench into a read-only preview.
+  const isEditable = mode === "edit";
+  const slides = snapshot?.slides ?? [];
+  const currentSlideIndex = requestedSlideIndex ?? 0;
+  const imageSettings = {
+    ...DEFAULT_IMAGE_SETTINGS,
+    ...(snapshot?.imageSettings as Partial<ImageSettings> | undefined),
+  };
+  const layoutSettings = {
+    ...DEFAULT_LAYOUT_SETTINGS,
+    ...(snapshot?.layoutSettings as Partial<AdvancedLayoutSettings> | undefined),
+  };
+  const bgValue = snapshot?.bgValue ?? (snapshot?.imageUrl ? { type: "ai" as const, url: snapshot.imageUrl } : { type: "solid" as const, color: snapshot?.backgroundColor });
+  const bgOverlay = snapshot?.bgOverlay;
+  const globalAspectRatio = snapshot?.aspectRatio ?? aspectRatio ?? "1:1";
   const theme = themeOverride;
   const resolvedBrandMeta = brandMeta || variation.brandMeta;
 
@@ -582,7 +560,7 @@ function PostCardV2Content({
       updateSlide(currentSlideIndex, patch);
       return;
     }
-    useEditorStore.getState().updateVariation(patch);
+    updateVariation(patch);
   };
 
   // ── Auto-fit: Ajusta texto automaticamente ao mudar aspect ratio ──
@@ -701,7 +679,7 @@ function PostCardV2Content({
     if (!variation.textElements || variation.textElements.length === 0) return null;
     const updateTextElement = (id: string, patch: Partial<AdvancedTextElement>) => {
       if (!isEditable) return;
-      useEditorStore.getState().updateVariation({
+      updateVariation({
         textElements: variation.textElements?.map(element => (element.id === id ? { ...element, ...patch } : element)),
       });
     };
@@ -713,13 +691,11 @@ function PostCardV2Content({
             key={el.id}
             element={el}
             isSelected={isEditable && layoutTarget === `textElement:${el.id}`}
-            onSelect={event => {
+            onSelect={() => {
               if (!isEditable) return;
-              event.stopPropagation();
               setLayoutTarget(`textElement:${el.id}`);
             }}
             onChange={(id, text) => updateTextElement(id, { text })}
-            onElementChange={(id, patch) => updateTextElement(id, patch)}
             scale={1}
             editable={isEditable}
           />
@@ -742,14 +718,6 @@ function PostCardV2Content({
               if (!isEditable) return;
               setLayoutTarget(`imageElement:${el.id}`);
             }}
-            onDeselect={() => {
-              if (!isEditable) return;
-              setLayoutTarget('global');
-            }}
-            onUpdate={(patch) => {
-              if (!isEditable) return;
-              updateSingleImageElement(el.id, patch);
-            }}
             onDelete={() => {
               if (!isEditable) return;
               removeImageElement(el.id);
@@ -764,33 +732,6 @@ function PostCardV2Content({
   };
 
   // ── Handlers & Wrappers for Flexbox + Draggable ──
-  const handleDragPosition = (target: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow", x: number, y: number) => {
-    if (!isEditable || !layoutSettings) return;
-    let finalX = x;
-    let finalY = y;
-    if (isMagnetActive) {
-      const SNAP_POINTS = [10, 30, 50, 70, 90];
-      const snap = (val: number) => SNAP_POINTS.reduce((prev, curr) => (Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev));
-      finalX = snap(x);
-      finalY = snap(y);
-    }
-    updateLayoutSettings({
-      ...layoutSettings,
-      [target]: {
-        ...layoutSettings[target],
-        freePosition: { x: finalX, y: finalY },
-      },
-    });
-  };
-
-  const handleResizeBlock = (target: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow", width: number) => {
-    if (!isEditable || !layoutSettings) return;
-    updateLayoutSettings({
-      ...layoutSettings,
-      [target]: { ...layoutSettings[target], width },
-    });
-  };
-
   const handleSelectElement = (target: "headline" | "body" | "accentBar" | "card" | "badge" | "sticker" | "carouselArrow" | "global") => {
     if (!isEditable) return;
     if (target === "headline" || target === "body" || target === "badge" || target === "sticker" || target === "accentBar" || target === "carouselArrow") {
@@ -809,17 +750,13 @@ function PostCardV2Content({
         padding={compact ? 12 : 24}
         containerRef={layoutRef}
         snapEnabled={isEditable && isMagnetActive && !compact}
-        onDragEnd={(x, y) => handleDragPosition(target, x, y)}
-        onResize={w => handleResizeBlock(target, w)}
         onSelect={() => handleSelectElement(target)}
-        onDeselect={() => setLayoutTarget("global")}
         onDoubleClick={e => {
           e.stopPropagation();
           if (isEditable && !compact && (target === "headline" || target === "body" || target === "badge" || target === "sticker")) setInlineEditTarget(target as any);
         }}
         accentColor={color || effectiveText}
         isDraggable={isEditable && !compact && inlineEditTarget !== target}
-        forceSelected={isEditable && layoutTarget === target}
         defaultWidth={target === "badge" || target === "sticker" || target === "carouselArrow" ? "max-content" : "100%"}
       >
         {children}
@@ -828,36 +765,9 @@ function PostCardV2Content({
   };
 
   // ── Helpers para UI Clone (exemplo.html) ────────────────────────────────────
-  const updateSectionLayout = (sectionId: string, patch: Partial<LayoutPosition>) => {
-    if (!isEditable || !layoutSettings) return;
-    const existingLayouts = normalizeSectionLayouts(variation.sections, layoutSettings);
-    const baseLayout = existingLayouts[sectionId] ?? DEFAULT_LAYOUT_SETTINGS.body;
-    updateLayoutSettings({
-      sectionLayouts: {
-        ...existingLayouts,
-        [sectionId]: {
-          ...baseLayout,
-          ...patch,
-        },
-      },
-    } as Partial<AdvancedLayoutSettings>);
-  };
-
-  const handleSectionDragPosition = (sectionId: string, x: number, y: number) => {
-    let finalX = x;
-    let finalY = y;
-    if (isMagnetActive) {
-      const SNAP_POINTS = [10, 30, 50, 70, 90];
-      const snap = (val: number) => SNAP_POINTS.reduce((prev, curr) => (Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev));
-      finalX = snap(x);
-      finalY = snap(y);
-    }
-    updateSectionLayout(sectionId, { freePosition: { x: finalX, y: finalY } });
-  };
-
   const updateSectionContent = (sectionId: string, patch: Partial<ContentSection>) => {
     if (!isEditable) return;
-    useEditorStore.getState().updateVariation({
+    updateVariation({
       sections: normalizeSections(variation.sections)?.map((section, index) => ((section.id ?? `section-${index + 1}`) === sectionId ? { ...section, ...patch } : section)),
     });
   };
@@ -1027,17 +937,13 @@ function PostCardV2Content({
           padding={compact ? 12 : 24}
           containerRef={layoutRef}
           snapEnabled={isEditable && isMagnetActive && !compact}
-          onDragEnd={(x, y) => handleSectionDragPosition(sectionId, x, y)}
-          onResize={width => updateSectionLayout(sectionId, { width })}
           onSelect={() => setLayoutTarget(`section:${sectionId}`)}
-          onDeselect={() => setLayoutTarget("global")}
           onDoubleClick={event => {
             event.stopPropagation();
             if (isEditable) setInlineSectionEditId(sectionId);
           }}
           accentColor={effectiveAccent}
           isDraggable={isEditable && !compact && inlineSectionEditId !== sectionId}
-          forceSelected={isEditable && layoutTarget === `section:${sectionId}`}
           defaultWidth="100%"
         >
           {renderSectionContent(section, index, sectionId)}
@@ -1100,7 +1006,7 @@ function PostCardV2Content({
               onBlur={e => {
                 const cleanText = e.currentTarget.innerText.trim();
                 if (isEditable)
-                  useEditorStore.getState().updateVariation({
+                  updateVariation({
                     copyAngle: { ...copyAngle, badge: cleanText },
                   });
                 setInlineEditTarget(null);
@@ -1145,7 +1051,7 @@ function PostCardV2Content({
                         const cleanText = e.currentTarget.innerText.trim();
                         if (copyAngle) {
                           if (isEditable)
-                            useEditorStore.getState().updateVariation({
+                            updateVariation({
                               copyAngle: {
                                 ...copyAngle,
                                 stickerText: cleanText,
@@ -1181,7 +1087,7 @@ function PostCardV2Content({
                     const cleanText = e.currentTarget.innerText.trim();
                     if (copyAngle) {
                       if (isEditable)
-                        useEditorStore.getState().updateVariation({
+                        updateVariation({
                           copyAngle: { ...copyAngle, stickerText: cleanText },
                         });
                     }
@@ -1890,21 +1796,6 @@ function PostCardV2Content({
             className="w-full h-full pointer-events-auto"
             cardRef={cardRef}
             cardLayout={layoutSettings?.card}
-            onDragCard={async (x, y) => {
-              const useEditorStore = (await import("@/store/editorStore")).useEditorStore;
-              useEditorStore.getState().updateLayoutSettings({
-                card: {
-                  ...layoutSettings?.card,
-                  freePosition: { x, y },
-                } as any,
-              });
-            }}
-            onResizeCard={async w => {
-              const useEditorStore = (await import("@/store/editorStore")).useEditorStore;
-              useEditorStore.getState().updateLayoutSettings({
-                card: { ...layoutSettings?.card, width: w } as any,
-              });
-            }}
             isEditingCard={isEditable && isEditingCard}
           >
             {resolvedBrandMeta && (
@@ -1959,21 +1850,6 @@ function PostCardV2Content({
             className="w-full h-full pointer-events-auto"
             cardRef={cardRef}
             cardLayout={layoutSettings?.card}
-            onDragCard={async (x, y) => {
-              const useEditorStore = (await import("@/store/editorStore")).useEditorStore;
-              useEditorStore.getState().updateLayoutSettings({
-                card: {
-                  ...layoutSettings?.card,
-                  freePosition: { x, y },
-                } as any,
-              });
-            }}
-            onResizeCard={async w => {
-              const useEditorStore = (await import("@/store/editorStore")).useEditorStore;
-              useEditorStore.getState().updateLayoutSettings({
-                card: { ...layoutSettings?.card, width: w } as any,
-              });
-            }}
             isEditingCard={isEditable && isEditingCard}
           >
             {resolvedBrandMeta && (

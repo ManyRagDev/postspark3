@@ -3,8 +3,8 @@ import { ArrowLeft, ArrowRight, Bookmark, Sparkles } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { useEditorStore } from "@/store/editorStore";
-import { normalizeVariationForEditor } from "@/lib/variationSnapshot";
-import type { PostVariation, PostMode, Platform, CarouselSlide, AspectRatio } from "@shared/postspark";
+import { createPostVisualSnapshot } from "@/lib/variationSnapshot";
+import type { PostVariation, PostVisualSnapshot, PostMode, Platform, CarouselSlide, AspectRatio } from "@shared/postspark";
 import { layoutToAdvanced } from "@/lib/layoutToAdvanced";
 import PostRenderer from "@/components/PostRenderer";
 
@@ -18,11 +18,11 @@ function formatDate(value: string | null | undefined) {
   }).format(date);
 }
 
-function savedPostToVariation(post: any): PostVariation {
+function savedPostToVariation(post: any): PostVisualSnapshot {
   const snapshot = post.variation_snapshot && typeof post.variation_snapshot === "object" ? post.variation_snapshot : null;
   const slides = Array.isArray(snapshot?.slides) ? (snapshot.slides as CarouselSlide[]) : Array.isArray(post.slides) ? (post.slides as CarouselSlide[]) : [];
 
-  return normalizeVariationForEditor({
+  return createPostVisualSnapshot({
     id: `saved-${post.id}`,
     ...(snapshot ?? {}),
     headline: snapshot?.headline || post.headline || "",
@@ -70,7 +70,7 @@ export default function SavedPosts() {
     const normalizedVariation = savedPostToVariation(post);
 
     editorStore.reset();
-    editorStore.setActiveVariation(normalizedVariation);
+    editorStore.loadSnapshot(normalizedVariation);
 
     sessionStorage.setItem(
       "postspark.open_saved_post",

@@ -102,6 +102,22 @@ Atualize `DOCUMENTO_MESTRE.md` quando houver:
 - Sinalize explicitamente pontos não confirmados, dependentes de ambiente ou de infraestrutura externa.
 - Evite editar artefatos gerados (`api/index.js`, `dist/`, `dist-server/`) sem necessidade explícita.
 
+## Invariante obrigatória: fonte única da verdade dos posts
+
+Após `post.generate`, cada `PostVariation` deve atravessar uma única vez o normalizador canônico em `client/src/lib/variationSnapshot.ts` e tornar-se um `PostVisualSnapshot`.
+
+Regras obrigatórias para qualquer manutenção futura:
+
+1. HoloDeck, Workbench, exportação, salvamento, posts salvos e histórico devem consumir o mesmo `PostVisualSnapshot`.
+2. Renderers não podem remover `designTokens`, recalcular prioridades de cor, inventar layout ou reconstruir background.
+3. O Zustand mantém `visualSnapshot` como documento autoritativo; os demais campos do editor são projeções compatíveis e não podem ser usados diretamente na persistência.
+4. Toda edição do Workbench deve atualizar `visualSnapshot` atomicamente antes da renderização seguinte.
+5. Overrides de carrossel permanecem em `slides[].editorState`; o slide atual nunca pode vazar para os campos-base do documento.
+6. Mudanças em HoloDeck, Workbench, `PostRenderer`, `PostCardV2`, `editorStore`, snapshots ou persistência exigem os testes de contrato e handoff de `variationSnapshot.test.ts`.
+7. Alterações no contrato exigem incremento de `snapshotVersion`, leitura das versões anteriores e atualização simultânea do `DOCUMENTO_MESTRE.md`.
+
+É proibido criar um segundo normalizador visual ou uma precedência local paralela para cores, tokens, layout, imagem ou overlay.
+
 ## Entregas esperadas em mudanças futuras
 
 Sempre que possível, o agente deve:

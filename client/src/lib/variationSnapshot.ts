@@ -1,5 +1,17 @@
-import type { AdvancedLayoutSettings, AspectRatio, ContentSection, LayoutPosition, PostVariation, PostVisualSnapshot } from "@shared/postspark";
+import {
+  DEFAULT_BG_OVERLAY,
+  DEFAULT_IMAGE_SETTINGS,
+  DEFAULT_LAYOUT_SETTINGS,
+  type AdvancedLayoutSettings,
+  type AspectRatio,
+  type ContentSection,
+  type DesignTokens,
+  type LayoutPosition,
+  type PostVariation,
+  type PostVisualSnapshot,
+} from "@shared/postspark";
 import type { EditorState } from "@/store/editorStore";
+import { layoutToAdvanced } from "@/lib/layoutToAdvanced";
 
 const ICON_FALLBACKS = ["Zap", "Shield", "Target", "TrendingUp", "CheckCircle"];
 
@@ -45,6 +57,174 @@ export function normalizeVariationForEditor(variation: PostVariation): PostVaria
   return {
     ...variation,
     sections: normalizedSections,
+  };
+}
+
+function normalizeImageSettings(variation: PostVariation) {
+  return {
+    ...DEFAULT_IMAGE_SETTINGS,
+    ...(variation.imageSettings ?? {}),
+  };
+}
+
+function normalizeLayoutSettings(
+  variation: PostVariation,
+  aspectRatio: AspectRatio,
+): AdvancedLayoutSettings {
+  const selected =
+    variation.layoutSettingsByAspectRatio?.[aspectRatio] ??
+    variation.layoutSettings ??
+    layoutToAdvanced(variation.layout);
+
+  return {
+    headline: { ...DEFAULT_LAYOUT_SETTINGS.headline, ...selected.headline },
+    body: { ...DEFAULT_LAYOUT_SETTINGS.body, ...selected.body },
+    accentBar: { ...DEFAULT_LAYOUT_SETTINGS.accentBar, ...selected.accentBar },
+    badge: { ...DEFAULT_LAYOUT_SETTINGS.badge, ...selected.badge },
+    sticker: { ...DEFAULT_LAYOUT_SETTINGS.sticker, ...selected.sticker },
+    carouselArrow: {
+      ...DEFAULT_LAYOUT_SETTINGS.carouselArrow,
+      ...selected.carouselArrow,
+    },
+    card: { ...DEFAULT_LAYOUT_SETTINGS.card, ...selected.card },
+    sectionLayouts: selected.sectionLayouts ?? {},
+    padding: selected.padding ?? DEFAULT_LAYOUT_SETTINGS.padding,
+  };
+}
+
+function synchronizeDesignTokenColors(
+  designTokens: Partial<DesignTokens> | undefined,
+  colors: { backgroundColor: string; textColor: string; accentColor: string },
+): Partial<DesignTokens> | undefined {
+  if (!designTokens) return undefined;
+  return {
+    ...designTokens,
+    colors: {
+      background: colors.backgroundColor,
+      text: colors.textColor,
+      primary: colors.accentColor,
+      secondary: designTokens.colors?.secondary ?? colors.accentColor,
+      card: designTokens.colors?.card ?? colors.backgroundColor,
+    },
+  };
+}
+
+/**
+ * Canonical boundary for AI output, history restores and legacy saved posts.
+ * After this function runs, renderers and editors must consume the resulting
+ * snapshot instead of resolving colors, layout or background independently.
+ */
+export function createPostVisualSnapshot(
+  variation: PostVariation,
+  requestedAspectRatio: AspectRatio = variation.aspectRatio ?? "1:1",
+): PostVisualSnapshot {
+  const normalized = normalizeVariationForEditor(variation);
+  const adjusted = applyAspectRatioToVariation(normalized, requestedAspectRatio);
+  const backgroundColor = adjusted.backgroundColor || "#171717";
+  const textColor = adjusted.textColor || "#ffffff";
+  const accentColor = adjusted.accentColor || "#a855f7";
+  const imageSettings = normalizeImageSettings(adjusted);
+  const layoutSettings = normalizeLayoutSettings(adjusted, requestedAspectRatio);
+  const hasFormatOptimization = Boolean(
+    adjusted.aspectRatioOptimizations?.[requestedAspectRatio],
+  );
+  const bgValue = adjusted.bgValue && !(hasFormatOptimization && adjusted.bgValue.type === "solid")
+    ? adjusted.bgValue
+    : adjusted.imageUrl
+      ? { type: "ai" as const, url: adjusted.imageUrl }
+      : { type: "solid" as const, color: backgroundColor };
+
+  return {
+    ...adjusted,
+    snapshotVersion: 2,
+    aspectRatio: requestedAspectRatio,
+    postMode: adjusted.postMode ?? (adjusted.slides?.length ? "carousel" : "static"),
+    backgroundColor,
+    textColor,
+    accentColor,
+    designTokens: synchronizeDesignTokenColors(adjusted.designTokens, {
+      backgroundColor,
+      textColor,
+      accentColor,
+    }),
+    imageSettings,
+    layoutSettings,
+    bgValue,
+    bgOverlay: {
+      ...DEFAULT_BG_OVERLAY,
+      ...(adjusted.bgOverlay ?? {}),
+    },
+  };
+}
+
+/** Apply an explicit visual choice (theme/custom tokens) to the snapshot itself. */
+export function applyDesignTokensToSnapshot(
+  snapshot: PostVisualSnapshot,
+  designTokens: DesignTokens,
+  brandMeta?: PostVariation["brandMeta"],
+): PostVisualSnapshot {
+  const backgroundColor = designTokens.colors.background;
+  const textColor = designTokens.colors.text;
+  const accentColor = designTokens.colors.primary;
+  return {
+    ...snapshot,
+    backgroundColor,
+    textColor,
+    accentColor,
+    designTokens,
+    brandMeta: brandMeta ?? snapshot.brandMeta,
+    bgValue:
+      snapshot.bgValue.type === "solid"
+        ? { type: "solid", color: backgroundColor }
+        : snapshot.bgValue,
+  };
+}
+
+/**
+ * Read-only projection of a carousel slide. The persisted document remains the
+ * base snapshot plus `slides[].editorState`; renderers receive the projection
+ * without promoting a current-slide override to the document root.
+ */
+export function projectSnapshotForSlide(
+  snapshot: PostVisualSnapshot,
+  slideIndex = 0,
+): PostVisualSnapshot {
+  if (snapshot.postMode !== "carousel" || !snapshot.slides?.length) return snapshot;
+  const slide = snapshot.slides[slideIndex] ?? snapshot.slides[0];
+  const editorState = slide.editorState;
+  const layoutOverride = editorState?.layoutSettings;
+
+  return {
+    ...snapshot,
+    ...(editorState?.variation ?? {}),
+    headline: slide.headline || snapshot.headline,
+    body: slide.body || snapshot.body,
+    imageSettings: {
+      ...snapshot.imageSettings,
+      ...(editorState?.imageSettings ?? {}),
+    },
+    layoutSettings: layoutOverride
+      ? {
+          ...snapshot.layoutSettings,
+          ...layoutOverride,
+          headline: { ...snapshot.layoutSettings.headline, ...layoutOverride.headline },
+          body: { ...snapshot.layoutSettings.body, ...layoutOverride.body },
+          accentBar: { ...snapshot.layoutSettings.accentBar, ...layoutOverride.accentBar },
+          badge: { ...snapshot.layoutSettings.badge, ...layoutOverride.badge },
+          sticker: { ...snapshot.layoutSettings.sticker, ...layoutOverride.sticker },
+          carouselArrow: { ...snapshot.layoutSettings.carouselArrow, ...layoutOverride.carouselArrow },
+          card: { ...snapshot.layoutSettings.card, ...layoutOverride.card },
+          sectionLayouts: {
+            ...(snapshot.layoutSettings.sectionLayouts ?? {}),
+            ...(layoutOverride.sectionLayouts ?? {}),
+          },
+        }
+      : snapshot.layoutSettings,
+    bgValue: editorState?.bgValue ?? snapshot.bgValue,
+    bgOverlay: {
+      ...snapshot.bgOverlay,
+      ...(editorState?.bgOverlay ?? {}),
+    },
   };
 }
 
@@ -107,21 +287,27 @@ export function hasManualSectionLayouts(layoutSettings?: Partial<AdvancedLayoutS
 export function buildVariationSnapshot(editorState: EditorState, fallback: PostVariation, aspectRatio: AspectRatio): PostVisualSnapshot {
   const active = editorState.activeVariation ?? fallback;
   const base = editorState.baseVariation ?? active;
-  const sections = normalizeSections(active.sections ?? base.sections);
+  const canonicalVariation = editorState.postMode === "carousel" ? base : active;
+  const sections = normalizeSections(canonicalVariation.sections ?? base.sections);
   const layoutSettings = {
     ...editorState.baseLayoutSettings,
     sectionLayouts: normalizeSectionLayouts(sections, editorState.baseLayoutSettings),
   };
 
   return {
-    snapshotVersion: 1,
+    snapshotVersion: 2,
     ...base,
-    ...active,
+    ...canonicalVariation,
+    designTokens: synchronizeDesignTokenColors(canonicalVariation.designTokens, {
+      backgroundColor: canonicalVariation.backgroundColor,
+      textColor: canonicalVariation.textColor,
+      accentColor: canonicalVariation.accentColor,
+    }),
     aspectRatio,
     postMode: editorState.postMode,
     slides: editorState.slides,
     sections,
-    textElements: active.textElements ?? base.textElements,
+    textElements: canonicalVariation.textElements ?? base.textElements,
     imageSettings: editorState.baseImageSettings,
     layoutSettings,
     bgValue: editorState.baseBgValue,

@@ -1,7 +1,7 @@
 ﻿import { useState, useCallback, useEffect, useRef, type MutableRefObject } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { ArrowLeft, Layers, Sparkles, ImagePlus, Loader2, Palette, LayoutGrid, AlignJustify, Globe, Check, Settings2, PenTool, BriefcaseBusiness } from "lucide-react";
-import type { PostVariation, AspectRatio, TemporaryTheme, DesignTokens, CreativeExecutionBrief, GenerationDebugTrace } from "@shared/postspark";
+import type { PostVariation, PostVisualSnapshot, AspectRatio, TemporaryTheme, DesignTokens, CreativeExecutionBrief, GenerationDebugTrace } from "@shared/postspark";
 import { ASPECT_RATIO_LABELS } from "@shared/postspark";
 import OrganicBackground from "../OrganicBackground";
 import PostRenderer from "../PostRenderer";
@@ -12,14 +12,14 @@ import type { ThemeConfig } from "@/lib/themes";
 import { themeToDesignTokens } from "@/lib/themes";
 import { useAIProcessingStages, useCompletionFlash } from "@/hooks/useAIProcessingStages";
 import { useEditorStore } from "@/store/editorStore";
-import { normalizeVariationForEditor, applyAspectRatioToVariation } from "@/lib/variationSnapshot";
+import { applyDesignTokensToSnapshot, createPostVisualSnapshot } from "@/lib/variationSnapshot";
 import GenerationAuditPanel from "../GenerationAuditPanel";
 
 const RATIOS: AspectRatio[] = ["1:1", "5:6", "9:16"];
 
 interface HoloDeckProps {
-  variations: PostVariation[];
-  onSelect: (variation: PostVariation, options?: { aspectRatio?: AspectRatio; theme?: ThemeConfig }) => void;
+  variations: PostVisualSnapshot[];
+  onSelect: (variation: PostVisualSnapshot, options?: { aspectRatio?: AspectRatio; theme?: ThemeConfig }) => void;
   onBack: () => void;
   onGenerateImage: (variation: PostVariation) => void;
   loadingImageId: string | null;
@@ -83,7 +83,7 @@ function WalletCard({
   isActive,
   aspectRatio,
 }: {
-  variation: PostVariation;
+  variation: PostVisualSnapshot;
   stackIndex: number;
   total: number;
   onSwipedLeft: () => void;
@@ -318,7 +318,7 @@ export default function HoloDeck({
   const [selectedTheme, setSelectedTheme] = useState<ThemeConfig | undefined>(undefined);
 
   const [customTokens, setCustomTokens] = useState<DesignTokens | undefined>(undefined);
-  const [localVariations, setLocalVariations] = useState<PostVariation[]>(variations);
+  const [localVariations, setLocalVariations] = useState<PostVisualSnapshot[]>(variations);
   const isDragging = useRef(false);
   const variationCount = localVariations.length;
 
@@ -340,9 +340,11 @@ export default function HoloDeck({
   // Update local variation (for copy editor)
   const updateActiveVariation = useCallback(
     (patch: Partial<PostVariation>) => {
-      setLocalVariations(prev => prev.map((v, i) => (i === currentIndex ? { ...v, ...patch } : v)));
+      setLocalVariations(prev => prev.map((v, i) => (
+        i === currentIndex ? createPostVisualSnapshot({ ...v, ...patch }, aspectRatio) : v
+      )));
     },
-    [currentIndex]
+    [currentIndex, aspectRatio]
   );
 
   const { stageText: imageStageText } = useAIProcessingStages({
@@ -352,26 +354,14 @@ export default function HoloDeck({
   const showImageFlash = useCompletionFlash(loadingImageId !== null);
 
   const activeVariation = localVariations[currentIndex];
-  const hasManualStyleOverride = Boolean(customTokens || selectedTheme);
   const getPreviewVariation = useCallback(
-    (variation: PostVariation) => {
-      // "Fonte única da verdade": aplica aspectRatioOptimizations[aspectRatio]
-      // sobre a variação ANTES de renderizar o preview. Isso garante que o
-      // HoloDeck mostre exatamente as cores/layout que o Workbench usará.
-      const arApplied = applyAspectRatioToVariation(variation, aspectRatio);
-      const base = hasManualStyleOverride ? arApplied : { ...arApplied, designTokens: undefined };
-      // Para carrosséis, renderiza o primeiro slide real em vez do resumo top-level
-      if (variation.slides && variation.slides.length > 0) {
-        const firstSlide = variation.slides[0];
-        return {
-          ...base,
-          headline: firstSlide.headline || base.headline,
-          body: firstSlide.body || base.body,
-        };
-      }
-      return base;
+    (variation: PostVisualSnapshot) => {
+      const snapshot = createPostVisualSnapshot(variation, aspectRatio);
+      return customTokens
+        ? applyDesignTokensToSnapshot(snapshot, customTokens, selectedTheme?.brandMeta)
+        : snapshot;
     },
-    [hasManualStyleOverride, aspectRatio]
+    [aspectRatio, customTokens, selectedTheme?.brandMeta]
   );
   const activePreviewVariation = getPreviewVariation(activeVariation);
   // A "Alma" (accentColor) deve vir da variação ativa para o ambiente respirar a cor do post em foco
@@ -398,34 +388,14 @@ export default function HoloDeck({
   }, []);
 
   const handleSelect = useCallback(
-    (variation: PostVariation) => {
-      const variationTokens = variation.designTokens;
-      const resolvedTokens = customTokens || variationTokens;
-      // Quando confirmar a variação, passar as edições feitas nos customTokens
-      const parsedVariation = normalizeVariationForEditor({
-        ...variation,
-        aspectRatio,
-        designTokens: resolvedTokens,
-        backgroundColor: variation.backgroundColor || variationTokens?.colors?.background || customTokens?.colors.background || "#171717",
-        accentColor: variation.accentColor || variationTokens?.colors?.primary || customTokens?.colors.primary || "#a855f7",
-        textColor: variation.textColor || variationTokens?.colors?.text || customTokens?.colors.text || "#ffffff",
-        brandMeta: selectedTheme?.brandMeta || variation.brandMeta,
-        bgValue:
-          variation.bgValue ??
-          (variation.imageUrl
-            ? { type: "ai", url: variation.imageUrl }
-            : {
-                type: "solid",
-                color: customTokens?.colors.background || variationTokens?.colors?.background || variation.backgroundColor,
-              }),
-      });
-
+    (variation: PostVisualSnapshot) => {
+      const selectedSnapshot = getPreviewVariation(variation);
       const editorStore = useEditorStore.getState();
-      editorStore.setActiveVariation(parsedVariation);
+      editorStore.loadSnapshot(selectedSnapshot);
 
-      onSelect(parsedVariation, { aspectRatio, theme: selectedTheme });
+      onSelect(selectedSnapshot, { aspectRatio, theme: selectedTheme });
     },
-    [customTokens, onSelect, aspectRatio, selectedTheme]
+    [getPreviewVariation, onSelect, aspectRatio, selectedTheme]
   );
 
   useEffect(() => {
@@ -638,10 +608,8 @@ export default function HoloDeck({
                   <PostRenderer
                     mode="preview"
                     snapshot={activePreviewVariation}
-                    theme={customTokens ? undefined : selectedTheme}
-                    designTokens={customTokens}
                     aspectRatio={aspectRatio}
-                    brandMeta={selectedTheme?.brandMeta || activeVariation.brandMeta}
+                    brandMeta={activePreviewVariation.brandMeta}
                   />
                 </motion.div>
 

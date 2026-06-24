@@ -1,13 +1,15 @@
 import type { CSSProperties } from "react";
-import type { AspectRatio, DesignTokens, PostVariation } from "@shared/postspark";
+import type { AspectRatio, DesignTokens, PostVisualSnapshot } from "@shared/postspark";
 import type { ThemeConfig } from "@/lib/themes";
 import PostCardV2 from "@/components/views/WorkbenchV2/PostCardV2";
+import { projectSnapshotForSlide } from "@/lib/variationSnapshot";
+import type { PostEditorBindings } from "@/editor/integration/editorBindings";
 
 export type PostRendererMode = "preview" | "edit" | "export";
 
 interface PostRendererProps {
   mode: PostRendererMode;
-  snapshot?: PostVariation;
+  snapshot: PostVisualSnapshot;
   aspectRatio?: AspectRatio;
   currentSlideIndex?: number;
   theme?: ThemeConfig;
@@ -17,6 +19,7 @@ interface PostRendererProps {
   isEditingCard?: boolean;
   className?: string;
   style?: CSSProperties;
+  editorBindings?: PostEditorBindings;
 }
 
 export default function PostRenderer({
@@ -31,17 +34,20 @@ export default function PostRenderer({
   isEditingCard = false,
   className,
   style,
+  editorBindings,
 }: PostRendererProps) {
+  const renderSnapshot = projectSnapshotForSlide(snapshot, currentSlideIndex ?? 0);
+
   return (
     <div
       className={className}
       style={style}
       data-post-renderer={mode}
-      data-post-id={snapshot?.id}
+      data-post-id={renderSnapshot?.id}
     >
       <PostCardV2
         mode={mode}
-        snapshot={snapshot}
+        snapshot={renderSnapshot}
         aspectRatio={aspectRatio}
         currentSlideIndex={currentSlideIndex}
         theme={theme}
@@ -49,6 +55,7 @@ export default function PostRenderer({
         brandMeta={brandMeta}
         compact={compact}
         isEditingCard={isEditingCard}
+        editorBindings={editorBindings}
       />
     </div>
   );

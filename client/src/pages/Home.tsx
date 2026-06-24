@@ -7,10 +7,10 @@ import HoloDeck from "@/components/views/HoloDeck";
 import WorkbenchV2 from "@/components/views/WorkbenchV2/WorkbenchV2";
 import ExecutionBrief from "@/components/views/ExecutionBrief";
 import { useExtractedStyles } from "@/hooks/useExtractedStyles";
-import type { InputType, PostVariation, AppState, AiModel, PostMode, CreationMode, CreativeExecutionBrief } from "@shared/postspark";
+import type { InputType, PostVariation, PostVisualSnapshot, AppState, AiModel, PostMode, CreationMode, CreativeExecutionBrief } from "@shared/postspark";
 import { useUpgradePrompt, UpgradePromptModal } from "@/components/UpgradePrompt";
 import { useEditorStore } from "@/store/editorStore";
-import { buildVariationSnapshot } from "@/lib/variationSnapshot";
+import { createPostVisualSnapshot } from "@/lib/variationSnapshot";
 import type { GenerationDebugTrace } from "@shared/postspark";
 
 export default function Home() {
@@ -24,7 +24,7 @@ export default function Home() {
   });
   const [executionBriefDraft, setExecutionBriefDraft] = useState<CreativeExecutionBrief | null>(null);
   const { showUpgradePrompt, open: upgradeOpen, setOpen: setUpgradeOpen } = useUpgradePrompt();
-  const [variations, setVariations] = useState<PostVariation[]>([]);
+  const [variations, setVariations] = useState<PostVisualSnapshot[]>([]);
   const [loadingImageId, setLoadingImageId] = useState<string | null>(null);
   const [isGenerationActive, setIsGenerationActive] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -137,7 +137,7 @@ export default function Home() {
         });
 
         if (result?.variations.length === 3) {
-          setVariations(result.variations as PostVariation[]);
+          setVariations(result.variations.map(variation => createPostVisualSnapshot(variation as PostVariation)));
           setGenerationDebug(mergeDebugTraces(siteResult?.debug, result.debug));
           setAppState("holodeck");
         } else {
@@ -203,7 +203,7 @@ export default function Home() {
         });
 
         if (result?.variations.length === 3) {
-          setVariations(result.variations as PostVariation[]);
+          setVariations(result.variations.map(variation => createPostVisualSnapshot(variation as PostVariation)));
           setGenerationDebug(mergeDebugTraces(siteResult?.debug, result.debug));
           setAppState("holodeck");
         } else {
@@ -241,7 +241,9 @@ export default function Home() {
         if (result.imageData) {
           setVariations((prev) =>
             prev.map((v) =>
-              v.id === variation.id ? { ...v, imageUrl: result.imageData } : v
+              v.id === variation.id
+                ? { ...v, imageUrl: result.imageData, bgValue: { type: "ai", url: result.imageData } }
+                : v
             )
           );
         }
@@ -273,20 +275,18 @@ export default function Home() {
     async (variation: PostVariation) => {
       try {
         const editorState = useEditorStore.getState();
-        const persistedVariation = editorState.baseVariation ?? variation;
-        const activeCaption = editorState.activeVariation?.caption ?? persistedVariation.caption;
-        const variationSnapshot = buildVariationSnapshot(
-          editorState,
-          variation,
-          editorState.aspectRatio,
-        );
+        const variationSnapshot = editorState.visualSnapshot;
+        if (!variationSnapshot) {
+          throw new Error("O snapshot visual atual não está disponível para persistência.");
+        }
+        const persistedVariation = variationSnapshot;
         await saveMutation.mutateAsync({
           inputType: inputMeta.type,
           inputContent: inputMeta.content,
           platform: persistedVariation.platform,
           headline: persistedVariation.headline,
           body: persistedVariation.body,
-          caption: activeCaption,
+          caption: persistedVariation.caption,
           hashtags: persistedVariation.hashtags,
           callToAction: persistedVariation.callToAction,
           tone: persistedVariation.tone,
@@ -297,12 +297,12 @@ export default function Home() {
           accentColor: persistedVariation.accentColor,
           layout: persistedVariation.layout,
           postMode: editorState.postMode,
-          slides: editorState.slides,
+          slides: persistedVariation.slides,
           textElements: persistedVariation.textElements,
-          imageSettings: editorState.baseImageSettings,
-          layoutSettings: editorState.baseLayoutSettings,
-          bgValue: editorState.baseBgValue,
-          bgOverlay: editorState.baseBgOverlay,
+          imageSettings: persistedVariation.imageSettings,
+          layoutSettings: persistedVariation.layoutSettings,
+          bgValue: persistedVariation.bgValue,
+          bgOverlay: persistedVariation.bgOverlay,
           copyAngle: persistedVariation.copyAngle,
           variationSnapshot,
         });
@@ -334,6 +334,25 @@ export default function Home() {
 
   const goToHoloDeck = useCallback(() => {
     setAppState("holodeck");
+  }, []);
+
+  useEffect(() => {
+    const restoredGeneration = sessionStorage.getItem("restoredGeneration");
+    if (!restoredGeneration) return;
+
+    try {
+      const restored = JSON.parse(restoredGeneration) as PostVariation[];
+      if (Array.isArray(restored) && restored.length > 0) {
+        setVariations(restored.map(variation => createPostVisualSnapshot(variation)));
+        setAppState("holodeck");
+      }
+    } catch (error) {
+      console.error("[Home] Failed to restore canonical generation snapshots:", error);
+      toast.error("Não foi possível restaurar essa geração.");
+    } finally {
+      sessionStorage.removeItem("restoredGeneration");
+      sessionStorage.removeItem("restoredGenerationMeta");
+    }
   }, []);
 
   useEffect(() => {

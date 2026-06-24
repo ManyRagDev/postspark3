@@ -116,10 +116,6 @@ interface ThemeRendererProps {
   cardRef?: React.RefObject<HTMLDivElement | null>;
   /** Configurações de layout avançado (posicionamento do card no canvas) */
   cardLayout?: import("@/types/editor").LayoutPosition;
-  /** Callback para drag do card */
-  onDragCard?: (x: number, y: number) => void;
-  /** Callback para resize do card */
-  onResizeCard?: (width: number) => void;
   /** Se o card está em modo de edição (mostra handles) */
   isEditingCard?: boolean;
 }
@@ -132,8 +128,6 @@ export default function ThemeRenderer({
   canvasRef,
   cardRef,
   cardLayout,
-  onDragCard,
-  onResizeCard,
   isEditingCard = false,
 }: ThemeRendererProps) {
   const internalCanvasRef = React.useRef<HTMLDivElement>(null);
@@ -207,11 +201,11 @@ export default function ThemeRenderer({
 
         {/* The Card Layer with Draggability */}
         <DraggableBlock
+          elementId="card"
+          elementKind="card"
           layoutPos={cardLayout || { position: 'center', textAlign: 'center', width: 100 }}
           padding={0}
           containerRef={internalCanvasRef}
-          onDragEnd={onDragCard || (() => { })}
-          onResize={onResizeCard || (() => { })}
           snapEnabled={false}
           isDraggable={isEditingCard}
           accentColor={designTokens.colors.primary}
@@ -290,11 +284,11 @@ export default function ThemeRenderer({
       {theme.effects?.noise && <div className="noise-texture" aria-hidden="true" />}
 
       <DraggableBlock
+        elementId="card"
+        elementKind="card"
         layoutPos={cardLayout || { position: 'center', textAlign: 'center', width: 100 }}
         padding={0}
         containerRef={internalCanvasRef}
-        onDragEnd={onDragCard || (() => { })}
-        onResize={onResizeCard || (() => { })}
         snapEnabled={false}
         isDraggable={isEditingCard}
         accentColor={theme.colors.accent}
