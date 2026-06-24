@@ -119,7 +119,7 @@ describe("variationSnapshot", () => {
     });
   });
 
-  it("resolves AI output once into a complete version 2 snapshot", () => {
+  it("resolves AI output once into a complete version 3 snapshot", () => {
     const variation = createPostVariation({
       imageUrl: undefined,
       bgValue: undefined,
@@ -136,7 +136,7 @@ describe("variationSnapshot", () => {
     const snapshot = createPostVisualSnapshot(variation, "5:6");
 
     expect(snapshot).toMatchObject({
-      snapshotVersion: 2,
+      snapshotVersion: 3,
       aspectRatio: "5:6",
       layout: "centered",
       backgroundColor: "#112233",

@@ -155,7 +155,7 @@ export function createPostVisualSnapshot(
 
   return {
     ...adjusted,
-    snapshotVersion: 2,
+    snapshotVersion: 3,
     aspectRatio: requestedAspectRatio,
     postMode: adjusted.postMode ?? (adjusted.slides?.length ? "carousel" : "static"),
     backgroundColor,
@@ -312,7 +312,7 @@ export function buildVariationSnapshot(editorState: EditorState, fallback: PostV
   };
 
   return {
-    snapshotVersion: 2,
+    snapshotVersion: 3,
     ...base,
     ...canonicalVariation,
     designTokens: synchronizeDesignTokenColors(canonicalVariation.designTokens, {
@@ -329,5 +329,6 @@ export function buildVariationSnapshot(editorState: EditorState, fallback: PostV
     layoutSettings,
     bgValue: editorState.baseBgValue,
     bgOverlay: editorState.baseBgOverlay,
+    layoutSettingsByAspectRatio: editorState.baseVariation?.layoutSettingsByAspectRatio,
   } as PostVisualSnapshot;
 }

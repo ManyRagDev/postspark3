@@ -269,7 +269,7 @@ export const carouselSlideSchema = z.object({
 });
 
 export const postVisualSnapshotSchema = z.object({
-  snapshotVersion: z.union([z.literal(1), z.literal(2)]),
+  snapshotVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   id: z.string(),
   headline: z.string(),
   body: z.string(),

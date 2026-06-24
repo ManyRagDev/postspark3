@@ -540,7 +540,7 @@ export interface PostVisualSnapshot extends PostVariation {
    * Version 2 marks snapshots resolved by the canonical frontend pipeline.
    * Version 1 remains readable for persisted posts created before that pipeline.
    */
-  snapshotVersion: 1 | 2;
+  snapshotVersion: 1 | 2 | 3;
   aspectRatio: AspectRatio;
   postMode: PostMode;
   imageSettings: ImageSettings;
