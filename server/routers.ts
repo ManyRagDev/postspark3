@@ -1873,7 +1873,7 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
       return getPostById(input.id, ctx.user.id);
     }),
 
-    /** Generate background image via Pollinations or Gemini */
+    /** Generate background image via OpenRouter, with Pollinations as fallback */
     generateBackground: protectedProcedure
       .input(
         z.object({
