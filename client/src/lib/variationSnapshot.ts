@@ -1,5 +1,6 @@
 import {
   DEFAULT_BG_OVERLAY,
+  DEFAULT_DESIGN_TOKENS,
   DEFAULT_IMAGE_SETTINGS,
   DEFAULT_LAYOUT_SETTINGS,
   type AdvancedLayoutSettings,
@@ -95,16 +96,27 @@ function normalizeLayoutSettings(
 function synchronizeDesignTokenColors(
   designTokens: Partial<DesignTokens> | undefined,
   colors: { backgroundColor: string; textColor: string; accentColor: string },
-): Partial<DesignTokens> | undefined {
-  if (!designTokens) return undefined;
+): DesignTokens {
+  const base = designTokens ?? {};
   return {
-    ...designTokens,
+    ...DEFAULT_DESIGN_TOKENS,
+    ...base,
     colors: {
+      ...DEFAULT_DESIGN_TOKENS.colors,
+      ...(base as DesignTokens).colors,
       background: colors.backgroundColor,
       text: colors.textColor,
       primary: colors.accentColor,
-      secondary: designTokens.colors?.secondary ?? colors.accentColor,
-      card: designTokens.colors?.card ?? colors.backgroundColor,
+      secondary: (base as DesignTokens).colors?.secondary ?? colors.accentColor,
+      card: (base as DesignTokens).colors?.card ?? colors.backgroundColor,
+    },
+    typography: {
+      ...DEFAULT_DESIGN_TOKENS.typography,
+      ...(base as DesignTokens).typography,
+    },
+    structure: {
+      ...DEFAULT_DESIGN_TOKENS.structure,
+      ...(base as DesignTokens).structure,
     },
   };
 }
@@ -123,6 +135,13 @@ export function createPostVisualSnapshot(
   const backgroundColor = adjusted.backgroundColor || "#171717";
   const textColor = adjusted.textColor || "#ffffff";
   const accentColor = adjusted.accentColor || "#a855f7";
+  const headlineColor = adjusted.headlineColor || textColor;
+  const bodyColor = adjusted.bodyColor || textColor;
+  const designTokens = synchronizeDesignTokenColors(adjusted.designTokens, {
+    backgroundColor,
+    textColor,
+    accentColor,
+  });
   const imageSettings = normalizeImageSettings(adjusted);
   const layoutSettings = normalizeLayoutSettings(adjusted, requestedAspectRatio);
   const hasFormatOptimization = Boolean(
@@ -142,11 +161,9 @@ export function createPostVisualSnapshot(
     backgroundColor,
     textColor,
     accentColor,
-    designTokens: synchronizeDesignTokenColors(adjusted.designTokens, {
-      backgroundColor,
-      textColor,
-      accentColor,
-    }),
+    headlineColor,
+    bodyColor,
+    designTokens,
     imageSettings,
     layoutSettings,
     bgValue,

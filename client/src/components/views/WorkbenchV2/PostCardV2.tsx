@@ -432,7 +432,6 @@ function PostCardV2Content({
   const bgValue = snapshot?.bgValue ?? (snapshot?.imageUrl ? { type: "ai" as const, url: snapshot.imageUrl } : { type: "solid" as const, color: snapshot?.backgroundColor });
   const bgOverlay = snapshot?.bgOverlay;
   const globalAspectRatio = snapshot?.aspectRatio ?? aspectRatio ?? "1:1";
-  const theme = themeOverride;
   const resolvedBrandMeta = brandMeta || variation.brandMeta;
 
   const activeSlide = variation.postMode === "carousel" && slides.length > 0 ? slides[currentSlideIndex] || slides[0] : null;
@@ -443,109 +442,44 @@ function PostCardV2Content({
   const body = activeSlide?.body || variation.body;
   const { imageUrl: variationImageUrl, backgroundColor, textColor, headlineColor, bodyColor, accentColor, layout } = variation;
 
-  // Explicit renderer overrides represent the user's current visual selection.
-  const variationTokens = variation.designTokens;
-  const normalizedVariationTokens: DesignTokens | undefined = variationTokens
-    ? {
-        ...DEFAULT_DESIGN_TOKENS,
-        ...variationTokens,
-        colors: {
-          ...DEFAULT_DESIGN_TOKENS.colors,
-          ...variationTokens.colors,
-        },
-        typography: {
-          ...DEFAULT_DESIGN_TOKENS.typography,
-          ...variationTokens.typography,
-        },
-        structure: {
-          ...DEFAULT_DESIGN_TOKENS.structure,
-          ...variationTokens.structure,
-        },
-      }
-    : undefined;
-  const dt: DesignTokens | undefined = designTokensOverride
-    ? {
-        ...DEFAULT_DESIGN_TOKENS,
-        ...normalizedVariationTokens,
-        ...designTokensOverride,
-        colors: {
-          ...DEFAULT_DESIGN_TOKENS.colors,
-          ...normalizedVariationTokens?.colors,
-          ...designTokensOverride.colors,
-        },
-        typography: {
-          ...DEFAULT_DESIGN_TOKENS.typography,
-          ...normalizedVariationTokens?.typography,
-          ...designTokensOverride.typography,
-        },
-        structure: {
-          ...DEFAULT_DESIGN_TOKENS.structure,
-          ...normalizedVariationTokens?.structure,
-          ...designTokensOverride.structure,
-        },
-      }
-    : normalizedVariationTokens;
+  const dt = variation.designTokens as DesignTokens | undefined;
 
-  // Dynamic font loading from design tokens and variations
-  useDynamicFont(dt?.typography?.fontFamily ?? "", dt?.typography?.customFontUrl ?? "");
+  useDynamicFont(variation.designTokens?.typography?.fontFamily ?? "", variation.designTokens?.typography?.customFontUrl ?? "");
   useDynamicFont(variation.headlineFontFamily ?? "");
   useDynamicFont(variation.bodyFontFamily ?? "");
 
-  // ── Background resolution (priority: solid > bgValue.url > variation.imageUrl) ──
   const isSolid = bgValue?.type === "solid";
   const resolvedImageUrl = isSolid ? undefined : (bgValue?.url ?? variationImageUrl);
-
-  // Debug: log resolved image URL
-  if (resolvedImageUrl) {
-    console.log('[PostCardV2] Resolved image URL:', {
-      length: resolvedImageUrl.length,
-      prefix: resolvedImageUrl.slice(0, 50),
-      type: bgValue?.type,
-      isVariation: Boolean(variationImageUrl),
-      isBgValue: Boolean(bgValue?.url)
-    });
-  }
 
   const ratio = aspectRatio ?? variation.aspectRatio ?? globalAspectRatio ?? "1:1";
   const aspectRatioCSS = ASPECT_RATIO_VALUES[ratio];
   const isStory = ratio === "9:16";
 
-  // ── Cores ──
-  const effectiveBg = isSolid && bgValue?.color ? bgValue.color : backgroundColor ? backgroundColor : dt != null || theme != null ? "transparent" : "#1a1a2e";
+  const effectiveBg = isSolid && bgValue?.color ? bgValue.color : dt ? "transparent" : backgroundColor;
+  const protectionColor = isSolid && bgValue?.color ? bgValue.color : backgroundColor;
+  const effectiveText = textColor;
+  const effectiveHeadlineText = headlineColor || textColor;
+  const effectiveBodyText = bodyColor || textColor;
+  const effectiveAccent = accentColor;
 
-  const protectionColor = isSolid && bgValue?.color ? bgValue.color : backgroundColor || dt?.colors?.background || theme?.colors?.bg || "#1a1a2e";
-  const effectiveText = textColor || dt?.colors?.text || theme?.colors?.text || "#ffffff";
+  const cardBg = dt?.colors?.card ?? effectiveBg;
+  const cardText = dt?.colors?.text ?? effectiveText;
+  const cardAccent = dt?.colors?.primary ?? effectiveAccent;
 
-  // Cores independentes por elemento — fazem fallback para effectiveText quando não definidas
-  const effectiveHeadlineText = headlineColor || effectiveText;
-  const effectiveBodyText = bodyColor || effectiveText;
-  const effectiveAccent = accentColor || dt?.colors?.primary || theme?.colors?.accent || "#a855f7";
-
-  // Cores do card vêm dos tokens/tema quando disponíveis
-  const cardBg = dt?.colors?.card ? dt.colors.card : theme?.colors?.bg ? theme.colors.bg : effectiveBg;
-  const cardText = dt?.colors?.text ? dt.colors.text : theme?.colors?.text ? theme.colors.text : effectiveText;
-  const cardAccent = dt?.colors?.primary ? dt.colors.primary : theme?.colors?.accent ? theme.colors.accent : effectiveAccent;
-
-  // Fonts: variation > designTokens > theme > defaults
+  // Fonts: variation > designTokens > defaults
   const headingFont = variation.headlineFontFamily
     ? `"${variation.headlineFontFamily}", sans-serif`
     : dt?.typography?.fontFamily
       ? `"${dt.typography.fontFamily}", sans-serif`
-      : theme?.typography?.headingFont
-        ? theme.typography.headingFont
-        : "var(--font-display)";
+      : "var(--font-display)";
   const bodyFont = variation.bodyFontFamily
     ? `"${variation.bodyFontFamily}", sans-serif`
     : dt?.typography?.fontFamily
       ? `"${dt.typography.fontFamily}", sans-serif`
-      : theme?.typography?.bodyFont
-        ? theme.typography.bodyFont
-        : "inherit";
+      : "inherit";
   const textAlign = dt?.typography?.textAlign
     ? (dt.typography.textAlign as React.CSSProperties["textAlign"])
-    : theme?.layout?.alignment
-      ? (theme.layout.alignment as React.CSSProperties["textAlign"])
-      : undefined;
+    : undefined;
 
   // Text transform from design tokens
   const headlineTextTransform = dt?.typography?.textTransform ?? "none";
@@ -652,10 +586,10 @@ function PostCardV2Content({
     ) : null;
 
   const renderBgImage = (gradientStyle: string) => {
-    if (dt || theme) {
+    if (dt || themeOverride) {
       console.log('[PostCardV2] renderBgImage skipped (dt/theme present)', {
         hasDt: Boolean(dt),
-        hasTheme: Boolean(theme),
+        hasTheme: Boolean(themeOverride),
         hasResolvedImageUrl: Boolean(resolvedImageUrl)
       });
       return null; // A imagem agora vai no nível raiz (Canvas)
@@ -1119,7 +1053,7 @@ function PostCardV2Content({
       ref={layoutRef}
       className="relative flex flex-col w-full overflow-hidden"
       style={{
-        background: dt || theme ? "transparent" : effectiveBg,
+        background: dt || themeOverride ? "transparent" : effectiveBg,
         aspectRatio: compact ? undefined : aspectRatioCSS,
         minHeight: compact ? 80 : undefined,
         padding: compact ? "1rem" : dynamicPadding,
@@ -1219,7 +1153,7 @@ function PostCardV2Content({
       ref={layoutRef}
       className="relative flex flex-col w-full overflow-hidden"
       style={{
-        background: dt || theme ? "transparent" : effectiveBg,
+        background: dt || themeOverride ? "transparent" : effectiveBg,
         aspectRatio: compact ? undefined : aspectRatioCSS,
         minHeight: compact ? 80 : undefined,
         padding: compact ? "1rem" : dynamicPadding,
@@ -1315,7 +1249,7 @@ function PostCardV2Content({
       ref={layoutRef}
       className="relative flex flex-col w-full overflow-hidden"
       style={{
-        background: dt || theme ? "transparent" : effectiveBg,
+        background: dt || themeOverride ? "transparent" : effectiveBg,
         aspectRatio: compact ? undefined : aspectRatioCSS,
         minHeight: compact ? 80 : undefined,
         padding: compact ? "1.25rem" : dynamicPadding,
@@ -1523,7 +1457,7 @@ function PostCardV2Content({
         ref={layoutRef}
         className={`relative flex ${imageOnTop ? "flex-col" : "flex-col-reverse"} w-full overflow-hidden`}
         style={{
-          background: dt || theme ? "transparent" : cardBg,
+          background: dt || themeOverride ? "transparent" : cardBg,
           aspectRatio: compact ? undefined : aspectRatioCSS,
           minHeight: compact ? 80 : undefined,
         }}
@@ -1546,7 +1480,7 @@ function PostCardV2Content({
       ref={layoutRef}
       className="relative flex flex-col w-full overflow-hidden"
       style={{
-        background: dt || theme ? "transparent" : effectiveBg,
+        background: dt || themeOverride ? "transparent" : effectiveBg,
         aspectRatio: compact ? undefined : aspectRatioCSS,
         minHeight: compact ? 80 : undefined,
         padding: compact ? "1.5rem" : typeof dynamicPadding === "number" ? dynamicPadding * 1.5 : dynamicPadding,
@@ -1610,7 +1544,7 @@ function PostCardV2Content({
       ref={layoutRef}
       className="relative flex flex-col w-full h-full overflow-hidden"
       style={{
-        background: dt || theme ? "transparent" : effectiveBg,
+        background: dt || themeOverride ? "transparent" : effectiveBg,
         aspectRatio: compact ? undefined : aspectRatioCSS,
         padding: compact ? "1rem" : dynamicPadding,
       }}
@@ -1752,7 +1686,7 @@ function PostCardV2Content({
 
   // DesignTokens path — ThemeRenderer handles structure, PostCard adds decorations
   if (dt) {
-    const canvasBg = resolvedImageUrl ? "transparent" : dt.colors.background || effectiveBg;
+    const canvasBg = resolvedImageUrl ? "transparent" : dt.colors?.background || effectiveBg;
     console.log('[PostCardV2] Rendering with dt (DesignTokens)', {
       hasResolvedImageUrl: Boolean(resolvedImageUrl),
       canvasBg,
@@ -1789,17 +1723,17 @@ function PostCardV2Content({
         {/* O Card Flutuante (z-10) */}
         <div className="absolute inset-0 z-10 pointer-events-none">
           <ThemeRenderer
-            designTokens={{
-              ...dt,
-              colors: { ...dt.colors, background: canvasBg, card: canvasBg },
-            }}
+              designTokens={{
+                ...dt,
+                colors: { ...dt.colors, background: canvasBg, card: canvasBg },
+              } as DesignTokens}
             className="w-full h-full pointer-events-auto"
             cardRef={cardRef}
             cardLayout={layoutSettings?.card}
             isEditingCard={isEditable && isEditingCard}
           >
             {resolvedBrandMeta && (
-              <BrandOverlay logoUrl={resolvedBrandMeta.logoUrl} brandName={resolvedBrandMeta.brandName} platform={variation.platform} accentColor={dt.colors.primary} textColor={dt.colors.text} />
+              <BrandOverlay logoUrl={resolvedBrandMeta.logoUrl} brandName={resolvedBrandMeta.brandName} platform={variation.platform} accentColor={dt.colors?.primary!} textColor={dt.colors?.text!} />
             )}
             {visual}
           </ThemeRenderer>
@@ -1808,8 +1742,8 @@ function PostCardV2Content({
     );
   }
 
-  if (theme) {
-    const canvasBg = resolvedImageUrl ? "transparent" : theme.colors.bg || effectiveBg;
+  if (themeOverride) {
+    const canvasBg = resolvedImageUrl ? "transparent" : themeOverride.colors.bg || effectiveBg;
     console.log('[PostCardV2] Rendering with theme', {
       hasResolvedImageUrl: Boolean(resolvedImageUrl),
       canvasBg,
@@ -1844,8 +1778,8 @@ function PostCardV2Content({
         <div className="absolute inset-0 z-10 pointer-events-none">
           <ThemeRenderer
             theme={{
-              ...theme,
-              colors: { ...theme.colors, bg: canvasBg },
+              ...themeOverride,
+              colors: { ...themeOverride.colors, bg: canvasBg },
             }}
             className="w-full h-full pointer-events-auto"
             cardRef={cardRef}
@@ -1857,9 +1791,9 @@ function PostCardV2Content({
                 logoUrl={resolvedBrandMeta.logoUrl}
                 brandName={resolvedBrandMeta.brandName}
                 platform={variation.platform}
-                accentColor={theme.colors.accent}
-                textColor={theme.colors.text}
-                cardStyle={theme.layout.cardStyle}
+                accentColor={themeOverride.colors.accent}
+                textColor={themeOverride.colors.text}
+                cardStyle={themeOverride.layout.cardStyle}
               />
             )}
             {visual}
