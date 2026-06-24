@@ -9,7 +9,11 @@ export function useInteractiveElement(descriptor: InteractiveElementDescriptor) 
 
   useLayoutEffect(() => {
     if (!interaction) return;
-    return interaction.register(descriptorRef.current);
+    const cleanup = interaction.register(descriptorRef.current);
+    return () => {
+      interaction.unmountTarget(descriptor.id);
+      cleanup();
+    };
   }, [descriptor.id, interaction]);
 
   useLayoutEffect(() => {

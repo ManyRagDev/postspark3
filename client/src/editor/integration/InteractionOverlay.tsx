@@ -67,7 +67,7 @@ export function InteractionOverlay() {
     } catch {
       setIdleRect(null);
     }
-  }, [context, interactionState, registryVersion, selectedId]);
+  }, [context, registryVersion, selectedId]);
 
   if (!context) return null;
   if (!entry || !node || entry.handlePolicy === "none") return null;

@@ -37,7 +37,7 @@ export function AdvancedTextNode({
     resolveInitialGeometry: (context: GeometryMeasurementContext) => readTextGeometry(element, context.measuredDocumentSize),
     resolveConstraints: (context: GeometryMeasurementContext, intent: InteractionIntent) => ({
       bounds: documentRect(0, 0, context.viewport.documentSize.width, context.viewport.documentSize.height),
-      ...(intent.type === "resize" ? { minWidth: 24, minHeight: 0 } : {}),
+      ...(intent.type === "resize" ? { minWidth: 24, minHeight: 1 } : {}),
     }),
     handlePolicy: "horizontal" as const,
     snapEligible: false,

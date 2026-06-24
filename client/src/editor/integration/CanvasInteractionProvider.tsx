@@ -78,6 +78,7 @@ interface CanvasInteractionContextValue {
   commit(event: PointerLike): void;
   cancel(pointerId?: number): void;
   cancelTarget(target: InteractiveGeometryTarget, pointerId?: number): void;
+  unmountTarget(target: InteractiveGeometryTarget): void;
   registry: ElementRegistry;
   register(entry: InteractiveElementRegistration): () => void;
   getCanvas(): HTMLElement | null;
@@ -180,6 +181,18 @@ export function CanvasInteractionProvider({
       state.initial.id === target
     ) cancel(pointerId);
   }, [cancel, controller]);
+
+  const unmountTarget = useCallback((target: InteractiveGeometryTarget) => {
+    const state = controller.getState();
+    if (
+      (state.phase === "pressing" || state.phase === "dragging" || state.phase === "resizing") &&
+      state.initial.id === target
+    ) {
+      controller.cancelInteraction("element-unmounted");
+      activeMetaRef.current = null;
+      stopObserving();
+    }
+  }, [controller, stopObserving]);
 
   const begin = useCallback((input: BeginCanvasInteraction): boolean => {
     try {
@@ -331,11 +344,12 @@ export function CanvasInteractionProvider({
     commit,
     cancel,
     cancelTarget,
+    unmountTarget,
     registry,
     register: entry => registry.register(entry),
     getCanvas: () => canvasRef.current,
     isSnapEnabled: () => activeMetaRef.current?.snapEnabled ?? false,
-  }), [beginTarget, cancel, cancelTarget, commit, controller, preview, registry]);
+  }), [beginTarget, cancel, cancelTarget, commit, controller, preview, registry, unmountTarget]);
 
   return (
     <CanvasInteractionContext.Provider value={context}>

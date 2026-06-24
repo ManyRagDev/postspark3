@@ -56,8 +56,9 @@ export class ElementRegistry {
   }
 
   update(entry: InteractiveElementDescriptor): void {
-    if (!this.entries.has(entry.id) || this.entries.get(entry.id) === entry) return;
-    this.entries.set(entry.id, entry);
+    const existing = this.entries.get(entry.id);
+    if (!existing || existing === entry) return;
+    Object.assign(existing, entry);
     this.emit();
   }
 
