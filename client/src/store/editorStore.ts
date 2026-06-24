@@ -18,6 +18,16 @@ import {
     type EditorGeometryCommit,
     type FixedLayoutGeometryTarget,
 } from '@/editor/adapters';
+import {
+    type HistoryStack,
+    createHistoryStack,
+    pushTransaction,
+    undo as historyUndo,
+    redo as historyRedo,
+    clearHistory as historyClear,
+    canUndo,
+    canRedo,
+} from '@/editor/history';
 
 export type LayoutTarget = 'headline' | 'body' | 'image' | 'global' | 'badge' | 'sticker' | 'accentBar' | 'carouselArrow' | 'card' | `section:${string}` | `textElement:${string}` | `imageElement:${string}`;
 
@@ -190,6 +200,7 @@ export interface EditorState {
     baseBgOverlay: BgOverlaySettings;
     layoutTarget: LayoutTarget;
     isMagnetActive: boolean;
+    historyStack: HistoryStack;
 
     setActiveVariation: (variation: PostVariation | null) => void;
     loadSnapshot: (snapshot: PostVisualSnapshot) => void;
@@ -216,21 +227,40 @@ export interface EditorState {
     addImageElement: (element: ImageElement) => void;
     removeImageElement: (id: string) => void;
     updateSingleImageElement: (id: string, patch: Partial<ImageElement>) => void;
+
+    // History actions
+    undo: () => void;
+    redo: () => void;
+    clearHistory: () => void;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => {
     const setWithSnapshot = (
-        update: Partial<EditorState> | ((state: EditorState) => Partial<EditorState> | EditorState)
+        update: Partial<EditorState> | ((state: EditorState) => Partial<EditorState> | EditorState),
+        historyLabel?: string,
+        coalesceKey?: string,
     ) => set(state => {
         const patch = typeof update === 'function' ? update(state) : update;
         const nextState = { ...state, ...patch } as EditorState;
         const fallback = nextState.baseVariation ?? nextState.activeVariation;
-        return {
-            ...patch,
-            visualSnapshot: fallback
-                ? buildVariationSnapshot(nextState, fallback, nextState.aspectRatio)
-                : null,
-        };
+        const nextSnapshot = fallback
+            ? buildVariationSnapshot(nextState, fallback, nextState.aspectRatio)
+            : null;
+        if (!nextSnapshot || !state.visualSnapshot) {
+            return { ...patch, visualSnapshot: nextSnapshot };
+        }
+        const result: Partial<EditorState> = { ...patch, visualSnapshot: nextSnapshot };
+        if (historyLabel) {
+            const nextStack = pushTransaction(
+                state.historyStack,
+                state.visualSnapshot as unknown as Record<string, unknown>,
+                nextSnapshot as unknown as Record<string, unknown>,
+                historyLabel,
+                coalesceKey,
+            );
+            result.historyStack = nextStack;
+        }
+        return result;
     });
 
     const applyLayoutSettingsUpdate = (
@@ -416,6 +446,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     baseBgOverlay: DEFAULT_BG_OVERLAY,
     layoutTarget: 'global',
     isMagnetActive: true,
+    historyStack: createHistoryStack(),
     setActiveVariation: variation =>
         setWithSnapshot(state => {
             if (!variation) {
@@ -640,7 +671,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
                 bgValue: nextBgValue,
                 baseBgValue: nextBgValue,
             };
-        }),
+        }, "Mudar formato"),
     setApplyScope: applyScope => set({ applyScope }),
 
     updateImageSettings: settings =>
@@ -698,7 +729,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         }),
 
     updateLayoutSettings: settings =>
-        setWithSnapshot(state => applyLayoutSettingsUpdate(state, settings)),
+        setWithSnapshot(state => applyLayoutSettingsUpdate(state, settings), "Alterar layout"),
 
     setBgValue: bgValue =>
         setWithSnapshot(state => {
@@ -742,7 +773,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
                 bgValue: cloneBgValue(bgValue),
                 baseBgValue: cloneBgValue(bgValue),
             };
-        }),
+        }, "Alterar fundo"),
 
     setBgOverlay: overlay =>
         setWithSnapshot(state => {
@@ -792,7 +823,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     setLayoutTarget: layoutTarget => set({ layoutTarget }),
     setMagnetActive: isMagnetActive => set({ isMagnetActive }),
 
-    updateVariation: newFields => setWithSnapshot(state => applyVariationUpdate(state, newFields)),
+    updateVariation: newFields => setWithSnapshot(state => applyVariationUpdate(state, newFields), "Editar conteúdo"),
 
     commitGeometry: command => {
         const target = command.interaction.elementId;
@@ -810,6 +841,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
         if (currentText && textElementsEqual(currentText, textElementFromCommit(currentText, command.interaction))) return;
         if (currentImage && imageElementsEqual(currentImage, imageElementFromCommit(currentImage, command.interaction))) return;
 
+        const label = command.interaction.operation === "resize" ? "Redimensionar elemento" : "Mover elemento";
         setWithSnapshot(state => {
             const patch = geometryLayoutPatch(state, command);
             if (patch) return applyLayoutSettingsUpdate(state, patch);
@@ -835,7 +867,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
             }
 
             return state;
-        });
+        }, label, command.interaction.elementId);
     },
 
     // Image element actions delegate to the canonical carousel-aware variation path.
@@ -880,6 +912,30 @@ export const useEditorStore = create<EditorState>((set, get) => {
             baseBgOverlay: DEFAULT_BG_OVERLAY,
             layoutTarget: 'global',
             isMagnetActive: true,
+            historyStack: createHistoryStack(),
         }),
+
+    undo: () => {
+        const state = get();
+        const nextStack = historyUndo(state.historyStack);
+        if (!nextStack) return;
+        const undone = state.historyStack.past[state.historyStack.past.length - 1];
+        if (!undone?.beforeSnapshot) return;
+        set({ historyStack: nextStack });
+        get().loadSnapshot(undone.beforeSnapshot as unknown as PostVisualSnapshot);
+    },
+
+    redo: () => {
+        const state = get();
+        if (state.historyStack.future.length === 0) return;
+        const nextStack = historyRedo(state.historyStack);
+        if (!nextStack) return;
+        const redone = state.historyStack.future[0];
+        if (!redone?.afterSnapshot) return;
+        set({ historyStack: nextStack });
+        get().loadSnapshot(redone.afterSnapshot as unknown as PostVisualSnapshot);
+    },
+
+    clearHistory: () => set({ historyStack: createHistoryStack() }),
     });
 });

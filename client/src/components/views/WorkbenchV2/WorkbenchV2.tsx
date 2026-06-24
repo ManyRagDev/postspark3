@@ -12,8 +12,9 @@
  */
 
 import React from "react";
-import { ArrowLeft, Download, Type, Palette, Image as ImageIcon, Layout as LayoutIcon, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, Type, Palette, Image as ImageIcon, Layout as LayoutIcon, Save, Loader2, Undo2, Redo2 } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
+import { useEditorHistory } from "@/editor/history/useEditorHistory";
 import { useIsMobile } from "@/hooks/useMobile";
 import { motion } from "framer-motion";
 import { useArcDrawer, TabId } from "@/hooks/useArcDrawer";
@@ -302,6 +303,7 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
   const canvasRef = React.useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const arcDrawer = useArcDrawer();
+  const { canUndo, canRedo, undo, redo } = useEditorHistory();
 
   const generateBackgroundMutation = trpc.post.generateBackground.useMutation();
   const [isGeneratingImg, setIsGeneratingImg] = React.useState(false);
@@ -442,6 +444,25 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{ color: "var(--text-secondary)" }}
+            title="Desfazer (Ctrl+Z)"
+          >
+            <Undo2 size={13} />
+          </button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{ color: "var(--text-secondary)" }}
+            title="Refazer (Ctrl+Shift+Z)"
+          >
+            <Redo2 size={13} />
+          </button>
+
           <button
             onClick={() => onSave?.(baseVariation ?? activeVariation)}
             disabled={isSaving}
