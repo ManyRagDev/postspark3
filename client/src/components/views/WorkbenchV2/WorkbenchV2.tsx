@@ -21,10 +21,8 @@ import { useArcDrawer, TabId } from "@/hooks/useArcDrawer";
 import MobileEditSheet from "@/components/MobileEditSheet";
 import { trpc } from "@/lib/trpc";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
-import type { AspectRatio, GenerationDebugTrace, PostVariation } from "@shared/postspark";
-import { ASPECT_RATIO_LABELS } from "@shared/postspark";
+import type { GenerationDebugTrace, PostVariation } from "@shared/postspark";
 import { toast } from "sonner";
-import RatioIcon from "../../RatioIcon";
 
 import CanvasWorkspace from "./CanvasWorkspace";
 import PlatformBlock from "./blocks/PlatformBlock";
@@ -49,7 +47,6 @@ interface WorkbenchV2Props {
 }
 
 const DESKTOP_ACCOUNT_SAFE_WIDTH = 240;
-const DESKTOP_ACCOUNT_SAFE_HEIGHT = 76;
 
 // ─── Sidebar Esquerda (Desktop) ──────────────────────────────────────────────
 interface LeftSidebarProps {
@@ -220,78 +217,6 @@ function LeftSidebar({ onGenerateImage, isGenerating, accentColor }: LeftSidebar
           <PlatformBlock />
         </div>
       </CollapsibleSection>
-    </aside>
-  );
-}
-
-// ─── Painel Direito (Quick Actions - Desktop) ─────────────────────────────────
-function RightPanel({ topClearance = 0 }: { topClearance?: number }) {
-  const aspectRatio = useEditorStore(s => s.aspectRatio);
-  const setAspectRatio = useEditorStore(s => s.setAspectRatio);
-  const activeVariation = useEditorStore(s => s.activeVariation);
-  const accentColor = activeVariation?.accentColor || "#a855f7";
-
-  return (
-    <aside
-      className="flex-shrink-0 flex flex-col gap-3"
-      style={{
-        width: "200px",
-        minWidth: "200px",
-        maxWidth: "200px",
-        background: "var(--bg-panel, rgba(18,18,28,0.95))",
-        borderLeft: "1px solid rgba(255,255,255,0.06)",
-        padding: "1rem",
-        paddingTop: `${topClearance + 16}px`,
-      }}
-    >
-      <p className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">Ações Rápidas</p>
-
-      <div className="flex flex-col gap-4 mt-2">
-        <div>
-          <label className="text-[10px] font-medium text-[var(--text-secondary)] mb-2 block uppercase tracking-wider">Proporção (Tamanho)</label>
-          <div
-            className="flex flex-col gap-1 p-1 rounded-xl"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
-            {(["1:1", "5:6", "9:16"] as AspectRatio[]).map(ratio => {
-              const isActive = aspectRatio === ratio;
-              const iconColor = isActive ? "#000000" : "var(--text-tertiary)";
-
-              return (
-                <button
-                  key={ratio}
-                  onClick={() => setAspectRatio(ratio)}
-                  className={`flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all duration-300 select-none relative group/ratio`}
-                  style={{
-                    background: isActive ? `${accentColor}15` : "transparent",
-                    color: isActive ? accentColor : "var(--text-tertiary)",
-                    border: isActive ? `1px solid ${accentColor}` : "1px solid transparent",
-                    boxShadow: isActive ? `0 0 15px ${accentColor}30` : "none",
-                  }}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="ratio-active-glow"
-                      className="absolute inset-0 rounded-lg blur-sm bg-current opacity-20 pointer-events-none"
-                      animate={{ opacity: [0.1, 0.3, 0.1] }}
-                      transition={{ repeat: Infinity, duration: 2 }}
-                    />
-                  )}
-                  <RatioIcon ratio={ratio} size={14} color={isActive ? accentColor : "var(--text-tertiary)"} />
-                  {ASPECT_RATIO_LABELS[ratio].label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2 opacity-40 pointer-events-none mt-4 border-t border-white/10 pt-4">
-          <span className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">+ (V2 Actions)</span>
-        </div>
-      </div>
     </aside>
   );
 }
@@ -521,8 +446,6 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
         {!isMobile && <LeftSidebar onGenerateImage={handleGenerateImage} isGenerating={isGeneratingImg} accentColor={accentColor} />}
 
         <CanvasWorkspace canvasRef={canvasRef} renderMode={isExporting ? "export" : "edit"} />
-
-        {!isMobile && <RightPanel topClearance={DESKTOP_ACCOUNT_SAFE_HEIGHT} />}
       </div>
 
       {/* ── Mobile: Bottom Navigation Bar ───────────────────────────────── */}
