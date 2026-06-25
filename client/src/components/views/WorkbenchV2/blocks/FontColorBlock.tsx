@@ -17,13 +17,6 @@ import { FontDropdown } from "@/components/ui/FontDropdown";
 import { DEFAULT_DESIGN_TOKENS } from "@shared/postspark";
 import { useEditorStore } from "@/store/editorStore";
 
-// Escopos de edição de tipografia
-const FONT_SCOPES: { id: "headline" | "body" | "global"; label: string }[] = [
-    { id: "headline", label: "Título" },
-    { id: "body", label: "Corpo" },
-    { id: "global", label: "Ambos" },
-];
-
 function ColorSwatch({
     label,
     value,
@@ -89,7 +82,10 @@ export default function FontColorBlock() {
         } else if (fontScope === "body") {
             updateVariation({ bodyFontFamily: value });
         } else {
-            // Ambos: aplica no designTokens + limpa overrides específicos
+            // Ambos: aplica no designTokens + limpa overrides específicos.
+            // Tambem limpa customFontUrl global: getActiveFontInfo prioriza uma
+            // URL valida do Google Fonts sobre a familia escolhida, entao mante-la
+            // anularia a troca de fonte (protecao antes feita no ChameleonPanel).
             const baseTokens = activeVariation.designTokens ?? DEFAULT_DESIGN_TOKENS;
             updateVariation({
                 headlineFontFamily: undefined,
@@ -100,6 +96,7 @@ export default function FontColorBlock() {
                         ...DEFAULT_DESIGN_TOKENS.typography,
                         ...baseTokens.typography,
                         fontFamily: value,
+                        customFontUrl: "",
                     },
                 },
             });

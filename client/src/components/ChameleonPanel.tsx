@@ -8,9 +8,7 @@
 
 import React, { useState } from "react";
 import type { DesignTokens, PostVariation } from "@shared/postspark";
-import { FONT_CATALOG } from "@/lib/fonts";
 import { Palette, Type, Box, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
-import { FontDropdown } from "./ui/FontDropdown";
 
 // ─── Dropdown Options ─────────────────────────────────────────────────────────
 
@@ -137,14 +135,6 @@ export default function ChameleonPanel({ tokens, onChange, variation, onUpdateVa
   const setStruct = (key: keyof DesignTokens["structure"], value: string) =>
     onChange({ ...tokens, structure: { ...tokens.structure, [key]: value } });
 
-  // Font groups for the dropdown
-  const fontGroups = [
-    { label: "Sans-Serif", fonts: FONT_CATALOG.sansSerif },
-    { label: "Serifadas", fonts: FONT_CATALOG.serif },
-    { label: "Display", fonts: FONT_CATALOG.display },
-    { label: "Mono", fonts: FONT_CATALOG.mono },
-  ];
-
   return (
     <div className="flex flex-col gap-1 text-xs">
       {/* ── Palette ────────────────────────────────────────────── */}
@@ -165,56 +155,16 @@ export default function ChameleonPanel({ tokens, onChange, variation, onUpdateVa
       )}
 
       {/* ── Font ───────────────────────────────────────────────── */}
+      {/* Seletor de familia tipografica fica no FontColorBlock (bloco Texto).
+          Aqui mantemos apenas fonte customizada global e transformacao. */}
       <SectionHeader
         icon={<Type size={14} />}
-        title={activeTarget === 'headline' ? 'Tipografia (Título)' : activeTarget === 'body' ? 'Tipografia (Corpo)' : 'Tipografia'}
+        title="Tipografia"
         open={openSections.font}
         onToggle={() => toggle("font")}
       />
       {openSections.font && (
         <div className="flex flex-col gap-3 pb-3 border-b border-white/5">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between">
-              <span className="text-white/60 text-xs">Família Tipográfica</span>
-              <span className="text-[9px] text-white/40 uppercase tracking-wider bg-white/5 px-1.5 py-0.5 rounded">
-                {activeTarget === 'headline' ? 'Contexto: Título'
-                  : activeTarget === 'body' ? 'Contexto: Corpo'
-                    : activeTarget === 'accentBar' ? 'Contexto: Barrinha'
-                      : activeTarget === 'badge' ? 'Contexto: Badge'
-                        : activeTarget === 'sticker' ? 'Contexto: Sticker'
-                          : 'Contexto: Global'}
-              </span>
-            </div>
-
-            <FontDropdown
-              value={
-                activeTarget === 'headline' && variation?.headlineFontFamily
-                  ? variation.headlineFontFamily
-                  : activeTarget === 'body' && variation?.bodyFontFamily
-                    ? variation.bodyFontFamily
-                    : tokens.typography.fontFamily
-              }
-              onChange={(value) => {
-                if (activeTarget === 'headline' && onUpdateVariation) {
-                  onUpdateVariation({ headlineFontFamily: value });
-                } else if (activeTarget === 'body' && onUpdateVariation) {
-                  onUpdateVariation({ bodyFontFamily: value });
-                } else {
-                  setTypo("fontFamily", value);
-                  if (onUpdateVariation) {
-                    onUpdateVariation({
-                      headlineFontFamily: undefined,
-                      bodyFontFamily: undefined
-                    });
-                  }
-                  if (tokens.typography.customFontUrl) {
-                    setTypo("customFontUrl", "");
-                  }
-                }
-              }}
-            />
-          </div>
-
           <label className="flex flex-col gap-1">
             <span className="text-white/60 text-xs">URL Google Fonts (opcional)</span>
             <input
