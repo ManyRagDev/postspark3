@@ -182,26 +182,16 @@ export default function ChameleonPanel({ tokens, onChange, variation, onUpdateVa
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
-            <SelectInput
-              label="Transformação"
-              value={tokens.typography.textTransform}
-              options={[
-                { value: "none", label: "Normal" },
-                { value: "uppercase", label: "CAIXA ALTA" },
-              ]}
-              onChange={(v) => setTypo("textTransform", v)}
-            />
-            <SelectInput
-              label="Alinhamento"
-              value={tokens.typography.textAlign}
-              options={[
-                { value: "left", label: "Esquerda" },
-                { value: "center", label: "Centralizado" },
-              ]}
-              onChange={(v) => setTypo("textAlign", v)}
-            />
-          </div>
+          {/* Alinhamento de texto vive no FontColorBlock (bloco Texto). */}
+          <SelectInput
+            label="Transformação"
+            value={tokens.typography.textTransform}
+            options={[
+              { value: "none", label: "Normal" },
+              { value: "uppercase", label: "CAIXA ALTA" },
+            ]}
+            onChange={(v) => setTypo("textTransform", v)}
+          />
         </div>
       )}
 
