@@ -174,9 +174,12 @@ export default function FontColorBlock() {
                     label="Destaque"
                     value={activeVariation.accentColor ?? "#a855f7"}
                     onChange={(v) => {
+                        // Escrita canonica: apenas designTokens.colors.primary.
+                        // editorStore.normalizeVariationPatch deriva accentColor a
+                        // partir de primary no mesmo patch, mantendo top-level e
+                        // tokens coerentes (ver §26 do DOCUMENTO_MESTRE).
                         const baseTokens = (activeVariation.designTokens ?? DEFAULT_DESIGN_TOKENS) as any;
                         updateVariation({
-                            accentColor: v,
                             designTokens: { ...baseTokens, colors: { ...baseTokens.colors, primary: v } }
                         });
                     }}
