@@ -4506,3 +4506,6456 @@ outputSummary: [
   }
 ]
 
+[2026-06-25T03:30:30.707Z] POST_GENERATION_STARTED
+generationRunId: e2934e5b-734c-46e1-8269-7bc1e37c7789
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 41
+contentPreview: 3 motivos para evitar telas para crianças
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: true
+sparkCost: 10
+
+[2026-06-25T03:30:42.729Z] AI_PROVIDER_REQUEST_ERROR
+provider: openrouter
+model: openai/gpt-5-mini
+error: AbortError: This operation was aborted
+    at new DOMException (node:internal/per_context/domexception:76:18)
+    at AbortController.abort (node:internal/abort_controller:504:18)
+    at Timeout._onTimeout (C:\Users\emanu\Documents\Projetos\PostSpark 3\server\_core\llm.ts:662:24)
+    at listOnTimeout (node:internal/timers:588:17)
+    at process.processTimers (node:internal/timers:523:7)
+
+[2026-06-25T03:30:42.729Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: content_strategy
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 707319f489290c2d18ee05580607de64f44376380658a09e1a500f18d80a3f2e
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 12015
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed This operation was aborted
+
+[2026-06-25T03:30:51.081Z] AI_PROVIDER_200
+traceLabel: content_strategy
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 2
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2299
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 707319f489290c2d18ee05580607de64f44376380658a09e1a500f18d80a3f2e
+promptTokens: 245
+completionTokens: 527
+totalTokens: 772
+latencyMs: 7442
+estimatedCostUsd: 0.00111525
+responseId: gen-1782358235-LaEXMR40VCnDvJxHrWhc
+error: undefined
+
+[2026-06-25T03:30:58.416Z] AI_PROVIDER_200
+traceLabel: post_generation_1
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2648
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: fa92877aeadc2672e363050b806b926b4d5802471bf9bc6b18a09411ba3b88c5
+promptTokens: 2320
+completionTokens: 807
+totalTokens: 3127
+latencyMs: 7333
+estimatedCostUsd: 0.002194
+responseId: gen-1782358242-nA88SEqvcopcWkwcuTQM
+error: undefined
+
+[2026-06-25T03:31:01.012Z] AI_PROVIDER_200
+traceLabel: post_generation_3
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2378
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 1ffba4c0da8629476b6da94692594fc7ba5048350c6fead5d8ade09710764c66
+promptTokens: 2319
+completionTokens: 732
+totalTokens: 3051
+latencyMs: 9927
+estimatedCostUsd: 0.00204375
+responseId: gen-1782358242-fOp3aBkD92q9ZSJwMCNo
+error: undefined
+
+[2026-06-25T03:31:03.661Z] AI_PROVIDER_200
+traceLabel: post_generation_2
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4214
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 7f1183f8c695aaef1cc901a5fdfdc87572b57e41a11e0eb61fcf5efdd8487726
+promptTokens: 2321
+completionTokens: 1149
+totalTokens: 3470
+latencyMs: 12577
+estimatedCostUsd: 0.00287825
+responseId: gen-1782358242-heEu3FL4lal8TVIK86kY
+error: undefined
+
+[2026-06-25T03:31:07.937Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1105
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 99d5f97803ebff2ba9ed77c43ae51162003d87009c80be002b1d842b8def3253
+promptTokens: 1116
+completionTokens: 282
+totalTokens: 1398
+latencyMs: 2930
+estimatedCostUsd: 0.000843
+responseId: gen-1782358256-Or2O8oedyNStAju3Xdad
+error: undefined
+
+[2026-06-25T03:31:08.215Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 934
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: f807ccc279cfb2eb38fc52fe7a31d26e3e5a0758020e31f624998d5fb28b5b17
+promptTokens: 1085
+completionTokens: 242
+totalTokens: 1327
+latencyMs: 3207
+estimatedCostUsd: 0.00075525
+responseId: gen-1782358256-y8NBHVTylwLRraYylhyA
+error: undefined
+
+[2026-06-25T03:31:08.288Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1054
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 2249aaf0e6957491e42a187eb9888a2070c7e669d64566d0d1623a6938d00e2f
+promptTokens: 1024
+completionTokens: 281
+totalTokens: 1305
+latencyMs: 3280
+estimatedCostUsd: 0.000818
+responseId: gen-1782358256-BZ6Zw4itzOM61vtkPa9A
+error: undefined
+
+[2026-06-25T03:31:16.002Z] AI_PROVIDER_200
+traceLabel: quality_revision_3
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2476
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 373beafad6919059b9dee9063c676e71d211277211a42f6275a795c663e5c5b5
+promptTokens: 2569
+completionTokens: 760
+totalTokens: 3329
+latencyMs: 7713
+estimatedCostUsd: 0.00216225
+responseId: gen-1782358259-KkTviil1FumCSxQw60I0
+error: undefined
+
+[2026-06-25T03:31:17.487Z] AI_PROVIDER_200
+traceLabel: quality_revision_2
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2647
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b4a852e369c0624f71a577a556a084026971d5d4c0fa87fdfaa33508a45b34ef
+promptTokens: 2647
+completionTokens: 792
+totalTokens: 3439
+latencyMs: 9198
+estimatedCostUsd: 0.00224575
+responseId: gen-1782358259-sGCFY75e0ztLVo8wYO2s
+error: undefined
+
+[2026-06-25T03:31:20.898Z] AI_PROVIDER_200
+traceLabel: quality_revision_1
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4313
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 80861824197468ba95e303a45afb0b13206c5fde07b0c8b201cc65ceb726fc8c
+promptTokens: 2714
+completionTokens: 1189
+totalTokens: 3903
+latencyMs: 12609
+estimatedCostUsd: 0.0030565
+responseId: gen-1782358259-0UKJF0CkC7Jilse2a0Nu
+error: undefined
+
+[2026-06-25T03:31:25.010Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1312
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 1e7af72aa62f2fdb8006b553d524c89428d62ca3529663d324a6623c94b162ad
+promptTokens: 1065
+completionTokens: 354
+totalTokens: 1419
+latencyMs: 4109
+estimatedCostUsd: 0.00097425
+responseId: gen-1782358272-ZPaeVlc1bNg3V4gBVK2b
+error: undefined
+
+[2026-06-25T03:31:25.579Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1436
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b84e6a67f8a829ec4765515c72d9aefc94dff25629686e0f814d7fce4e3b5fc8
+promptTokens: 1099
+completionTokens: 384
+totalTokens: 1483
+latencyMs: 4679
+estimatedCostUsd: 0.00104275
+responseId: gen-1782358272-i5fxGa1ePTWXFd6g4G6n
+error: undefined
+
+[2026-06-25T03:31:25.701Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1069
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b5caac970f648c090332a4a3b7fa67ca1d5fe12ea0e55aa003b75a4d43daf0fa
+promptTokens: 1134
+completionTokens: 267
+totalTokens: 1401
+latencyMs: 4802
+estimatedCostUsd: 0.0008175
+responseId: gen-1782358272-hKRSQTEvF0sUaqJJzWD9
+error: undefined
+
+[2026-06-25T03:31:27.618Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 558
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 76a1f11cbb47243eea79c5b7af282663418a7d7741830679dcc131caae683cb5
+promptTokens: 638
+completionTokens: 164
+totalTokens: 802
+latencyMs: 1915
+estimatedCostUsd: 0.0004875
+responseId: gen-1782358277-VG3dXUJROQbZ3n8Ww1y1
+error: undefined
+
+[2026-06-25T03:31:28.481Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 703
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 7bf9aef99586d6840d89a417ef082461393d7bb228a47b9852e4417059f8423e
+promptTokens: 640
+completionTokens: 199
+totalTokens: 839
+latencyMs: 2779
+estimatedCostUsd: 0.000558
+responseId: gen-1782358277-k0HaC0dBIDtVtb9szi4V
+error: undefined
+
+[2026-06-25T03:31:28.595Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 813
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8bb5467049dba084ed0eb176b7e28e3ac0a143b153942ba3d6f0a675552a3cee
+promptTokens: 666
+completionTokens: 218
+totalTokens: 884
+latencyMs: 2893
+estimatedCostUsd: 0.0006025
+responseId: gen-1782358277-vwJtzWtmquFLCYB4Hq88
+error: undefined
+
+[2026-06-25T03:31:30.176Z] POST_GENERATION_COMPLETED
+generationRunId: e2934e5b-734c-46e1-8269-7bc1e37c7789
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+durationMs: 59469
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: [ 'openai/gpt-5-mini', 'openai/gpt-5-mini-2025-08-07' ]
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 3
+strategyFallbackUsed: false
+originalityFallbackUsed: false
+finalValidation: { valid: true, errors: [] }
+llmCalls: [
+  {
+    label: 'content_strategy',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '707319f489290c2d18ee05580607de64f44376380658a09e1a500f18d80a3f2e',
+    promptTokens: 0,
+    completionTokens: 0,
+    totalTokens: 0,
+    latencyMs: 12015,
+    estimatedCostUsd: 0,
+    error: 'openrouter API failed This operation was aborted'
+  },
+  {
+    label: 'content_strategy',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 2,
+    fallbackFrom: undefined,
+    promptHash: '707319f489290c2d18ee05580607de64f44376380658a09e1a500f18d80a3f2e',
+    promptTokens: 245,
+    completionTokens: 527,
+    totalTokens: 772,
+    latencyMs: 7442,
+    estimatedCostUsd: 0.00111525,
+    error: undefined
+  },
+  {
+    label: 'post_generation_1',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'fa92877aeadc2672e363050b806b926b4d5802471bf9bc6b18a09411ba3b88c5',
+    promptTokens: 2320,
+    completionTokens: 807,
+    totalTokens: 3127,
+    latencyMs: 7333,
+    estimatedCostUsd: 0.002194,
+    error: undefined
+  },
+  {
+    label: 'post_generation_3',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '1ffba4c0da8629476b6da94692594fc7ba5048350c6fead5d8ade09710764c66',
+    promptTokens: 2319,
+    completionTokens: 732,
+    totalTokens: 3051,
+    latencyMs: 9927,
+    estimatedCostUsd: 0.00204375,
+    error: undefined
+  },
+  {
+    label: 'post_generation_2',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '7f1183f8c695aaef1cc901a5fdfdc87572b57e41a11e0eb61fcf5efdd8487726',
+    promptTokens: 2321,
+    completionTokens: 1149,
+    totalTokens: 3470,
+    latencyMs: 12577,
+    estimatedCostUsd: 0.00287825,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '99d5f97803ebff2ba9ed77c43ae51162003d87009c80be002b1d842b8def3253',
+    promptTokens: 1116,
+    completionTokens: 282,
+    totalTokens: 1398,
+    latencyMs: 2930,
+    estimatedCostUsd: 0.000843,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'f807ccc279cfb2eb38fc52fe7a31d26e3e5a0758020e31f624998d5fb28b5b17',
+    promptTokens: 1085,
+    completionTokens: 242,
+    totalTokens: 1327,
+    latencyMs: 3207,
+    estimatedCostUsd: 0.00075525,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '2249aaf0e6957491e42a187eb9888a2070c7e669d64566d0d1623a6938d00e2f',
+    promptTokens: 1024,
+    completionTokens: 281,
+    totalTokens: 1305,
+    latencyMs: 3280,
+    estimatedCostUsd: 0.000818,
+    error: undefined
+  },
+  {
+    label: 'quality_revision_3',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '373beafad6919059b9dee9063c676e71d211277211a42f6275a795c663e5c5b5',
+    promptTokens: 2569,
+    completionTokens: 760,
+    totalTokens: 3329,
+    latencyMs: 7713,
+    estimatedCostUsd: 0.00216225,
+    error: undefined
+  },
+  {
+    label: 'quality_revision_2',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'b4a852e369c0624f71a577a556a084026971d5d4c0fa87fdfaa33508a45b34ef',
+    promptTokens: 2647,
+    completionTokens: 792,
+    totalTokens: 3439,
+    latencyMs: 9198,
+    estimatedCostUsd: 0.00224575,
+    error: undefined
+ ...[truncated 2789 chars]
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782358289881-0',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: '3 mitos sobre telas infantis',
+    body: 'Nem tudo é perigoso — saiba o que evitar e o que é exagero',
+    caption: 'Mito ou verdade? Nem tudo que se fala sobre telas é preto no branco — e entender os riscos ajuda a decidir com mais calma. 🌙🧸📱 Telas antes de dormir podem mesmo atrapalhar: a exposição à luz e a estímulos impede a desaceleração necessária para um sono reparador. Para crianças em fase de fala, o uso excessivo e passivo pode diminuir oportunidades de interação verbal ativa. E substituir brincadeiras por tempo de tela perde-se jogo físico, criatividade e convivência social importantes para o des...[truncated]',
+    callToAction: 'Descubra mais',
+    hashtags: [ '#PaisInformados', '#TelasESaude', '#MitosEVerdades' ],
+    colors: { backgroundColor: '#0B132B', textColor: '#FFFFFF', accentColor: '#FFD166' },
+    copyAngle: { type: 'mito_vs_verdade', label: 'Desmistificar telas', badge: 'Mito?', stickerText: 'Revele' },
+    sections: [
+      {
+        index: 0,
+        id: undefined,
+        number: 1,
+        icon: 'Zap',
+        label: '1. Sono comprometido?',
+        description: 'Uso antes de dormir pode atrapalhar o sono (evit'
+      },
+      {
+        index: 1,
+        id: undefined,
+        number: 2,
+        icon: 'Globe',
+        label: '2. Atraso na fala?',
+        description: 'Excesso passivo pode reduzir interação verbal (f'
+      },
+      {
+        index: 2,
+        id: undefined,
+        number: 3,
+        icon: 'Heart',
+        label: '3. Substitui brincadeira',
+        description: 'Telas não oferecem jogo físico e social — ofereç'
+      }
+    ],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 3,
+      evaluation: { accepted: false, overallScore: 76, reasons: undefined },
+      originality: { score: 11, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782358289881-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: '5 sinais de que as telas atrapalham seu filho',
+    body: 'Sono irregular, explosões de irritabilidade, isolamento social — observe estes sinais práticos',
+    caption: 'Percebeu mudanças no seu filho e não sabe se as telas têm culpa? 🤔 Pequenos sinais podem indicar que é hora de reduzir o tempo de tela — e agir cedo evita que o problema cresça. Dormir mal, explosões de irritação e afastamento de amigos costumam aparecer primeiro e são fáceis de observar. 🛏️😡📱 No post você vê 3 sinais claros: sono irregular (dificuldade para dormir ou acordar cansado), irritabilidade (explosões de raiva ou mudanças rápidas de humor) e isolamento social (prefere telas a brinc...[truncated]',
+    callToAction: 'Confira o checklist completo',
+    hashtags: [ '#PaisAtentos', '#TempoDeTela', '#SaúdeInfantil' ],
+    colors: { backgroundColor: '#0F1724', textColor: '#FFFFFF', accentColor: '#FFB86B' },
+    copyAngle: { type: 'dor', label: 'Sinais visíveis', badge: 'Alerta', stickerText: 'Atenção' },
+    sections: [
+      { index: 0, id: undefined, number: 1, icon: 'Moon', label: 'Sono irregular', description: 'Dificuldade para dormir ou acordar cansado' },
+      { index: 1, id: undefined, number: 2, icon: 'Users', label: 'Irritabilidade', description: 'Explosões de raiva ou mudanças rápidas de humor' },
+      { index: 2, id: undefined, number: 3, icon: 'Heart', label: 'Isolamento social', description: 'Prefere telas a brincar com outras crianças' }
+    ],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 3,
+      evaluation: { accepted: false, overal...[truncated 1672 chars]
+
+[2026-06-25T03:34:50.088Z] IMAGE_PROVIDER_200
+provider: openrouter
+model: google/gemini-3.1-flash-image
+imageProvider: pollinations_fast
+
+[2026-06-25T13:53:02.301Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 23
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 5
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T13:53:02.333Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 17
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e3e237613fef0e6b05b9c305e0e97e2c7d0a603bb6110e2e30dae1fe30b6282a
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T13:53:02.331Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 21
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: a12d764fdd900a43937fda461bd1ce1a70c31db97cdbb3bbb3e74a3171e53232
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T13:53:02.335Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-06-25T13:53:02.335Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T13:53:02.338Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 2
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 23
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T13:53:02.339Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T13:53:02.340Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-06-25T13:53:02.342Z] AI_PROVIDER_NON_200
+provider: groq
+model: openai/gpt-oss-120b
+statusCode: 400
+statusText: Bad Request
+retryAfter: null
+body: unsupported response_format
+
+[2026-06-25T13:53:02.343Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: undefined
+error: groq API failed: 400 Bad Request - unsupported response_format
+
+[2026-06-25T13:53:02.340Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: google
+effectiveModel: gemini-2.5-flash
+attempt: 1
+fallbackFrom: openai/gpt-5-mini
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: undefined, top_p: undefined, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 19
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000155
+responseId: response-gemini-2.5-flash
+error: undefined
+
+[2026-06-25T13:53:02.344Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 2
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 17
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 524c5856ec56f83f26627a92d95724bf3ba2626da2bf0954a254aba787beca25
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T13:53:02.349Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: length
+nativeFinishReason: max_tokens
+contentLength: 14
+structuredFailureType: truncated
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: Structured output validation failed: $: JSON invalido
+
+[2026-06-25T13:53:02.347Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 21
+structuredFailureType: undefined
+repairedOutput: true
+promptHash: 6cc782e28ca76616b88f81254ffa279bcf599a15523ba515a3b89f703c1469f8
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T13:53:02.346Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 14
+structuredFailureType: schema_mismatch
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: Structured output validation failed: $.answer: campo obrigatorio ausente; $.wrong: propriedade extra
+
+[2026-06-25T13:53:02.351Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 0
+structuredFailureType: empty_content
+repairedOutput: undefined
+promptHash: 2ef6635b58b25e83ab8cffc15213323464ca509e8893ba57aa9461075adcd0c5
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: Structured output validation failed: $: JSON invalido
+
+[2026-06-25T13:53:02.351Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: empty_content
+repairedOutput: undefined
+promptHash: 2ef6635b58b25e83ab8cffc15213323464ca509e8893ba57aa9461075adcd0c5
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: Structured output empty_content; skipping repair
+
+[2026-06-25T13:53:02.353Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: 0.55, top_p: 0.9, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-06-25T13:53:02.352Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: 0.55, top_p: 0.9, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 19
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T13:53:02.353Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T13:53:02.354Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: google
+effectiveModel: gemini-2.5-flash
+attempt: 1
+fallbackFrom: openai/gpt-5-mini
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: undefined, top_p: undefined, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 26
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000155
+responseId: response-gemini-2.5-flash
+error: undefined
+
+[2026-06-25T13:53:02.349Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: truncated
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: Structured output truncated; skipping repair
+
+[2026-06-25T13:53:04.282Z] POST_GENERATION_STARTED
+generationRunId: cfc753bc-46a6-4ae0-a7e1-d2d77963083f
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-06-25T13:53:04.311Z] POST_GENERATION_COMPLETED
+generationRunId: cfc753bc-46a6-4ae0-a7e1-d2d77963083f
+userUuid: 1
+durationMs: 29
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+finalValidation: { valid: true, errors: [] }
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782395584309-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: 'Premium', stickerText: 'Qualidade' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 84, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782395584309-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Nada como um café pra começar o dia ☀️',
+    callToAction: 'Vem provar!',
+    hashtags: [],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: 'Cafe', stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 80, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1782395584309-2',
+    layout: 'minimal',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'CAFÉ ARTESANAL',
+    body: 'Cada gole é uma experiência única',
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: 'Artesanal', stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 79, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-06-25T13:54:17.623Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 23
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 2
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T13:54:17.631Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 17
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e3e237613fef0e6b05b9c305e0e97e2c7d0a603bb6110e2e30dae1fe30b6282a
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T13:54:17.632Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T13:54:17.630Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 21
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: a12d764fdd900a43937fda461bd1ce1a70c31db97cdbb3bbb3e74a3171e53232
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T13:54:17.633Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-06-25T13:54:19.155Z] POST_GENERATION_STARTED
+generationRunId: b53ec86b-c23d-493c-ba70-f0266ae7aee4
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-06-25T13:54:19.201Z] POST_GENERATION_COMPLETED
+generationRunId: b53ec86b-c23d-493c-ba70-f0266ae7aee4
+userUuid: 1
+durationMs: 47
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+finalValidation: { valid: true, errors: [] }
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782395659199-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: 'Premium', stickerText: 'Qualidade' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 84, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782395659199-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Nada como um café pra começar o dia ☀️',
+    callToAction: 'Vem provar!',
+    hashtags: [],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: 'Cafe', stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 80, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1782395659199-2',
+    layout: 'minimal',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'CAFÉ ARTESANAL',
+    body: 'Cada gole é uma experiência única',
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: 'Artesanal', stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 79, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-06-25T14:11:49.171Z] POST_GENERATION_STARTED
+generationRunId: 7c52f6f4-77b3-422f-93e4-9ef339dae61c
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 41
+contentPreview: como criar posts que engajam no instagram
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: true
+sparkCost: 10
+
+[2026-06-25T14:11:55.128Z] AI_PROVIDER_200
+traceLabel: content_strategy
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2243
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: f04e726495378fc1e78f0e9cf35e713edaff1406142cc3ec41510b058a9ec9e3
+promptTokens: 247
+completionTokens: 525
+totalTokens: 772
+latencyMs: 5951
+estimatedCostUsd: 0.00111175
+responseId: gen-1782396700-iu09QIunx2DymZhb7tDR
+error: undefined
+
+[2026-06-25T14:12:03.530Z] AI_PROVIDER_200
+traceLabel: post_generation_2
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2581
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ff290b689aed8c43d721dfaddfd4114d750ae0a0721d9775662a3d9dcb575be4
+promptTokens: 2320
+completionTokens: 775
+totalTokens: 3095
+latencyMs: 8398
+estimatedCostUsd: 0.00213
+responseId: gen-1782396706-TJTKzc9wtl9Fz7eOO4to
+error: undefined
+
+[2026-06-25T14:12:03.815Z] AI_PROVIDER_200
+traceLabel: post_generation_3
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2308
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: f6468a133ad642ae9aabf38cad76501390e6f31dec29f893d4ec66059eecf365
+promptTokens: 2322
+completionTokens: 714
+totalTokens: 3036
+latencyMs: 8683
+estimatedCostUsd: 0.0020085
+responseId: gen-1782396706-CxArGoMUau4QUFrGPozp
+error: undefined
+
+[2026-06-25T14:12:06.757Z] AI_PROVIDER_200
+traceLabel: post_generation_1
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4195
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 73421534351931c34d72097ad1d9e7c90955ce8d0ef9695a461e1f2655da9c4c
+promptTokens: 2309
+completionTokens: 1113
+totalTokens: 3422
+latencyMs: 11626
+estimatedCostUsd: 0.00280325
+responseId: gen-1782396706-VOfFaXRnVJlahe04E2Uj
+error: undefined
+
+[2026-06-25T14:12:10.869Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 900
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: eb1864522ef283f82b5ca78bde00bbfa9673eadc2973a86947c6629f24d97e80
+promptTokens: 1079
+completionTokens: 235
+totalTokens: 1314
+latencyMs: 3328
+estimatedCostUsd: 0.00073975
+responseId: gen-1782396718-i8iVqTnfQTcOwrNRnPw0
+error: undefined
+
+[2026-06-25T14:12:11.063Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 993
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: f1180dbb703f5d492287f924dcd9f2d7c32aaa87b3af618def9d612db694f324
+promptTokens: 1021
+completionTokens: 259
+totalTokens: 1280
+latencyMs: 3522
+estimatedCostUsd: 0.00077325
+responseId: gen-1782396718-8fk6CjcPc99JkAxDdRlR
+error: undefined
+
+[2026-06-25T14:12:11.364Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1146
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 0b0d51b6ab5e53773c26bda6e878cc3f89e6488d47759aa849a91a75992931da
+promptTokens: 1036
+completionTokens: 304
+totalTokens: 1340
+latencyMs: 3823
+estimatedCostUsd: 0.000867
+responseId: gen-1782396718-nCTmTcX7wgzHPw0y5uT6
+error: undefined
+
+[2026-06-25T14:12:23.689Z] AI_PROVIDER_200
+traceLabel: quality_revision_1
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4242
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: de96f01160bbf76f88c6d2bab3b515911562f4f89f50da21e97051d8b1f01ccd
+promptTokens: 2662
+completionTokens: 1125
+totalTokens: 3787
+latencyMs: 12325
+estimatedCostUsd: 0.0029155
+responseId: gen-1782396722-DLK5Hphqgox0C6FFXVzW
+error: undefined
+
+[2026-06-25T14:12:26.863Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1068
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: f1180dbb703f5d492287f924dcd9f2d7c32aaa87b3af618def9d612db694f324
+promptTokens: 1021
+completionTokens: 264
+totalTokens: 1285
+latencyMs: 3171
+estimatedCostUsd: 0.00078325
+responseId: gen-1782396734-AEFz5Uhk9p3UVD4kd4PC
+error: undefined
+
+[2026-06-25T14:12:27.286Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1186
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: eb1864522ef283f82b5ca78bde00bbfa9673eadc2973a86947c6629f24d97e80
+promptTokens: 1079
+completionTokens: 329
+totalTokens: 1408
+latencyMs: 3594
+estimatedCostUsd: 0.00069735
+responseId: gen-1782396734-V6j98QXQLMFV0l0c2wAs
+error: undefined
+
+[2026-06-25T14:12:27.587Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 825
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 375429fc59900b8f68eb7121ea928d2d327728c8e09bc71a23791e89abc067e8
+promptTokens: 1046
+completionTokens: 215
+totalTokens: 1261
+latencyMs: 3897
+estimatedCostUsd: 0.0006915
+responseId: gen-1782396734-DEptZmAG0fwTKdtYDwJR
+error: undefined
+
+[2026-06-25T14:12:29.506Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 615
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8e88ff3eb09df59945793d14caca03181d4f3ecb1fbf79cb2e12d3663be57913
+promptTokens: 599
+completionTokens: 156
+totalTokens: 755
+latencyMs: 1917
+estimatedCostUsd: 0.00046175
+responseId: gen-1782396738-a7zDlw4pVhFWwiBOCmwd
+error: undefined
+
+[2026-06-25T14:12:29.595Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 605
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 59b909bb605a013d98ef07f43e1e699131119816080105a07542a546d882261f
+promptTokens: 647
+completionTokens: 169
+totalTokens: 816
+latencyMs: 2007
+estimatedCostUsd: 0.00049975
+responseId: gen-1782396738-PubYMAcE4P4aSAx9iqQc
+error: undefined
+
+[2026-06-25T14:12:30.760Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 679
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 0af6a17d99a8fc1632994ae9d7aa2b478b47c7607dc7ff6df9d699224eaa574d
+promptTokens: 641
+completionTokens: 189
+totalTokens: 830
+latencyMs: 3171
+estimatedCostUsd: 0.00053825
+responseId: gen-1782396738-MwU7rsQmXNg1mfaZh92y
+error: undefined
+
+[2026-06-25T14:12:32.637Z] POST_GENERATION_COMPLETED
+generationRunId: 7c52f6f4-77b3-422f-93e4-9ef339dae61c
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+durationMs: 43467
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: [ 'openai/gpt-5-mini-2025-08-07' ]
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 1
+strategyFallbackUsed: false
+originalityFallbackUsed: false
+finalValidation: { valid: true, errors: [] }
+llmCalls: [
+  {
+    label: 'content_strategy',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'f04e726495378fc1e78f0e9cf35e713edaff1406142cc3ec41510b058a9ec9e3',
+    promptTokens: 247,
+    completionTokens: 525,
+    totalTokens: 772,
+    latencyMs: 5951,
+    estimatedCostUsd: 0.00111175,
+    error: undefined
+  },
+  {
+    label: 'post_generation_2',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'ff290b689aed8c43d721dfaddfd4114d750ae0a0721d9775662a3d9dcb575be4',
+    promptTokens: 2320,
+    completionTokens: 775,
+    totalTokens: 3095,
+    latencyMs: 8398,
+    estimatedCostUsd: 0.00213,
+    error: undefined
+  },
+  {
+    label: 'post_generation_3',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'f6468a133ad642ae9aabf38cad76501390e6f31dec29f893d4ec66059eecf365',
+    promptTokens: 2322,
+    completionTokens: 714,
+    totalTokens: 3036,
+    latencyMs: 8683,
+    estimatedCostUsd: 0.0020085,
+    error: undefined
+  },
+  {
+    label: 'post_generation_1',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '73421534351931c34d72097ad1d9e7c90955ce8d0ef9695a461e1f2655da9c4c',
+    promptTokens: 2309,
+    completionTokens: 1113,
+    totalTokens: 3422,
+    latencyMs: 11626,
+    estimatedCostUsd: 0.00280325,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'eb1864522ef283f82b5ca78bde00bbfa9673eadc2973a86947c6629f24d97e80',
+    promptTokens: 1079,
+    completionTokens: 235,
+    totalTokens: 1314,
+    latencyMs: 3328,
+    estimatedCostUsd: 0.00073975,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'f1180dbb703f5d492287f924dcd9f2d7c32aaa87b3af618def9d612db694f324',
+    promptTokens: 1021,
+    completionTokens: 259,
+    totalTokens: 1280,
+    latencyMs: 3522,
+    estimatedCostUsd: 0.00077325,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '0b0d51b6ab5e53773c26bda6e878cc3f89e6488d47759aa849a91a75992931da',
+    promptTokens: 1036,
+    completionTokens: 304,
+    totalTokens: 1340,
+    latencyMs: 3823,
+    estimatedCostUsd: 0.000867,
+    error: undefined
+  },
+  {
+    label: 'quality_revision_1',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'de96f01160bbf76f88c6d2bab3b515911562f4f89f50da21e97051d8b1f01ccd',
+    promptTokens: 2662,
+    completionTokens: 1125,
+    totalTokens: 3787,
+    latencyMs: 12325,
+    estimatedCostUsd: 0.0029155,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'f1180dbb703f5d492287f924dcd9f2d7c32aaa87b3af618def9d612db694f324',
+    promptTokens: 1021,
+    completionTokens: 264,
+    totalTokens: 1285,
+    latencyMs: 3171,
+    estimatedCostUsd: 0.00078325,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'eb1864522ef283f82b5ca78bde00bbfa9673eadc2973a86947c6629f24d97e80',
+    promptTokens: 1079,
+    completionTokens: 329,
+    totalTokens: 1408,
+    latencyMs: 3594,
+    estimatedCostUsd: 0.00069735,
+    error: undefined
+  },
+  {
+    label...[truncated 1578 chars]
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782396751443-0',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Checklist rápido antes de postar',
+    body: '5 passos práticos para preparar posts mais engajadores',
+    caption: 'Quer que suas publicações já nasçam prontas para engajar? Comece antes de apertar “publicar”. ✨ Pequenos ajustes prévios geram grandes resultados: uma imagem limpa e de alto contraste capta atenção no feed; uma legenda com uma ação clara e um CTA direto incentiva interação; e planejar hashtags + o melhor horário com base nos Insights aumenta alcance real. 📈 Use este checklist rápido antes de postar: imagem impactante, uma legenda com 1 ação + pergunta, e 3–4 hashtags alinhadas ao timing dos seu...[truncated]',
+    callToAction: 'Salve e use este checklist',
+    hashtags: [ '#Engajamento', '#Conteúdo', '#InstagramTips' ],
+    colors: { backgroundColor: '#0F1724', textColor: '#FFFFFF', accentColor: '#FFD166' },
+    copyAngle: { type: 'beneficio', label: 'Checklist prático', badge: 'Pronto', stickerText: 'Agora' },
+    sections: [
+      { index: 0, id: undefined, number: 1, icon: 'Zap', label: '1. Hook visual', description: 'Imagem clara e contraste alto' },
+      { index: 1, id: undefined, number: 2, icon: 'Users', label: '2. Legenda com 1 ação', description: 'Inclua CTA e pergunta' },
+      {
+        index: 2,
+        id: undefined,
+        number: 3,
+        icon: 'Star',
+        label: '3. Hashtags & timing',
+        description: 'Use 3–4 hashtags relevantes; verifique Insights'
+      }
+    ],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 1,
+      evaluation: { accepted: false, overallScore: 76, reasons: undefined },
+      originality: { score: 16, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782396751443-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Não existe horário mágico no Instagram',
+    body: 'Teste, conte com sua audiência e ajuste com dados reais.',
+    caption: 'Achar que existe um “horário mágico” para bombar suas postagens é mito — e isso atrapalha mais do que ajuda. 🌟 Entender quando sua audiência está online importa, mas não existe fórmula universal: cada público tem rotina diferente. Testes simples e consistentes trazem muito mais aprendizado do que tentar adivinhar. 🔍 No carrossel desmontamos 3 mitos: 1) que há um único horário ideal; 2) que o algoritmo só favorece horários populares; 3) que ter seguidores ativos garante engajamento automático. ...[truncated]',
+    callToAction: 'Comece seus testes hoje',
+    hashtags: [ '#socialmedia', '#instagramtips', '#engajamento' ],
+    colors: { backgroundColor: '#0F1724', textColor: '#FFFFFF', accentColor: '#FFD166' },
+    copyAngle: { type: 'mito_vs_verdade', label: 'Mitos sobre horários', badge: 'Desmistificar', stickerText: 'Mito' },
+    sections: [
+      { index: 0, id: undefined, number: 1, icon: 'Zap', label: 'Mito 1', description: 'Existe um único horário ideal' },
+      { index: 1, id: undefined, number: 2, icon: 'Globe', label: 'Mito 2', description: 'Algoritmo recompensa apenas horários populares' },
+      { index: 2, id: undefined, number: 3, icon: 'Users', label: 'Mito 3', description: 'Seguidores ativos = engajamento garantido' }
+    ],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 1,
+      evaluation: { accepted: true, overallScore: 78, reasons: undefined },
+      originality: { score: 17, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1782396751443-2',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'stat...[truncated 1406 chars]
+
+[2026-06-25T14:18:32.366Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 23
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 3
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T14:18:32.371Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 21
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: a12d764fdd900a43937fda461bd1ce1a70c31db97cdbb3bbb3e74a3171e53232
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T14:18:32.373Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 17
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e3e237613fef0e6b05b9c305e0e97e2c7d0a603bb6110e2e30dae1fe30b6282a
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T14:18:32.374Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-06-25T14:18:32.374Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T14:18:32.378Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T14:18:32.376Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 2
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 23
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T14:18:32.379Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-06-25T14:18:32.379Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: google
+effectiveModel: gemini-2.5-flash
+attempt: 1
+fallbackFrom: openai/gpt-5-mini
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: undefined, top_p: undefined, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 19
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000155
+responseId: response-gemini-2.5-flash
+error: undefined
+
+[2026-06-25T14:18:32.381Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: undefined
+error: groq API failed: 400 Bad Request - unsupported response_format
+
+[2026-06-25T14:18:32.381Z] AI_PROVIDER_NON_200
+provider: groq
+model: openai/gpt-oss-120b
+statusCode: 400
+statusText: Bad Request
+retryAfter: null
+body: unsupported response_format
+
+[2026-06-25T14:18:32.383Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 2
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 17
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 524c5856ec56f83f26627a92d95724bf3ba2626da2bf0954a254aba787beca25
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T14:18:32.388Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: length
+nativeFinishReason: max_tokens
+contentLength: 14
+structuredFailureType: truncated
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: Structured output validation failed: $: JSON invalido
+
+[2026-06-25T14:18:32.385Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 14
+structuredFailureType: schema_mismatch
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: Structured output validation failed: $.answer: campo obrigatorio ausente; $.wrong: propriedade extra
+
+[2026-06-25T14:18:32.388Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: truncated
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: Structured output truncated; skipping repair
+
+[2026-06-25T14:18:32.386Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 21
+structuredFailureType: undefined
+repairedOutput: true
+promptHash: 6cc782e28ca76616b88f81254ffa279bcf599a15523ba515a3b89f703c1469f8
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T14:18:32.392Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T14:18:32.391Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: 0.55, top_p: 0.9, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 19
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T14:18:32.390Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: empty_content
+repairedOutput: undefined
+promptHash: 2ef6635b58b25e83ab8cffc15213323464ca509e8893ba57aa9461075adcd0c5
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: Structured output empty_content; skipping repair
+
+[2026-06-25T14:18:34.209Z] POST_GENERATION_STARTED
+generationRunId: 5c079297-a070-4b4d-b8f3-98a2eda58ccd
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-06-25T14:18:34.412Z] POST_GENERATION_COMPLETED
+generationRunId: 5c079297-a070-4b4d-b8f3-98a2eda58ccd
+userUuid: 1
+durationMs: 204
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+finalValidation: { valid: true, errors: [] }
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782397114402-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: 'Premium', stickerText: 'Qualidade' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 84, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782397114402-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Nada como um café pra começar o dia ☀️',
+    callToAction: 'Vem provar!',
+    hashtags: [],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: 'Cafe', stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 80, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1782397114402-2',
+    layout: 'minimal',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'CAFÉ ARTESANAL',
+    body: 'Cada gole é uma experiência única',
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: 'Artesanal', stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 79, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-06-25T14:19:27.894Z] POST_GENERATION_STARTED
+generationRunId: 2051b314-8909-49a2-8bc7-1aed6a687cd6
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 34
+contentPreview: como escolher um bom teclado gamer
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: true
+sparkCost: 10
+
+[2026-06-25T14:19:35.266Z] AI_PROVIDER_200
+traceLabel: content_strategy
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2225
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 40cc4fe9a3b70a0c53b33827a044c2edc336257e1a6e5de1264660c15c0f31c3
+promptTokens: 244
+completionTokens: 550
+totalTokens: 794
+latencyMs: 7369
+estimatedCostUsd: 0.001161
+responseId: gen-1782397159-M3zFZwGAkGqzfuUckybc
+error: undefined
+
+[2026-06-25T14:19:44.926Z] AI_PROVIDER_200
+traceLabel: post_generation_1
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2643
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ca4b41173a327f9b365fa17598605e3e7d5df02f459dcc8914330ea95bf7bad9
+promptTokens: 2318
+completionTokens: 804
+totalTokens: 3122
+latencyMs: 9659
+estimatedCostUsd: 0.0017843
+responseId: gen-1782397166-E2Zrx5w67L8YfhmgMokz
+error: undefined
+
+[2026-06-25T14:19:48.545Z] AI_PROVIDER_200
+traceLabel: post_generation_2
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 3736
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 9baacadce933636931016e735cb487ef248e74a5bf1650a7b2e27c6b1f503114
+promptTokens: 2314
+completionTokens: 1034
+totalTokens: 3348
+latencyMs: 13277
+estimatedCostUsd: 0.0022433
+responseId: gen-1782397166-fmOgJtgBddIaIKF34lzv
+error: undefined
+
+[2026-06-25T14:19:49.339Z] AI_PROVIDER_200
+traceLabel: post_generation_3
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4214
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: a29610dc7adfd1a25ca862772b00215799a788e31bae5b2740739b928a0326ed
+promptTokens: 2325
+completionTokens: 1151
+totalTokens: 3476
+latencyMs: 14071
+estimatedCostUsd: 0.00248005
+responseId: gen-1782397167-9zTBkLuhEAhgh68F76Y8
+error: undefined
+
+[2026-06-25T14:19:53.707Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 947
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 622a221f67fbe4cc55b32d16ea2c0aabbbcfa04ae291bf2076a40366a45431bf
+promptTokens: 1089
+completionTokens: 246
+totalTokens: 1335
+latencyMs: 3633
+estimatedCostUsd: 0.00076425
+responseId: gen-1782397181-mVAUmuMliycd6w9QTPcr
+error: undefined
+
+[2026-06-25T14:19:53.775Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1065
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 45a7e0f46e29edc162e8035fc9ea4894c73e0972ea39eef3e51086cdfdb6ed57
+promptTokens: 1013
+completionTokens: 287
+totalTokens: 1300
+latencyMs: 3701
+estimatedCostUsd: 0.00082725
+responseId: gen-1782397181-DrGzJfHD8w79nXIn7org
+error: undefined
+
+[2026-06-25T14:19:54.373Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 981
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 524fb68eaa282810f93892d5d88f41e5dc03f9554b6e7ad532a888d6a93b3ef3
+promptTokens: 1112
+completionTokens: 256
+totalTokens: 1368
+latencyMs: 4300
+estimatedCostUsd: 0.00079
+responseId: gen-1782397181-V8lETE342zvmRI1o5Xqa
+error: undefined
+
+[2026-06-25T14:20:09.190Z] AI_PROVIDER_200
+traceLabel: quality_revision_1
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4409
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 823ea58584ade623c3cac8402cdaa0ad6531f1f2db5ff36fedb3c7ec949ee6bf
+promptTokens: 2690
+completionTokens: 1218
+totalTokens: 3908
+latencyMs: 14817
+estimatedCostUsd: 0.0031085
+responseId: gen-1782397185-vjvxEKSRaHCsuQutB7Xf
+error: undefined
+
+[2026-06-25T14:20:12.313Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 913
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 45a7e0f46e29edc162e8035fc9ea4894c73e0972ea39eef3e51086cdfdb6ed57
+promptTokens: 1013
+completionTokens: 240
+totalTokens: 1253
+latencyMs: 3122
+estimatedCostUsd: 0.00073325
+responseId: gen-1782397200-d4o8fCNeEE4gCO2hLBmT
+error: undefined
+
+[2026-06-25T14:20:12.940Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 968
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 9af46b8cbef75e1d10ce5b8a13ad1d3f3826579309afa8fe099bb61ef52f1455
+promptTokens: 1151
+completionTokens: 262
+totalTokens: 1413
+latencyMs: 3749
+estimatedCostUsd: 0.00081175
+responseId: gen-1782397200-ZX3YwoBtnDQRD6A8uyiZ
+error: undefined
+
+[2026-06-25T14:20:13.716Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1018
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 622a221f67fbe4cc55b32d16ea2c0aabbbcfa04ae291bf2076a40366a45431bf
+promptTokens: 1089
+completionTokens: 277
+totalTokens: 1366
+latencyMs: 4524
+estimatedCostUsd: 0.00059585
+responseId: gen-1782397200-lp3TryLD86tvqOTsUN9f
+error: undefined
+
+[2026-06-25T14:20:16.173Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 571
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 831a7ac47ae46e8e47dc395c53ef062bbceb4e1dddd5366c0009ffc5ef6b755d
+promptTokens: 600
+completionTokens: 168
+totalTokens: 768
+latencyMs: 2456
+estimatedCostUsd: 0.000486
+responseId: gen-1782397204-h55TWp01WdDGoTAyAuAP
+error: undefined
+
+[2026-06-25T14:20:16.272Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 807
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 7d83eed8de44caf5e93278fbd626f119713e1298dc7583ba0d3913b753573f59
+promptTokens: 659
+completionTokens: 216
+totalTokens: 875
+latencyMs: 2555
+estimatedCostUsd: 0.00059675
+responseId: gen-1782397204-T2AVXdFp6FfTJ3BnfY1U
+error: undefined
+
+[2026-06-25T14:20:19.377Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 78179576230021727a4a1e5237f41ecf7ff2557eab2f34b22f69e00ab2f85c85
+promptTokens: 642
+completionTokens: 192
+totalTokens: 834
+latencyMs: 5660
+estimatedCostUsd: 0.0005445
+responseId: gen-1782397207-0gyBzBu8hVWACbAYKHkd
+error: undefined
+
+[2026-06-25T14:20:20.792Z] POST_GENERATION_COMPLETED
+generationRunId: 2051b314-8909-49a2-8bc7-1aed6a687cd6
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+durationMs: 52898
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: [ 'openai/gpt-5-mini-2025-08-07' ]
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 1
+strategyFallbackUsed: false
+originalityFallbackUsed: false
+finalValidation: { valid: true, errors: [] }
+llmCalls: [
+  {
+    label: 'content_strategy',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '40cc4fe9a3b70a0c53b33827a044c2edc336257e1a6e5de1264660c15c0f31c3',
+    promptTokens: 244,
+    completionTokens: 550,
+    totalTokens: 794,
+    latencyMs: 7369,
+    estimatedCostUsd: 0.001161,
+    error: undefined
+  },
+  {
+    label: 'post_generation_1',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'ca4b41173a327f9b365fa17598605e3e7d5df02f459dcc8914330ea95bf7bad9',
+    promptTokens: 2318,
+    completionTokens: 804,
+    totalTokens: 3122,
+    latencyMs: 9659,
+    estimatedCostUsd: 0.0017843,
+    error: undefined
+  },
+  {
+    label: 'post_generation_2',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '9baacadce933636931016e735cb487ef248e74a5bf1650a7b2e27c6b1f503114',
+    promptTokens: 2314,
+    completionTokens: 1034,
+    totalTokens: 3348,
+    latencyMs: 13277,
+    estimatedCostUsd: 0.0022433,
+    error: undefined
+  },
+  {
+    label: 'post_generation_3',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'a29610dc7adfd1a25ca862772b00215799a788e31bae5b2740739b928a0326ed',
+    promptTokens: 2325,
+    completionTokens: 1151,
+    totalTokens: 3476,
+    latencyMs: 14071,
+    estimatedCostUsd: 0.00248005,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '622a221f67fbe4cc55b32d16ea2c0aabbbcfa04ae291bf2076a40366a45431bf',
+    promptTokens: 1089,
+    completionTokens: 246,
+    totalTokens: 1335,
+    latencyMs: 3633,
+    estimatedCostUsd: 0.00076425,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '45a7e0f46e29edc162e8035fc9ea4894c73e0972ea39eef3e51086cdfdb6ed57',
+    promptTokens: 1013,
+    completionTokens: 287,
+    totalTokens: 1300,
+    latencyMs: 3701,
+    estimatedCostUsd: 0.00082725,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '524fb68eaa282810f93892d5d88f41e5dc03f9554b6e7ad532a888d6a93b3ef3',
+    promptTokens: 1112,
+    completionTokens: 256,
+    totalTokens: 1368,
+    latencyMs: 4300,
+    estimatedCostUsd: 0.00079,
+    error: undefined
+  },
+  {
+    label: 'quality_revision_1',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '823ea58584ade623c3cac8402cdaa0ad6531f1f2db5ff36fedb3c7ec949ee6bf',
+    promptTokens: 2690,
+    completionTokens: 1218,
+    totalTokens: 3908,
+    latencyMs: 14817,
+    estimatedCostUsd: 0.0031085,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '45a7e0f46e29edc162e8035fc9ea4894c73e0972ea39eef3e51086cdfdb6ed57',
+    promptTokens: 1013,
+    completionTokens: 240,
+    totalTokens: 1253,
+    latencyMs: 3122,
+    estimatedCostUsd: 0.00073325,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '9af46b8cbef75e1d10ce5b8a13ad1d3f3826579309afa8fe099bb61ef52f1455',
+    promptTokens: 1151,
+    completionTokens: 262,
+    totalTokens: 1413,
+    latencyMs: 3749,
+    estimatedCostUsd: 0.00081175,
+    error: undefined
+  },
+  {
+    labe...[truncated 1577 chars]
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782397220567-0',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: '7 testes rápidos antes de comprar teclado gamer',
+    body: 'Teste latência (≤5 ms), ruído, NKRO/anti-ghosting, ergonomia, iluminação (consistência e modos), materiais (keycaps e estrutura) e software',
+    caption: 'Vai comprar teclado? Pare — muitos arrependimentos vêm de detalhes simples. Antes de decidir, faça estes testes rápidos para não levar surpresa pra casa. 🎯 Por que importa: latência, rollover e o comportamento dos switches definem sua experiência no dia a dia — seja jogando ou digitando. Testar na loja ou com vídeos/descrições online evita escolhas por aparência só. No post mostramos 3 passos essenciais do checklist: 1) Latência e resposta — faça um teste em jogo ou com key tester; ideal é ≤5 m...[truncated]',
+    callToAction: 'Salve este checklist',
+    hashtags: [ '#TecladoGamer', '#PCGaming', '#Checklist', '#Hardware' ],
+    colors: { backgroundColor: '#0B1221', textColor: '#FFFFFF', accentColor: '#FF6B00' },
+    copyAngle: { type: 'storytelling', label: 'how-to checklist', badge: 'Checklist', stickerText: 'Teste' },
+    sections: [
+      { index: 0, id: undefined, number: 1, icon: 'Zap', label: '1. Latência e resposta', description: 'Teste em jogo ou key tester — ideal ≤5 ms' },
+      {
+        index: 1,
+        id: undefined,
+        number: 2,
+        icon: 'Users',
+        label: '2. NKRO/anti-ghosting',
+        description: 'Pressione várias teclas simultâneas para checar'
+      },
+      { index: 2, id: undefined, number: 3, icon: 'Star', label: '3. Switch e ruído', description: 'Avalie som e sensação tátil' }
+    ],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 1,
+      evaluation: { accepted: false, overallScore: 75, reasons: undefined },
+      originality: { score: 13, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782397220567-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Qual switch te irrita mais',
+    body: 'Barulho, falta de resposta ou tecla pegajosa? Vote e comente',
+    caption: 'Seu teclado já te fez perder uma partida por causa de uma tecla? ⚠️🔥 A escolha do switch pode transformar sua jogatina — do foco à frustração. Queremos saber qual problema te tira do sério: barulho, falta de resposta ou tecla pegajosa. Esses incômodos afetam precisão, tempo de reação e até sua concentração durante rounds decisivos. Vote e comente qual deles é o pior pra você e por quê. Sua resposta vai nos ajudar a recomendar switches melhores nas próximas postagens. 🎮🗳️ Qual é o seu maior vi...[truncated]',
+    callToAction: 'Vote nos Stories',
+    hashtags: [ '#tecladogamer', '#switches', '#gaming', '#enquete' ],
+    colors: { backgroundColor: '#0B1220', textColor: '#FFFFFF', accentColor: '#FF4D4D' },
+    copyAngle: { type: 'dor', label: 'Switchs que incomodam', badge: 'Problema', stickerText: 'Irritante' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 1,
+      evaluation: { accepted: true, overallScore: 78, reasons: undefined },
+      originality: { score: 17, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1782397220567-2',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Jogue sem dor: ajuste o teclado a você',
+    body: 'Mude layout e altura; sinta a diferença em uma sessão.',
+    caption: 'Quer jogar mais horas sem dor? Comece pelo teclado: pequenas mudanças trazem grande diferença. 🎮✨ Ajustar o equipamento ao seu corpo melhora conforto ...[truncated 1533 chars]
+
+[2026-06-25T14:27:54.088Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 21
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: a12d764fdd900a43937fda461bd1ce1a70c31db97cdbb3bbb3e74a3171e53232
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T14:27:54.077Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 23
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 3
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T14:27:54.090Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 17
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e3e237613fef0e6b05b9c305e0e97e2c7d0a603bb6110e2e30dae1fe30b6282a
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T14:27:54.092Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-06-25T14:27:54.091Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T14:27:54.093Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 2
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 23
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T14:27:54.095Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T14:27:54.095Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: google
+effectiveModel: gemini-2.5-flash
+attempt: 1
+fallbackFrom: openai/gpt-5-mini
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: undefined, top_p: undefined, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 19
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000155
+responseId: response-gemini-2.5-flash
+error: undefined
+
+[2026-06-25T14:27:54.098Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: groq API failed: 400 Bad Request - unsupported response_format
+
+[2026-06-25T14:27:54.097Z] AI_PROVIDER_NON_200
+provider: groq
+model: openai/gpt-oss-120b
+statusCode: 400
+statusText: Bad Request
+retryAfter: null
+body: unsupported response_format
+
+[2026-06-25T14:27:54.099Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 2
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 17
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 524c5856ec56f83f26627a92d95724bf3ba2626da2bf0954a254aba787beca25
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T14:27:54.101Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 14
+structuredFailureType: schema_mismatch
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: Structured output validation failed: $.answer: campo obrigatorio ausente; $.wrong: propriedade extra
+
+[2026-06-25T14:27:54.102Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 21
+structuredFailureType: undefined
+repairedOutput: true
+promptHash: 6cc782e28ca76616b88f81254ffa279bcf599a15523ba515a3b89f703c1469f8
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T14:27:54.104Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: length
+nativeFinishReason: max_tokens
+contentLength: 14
+structuredFailureType: truncated
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: Structured output validation failed: $: JSON invalido
+
+[2026-06-25T14:27:54.106Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 0
+structuredFailureType: empty_content
+repairedOutput: undefined
+promptHash: 2ef6635b58b25e83ab8cffc15213323464ca509e8893ba57aa9461075adcd0c5
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: Structured output validation failed: $: JSON invalido
+
+[2026-06-25T14:27:54.095Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-06-25T14:27:54.104Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: truncated
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: Structured output truncated; skipping repair
+
+[2026-06-25T14:27:54.106Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: empty_content
+repairedOutput: undefined
+promptHash: 2ef6635b58b25e83ab8cffc15213323464ca509e8893ba57aa9461075adcd0c5
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: undefined
+error: Structured output empty_content; skipping repair
+
+[2026-06-25T14:27:54.108Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T14:27:54.108Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: 0.55, top_p: 0.9, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-06-25T14:27:54.107Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: 0.55, top_p: 0.9, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 19
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T14:27:54.109Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: google
+effectiveModel: gemini-2.5-flash
+attempt: 1
+fallbackFrom: openai/gpt-5-mini
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: undefined, top_p: undefined, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 26
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0.0000155
+responseId: response-gemini-2.5-flash
+error: undefined
+
+[2026-06-25T14:27:56.617Z] POST_GENERATION_STARTED
+generationRunId: ec33dad2-36f1-4735-be42-a9b501ffbecb
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-06-25T14:27:56.658Z] POST_GENERATION_COMPLETED
+generationRunId: ec33dad2-36f1-4735-be42-a9b501ffbecb
+userUuid: 1
+durationMs: 41
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+finalValidation: { valid: true, errors: [] }
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782397676656-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: 'Premium', stickerText: 'Qualidade' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 84, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782397676656-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Nada como um café pra começar o dia ☀️',
+    callToAction: 'Vem provar!',
+    hashtags: [],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: 'Cafe', stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 80, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1782397676656-2',
+    layout: 'minimal',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'CAFÉ ARTESANAL',
+    body: 'Cada gole é uma experiência única',
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: 'Artesanal', stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 79, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-06-25T14:30:28.175Z] POST_GENERATION_STARTED
+generationRunId: eb99f118-277c-46b9-85f1-40241453b002
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 34
+contentPreview: como escolher um bom teclado gamer
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: true
+sparkCost: 10
+
+[2026-06-25T14:30:34.910Z] AI_PROVIDER_200
+traceLabel: content_strategy
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2384
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 40cc4fe9a3b70a0c53b33827a044c2edc336257e1a6e5de1264660c15c0f31c3
+promptTokens: 244
+completionTokens: 565
+totalTokens: 809
+latencyMs: 6731
+estimatedCostUsd: 0.001191
+responseId: gen-1782397819-kCywRA78uuINK8Jf0Io6
+error: undefined
+
+[2026-06-25T14:30:43.411Z] AI_PROVIDER_200
+traceLabel: post_generation_2
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2352
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 676aea0f10d3cddfc75606cf73c57db1a36bd4cfb064880e4b62d9c0746cbe94
+promptTokens: 2328
+completionTokens: 732
+totalTokens: 3060
+latencyMs: 8499
+estimatedCostUsd: 0.0016428
+responseId: gen-1782397825-HHSaJ1JD9VHUdXnWPD9d
+error: undefined
+
+[2026-06-25T14:30:44.350Z] AI_PROVIDER_200
+traceLabel: post_generation_3
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2643
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: edeb7e5891557d198779fd9168150e03b59299d7883453d118015be42baa1d50
+promptTokens: 2330
+completionTokens: 795
+totalTokens: 3125
+latencyMs: 9438
+estimatedCostUsd: 0.0017693
+responseId: gen-1782397825-ilSfDbWkgNqSYrNpzyks
+error: undefined
+
+[2026-06-25T14:30:47.722Z] AI_PROVIDER_200
+traceLabel: post_generation_1
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4328
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: adb0ca7f15a50bb316220f0c0b2d802d5177e37c92de95bbbc0b2a57ae3c4d19
+promptTokens: 2331
+completionTokens: 1176
+totalTokens: 3507
+latencyMs: 12811
+estimatedCostUsd: 0.00253155
+responseId: gen-1782397825-x6mNwP0iJKljTsgXv9Mf
+error: undefined
+
+[2026-06-25T14:30:51.576Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 921
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 59d80d6fd476fe3c60a8e7761f1d30ef68eef6cb28eedf818bf742dacd6079e8
+promptTokens: 1048
+completionTokens: 235
+totalTokens: 1283
+latencyMs: 3083
+estimatedCostUsd: 0.000732
+responseId: gen-1782397839-R0obs5hKgS2EovR49LLm
+error: undefined
+
+[2026-06-25T14:30:51.761Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 904
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: df53b7120e32fb6a5f123e8d476040b276f3d43652e9cab5d32ba4713d1edebd
+promptTokens: 1113
+completionTokens: 228
+totalTokens: 1341
+latencyMs: 3266
+estimatedCostUsd: 0.00073425
+responseId: gen-1782397839-d7yktPyiOZr2fRWBOCpK
+error: undefined
+
+[2026-06-25T14:30:52.839Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1291
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b365b716205c87e9c6b4c98708db049b1b09240086da7ca594ccd1f157f8655d
+promptTokens: 1112
+completionTokens: 303
+totalTokens: 1415
+latencyMs: 4349
+estimatedCostUsd: 0.000884
+responseId: gen-1782397839-9Zn1RYs01pYgVCN7nZhq
+error: undefined
+
+[2026-06-25T14:30:54.910Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 585
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ea26ea04bf2b9822ce8bd4f50b32855133d641bea54e9d68146752172b522692
+promptTokens: 620
+completionTokens: 164
+totalTokens: 784
+latencyMs: 2070
+estimatedCostUsd: 0.000483
+responseId: gen-1782397843-kbxZCB9zIL7PEoxMrDhy
+error: undefined
+
+[2026-06-25T14:30:54.956Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 615
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 74625f928059f28b597fffa44999b664cc7a73ae3fe44cb4f04263d8a14f2911
+promptTokens: 646
+completionTokens: 178
+totalTokens: 824
+latencyMs: 2116
+estimatedCostUsd: 0.0005175
+responseId: gen-1782397843-kjyOLsZJ83Pq0ytjxVwD
+error: undefined
+
+[2026-06-25T14:30:55.137Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 625
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: a987ee78f78325cb9f63cfb411214ef4a6dd8382ecdbcff0caee0d68c6c539da
+promptTokens: 637
+completionTokens: 170
+totalTokens: 807
+latencyMs: 2297
+estimatedCostUsd: 0.00049925
+responseId: gen-1782397843-6FAQufacHQvz4r2RSESr
+error: undefined
+
+[2026-06-25T14:30:55.360Z] POST_GENERATION_COMPLETED
+generationRunId: eb99f118-277c-46b9-85f1-40241453b002
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+durationMs: 27184
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: [ 'openai/gpt-5-mini-2025-08-07' ]
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: false
+originalityFallbackUsed: false
+finalValidation: { valid: true, errors: [] }
+llmCalls: [
+  {
+    label: 'content_strategy',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '40cc4fe9a3b70a0c53b33827a044c2edc336257e1a6e5de1264660c15c0f31c3',
+    promptTokens: 244,
+    completionTokens: 565,
+    totalTokens: 809,
+    latencyMs: 6731,
+    estimatedCostUsd: 0.001191,
+    error: undefined
+  },
+  {
+    label: 'post_generation_2',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '676aea0f10d3cddfc75606cf73c57db1a36bd4cfb064880e4b62d9c0746cbe94',
+    promptTokens: 2328,
+    completionTokens: 732,
+    totalTokens: 3060,
+    latencyMs: 8499,
+    estimatedCostUsd: 0.0016428,
+    error: undefined
+  },
+  {
+    label: 'post_generation_3',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'edeb7e5891557d198779fd9168150e03b59299d7883453d118015be42baa1d50',
+    promptTokens: 2330,
+    completionTokens: 795,
+    totalTokens: 3125,
+    latencyMs: 9438,
+    estimatedCostUsd: 0.0017693,
+    error: undefined
+  },
+  {
+    label: 'post_generation_1',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'adb0ca7f15a50bb316220f0c0b2d802d5177e37c92de95bbbc0b2a57ae3c4d19',
+    promptTokens: 2331,
+    completionTokens: 1176,
+    totalTokens: 3507,
+    latencyMs: 12811,
+    estimatedCostUsd: 0.00253155,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '59d80d6fd476fe3c60a8e7761f1d30ef68eef6cb28eedf818bf742dacd6079e8',
+    promptTokens: 1048,
+    completionTokens: 235,
+    totalTokens: 1283,
+    latencyMs: 3083,
+    estimatedCostUsd: 0.000732,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'df53b7120e32fb6a5f123e8d476040b276f3d43652e9cab5d32ba4713d1edebd',
+    promptTokens: 1113,
+    completionTokens: 228,
+    totalTokens: 1341,
+    latencyMs: 3266,
+    estimatedCostUsd: 0.00073425,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'b365b716205c87e9c6b4c98708db049b1b09240086da7ca594ccd1f157f8655d',
+    promptTokens: 1112,
+    completionTokens: 303,
+    totalTokens: 1415,
+    latencyMs: 4349,
+    estimatedCostUsd: 0.000884,
+    error: undefined
+  },
+  {
+    label: 'caption_synthesis',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'ea26ea04bf2b9822ce8bd4f50b32855133d641bea54e9d68146752172b522692',
+    promptTokens: 620,
+    completionTokens: 164,
+    totalTokens: 784,
+    latencyMs: 2070,
+    estimatedCostUsd: 0.000483,
+    error: undefined
+  },
+  {
+    label: 'caption_synthesis',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '74625f928059f28b597fffa44999b664cc7a73ae3fe44cb4f04263d8a14f2911',
+    promptTokens: 646,
+    completionTokens: 178,
+    totalTokens: 824,
+    latencyMs: 2116,
+    estimatedCostUsd: 0.0005175,
+    error: undefined
+  },
+  {
+    label: 'caption_synthesis',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'a987ee78f78325cb9f63cfb411214ef4a6dd8382ecdbcff0caee0d68c6c539da',
+    promptTokens: 637,
+    completionTokens: 170,
+    totalTokens: 807,
+    latencyMs: 2297,
+    estimatedCostUsd: 0.00049925,
+    error: undefined
+  }
+]
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782397855138-0',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Mecânico ou membrana: qual acelera seu jogo',
+    body: 'Escolha o switch certo e reduza tempos de reação; conforto importa em longas sessões.',
+    caption: 'Seu teclado está ajudando ou atrapalhando sua gameplay? ⚡️ Se você sente atraso, barulho excessivo ou cansaço nas mãos, pode ser hora de olhar os switches. Cada tecnologia traz vantagem real: switches mecânicos entregam resposta superfirme e vida útil longa — perfeitos para quem busca velocidade e consistência; já as membranas oferecem um toque mais silencioso e macio, ideal para sessões longas sem incomodar a equipe ou vizinhança. 🔁 Pense no seu estilo: precisa de ação rápida e durabilidade ou...[truncated]',
+    callToAction: 'Descubra seu match',
+    hashtags: [ '#tecladogamer', '#switches', '#gaminggear' ],
+    colors: { backgroundColor: '#0E1216', textColor: '#FFFFFF', accentColor: '#FF6A00' },
+    copyAngle: { type: 'beneficio', label: 'Performance por switch', badge: 'MelhoreJá', stickerText: 'Rápido' },
+    sections: [
+      { index: 0, id: undefined, number: 0, icon: 'Zap', label: 'Velocidade', description: 'Mecânicos oferecem resposta mais rápida' },
+      { index: 1, id: undefined, number: 0, icon: 'Heart', label: 'Conforto', description: 'Membrana é mais silenciosa e macia' },
+      { index: 2, id: undefined, number: 0, icon: 'Users', label: 'Durabilidade', description: 'Switches mecânicos têm vida útil maior' }
+    ],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 78, reasons: undefined },
+      originality: { score: 10, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782397855138-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Jogue sem dor: escolha o teclado certo',
+    body: 'Reduza pressão no pulso e evite fadiga com switches e apoio adequados',
+    caption: 'Sente dor no pulso ou fadiga depois de jogar? O teclado pode estar cobrando a conta. 🎮🖐️ Escolher o switch certo e um apoio adequado faz diferença: reduzem pressão, exigem menos força e prolongam suas sessões sem desconforto — além de aumentar a vida útil do equipamento. Informe-se sobre tipos de switches, curso e força de atuação, e não subestime um descanso para o pulso alinhado ao teclado. No post você encontra o que observar na prática para diminuir a tensão e jogar melhor. Quer que eu rec...[truncated]',
+    callToAction: 'Confira as dicas',
+    hashtags: [ '#ErgonomiaGamer', '#ConfortoGaming', '#TecladoCerto', '#MaratonaDeJogo' ],
+    colors: { backgroundColor: '#0F1724', textColor: '#FFFFFF', accentColor: '#FF6B6B' },
+    copyAngle: { type: 'dor', label: 'Alívio de dor', badge: 'Conforto', stickerText: 'Alívio' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 76, reasons: undefined },
+      originality: { score: 10, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1782397855138-2',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Não pague a mais por RGB e macros',
+    body: 'Saiba quais extras valem investimento; elimine o marketing.',
+    caption: 'Luzes e macros podem até impressionar, mas será que você realmente precisa delas? 🤔 Antes de se deixar levar pelo visual, foque no que vai facilitar seu dia a dia e não só no marketing. Um acessório só vale o investimento se for usado de verdade, o app funcionar sem dor de cabeça e...[truncated 1379 chars]
+
+[2026-06-25T14:42:07.594Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 21
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: a12d764fdd900a43937fda461bd1ce1a70c31db97cdbb3bbb3e74a3171e53232
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T14:42:07.585Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 23
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 3
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T14:42:07.596Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 17
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e3e237613fef0e6b05b9c305e0e97e2c7d0a603bb6110e2e30dae1fe30b6282a
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T14:42:07.597Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T14:42:07.597Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-06-25T14:42:07.602Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T14:42:07.602Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-06-25T14:42:07.605Z] AI_PROVIDER_NON_200
+provider: groq
+model: openai/gpt-oss-120b
+statusCode: 400
+statusText: Bad Request
+retryAfter: null
+body: unsupported response_format
+
+[2026-06-25T14:42:07.605Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: undefined
+error: groq API failed: 400 Bad Request - unsupported response_format
+
+[2026-06-25T14:42:07.606Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 2
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 17
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 524c5856ec56f83f26627a92d95724bf3ba2626da2bf0954a254aba787beca25
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T14:42:07.603Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: google
+effectiveModel: gemini-2.5-flash
+attempt: 1
+fallbackFrom: openai/gpt-5-mini
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: undefined, top_p: undefined, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 19
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0.0000155
+responseId: response-gemini-2.5-flash
+error: undefined
+
+[2026-06-25T14:42:07.608Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 14
+structuredFailureType: schema_mismatch
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: Structured output validation failed: $.answer: campo obrigatorio ausente; $.wrong: propriedade extra
+
+[2026-06-25T14:42:07.611Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: length
+nativeFinishReason: max_tokens
+contentLength: 14
+structuredFailureType: truncated
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: Structured output validation failed: $: JSON invalido
+
+[2026-06-25T14:42:07.613Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: empty_content
+repairedOutput: undefined
+promptHash: 2ef6635b58b25e83ab8cffc15213323464ca509e8893ba57aa9461075adcd0c5
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: undefined
+error: Structured output empty_content; skipping repair
+
+[2026-06-25T14:42:07.613Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 0
+structuredFailureType: empty_content
+repairedOutput: undefined
+promptHash: 2ef6635b58b25e83ab8cffc15213323464ca509e8893ba57aa9461075adcd0c5
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: Structured output validation failed: $: JSON invalido
+
+[2026-06-25T14:42:07.615Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: 0.55, top_p: 0.9, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 19
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T14:42:07.616Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T14:42:07.616Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: 0.55, top_p: 0.9, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-06-25T14:42:07.599Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 2
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 23
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T14:42:07.609Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 21
+structuredFailureType: undefined
+repairedOutput: true
+promptHash: 6cc782e28ca76616b88f81254ffa279bcf599a15523ba515a3b89f703c1469f8
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T14:42:07.611Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: truncated
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: Structured output truncated; skipping repair
+
+[2026-06-25T14:42:07.616Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: google
+effectiveModel: gemini-2.5-flash
+attempt: 1
+fallbackFrom: openai/gpt-5-mini
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: undefined, top_p: undefined, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 26
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000155
+responseId: response-gemini-2.5-flash
+error: undefined
+
+[2026-06-25T14:42:09.345Z] POST_GENERATION_STARTED
+generationRunId: 0e17fe6d-76ab-48a6-a19f-52696f2a9f6f
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-06-25T14:42:09.391Z] POST_GENERATION_COMPLETED
+generationRunId: 0e17fe6d-76ab-48a6-a19f-52696f2a9f6f
+userUuid: 1
+durationMs: 45
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+finalValidation: { valid: true, errors: [] }
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782398529389-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: 'Premium', stickerText: 'Qualidade' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 84, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782398529389-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Nada como um café pra começar o dia ☀️',
+    callToAction: 'Vem provar!',
+    hashtags: [],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: 'Cafe', stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 80, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1782398529389-2',
+    layout: 'minimal',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'CAFÉ ARTESANAL',
+    body: 'Cada gole é uma experiência única',
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: 'Artesanal', stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 79, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-06-25T14:59:43.257Z] IMAGE_PROVIDER_200
+provider: openrouter
+model: google/gemini-3.1-flash-image
+imageProvider: pollinations_fast
+
+[2026-06-25T15:26:41.687Z] HTTP_ERROR
+method: GET
+url: /api/trpc/billing.getProfile,post.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%2C%221%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%7D
+statusCode: 401
+durationMs: 486
+ip: ::1
+userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 OPR/131.0.0.0
+responseBody: undefined
+
+[2026-06-25T18:10:38.087Z] HTTP_ERROR
+method: GET
+url: /api/trpc/billing.getProfile,post.list,post.listSavedBackgrounds?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%2C%221%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%2C%222%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%7D
+statusCode: 401
+durationMs: 709
+ip: ::1
+userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 OPR/131.0.0.0
+responseBody: undefined
+
+[2026-06-25T19:10:51.267Z] POST_GENERATION_STARTED
+generationRunId: 3cee01d3-9107-4451-804d-fc4c6c513c28
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 38
+contentPreview: como comprar vegetais frescos na feira
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: true
+sparkCost: 10
+
+[2026-06-25T19:10:58.575Z] AI_PROVIDER_200
+traceLabel: content_strategy
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2435
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 68924eae0f1e2276823cb619367bdc30e0e5da1be000cc0bca43093a408121f6
+promptTokens: 246
+completionTokens: 634
+totalTokens: 880
+latencyMs: 7304
+estimatedCostUsd: 0.0013295
+responseId: gen-1782414642-7bTUbeisyJibEvL8yN5r
+error: undefined
+
+[2026-06-25T19:11:11.397Z] AI_PROVIDER_200
+traceLabel: post_generation_1
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 3707
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 1626785d87c14ae146aceff391a1697ec16698e921d5145d2ac99f1832c3cf68
+promptTokens: 2312
+completionTokens: 1036
+totalTokens: 3348
+latencyMs: 12821
+estimatedCostUsd: 0.00265
+responseId: gen-1782414648-MTqM7QA9Y1jkUMh5VYK7
+error: undefined
+
+[2026-06-25T19:11:13.210Z] AI_PROVIDER_200
+traceLabel: post_generation_2
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4308
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b6319dad52fd80888483627c38f98b49331421adc2ff618ea87bed439fd80cdb
+promptTokens: 2311
+completionTokens: 1174
+totalTokens: 3485
+latencyMs: 14633
+estimatedCostUsd: 0.00292575
+responseId: gen-1782414649-0mnWIUApLwOweThnibCj
+error: undefined
+
+[2026-06-25T19:11:18.463Z] AI_PROVIDER_200
+traceLabel: post_generation_3
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4396
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: dff56cef9320429ae4b603c5097e32f51415e00fc101fecdc6999ebdf3d74b62
+promptTokens: 2309
+completionTokens: 1205
+totalTokens: 3514
+latencyMs: 19885
+estimatedCostUsd: 0.00298725
+responseId: gen-1782414649-tLZomW5N8KnENLl03FWJ
+error: undefined
+
+[2026-06-25T19:11:22.999Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1031
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 961debefe3636b95ef1f5e0e983bbf21b08f747e20f14b6806c4bae552c92c9a
+promptTokens: 1120
+completionTokens: 271
+totalTokens: 1391
+latencyMs: 3755
+estimatedCostUsd: 0.000822
+responseId: gen-1782414669-Uq46UR4mGHaWvSdyU9UG
+error: undefined
+
+[2026-06-25T19:11:23.153Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 892
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 600ae0164aa7c67248f80a890577e5e5f195a00c85ba6cc4e4865aae8c605cb0
+promptTokens: 1095
+completionTokens: 232
+totalTokens: 1327
+latencyMs: 3910
+estimatedCostUsd: 0.00073775
+responseId: gen-1782414669-B2zT2VeN1N4SLblAQh5q
+error: undefined
+
+[2026-06-25T19:11:23.702Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 865
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 6df6da32ada352974ccb955fb6b37b1e273eb1be089d52da4f795e4159cb5a7e
+promptTokens: 1014
+completionTokens: 245
+totalTokens: 1259
+latencyMs: 4461
+estimatedCostUsd: 0.0007435
+responseId: gen-1782414669-sJLMYob8ckpIJurXbaTX
+error: undefined
+
+[2026-06-25T19:11:31.178Z] AI_PROVIDER_200
+traceLabel: quality_revision_3
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2754
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: f8be9528437557eddca7f8c13e504c229a870419cac1b691ce251a3f3c77911e
+promptTokens: 2712
+completionTokens: 840
+totalTokens: 3552
+latencyMs: 7475
+estimatedCostUsd: 0.002358
+responseId: gen-1782414674-ZR4PdcDezkl4pnaJjIGe
+error: undefined
+
+[2026-06-25T19:11:32.631Z] AI_PROVIDER_200
+traceLabel: quality_revision_2
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2636
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b3a7ab932f1fa3af78d90145438b422428de2d963d10636a47482d152b956b54
+promptTokens: 2648
+completionTokens: 791
+totalTokens: 3439
+latencyMs: 8927
+estimatedCostUsd: 0.002244
+responseId: gen-1782414674-HFF4cbE4gE50DtkkblJE
+error: undefined
+
+[2026-06-25T19:11:35.976Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1135
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 6df6da32ada352974ccb955fb6b37b1e273eb1be089d52da4f795e4159cb5a7e
+promptTokens: 1014
+completionTokens: 318
+totalTokens: 1332
+latencyMs: 3345
+estimatedCostUsd: 0.0008895
+responseId: gen-1782414683-18BLEHPlEX7ttZAA2SaJ
+error: undefined
+
+[2026-06-25T19:11:36.624Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1142
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 7b6de77ebef68fd19097d551663e258cfa6ae62e9a0e27ca3aebb7f88f2ac01e
+promptTokens: 1088
+completionTokens: 313
+totalTokens: 1401
+latencyMs: 3992
+estimatedCostUsd: 0.000898
+responseId: gen-1782414683-l6mcJ3Xn0n9m1qkcwGmQ
+error: undefined
+
+[2026-06-25T19:11:38.067Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 971
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ff1b4cc44adc2574c5b8fa8e726d3739a8a6e98af0dfa392c6fd4fc3b4eb1219
+promptTokens: 1133
+completionTokens: 257
+totalTokens: 1390
+latencyMs: 5435
+estimatedCostUsd: 0.00079725
+responseId: gen-1782414683-hjF8x1tQNONQ7atchfti
+error: undefined
+
+[2026-06-25T19:11:40.540Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 528
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: c1fbe4d0b882fadfad01187520453f254065363de1ad4aa89310e26dfd01406d
+promptTokens: 621
+completionTokens: 152
+totalTokens: 773
+latencyMs: 2471
+estimatedCostUsd: 0.00045925
+responseId: gen-1782414688-gulMBG170rdKsWnN8q3W
+error: undefined
+
+[2026-06-25T19:11:40.767Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 631
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 5db984f00f2be98bd24cbc2c9543f68095f831cf195a37f618c132efbfe3f843
+promptTokens: 658
+completionTokens: 173
+totalTokens: 831
+latencyMs: 2698
+estimatedCostUsd: 0.0005105
+responseId: gen-1782414688-hZ0mtW1rl9bqTXyHozzc
+error: undefined
+
+[2026-06-25T19:11:40.793Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 489
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ca2c5606849d15c482ab5e43e9258c239eb722893cbf7cac1920a705696e74fe
+promptTokens: 606
+completionTokens: 149
+totalTokens: 755
+latencyMs: 2725
+estimatedCostUsd: 0.0004495
+responseId: gen-1782414689-AovV8SzRHGveSNylvePJ
+error: undefined
+
+[2026-06-25T19:11:41.986Z] POST_GENERATION_COMPLETED
+generationRunId: 3cee01d3-9107-4451-804d-fc4c6c513c28
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+durationMs: 50719
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: [ 'openai/gpt-5-mini-2025-08-07' ]
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 2
+strategyFallbackUsed: false
+originalityFallbackUsed: false
+finalValidation: { valid: true, errors: [] }
+llmCalls: [
+  {
+    label: 'content_strategy',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '68924eae0f1e2276823cb619367bdc30e0e5da1be000cc0bca43093a408121f6',
+    promptTokens: 246,
+    completionTokens: 634,
+    totalTokens: 880,
+    latencyMs: 7304,
+    estimatedCostUsd: 0.0013295,
+    error: undefined
+  },
+  {
+    label: 'post_generation_1',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '1626785d87c14ae146aceff391a1697ec16698e921d5145d2ac99f1832c3cf68',
+    promptTokens: 2312,
+    completionTokens: 1036,
+    totalTokens: 3348,
+    latencyMs: 12821,
+    estimatedCostUsd: 0.00265,
+    error: undefined
+  },
+  {
+    label: 'post_generation_2',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'b6319dad52fd80888483627c38f98b49331421adc2ff618ea87bed439fd80cdb',
+    promptTokens: 2311,
+    completionTokens: 1174,
+    totalTokens: 3485,
+    latencyMs: 14633,
+    estimatedCostUsd: 0.00292575,
+    error: undefined
+  },
+  {
+    label: 'post_generation_3',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'dff56cef9320429ae4b603c5097e32f51415e00fc101fecdc6999ebdf3d74b62',
+    promptTokens: 2309,
+    completionTokens: 1205,
+    totalTokens: 3514,
+    latencyMs: 19885,
+    estimatedCostUsd: 0.00298725,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '961debefe3636b95ef1f5e0e983bbf21b08f747e20f14b6806c4bae552c92c9a',
+    promptTokens: 1120,
+    completionTokens: 271,
+    totalTokens: 1391,
+    latencyMs: 3755,
+    estimatedCostUsd: 0.000822,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '600ae0164aa7c67248f80a890577e5e5f195a00c85ba6cc4e4865aae8c605cb0',
+    promptTokens: 1095,
+    completionTokens: 232,
+    totalTokens: 1327,
+    latencyMs: 3910,
+    estimatedCostUsd: 0.00073775,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '6df6da32ada352974ccb955fb6b37b1e273eb1be089d52da4f795e4159cb5a7e',
+    promptTokens: 1014,
+    completionTokens: 245,
+    totalTokens: 1259,
+    latencyMs: 4461,
+    estimatedCostUsd: 0.0007435,
+    error: undefined
+  },
+  {
+    label: 'quality_revision_3',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'f8be9528437557eddca7f8c13e504c229a870419cac1b691ce251a3f3c77911e',
+    promptTokens: 2712,
+    completionTokens: 840,
+    totalTokens: 3552,
+    latencyMs: 7475,
+    estimatedCostUsd: 0.002358,
+    error: undefined
+  },
+  {
+    label: 'quality_revision_2',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'b3a7ab932f1fa3af78d90145438b422428de2d963d10636a47482d152b956b54',
+    promptTokens: 2648,
+    completionTokens: 791,
+    totalTokens: 3439,
+    latencyMs: 8927,
+    estimatedCostUsd: 0.002244,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '6df6da32ada352974ccb955fb6b37b1e273eb1be089d52da4f795e4159cb5a7e',
+    promptTokens: 1014,
+    completionTokens: 318,
+    totalTokens: 1332,
+    latencyMs: 3345,
+    estimatedCostUsd: 0.0008895,
+    error: undefined
+  },
+  {
+    label...[truncated 1973 chars]
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782414701499-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Adivinhe o vegetal em 60s',
+    body: 'Veja a foto. Escolha antes do timer acabar.',
+    caption: 'Consegue identificar este vegetal em 60 segundos? ⏱️🍆 Desafie seu olhar e treine a confiança na hora de escolher na feira — é rápido, divertido e vai afiar seu reconhecimento de cores, formatos e texturas. Cada segundo conta: observe detalhes, compare com o que você já conhece e tome sua decisão antes do timer zerar. 🧠✨ Pronto para o desafio? Aperte o play no story e marque quantos acertos você teve depois! Qual foi o mais fácil — ou o mais difícil — pra você? 👇',
+    callToAction: 'Participe agora',
+    hashtags: [ '#QuizDaFeira', '#Vegetais', '#DesafioRápido' ],
+    colors: { backgroundColor: '#0B3A2E', textColor: '#FFFFFF', accentColor: '#FFD166' },
+    copyAngle: { type: 'storytelling', label: 'Quiz interativo', badge: 'Desafio', stickerText: 'Acerte!' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 2,
+      evaluation: { accepted: true, overallScore: 81, reasons: undefined },
+      originality: { score: 19, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782414701499-1',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: '5 itens da feira, 3 refeições rápidas',
+    body: 'Transforme suas compras em jantares práticos e saborosos',
+    caption: 'Quer jantar bem sem complicação nem gasto? 🍽️✨ Transforme 5 ingredientes da feira em 3 refeições diferentes — todas rápidas de preparar e perfeitas pra rotina da semana. Além de economizar, você ganha variedade no cardápio com pouco esforço. 🌿🧅🥔 No carrossel você vê: preparo rápido e passo a passo da receita principal, seguido de duas variações práticas que reaproveitam os mesmos ingredientes. Ideia prática para preparar em sequência e ter opções por dias. Qual das 3 você vai testar primeiro...[truncated]',
+    callToAction: 'Veja o passo a passo',
+    hashtags: [ '#feira', '#receitasrápidas', '#cozinhafácil' ],
+    colors: { backgroundColor: '#0F1724', textColor: '#FFFFFF', accentColor: '#FFD166' },
+    copyAngle: { type: 'beneficio', label: 'Transformação prática', badge: 'DoSacoAoPrato', stickerText: 'Rápido' },
+    sections: [
+      { index: 0, id: undefined, number: 1, icon: 'Zap', label: 'Preparo rápido', description: 'Ideal pra semana' },
+      { index: 1, id: undefined, number: 2, icon: 'Heart', label: '5 ingredientes', description: 'Economia e sabor' },
+      { index: 2, id: undefined, number: 3, icon: 'Star', label: '3 receitas', description: 'Prato principal + 2 variações' }
+    ],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-5',
+      revisionCount: 2,
+      evaluation: { accepted: false, overallScore: 76, reasons: undefined },
+      originality: { score: 13, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1782414701499-2',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Checklist rápido para a feira',
+    body: 'Tudo pronto em 3 minutos — evite compras duplicadas e ganhe tempo',
+    caption: 'Cansado de voltar da feira e perceber que esqueceu algo? Transforme sua saída num passeio eficiente com um checklist simples que funciona de verdade. 🌿🛒 Esses três itens evitam desperdício de tempo e dinheiro: leve sua bolsa reutilizável para não depender de sacos plásticos, tenha a lista preparada para comprar só o que falta e carregue uma caixa térmica pequena para manter perecíveis frescos até em casa. Cada peça é prática e evita compras por impul...[truncated 1416 chars]
+

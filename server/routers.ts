@@ -1893,10 +1893,7 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
           });
         }
 
-        console.log('[generateBackground] Starting generation:', { prompt: input.prompt.slice(0, 50), provider: input.provider });
         const imageData = await generateBackgroundImage(input.prompt, input.provider);
-        console.log('[generateBackground] Generated image data URI length:', imageData.length, 'first 150 chars:', imageData.slice(0, 150));
-        console.log('[generateBackground] Data URI prefix check:', imageData.startsWith('data:image/') ? 'VALID' : 'INVALID');
         return { imageData }; // base64 data URI
       }),
 
@@ -2090,7 +2087,7 @@ Devolva as sugestões respeitando estritamente os IDs recebidos. Não invente no
             const images = fs
               .readdirSync(catPath)
               .filter(f => /\.(webp|jpg|jpeg|png|gif|svg)$/i.test(f))
-              .map(f => `/ images / backgrounds / ${dir.name} / ${f}`);
+              .map(f => `/images/backgrounds/${encodeURIComponent(dir.name)}/${encodeURIComponent(f)}`);
             return { id: dir.name, name: dir.name, images };
           })
           .filter(c => c.images.length > 0);
@@ -2135,56 +2132,19 @@ Devolva as sugestões respeitando estritamente os IDs recebidos. Não invente no
         })
       )
       .mutation(async ({ input }) => {
-        console.log("[extractStyles] ==========================================");
-        console.log("[extractStyles] Starting extraction for:", input.url);
-        console.log("[extractStyles] Timestamp:", new Date().toISOString());
-
         // Step 1: Extract raw style data (HTML + Vision hybrid pipeline)
-        console.log("[extractStyles] Step 1: Running hybrid extraction pipeline...");
         const { data: extractedData, visionUsed } = await extractStyleFromUrlWithMeta(input.url);
-        console.log("[extractStyles] Palette found:", extractedData.colors.palette.length, "colors");
-        console.log("[extractStyles] Vision used:", visionUsed);
-        console.log("[extractStyles] Colors:", {
-          primary: extractedData.colors.primary,
-          background: extractedData.colors.background,
-          accent: extractedData.colors.accent,
-          palette: extractedData.colors.palette,
-        });
 
         // Check if extraction returned default values (indicates failure)
         const defaultColors = new Set(["#6366f1", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444"]);
         const realColors = extractedData.colors.palette.filter(c => !defaultColors.has(c));
         const fallbackUsed = realColors.length === 0;
-        if (fallbackUsed) {
-          console.log("[extractStyles] FALLBACK: No real colors extracted (SPA/empty detected)");
-        }
 
         // Step 2: Analyze design patterns using LLM
-        console.log("[extractStyles] Step 2: Analyzing design patterns...");
         const designPatterns = await analyzeDesignPattern(extractedData, input.url);
-        console.log("[extractStyles] Patterns returned:", designPatterns.length);
-        designPatterns.forEach((p, i) => {
-          console.log(`[extractStyles] Pattern ${i + 1}: `, {
-            name: p.name,
-            category: p.category,
-            confidence: p.confidence,
-            suggestedColors: p.suggestedColors,
-          });
-        });
 
         // Step 3: Generate temporary themes from patterns
-        console.log("[extractStyles] Step 3: Generating themes...");
         const themes = generateThemesFromPatterns(designPatterns, extractedData, input.url);
-        console.log("[extractStyles] Generated themes:", themes.length);
-        themes.forEach((t, i) => {
-          console.log(`[extractStyles] Theme ${i + 1}: `, {
-            id: t.id,
-            label: t.label,
-            category: t.category,
-            colors: t.colors,
-          });
-        });
-        console.log("[extractStyles] ==========================================");
 
         return {
           extractedData,

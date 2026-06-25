@@ -200,7 +200,6 @@ Output requirements:
   }
 
   const json = await response.json();
-  console.log('[ImageGen] OpenRouter response structure:', JSON.stringify(json, null, 2).slice(0, 1000));
   const candidates = collectImageCandidates(json);
   console.log('[ImageGen] Collected structured image candidates:', candidates.length);
   if (candidates.length === 0) {
@@ -274,7 +273,6 @@ async function generateWithPollinations(
     model: modelId,
     qualityMode: provider,
   });
-  console.log('[ImageGen] Pollinations data URI length:', dataUri.length, 'first 100 chars:', dataUri.slice(0, 100));
   return dataUri;
 }
 

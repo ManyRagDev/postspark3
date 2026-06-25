@@ -1647,3 +1647,246 @@ Fatos confirmados:
 
 O plano normativo de recuperação, com ordem de entregas, contratos e gates, está
 em [`docs/canva/PLANO_RECUPERACAO_DEFINITIVA_WORKBENCH.md`](./docs/canva/PLANO_RECUPERACAO_DEFINITIVA_WORKBENCH.md).
+
+## 34. Correções pós-auditoria Qwen do Workbench — 2026-06-25
+
+Após leitura dos relatórios em
+[`docs/canva/auditoria-qwen/`](./docs/canva/auditoria-qwen/), a revisão humana
+assistida por Codex reclassificou parte dos achados:
+
+- O relatório Qwen foi útil como coleta inicial, mas superestimou a conclusão
+  de que exportação e validação visual estavam corretas. A validação browser
+  completa continua obrigatória.
+- O vazamento de `textElements` do slide atual para a raiz do snapshot de
+  carrossel, registrado na seção anterior, foi reavaliado no código atual:
+  `buildVariationSnapshot` usa a variação base como fonte canônica em posts de
+  carrossel, e há testes específicos cobrindo `scope=current`, `scope=all` e
+  navegação entre slides. A correção ainda depende da suíte permanecer verde.
+- O logger HTTP atual só registra `statusCode >= 400`, então o diagnóstico de
+  304 como erro não é mais fato confirmado no código atual; permanece apenas
+  como histórico operacional se `OPERATIONAL_ERRORS.txt` contiver linhas antigas.
+
+Correções aplicadas nesta rodada:
+
+- `WorkbenchV2.handleExport` agora trata corretamente o caso em que
+  `canvasRef.current` é o próprio `data-post-export-root` e passa o root
+  exportável para `html2canvas`. Antes, `querySelector("[data-post-export-root]")`
+  procurava apenas descendentes e podia abortar a exportação com
+  `Export root element not found`.
+- `post.listBackgrounds` agora retorna URLs públicas sem espaços e com segmentos
+  codificados: `/images/backgrounds/<categoria>/<arquivo>`.
+- A migração `drizzle/0009_normalize_generation_runs_created_at.sql` teve a
+  condição idempotente corrigida para testar separadamente `createdAt` e
+  `created_at`.
+- Logs quentes e/ou com risco de vazamento foram removidos de `PostCardV2`,
+  `editorStore.setBgValue`/`cloneBgValue`, `post.generateBackground`,
+  `post.extractStyles` e `server/imageGenerateBackground.ts`.
+
+Validação desta rodada:
+
+- `npm run check` passou.
+- `npm test` passou com 28 arquivos e 240 testes.
+- `git diff --check` passou para os arquivos alterados.
+
+Pendências mantidas:
+
+- Validar exportação em browser gerando PNG real e confirmando ausência de
+  overlays/controles.
+- Validar matriz visual de drag/resize em 1:1, 5:6 e 9:16, com escalas e
+  carrossel.
+- Confirmar schema real do Supabase para `generation_runs.created_at` e aplicar
+  a migração no ambiente correto antes de considerar `/history` resolvido.
+
+## 35. Ajustes pós-teste manual de HoloDeck e interação — 2026-06-25
+
+O teste manual posterior identificou três sintomas:
+
+- O mesmo post aparecia desalinhado no HoloDeck, mas correto no Workbench.
+- Drag/drop e resize de elementos estruturais continuavam instáveis; em
+  contraste, imagens livres adicionadas pelo botão "Adicionar imagem" tinham
+  drag, resize, exclusão e seleção funcionando corretamente.
+- As guias/ímã de alinhamento podiam estar interferindo ou ainda não estavam
+  suficientemente validadas.
+
+Correções aplicadas:
+
+- `HoloDeck.getPreviewVariation` deixou de re-normalizar snapshots que já têm
+  `snapshotVersion`. O preview agora preserva o `PostVisualSnapshot` recebido e
+  só normaliza objetos legados sem versão. Isso reduz divergência visual entre
+  HoloDeck e Workbench.
+- `DraggableBlock` passou a expor handles horizontais também para blocos ainda
+  em fluxo, evitando o estado com apenas um handle clicável. Não foram adotados
+  handles de canto para blocos estruturais porque o contrato atual persiste
+  largura e centro, mas não altura; usar cantos sugeriria um resize vertical que
+  o snapshot não salvaria.
+- `isMagnetActive` agora inicia desligado no store e no reset. O snap/guia fica
+  disponível pelo botão "Ímã", mas não interfere por padrão enquanto a matriz
+  visual das guias não for validada.
+
+Pendência específica:
+
+- Revalidar manualmente HoloDeck versus Workbench usando o mesmo post gerado.
+- Testar drag/resize de headline/body/sections com ímã desligado e ligado.
+- Se as guias ainda forem necessárias para a próxima entrega, validar
+  `snapEngine` em browser antes de deixá-las ativas por padrão novamente.
+
+## 36. Correção do shell vazio e da caixa grande em blocos estruturais — 2026-06-25
+
+Novo teste manual mostrou que, ao arrastar um bloco estrutural em fluxo
+(`headline`, `body` ou `section`), o texto podia ser movido para baixo enquanto
+um retângulo vazio permanecia no local original. Também foi observado que a
+caixa de seleção/resize era maior que o conteúdo real, obrigando o usuário a
+redimensionar antes de alinhar.
+
+Causa identificada:
+
+- `DraggableBlock` criava um `flowFootprint` para preservar o espaço durante o
+  primeiro drag, mas o wrapper podia continuar com esse footprint mesmo depois
+  que o bloco passava a ser absoluto.
+- O commit de drag de um bloco em fluxo persistia apenas `freePosition`; quando
+  o bloco não tinha largura explícita, ele podia continuar usando `width: 100%`
+  como absoluto, gerando caixa grande e desalinhamento.
+
+Correções aplicadas:
+
+- O `flowFootprint` agora só fixa tamanho enquanto o bloco ainda está em fluxo;
+  depois que `freePosition` existe, o shell deixa de reservar espaço vazio.
+- O primeiro drag de bloco em fluxo também persiste a largura medida quando o
+  layout ainda não tinha `width` explícito.
+- Em modo editável, blocos sem largura explícita usam `fit-content` com
+  `maxWidth: 100%` como largura inicial, aproximando a caixa de interação do
+  conteúdo real sem alterar preview/export.
+
+Validação automatizada:
+
+- `npm run check` passou.
+- Testes focados de `layoutPositionAdapter`, `blockInteraction`,
+  `firstDrag.dom` e `editorStore` passaram.
+
+Pendência:
+
+- Revalidar visualmente no Workbench se o drag de título, corpo e itens de lista
+  deixou de criar shell vazio e se a caixa inicial ficou próxima do conteúdo.
+
+Complemento a partir de vídeo manual:
+
+- O vídeo `video_postspark.mp4` confirmou que blocos estruturais absolutos ainda
+  eram renderizados dentro de um wrapper `position: relative` criado para o fluxo.
+  Assim, `left/top` eram calculados contra o wrapper antigo em vez do canvas/card,
+  causando salto, truncamento e colisão com outros itens.
+- O wrapper de `DraggableBlock` agora usa `display: contents` quando o bloco já
+  tem `freePosition`, permitindo que o absoluto seja posicionado pelo ancestral
+  correto do card.
+- A medição de `flowFootprint` deixou de ocorrer no `pointerdown`. Antes, apenas
+  clicar em um elemento já podia alterar largura/altura visual. Agora a medição
+  só ocorre quando o estado realmente entra em `dragging`.
+
+Validação adicional:
+
+- `npm run check` passou.
+- Testes focados de `blockInteraction`, `firstDrag.dom`, `editorStore` e
+  `layoutPositionAdapter` passaram após o ajuste do vídeo.
+
+## 37. Ajustes finais de handoff HoloDeck -> Workbench e overlay de interação — 2026-06-25
+
+Novo teste manual após a estabilização do drag mostrou melhora importante, mas
+ainda havia três sintomas:
+
+- às vezes era necessário clicar para selecionar antes de arrastar;
+- em algumas movimentações a seleção/overlay parecia acompanhar outro elemento;
+- variações exibidas em 1:1 no HoloDeck podiam chegar ao Workbench em 5:6.
+
+Correções aplicadas:
+
+- `HoloDeck.handleSelect` agora passa para o callback `onSelect` o
+  `aspectRatio` real do `PostVisualSnapshot` selecionado
+  (`selectedSnapshot.aspectRatio`) em vez de sempre reutilizar o estado local do
+  seletor de formato. Isso remove uma divergência possível entre o snapshot
+  autoritativo carregado no Zustand e o parâmetro entregue ao fluxo pai.
+- `InteractionOverlay` agora só usa o draft transitório quando
+  `interactionState.initial.id === layoutTarget`. Com isso, um re-render durante
+  press/drag não deve desenhar caixa de seleção de outro elemento enquanto o
+  registry e o store convergem.
+
+Observação operacional:
+
+- O primeiro clique em um elemento seleciona o alvo; o movimento só vira drag
+  depois do limiar de interação (`DEFAULT_INTERACTION_SLOP_PX`, hoje 5px).
+  Movimentos muito curtos podem, portanto, parecer apenas seleção. Isso é
+  esperado para evitar drag acidental; se a experiência ainda parecer
+  inconsistente, o próximo ajuste deve reduzir o slop ou iniciar drag em
+  `pointerdown` apenas para elementos já selecionados.
+
+Validação desta rodada:
+
+- Testes focados passaram: `blockInteraction`, `firstDrag.dom`, `editorStore` e
+  `variationSnapshot` (43 testes).
+- `npm run check` foi executado, mas ficou bloqueado por dependência ausente
+  preexistente (`react-helmet-async`) usada por `Cookies.tsx`, `Privacy.tsx`,
+  `PrivacySettings.tsx` e `Terms.tsx`. Esse bloqueio não foi introduzido pelos
+  ajustes de Workbench desta rodada.
+
+## 38. Preservação de fluxo ao mover blocos estruturais — 2026-06-25
+
+Novo teste manual mostrou que, mesmo com o elemento arrastado posicionado
+corretamente, mover o título ainda podia "empurrar" ou "puxar" outros blocos.
+
+Causa identificada:
+
+- `headline`, `body` e `section:*` ainda nascem dentro do fluxo estrutural do
+  template. No primeiro drag, o bloco movido recebe `freePosition` e passa a ser
+  absoluto. Se o shell de fluxo colapsa nesse momento, os irmãos que continuam
+  em fluxo ocupam o espaço liberado. Visualmente isso parece que mover um
+  elemento mexe em outro.
+
+Correção aplicada:
+
+- `DraggableBlock` agora mantém um espaçador invisível com a largura/altura
+  medidas durante o primeiro drag mesmo depois que o bloco passa a ter
+  `freePosition`.
+- O elemento real continua absoluto e posicionado pelo canvas/card; o espaçador
+  só preserva o fluxo dos irmãos e não deve desenhar borda, overlay ou área
+  clicável antiga.
+- Para elementos que já chegam absolutos sem uma medição de primeiro drag, o
+  wrapper continua usando `display: contents`, preservando o posicionamento
+  correto contra o canvas.
+
+Validação desta rodada:
+
+- `firstDrag.dom.test.tsx` agora cobre que o shell de fluxo permanece com
+  dimensões após o primeiro drag.
+- Testes focados passaram: `firstDrag.dom`, `blockInteraction`, `editorStore` e
+  `variationSnapshot` (43 testes).
+
+## 39. Estabilização da exportação PNG do Workbench — 2026-06-25
+
+Diagnóstico confirmado após teste manual com arquivo exportado:
+
+- O PNG exportado em formato 5:6 saía com `2160 x 2592`, quando o contrato
+  esperado para a base lógica de 360 px com escala 3 é `1080 x 1296`.
+- A causa era a captura pelo `html2canvas` incorporar o `transform: scale(...)`
+  usado apenas para zoom visual do workspace, somando esse zoom à escala de
+  exportação.
+- Além disso, blocos fixos do card sem largura explícita, como `headline` e
+  `body`, podiam divergir entre `edit` e `export`: em edição eles usavam largura
+  visual aproximada por `fit-content`, enquanto no modo exportável voltavam para
+  `100%`.
+
+Correção aplicada:
+
+- `WorkbenchV2.handleExport` agora mede `offsetWidth` e `offsetHeight` da raiz
+  `data-post-export-root` e passa essas dimensões lógicas explicitamente ao
+  `html2canvas`.
+- No clone interno do `html2canvas`, transforms de ancestrais da raiz exportada
+  são neutralizados para impedir que o zoom do editor altere dimensão ou métricas
+  do PNG.
+- `PostCardV2` preserva, apenas em `mode="export"`, a largura padrão
+  `fit-content` dos blocos fixos do card que ainda não têm `layoutSettings.width`,
+  espelhando a aparência do Workbench sem alterar drag, resize, store,
+  snapshot ou interações do editor.
+
+Validação:
+
+- `npm run check` continua bloqueado pela dependência ausente preexistente
+  `react-helmet-async` nas páginas `Cookies`, `Privacy`, `PrivacySettings` e
+  `Terms`; o bloqueio já estava registrado antes desta correção.

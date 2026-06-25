@@ -192,7 +192,7 @@ export default function CanvasWorkspace({
                         aspectRatio: aspectRatio === '9:16' ? '9/16' : aspectRatio === '5:6' ? '5/6' : '1/1',
                     }}
                 >
-                    {renderMode === "edit" ? <CanvasInteractionProvider canvasRef={canvasRef as React.RefObject<HTMLElement | null>}>
+                    <CanvasInteractionProvider canvasRef={canvasRef as React.RefObject<HTMLElement | null>}>
                         <div ref={canvasRef} className="h-full w-full" data-post-export-root>
                             {visualSnapshot && <PostRenderer
                                 mode={renderMode}
@@ -211,18 +211,8 @@ export default function CanvasWorkspace({
                                 className="h-full w-full"
                             />}
                         </div>
-                        <InteractionOverlay />
-                    </CanvasInteractionProvider> : (
-                        <div ref={canvasRef} className="h-full w-full" data-post-export-root>
-                            {visualSnapshot && <PostRenderer
-                                mode="export"
-                                snapshot={visualSnapshot}
-                                aspectRatio={aspectRatio}
-                                currentSlideIndex={currentSlideIndex}
-                                className="h-full w-full"
-                            />}
-                        </div>
-                    )}
+                        {renderMode === "edit" && <InteractionOverlay />}
+                    </CanvasInteractionProvider>
 
                     <CanvasLoadingOverlay visible={autoPilotDesign.isAutoPiloting} />
 

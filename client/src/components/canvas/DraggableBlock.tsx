@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { TextPosition, LayoutPosition } from "@/types/editor";
 import {
     GRID_SNAP_COORDINATES,
@@ -83,6 +83,7 @@ export function DraggableBlock({
 }: DraggableBlockProps) {
     const [flowFootprint, setFlowFootprint] = useState<{ width: number; height: number } | null>(null);
     const blockRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
     const descriptor = useMemo(() => ({
         id: elementId,
         kind: elementKind,
@@ -94,7 +95,7 @@ export function DraggableBlock({
             bounds: documentRect(0, 0, context.viewport.documentSize.width, context.viewport.documentSize.height),
             ...(intent.type === "resize" ? { minWidth: context.viewport.documentSize.width * 0.2, minHeight: 0 } : {}),
         }),
-        handlePolicy: layoutPos.freePosition ? "horizontal" as const : "flow-right" as const,
+        handlePolicy: "horizontal" as const,
         snapEligible: snapEnabled,
         accentColor: `${accentColor}90`,
         onSelect,
@@ -102,14 +103,28 @@ export function DraggableBlock({
     const interaction = useInteractiveElement(descriptor);
     const isDragging = interaction.phase === "dragging";
     const isResizing = interaction.phase === "resizing";
+    const isAbsolute = Boolean(layoutPos.freePosition);
+
+    useLayoutEffect(() => {
+        if (isAbsolute) return;
+        if (!isDragging || flowFootprint) return;
+        const element = blockRef.current;
+        if (!element) return;
+        const content = contentRef.current;
+        const contentWidth = content?.scrollWidth || element.offsetWidth;
+        const contentHeight = content?.scrollHeight || element.offsetHeight;
+        const measuredWidth = Math.min(element.offsetWidth, Math.max(1, contentWidth));
+        const measuredHeight = Math.min(element.offsetHeight, Math.max(1, contentHeight));
+        setFlowFootprint({ width: measuredWidth, height: measuredHeight });
+    }, [flowFootprint, isAbsolute, isDragging]);
 
     const hasExplicitWidth = layoutPos.width != null;
+    const defaultWidthForMode = isDraggable && defaultWidth === "100%" ? "fit-content" : defaultWidth;
     const widthStyle = isResizing && interaction.draft
         ? `${interaction.draft.rect.width}px`
         : hasExplicitWidth
             ? `${layoutPos.width}%`
-            : defaultWidth;
-    const isAbsolute = Boolean(layoutPos.freePosition);
+            : defaultWidthForMode;
     const usesAbsoluteDraft = Boolean(interaction.draft) && isAbsolute;
     const flowDraftTransform = !isAbsolute && isDragging && interaction.draft && interaction.initial
         ? `translate3d(${interaction.draft.rect.x - interaction.initial.rect.x}px, ${interaction.draft.rect.y - interaction.initial.rect.y}px, 0)`
@@ -128,11 +143,7 @@ export function DraggableBlock({
     const pointerHandlers = {
         ...interaction.bind,
         onPointerDown: (event: React.PointerEvent<HTMLElement>) => {
-            const element = blockRef.current;
-            if (!isDraggable || !element) return;
-            if (!layoutPos.freePosition && !flowFootprint) {
-                setFlowFootprint({ width: element.offsetWidth, height: element.offsetHeight });
-            }
+            if (!isDraggable || !blockRef.current) return;
             interaction.bind.onPointerDown(event);
         },
     };
@@ -143,7 +154,8 @@ export function DraggableBlock({
     };
 
     const sharedStyle: React.CSSProperties = {
-        width: widthStyle,
+        width: isDragging && flowFootprint ? `${flowFootprint.width}px` : widthStyle,
+        maxWidth: "100%",
         cursor: isDragging ? "grabbing" : isDraggable ? "grab" : "default",
         touchAction: "none",
         borderRadius: layoutPos.borderRadius ? `${layoutPos.borderRadius}px` : undefined,
@@ -154,11 +166,21 @@ export function DraggableBlock({
     return (
         <div
             data-draggable-flow-shell={elementId}
-            style={flowFootprint ? {
-                position: "relative",
-                width: `${flowFootprint.width}px`,
-                height: `${flowFootprint.height}px`,
-            } : { position: "relative" }}
+            style={isAbsolute
+                ? flowFootprint
+                    ? {
+                        position: "static",
+                        width: `${flowFootprint.width}px`,
+                        height: `${flowFootprint.height}px`,
+                    }
+                    : { display: "contents" }
+                : flowFootprint
+                    ? {
+                        position: "relative",
+                        width: `${flowFootprint.width}px`,
+                        height: `${flowFootprint.height}px`,
+                    }
+                    : { position: "relative" }}
         >
             <div
                 ref={blockRef}
@@ -169,7 +191,7 @@ export function DraggableBlock({
                 style={{ ...currentStyle, ...sharedStyle, pointerEvents: isDraggable ? "auto" : "none" }}
                 {...pointerHandlers}
             >
-                <div style={{ width: "100%" }}>{children}</div>
+                <div ref={contentRef} style={{ width: "100%" }}>{children}</div>
             </div>
         </div>
     );

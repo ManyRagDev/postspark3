@@ -72,6 +72,7 @@ export function layoutPositionFromCommit(
     return {
       ...current,
       freePosition: geometryCenterPercent(interaction),
+      width: current.width ?? roundedWidthPercent(interaction),
     };
   }
 

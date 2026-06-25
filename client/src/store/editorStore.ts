@@ -50,13 +50,6 @@ const emptySlideOverrides = (): SlideEditorOverrides => ({
 });
 
 const cloneBgValue = (bgValue: BackgroundValue): BackgroundValue => {
-    console.log('[cloneBgValue] Cloning:', {
-        type: bgValue.type,
-        hasUrl: Boolean(bgValue.url),
-        urlLength: bgValue.url?.length || 0,
-        urlPrefix: bgValue.url?.slice(0, 30) || 'none'
-    });
-
     switch (bgValue.type) {
         case 'solid':
             return { type: 'solid', color: bgValue.color };
@@ -445,7 +438,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
     bgOverlay: DEFAULT_BG_OVERLAY,
     baseBgOverlay: DEFAULT_BG_OVERLAY,
     layoutTarget: 'global',
-    isMagnetActive: true,
+    isMagnetActive: false,
     historyStack: createHistoryStack(),
     setActiveVariation: variation =>
         setWithSnapshot(state => {
@@ -733,14 +726,6 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
     setBgValue: bgValue =>
         setWithSnapshot(state => {
-            console.log('[editorStore.setBgValue] Setting bgValue:', {
-                type: bgValue.type,
-                hasUrl: Boolean(bgValue.url),
-                urlLength: bgValue.url?.length || 0,
-                urlPrefix: bgValue.url?.slice(0, 30) || 'none',
-                color: bgValue.color || 'none'
-            });
-
             if (state.postMode === 'carousel' && state.slides.length > 0) {
                 if (state.applyScope === 'all') {
                     const slideOverrides = state.slideOverrides.map(entry => ({
@@ -911,7 +896,7 @@ export const useEditorStore = create<EditorState>((set, get) => {
             bgOverlay: DEFAULT_BG_OVERLAY,
             baseBgOverlay: DEFAULT_BG_OVERLAY,
             layoutTarget: 'global',
-            isMagnetActive: true,
+            isMagnetActive: false,
             historyStack: createHistoryStack(),
         }),
 

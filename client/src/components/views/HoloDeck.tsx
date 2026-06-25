@@ -356,7 +356,9 @@ export default function HoloDeck({
   const activeVariation = localVariations[currentIndex];
   const getPreviewVariation = useCallback(
     (variation: PostVisualSnapshot) => {
-      const snapshot = createPostVisualSnapshot(variation, aspectRatio);
+      const snapshot = variation.snapshotVersion
+        ? variation
+        : createPostVisualSnapshot(variation, aspectRatio);
       return customTokens
         ? applyDesignTokensToSnapshot(snapshot, customTokens, selectedTheme?.brandMeta)
         : snapshot;
@@ -390,10 +392,11 @@ export default function HoloDeck({
   const handleSelect = useCallback(
     (variation: PostVisualSnapshot) => {
       const selectedSnapshot = getPreviewVariation(variation);
+      const selectedAspectRatio = selectedSnapshot.aspectRatio ?? aspectRatio;
       const editorStore = useEditorStore.getState();
       editorStore.loadSnapshot(selectedSnapshot);
 
-      onSelect(selectedSnapshot, { aspectRatio, theme: selectedTheme });
+      onSelect(selectedSnapshot, { aspectRatio: selectedAspectRatio, theme: selectedTheme });
     },
     [getPreviewVariation, onSelect, aspectRatio, selectedTheme]
   );

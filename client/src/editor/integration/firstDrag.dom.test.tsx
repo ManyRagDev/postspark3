@@ -110,6 +110,10 @@ describe("first drag DOM invariants", () => {
       }));
     });
     expect(captured).toBe(false);
+    const shell = host.querySelector<HTMLElement>("[data-draggable-flow-shell='headline']")!;
+    expect(shell.style.display).not.toBe("contents");
+    expect(shell.style.width).toBe("120px");
+    expect(shell.style.height).toBe("40px");
 
     await act(async () => root.unmount());
   });

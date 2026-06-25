@@ -18,7 +18,7 @@ BEGIN
 
   IF has_createdAt AND NOT has_created_at THEN
     ALTER TABLE postspark.generation_runs RENAME COLUMN "createdAt" TO created_at;
-  ELSIF NOT has_createdAt AND NOT has_createdAt THEN
+  ELSIF NOT has_createdAt AND NOT has_created_at THEN
     ALTER TABLE postspark.generation_runs ADD COLUMN created_at timestamptz NOT NULL DEFAULT now();
   END IF;
 END$$;

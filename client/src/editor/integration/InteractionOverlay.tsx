@@ -71,7 +71,8 @@ export function InteractionOverlay() {
   if (!context) return null;
   if (!entry || !node || entry.handlePolicy === "none") return null;
   const handles = HANDLE_MAP[entry.handlePolicy];
-  const activeDraft = interactionState.phase === "dragging" || interactionState.phase === "resizing"
+  const activeDraft = (interactionState.phase === "dragging" || interactionState.phase === "resizing") &&
+    interactionState.initial.id === selectedId
     ? interactionState.draft.rect
     : null;
   const overlayRect = activeDraft

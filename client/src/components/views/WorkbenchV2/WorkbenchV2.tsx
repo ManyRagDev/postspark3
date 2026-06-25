@@ -350,9 +350,16 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
     let timedOut = false;
 
     try {
-      const exportRoot = canvasRef.current.querySelector("[data-post-export-root]") as HTMLElement | null;
+      const exportRoot = canvasRef.current.matches("[data-post-export-root]")
+        ? canvasRef.current
+        : canvasRef.current.querySelector("[data-post-export-root]") as HTMLElement | null;
       if (!exportRoot) {
         throw new Error("Export root element not found");
+      }
+      const logicalWidth = exportRoot.offsetWidth;
+      const logicalHeight = exportRoot.offsetHeight;
+      if (!logicalWidth || !logicalHeight) {
+        throw new Error("Export root has no measurable size");
       }
 
       await new Promise<void>((resolve, reject) => {
@@ -391,10 +398,25 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
       });
 
       const { default: html2canvas } = await import("html2canvas-pro");
-      const canvas = await html2canvas(canvasRef.current, {
+      const canvas = await html2canvas(exportRoot, {
         scale: 3,
+        width: logicalWidth,
+        height: logicalHeight,
         backgroundColor: null,
         useCORS: true,
+        onclone: (_document, element) => {
+          const clonedRoot = element as HTMLElement;
+          clonedRoot.style.width = `${logicalWidth}px`;
+          clonedRoot.style.height = `${logicalHeight}px`;
+          clonedRoot.style.transform = "none";
+
+          let ancestor = clonedRoot.parentElement;
+          while (ancestor && ancestor !== _document.body) {
+            ancestor.style.transform = "none";
+            ancestor.style.transition = "none";
+            ancestor = ancestor.parentElement;
+          }
+        },
       });
       const link = document.createElement("a");
       link.download = `postspark-${exportPlatform}-${Date.now()}.png`;

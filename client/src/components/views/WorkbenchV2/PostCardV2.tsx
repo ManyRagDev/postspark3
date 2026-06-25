@@ -587,18 +587,7 @@ function PostCardV2Content({
 
   const renderBgImage = (gradientStyle: string) => {
     if (dt || themeOverride) {
-      console.log('[PostCardV2] renderBgImage skipped (dt/theme present)', {
-        hasDt: Boolean(dt),
-        hasTheme: Boolean(themeOverride),
-        hasResolvedImageUrl: Boolean(resolvedImageUrl)
-      });
       return null; // A imagem agora vai no nível raiz (Canvas)
-    }
-    if (resolvedImageUrl) {
-      console.log('[PostCardV2] renderBgImage rendering img tag', {
-        srcLength: resolvedImageUrl.length,
-        srcPrefix: resolvedImageUrl.slice(0, 50)
-      });
     }
     return resolvedImageUrl ? (
       <div className="absolute inset-0">
@@ -677,6 +666,11 @@ function PostCardV2Content({
 
   const Draggable = ({ target, children, color }: { target: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow"; children: React.ReactNode; color?: string }) => {
     if (!layoutSettings || !layoutSettings[target]) return <>{children}</>;
+    const defaultDraggableWidth = target === "badge" || target === "sticker" || target === "carouselArrow"
+      ? "max-content"
+      : mode === "export"
+        ? "fit-content"
+        : "100%";
     return (
       <DraggableBlock
         elementId={target}
@@ -691,7 +685,7 @@ function PostCardV2Content({
         }}
         accentColor={color || effectiveText}
         isDraggable={isEditable && !compact && inlineEditTarget !== target}
-        defaultWidth={target === "badge" || target === "sticker" || target === "carouselArrow" ? "max-content" : "100%"}
+        defaultWidth={defaultDraggableWidth}
       >
         {children}
       </DraggableBlock>
@@ -1687,12 +1681,6 @@ function PostCardV2Content({
   // DesignTokens path — ThemeRenderer handles structure, PostCard adds decorations
   if (dt) {
     const canvasBg = resolvedImageUrl ? "transparent" : dt.colors?.background || effectiveBg;
-    console.log('[PostCardV2] Rendering with dt (DesignTokens)', {
-      hasResolvedImageUrl: Boolean(resolvedImageUrl),
-      canvasBg,
-      resolvedImageUrlLength: resolvedImageUrl?.length || 0,
-      resolvedImageUrlPrefix: resolvedImageUrl?.slice(0, 30) || 'none'
-    });
     return (
       <div
         style={{
@@ -1744,12 +1732,6 @@ function PostCardV2Content({
 
   if (themeOverride) {
     const canvasBg = resolvedImageUrl ? "transparent" : themeOverride.colors.bg || effectiveBg;
-    console.log('[PostCardV2] Rendering with theme', {
-      hasResolvedImageUrl: Boolean(resolvedImageUrl),
-      canvasBg,
-      resolvedImageUrlLength: resolvedImageUrl?.length || 0,
-      resolvedImageUrlPrefix: resolvedImageUrl?.slice(0, 30) || 'none'
-    });
     return (
       <div
         style={{
@@ -1803,15 +1785,6 @@ function PostCardV2Content({
     );
   }
 
-  // Default render (no dt, no theme) - debug log
-  console.log('[PostCardV2] Default render (no dt/theme)', {
-    hasResolvedImageUrl: Boolean(resolvedImageUrl),
-    resolvedImageUrlLength: resolvedImageUrl?.length || 0,
-    resolvedImageUrlPrefix: resolvedImageUrl?.slice(0, 30) || 'none',
-    isSolid,
-    bgValueType: bgValue?.type
-  });
-
   return (
     <div
       ref={cardRef}
@@ -1827,6 +1800,3 @@ function PostCardV2Content({
     </div>
   );
 }
-
-// Log de debug no final do componente para verificar renderização
-console.log('[PostCardV2] Component loaded');
