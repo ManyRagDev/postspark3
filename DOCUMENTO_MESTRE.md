@@ -1890,3 +1890,80 @@ Validação:
 - `npm run check` continua bloqueado pela dependência ausente preexistente
   `react-helmet-async` nas páginas `Cookies`, `Privacy`, `PrivacySettings` e
   `Terms`; o bloqueio já estava registrado antes desta correção.
+
+## 40. Simplificação do Workbench pós-auditoria — 2026-06-25
+
+Base: `plano-workbench-audit.md` (executado fase a fase, commit por fase).
+
+Objetivo: remover duplicidade e ambiguidade nos controles do Workbench sem tocar
+no motor de interação, no snapshot ou na persistência. Nenhuma mudança de
+contrato (`shared/postspark.ts`, `PostVisualSnapshot`) foi feita.
+
+### Fronteira funcional canônica adotada
+
+Cada ação primária passa a ter um único dono visível:
+
+- **Texto** (`FontColorBlock` + `CaptionBlock`): família de fonte, escala,
+  alinhamento tipográfico, cores de destaque/override e metadados de publicação.
+- **Design** (`ChameleonPanel`): paleta global, primária/acento, texto global,
+  fundo/card, estrutura, decorações e fonte customizada global (`customFontUrl`).
+- **Mídia** (`ImageBlock`): background, overlay, calibração e blend mode.
+- **Layout** (`LayoutBlock` + `PlatformBlock`): preset, geometria de layers,
+  padding, split image position, plataforma e aspect ratio.
+- **Canvas**: seleção, drag, resize, snap e carrossel.
+
+### Mudanças implementadas
+
+- **Painel direito removido**: a função `RightPanel` de `WorkbenchV2.tsx` (que
+  duplicava o controle de `aspectRatio` do `PlatformBlock` e exibia a seção morta
+  `+ (V2 Actions)`) foi removida. `PlatformBlock` é o único dono de
+  plataforma/proporção. Removidos também `DESKTOP_ACCOUNT_SAFE_HEIGHT` e
+  `topClearance`; `DESKTOP_ACCOUNT_SAFE_WIDTH` permanece (reserva o espaço do
+  badge de conta/Sparks no `paddingRight` do header).
+- **Fonte com dono único**: o `FontDropdown` duplicado foi removido do
+  `ChameleonPanel`; o seletor de família tipográfica vive apenas no
+  `FontColorBlock`. Ao trocar a fonte global, `FontColorBlock` limpa
+  `designTokens.typography.customFontUrl` (proteção antes existente no
+  `ChameleonPanel`, necessária porque `getActiveFontInfo` prioriza uma URL válida
+  do Google Fonts sobre a família escolhida).
+- **Acento com escrita canônica**: o controle "Destaque" do `FontColorBlock`
+  passa a escrever apenas `designTokens.colors.primary`.
+  `editorStore.normalizeVariationPatch` deriva `accentColor` no mesmo patch.
+  Por §26, `accentColor` top-level mantém prioridade de leitura; a coerência é
+  garantida pela derivação, não por escrita dupla.
+- **Alinhamento com dono único**: o select de alinhamento foi removido do
+  `ChameleonPanel`; o toggle do `FontColorBlock` é o único controle de
+  `designTokens.typography.textAlign`. `layoutSettings[layer].textAlign`
+  (`LayoutBlock`) é conceito distinto e permanece.
+- **Cores de texto reclassificadas**: `designTokens.colors.text` é a "Texto
+  global" (no Design); `headlineColor`/`bodyColor` são overrides explícitos
+  ("Título (override)"/"Corpo (override)") no `FontColorBlock`, com botão
+  "Limpar" que remove o override e volta ao fallback `textColor`. O fallback
+  `headlineColor || textColor` / `bodyColor || textColor` em `PostCardV2` foi
+  preservado.
+- **`blendMode` editável**: `ImageBlock` ganhou seletor de Mesclagem
+  (`normal/multiply/screen/overlay/darken/lighten`) na seção de Sobreposição,
+  escrevendo via `updateImageSettings`. O campo já era lido por `PostCardV2` e
+  só tinha UI no componente legado `tabs/ImageTab.tsx`. O efeito depende da
+  opacidade do overlay (o overlay só renderiza com opacidade > 0).
+- **Metadados de publicação separados**: `CaptionBlock` divide visualmente
+  "Conteúdo do card" (título/corpo) de "Metadados de publicação"
+  (CTA/legenda/hashtags), comunicando que estes não alteram o design do card.
+- **Comunicação contextual**: `LayoutBlock` exibe dica quando o layout não é
+  `split`; o label de `customFontUrl` virou "Fonte global via Google Fonts".
+
+### Limpeza de código morto associada
+
+- Removidos `FONT_SCOPES` (declarado e nunca renderizado) de `FontColorBlock`;
+  `fontGroups` e o import de `FONT_CATALOG`/`FontDropdown` de `ChameleonPanel`.
+
+### Validação
+
+- `tsc --noEmit` limpo (o bloqueio de `react-helmet-async` registrado na seção 39
+  não se reproduziu neste worktree).
+- Suíte completa `vitest run`: 240 testes passando, incluindo
+  `variationSnapshot` e `postsparkSchemas` (obrigatórios por §27).
+- Pendência registrada: validação de rede ao vivo do `customFontUrl` (colar URL
+  do Google Fonts e ver render/export) depende de browser e ficou para checagem
+  manual; o caminho de código foi confirmado cabeado
+  (`useDynamicFont` → `getActiveFontInfo` → `loadFont`; `PostCardV2:447`).
