@@ -206,6 +206,13 @@ export default function LayoutBlock() {
                 </div>
             )}
 
+            {/* ── Dica quando o layout não é Bipartido ── */}
+            {activeVariation?.layout !== 'split' && (
+                <p className="text-[10px] text-[var(--text-tertiary)] leading-snug pt-1">
+                    Use o layout Bipartido para escolher imagem em cima ou embaixo.
+                </p>
+            )}
+
             {/* ── Respiro (Padding) ── */}
             <PrecisionSlider
                 label="Respiro (Padding)"
