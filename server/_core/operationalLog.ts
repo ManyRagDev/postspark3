@@ -1,10 +1,28 @@
 import type { NextFunction, Request, Response } from "express";
-import { appendFile } from "fs/promises";
+import { appendFile, stat, writeFile } from "fs/promises";
 import path from "path";
 import { inspect } from "util";
 
 const LOG_FILE = path.resolve(process.cwd(), "OPERATIONAL_ERRORS.txt");
 const MAX_FIELD_LENGTH = 4_000;
+const MAX_LOG_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB rotation threshold
+
+const VITE_ASSET_PATTERN = /^\/@(fs|react-refresh|id|vite)\b/;
+
+function isViteDevRequest(url: string): boolean {
+  return VITE_ASSET_PATTERN.test(url);
+}
+
+async function rotateIfNeeded(): Promise<void> {
+  try {
+    const stats = await stat(LOG_FILE);
+    if (stats.size > MAX_LOG_SIZE_BYTES) {
+      await writeFile(LOG_FILE, "# OPERATIONAL_ERRORS.txt (rotated)\n", "utf8");
+    }
+  } catch {
+    // File may not exist yet
+  }
+}
 
 type OperationalLogDetails = Record<string, unknown>;
 
@@ -53,6 +71,7 @@ export async function appendOperationalLog(
   ];
 
   try {
+    await rotateIfNeeded();
     await appendFile(LOG_FILE, `${lines.join("\n")}\n`, "utf8");
   } catch {
     // Logging must never break the request path.
@@ -101,11 +120,14 @@ export function httpStatusFileLogger(
   }) as Response["send"];
 
   res.on("finish", () => {
-    if (res.statusCode === 200) return;
+    if (res.statusCode < 400) return;
 
-    void appendOperationalLog("HTTP_NON_200", {
+    const url = req.originalUrl || req.url || "";
+    if (isViteDevRequest(url)) return;
+
+    void appendOperationalLog("HTTP_ERROR", {
       method: req.method,
-      url: req.originalUrl || req.url,
+      url,
       statusCode: res.statusCode,
       durationMs: Date.now() - startedAt,
       ip: req.ip,

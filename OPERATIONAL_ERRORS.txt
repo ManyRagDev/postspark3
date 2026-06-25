@@ -4292,3 +4292,217 @@ outputSummary: [
   }
 ]
 
+[2026-06-25T02:53:31.043Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 23
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 3
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T02:53:31.049Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 21
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: a12d764fdd900a43937fda461bd1ce1a70c31db97cdbb3bbb3e74a3171e53232
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-06-25T02:53:31.051Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 17
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e3e237613fef0e6b05b9c305e0e97e2c7d0a603bb6110e2e30dae1fe30b6282a
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-06-25T02:53:31.052Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-06-25T02:53:33.041Z] POST_GENERATION_STARTED
+generationRunId: ff818484-a3e9-4918-b0c6-9abd916668f9
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-06-25T02:53:33.078Z] POST_GENERATION_COMPLETED
+generationRunId: ff818484-a3e9-4918-b0c6-9abd916668f9
+userUuid: 1
+durationMs: 37
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+finalValidation: { valid: true, errors: [] }
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782356013076-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: 'Premium', stickerText: 'Qualidade' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 84, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782356013076-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Nada como um café pra começar o dia ☀️',
+    callToAction: 'Vem provar!',
+    hashtags: [],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: 'Cafe', stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 80, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1782356013076-2',
+    layout: 'minimal',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'CAFÉ ARTESANAL',
+    body: 'Cada gole é uma experiência única',
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: 'Artesanal', stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 79, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+

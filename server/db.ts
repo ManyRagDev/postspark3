@@ -547,7 +547,7 @@ export async function getGenerationOperationalMetrics(
     .select(
       "status,candidate_count,accepted_count,average_quality_score,revision_count,strategy_fallback_used,originality_fallback_used,prompt_snapshot,total_tokens,estimated_cost_usd,latency_ms",
     )
-    .gte("createdAt", since);
+    .gte("created_at", since);
 
   if (error) {
     throw new Error(
@@ -640,7 +640,7 @@ export async function getUserGenerationRuns(
     .from("generation_runs")
     .select("*")
     .eq("user_uuid", userUuid)
-    .order("createdAt", { ascending: false })
+    .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (error) {
