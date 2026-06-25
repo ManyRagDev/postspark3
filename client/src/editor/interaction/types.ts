@@ -5,6 +5,7 @@ import type {
   ResizeHandle,
   ScreenPoint,
 } from "../geometry";
+import type { SnapCandidate, SnapConfig, SnapResult } from "../snap/snapEngine";
 
 export const DEFAULT_INTERACTION_SLOP_PX = 5;
 
@@ -50,6 +51,8 @@ export type InteractionSession = Readonly<{
   intent: InteractionIntent;
   constraints: InteractionConstraints;
   modifiers: InteractionModifiers;
+  candidates?: readonly SnapCandidate[];
+  snapConfig?: SnapConfig;
 }>;
 
 export type GeometryCommit = Readonly<{
@@ -82,11 +85,13 @@ export type InteractionState =
       phase: "dragging";
       draft: ElementGeometry;
       currentScreenPoint: ScreenPoint;
+      snapGuides?: SnapResult;
     }>)
   | (PreviewState & Readonly<{
       phase: "resizing";
       draft: ElementGeometry;
       currentScreenPoint: ScreenPoint;
+      snapGuides?: SnapResult;
     }>)
   | Readonly<{ phase: "committing"; commit: GeometryCommit }>
   | Readonly<{
@@ -138,6 +143,8 @@ export type BeginInteractionInput = Readonly<{
   capture: PointerCapturePort;
   constraints?: InteractionConstraints;
   modifiers?: InteractionModifiers;
+  candidates?: readonly SnapCandidate[];
+  snapConfig?: SnapConfig;
 }>;
 
 export type PreviewInteractionInput = Readonly<{

@@ -114,6 +114,8 @@ export function createInteractionController(
           intent: input.intent,
           constraints: Object.freeze({ ...(input.constraints ?? {}) }),
           modifiers: input.modifiers ?? NO_INTERACTION_MODIFIERS,
+          candidates: input.candidates,
+          snapConfig: input.snapConfig,
         }),
       });
       return true;

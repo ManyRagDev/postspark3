@@ -12,6 +12,7 @@ import {
   type DocumentRect,
   type ElementGeometry,
 } from "../geometry";
+import { snapDraft, DEFAULT_SNAP_CONFIG, type SnapCandidate } from "../snap/snapEngine";
 import { IDLE_INTERACTION_STATE } from "./transientStore";
 import type {
   GeometryCommit,
@@ -129,12 +130,32 @@ export function reduceInteractionState(
       }
 
       const draft = geometryForMove(state, event);
+      const session = state as unknown as { candidates?: readonly SnapCandidate[]; snapConfig?: { isSnapEnabled: boolean; altSuspended?: boolean } };
+      const candidates = session.candidates;
+      const snapConfig = session.snapConfig;
+      let snappedDraft = draft;
+      let snapGuides;
+      if (candidates && candidates.length > 0 && snapConfig?.isSnapEnabled) {
+        const result = snapDraft(
+          draft.rect,
+          candidates,
+          { ...DEFAULT_SNAP_CONFIG, ...snapConfig, altSuspended: event.modifiers.alt || (snapConfig?.altSuspended ?? false) },
+          state.viewport.scaleX,
+          state.viewport.scaleY,
+        );
+        snappedDraft = elementGeometry(draft.id, draft.kind, result.rect, draft.rotationDeg);
+        if (result.guides.guideX !== null || result.guides.guideY !== null) {
+          snapGuides = result.guides;
+        }
+      }
+      const phase = state.intent.type === "drag" ? "dragging" : "resizing" as const;
       return Object.freeze({
         ...state,
-        phase: state.intent.type === "drag" ? "dragging" : "resizing",
-        draft,
+        phase,
+        draft: snappedDraft,
         currentScreenPoint: event.point,
         modifiers: event.modifiers,
+        ...(snapGuides ? { snapGuides } as object : {}),
       });
     }
 

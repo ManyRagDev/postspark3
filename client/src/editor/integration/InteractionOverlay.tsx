@@ -1,10 +1,9 @@
 import { useLayoutEffect, useState, useSyncExternalStore } from "react";
 import { Trash2 } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
-import type { ResizeHandle } from "../geometry";
+import type { ResizeHandle, DocumentRect } from "../geometry";
 import { createCanvasViewport, documentSize, screenRect, screenToDocumentRect } from "../geometry";
 import { useCanvasInteraction } from "./CanvasInteractionProvider";
-import { GRID_SNAP_COORDINATES, nearestGridCoordinate } from "../adapters";
 
 const HANDLE_MAP: Record<"flow-right" | "horizontal" | "corners", readonly ResizeHandle[]> = {
   "flow-right": ["right"],
@@ -79,21 +78,28 @@ export function InteractionOverlay() {
     ? { left: activeDraft.x, top: activeDraft.y, width: activeDraft.width, height: activeDraft.height }
     : idleRect;
   if (!overlayRect) return null;
-  const showGrid = magnetActive && context.isSnapEnabled() && interactionState.phase === "dragging";
-  const snapTarget = showGrid
-    ? {
-        x: nearestGridCoordinate(((interactionState.draft.rect.x + interactionState.draft.rect.width / 2) / interactionState.viewport.documentSize.width) * 100),
-        y: nearestGridCoordinate(((interactionState.draft.rect.y + interactionState.draft.rect.height / 2) / interactionState.viewport.documentSize.height) * 100),
-      }
-    : null;
+  const snapGuides = interactionState.phase === "dragging" || interactionState.phase === "resizing"
+    ? (interactionState as { snapGuides?: { guideX: number | null; guideY: number | null; candidateIdX: string | null; candidateIdY: string | null } }).snapGuides
+    : undefined;
+  const showGuideX = magnetActive && snapGuides?.guideX !== null && snapGuides?.guideX !== undefined;
+  const showGuideY = magnetActive && snapGuides?.guideY !== null && snapGuides?.guideY !== undefined;
 
   return (
     <>
-    {showGrid && (
+    {(showGuideX || showGuideY) && (
       <div className="pointer-events-none absolute inset-0 z-[190]">
-        {GRID_SNAP_COORDINATES.map(value => <div key={`h-${value}`} className="absolute left-0 right-0 border-t border-dashed" style={{ top: `${value}%`, borderColor: `${entry.accentColor}55` }} />)}
-        {GRID_SNAP_COORDINATES.map(value => <div key={`v-${value}`} className="absolute bottom-0 top-0 border-l border-dashed" style={{ left: `${value}%`, borderColor: `${entry.accentColor}55` }} />)}
-        {snapTarget && <div className="absolute h-6 w-12 -translate-x-1/2 -translate-y-1/2 rounded-lg border border-dashed" style={{ left: `${snapTarget.x}%`, top: `${snapTarget.y}%`, borderColor: entry.accentColor, background: `${entry.accentColor}25` }} />}
+        {showGuideX && (
+          <div
+            className="absolute top-0 bottom-0 border-l border-dashed"
+            style={{ left: snapGuides!.guideX!, borderColor: entry.accentColor }}
+          />
+        )}
+        {showGuideY && (
+          <div
+            className="absolute left-0 right-0 border-t border-dashed"
+            style={{ top: snapGuides!.guideY!, borderColor: entry.accentColor }}
+          />
+        )}
       </div>
     )}
     <div

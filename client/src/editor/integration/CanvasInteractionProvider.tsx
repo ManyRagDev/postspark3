@@ -28,6 +28,7 @@ import {
   type InteractionState,
 } from "../interaction";
 import { useEditorStore } from "@/store/editorStore";
+import { buildCanvasCandidate, type SnapCandidate } from "../snap/snapEngine";
 import { ElementRegistry, type RegisteredInteractiveElement } from "./ElementRegistry";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
@@ -51,6 +52,7 @@ type BeginCanvasInteraction = Readonly<{
   viewport: CanvasViewport;
   initialGeometry: ElementGeometry;
   constraints: InteractionConstraints;
+  candidates?: readonly SnapCandidate[];
 }>;
 
 export type ElementInteractionSnapshot = Readonly<{
@@ -208,6 +210,7 @@ export function CanvasInteractionProvider({
         intent: input.intent,
         modifiers: modifiersFromPointer(input.event),
         constraints: input.constraints,
+        candidates: input.candidates,
         capture: {
           capture: pointerId => input.captureElement.setPointerCapture(pointerId),
           release: pointerId => input.captureElement.releasePointerCapture(pointerId),
@@ -277,6 +280,22 @@ export function CanvasInteractionProvider({
       descriptor.onSelect?.();
       event.preventDefault();
       event.stopPropagation();
+
+      const candidates: SnapCandidate[] = [buildCanvasCandidate("canvas", canvas.clientWidth, canvas.clientHeight)];
+      for (const entry of registry.values()) {
+        if (entry.id === target || !entry.snapEligible) continue;
+        const cNode = entry.nodeRef.current;
+        if (!cNode) continue;
+        try {
+          const cRect = cNode.getBoundingClientRect();
+          const cDoc = screenToDocumentRect(
+            screenRect(cRect.left, cRect.top, cRect.width, cRect.height),
+            viewport,
+          );
+          candidates.push({ id: entry.id, rect: cDoc });
+        } catch { /* skip unmeasurable */ }
+      }
+
       return begin({
         event,
         intent,
@@ -285,6 +304,7 @@ export function CanvasInteractionProvider({
         viewport,
         initialGeometry: descriptor.resolveInitialGeometry(measurement),
         constraints: descriptor.resolveConstraints(measurement, intent),
+        candidates,
       });
     } catch (error) {
       if (import.meta.env.DEV) console.warn("[WorkbenchInteraction] descriptor measurement failed", error);

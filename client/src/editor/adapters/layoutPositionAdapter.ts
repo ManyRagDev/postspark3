@@ -48,18 +48,13 @@ export function readLayoutGeometry(
   return elementGeometry(target, kind, measuredRect);
 }
 
-function geometryCenterPercent(commit: GeometryCommit, snapEnabled: boolean) {
+function geometryCenterPercent(commit: GeometryCommit) {
   const center = centerOfRect(commit.geometry.rect);
   const canvas = commit.viewport.documentSize;
-  const raw = percentagePoint(
+  return percentagePoint(
     (center.x / canvas.width) * 100,
     (center.y / canvas.height) * 100,
   );
-
-  return {
-    x: snapEnabled ? nearestGridCoordinate(raw.x) : raw.x,
-    y: snapEnabled ? nearestGridCoordinate(raw.y) : raw.y,
-  };
 }
 
 function roundedWidthPercent(commit: GeometryCommit): number {
@@ -71,12 +66,12 @@ export function layoutPositionFromCommit(
   current: LayoutPosition,
   command: EditorGeometryCommit,
 ): LayoutPosition {
-  const { interaction, snapEnabled } = command;
+  const { interaction } = command;
 
   if (interaction.operation === "drag") {
     return {
       ...current,
-      freePosition: geometryCenterPercent(interaction, snapEnabled),
+      freePosition: geometryCenterPercent(interaction),
     };
   }
 
@@ -86,7 +81,7 @@ export function layoutPositionFromCommit(
   };
 
   if (current.freePosition) {
-    next.freePosition = geometryCenterPercent(interaction, false);
+    next.freePosition = geometryCenterPercent(interaction);
   }
 
   return next;

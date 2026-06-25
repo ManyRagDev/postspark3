@@ -69,7 +69,7 @@ describe("layoutPositionAdapter", () => {
     expect(result.freePosition?.y).toBeCloseTo(68.25, 8);
   });
 
-  it("applies the legacy grid only to drag commits", () => {
+  it("commits geometry without legacy grid snap", () => {
     const canvas = documentSize(360, 360);
     const rect = percentageCenterToDocumentRect(
       percentagePoint(34, 76),
@@ -77,18 +77,13 @@ describe("layoutPositionAdapter", () => {
       canvas,
     );
 
-    const snapped = layoutPositionFromCommit(baseLayout, {
+    const result = layoutPositionFromCommit(baseLayout, {
       interaction: commitFor(rect, canvas),
       snapEnabled: true,
     });
-    const free = layoutPositionFromCommit(baseLayout, {
-      interaction: commitFor(rect, canvas),
-      snapEnabled: false,
-    });
 
-    expect(snapped.freePosition).toEqual({ x: 30, y: 80 });
-    expect(free.freePosition?.x).toBeCloseTo(34, 8);
-    expect(free.freePosition?.y).toBeCloseTo(76, 8);
+    expect(result.freePosition?.x).toBeCloseTo(34, 8);
+    expect(result.freePosition?.y).toBeCloseTo(76, 8);
   });
 
   it("resizes flow layouts without creating a free position", () => {
