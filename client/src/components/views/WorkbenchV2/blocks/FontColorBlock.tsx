@@ -21,13 +21,19 @@ function ColorSwatch({
     label,
     value,
     onChange,
+    onReset,
+    canReset = false,
 }: {
     label: string;
     value: string;
     onChange: (v: string) => void;
+    /** Quando definido, exibe um botão "limpar" para remover o override. */
+    onReset?: () => void;
+    /** Só mostra o reset quando há override ativo. */
+    canReset?: boolean;
 }) {
     return (
-        <label className="flex items-center gap-2 text-xs cursor-pointer">
+        <div className="flex items-center gap-2 text-xs">
             <input
                 type="color"
                 value={value || "#ffffff"}
@@ -43,7 +49,17 @@ function ColorSwatch({
                 maxLength={9}
                 placeholder="#ffffff"
             />
-        </label>
+            {onReset && canReset && (
+                <button
+                    type="button"
+                    onClick={onReset}
+                    title="Remover override (voltar ao texto global)"
+                    className="text-[9px] uppercase tracking-wider text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors px-1 py-0.5 rounded border border-white/10"
+                >
+                    Limpar
+                </button>
+            )}
+        </div>
     );
 }
 
@@ -170,6 +186,9 @@ export default function FontColorBlock() {
                 <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">
                     Cores
                 </label>
+                <p className="text-[9px] text-[var(--text-tertiary)] leading-snug">
+                    Título e Corpo sobrescrevem a cor de texto global (definida em Design).
+                </p>
                 <ColorSwatch
                     label="Destaque"
                     value={activeVariation.accentColor ?? "#a855f7"}
@@ -185,14 +204,18 @@ export default function FontColorBlock() {
                     }}
                 />
                 <ColorSwatch
-                    label="Título"
+                    label="Título (override)"
                     value={activeVariation.headlineColor ?? activeVariation.textColor ?? "#ffffff"}
                     onChange={(v) => updateVariation({ headlineColor: v })}
+                    onReset={() => updateVariation({ headlineColor: undefined })}
+                    canReset={!!activeVariation.headlineColor}
                 />
                 <ColorSwatch
-                    label="Corpo"
+                    label="Corpo (override)"
                     value={activeVariation.bodyColor ?? activeVariation.textColor ?? "#ffffff"}
                     onChange={(v) => updateVariation({ bodyColor: v })}
+                    onReset={() => updateVariation({ bodyColor: undefined })}
+                    canReset={!!activeVariation.bodyColor}
                 />
             </div>
 
