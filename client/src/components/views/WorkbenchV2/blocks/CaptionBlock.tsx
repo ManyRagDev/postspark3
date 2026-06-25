@@ -71,9 +71,12 @@ export default function CaptionBlock() {
             <div className="flex items-center gap-2">
                 <MessageSquare size={13} className="text-[var(--text-tertiary)]" />
                 <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">
-                    Conteúdo & Legenda
+                    Conteúdo do card
                 </label>
             </div>
+            <p className="text-[10px] text-[var(--text-tertiary)] leading-snug -mt-2">
+                Título e corpo aparecem no design do card.
+            </p>
 
             <div>
                 <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
@@ -112,6 +115,16 @@ export default function CaptionBlock() {
                     placeholder="Digite o corpo do post..."
                 />
             </div>
+
+            <div className="pt-3 mt-1 border-t border-white/10 flex items-center gap-2">
+                <Hash size={13} className="text-[var(--text-tertiary)]" />
+                <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">
+                    Metadados de publicação
+                </label>
+            </div>
+            <p className="text-[10px] text-[var(--text-tertiary)] leading-snug -mt-2">
+                CTA, legenda e hashtags vão na publicação e não alteram o design do card.
+            </p>
 
             <div>
                 <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
