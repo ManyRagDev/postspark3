@@ -28,6 +28,16 @@ const BG_TABS: { id: BackgroundValue["type"]; label: string; icon: string }[] = 
     { id: "upload", label: "Upload", icon: "⬆" },
 ];
 
+// Modos de mesclagem do overlay sobre o fundo (espelha tabs/ImageTab.tsx)
+const BLEND_MODES = [
+    { value: "normal", label: "Normal", icon: "◯" },
+    { value: "multiply", label: "Multiply", icon: "✕" },
+    { value: "screen", label: "Screen", icon: "◻" },
+    { value: "overlay", label: "Overlay", icon: "◎" },
+    { value: "darken", label: "Darken", icon: "◐" },
+    { value: "lighten", label: "Lighten", icon: "◑" },
+] as const;
+
 interface ImageBlockProps {
     onGenerateImage?: (prompt: string, provider: 'pollinations_fast' | 'pollinations_hd') => Promise<string>;
     isGenerating?: boolean;
@@ -313,6 +323,36 @@ export default function ImageBlock({ onGenerateImage, isGenerating = false }: Im
                                     onChange={(v) => setBgOverlay({ opacity: v })}
                                 />
                             </div>
+                        </div>
+
+                        {/* Blend mode do overlay sobre o fundo */}
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider block">
+                                Mesclagem
+                            </label>
+                            <div className="grid grid-cols-3 gap-1.5">
+                                {BLEND_MODES.map((bm) => {
+                                    const isActive = (imageSettings.blendMode ?? "normal") === bm.value;
+                                    return (
+                                        <button
+                                            key={bm.value}
+                                            onClick={() => updateImageSettings({ blendMode: bm.value })}
+                                            className="flex flex-col items-center gap-0.5 py-1.5 rounded-lg text-[10px] font-medium transition-all"
+                                            style={{
+                                                background: isActive ? `${accentColor}18` : "rgba(255,255,255,0.03)",
+                                                border: `1px solid ${isActive ? `${accentColor}50` : "rgba(255,255,255,0.07)"}`,
+                                                color: isActive ? accentColor : "var(--text-secondary)",
+                                            }}
+                                        >
+                                            <span className="text-sm leading-none">{bm.icon}</span>
+                                            <span>{bm.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-[9px] text-[var(--text-tertiary)] leading-snug">
+                                A mesclagem age sobre a sobreposição; aumente a opacidade para ver o efeito.
+                            </p>
                         </div>
                     </div>
                 )}
