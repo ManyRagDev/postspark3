@@ -166,7 +166,7 @@ export default function ChameleonPanel({ tokens, onChange, variation, onUpdateVa
       {openSections.font && (
         <div className="flex flex-col gap-3 pb-3 border-b border-white/5">
           <label className="flex flex-col gap-1">
-            <span className="text-white/60 text-xs">URL Google Fonts (opcional)</span>
+            <span className="text-white/60 text-xs">Fonte global via Google Fonts</span>
             <input
               type="text"
               placeholder="https://fonts.googleapis.com/css2?family=..."
