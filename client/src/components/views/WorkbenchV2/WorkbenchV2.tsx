@@ -19,6 +19,8 @@ import { useIsMobile } from "@/hooks/useMobile";
 import { motion } from "framer-motion";
 import { useArcDrawer, TabId } from "@/hooks/useArcDrawer";
 import MobileEditSheet from "@/components/MobileEditSheet";
+import UserTopMenu from "@/components/UserTopMenu";
+import { useMobileEditorUI } from "@/store/mobileEditorUI";
 import { trpc } from "@/lib/trpc";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import type { GenerationDebugTrace, PostVariation } from "@shared/postspark";
@@ -229,6 +231,14 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
   const isMobile = useIsMobile();
   const arcDrawer = useArcDrawer();
   const { canUndo, canRedo, undo, redo } = useEditorHistory();
+  const setImmersive = useMobileEditorUI((s) => s.setImmersive);
+  const setSheetHeightPx = useMobileEditorUI((s) => s.setSheetHeightPx);
+
+  // Editor mobile imersivo: esconde o UserTopMenu flutuante global enquanto edita.
+  React.useEffect(() => {
+    setImmersive(isMobile);
+    return () => setImmersive(false);
+  }, [isMobile, setImmersive]);
 
   const generateBackgroundMutation = trpc.post.generateBackground.useMutation();
   const [isGeneratingImg, setIsGeneratingImg] = React.useState(false);
@@ -368,7 +378,7 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
   const desktopHeaderPaddingRight = !isMobile ? `${DESKTOP_ACCOUNT_SAFE_WIDTH}px` : undefined;
 
   return (
-    <div className="flex flex-col h-screen w-full relative overflow-hidden" style={{ background: "var(--bg-void, #0a0a12)" }}>
+    <div className="flex flex-col h-[100dvh] w-full relative overflow-hidden" style={{ background: "var(--bg-void, #0a0a12)" }}>
       {/* ── Topbar ──────────────────────────────────────────────────────── */}
       <header
         className="flex items-center justify-between px-4 py-2 flex-shrink-0 z-10"
@@ -379,18 +389,24 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
           paddingRight: desktopHeaderPaddingRight,
         }}
       >
-        <button onClick={onBack} className="flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-sm">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-sm shrink-0">
           <ArrowLeft size={15} />
-          <span>Voltar</span>
+          <span className={isMobile ? "sr-only" : undefined}>Voltar</span>
         </button>
 
-        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1.5 pointer-events-none">
-          <span className="text-sm font-semibold tracking-tight truncate max-w-[300px] text-center" style={{ color: "var(--text-primary)" }}>
+        {isMobile ? (
+          <span className="flex-1 min-w-0 mx-3 text-sm font-semibold tracking-tight truncate text-center" style={{ color: "var(--text-primary)" }}>
             {activeVariation.headline || "Sem título"}
           </span>
-        </div>
+        ) : (
+          <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1.5 pointer-events-none">
+            <span className="text-sm font-semibold tracking-tight truncate max-w-[300px] text-center" style={{ color: "var(--text-primary)" }}>
+              {activeVariation.headline || "Sem título"}
+            </span>
+          </div>
+        )}
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto shrink-0">
           <button
             onClick={undo}
             disabled={!canUndo}
@@ -416,7 +432,7 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300 bg-white text-black hover:bg-white/90 active:scale-95 disabled:opacity-50 relative group/save overflow-hidden"
           >
             {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-            <span>Salvar</span>
+            {!isMobile && <span>Salvar</span>}
           </button>
 
           <button
@@ -436,8 +452,10 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
               transition={{ repeat: Infinity, duration: 2.5 }}
             />
             {isExporting ? <Loader2 size={13} className="relative z-10 animate-spin" /> : <Download size={13} className="relative z-10" />}
-            <span className="relative z-10">{isExporting ? "Exportando" : "Exportar"}</span>
+            {!isMobile && <span className="relative z-10">{isExporting ? "Exportando" : "Exportar"}</span>}
           </button>
+
+          {isMobile && <UserTopMenu variant="inline" />}
         </div>
       </header>
 
@@ -495,6 +513,7 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
         <MobileEditSheet
           isOpen={arcDrawer.state.isOpen}
           onClose={arcDrawer.close}
+          onHeightChange={setSheetHeightPx}
           activeTabLabel={
             activeTab === "text" ? "Editar Conteúdo" : activeTab === "design" ? "Identidade Visual" : activeTab === "image" ? "Fundo & Mídia" : activeTab === "composition" ? "Layout & Proporção" : ""
           }

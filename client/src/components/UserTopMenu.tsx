@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { refreshBridgeFromCurrentSession } from "@/lib/authBridge";
+import { useMobileEditorUI } from "@/store/mobileEditorUI";
 import { supabase } from "@/lib/supabaseClient";
 import { trpc } from "@/lib/trpc";
 import { Bookmark, Building2, ChevronDown, Clock, Crown, Loader2, LogOut, Phone, Settings, UserRound } from "lucide-react";
@@ -34,8 +35,17 @@ function getInitials(name: string | null, email: string | null) {
   return `${parts[0].slice(0, 1)}${parts[1].slice(0, 1)}`.toUpperCase();
 }
 
-export default function UserTopMenu() {
+interface UserTopMenuProps {
+  /**
+   * "floating" (padrão): ancorado fixo no canto superior direito da tela.
+   * "inline": apenas o gatilho + dropdown, para embutir num header (ex.: editor mobile).
+   */
+  variant?: "floating" | "inline";
+}
+
+export default function UserTopMenu({ variant = "floating" }: UserTopMenuProps) {
   const { user, isAuthenticated, logout } = useAuth();
+  const immersiveEditor = useMobileEditorUI((s) => s.immersive);
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -107,35 +117,59 @@ export default function UserTopMenu() {
     return null;
   }
 
+  const isInline = variant === "inline";
+
+  // O menu flutuante global some quando o editor mobile imersivo está ativo
+  // (o WorkbenchV2 renderiza sua própria instância inline no header).
+  if (!isInline && immersiveEditor) {
+    return null;
+  }
+
+  const trigger = isInline ? (
+    <button
+      aria-label="Conta"
+      className="flex items-center justify-center w-8 h-8 rounded-full border transition-all active:scale-95"
+      style={{
+        background: "oklch(0.16 0.03 280 / 90%)",
+        borderColor: "oklch(0.7 0.22 40 / 28%)",
+        color: "oklch(0.92 0.01 280)",
+      }}
+    >
+      <span className="text-[11px] font-bold">{initials}</span>
+    </button>
+  ) : (
+    <button
+      className="flex items-center gap-2.5 px-3 py-2 rounded-full border transition-all hover:scale-[1.02]"
+      style={{
+        background: "oklch(0.12 0.03 280 / 84%)",
+        borderColor: "oklch(0.7 0.22 40 / 22%)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        color: "oklch(0.92 0.01 280)",
+        boxShadow: "0 10px 30px oklch(0 0 0 / 35%)",
+      }}
+    >
+      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-white/15 bg-white/10">
+        {initials}
+      </div>
+      <div className="hidden sm:flex flex-col items-start min-w-0">
+        <span className="text-xs font-semibold truncate max-w-[120px]">
+          {user.name ?? user.email ?? "Conta"}
+        </span>
+        <span className="text-[10px] opacity-75">
+          {billing?.plan ?? "FREE"} · {(billing?.sparks ?? 0).toLocaleString("pt-BR")} ✦
+        </span>
+      </div>
+      <ChevronDown size={14} className="opacity-80" />
+    </button>
+  );
+
   return (
     <>
-      <div className="fixed top-4 right-4 z-[80]">
+      <div className={isInline ? "relative" : "fixed top-4 right-4 z-[80]"}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
-              className="flex items-center gap-2.5 px-3 py-2 rounded-full border transition-all hover:scale-[1.02]"
-              style={{
-                background: "oklch(0.12 0.03 280 / 84%)",
-                borderColor: "oklch(0.7 0.22 40 / 22%)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                color: "oklch(0.92 0.01 280)",
-                boxShadow: "0 10px 30px oklch(0 0 0 / 35%)",
-              }}
-            >
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-white/15 bg-white/10">
-                {initials}
-              </div>
-              <div className="hidden sm:flex flex-col items-start min-w-0">
-                <span className="text-xs font-semibold truncate max-w-[120px]">
-                  {user.name ?? user.email ?? "Conta"}
-                </span>
-                <span className="text-[10px] opacity-75">
-                  {billing?.plan ?? "FREE"} · {(billing?.sparks ?? 0).toLocaleString("pt-BR")} ✦
-                </span>
-              </div>
-              <ChevronDown size={14} className="opacity-80" />
-            </button>
+            {trigger}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel className="space-y-1">

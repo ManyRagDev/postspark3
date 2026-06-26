@@ -40,10 +40,8 @@ export const FloatingImageMenu: React.FC<FloatingImageMenuProps> = ({
     };
 
     return (
-        <div
-            className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
-            style={{ pointerEvents: 'auto' }}
-        >
+        <div className="pointer-events-auto">
+
             <input
                 ref={fileInputRef}
                 type="file"

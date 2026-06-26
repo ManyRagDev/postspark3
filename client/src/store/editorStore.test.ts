@@ -155,6 +155,49 @@ describe('editorStore', () => {
         }
     });
 
+    it('applies carousel edits only to the chosen slides when scope is selected', () => {
+        const store = useEditorStore.getState();
+        store.setActiveVariation(createPostVariation({ slides: CAROUSEL_SLIDES }));
+        store.setSlides(CAROUSEL_SLIDES);
+        store.setApplyScope('selected');
+        store.setSelectedSlideIndices([0, 2]);
+        store.updateVariation({ tone: 'educacional' });
+        store.setBgValue({ type: 'solid', color: '#0B1220' });
+        store.updateImageSettings({ zoom: 1.6 });
+
+        store.setCurrentSlideIndex(0);
+        expect(useEditorStore.getState().activeVariation?.tone).toBe('educacional');
+        expect(useEditorStore.getState().bgValue).toEqual({ type: 'solid', color: '#0B1220' });
+        expect(useEditorStore.getState().imageSettings.zoom).toBe(1.6);
+
+        store.setCurrentSlideIndex(1);
+        expect(useEditorStore.getState().activeVariation?.tone).toBe('profissional');
+        expect(useEditorStore.getState().imageSettings.zoom).toBe(1);
+
+        store.setCurrentSlideIndex(2);
+        expect(useEditorStore.getState().activeVariation?.tone).toBe('educacional');
+        expect(useEditorStore.getState().bgValue).toEqual({ type: 'solid', color: '#0B1220' });
+        expect(useEditorStore.getState().imageSettings.zoom).toBe(1.6);
+
+        // O escopo 'selected' não deve contaminar a base usada por slides futuros.
+        store.updateLayoutSettings({ padding: 12 });
+        expect(useEditorStore.getState().baseLayoutSettings.padding).not.toBe(12);
+    });
+
+    it('falls back to the current slide when selected scope has no selection', () => {
+        const store = useEditorStore.getState();
+        store.setActiveVariation(createPostVariation({ slides: CAROUSEL_SLIDES }));
+        store.setSlides(CAROUSEL_SLIDES);
+        store.setCurrentSlideIndex(1);
+        store.setApplyScope('selected');
+        store.updateVariation({ tone: 'educacional' });
+
+        store.setCurrentSlideIndex(0);
+        expect(useEditorStore.getState().activeVariation?.tone).toBe('profissional');
+        store.setCurrentSlideIndex(1);
+        expect(useEditorStore.getState().activeVariation?.tone).toBe('educacional');
+    });
+
     it('persists rich element content and geometry through variation updates', () => {
         const store = useEditorStore.getState();
         const variation = createPostVariation();

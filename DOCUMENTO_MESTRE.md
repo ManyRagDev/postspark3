@@ -1967,3 +1967,45 @@ Cada ação primária passa a ter um único dono visível:
   do Google Fonts e ver render/export) depende de browser e ficou para checagem
   manual; o caminho de código foi confirmado cabeado
   (`useDynamicFont` → `getActiveFontInfo` → `loadFont`; `PostCardV2:447`).
+
+## 41. Ajuste de UX do carrossel no Workbench — 2026-06-26
+
+Mudança focada em apresentação dos controles do canvas, sem alteração de
+contrato, snapshot, persistência ou normalização visual.
+
+Fatos observados/aplicados:
+
+- O controle de escopo de edição de carrossel em `CanvasControls.tsx` passou a
+  mostrar explicitamente "Slide atual", "Todos" e "Escolher", com contagem dos
+  slides afetados. A seleção manual de slides agora aparece em chips inline,
+  evitando popover/dropdown e removendo a rolagem vertical sem propósito no
+  mobile.
+- A navegação entre slides deixou de usar setas laterais sobrepostas ao canvas.
+  No desktop, `CarouselSlideNavigator` concentra setas e botões numerados em uma
+  régua abaixo do card, fora da área editável.
+- No mobile, não há filmstrip; `CarouselMobileArrows` oferece apenas anterior,
+  próximo e contador do slide atual.
+- Backlog: miniaturas reais na filmstrip só devem voltar quando cada thumbnail
+  puder renderizar de forma fiel ao canvas principal. A tentativa com
+  `PostRenderer` em miniatura não foi suficiente visualmente e foi retirada para
+  evitar prévias enganosas.
+- A régua de slides considera o zoom visual do canvas para ficar abaixo do
+  controle de ímã; o controle de ímã foi reduzido para não disputar atenção com
+  o conteúdo editável no desktop. No mobile, o controle de ímã é maior para
+  preservar área de toque.
+- O banner de escopo e o botão "Adicionar Imagem" deixaram de ser posicionados
+  de forma absoluta sobre o workspace. No desktop, eles participam do fluxo
+  vertical acima do card, e o card usa margem calculada pelo zoom para não ficar
+  sob os controles.
+- `CanvasWorkspace.tsx` passou a reservar altura no cálculo de escala quando o
+  post é carrossel, considerando controles superiores, régua inferior e bottom
+  sheet mobile.
+
+Validação:
+
+- Testes focados passaram: `variationSnapshot.test.ts` e `editorStore.test.ts`
+  (42 testes).
+- `npm run check` segue bloqueado pela dependência ausente preexistente
+  `react-helmet-async` nas páginas legais (`Cookies`, `Privacy`,
+  `PrivacySettings`, `Terms`); o typecheck não reportou erros nos arquivos
+  alterados.

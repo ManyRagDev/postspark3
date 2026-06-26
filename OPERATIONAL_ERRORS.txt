@@ -10959,3 +10959,1649 @@ outputSummary: [
     body: 'Tudo pronto em 3 minutos — evite compras duplicadas e ganhe tempo',
     caption: 'Cansado de voltar da feira e perceber que esqueceu algo? Transforme sua saída num passeio eficiente com um checklist simples que funciona de verdade. 🌿🛒 Esses três itens evitam desperdício de tempo e dinheiro: leve sua bolsa reutilizável para não depender de sacos plásticos, tenha a lista preparada para comprar só o que falta e carregue uma caixa térmica pequena para manter perecíveis frescos até em casa. Cada peça é prática e evita compras por impul...[truncated 1416 chars]
 
+[2026-06-25T23:46:28.517Z] POST_GENERATION_STARTED
+generationRunId: e1e592ae-f079-40ff-bd9e-68caa843a380
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+inputType: text
+platform: instagram
+postMode: carousel
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 182
+contentPreview: crie um post para mostrar como é mais eficaz gerar postagens com IA quando comparado ao workflow tradicional de criação manual. Faça isso para mostrar em 3 passos simples e objetivos
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: true
+sparkCost: 40
+
+[2026-06-25T23:46:35.821Z] AI_PROVIDER_200
+traceLabel: content_strategy
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2823
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 2b585510ab95aa2da026ce91f8c6c0fe70a43a3ad8ab6a99db90f43c9ffb2d78
+promptTokens: 274
+completionTokens: 742
+totalTokens: 1016
+latencyMs: 7297
+estimatedCostUsd: 0.0015525
+responseId: gen-1782431178-jTPM2HE19KeVDOhuSC1H
+error: undefined
+
+[2026-06-25T23:46:51.764Z] AI_PROVIDER_200
+traceLabel: post_generation_3
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 4096,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 128
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4786
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 60bd913e9ae3858f0da7fe8faf9c8d19b23c66d9785884f0c31eb43e713ec2fa
+promptTokens: 2430
+completionTokens: 1465
+totalTokens: 3895
+latencyMs: 15937
+estimatedCostUsd: 0.0035375
+responseId: gen-1782431186-assUtqciYfCNRqEzhdbx
+error: undefined
+
+[2026-06-25T23:46:52.139Z] AI_PROVIDER_200
+traceLabel: post_generation_1
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 4096,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 128
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 5018
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 73845b8962b4588b230f0f31a6ba26841b507c75bd7f3e36b356e5e35ab9fdc7
+promptTokens: 2424
+completionTokens: 1486
+totalTokens: 3910
+latencyMs: 16314
+estimatedCostUsd: 0.003578
+responseId: gen-1782431185-IUyREr5POAI8cRNgPqft
+error: undefined
+
+[2026-06-25T23:46:52.390Z] AI_PROVIDER_200
+traceLabel: post_generation_2
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 4096,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 192
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4992
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 87bf19583ddfae803cbaa70c7da2bca72ec9999cdfd175e3ff2e2f89785ab7e7
+promptTokens: 2420
+completionTokens: 1571
+totalTokens: 3991
+latencyMs: 16564
+estimatedCostUsd: 0.003747
+responseId: gen-1782431185-KpQHZv1lFsHeytuiACe6
+error: undefined
+
+[2026-06-25T23:46:55.989Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 940
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: f34d9a0e582175da8dc71b6d5936d9d1e9bbc31660c967688c2d167540d7a8a0
+promptTokens: 1245
+completionTokens: 242
+totalTokens: 1487
+latencyMs: 2811
+estimatedCostUsd: 0.00079525
+responseId: gen-1782431203-spBXVmuaLPkQUeqT4TO9
+error: undefined
+
+[2026-06-25T23:46:56.499Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1246
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 83646a59daa334cd1aa36ba6ea54768c105caeae8fd1c1c327e96d23db545761
+promptTokens: 1209
+completionTokens: 322
+totalTokens: 1531
+latencyMs: 3319
+estimatedCostUsd: 0.00094625
+responseId: gen-1782431203-UW3iyF0VZpbuJLZmhEof
+error: undefined
+
+[2026-06-25T23:46:57.736Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1138
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 0380a459399d59a86bd504f05403cc908c938acdf11f409016cfd2db2a26b62e
+promptTokens: 1274
+completionTokens: 312
+totalTokens: 1586
+latencyMs: 4560
+estimatedCostUsd: 0.0009425
+responseId: gen-1782431203-EQeImxHU0guxg7JMfLk2
+error: undefined
+
+[2026-06-25T23:47:07.081Z] AI_PROVIDER_200
+traceLabel: quality_revision_3
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 3148
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 184816a53009a43d6b94f9852d7cef939bf3293d077ecd47e907c6e3bbecacb9
+promptTokens: 2771
+completionTokens: 940
+totalTokens: 3711
+latencyMs: 9344
+estimatedCostUsd: 0.00257275
+responseId: gen-1782431207-iw6uGsxYXP3le1EY60Nd
+error: undefined
+
+[2026-06-25T23:47:07.764Z] AI_PROVIDER_200
+traceLabel: quality_revision_2
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 3390
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 31163b781afc7c7eb4ce51929df4b35ef1740dfeea6e0b8eb6b8a645059e951d
+promptTokens: 2727
+completionTokens: 999
+totalTokens: 3726
+latencyMs: 10027
+estimatedCostUsd: 0.00267975
+responseId: gen-1782431207-yJn8rKRm6dgPWMcOHEfY
+error: undefined
+
+[2026-06-25T23:47:10.889Z] AI_PROVIDER_200
+traceLabel: quality_revision_1
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 3343
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 07c0ef3732064439255f19b734d7b9b67c18d89d63fdec85d6ea1e085a00997e
+promptTokens: 2776
+completionTokens: 984
+totalTokens: 3760
+latencyMs: 13153
+estimatedCostUsd: 0.002662
+responseId: gen-1782431207-clDsmfhCrfcK1iHiMpwH
+error: undefined
+
+[2026-06-25T23:47:13.264Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 888
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 1038fa12272e00b3bd732c0c059ec2988766003a7d0340093eed40f5dcdacad9
+promptTokens: 1312
+completionTokens: 220
+totalTokens: 1532
+latencyMs: 2373
+estimatedCostUsd: 0.000768
+responseId: gen-1782431220-URCHTKwaPGNcNcw8R458
+error: undefined
+
+[2026-06-25T23:47:13.396Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 865
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 9ac758b911e3c245d1c361eaeb50d6e0833a724b0f143356e8d564645f347b99
+promptTokens: 1301
+completionTokens: 235
+totalTokens: 1536
+latencyMs: 2506
+estimatedCostUsd: 0.00079525
+responseId: gen-1782431220-si5NlcDoBI2heo5heKrT
+error: undefined
+
+[2026-06-25T23:47:13.955Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1023
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 5159ddf956bd37fb2045e9f4770813feef1c792595a8751139944567c6c7721b
+promptTokens: 1263
+completionTokens: 292
+totalTokens: 1555
+latencyMs: 3064
+estimatedCostUsd: 0.00089975
+responseId: gen-1782431220-5aNL1bx1sDp6Ov6QZgNq
+error: undefined
+
+[2026-06-25T23:47:16.026Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 561
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: c77cb968640dec73ac91140d71dbf244705484f0570d35fac0186ea0495a0363
+promptTokens: 733
+completionTokens: 160
+totalTokens: 893
+latencyMs: 2070
+estimatedCostUsd: 0.00050325
+responseId: gen-1782431223-oyac7mkgLR4wLDczRs3v
+error: undefined
+
+[2026-06-25T23:47:16.036Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 604
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: af4a72eed00537c793892a5836315b6e5a8105a96164f970c8a823ea48f5c2ee
+promptTokens: 760
+completionTokens: 169
+totalTokens: 929
+latencyMs: 2080
+estimatedCostUsd: 0.000528
+responseId: gen-1782431223-VK3bHoEO4fNqAVC8yB4U
+error: undefined
+
+[2026-06-25T23:47:16.366Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e63fee23ba59260479fc35a04215726d05093a9ef6873a031fe24caaa4b1aea9
+promptTokens: 786
+completionTokens: 201
+totalTokens: 987
+latencyMs: 2410
+estimatedCostUsd: 0.0005985
+responseId: gen-1782431223-ZUS9YspYtDSaBWLYjmwh
+error: undefined
+
+[2026-06-25T23:47:17.933Z] POST_GENERATION_COMPLETED
+generationRunId: e1e592ae-f079-40ff-bd9e-68caa843a380
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+durationMs: 49415
+inputType: text
+platform: instagram
+postMode: carousel
+creationMode: ideation
+requestedModel: llama
+effectiveModels: [ 'openai/gpt-5-mini-2025-08-07' ]
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 3
+strategyFallbackUsed: false
+originalityFallbackUsed: false
+finalValidation: { valid: true, errors: [] }
+llmCalls: [
+  {
+    label: 'content_strategy',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '2b585510ab95aa2da026ce91f8c6c0fe70a43a3ad8ab6a99db90f43c9ffb2d78',
+    promptTokens: 274,
+    completionTokens: 742,
+    totalTokens: 1016,
+    latencyMs: 7297,
+    estimatedCostUsd: 0.0015525,
+    error: undefined
+  },
+  {
+    label: 'post_generation_3',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '60bd913e9ae3858f0da7fe8faf9c8d19b23c66d9785884f0c31eb43e713ec2fa',
+    promptTokens: 2430,
+    completionTokens: 1465,
+    totalTokens: 3895,
+    latencyMs: 15937,
+    estimatedCostUsd: 0.0035375,
+    error: undefined
+  },
+  {
+    label: 'post_generation_1',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '73845b8962b4588b230f0f31a6ba26841b507c75bd7f3e36b356e5e35ab9fdc7',
+    promptTokens: 2424,
+    completionTokens: 1486,
+    totalTokens: 3910,
+    latencyMs: 16314,
+    estimatedCostUsd: 0.003578,
+    error: undefined
+  },
+  {
+    label: 'post_generation_2',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '87bf19583ddfae803cbaa70c7da2bca72ec9999cdfd175e3ff2e2f89785ab7e7',
+    promptTokens: 2420,
+    completionTokens: 1571,
+    totalTokens: 3991,
+    latencyMs: 16564,
+    estimatedCostUsd: 0.003747,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'f34d9a0e582175da8dc71b6d5936d9d1e9bbc31660c967688c2d167540d7a8a0',
+    promptTokens: 1245,
+    completionTokens: 242,
+    totalTokens: 1487,
+    latencyMs: 2811,
+    estimatedCostUsd: 0.00079525,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '83646a59daa334cd1aa36ba6ea54768c105caeae8fd1c1c327e96d23db545761',
+    promptTokens: 1209,
+    completionTokens: 322,
+    totalTokens: 1531,
+    latencyMs: 3319,
+    estimatedCostUsd: 0.00094625,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '0380a459399d59a86bd504f05403cc908c938acdf11f409016cfd2db2a26b62e',
+    promptTokens: 1274,
+    completionTokens: 312,
+    totalTokens: 1586,
+    latencyMs: 4560,
+    estimatedCostUsd: 0.0009425,
+    error: undefined
+  },
+  {
+    label: 'quality_revision_3',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '184816a53009a43d6b94f9852d7cef939bf3293d077ecd47e907c6e3bbecacb9',
+    promptTokens: 2771,
+    completionTokens: 940,
+    totalTokens: 3711,
+    latencyMs: 9344,
+    estimatedCostUsd: 0.00257275,
+    error: undefined
+  },
+  {
+    label: 'quality_revision_2',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '31163b781afc7c7eb4ce51929df4b35ef1740dfeea6e0b8eb6b8a645059e951d',
+    promptTokens: 2727,
+    completionTokens: 999,
+    totalTokens: 3726,
+    latencyMs: 10027,
+    estimatedCostUsd: 0.00267975,
+    error: undefined
+  },
+  {
+    label: 'quality_revision_1',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '07c0ef3732064439255f19b734d7b9b67c18d89d63fdec85d6ea1e085a00997e',
+    promptTokens: 2776,
+    completionTokens: 984,
+    totalTokens: 3760,
+    latencyMs: 13153,
+    estimatedCostUsd: 0.002662,
+    error: undefined
+  },
+  {
+...[truncated 2379 chars]
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782431237078-0',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'carousel',
+    headline: 'Antes x Depois: Workflow com IA em 3 passos',
+    body: 'Comparativo visual simples: manual vs IA. Veja um exemplo prático de tempo economizado e consistência no fluxo.',
+    caption: 'Cansado de perder horas em processos que poderiam ser previsíveis? Veja em 3 passos como a IA transforma o fluxo — testado em um exemplo real. 🤖⚡ Em vez do briefing solto, um prompt padronizado gera instruções claras em segundos; na produção, você troca múltiplas versões improvisadas por variações consistentes e rápidas; na revisão, os retrabalhos dão lugar a ajustes padronizados e ágeis. O resultado: menos tempo gasto e mais qualidade uniforme. ⏱️✅ Quer acelerar seu fluxo e manter consistência...[truncated]',
+    callToAction: 'Experimente o teste gratuito do fluxo co',
+    hashtags: [ '#MarketingDeConteúdo', '#IA', '#Produtividade' ],
+    colors: { backgroundColor: '#0F1724', textColor: '#FFFFFF', accentColor: '#00C2A8' },
+    copyAngle: { type: 'beneficio', label: '3 passos para eficiência', badge: 'GanheTempo', stickerText: 'Rápido' },
+    sections: [],
+    slides: [
+      {
+        index: 0,
+        headline: 'Veja em 3 passos a diferença',
+        body: 'Antes manual vs depois com IA: exemplo de teste real mostrando redução de tempo e maior consistência.',
+        slideNumber: 1,
+        isTitleSlide: true,
+        isCtaSlide: false
+      },
+      {
+        index: 1,
+        headline: 'Passo 1 — Briefing',
+        body: 'Manual: brief solto. IA: prompt padronizado em segundos.',
+        slideNumber: 2,
+        isTitleSlide: false,
+        isCtaSlide: false
+      },
+      {
+        index: 2,
+        headline: 'Passo 2 — Produção',
+        body: 'Manual: múltiplas versões. IA: variações consistentes e rápidas.',
+        slideNumber: 3,
+        isTitleSlide: false,
+        isCtaSlide: false
+      },
+      {
+        index: 3,
+        headline: 'Passo 3 — Revisão',
+        body: 'Manual: retrabalhos frequentes. IA: ajuste rápido e padronizado.',
+        slideNumber: 4,
+        isTitleSlide: false,
+        isCtaSlide: false
+      },
+      {
+        index: 4,
+        headline: 'Pronto para acelerar seu fluxo?',
+        body: 'Compare testes reais e comece com IA hoje',
+        slideNumber: 5,
+        isTitleSlide: false,
+        isCtaSlide: true
+      }
+    ],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 3,
+      evaluation: { accepted: false, overallScore: 74, reasons: undefined },
+      originality: { score: 8, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782431237078-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'carousel',
+    headline: 'Desafio 3 Passos: Manual vs IA',
+    body: 'Teste rápido para provar que a IA geralmente entrega resultados mais rápidos e, quando bem aplicada, mais consistentes — execute em 3 passos',
+    caption: 'Quer um experimento rápido e que gera prova social? 🎯 Faça o mini-desafio: crie o mesmo post de duas formas — manualmente e com IA — seguindo 3 passos simples. ⏱️ Por que vale a pena: você vai comparar tempo, iterações e qualidade na prática — insights que ajudam a decidir quando usar IA no seu fluxo. 💡 Como fazer: 1) Brief — escreva e ajuste vs gerar 3 variações com 1 prompt (registre tempo). 2) Design — layout manual e 2–3 iterações vs aplicar template e ajustar rápido. 3) Revisão — feedback...[truncated]',
+    callToAction: 'Participe do desafio',
+    hashtags: [ '#DesafioIA', '#Produtividade', '#Workflow', '#SocialMedia' ],
+    colors: { backgroundColor: '#0A2540', textColor: '#FFFFFF', accentColor: '#FF7A18' },
+    copyAngle: { type: 'storytelling', label: 'mini-desafio social', badge: 'Desafio', stickerText: 'Compare' },
+    sections: [],
+    s...[truncated 4510 chars]
+
+[2026-06-26T13:27:58.530Z] POST_GENERATION_STARTED
+generationRunId: 7983b4a8-5186-4c4f-a7da-3c328920fc8b
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 49
+contentPreview: Como utilizar IA para gerar conteúdo no instagram
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: true
+sparkCost: 10
+
+[2026-06-26T13:28:03.997Z] AI_PROVIDER_200
+traceLabel: content_strategy
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2118
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 370796863623dd1c74e762684c61761f2b51d8d7bcbb05d6cc5b32119b943e27
+promptTokens: 246
+completionTokens: 521
+totalTokens: 767
+latencyMs: 5462
+estimatedCostUsd: 0.0011035
+responseId: gen-1782480467-a6l5UU5AAsFirAtWEXvG
+error: undefined
+
+[2026-06-26T13:28:10.667Z] AI_PROVIDER_200
+traceLabel: post_generation_3
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2430
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: cede0d4e0da4929d24f86dd0aa886565fba53bdfaf23082e959479c3ac9576c5
+promptTokens: 2321
+completionTokens: 743
+totalTokens: 3064
+latencyMs: 6665
+estimatedCostUsd: 0.00206625
+responseId: gen-1782480473-ICG7pKrY9LZuknnA1dzK
+error: undefined
+
+[2026-06-26T13:28:12.463Z] AI_PROVIDER_200
+traceLabel: post_generation_1
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 3690
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 6743818ff7a3953153a0249b13dbc857e33577be512fb736ec41f0569372d34f
+promptTokens: 2316
+completionTokens: 1013
+totalTokens: 3329
+latencyMs: 8461
+estimatedCostUsd: 0.002605
+responseId: gen-1782480473-oE3ZbF234l2PEUxe0xIb
+error: undefined
+
+[2026-06-26T13:28:14.105Z] AI_PROVIDER_200
+traceLabel: post_generation_2
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 3072,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4227
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: f85e52ad85ed2347752071c2224cd9fd417e483666714551971fe0c3540df01b
+promptTokens: 2316
+completionTokens: 1148
+totalTokens: 3464
+latencyMs: 10104
+estimatedCostUsd: 0.002875
+responseId: gen-1782480473-JhBsE7ootbn4lo7hOWi0
+error: undefined
+
+[2026-06-26T13:28:17.530Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 768
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 191399619d1ccf25bf8a252fb9c8a33c0179b4f60a59bedcc72e6f186a03e8ca
+promptTokens: 1075
+completionTokens: 204
+totalTokens: 1279
+latencyMs: 2590
+estimatedCostUsd: 0.00067675
+responseId: gen-1782480484-kE3c7kl2RjHCGJTqodVk
+error: undefined
+
+[2026-06-26T13:28:17.867Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1076
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 11b8202af90a38c631f4ce64e770b7bfa9ca4fc752c2062e67388f15882341fd
+promptTokens: 1052
+completionTokens: 313
+totalTokens: 1365
+latencyMs: 2927
+estimatedCostUsd: 0.000889
+responseId: gen-1782480484-5OXhL4zyHfTANHhBxoZA
+error: undefined
+
+[2026-06-26T13:28:18.921Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1047
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: c47b33402febb0ef59ba516aa159cac44a4cc623ab6cadeebeef274475c81c8d
+promptTokens: 990
+completionTokens: 301
+totalTokens: 1291
+latencyMs: 3982
+estimatedCostUsd: 0.0008495
+responseId: gen-1782480484-Fmk2t3W8lVR1rzApcywZ
+error: undefined
+
+[2026-06-26T13:28:26.297Z] AI_PROVIDER_200
+traceLabel: quality_revision_2
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2632
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 2dec3d9b42bf1c6da9f02d3478b5ea0b2376def61a5dc8dc6da154d34f48b257
+promptTokens: 2598
+completionTokens: 790
+totalTokens: 3388
+latencyMs: 7375
+estimatedCostUsd: 0.0022295
+responseId: gen-1782480488-3DNQvLDzrbFUYfvcG38I
+error: undefined
+
+[2026-06-26T13:28:28.417Z] AI_PROVIDER_200
+traceLabel: quality_revision_1
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 4005
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: c1842e917efd6673b60b38582cd6c900d1a99d639979e89d7c49ddfbb913c0e6
+promptTokens: 2523
+completionTokens: 1104
+totalTokens: 3627
+latencyMs: 9496
+estimatedCostUsd: 0.00283875
+responseId: gen-1782480488-vjSieSPbMrdcL8gljFMy
+error: undefined
+
+[2026-06-26T13:28:28.785Z] AI_PROVIDER_200
+traceLabel: quality_revision_3
+requestedModel: quality_revision
+taskRoute: quality_revision
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.3,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 2583
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 31fe1e4015286f81084d2be59923b6c91e0a79b5516430b82965b816ba6a0154
+promptTokens: 2592
+completionTokens: 797
+totalTokens: 3389
+latencyMs: 9862
+estimatedCostUsd: 0.002242
+responseId: gen-1782480488-Ay9CFqZTAmdEujvkGJne
+error: undefined
+
+[2026-06-26T13:28:31.653Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 918
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 4d7095ecc3fffc39b90e31550438832e35b2ab3363b1ae53fdcb0c06f14d3451
+promptTokens: 1104
+completionTokens: 252
+totalTokens: 1356
+latencyMs: 2865
+estimatedCostUsd: 0.00078
+responseId: gen-1782480498-YQKjsCwSUfvekGQn75ZU
+error: undefined
+
+[2026-06-26T13:28:31.723Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 978
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: c5dc52c6d88945d8685605293d5360b22021a5e8687fedbc9ba884b7bcbcbafd
+promptTokens: 1079
+completionTokens: 255
+totalTokens: 1334
+latencyMs: 2936
+estimatedCostUsd: 0.00077975
+responseId: gen-1782480498-1zXAM97mlhJNXhMzMPXR
+error: undefined
+
+[2026-06-26T13:28:32.965Z] AI_PROVIDER_200
+traceLabel: post_evaluation
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.25,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 1186
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: da3c95593983262ae6b5ee34788a97b5b6f6e52ddb31d148ac46062ce8014bf5
+promptTokens: 1092
+completionTokens: 308
+totalTokens: 1400
+latencyMs: 4178
+estimatedCostUsd: 0.000889
+responseId: gen-1782480498-AlFcrN6NdWSXJiPXcZp0
+error: undefined
+
+[2026-06-26T13:28:35.430Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 624
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: c6a56d49539081666053f93ee130f423653c9f29d0e71c439f1eb7e110ecb2ac
+promptTokens: 692
+completionTokens: 185
+totalTokens: 877
+latencyMs: 2464
+estimatedCostUsd: 0.000543
+responseId: gen-1782480502-pvzk6v2MRCqNvYRDHyQr
+error: undefined
+
+[2026-06-26T13:28:35.446Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 655
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ab653413f7f56d43f618d3e5879f162f2b36a39bd9dc9404f23ce0737e578526
+promptTokens: 653
+completionTokens: 189
+totalTokens: 842
+latencyMs: 2479
+estimatedCostUsd: 0.00054125
+responseId: gen-1782480502-ctBY8wCOIqjVUndWHOOW
+error: undefined
+
+[2026-06-26T13:28:35.785Z] AI_PROVIDER_200
+traceLabel: caption_synthesis
+requestedModel: caption_synthesis
+taskRoute: caption_synthesis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini-2025-08-07
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.5,
+  top_p: 0.9,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 1024,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: completed
+contentLength: 630
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b22e8a91d126e076771b0eae9e8e9abcb3b71929c73a5d017eacdc5333cb5cb2
+promptTokens: 650
+completionTokens: 178
+totalTokens: 828
+latencyMs: 2818
+estimatedCostUsd: 0.0005185
+responseId: gen-1782480502-3BrRDfetDb5Xx61wPkly
+error: undefined
+
+[2026-06-26T13:28:37.330Z] POST_GENERATION_COMPLETED
+generationRunId: 7983b4a8-5186-4c4f-a7da-3c328920fc8b
+userUuid: 25c1b164-6829-4b88-9f34-052ea8f7b13a
+durationMs: 38801
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: [ 'openai/gpt-5-mini-2025-08-07' ]
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 3
+strategyFallbackUsed: false
+originalityFallbackUsed: false
+finalValidation: { valid: true, errors: [] }
+llmCalls: [
+  {
+    label: 'content_strategy',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '370796863623dd1c74e762684c61761f2b51d8d7bcbb05d6cc5b32119b943e27',
+    promptTokens: 246,
+    completionTokens: 521,
+    totalTokens: 767,
+    latencyMs: 5462,
+    estimatedCostUsd: 0.0011035,
+    error: undefined
+  },
+  {
+    label: 'post_generation_3',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'cede0d4e0da4929d24f86dd0aa886565fba53bdfaf23082e959479c3ac9576c5',
+    promptTokens: 2321,
+    completionTokens: 743,
+    totalTokens: 3064,
+    latencyMs: 6665,
+    estimatedCostUsd: 0.00206625,
+    error: undefined
+  },
+  {
+    label: 'post_generation_1',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '6743818ff7a3953153a0249b13dbc857e33577be512fb736ec41f0569372d34f',
+    promptTokens: 2316,
+    completionTokens: 1013,
+    totalTokens: 3329,
+    latencyMs: 8461,
+    estimatedCostUsd: 0.002605,
+    error: undefined
+  },
+  {
+    label: 'post_generation_2',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'f85e52ad85ed2347752071c2224cd9fd417e483666714551971fe0c3540df01b',
+    promptTokens: 2316,
+    completionTokens: 1148,
+    totalTokens: 3464,
+    latencyMs: 10104,
+    estimatedCostUsd: 0.002875,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '191399619d1ccf25bf8a252fb9c8a33c0179b4f60a59bedcc72e6f186a03e8ca',
+    promptTokens: 1075,
+    completionTokens: 204,
+    totalTokens: 1279,
+    latencyMs: 2590,
+    estimatedCostUsd: 0.00067675,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '11b8202af90a38c631f4ce64e770b7bfa9ca4fc752c2062e67388f15882341fd',
+    promptTokens: 1052,
+    completionTokens: 313,
+    totalTokens: 1365,
+    latencyMs: 2927,
+    estimatedCostUsd: 0.000889,
+    error: undefined
+  },
+  {
+    label: 'post_evaluation',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'c47b33402febb0ef59ba516aa159cac44a4cc623ab6cadeebeef274475c81c8d',
+    promptTokens: 990,
+    completionTokens: 301,
+    totalTokens: 1291,
+    latencyMs: 3982,
+    estimatedCostUsd: 0.0008495,
+    error: undefined
+  },
+  {
+    label: 'quality_revision_2',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '2dec3d9b42bf1c6da9f02d3478b5ea0b2376def61a5dc8dc6da154d34f48b257',
+    promptTokens: 2598,
+    completionTokens: 790,
+    totalTokens: 3388,
+    latencyMs: 7375,
+    estimatedCostUsd: 0.0022295,
+    error: undefined
+  },
+  {
+    label: 'quality_revision_1',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: 'c1842e917efd6673b60b38582cd6c900d1a99d639979e89d7c49ddfbb913c0e6',
+    promptTokens: 2523,
+    completionTokens: 1104,
+    totalTokens: 3627,
+    latencyMs: 9496,
+    estimatedCostUsd: 0.00283875,
+    error: undefined
+  },
+  {
+    label: 'quality_revision_3',
+    provider: 'openrouter',
+    effectiveModel: 'openai/gpt-5-mini-2025-08-07',
+    attempt: 1,
+    fallbackFrom: undefined,
+    promptHash: '31fe1e4015286f81084d2be59923b6c91e0a79b5516430b82965b816ba6a0154',
+    promptTokens: 2592,
+    completionTokens: 797,
+    totalTokens: 3389,
+    latencyMs: 9862,
+    estimatedCostUsd: 0.002242,
+    error: undefined
+  },
+  {
+    labe...[truncated 2368 chars]
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1782480516551-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'IA não vai substituir sua voz',
+    body: '5 mitos sobre IA desmistificados — mantenha a autenticidade.',
+    caption: 'Você acha que a IA vai engolir sua voz criativa? Hora de separar fato de ficção. 🤖❌ A tecnologia amplia possibilidades — mas não apaga quem você é. Entender os limites da IA protege sua autenticidade e transforma a ferramenta em parceira, não em substituta. ✨ No carrossel desmistificamos 5 mitos: quando a IA acelera rascunhos sem copiar sua assinatura; por que ideias “originais” podem vir recheadas de referências; como vieses aparecem e o que fazer; onde a revisão humana é indispensável; e por ...[truncated]',
+    callToAction: 'Veja os mitos',
+    hashtags: [ '#IAvsCriatividade', '#MarketingHumano', '#Criadores', '#ConteúdoInteligente' ],
+    colors: { backgroundColor: '#0F1724', textColor: '#FFFFFF', accentColor: '#FFB100' },
+    copyAngle: { type: 'mito_vs_verdade', label: 'Desmistificando IA', badge: 'MitoXReal', stickerText: 'Verdade' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 3,
+      evaluation: { accepted: false, overallScore: 72, reasons: undefined },
+      originality: { score: 13, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1782480516551-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: '10 prompts testados para posts melhores',
+    body: 'Use prompts prontos para legenda, imagem e CTA em minutos',
+    caption: 'Quer legendas, imagens e CTAs que realmente convertem — sem perder horas testando? Aqui estão 3 prompts essenciais para transformar sua criação com IA. ✨ Por que isso importa: prompts bem construídos entregam resultados mais rápidos, consistentes e prontos para usar — aumentando engajamento e economizando tempo. ✅ No post você encontra: 1) prompt para gerar legendas envolventes; 2) prompt que descreve a imagem ideal; 3) prompt para CTAs diretas e persuasivas. Use-os como base e ajuste ao seu púb...[truncated]',
+    callToAction: 'Baixe a checklist',
+    hashtags: [ '#IAParaCriadores', '#PromptsEficazes', '#ConteúdoNoInstagram' ],
+    colors: { backgroundColor: '#0F1724', textColor: '#FFFFFF', accentColor: '#F59E0B' },
+    copyAngle: { type: 'beneficio', label: 'Resultados imediatos', badge: 'Checklist', stickerText: '10x' },
+    sections: [
+      { index: 0, id: undefined, number: 1, icon: 'Zap', label: 'Legenda pronta', description: 'Prompt para gerar legendas envolventes' },
+      { index: 1, id: undefined, number: 2, icon: 'Users', label: 'Imagem ideal', description: 'Prompt que descreve o visual perfeito' },
+      { index: 2, id: undefined, number: 3, icon: 'Star', label: 'CTA que converte', description: 'Prompt para chamadas à ação diretas' }
+    ],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-4',
+      revisionCount: 3,
+      evaluation: { accepted: false, overallScore: 74, reasons: undefined },
+      originality: { score: 12, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1782480516551-2',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'static',
+    headline: 'Antes e depois: o impacto da IA',
+    body: 'O mesmo post, sem e com IA — impressões +32% e engajamento +18% (30 dias, teste A/B).',
+    caption: 'Você já se perguntou se a IA realmente entrega resultados palpáveis para conteúdo social? 👀 Neste teste A/B mostramos o mesmo post antes e depois da otimização por IA — e os números falam por si: impressões +32% e engajamento +18% em 30 dias. Isso não é mágica, é aj...[truncated 977 chars]
+
+[2026-06-26T14:22:04.548Z] CONSOLE_ERROR
+message: [2m11:22:04[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\emanu\Documents\Projetos\PostSpark 3\client\src\components\views\WorkbenchV2\CanvasWorkspace.tsx: Unterminated JSX contents. (242:14)
+
+[0m [90m 240 |[31m                 {isCarousel [33m&&[31m [33m<[31m[33mCarouselControls[31m slides[33m=[31m{slides} index[33m=[31m{currentSlideIndex} scope[33m=[31m{applyScope} accentColor[33m=[31m{accentColor} onIndexChange[33m=[31m{setCurrentSlideIndex} onScopeChange[33m=[31m{setApplyScope} [33m/[31m[33m>[31m}
+ [90m 241 |[31m             [33m<[31m[33m/[31m[33mdiv[31m[33m>[31m
+[31m[1m>[22m[31m[90m 242 |[31m         [33m<[31m[33m/[31m[33mdiv[31m[33m>[31m
+ [90m     |[31m               [31m[1m^[22m[31m
+ [90m 243 |[31m     )[33m;[31m
+ [90m 244 |[31m }
+ [90m 245 |[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/emanu/Documents/Projetos/PostSpark 3/client/src/components/views/WorkbenchV2/CanvasWorkspace.tsx[39m:242:14
+      at toParseError (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\parse-error.ts:95:45)
+      at TypeScriptParserMixin.raise (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\tokenizer\index.ts:1503:19)
+      at TypeScriptParserMixin.jsxReadToken (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\plugins\jsx\index.ts:104:22)
+      at TypeScriptParserMixin.getTokenFromCode (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\plugins\jsx\index.ts:596:14)
+      at TypeScriptParserMixin.getTokenFromCode (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\plugins\typescript\index.ts:4094:13)
+      at TypeScriptParserMixin.nextToken (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\tokenizer\index.ts:278:10)
+      at TypeScriptParserMixin.next (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\tokenizer\index.ts:121:10)
+      at TypeScriptParserMixin.eat (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\tokenizer\index.ts:126:12)
+      at TypeScriptParserMixin.expect (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\parser\util.ts:156:15)
+      at TypeScriptParserMixin.jsxParseClosingElementAt (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\plugins\jsx\index.ts:460:12)
+      at TypeScriptParserMixin.jsxParseElementAt (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\plugins\jsx\index.ts:480:39)
+      at TypeScriptParserMixin.jsxParseElementAt (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\plugins\jsx\index.ts:483:34)
+      at TypeScriptParserMixin.jsxParseElement (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\plugins\jsx\index.ts:559:19)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\plugins\jsx\index.ts:573:21)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node_modules\@babel\parser\src\parser\expression.ts:734:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\@babel+parser@7.28.4\node...[truncated 25 chars]
+
+[2026-06-26T14:22:04.801Z] CONSOLE_ERROR
+message: [2m11:22:04[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: C:\Users\emanu\Documents\Projetos\PostSpark 3\client\src\components\views\WorkbenchV2\CanvasWorkspace.tsx: Unterminated JSX contents. (242:14)
+
+[0m [90m 240 |[39m                 {isCarousel [33m&&[39m [33m<[39m[33mCarouselControls[39m slides[33m=[39m{slides} index[33m=[39m{currentSlideIndex} scope[33m=[39m{applyScope} accentColor[33m=[39m{accentColor} onIndexChange[33m=[39m{setCurrentSlideIndex} onScopeChange[33m=[39m{setApplyScope} [33m/[39m[33m>[39m}
+ [90m 241 |[39m             [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+[31m[1m>[22m[39m[90m 242 |[39m         [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+ [90m     |[39m               [31m[1m^[22m[39m
+ [90m 243 |[39m     )[33m;[39m
+ [90m 244 |[39m }
+ [90m 245 |[39m[0m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/emanu/Documents/Projetos/PostSpark 3/client/src/components/views/WorkbenchV2/CanvasWorkspace.tsx[39m:242:14
+
+[2026-06-26T14:29:34.169Z] HTTP_ERROR
+method: GET
+url: /api/trpc/billing.getProfile,post.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%2C%221%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%7D
+statusCode: 401
+durationMs: 374
+ip: ::1
+userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-06-26T14:29:35.629Z] HTTP_ERROR
+method: GET
+url: /api/trpc/billing.getProfile,post.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%2C%221%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%7D
+statusCode: 401
+durationMs: 219
+ip: ::1
+userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-06-26T14:30:50.680Z] IMAGE_PROVIDER_200
+provider: openrouter
+model: google/gemini-3.1-flash-image
+imageProvider: pollinations_fast
+
+[2026-06-26T17:09:20.522Z] CONSOLE_ERROR
+message: [2m14:09:20[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/components/views/WorkbenchV2/CanvasControls.tsx (resolved id: C:/Users/emanu/Documents/Projetos/PostSpark 3/client/src/components/views/WorkbenchV2/CanvasControls.tsx) in C:/Users/emanu/Documents/Projetos/PostSpark 3/client/src/components/views/WorkbenchV2/CanvasWorkspace.tsx. Does the file exist?
+
+[2026-06-26T17:15:56.965Z] CONSOLE_ERROR
+message: [31mfailed to load config from C:\Users\emanu\Documents\Projetos\PostSpark 3\vite.config.ts[39m
+
+[2026-06-26T17:15:56.967Z] CONSOLE_ERROR
+message: Error: Build failed with 2 errors:
+error: Cannot read directory "../../..": Access is denied.
+error: Could not resolve "C:\\Users\\emanu\\Documents\\Projetos\\PostSpark 3\\vite.config.ts"
+    at failureErrorWithLog (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\esbuild@0.25.10\node_modules\esbuild\lib\main.js:1467:15)
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\esbuild@0.25.10\node_modules\esbuild\lib\main.js:926:25
+    at runOnEndCallbacks (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\esbuild@0.25.10\node_modules\esbuild\lib\main.js:1307:45)
+    at buildResponseToResult (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\esbuild@0.25.10\node_modules\esbuild\lib\main.js:924:7)
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\esbuild@0.25.10\node_modules\esbuild\lib\main.js:951:16
+    at responseCallbacks.<computed> (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\esbuild@0.25.10\node_modules\esbuild\lib\main.js:603:9)
+    at handleIncomingPacket (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\esbuild@0.25.10\node_modules\esbuild\lib\main.js:658:12)
+    at Socket.readFromStdout (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\esbuild@0.25.10\node_modules\esbuild\lib\main.js:581:7)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+
+[2026-06-26T17:55:15.833Z] CONSOLE_ERROR
+message: [2m14:55:15[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/components/views/WorkbenchV2/CanvasControls.tsx (resolved id: C:/Users/emanu/Documents/Projetos/PostSpark 3/client/src/components/views/WorkbenchV2/CanvasControls.tsx) in C:/Users/emanu/Documents/Projetos/PostSpark 3/client/src/components/views/WorkbenchV2/CanvasWorkspace.tsx. Does the file exist?
+
