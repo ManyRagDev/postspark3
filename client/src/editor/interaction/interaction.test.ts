@@ -258,6 +258,77 @@ describe("interaction controller", () => {
     if (state.phase === "dragging") expect(state.draft.rect.x).toBe(70);
   });
 
+  it("snaps a drag draft and exposes guide data when snapConfig is enabled", () => {
+    const harness = createHarness();
+    harness.begin({
+      candidates: [{ id: "peer", rect: documentRect(70, 260, 80, 60) }],
+      snapConfig: {
+        toleranceScreenPx: 6,
+        hysteresisMultiplier: 2,
+        isSnapEnabled: true,
+        altSuspended: false,
+      },
+    });
+
+    harness.controller.previewInteraction({ pointerId: 7, point: screenPoint(128, 100) });
+    (harness.scheduler as FakeScheduler).flush();
+
+    const state = harness.controller.getState();
+    expect(state.phase).toBe("dragging");
+    if (state.phase === "dragging") {
+      expect(state.draft.rect.x).toBe(70);
+      expect(state.snapGuides).toMatchObject({
+        guideX: 70,
+        candidateIdX: "peer",
+      });
+    }
+  });
+
+  it("keeps the drag free when snapConfig is disabled or Alt is held", () => {
+    const beginWithSnap = () => createHarness();
+    const disabled = beginWithSnap();
+    disabled.begin({
+      candidates: [{ id: "peer", rect: documentRect(70, 260, 80, 60) }],
+      snapConfig: {
+        toleranceScreenPx: 6,
+        hysteresisMultiplier: 2,
+        isSnapEnabled: false,
+        altSuspended: false,
+      },
+    });
+    disabled.controller.previewInteraction({ pointerId: 7, point: screenPoint(128, 100) });
+    (disabled.scheduler as FakeScheduler).flush();
+    const disabledState = disabled.controller.getState();
+    expect(disabledState.phase).toBe("dragging");
+    if (disabledState.phase === "dragging") {
+      expect(disabledState.draft.rect.x).toBe(68);
+      expect(disabledState.snapGuides).toBeUndefined();
+    }
+
+    const alt = beginWithSnap();
+    alt.begin({
+      candidates: [{ id: "peer", rect: documentRect(70, 260, 80, 60) }],
+      snapConfig: {
+        toleranceScreenPx: 6,
+        hysteresisMultiplier: 2,
+        isSnapEnabled: true,
+        altSuspended: false,
+      },
+    });
+    alt.controller.previewInteraction({
+      pointerId: 7,
+      point: screenPoint(128, 100),
+      modifiers: { ...NO_INTERACTION_MODIFIERS, alt: true },
+    });
+    (alt.scheduler as FakeScheduler).flush();
+    const altState = alt.controller.getState();
+    expect(altState.phase).toBe("dragging");
+    if (altState.phase === "dragging") {
+      expect(altState.draft.rect.x).toBe(68);
+      expect(altState.snapGuides).toBeUndefined();
+    }
+  });
+
   it("drains the pointerup position and emits exactly one commit", () => {
     const harness = createHarness();
     harness.begin();

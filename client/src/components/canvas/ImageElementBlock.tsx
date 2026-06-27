@@ -14,6 +14,7 @@ interface ImageElementBlockProps {
   onDelete: () => void;
   containerRef: React.RefObject<HTMLElement>;
   accentColor: string;
+  snapEnabled?: boolean;
 }
 
 export function ImageElementBlock({
@@ -23,6 +24,7 @@ export function ImageElementBlock({
   onDelete,
   containerRef,
   accentColor,
+  snapEnabled = false,
 }: ImageElementBlockProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -44,11 +46,11 @@ export function ImageElementBlock({
       } : {}),
     }),
     handlePolicy: element.height === "auto" && !naturalRatio ? "none" as const : "corners" as const,
-    snapEligible: false,
+    snapEligible: snapEnabled,
     accentColor,
     onSelect,
     onDelete,
-  }), [accentColor, containerRef, element, naturalRatio, onDelete, onSelect, target]);
+  }), [accentColor, containerRef, element, naturalRatio, onDelete, onSelect, snapEnabled, target]);
   const transient = useInteractiveElement(descriptor);
   const draft = transient.draft;
 

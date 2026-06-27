@@ -384,6 +384,71 @@ function TemplateSections({
 }
 
 // ─── PostCardV2 ────────────────────────────────────────────────────────────────
+type DraggableTarget = "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow";
+type InlineEditTarget = "headline" | "body" | "badge" | "sticker" | null;
+
+interface DraggableFieldCtx {
+  layoutSettings: AdvancedLayoutSettings;
+  mode: string;
+  compact: boolean;
+  isEditable: boolean;
+  isMagnetActive: boolean;
+  handleSelectElement: (target: DraggableTarget) => void;
+  setInlineEditTarget: React.Dispatch<React.SetStateAction<InlineEditTarget>>;
+  inlineEditTarget: InlineEditTarget;
+  effectiveText: string;
+  layoutRef: React.RefObject<HTMLDivElement | null>;
+}
+
+/**
+ * Campo arrastável (headline, body, accentBar, etc.).
+ *
+ * Definido em escopo de módulo (e não dentro de PostCardV2Content) DE PROPÓSITO:
+ * um componente declarado dentro do render ganha identidade nova a cada render,
+ * o que faz o React desmontar/remontar toda a subárvore — cancelando o drag em
+ * andamento (via unmountTarget) e zerando o flowFootprint, causando o "reflow"
+ * dos vizinhos. Com identidade estável, a remontagem some. Os valores dinâmicos
+ * chegam via `ctx` (lido de um ref no pai), então nunca ficam defasados (stale).
+ */
+function DraggableField({
+  target,
+  children,
+  color,
+  ctx,
+}: {
+  target: DraggableTarget;
+  children: React.ReactNode;
+  color?: string;
+  ctx: DraggableFieldCtx;
+}) {
+  const { layoutSettings, mode, compact, isEditable, isMagnetActive, handleSelectElement, setInlineEditTarget, inlineEditTarget, effectiveText, layoutRef } = ctx;
+  if (!layoutSettings || !layoutSettings[target]) return <>{children}</>;
+  const defaultDraggableWidth = target === "badge" || target === "sticker" || target === "carouselArrow"
+    ? "max-content"
+    : mode === "export"
+      ? "fit-content"
+      : "100%";
+  return (
+    <DraggableBlock
+      elementId={target}
+      layoutPos={layoutSettings[target] as LayoutPosition}
+      padding={compact ? 12 : 24}
+      containerRef={layoutRef}
+      snapEnabled={isEditable && isMagnetActive && !compact}
+      onSelect={() => handleSelectElement(target)}
+      onDoubleClick={e => {
+        e.stopPropagation();
+        if (isEditable && !compact && (target === "headline" || target === "body" || target === "badge" || target === "sticker")) setInlineEditTarget(target);
+      }}
+      accentColor={color || effectiveText}
+      isDraggable={isEditable && !compact && inlineEditTarget !== target}
+      defaultWidth={defaultDraggableWidth}
+    >
+      {children}
+    </DraggableBlock>
+  );
+}
+
 export default function PostCardV2(props: PostCardV2Props) {
   const variation = props.snapshot;
 
@@ -608,7 +673,7 @@ function PostCardV2Content({
     };
 
     return (
-      <div className="absolute inset-0 z-20 pointer-events-none">
+      <div className="absolute inset-0 z-20">
         {variation.textElements.map(el => (
           <AdvancedTextNode
             key={el.id}
@@ -621,6 +686,7 @@ function PostCardV2Content({
             onChange={(id, text) => updateTextElement(id, { text })}
             scale={1}
             editable={isEditable}
+            snapEnabled={isEditable && isMagnetActive && !compact}
           />
         ))}
       </div>
@@ -631,7 +697,7 @@ function PostCardV2Content({
     if (!variation.imageElements || variation.imageElements.length === 0) return null;
 
     return (
-      <div className="absolute inset-0 z-20 pointer-events-none">
+      <div className="absolute inset-0 z-20">
         {variation.imageElements?.map(el => (
           <ImageElementBlock
             key={el.id}
@@ -648,6 +714,7 @@ function PostCardV2Content({
             }}
             containerRef={cardRef as React.RefObject<HTMLElement>}
             accentColor={variation.accentColor ?? '#a855f7'}
+            snapEnabled={isEditable && isMagnetActive && !compact}
           />
         ))}
       </div>
@@ -664,33 +731,31 @@ function PostCardV2Content({
     }
   };
 
-  const Draggable = ({ target, children, color }: { target: "headline" | "body" | "accentBar" | "badge" | "sticker" | "carouselArrow"; children: React.ReactNode; color?: string }) => {
-    if (!layoutSettings || !layoutSettings[target]) return <>{children}</>;
-    const defaultDraggableWidth = target === "badge" || target === "sticker" || target === "carouselArrow"
-      ? "max-content"
-      : mode === "export"
-        ? "fit-content"
-        : "100%";
-    return (
-      <DraggableBlock
-        elementId={target}
-        layoutPos={layoutSettings[target] as LayoutPosition}
-        padding={compact ? 12 : 24}
-        containerRef={layoutRef}
-        snapEnabled={isEditable && isMagnetActive && !compact}
-        onSelect={() => handleSelectElement(target)}
-        onDoubleClick={e => {
-          e.stopPropagation();
-          if (isEditable && !compact && (target === "headline" || target === "body" || target === "badge" || target === "sticker")) setInlineEditTarget(target as any);
-        }}
-        accentColor={color || effectiveText}
-        isDraggable={isEditable && !compact && inlineEditTarget !== target}
-        defaultWidth={defaultDraggableWidth}
-      >
-        {children}
-      </DraggableBlock>
-    );
+  // Valores dinâmicos lidos pelo DraggableField via ref — atualizados a cada
+  // render para nunca ficarem defasados, mantendo a identidade de `Draggable` estável.
+  const draggableCtxRef = useRef<DraggableFieldCtx | null>(null);
+  draggableCtxRef.current = {
+    layoutSettings,
+    mode,
+    compact,
+    isEditable,
+    isMagnetActive,
+    handleSelectElement,
+    setInlineEditTarget,
+    inlineEditTarget,
+    effectiveText,
+    layoutRef,
   };
+  // Identidade estável (deps []): o React reconcilia a subárvore no lugar em vez
+  // de remontá-la a cada re-render, preservando o drag em andamento.
+  const Draggable = useCallback(
+    ({ target, children, color }: { target: DraggableTarget; children: React.ReactNode; color?: string }) => (
+      <DraggableField target={target} color={color} ctx={draggableCtxRef.current!}>
+        {children}
+      </DraggableField>
+    ),
+    [],
+  );
 
   // ── Helpers para UI Clone (exemplo.html) ────────────────────────────────────
   const updateSectionContent = (sectionId: string, patch: Partial<ContentSection>) => {

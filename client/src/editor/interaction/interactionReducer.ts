@@ -12,7 +12,8 @@ import {
   type DocumentRect,
   type ElementGeometry,
 } from "../geometry";
-import { snapDraft, DEFAULT_SNAP_CONFIG, type SnapCandidate } from "../snap/snapEngine";
+import { snapDraftToGrid, DEFAULT_SNAP_CONFIG } from "../snap/snapEngine";
+import { GRID_SNAP_COORDINATES } from "../adapters/layoutPositionAdapter";
 import { IDLE_INTERACTION_STATE } from "./transientStore";
 import type {
   GeometryCommit,
@@ -130,16 +131,19 @@ export function reduceInteractionState(
       }
 
       const draft = geometryForMove(state, event);
-      const session = state as unknown as { candidates?: readonly SnapCandidate[]; snapConfig?: { isSnapEnabled: boolean; altSuspended?: boolean } };
-      const candidates = session.candidates;
+      const session = state as unknown as { snapConfig?: { isSnapEnabled: boolean; altSuspended?: boolean } };
       const snapConfig = session.snapConfig;
       let snappedDraft = draft;
       let snapGuides;
-      if (candidates && candidates.length > 0 && snapConfig?.isSnapEnabled) {
-        const result = snapDraft(
+      if (state.intent.type === "drag" && snapConfig?.isSnapEnabled) {
+        const { documentSize } = state.viewport;
+        const gridXs = GRID_SNAP_COORDINATES.map(percent => (percent / 100) * documentSize.width);
+        const gridYs = GRID_SNAP_COORDINATES.map(percent => (percent / 100) * documentSize.height);
+        const result = snapDraftToGrid(
           draft.rect,
-          candidates,
-          { ...DEFAULT_SNAP_CONFIG, ...snapConfig, altSuspended: event.modifiers.alt || (snapConfig?.altSuspended ?? false) },
+          gridXs,
+          gridYs,
+          { ...DEFAULT_SNAP_CONFIG, ...snapConfig, toleranceScreenPx: 12, altSuspended: event.modifiers.alt || (snapConfig?.altSuspended ?? false) },
           state.viewport.scaleX,
           state.viewport.scaleY,
         );

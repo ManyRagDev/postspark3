@@ -138,7 +138,8 @@
       "mcp__stripe__stripe_api_search",
       "mcp__supabase__get_advisors",
       "mcp__stripe__stripe_api_read",
-      "WebSearch"
+      "WebSearch",
+      "Bash(wmic process *)"
     ]
   },
   "enabledMcpjsonServers": [

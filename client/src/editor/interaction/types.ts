@@ -7,7 +7,7 @@ import type {
 } from "../geometry";
 import type { SnapCandidate, SnapConfig, SnapResult } from "../snap/snapEngine";
 
-export const DEFAULT_INTERACTION_SLOP_PX = 5;
+export const DEFAULT_INTERACTION_SLOP_PX = 3;
 
 export type InteractionOperation = "drag" | "resize";
 

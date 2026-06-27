@@ -11,8 +11,9 @@ export function useInteractiveElement(descriptor: InteractiveElementDescriptor) 
     if (!interaction) return;
     const cleanup = interaction.register(descriptorRef.current);
     return () => {
-      interaction.unmountTarget(descriptor.id);
+      // Cleanup first, then unmount to avoid canceling active interactions
       cleanup();
+      interaction.unmountTarget(descriptor.id);
     };
   }, [descriptor.id, interaction]);
 

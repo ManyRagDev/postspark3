@@ -35,7 +35,7 @@ var init_env = __esm({
       openRouterAppName: process.env.OPENROUTER_APP_NAME ?? "PostSpark",
       openRouterTextModel: process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5-mini",
       openRouterVisionModel: process.env.OPENROUTER_VISION_MODEL ?? "openai/gpt-5-mini",
-      openRouterImageModel: process.env.OPENROUTER_IMAGE_MODEL ?? "google/gemini-3.1-flash-image",
+      openRouterImageModel: process.env.OPENROUTER_IMAGE_MODEL ?? "google/gemini-3.1-flash-image-preview",
       openRouterPlatformFeePercent: parseFloat(process.env.OPENROUTER_PLATFORM_FEE_PERCENT || "5.5"),
       llmInputCostPerMillion: parseFloat(process.env.LLM_INPUT_COST_PER_MILLION || "0"),
       llmOutputCostPerMillion: parseFloat(process.env.LLM_OUTPUT_COST_PER_MILLION || "0"),
@@ -300,7 +300,7 @@ async function getGenerationOperationalMetrics(windowDays = 7) {
   const since = new Date(Date.now() - windowDays * 864e5).toISOString();
   const { data, error } = await db.from("generation_runs").select(
     "status,candidate_count,accepted_count,average_quality_score,revision_count,strategy_fallback_used,originality_fallback_used,prompt_snapshot,total_tokens,estimated_cost_usd,latency_ms"
-  ).gte("createdAt", since);
+  ).gte("created_at", since);
   if (error) {
     throw new Error(
       `[Database] getGenerationOperationalMetrics failed: ${error.message}`
@@ -360,6 +360,24 @@ async function getGenerationOperationalMetrics(windowDays = 7) {
       0
     )
   };
+}
+async function getUserGenerationRuns(userUuid, limit = 50, offset = 0) {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db.from("generation_runs").select("*").eq("user_uuid", userUuid).order("created_at", { ascending: false }).range(offset, offset + limit - 1);
+  if (error) {
+    throw new Error(
+      `[Database] getUserGenerationRuns failed: ${error.message}`
+    );
+  }
+  return data ?? [];
+}
+async function getGenerationRunById(id, userUuid) {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db.from("generation_runs").select("*").eq("id", id).eq("user_uuid", userUuid).single();
+  if (error || !data) {
+    return null;
+  }
+  return data;
 }
 var _supabaseDbClient;
 var init_db = __esm({
@@ -768,11 +786,25 @@ import { z as z5 } from "zod";
 init_env();
 
 // server/_core/operationalLog.ts
-import { appendFile } from "fs/promises";
+import { appendFile, stat, writeFile } from "fs/promises";
 import path from "path";
 import { inspect } from "util";
 var LOG_FILE = path.resolve(process.cwd(), "OPERATIONAL_ERRORS.txt");
 var MAX_FIELD_LENGTH = 4e3;
+var MAX_LOG_SIZE_BYTES = 5 * 1024 * 1024;
+var VITE_ASSET_PATTERN = /^\/@(fs|react-refresh|id|vite)\b/;
+function isViteDevRequest(url) {
+  return VITE_ASSET_PATTERN.test(url);
+}
+async function rotateIfNeeded() {
+  try {
+    const stats = await stat(LOG_FILE);
+    if (stats.size > MAX_LOG_SIZE_BYTES) {
+      await writeFile(LOG_FILE, "# OPERATIONAL_ERRORS.txt (rotated)\n", "utf8");
+    }
+  } catch {
+  }
+}
 var redact = (value) => value.replace(/(authorization\s*[:=]\s*)(bearer\s+)?[^\s,;}]+/gi, "$1[REDACTED]").replace(/(cookie\s*[:=]\s*)[^,;}]+/gi, "$1[REDACTED]").replace(/(access_token\s*[:=]\s*)[^,;}]+/gi, "$1[REDACTED]").replace(/(refresh_token\s*[:=]\s*)[^,;}]+/gi, "$1[REDACTED]").replace(/(api[_-]?key\s*[:=]\s*)[^,;}]+/gi, "$1[REDACTED]");
 var truncate = (value) => value.length > MAX_FIELD_LENGTH ? `${value.slice(0, MAX_FIELD_LENGTH)}...[truncated ${value.length - MAX_FIELD_LENGTH} chars]` : value;
 var serialize = (value) => {
@@ -800,6 +832,7 @@ async function appendOperationalLog(event, details = {}) {
     ""
   ];
   try {
+    await rotateIfNeeded();
     await appendFile(LOG_FILE, `${lines.join("\n")}
 `, "utf8");
   } catch {
@@ -836,10 +869,12 @@ function httpStatusFileLogger(req, res, next) {
     return originalSend(body);
   });
   res.on("finish", () => {
-    if (res.statusCode === 200) return;
-    void appendOperationalLog("HTTP_NON_200", {
+    if (res.statusCode < 400) return;
+    const url = req.originalUrl || req.url || "";
+    if (isViteDevRequest(url)) return;
+    void appendOperationalLog("HTTP_ERROR", {
       method: req.method,
-      url: req.originalUrl || req.url,
+      url,
       statusCode: res.statusCode,
       durationMs: Date.now() - startedAt,
       ip: req.ip,
@@ -2024,42 +2059,111 @@ init_env();
 function wrapPrompt(userPrompt) {
   return `Photorealistic or abstract background art for a social media post. Theme: ${userPrompt}. High quality, vibrant colors. Absolutely no text, no letters, no words, no logos, no typography, no watermarks, no fake app UI elements. Leave clean visual breathing room for editable foreground copy.`;
 }
-function collectImageCandidates(value, output = []) {
-  if (!value) return output;
-  if (typeof value === "string") {
-    if (value.startsWith("data:image/") || /^https?:\/\//i.test(value) || value.length > 500 && /^[A-Za-z0-9+/=\s]+$/.test(value)) {
-      output.push(value.trim());
+function candidateFromImageNode(value) {
+  if (typeof value === "string") return { value };
+  if (!value || typeof value !== "object") return null;
+  const node = value;
+  const imageUrl = node.image_url ?? node.imageUrl;
+  if (typeof imageUrl === "string") return { value: imageUrl };
+  if (imageUrl && typeof imageUrl === "object") {
+    const url = imageUrl.url;
+    if (typeof url === "string") return { value: url };
+  }
+  if (typeof node.url === "string") return { value: node.url };
+  const inlineData = node.inline_data ?? node.inlineData;
+  if (inlineData && typeof inlineData === "object") {
+    const data = inlineData.data;
+    const mimeType = inlineData.mime_type ?? inlineData.mimeType;
+    if (typeof data === "string") {
+      return { value: data, mimeType: typeof mimeType === "string" ? mimeType : void 0 };
     }
-    return output;
   }
-  if (Array.isArray(value)) {
-    value.forEach((item) => collectImageCandidates(item, output));
-    return output;
+  if (typeof node.data === "string") {
+    const mimeType = node.mime_type ?? node.mimeType;
+    return {
+      value: node.data,
+      mimeType: typeof mimeType === "string" ? mimeType : void 0
+    };
   }
-  if (typeof value === "object") {
-    Object.values(value).forEach(
-      (item) => collectImageCandidates(item, output)
-    );
+  return null;
+}
+function collectImageCandidates(response) {
+  if (!response || typeof response !== "object") return [];
+  const output = [];
+  const choices = response.choices;
+  if (!Array.isArray(choices)) return output;
+  for (const choice of choices) {
+    if (!choice || typeof choice !== "object") continue;
+    const message = choice.message;
+    if (!message || typeof message !== "object") continue;
+    const messageRecord = message;
+    if (Array.isArray(messageRecord.images)) {
+      for (const image of messageRecord.images) {
+        const candidate = candidateFromImageNode(image);
+        if (candidate) output.push(candidate);
+      }
+    }
+    if (Array.isArray(messageRecord.content)) {
+      for (const part of messageRecord.content) {
+        if (!part || typeof part !== "object") continue;
+        const type = part.type;
+        if (type !== "image" && type !== "image_url" && type !== "output_image") continue;
+        const candidate = candidateFromImageNode(part);
+        if (candidate) output.push(candidate);
+      }
+    }
   }
   return output;
 }
+function detectImageMimeType(buffer) {
+  if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+    return "image/png";
+  }
+  if (buffer.length >= 3 && buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255) {
+    return "image/jpeg";
+  }
+  if (buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP") {
+    return "image/webp";
+  }
+  if (buffer.length >= 6 && ["GIF87a", "GIF89a"].includes(buffer.toString("ascii", 0, 6))) {
+    return "image/gif";
+  }
+  return null;
+}
+function validatedDataUri(base64, declaredMimeType) {
+  const normalized = base64.replace(/\s/g, "");
+  if (!normalized || !/^[A-Za-z0-9+/]+={0,2}$/.test(normalized)) {
+    throw new Error("Image payload is not valid base64");
+  }
+  const buffer = Buffer.from(normalized, "base64");
+  const detectedMimeType = detectImageMimeType(buffer);
+  if (!detectedMimeType) {
+    throw new Error(`Image payload has an invalid binary signature${declaredMimeType ? ` (declared ${declaredMimeType})` : ""}`);
+  }
+  return `data:${detectedMimeType};base64,${buffer.toString("base64")}`;
+}
 async function toDataUri(candidate) {
-  if (candidate.startsWith("data:image/")) return candidate;
-  if (/^https?:\/\//i.test(candidate)) {
-    const response = await fetch(candidate);
+  const dataUri = /^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]+)$/.exec(candidate.value);
+  if (dataUri) return validatedDataUri(dataUri[2], dataUri[1]);
+  if (/^https?:\/\//i.test(candidate.value)) {
+    const response = await fetch(candidate.value);
     if (!response.ok) {
       throw new Error(`Image URL fetch failed: ${response.status} ${response.statusText}`);
     }
-    const contentType = response.headers.get("content-type") || "image/png";
     const buffer = Buffer.from(await response.arrayBuffer());
-    return `data:${contentType};base64,${buffer.toString("base64")}`;
+    return validatedDataUri(buffer.toString("base64"), response.headers.get("content-type") ?? void 0);
   }
-  return `data:image/png;base64,${candidate.replace(/\s/g, "")}`;
+  return validatedDataUri(candidate.value, candidate.mimeType);
 }
 async function generateWithOpenRouter(prompt, provider) {
   if (!ENV.openRouterApiKey) {
     throw new Error("OPENROUTER_API_KEY is not configured for image generation");
   }
+  console.info("[ImageGen] Calling image service", {
+    service: "OpenRouter",
+    model: ENV.openRouterImageModel,
+    qualityMode: provider
+  });
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -2105,16 +2209,42 @@ Output requirements:
     throw new Error(`OpenRouter image generation failed: ${response.status} ${response.statusText}`);
   }
   const json = await response.json();
-  const candidate = collectImageCandidates(json)[0];
-  if (!candidate) {
+  const candidates = collectImageCandidates(json);
+  console.log("[ImageGen] Collected structured image candidates:", candidates.length);
+  if (candidates.length === 0) {
     throw new Error("OpenRouter image response did not contain an image payload");
   }
-  return toDataUri(candidate);
+  let image = null;
+  let lastValidationError;
+  for (const candidate of candidates) {
+    try {
+      image = await toDataUri(candidate);
+      break;
+    } catch (error) {
+      lastValidationError = error;
+    }
+  }
+  if (!image) {
+    throw new Error("OpenRouter image response contained no valid image payload", {
+      cause: lastValidationError
+    });
+  }
+  console.info("[ImageGen] Image service succeeded", {
+    service: "OpenRouter",
+    model: ENV.openRouterImageModel,
+    qualityMode: provider
+  });
+  return image;
 }
 async function generateWithPollinations(prompt, provider) {
   const modelId = provider === "pollinations_hd" ? "nanobanana-pro" : "nanobanana";
   const encodedPrompt = encodeURIComponent(wrapPrompt(prompt));
   const url = `https://gen.pollinations.ai/image/${encodedPrompt}?model=${modelId}&nologo=true&width=1080&height=1080&enhance=true`;
+  console.info("[ImageGen] Calling image service", {
+    service: "Pollinations.ai",
+    model: modelId,
+    qualityMode: provider
+  });
   const headers = {
     "User-Agent": "PostSpark/1.0",
     Accept: "image/jpeg, image/png, image/*"
@@ -2135,10 +2265,21 @@ async function generateWithPollinations(prompt, provider) {
     throw new Error(`Pollinations API failed: ${response.status} ${response.statusText}`);
   }
   const buffer = Buffer.from(await response.arrayBuffer());
-  return `data:image/jpeg;base64,${buffer.toString("base64")}`;
+  const dataUri = `data:image/jpeg;base64,${buffer.toString("base64")}`;
+  console.info("[ImageGen] Image service succeeded", {
+    service: "Pollinations.ai",
+    model: modelId,
+    qualityMode: provider
+  });
+  return dataUri;
 }
 async function generateBackgroundImage(prompt, provider = "pollinations_fast") {
-  console.log(`[ImageGen] Request: provider=${provider}, prompt="${prompt.substring(0, 50)}..."`);
+  console.info("[ImageGen] Image generation requested", {
+    primaryService: "OpenRouter",
+    primaryModel: ENV.openRouterImageModel,
+    fallbackService: "Pollinations.ai",
+    qualityMode: provider
+  });
   try {
     const image = await generateWithOpenRouter(prompt, provider);
     void appendOperationalLog("IMAGE_PROVIDER_200", {
@@ -2148,7 +2289,13 @@ async function generateBackgroundImage(prompt, provider = "pollinations_fast") {
     });
     return image;
   } catch (error) {
-    console.warn("[ImageGen] OpenRouter image generation failed; falling back to Pollinations.", error);
+    console.warn("[ImageGen] Switching image service", {
+      failedService: "OpenRouter",
+      failedModel: ENV.openRouterImageModel,
+      nextService: "Pollinations.ai",
+      qualityMode: provider,
+      error
+    });
     void appendOperationalLog("IMAGE_PROVIDER_FALLBACK", {
       fromProvider: "openrouter",
       fromModel: ENV.openRouterImageModel,
@@ -6542,6 +6689,16 @@ var textElementSchema = z2.object({
     opacity: z2.string()
   })
 });
+var imageElementSchema = z2.object({
+  id: z2.string(),
+  url: z2.string(),
+  x: z2.number(),
+  y: z2.number(),
+  width: z2.number(),
+  height: z2.union([z2.number(), z2.literal("auto")]),
+  rotation: z2.number(),
+  source: z2.enum(["upload", "url"]).optional()
+});
 var designTokensSchema = z2.object({
   colors: z2.object({
     background: z2.string(),
@@ -6657,6 +6814,7 @@ var variationVisualPatchSchema = z2.object({
   template: postTemplateSchema.optional(),
   sections: z2.array(contentSectionSchema).optional(),
   textElements: z2.array(textElementSchema).optional(),
+  imageElements: z2.array(imageElementSchema).optional(),
   imageSettings: imageSettingsSchema.optional(),
   layoutSettings: advancedLayoutSettingsSchema.optional(),
   bgValue: backgroundValueSchema.optional(),
@@ -6684,7 +6842,7 @@ var carouselSlideSchema = z2.object({
   }).optional()
 });
 var postVisualSnapshotSchema = z2.object({
-  snapshotVersion: z2.literal(1),
+  snapshotVersion: z2.union([z2.literal(1), z2.literal(2), z2.literal(3)]),
   id: z2.string(),
   headline: z2.string(),
   body: z2.string(),
@@ -6712,6 +6870,7 @@ var postVisualSnapshotSchema = z2.object({
   template: postTemplateSchema.optional(),
   sections: z2.array(contentSectionSchema).optional(),
   textElements: z2.array(textElementSchema).optional(),
+  imageElements: z2.array(imageElementSchema).optional(),
   aspectRatioOptimizations: z2.partialRecord(aspectRatioSchema, formatOptimizationSchema).optional(),
   layoutSettingsByAspectRatio: z2.partialRecord(aspectRatioSchema, advancedLayoutSettingsSchema).optional(),
   copyAngle: copyAngleSchema.optional(),
@@ -8555,11 +8714,33 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`
     list: protectedProcedure.query(async ({ ctx }) => {
       return getUserPosts(ctx.user.id);
     }),
+    /** List user's generation history */
+    listGenerations: protectedProcedure.input(
+      z5.object({
+        limit: z5.number().int().min(1).max(100).default(50),
+        offset: z5.number().int().min(0).default(0)
+      }).optional()
+    ).query(async ({ input, ctx }) => {
+      const limit = input?.limit ?? 50;
+      const offset = input?.offset ?? 0;
+      return getUserGenerationRuns(ctx.user.id, limit, offset);
+    }),
+    /** Get single generation by ID */
+    getGeneration: protectedProcedure.input(z5.object({ id: z5.string().uuid() })).query(async ({ input, ctx }) => {
+      const generation = await getGenerationRunById(input.id, ctx.user.id);
+      if (!generation) {
+        throw new TRPCError5({
+          code: "NOT_FOUND",
+          message: "Gera\xE7\xE3o n\xE3o encontrada."
+        });
+      }
+      return generation;
+    }),
     /** Get single post */
     get: protectedProcedure.input(z5.object({ id: z5.number() })).query(async ({ input, ctx }) => {
       return getPostById(input.id, ctx.user.id);
     }),
-    /** Generate background image via Pollinations or Gemini */
+    /** Generate background image via OpenRouter, with Pollinations as fallback */
     generateBackground: protectedProcedure.input(
       z5.object({
         prompt: z5.string().min(1),
@@ -8741,7 +8922,7 @@ Devolva as sugest\xF5es respeitando estritamente os IDs recebidos. N\xE3o invent
       try {
         const categories = fs.readdirSync(bgRoot, { withFileTypes: true }).filter((d) => d.isDirectory()).map((dir) => {
           const catPath = path2.join(bgRoot, dir.name);
-          const images = fs.readdirSync(catPath).filter((f) => /\.(webp|jpg|jpeg|png|gif|svg)$/i.test(f)).map((f) => `/ images / backgrounds / ${dir.name} / ${f}`);
+          const images = fs.readdirSync(catPath).filter((f) => /\.(webp|jpg|jpeg|png|gif|svg)$/i.test(f)).map((f) => `/images/backgrounds/${encodeURIComponent(dir.name)}/${encodeURIComponent(f)}`);
           return { id: dir.name, name: dir.name, images };
         }).filter((c) => c.images.length > 0);
         return categories;
@@ -8777,48 +8958,12 @@ Devolva as sugest\xF5es respeitando estritamente os IDs recebidos. N\xE3o invent
         url: z5.string().url()
       })
     ).mutation(async ({ input }) => {
-      console.log("[extractStyles] ==========================================");
-      console.log("[extractStyles] Starting extraction for:", input.url);
-      console.log("[extractStyles] Timestamp:", (/* @__PURE__ */ new Date()).toISOString());
-      console.log("[extractStyles] Step 1: Running hybrid extraction pipeline...");
       const { data: extractedData, visionUsed } = await extractStyleFromUrlWithMeta(input.url);
-      console.log("[extractStyles] Palette found:", extractedData.colors.palette.length, "colors");
-      console.log("[extractStyles] Vision used:", visionUsed);
-      console.log("[extractStyles] Colors:", {
-        primary: extractedData.colors.primary,
-        background: extractedData.colors.background,
-        accent: extractedData.colors.accent,
-        palette: extractedData.colors.palette
-      });
       const defaultColors = /* @__PURE__ */ new Set(["#6366f1", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444"]);
       const realColors = extractedData.colors.palette.filter((c) => !defaultColors.has(c));
       const fallbackUsed = realColors.length === 0;
-      if (fallbackUsed) {
-        console.log("[extractStyles] FALLBACK: No real colors extracted (SPA/empty detected)");
-      }
-      console.log("[extractStyles] Step 2: Analyzing design patterns...");
       const designPatterns = await analyzeDesignPattern(extractedData, input.url);
-      console.log("[extractStyles] Patterns returned:", designPatterns.length);
-      designPatterns.forEach((p, i) => {
-        console.log(`[extractStyles] Pattern ${i + 1}: `, {
-          name: p.name,
-          category: p.category,
-          confidence: p.confidence,
-          suggestedColors: p.suggestedColors
-        });
-      });
-      console.log("[extractStyles] Step 3: Generating themes...");
       const themes = generateThemesFromPatterns(designPatterns, extractedData, input.url);
-      console.log("[extractStyles] Generated themes:", themes.length);
-      themes.forEach((t2, i) => {
-        console.log(`[extractStyles] Theme ${i + 1}: `, {
-          id: t2.id,
-          label: t2.label,
-          category: t2.category,
-          colors: t2.colors
-        });
-      });
-      console.log("[extractStyles] ==========================================");
       return {
         extractedData,
         designPatterns,

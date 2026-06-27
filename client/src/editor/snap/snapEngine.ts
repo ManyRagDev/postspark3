@@ -119,3 +119,75 @@ export function snapDraft(
 export function buildCanvasCandidate(id: string, width: number, height: number): SnapCandidate {
   return { id, rect: documentRect(0, 0, width, height) };
 }
+
+/**
+ * Encaixa o elemento nas linhas do grid (modo "ímã").
+ *
+ * Em vez de alinhar a outros elementos, alinha as âncoras do elemento
+ * (esquerda/centro/direita e topo/meio/base) às linhas verticais/horizontais
+ * do grid, expressas em coordenadas de documento. Retorna o retângulo ajustado
+ * e as guias (posição da linha em que encaixou) para feedback visual.
+ */
+export function snapDraftToGrid(
+  draft: DocumentRect,
+  gridXs: readonly number[],
+  gridYs: readonly number[],
+  config: SnapConfig,
+  viewportScaleX: number,
+  viewportScaleY: number,
+): { rect: DocumentRect; guides: SnapResult } {
+  const result: SnapResult = {
+    snapX: null,
+    snapY: null,
+    guideX: null,
+    guideY: null,
+    candidateIdX: null,
+    candidateIdY: null,
+  };
+
+  if (!config.isSnapEnabled || config.altSuspended) {
+    return { rect: draft, guides: result };
+  }
+
+  const toleranceX = config.toleranceScreenPx / viewportScaleX;
+  const toleranceY = config.toleranceScreenPx / viewportScaleY;
+
+  let bestDeltaX = Infinity;
+  for (const dragAnchorX of HORIZONTAL_ANCHORS) {
+    const dragPosX = anchorPosition(draft, dragAnchorX);
+    for (const gridX of gridXs) {
+      const delta = Math.abs(dragPosX - gridX);
+      if (delta < bestDeltaX && delta <= toleranceX) {
+        bestDeltaX = delta;
+        result.snapX = dragPosX;
+        result.guideX = gridX;
+        result.candidateIdX = "grid";
+      }
+    }
+  }
+
+  let bestDeltaY = Infinity;
+  for (const dragAnchorY of VERTICAL_ANCHORS) {
+    const dragPosY = anchorPosition(draft, dragAnchorY);
+    for (const gridY of gridYs) {
+      const delta = Math.abs(dragPosY - gridY);
+      if (delta < bestDeltaY && delta <= toleranceY) {
+        bestDeltaY = delta;
+        result.snapY = dragPosY;
+        result.guideY = gridY;
+        result.candidateIdY = "grid";
+      }
+    }
+  }
+
+  let snappedX = draft.x;
+  let snappedY = draft.y;
+  if (result.snapX !== null && result.guideX !== null) {
+    snappedX = draft.x + (result.guideX - result.snapX);
+  }
+  if (result.snapY !== null && result.guideY !== null) {
+    snappedY = draft.y + (result.guideY - result.snapY);
+  }
+
+  return { rect: documentRect(snappedX, snappedY, draft.width, draft.height), guides: result };
+}

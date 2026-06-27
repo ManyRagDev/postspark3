@@ -101,13 +101,15 @@ export function DraggableBlock({
         onSelect,
     }), [accentColor, containerRef, elementId, elementKind, layoutPos.freePosition, onSelect, snapEnabled]);
     const interaction = useInteractiveElement(descriptor);
-    const isDragging = interaction.phase === "dragging";
+    const isDragging = interaction.phase === "dragging" || interaction.phase === "pressing";
     const isResizing = interaction.phase === "resizing";
     const isAbsolute = Boolean(layoutPos.freePosition);
 
     useLayoutEffect(() => {
         if (isAbsolute) return;
-        if (!isDragging || flowFootprint) return;
+        // Calculate footprint immediately on mount, not waiting for drag
+        // This prevents layout shift during first interaction
+        if (flowFootprint) return;
         const element = blockRef.current;
         if (!element) return;
         const content = contentRef.current;
@@ -116,7 +118,7 @@ export function DraggableBlock({
         const measuredWidth = Math.min(element.offsetWidth, Math.max(1, contentWidth));
         const measuredHeight = Math.min(element.offsetHeight, Math.max(1, contentHeight));
         setFlowFootprint({ width: measuredWidth, height: measuredHeight });
-    }, [flowFootprint, isAbsolute, isDragging]);
+    }, [flowFootprint, isAbsolute]);
 
     const hasExplicitWidth = layoutPos.width != null;
     const defaultWidthForMode = isDraggable && defaultWidth === "100%" ? "fit-content" : defaultWidth;

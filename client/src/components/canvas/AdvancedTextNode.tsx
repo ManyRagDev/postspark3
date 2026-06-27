@@ -14,6 +14,7 @@ interface AdvancedTextNodeProps {
   onChange: (id: string, newText: string) => void;
   scale: number;
   editable?: boolean;
+  snapEnabled?: boolean;
 }
 
 export function AdvancedTextNode({
@@ -23,12 +24,14 @@ export function AdvancedTextNode({
   onChange,
   scale,
   editable = true,
+  snapEnabled = false,
 }: AdvancedTextNodeProps) {
   const [isEditing, setIsEditing] = useState(false);
   const nodeRef = useRef<HTMLDivElement>(null);
   const editableRef = useRef<HTMLDivElement>(null);
   const interaction = useCanvasInteraction();
   const target = `textElement:${element.id}` as const;
+
   const descriptor = useMemo(() => ({
     id: target,
     kind: "text" as const,
@@ -40,10 +43,10 @@ export function AdvancedTextNode({
       ...(intent.type === "resize" ? { minWidth: 24, minHeight: 1 } : {}),
     }),
     handlePolicy: "horizontal" as const,
-    snapEligible: false,
+    snapEligible: snapEnabled,
     accentColor: element.styles.color,
     onSelect,
-  }), [element, onSelect, target]);
+  }), [element, onSelect, snapEnabled, target]);
   const transient = useInteractiveElement(descriptor);
   const draft = transient.draft;
 

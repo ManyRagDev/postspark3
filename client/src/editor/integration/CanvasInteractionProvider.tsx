@@ -28,7 +28,7 @@ import {
   type InteractionState,
 } from "../interaction";
 import { useEditorStore } from "@/store/editorStore";
-import { buildCanvasCandidate, type SnapCandidate } from "../snap/snapEngine";
+import { buildCanvasCandidate, DEFAULT_SNAP_CONFIG, type SnapCandidate } from "../snap/snapEngine";
 import { ElementRegistry, type RegisteredInteractiveElement } from "./ElementRegistry";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
@@ -211,6 +211,10 @@ export function CanvasInteractionProvider({
         modifiers: modifiersFromPointer(input.event),
         constraints: input.constraints,
         candidates: input.candidates,
+        snapConfig: {
+          ...DEFAULT_SNAP_CONFIG,
+          isSnapEnabled: input.snapEnabled,
+        },
         capture: {
           capture: pointerId => input.captureElement.setPointerCapture(pointerId),
           release: pointerId => input.captureElement.releasePointerCapture(pointerId),

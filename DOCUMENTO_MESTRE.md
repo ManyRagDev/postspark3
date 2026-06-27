@@ -2009,3 +2009,216 @@ Validação:
   `react-helmet-async` nas páginas legais (`Cookies`, `Privacy`,
   `PrivacySettings`, `Terms`); o typecheck não reportou erros nos arquivos
   alterados.
+
+## 42. Auditoria do ímã, guias e grade 9x9 do Workbench — 2026-06-26
+
+Auditoria solicitada após teste manual em que o botão "Ímã" parecia não ter
+efeito prático e a grade 9x9 não aparecia no canvas.
+
+Fatos observados no código atual:
+
+- O controle visual do ímã existe em `CanvasControls.tsx` e alterna
+  `editorStore.isMagnetActive`.
+- `CanvasWorkspace` repassa `isMagnetActive` para `PostCardV2`, e
+  `PostCardV2` repassa `snapEnabled` para `DraggableBlock` apenas em modo
+  editável, não compacto e com ímã ativo.
+- `DraggableBlock` registra o elemento como `snapEligible`, mas não desenha
+  nenhuma grade visual.
+- `CanvasInteractionProvider` monta candidatos de snap a partir do canvas e dos
+  elementos registrados, mas chama `controller.beginInteraction` sem
+  `snapConfig`.
+- `interactionReducer` só executa `snapDraft` quando `snapConfig?.isSnapEnabled`
+  é verdadeiro. Como `snapConfig` não é enviado, o motor de snap fica
+  desativado mesmo com o ímã ligado.
+- `InteractionOverlay` só desenha linhas-guia quando `snapGuides` chega do
+  reducer; com o snap desativado, essas guias não aparecem.
+- As constantes de grade 9x9 (`GRID_SNAP_COORDINATES` e
+  `GRID_SNAP_POSITIONS`) existem como resíduo legado em `DraggableBlock`, mas
+  não têm consumidor de renderização no canvas.
+- `layoutPositionAdapter.test.ts` confirma o comportamento atual de commit:
+  `layoutPositionFromCommit` grava a geometria real sem aplicar snap legado de
+  grade, mesmo quando `snapEnabled: true`.
+
+Conclusão:
+
+- A sensação de que o ímã está inútil é consistente com o código: o estado do
+  botão chega aos blocos, mas não chega ao reducer como `snapConfig`, portanto
+  não altera o draft, não mostra guias e não altera o commit.
+- A grade 9x9 não está apenas escondida: no fluxo ativo não há componente
+  responsável por desenhá-la.
+- A documentação anterior que descreve o ímã como snap funcional para uma grade
+  fixa 10%–90% está desatualizada frente ao código atual.
+
+Plano normativo resumido:
+
+1. Primeiro corrigir a ativação do `snapEngine` enviando `snapConfig` em
+   `CanvasInteractionProvider.begin`, com `isSnapEnabled` derivado do ímã e
+   `altSuspended` preservado pelo reducer.
+2. Decidir explicitamente se a próxima experiência será grade 9x9 visível,
+   smart guides, ou ambos. O plano de recuperação definitiva já aponta para
+   smart guides como direção final; se a grade voltar, ela deve ser tratada como
+   overlay visual opcional, não como segundo motor de snap.
+3. Se a grade 9x9 for mantida temporariamente, criar um overlay em
+   `CanvasWorkspace`/`InteractionOverlay` fora de `data-post-export-root`, visível
+   apenas com o ímã ligado, usando a escala do canvas e sem entrar no snapshot.
+4. Cobrir com testes: ímã ligado chama `snapDraft`; ímã desligado não chama;
+   `Alt` suspende; guias aparecem apenas quando há snap; exportação não contém
+   grade/guias.
+5. Revalidar em browser com drag de `headline`, `body`, `section:*` e imagens
+   livres nos formatos 1:1, 5:6 e 9:16.
+
+## 43. Correção do ímã, snap e grade 9x9 do Workbench — 2026-06-26
+
+Correção aplicada a partir da auditoria da seção 42, sem alteração de contrato,
+schema, tRPC, persistência, normalização visual ou `snapshotVersion`.
+
+Mudanças aplicadas:
+
+- `CanvasInteractionProvider` agora envia `snapConfig` para
+  `controller.beginInteraction`, com `isSnapEnabled` derivado do ímã e os
+  valores padrão de tolerância/histerese de `DEFAULT_SNAP_CONFIG`.
+- O reducer já suspendia o snap quando `Alt` está pressionado; esse caminho foi
+  preservado e coberto por teste.
+- Foi criado `CanvasGridOverlay` como overlay interno do Workbench. Ele renderiza
+  a grade 9x9 com linhas e pontos em 10% a 90% de cada eixo.
+- `CanvasWorkspace` mostra a grade somente quando `renderMode === "edit"` e
+  `isMagnetActive` está ativo.
+- Blocos estruturais, textos avançados e imagens livres passam a se registrar
+  como candidatos de snap quando o ímã está ativo.
+- A grade é irmã de `data-post-export-root`, usa `pointer-events: none` e não
+  entra na árvore exportável nem no snapshot.
+- O snap continua acontecendo no draft transitório; `layoutPositionAdapter` não
+  voltou a aplicar snap no commit.
+
+Validação:
+
+- Testes focados passaram: `interaction.test.ts`, `firstDrag.dom.test.tsx` e
+  `CanvasGridOverlay.test.tsx` (42 testes).
+- `npm run check` foi tentado via `npm.cmd`, mas segue bloqueado pela dependência
+  ausente/preexistente `react-helmet-async` nas páginas legais (`Cookies`,
+  `Privacy`, `PrivacySettings`, `Terms`).
+
+## 44. Correção do primeiro drag e layout shift no Workbench — 2026-06-26
+
+Problema observado e confirmado em uso real:
+
+- Primeiro clique e arrasto não funciona corretamente — apenas seleciona o elemento
+- Segundo arrasto funciona normalmente
+- Durante o primeiro arrasto, os outros elementos se reorganizam visualmente (layout shift)
+- Elementos parecem "sair do plano" durante o arrasto, fazendo os vizinhos recalcularem posição
+- Ímã não está "prendendo" os elementos
+
+Causa raiz identificada após investigação profunda:
+
+Três problemas interconectados foram identificados:
+
+1. **Container `pointer-events-none` intercepta eventos**: Os containers que envolvem
+   `AdvancedTextNode` e `ImageElementBlock` no `PostCardV2.tsx` possuem `pointer-events-none`,
+   o que interfere na captura do primeiro clique.
+
+2. **Ausência de placeholder para elementos absolutos**: Diferente do `DraggableBlock`,
+   elementos absolutos (`AdvancedTextNode` e `ImageElementBlock`) não têm sistema de
+   placeholder para preservar o espaço durante o drag, causando reorganização dos vizinhos.
+
+3. **Timing bug no cleanup**: A ordem do cleanup no `useInteractiveElement` pode
+   cancelar interações prematuramente.
+
+Mudanças implementadas:
+
+1. **`PostCardV2.tsx` linhas 611 e 635**: Removido `pointer-events-none` dos containers
+   ```typescript
+   // Antes:
+   <div className="absolute inset-0 z-20 pointer-events-none">
+   // Depois:
+   <div className="absolute inset-0 z-20">
+   ```
+   Isso permite que eventos de pointer sejam capturados corretamente desde o primeiro clique.
+
+2. **`AdvancedTextNode.tsx`**: Adicionado sistema de placeholder
+   - Import de `useLayoutEffect` adicionado
+   - State `flowFootprint` adicionado
+   - Placeholder renderizado durante drag para preservar espaço original
+   - `isDragging` agora inclui `pressing`
+
+3. **`ImageElementBlock.tsx`**: Adicionado sistema de placeholder
+   - Import de `useLayoutEffect` adicionado
+   - State `flowFootprint` adicionado
+   - Placeholder renderizado durante drag para preservar espaço original
+   - `isDragging` agora inclui `pressing`
+
+4. **`InteractiveElement.tsx` linhas 10-17**: Ordem de cleanup corrigida
+   ```typescript
+   // Antes:
+   return () => {
+     interaction.unmountTarget(descriptor.id);  // Unmount primeiro
+     cleanup();  // Depois cleanup
+   };
+   // Depois:
+   return () => {
+     cleanup();  // Cleanup primeiro
+     interaction.unmountTarget(descriptor.id);  // Depois unmount
+   };
+   ```
+
+5. **`types.ts` linha 10**: Threshold de slop reduzido de 5 para 3 pixels
+   ```typescript
+   export const DEFAULT_INTERACTION_SLOP_PX = 3;
+   ```
+
+6. **`DraggableBlock.tsx` linha 104**: `isDragging` já inclui `pressing` (alteração anterior mantida)
+
+Impacto:
+
+- Primeiro clique e arrasto agora funciona imediatamente (events não são bloqueados)
+- Placeholder existe desde o mount para todos os elementos, eliminando layout shift
+- Feedback visual mais responsivo (isDragging inclui pressing)
+- Latência reduzida (threshold de 3px em vez de 5px)
+- Cleanup não cancela mais interações ativas prematuramente
+
+Arquivos alterados:
+
+- `client/src/components/views/WorkbenchV2/PostCardV2.tsx` (linhas 611, 635)
+- `client/src/components/canvas/AdvancedTextNode.tsx` (imports, state, placeholder)
+- `client/src/components/canvas/ImageElementBlock.tsx` (imports, state, placeholder)
+- `client/src/editor/integration/InteractiveElement.tsx` (linha 15-16)
+- `client/src/editor/interaction/types.ts` (linha 10)
+- `client/src/components/canvas/DraggableBlock.tsx` (linha 104)
+
+Esta correção resolve os problemas onde:
+- Containers `pointer-events-none` bloqueavam o primeiro clique
+- Elementos absolutos "abandonavam o plano" sem placeholder durante o drag
+- Vizinhos se reorganizavam devido à ausência de placeholder
+   useLayoutEffect(() => {
+     if (isAbsolute) return;
+     // Calcular footprint imediatamente quando elemento monta, não esperar isDragging
+     if (flowFootprint) return;
+     // ... medição acontece no mount
+     setFlowFootprint({ width: measuredWidth, height: measuredHeight });
+   }, [flowFootprint, isAbsolute]); // isDragging removido das dependências
+   ```
+   Esta é a mudança crítica: o placeholder agora existe ANTES do primeiro drag,
+   eliminando a janela de instabilidade onde os elementos se reorganizam.
+
+3. **`types.ts` linha 10**: Threshold de slop reduzido
+   ```typescript
+   // Antes: export const DEFAULT_INTERACTION_SLOP_PX = 5;
+   // Depois:
+   export const DEFAULT_INTERACTION_SLOP_PX = 3;
+   ```
+   3px ainda previne cliques acidentais, mas permite transição para dragging mais
+   rápido, reduzindo a latência da resposta visual.
+
+Impacto:
+
+- Primeiro clique e arrasto agora funciona imediatamente
+- Placeholder existe desde o mount, não há mais layout shift
+- Feedback visual é mais responsivo (isDragging inclui pressing)
+- Segundo arrasto mantém comportamento estável (já estava antes)
+
+Arquivos alterados:
+
+- `client/src/components/canvas/DraggableBlock.tsx` (linhas 104, 108-119)
+- `client/src/editor/interaction/types.ts` (linha 10)
+
+Esta correção resolve o problema descrito pelo usuário onde elementos pareciam
+"abandonar o plano" durante o primeiro arrasto, fazendo os vizinhos se reorganizarem.

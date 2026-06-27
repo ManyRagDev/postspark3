@@ -20,6 +20,7 @@ import { FloatingImageMenu } from "./FloatingImageMenu";
 import { useAutoPilotDesign } from "./useAutoPilotDesign";
 import { CanvasLoadingOverlay } from "./CanvasLoadingOverlay";
 import { CarouselMobileArrows, CarouselScopeControl, CarouselSlideNavigator, MagnetControl } from "./CanvasControls";
+import { CanvasGridOverlay } from "./CanvasGridOverlay";
 
 const POST_BASE_WIDTH = 360;
 const DESKTOP_MAX_CANVAS_SCALE = 2;
@@ -249,6 +250,7 @@ export default function CanvasWorkspace({
                                 className="h-full w-full"
                             />}
                         </div>
+                        {renderMode === "edit" && isMagnetActive && <CanvasGridOverlay accentColor={accentColor} />}
                         {renderMode === "edit" && <InteractionOverlay />}
                     </CanvasInteractionProvider>
 

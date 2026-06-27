@@ -117,4 +117,70 @@ describe("first drag DOM invariants", () => {
 
     await act(async () => root.unmount());
   });
+
+  it("passes snap config through the provider and commits the snapped draft", async () => {
+    const canvasRef = createRef<HTMLDivElement>();
+    const layoutRef = createRef<HTMLDivElement>();
+    const root = createRoot(host);
+
+    await act(async () => {
+      root.render(
+        <div ref={canvasRef}>
+          <CanvasInteractionProvider canvasRef={canvasRef}>
+            <div ref={layoutRef}>
+              <DraggableBlock
+                elementId="headline"
+                layoutPos={{ position: "top-center", textAlign: "center", width: 80 }}
+                padding={24}
+                containerRef={layoutRef}
+                snapEnabled
+              >
+                headline
+              </DraggableBlock>
+              <DraggableBlock
+                elementId="body"
+                layoutPos={{ position: "bottom-left", textAlign: "left", width: 60 }}
+                padding={24}
+                containerRef={layoutRef}
+                snapEnabled
+              >
+                body
+              </DraggableBlock>
+            </div>
+          </CanvasInteractionProvider>
+        </div>,
+      );
+    });
+
+    const canvas = canvasRef.current!;
+    const layout = layoutRef.current!;
+    const headline = host.querySelector<HTMLElement>("[data-layout-id='headline']")!;
+    const body = host.querySelector<HTMLElement>("[data-layout-id='body']")!;
+    dimensions(canvas, new DOMRect(20, 30, 720, 720), 360, 360);
+    dimensions(layout, new DOMRect(20, 30, 720, 720), 360, 360);
+    dimensions(headline, new DOMRect(100, 130, 240, 80), 120, 40);
+    dimensions(body, new DOMRect(160, 520, 160, 80), 80, 40);
+    headline.setPointerCapture = () => undefined;
+    headline.releasePointerCapture = () => undefined;
+
+    await act(async () => {
+      headline.dispatchEvent(new PointerEvent("pointerdown", {
+        bubbles: true,
+        pointerId: 9,
+        clientX: 160,
+        clientY: 160,
+      }));
+      headline.dispatchEvent(new PointerEvent("pointerup", {
+        bubbles: true,
+        pointerId: 9,
+        clientX: 216,
+        clientY: 160,
+      }));
+    });
+
+    expect(useEditorStore.getState().layoutSettings.headline.freePosition?.x)
+      .toBeCloseTo(36.1111111111, 8);
+
+    await act(async () => root.unmount());
+  });
 });
