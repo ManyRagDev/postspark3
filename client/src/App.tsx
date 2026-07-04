@@ -12,6 +12,10 @@ import History from "./pages/History";
 import SavedPosts from "./pages/SavedPosts";
 import Admin from "./pages/Admin";
 import TheVoid2Page from "./pages/TheVoid2Page";
+import { LandingPage } from "./pages/Landing";
+import { LandingPage as LandingPage2 } from "./pages/Landing2";
+import Landing3 from "./pages/landing3/Landing3";
+import Landing4 from "./pages/Landing4";
 import UserTopMenu from "./components/UserTopMenu";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -179,6 +183,10 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={PublicLandingRoute} />
+      <Route path={"/landing"} component={LandingPage} />
+      <Route path={"/landing2"} component={LandingPage2} />
+      <Route path={"/landing3"} component={Landing3} />
+      <Route path={"/landing4"} component={Landing4} />
       <Route path={"/thevoid"} component={() => <ProtectedRoute component={Home} />} />
       <Route path={"/thevoid2"} component={LegacyTheVoid2Route} />
       <Route path={"/pricing"} component={Pricing} />
@@ -206,7 +214,7 @@ function Router() {
 function AppInner() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
-  const isTheVoid2Route = location === "/" || location === "/thevoid2";
+  const isTheVoid2Route = location === "/" || location === "/thevoid2" || location === "/landing3" || location === "/landing4";
 
   return (
     <>

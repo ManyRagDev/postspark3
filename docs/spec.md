@@ -31,3 +31,27 @@ A interface V2 utiliza um sistema de brilho reativo baseado em `framer-motion`:
 ## 5. Resgate High-Ticket
 - **Geração de Imagem Pro:** Garantir o switch para consumo fidedigno entre endpoints rápidos (flux/nanobanana flash) e premium.
 - **Ajustar com IA**: Restauro do prompt multimodal injetando visualização via Canvas Output para LLM Gemini 1.5 Pro/2.5 Pro no node server.
+
+---
+
+## 6. Recursos de Edição de Texto
+
+**Plano de Implementação**: Veja `docs/text-editing-implementation-plan.md` para análise completa e roadmap de funcionalidades de edição de texto (tamanho, espaçamento, alinhamento, formatação rich).
+
+### Status Atual
+
+| Funcionalidade | Status |
+|---------------|--------|
+| Tamanho de texto | ✅ Implementado |
+| Espaçamento (line-height) | ⚠️ Parcial |
+| Espaçamento (letter-spacing) | ❌ Ausente |
+| Alinhamento | ⚠️ Parcial |
+| Formatação rich | ❌ Ausente |
+
+### Fases de Implementação
+
+1. **FASE 1**: Fundação de Tipografia (Alta prioridade)
+2. **FASE 2**: Unificação de Alinhamento (Alta prioridade)
+3. **FASE 3**: Toolbar de Formatação Rich (Média prioridade)
+4. **FASE 4**: Melhorias de UX (Média prioridade)
+5. **FASE 5**: Persistência e Backend (Baixa prioridade)

@@ -14184,3 +14184,81 @@ error: Error: EPIPE: broken pipe, write
     at async onHMRUpdate (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\vite@7.1.9_@types+node@24.7_61597552e415200265e44ff54b51c03e\node_modules\vite\dist\node\chunks\dep-Chhhsdoe.js:28235:35)
     at async FSWatcher.<anonymous> (C:\Users\emanu\Documents\Projetos\PostSpark 3\node_modules\.pnpm\vite@7.1.9_@types+node@24.7_61597552e415200265e44ff54b51c03e\node_modules\vite\dist\node\chunks\dep-Chhhsdoe.js:28260:3)
 
+[2026-06-27T04:12:03.646Z] HTTP_ERROR
+method: GET
+url: /api/trpc/billing.getProfile,post.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%2C%221%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%7D
+statusCode: 401
+durationMs: 475
+ip: ::1
+userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-07-03T18:14:58.106Z] HTTP_ERROR
+method: GET
+url: /api/trpc/post.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 9623
+ip: ::1
+userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 OPR/131.0.0.0
+responseBody: undefined
+
+[2026-07-03T18:15:10.531Z] HTTP_ERROR
+method: GET
+url: /api/trpc/post.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 10418
+ip: ::1
+userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 OPR/131.0.0.0
+responseBody: undefined
+
+[2026-07-03T18:15:40.252Z] HTTP_ERROR
+method: GET
+url: /api/trpc/post.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 12016
+ip: ::1
+userAgent: Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36
+responseBody: undefined
+
+[2026-07-03T20:00:42.345Z] HTTP_ERROR
+method: GET
+url: /api/trpc/billing.getProfile,post.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%2C%221%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%7D
+statusCode: 401
+durationMs: 698
+ip: ::1
+userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-07-03T20:00:43.448Z] HTTP_ERROR
+method: GET
+url: /api/trpc/billing.getProfile,post.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%2C%221%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%7D
+statusCode: 401
+durationMs: 77
+ip: ::1
+userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-07-04T00:08:09.093Z] HTTP_ERROR
+method: GET
+url: /api/trpc/post.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 10861
+ip: ::1
+userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 OPR/131.0.0.0
+responseBody: undefined
+
+[2026-07-04T00:08:28.628Z] HTTP_ERROR
+method: GET
+url: /api/trpc/post.list?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 17529
+ip: ::1
+userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 OPR/131.0.0.0
+responseBody: undefined
+
+[2026-07-04T00:20:51.659Z] CONSOLE_ERROR
+message: [2m21:20:51[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/pages/Landing2/HeroDemo.tsx (resolved id: C:/Users/emanu/Documents/Projetos/PostSpark 3/client/src/pages/Landing2/HeroDemo.tsx) in C:/Users/emanu/Documents/Projetos/PostSpark 3/client/src/pages/Landing2/index.ts. Does the file exist? [33m(x2)[39m
+
+[2026-07-04T00:20:51.659Z] CONSOLE_ERROR
+message: [2m21:20:51[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Failed to load url /src/pages/Landing2/HeroDemo.tsx (resolved id: C:/Users/emanu/Documents/Projetos/PostSpark 3/client/src/pages/Landing2/HeroDemo.tsx) in C:/Users/emanu/Documents/Projetos/PostSpark 3/client/src/pages/Landing2/index.ts. Does the file exist?
+

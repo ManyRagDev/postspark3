@@ -139,7 +139,11 @@
       "mcp__supabase__get_advisors",
       "mcp__stripe__stripe_api_read",
       "WebSearch",
-      "Bash(wmic process *)"
+      "Bash(wmic process *)",
+      "Bash(where python *)",
+      "Bash(python *)",
+      "Bash(graphify export *)",
+      "Bash(taskkill *)"
     ]
   },
   "enabledMcpjsonServers": [

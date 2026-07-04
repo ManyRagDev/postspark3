@@ -109,7 +109,8 @@ export function loadFont(fontUrl: string): void {
   if (!fontUrl || loadedFontUrls.has(fontUrl)) return;
 
   // Check if already in DOM (e.g., from static index.html)
-  const existing = document.querySelector(`link[href="${fontUrl}"]`);
+  // Use CSS.escape to handle special characters in URLs (quotes, etc.)
+  const existing = document.querySelector(`link[href="${CSS.escape(fontUrl)}"]`);
   if (existing) {
     loadedFontUrls.add(fontUrl);
     return;
