@@ -171,7 +171,7 @@ const formatOptimizationSchema = z.object({
     .optional(),
 });
 
-const generationEvaluationSchema = z.object({
+export const generationEvaluationSchema = z.object({
   overallScore: z.number(),
   accepted: z.boolean(),
   dimensions: z.object({
@@ -183,6 +183,7 @@ const generationEvaluationSchema = z.object({
     clarity: z.number(),
     platformFit: z.number(),
     visualReadability: z.number(),
+    captionCoherence: z.number(),
   }),
   feedback: z.array(z.string()),
 });
@@ -207,6 +208,28 @@ const generationMetaSchema = z.object({
       fallbackUsed: z.boolean(),
     })
     .optional(),
+});
+
+export const creativeDirectionSchema = z.object({
+  version: z.literal(1),
+  familyId: z.string(),
+  paletteId: z.string(),
+  paletteInverted: z.boolean(),
+  seed: z.number(),
+  source: z.enum(["llm-intent", "classifier", "user"]),
+  axes: z.object({
+    composition: z.enum(["grid", "poster", "split", "centered-minimal", "freeform"]),
+    typography: z.enum(["display-brutal", "editorial-serif", "mono-tech", "clean-sans"]),
+    color: z.enum(["monochrome", "duotone", "vibrant", "chromatic-block", "desaturated"]),
+    ornaments: z.enum(["minimal", "badges-stickers", "scanlines-glitch", "frames"]),
+    texture: z.enum(["clean", "grain", "paper", "halftone"]),
+    vibe: z.enum(["tech", "urgente", "sereno", "premium", "divertido", "cru", "editorial"]),
+  }),
+  hiddenOrnaments: z.object({
+    badge: z.string().optional(),
+    stickerText: z.string().optional(),
+    accentBar: z.boolean().optional(),
+  }).optional(),
 });
 
 const variationVisualPatchSchema = z.object({
@@ -241,6 +264,7 @@ const variationVisualPatchSchema = z.object({
   bgValue: backgroundValueSchema.optional(),
   bgOverlay: bgOverlaySettingsSchema.optional(),
   copyAngle: copyAngleSchema.optional(),
+  creativeDirection: creativeDirectionSchema.optional(),
   designTokens: designTokensSchema.partial().optional(),
   brandMeta: z
     .object({
@@ -301,6 +325,7 @@ export const postVisualSnapshotSchema = z.object({
   aspectRatioOptimizations: z.partialRecord(aspectRatioSchema, formatOptimizationSchema).optional(),
   layoutSettingsByAspectRatio: z.partialRecord(aspectRatioSchema, advancedLayoutSettingsSchema).optional(),
   copyAngle: copyAngleSchema.optional(),
+  creativeDirection: creativeDirectionSchema.optional(),
   designTokens: designTokensSchema.partial().optional(),
   brandMeta: z
     .object({

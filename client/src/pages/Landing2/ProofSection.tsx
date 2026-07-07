@@ -73,7 +73,7 @@ function ProofPair({
 
       <div>
         <div className="relative mx-auto aspect-square w-full overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl">
-          <PostRenderer mode="preview" snapshot={proofCase.afterSnapshot} compact />
+          <PostRenderer mode="preview" snapshot={proofCase.afterSnapshot} />
         </div>
         <div className="mt-3 text-center">
           <span className="font-display text-[11px] uppercase tracking-[0.2em] text-white/38">Depois</span>

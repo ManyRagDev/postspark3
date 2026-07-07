@@ -370,7 +370,7 @@ function PostWithHandles({
       <div className="relative w-full h-full max-w-[280px] aspect-square">
         {/* Post */}
         <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl">
-          <PostRenderer mode="preview" snapshot={snapshot} compact />
+          <PostRenderer mode="preview" snapshot={snapshot} />
         </div>
 
         {/* Handles fake */}

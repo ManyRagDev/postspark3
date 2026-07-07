@@ -1743,6 +1743,19 @@ function PostCardV2Content({
   // ══════════════════════════════════════════════════════════════════
   const visual = isStory ? storyContent : isLayoutModern ? modernCardLayout : isLayoutCentered ? centeredLayout : isLayoutSplit ? splitLayout : isLayoutMinimal ? minimalLayout : leftAlignedLayout; // fallback padrão (clássico)
 
+  const textureAxis = variation.creativeDirection?.axes?.texture;
+  const textureOverlay = (textureAxis && textureAxis !== "clean") ? (
+    <div 
+      className="absolute inset-0 z-50 pointer-events-none"
+      style={{
+        backgroundImage: `url(/backgrounds/textures/${textureAxis}.png)`,
+        backgroundSize: "cover",
+        mixBlendMode: textureAxis === "grain" ? "overlay" : "multiply",
+        opacity: 0.6
+      }}
+    />
+  ) : null;
+
   // DesignTokens path — ThemeRenderer handles structure, PostCard adds decorations
   if (dt) {
     const canvasBg = resolvedImageUrl ? "transparent" : dt.colors?.background || effectiveBg;
@@ -1789,6 +1802,7 @@ function PostCardV2Content({
               <BrandOverlay logoUrl={resolvedBrandMeta.logoUrl} brandName={resolvedBrandMeta.brandName} platform={variation.platform} accentColor={dt.colors?.primary!} textColor={dt.colors?.text!} />
             )}
             {visual}
+            {textureOverlay}
           </ThemeRenderer>
         </div>
       </div>
@@ -1844,6 +1858,7 @@ function PostCardV2Content({
               />
             )}
             {visual}
+            {textureOverlay}
           </ThemeRenderer>
         </div>
       </div>
@@ -1862,6 +1877,7 @@ function PostCardV2Content({
       }}
     >
       {visual}
+      {textureOverlay}
     </div>
   );
 }

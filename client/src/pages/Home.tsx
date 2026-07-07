@@ -304,7 +304,7 @@ export default function Home() {
           bgValue: persistedVariation.bgValue,
           bgOverlay: persistedVariation.bgOverlay,
           copyAngle: persistedVariation.copyAngle,
-          variationSnapshot,
+          variationSnapshot: variationSnapshot as any,
         });
         toast.success("Conteúdo consolidado.");
       } catch (err: any) {

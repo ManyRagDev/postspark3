@@ -189,20 +189,7 @@ export default function FontColorBlock() {
                 <p className="text-[9px] text-[var(--text-tertiary)] leading-snug">
                     Título e Corpo sobrescrevem a cor de texto global (definida em Design).
                 </p>
-                <ColorSwatch
-                    label="Destaque"
-                    value={activeVariation.accentColor ?? "#a855f7"}
-                    onChange={(v) => {
-                        // Escrita canonica: apenas designTokens.colors.primary.
-                        // editorStore.normalizeVariationPatch deriva accentColor a
-                        // partir de primary no mesmo patch, mantendo top-level e
-                        // tokens coerentes (ver §26 do DOCUMENTO_MESTRE).
-                        const baseTokens = (activeVariation.designTokens ?? DEFAULT_DESIGN_TOKENS) as any;
-                        updateVariation({
-                            designTokens: { ...baseTokens, colors: { ...baseTokens.colors, primary: v } }
-                        });
-                    }}
-                />
+
                 <ColorSwatch
                     label="Título (override)"
                     value={activeVariation.headlineColor ?? activeVariation.textColor ?? "#ffffff"}

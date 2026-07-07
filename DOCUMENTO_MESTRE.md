@@ -1365,6 +1365,7 @@ Fatos observados:
 - A API continua retornando `variations`; não houve quebra do contrato público de geração.
 - `client/src/lib/variationSnapshot.ts` é a única fronteira autorizada a resolver otimizações por aspect ratio, cores, `designTokens`, layout avançado, background, imagem, overlay, sections e defaults.
 - O HoloDeck renderiza o snapshot completo, inclusive `designTokens`, e entrega ao editor exatamente o snapshot confirmado pelo usuário.
+- Durante a troca de Motor de Famílias (em `adaptContentForFamily`), o campo legado `aspectRatioOptimizations` deve ser expurgado (`undefined`). Caso contrário, sua precedência (definida em regras legadas) sobrescreverá silenciosamente os novos `designTokens` e layouts ao entrar no Workbench.
 - `editorStore.visualSnapshot` é o documento autoritativo durante a edição. Os campos históricos `activeVariation`, `baseVariation`, `slides`, `imageSettings`, `layoutSettings`, `bgValue` e equivalentes permanecem como projeções compatíveis para os controles existentes e são sincronizados atomicamente por `setWithSnapshot`.
 - `PostRenderer` projeta overrides de `slides[].editorState` somente para leitura. Essa projeção não promove o slide atual para o nível-base do documento.
 - `Home.handleSave` persiste diretamente `editorStore.visualSnapshot`; ele não reconstrói o post combinando fontes independentes.
@@ -1694,8 +1695,9 @@ Pendências mantidas:
   overlays/controles.
 - Validar matriz visual de drag/resize em 1:1, 5:6 e 9:16, com escalas e
   carrossel.
-- Confirmar schema real do Supabase para `generation_runs.created_at` e aplicar
-  a migração no ambiente correto antes de considerar `/history` resolvido.
+- Schema real do Supabase para `generation_runs.created_at` foi confirmado e a
+  base High Ticket foi aplicada via Supabase MCP em 2026-07-07. Pendencias
+  restantes de `/history`, se houver, devem ser tratadas no codigo de consumo.
 
 ## 35. Ajustes pós-teste manual de HoloDeck e interação — 2026-06-25
 
@@ -2222,3 +2224,336 @@ Arquivos alterados:
 
 Esta correção resolve o problema descrito pelo usuário onde elementos pareciam
 "abandonar o plano" durante o primeiro arrasto, fazendo os vizinhos se reorganizarem.
+
+## 45. Base de dados do pipeline High Ticket — 2026-07-07
+
+Mudanca aplicada diretamente no Supabase via MCP, restrita ao schema
+`postspark`.
+
+Objetivo:
+
+- Criar a base persistente para um pipeline High Ticket com carregamento de
+  contexto de marca/persona, estado operacional de grafo e retomada por
+  `generation_runs`.
+
+Mudancas aplicadas no banco:
+
+- Criada `postspark.brand_kits`, uma tabela 1:1 por `user_uuid`, com tom de voz,
+  regras de formatacao, termos proibidos, termos obrigatorios, dicionario,
+  paleta visual, fonte e tokens visuais basicos.
+- Criada `postspark.personas`, tambem 1:1 por `user_uuid`, com audiencia, dores,
+  objetivos, estilo de linguagem e objecoes.
+- Ambas referenciam `postspark.profiles(id)` com `ON DELETE CASCADE`, usam RLS e
+  policies de dono para `SELECT`, `INSERT`, `UPDATE` e `DELETE`.
+- `postspark.generation_runs` recebeu `graph_state jsonb NOT NULL DEFAULT '{}'`,
+  `spark_cost integer` com constraint nao-negativa e `completed_at timestamptz`.
+- Criado indice `idx_generation_runs_user_status_created` em
+  `(user_uuid, status, created_at DESC)` para consultas por usuario/status.
+- Policies de `brand_kits`, `personas` e das operacoes de usuario em
+  `generation_runs` usam `(select auth.uid())`, evitando reavaliacao por linha
+  recomendada pelo linter do Supabase.
+
+Fronteira arquitetural:
+
+- `generation_runs.graph_state` e estado operacional do grafo High Ticket
+  (input, context, routing, workers, QA/revisao e output tecnico).
+- `graph_state` nao substitui `PostVisualSnapshot` nem
+  `postspark.posts.variation_snapshot`.
+- Outputs aprovados pelo grafo ainda devem ser convertidos para `PostVariation`
+  e atravessar uma unica vez o normalizador canonico antes de HoloDeck,
+  Workbench, exportacao ou persistencia visual.
+
+Registro local:
+
+- As migracoes equivalentes estao em
+  `drizzle/0010_high_ticket_pipeline_foundation.sql` e
+  `drizzle/0011_high_ticket_policy_index_cleanup.sql`.
+- `drizzle/schema.ts` foi alinhado para usar `created_at`/`updated_at` em
+  `generation_runs`, `brand_kits` e `personas`, refletindo o schema real do
+  Supabase para estes objetos.
+
+## 46. Plano de implementacao do pipeline High Ticket - 2026-07-07
+
+Foi criado o plano operacional em
+[`HIGH_TICKET_PIPELINE_IMPLEMENTATION_PLAN.md`](./HIGH_TICKET_PIPELINE_IMPLEMENTATION_PLAN.md).
+
+O plano estabelece que a implementacao High Ticket deve ser feita atras de
+feature flag e sem criar uma segunda fonte da verdade visual. A fronteira
+obrigatoria permanece:
+
+`WorkerPayload aprovado -> PostVariation -> createPostVisualSnapshot -> HoloDeck -> editorStore.loadSnapshot -> Workbench`
+
+Ponto critico registrado:
+
+- `generation_runs.graph_state` guarda estado operacional do grafo e nao
+  substitui `PostVisualSnapshot`, `editorStore.visualSnapshot` nem
+  `postspark.posts.variation_snapshot`.
+- O Workbench deve receber exatamente o mesmo `PostVisualSnapshot` renderizado e
+  selecionado no HoloDeck.
+- A primeira etapa tecnica recomendada e criar testes de contrato para o handoff
+  HoloDeck -> Workbench e um `visualContractValidator` deterministico antes da
+  integracao do novo grafo ao `post.generate`.
+
+Revisao 1.1 do plano:
+
+- A topologia High Ticket passou a incluir `semantic_originality` antes do QA,
+  preservando a avaliacao por embeddings, os scores de originalidade usados em
+  `postEvaluation` e a persistencia de fingerprints dos candidatos finais.
+- `aspectRatioOptimizations` nao deve ser proibido no output High Ticket. O
+  campo continua valido para adaptacao multi-formato (`1:1`, `5:6`, `9:16`) e
+  so deve ser expurgado quando uma transformacao local o torna obsoleto, como
+  troca de familia criativa.
+- O `context_loader` agora exige budget/compressao de contexto quando BrandKit,
+  Persona, Site Intelligence e briefing excederem o limite definido.
+- O grafo nao deve entregar 1-2 variacoes parciais ao HoloDeck. Deve tentar
+  reparo/regeneracao por slot e, se nao fechar exatamente 3 variacoes aprovadas,
+  falhar explicitamente ou acionar fallback legado apenas por feature flag
+  separada.
+
+## 47. Implementacao inicial do pipeline High Ticket - 2026-07-07
+
+Implementacao aplicada atras de feature flag, preservando o pipeline legado como
+caminho padrao.
+
+Arquivos principais criados:
+
+- [`shared/highTicket.ts`](./shared/highTicket.ts): contratos compartilhados do
+  grafo High Ticket (`MasterBriefing`, `WorkerPayload`, `RouterOutput`,
+  `OriginalityResult`, `QaResult`, `HighTicketGraphState`).
+- [`shared/highTicketSchemas.ts`](./shared/highTicketSchemas.ts): schemas Zod
+  dos payloads High Ticket.
+- [`server/ai/highTicket/`](./server/ai/highTicket): modulos do grafo
+  (`contextLoader`, `contextBudget`, `intentRouter`, `workers`,
+  `semanticOriginality`, `qaEvaluator`, `correctionLoop`,
+  `captionSynthesis`, `visualContractValidator`, `finalMapper`, `persist`,
+  `graph`, `index`).
+- [`HIGH_TICKET_IMPLEMENTATION_AUDIT.md`](./HIGH_TICKET_IMPLEMENTATION_AUDIT.md):
+  log auditavel dos passos executados, decisoes e validacoes.
+
+Alteracoes de integracao:
+
+- `server/_core/env.ts` recebeu:
+  - `AI_HIGH_TICKET_PIPELINE` (default `false`);
+  - `AI_HIGH_TICKET_LEGACY_FALLBACK` (default `false`).
+- `server/ai/modelRouter.ts` recebeu rotas High Ticket para roteamento futuro de
+  modelo por tarefa.
+- `server/routers.ts` chama `runHighTicketPipeline` somente quando
+  `ENV.aiHighTicketPipelineEnabled` esta ativo, depois de auth/billing/trace e
+  antes do pipeline legado.
+- Se o pipeline High Ticket falhar, o fallback legado so acontece quando
+  `AI_HIGH_TICKET_LEGACY_FALLBACK=true`.
+
+Persistencia:
+
+- `server/db.ts` agora possui helpers para ler `brand_kits`, `personas` e
+  atualizar `generation_runs.graph_state` incrementalmente.
+- `createGenerationRun` passou a usar `upsert` para permitir que o grafo crie o
+  run no inicio e `finishGenerationTrace` finalize depois sem conflito de chave.
+- O `upsert` preserva `graph_state` quando `finishGenerationTrace` nao envia um
+  novo estado de grafo.
+
+Fronteiras preservadas:
+
+- O backend High Ticket retorna `PostVariation[]`.
+- O backend nao cria `PostVisualSnapshot`.
+- `captionSynthesis` roda apos a aprovacao visual/QA e antes do output final,
+  reutilizando o modulo legado de legenda coerente com slides/secoes/body.
+- HoloDeck/Workbench continuam dependendo do normalizador canonico
+  `client/src/lib/variationSnapshot.ts`.
+
+Validacoes executadas:
+
+- `npm run check`: passou.
+- Testes focados passaram:
+  `shared/highTicketSchemas.test.ts`,
+  `server/ai/highTicket/visualContractValidator.test.ts`,
+  `server/ai/highTicket/finalMapper.test.ts`.
+- Foi adicionado e validado um teste explicito de handoff High Ticket em
+  `client/src/lib/variationSnapshot.test.ts`, cobrindo
+  `PostVariation -> createPostVisualSnapshot -> editorStore.loadSnapshot` com
+  `aspectRatioOptimizations`, `layoutSettingsByAspectRatio` e `designTokens`.
+  A revalidacao focada passou com 4 arquivos e 18 testes.
+- `npm test` completo foi executado. A camada High Ticket passou, mas a suite
+  completa ainda falha em testes preexistentes/externos a esta implementacao:
+  `client/src/editor/interaction/interaction.test.ts` e
+  `client/src/editor/integration/firstDrag.dom.test.tsx`.
+
+## 48. Refinamento da implementacao High Ticket — QA, modelos e otimizacoes — 2026-07-07
+
+Fato observado: apos auditoria de codigo, foram identificadas correcoes
+necessarias na implementacao inicial do pipeline High Ticket.
+
+### 48.1. QA High Ticket com invokeLLM proprio
+
+Fato:
+
+- O arquivo [`server/ai/highTicket/qaEvaluator.ts`](./server/ai/highTicket/qaEvaluator.ts)
+  foi reescrito para usar `invokeLLM` com `taskRoute: "high_ticket_qa"` e
+  `reasoningEffort: "high"`.
+- O QA agora usa prompt e schema proprios com criterios High Ticket (coesao
+  copy-visual, aderencia ao BrandKit, forca estrategica do angulo, clareza
+  visual, originalidade). Nao depende mais do `post_evaluation` legado.
+- Hard gates: `brandAlignment >= 80`, `visualReadability >= 80`,
+  `captionCoherence >= 70`, `overallScore >= 75`.
+- As 9 dimensoes de avaliacao (incluindo `captionCoherence`) sao validadas
+  contra `generationEvaluationSchema` exportado de `postsparkSchemas.ts`.
+
+### 48.2. Roteamento de modelo por no
+
+Fato:
+
+- [`server/ai/modelRouter.ts`](./server/ai/modelRouter.ts) foi refatorado para
+  rotear cada no High Ticket para um modelo independente:
+  - `high_ticket_context_summary` → `ENV.highTicketContextSummaryModel`
+  - `high_ticket_intent_router` → `ENV.highTicketIntentRouterModel`
+  - `high_ticket_worker` → `ENV.highTicketWorkerModel`
+  - `high_ticket_qa` → `ENV.highTicketQaModel`
+    (default: `anthropic/claude-3.5-sonnet`)
+  - `high_ticket_revision` → `ENV.highTicketRevisionModel`
+  - `high_ticket_caption_synthesis` → `ENV.highTicketCaptionSynthesisModel`
+- Todos os defaults herdam de `OPENROUTER_TEXT_MODEL` quando a env var
+  especifica nao esta definida, garantindo retrocompatibilidade.
+- Variaveis de ambiente: `HT_CONTEXT_SUMMARY_MODEL`, `HT_INTENT_ROUTER_MODEL`,
+  `HT_WORKER_MODEL`, `HT_QA_MODEL`, `HT_REVISION_MODEL`,
+  `HT_CAPTION_SYNTHESIS_MODEL`.
+
+### 48.3. Correction loop com json_schema estrito
+
+Fato:
+
+- [`server/ai/highTicket/correctionLoop.ts`](./server/ai/highTicket/correctionLoop.ts)
+  trocou `response_format: { type: "json_object" }` por `json_schema` com o
+  schema completo do `WorkerPayload`.
+- Reduz falhas de parsing JSON e evita gastar tentativas de correcao com
+  payloads estruturalmente invalidos.
+
+### 48.4. Projecao enxuta do MasterBriefing
+
+Fato:
+
+- Criado [`server/ai/highTicket/slimBriefing.ts`](./server/ai/highTicket/slimBriefing.ts)
+  com a funcao `slimBriefingForWorker()` que extrai apenas os campos relevantes
+  do `MasterBriefing` para workers, QA e revision.
+- Evidencia do site: limitada a 8 itens. Tone guidelines: limitadas a 5 itens.
+- [`workers.ts`](./server/ai/highTicket/workers.ts),
+  [`qaEvaluator.ts`](./server/ai/highTicket/qaEvaluator.ts) e
+  [`correctionLoop.ts`](./server/ai/highTicket/correctionLoop.ts) usam a
+  projecao enxuta em vez do briefing completo serializado.
+
+### 48.5. Originality single-pass
+
+Fato:
+
+- [`server/ai/highTicket/graph.ts`](./server/ai/highTicket/graph.ts) foi
+  corrigido para calcular `assessHighTicketOriginality` uma unica vez antes do
+  loop de QA/correcao.
+- Recalcula apenas apos uma revisao real (quando `revisedIndexes.length > 0`),
+  nao a cada iteracao do loop. Comportamento alinhado ao pipeline legado
+  (`routers.ts:1439` + `routers.ts:1552`).
+
+### 48.6. Schema de auditoria com GenerationEvaluationSummary
+
+Fato:
+
+- `generationEvaluationSchema` em [`shared/postsparkSchemas.ts`](./shared/postsparkSchemas.ts)
+  foi exportado e recebeu a dimensao `captionCoherence` faltante.
+- `qaResultSchema` em [`shared/highTicketSchemas.ts`](./shared/highTicketSchemas.ts)
+  substituiu `evaluation: z.unknown()` por `evaluation: generationEvaluationSchema`.
+
+### 48.7. Validacao final
+
+Fato:
+
+- `npm run check` (tsc --noEmit): passou sem erros.
+- Testes focados High Ticket: 3 arquivos, 5 testes passaram.
+- Teste de handoff HoloDeck → Workbench em `variationSnapshot.test.ts`:
+  1 arquivo, 13 testes passaram (incluindo o teste High Ticket).
+- Total: 18 testes passando.
+
+## 49. Correção de consistência visual: cores e layout por formato — 2026-07-07
+
+### Diagnóstico
+
+Três problemas estruturais causavam inconsistência entre designs gerados (alguns
+"certos", outros "tortos"):
+
+1. **`composeVariation` descartava decisões de design do LLM**: em
+   [`shared/creative/compose.ts`](./shared/creative/compose.ts), a função
+   substituía `backgroundColor`, `textColor` e `accentColor` escolhidos pelo LLM
+   (baseados em contexto de marca, estratégia e plataforma) por cores de paletas
+   estáticas + família criativa sorteada. O LLM investia tokens significativos
+   nessas decisões, que eram descartadas.
+
+2. **`aspectRatioOptimizations` era completamente ignorado para layout**: o LLM
+   gera objetos `FormatOptimization` por formato (1:1, 5:6, 9:16) com dados ricos
+   de posicionamento (`x`, `y`, `width`, `textAlign` para headline, body e card),
+   mas `normalizeLayoutSettings` em
+   [`client/src/lib/variationSnapshot.ts`](./client/src/lib/variationSnapshot.ts)
+   nunca lia esse campo. Caía direto no fallback `layoutToAdvanced(variation.layout)`.
+
+3. **Prioridade de layout ignorava dados do LLM por formato**: a cadeia era
+   `layoutSettingsByAspectRatio` → `layoutSettings` → `layoutToAdvanced(layout)`,
+   sem nenhuma etapa que lesse `aspectRatioOptimizations`.
+
+### Correção 1: composeVariation preserva cores do LLM
+
+`composeVariation` em [`shared/creative/compose.ts`](./shared/creative/compose.ts)
+foi alterada para:
+
+- Capturar `backgroundColor`, `textColor`, `accentColor` existentes da variação
+  antes de qualquer processamento.
+- Injetar essas cores nos `designTokens` usados pela família criativa (`compose`),
+  garantindo que elementos decorativos (`textElements`, `bgOverlay`) usem a paleta
+  correta escolhida pelo LLM.
+- Preservar as cores originais no `PostVariation` retornado. Cores de paleta só
+  são usadas como fallback quando o LLM não definiu a cor.
+- A família criativa continua contribuindo com `layout`, `layoutSettings`,
+  `template`, fontes, tipografia, estrutura e elementos decorativos.
+
+### Correção 2: formatOptimizationToLayoutSettings
+
+Nova função em [`client/src/lib/variationSnapshot.ts`](./client/src/lib/variationSnapshot.ts)
+converte `FormatOptimization` (coordenadas do LLM: `x`, `y`, `width`, `textAlign`,
+`backgroundColor`, `borderRadius`) em `AdvancedLayoutSettings` (com `LayoutPosition`
+via `freePosition`).
+
+Mapeamento:
+- `FormatOptimization.headline.x → LayoutPosition.freePosition.x` (percentual)
+- `FormatOptimization.headline.y → LayoutPosition.freePosition.y` (percentual)
+- `FormatOptimization.headline.width → LayoutPosition.width` (percentual)
+- `FormatOptimization.headline.textAlign → LayoutPosition.textAlign`
+- `FormatOptimization.headline.backgroundColor → LayoutPosition.backgroundColor`
+- `FormatOptimization.headline.borderRadius → LayoutPosition.borderRadius`
+- O campo `position` recebe `"top-left"` como padrão (ignorado quando `freePosition` existe)
+
+### Correção 3: normalizeLayoutSettings integra aspectRatioOptimizations
+
+A cadeia de prioridade de layout foi estendida:
+
+1. `layoutSettingsByAspectRatio[aspectRatio]` (salvo pelo editor, maior precedência)
+2. `layoutSettings` (global do editor)
+3. `aspectRatioOptimizations[aspectRatio]` → convertido via `formatOptimizationToLayoutSettings` (NOVO)
+4. `layoutToAdvanced(variation.layout)` (fallback genérico)
+
+A etapa 3 usa `formatOptimizationToLayoutSettings` somente quando o
+`FormatOptimization` contém dados de posicionamento (`headline` ou `body` ou `card`).
+Se vazio, pula direto para o fallback. Isso garante que o posicionamento por
+formato que o LLM produziu seja efetivamente usado por HoloDeck e Workbench.
+
+### Impacto na invariante
+
+- `PostVisualSnapshot` permanece como documento autoritativo; `layoutSettings`
+  agora pode ser derivado também de `aspectRatioOptimizations`.
+- `snapshotVersion` permanece em 3; não houve mudança de schema.
+- HoloDeck e Workbench continuam usando a mesma função `normalizeLayoutSettings`
+  via `createPostVisualSnapshot`.
+- A família criativa do Motor de Variabilidade recebe as cores do LLM nos tokens,
+  mantendo coerência entre elementos decorativos e cores principais.
+
+### Validação
+
+- `tsc --noEmit`: passou sem erros.
+- `variationSnapshot.test.ts`: 13/13 testes passaram.
+- `editorStore.test.ts`: 30/30 testes passaram.
+- Testes de compose.ts: não existiam previamente; a mudança apenas preserva
+  valores existentes (sem quebra de contrato).

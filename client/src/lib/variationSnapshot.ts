@@ -7,9 +7,11 @@ import {
   type AspectRatio,
   type ContentSection,
   type DesignTokens,
+  type FormatOptimization,
   type LayoutPosition,
   type PostVariation,
   type PostVisualSnapshot,
+  type TextAlignment,
 } from "@shared/postspark";
 import type { EditorState } from "@/store/editorStore";
 import { layoutToAdvanced } from "@/lib/layoutToAdvanced";
@@ -68,13 +70,54 @@ function normalizeImageSettings(variation: PostVariation) {
   };
 }
 
+function formatOptimizationToLayoutSettings(
+  fopt: Partial<FormatOptimization>,
+): AdvancedLayoutSettings {
+  const base = layoutToAdvanced(fopt.layout);
+
+  const toPosition = (
+    foptItem: Partial<NonNullable<FormatOptimization["headline"]>> | undefined,
+    basePos: LayoutPosition,
+  ): LayoutPosition => {
+    if (!foptItem) return basePos;
+    const hasCoord = foptItem.x != null && foptItem.y != null;
+    return {
+      position: hasCoord ? "top-left" : basePos.position,
+      textAlign: (foptItem.textAlign as TextAlignment) ?? basePos.textAlign,
+      freePosition: hasCoord ? { x: foptItem.x!, y: foptItem.y! } : basePos.freePosition,
+      width: foptItem.width ?? basePos.width,
+      backgroundColor: foptItem.backgroundColor ?? basePos.backgroundColor,
+      borderRadius: foptItem.borderRadius ?? basePos.borderRadius,
+    };
+  };
+
+  return {
+    headline: toPosition(fopt.headline, base.headline),
+    body: toPosition(fopt.body, base.body),
+    accentBar: base.accentBar,
+    badge: base.badge,
+    sticker: base.sticker,
+    carouselArrow: base.carouselArrow,
+    card: toPosition(fopt.card, base.card),
+    sectionLayouts: base.sectionLayouts ?? {},
+    padding: fopt.padding ?? base.padding,
+  };
+}
+
 function normalizeLayoutSettings(
   variation: PostVariation,
   aspectRatio: AspectRatio,
 ): AdvancedLayoutSettings {
+  const arOpt = variation.aspectRatioOptimizations?.[aspectRatio];
+  const fromArOpt =
+    arOpt && (arOpt.headline || arOpt.body || arOpt.card)
+      ? formatOptimizationToLayoutSettings(arOpt)
+      : undefined;
+
   const selected =
     variation.layoutSettingsByAspectRatio?.[aspectRatio] ??
     variation.layoutSettings ??
+    fromArOpt ??
     layoutToAdvanced(variation.layout);
 
   return {

@@ -116,7 +116,11 @@ export const generationRuns = postsparkSchema.table("generation_runs", {
   estimatedCostUsd: numeric("estimated_cost_usd", { precision: 12, scale: 6 }).default("0").notNull(),
   latencyMs: integer("latency_ms").default(0).notNull(),
   errorMessage: text("error_message"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  graphState: jsonb("graph_state").$type<any>().notNull().default({}),
+  sparkCost: integer("spark_cost"),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type GenerationRun = typeof generationRuns.$inferSelect;
@@ -136,3 +140,39 @@ export const contentFingerprints = postsparkSchema.table("content_fingerprints",
 
 export type ContentFingerprint = typeof contentFingerprints.$inferSelect;
 export type InsertContentFingerprint = typeof contentFingerprints.$inferInsert;
+
+// ─── High Ticket Pipeline ──────────────────────────────────────────────────────
+
+export const brandKits = postsparkSchema.table("brand_kits", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userUuid: uuid("user_uuid").notNull().unique(),
+  tone: varchar("tone", { length: 32 }).notNull().default("professional"),
+  formattingRules: jsonb("formatting_rules").$type<string[]>().notNull(),
+  forbiddenTerms: jsonb("forbidden_terms").$type<string[]>().notNull(),
+  mustInclude: jsonb("must_include").$type<string[]>().notNull(),
+  dictionary: jsonb("dictionary").$type<Record<string, string>>().notNull(),
+  visualPalette: jsonb("visual_palette").$type<string[]>().notNull(),
+  fontFamily: text("font_family").default("Inter"),
+  borderRadius: text("border_radius").default("16px"),
+  boxShadow: text("box_shadow").default("none"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type BrandKit = typeof brandKits.$inferSelect;
+export type InsertBrandKit = typeof brandKits.$inferInsert;
+
+export const personas = postsparkSchema.table("personas", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userUuid: uuid("user_uuid").notNull().unique(),
+  audience: text("audience").notNull().default("publico geral"),
+  pains: jsonb("pains").$type<string[]>().notNull(),
+  goals: jsonb("goals").$type<string[]>().notNull(),
+  languageStyle: text("language_style").default("direto e profissional"),
+  objections: jsonb("objections").$type<string[]>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type Persona = typeof personas.$inferSelect;
+export type InsertPersona = typeof personas.$inferInsert;

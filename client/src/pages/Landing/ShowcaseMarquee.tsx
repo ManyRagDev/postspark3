@@ -172,7 +172,7 @@ function MarqueeRow({
             className="flex-shrink-0 w-48 md:w-64 aspect-square"
           >
             <div className="relative w-full h-full rounded-lg overflow-hidden shadow-lg border border-white/10">
-              <PostRenderer mode="preview" snapshot={snapshot} compact />
+              <PostRenderer mode="preview" snapshot={snapshot} />
             </div>
           </motion.div>
         ))}

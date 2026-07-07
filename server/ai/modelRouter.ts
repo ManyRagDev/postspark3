@@ -12,6 +12,12 @@ export type AiTaskRoute =
   | "post_evaluation"
   | "quality_revision"
   | "caption_synthesis"
+  | "high_ticket_context_summary"
+  | "high_ticket_intent_router"
+  | "high_ticket_worker"
+  | "high_ticket_qa"
+  | "high_ticket_revision"
+  | "high_ticket_caption_synthesis"
   | "fallback_text_or_vision";
 
 export type ModelCostConfig = {
@@ -150,6 +156,26 @@ export function resolveTaskModelConfig(input: {
     route === "caption_synthesis"
   ) {
     return openRouterConfig(ENV.openRouterTextModel);
+  }
+
+  // ── High Ticket: roteamento por nó ──────────────────────────────────────────
+  if (route === "high_ticket_context_summary") {
+    return openRouterConfig(ENV.highTicketContextSummaryModel);
+  }
+  if (route === "high_ticket_intent_router") {
+    return openRouterConfig(ENV.highTicketIntentRouterModel);
+  }
+  if (route === "high_ticket_worker") {
+    return openRouterConfig(ENV.highTicketWorkerModel);
+  }
+  if (route === "high_ticket_qa") {
+    return openRouterConfig(ENV.highTicketQaModel);
+  }
+  if (route === "high_ticket_revision") {
+    return openRouterConfig(ENV.highTicketRevisionModel);
+  }
+  if (route === "high_ticket_caption_synthesis") {
+    return openRouterConfig(ENV.highTicketCaptionSynthesisModel);
   }
 
   if (route === "vision_analysis" || input.containsMultimodalContent) {

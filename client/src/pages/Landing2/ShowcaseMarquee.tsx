@@ -61,7 +61,7 @@ function MarqueeRow({
         {doubled.map((snapshot, i) => (
           <div key={`${snapshot.id}-${i}`} className="aspect-square w-40 flex-shrink-0 md:w-52">
             <div className="relative h-full w-full overflow-hidden rounded-lg border border-white/8 shadow-lg">
-              <PostRenderer mode="preview" snapshot={snapshot} compact />
+              <PostRenderer mode="preview" snapshot={snapshot} />
             </div>
           </div>
         ))}

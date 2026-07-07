@@ -268,7 +268,7 @@ function TransformationStage({
                     }`}
                   >
                     <div className="pointer-events-none absolute inset-0 z-10 rounded-2xl ring-1 ring-inset ring-white/10" />
-                    <PostRenderer mode="preview" snapshot={snapshot} compact />
+                    <PostRenderer mode="preview" snapshot={snapshot} />
                   </div>
                   <div className="mt-3 flex items-center justify-between px-1 text-[10px] uppercase tracking-[0.16em] text-white/38">
                     <span>v{index + 1}</span>

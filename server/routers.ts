@@ -19,6 +19,7 @@ import { extractBrandDNA } from "./brandDNA";
 import { chameleonVision } from "./chameleonVision";
 import { captureScreenshot } from "./screenshotService";
 import { chameleonResultToDesignTokens } from "@shared/postspark";
+import { directCreative, composeVariation, hashString } from "@shared/creative";
 import * as fs from "fs";
 import * as path from "path";
 import { getBillingProfile, debitSparks, getTopupPackages, createSubscriptionCheckout, createTopupCheckout, getSubscriptionPriceId, getSupabase, SPARK_COSTS } from "./billing";
@@ -32,6 +33,7 @@ import { synthesizeCaptionsForVariations } from "./ai/captionSynthesis";
 import { evaluateAndReviseCandidates } from "./ai/postEvaluation";
 import { buildGenerationDebugTrace, finishGenerationTrace, recordGenerationEvent, startGenerationTrace } from "./ai/generationTrace";
 import { assessSemanticOriginality, persistCandidateFingerprints } from "./ai/semanticOriginality";
+import { runHighTicketPipeline } from "./ai/highTicket";
 import { assertVariationSet, hasValidStaticSections, POST_VARIATION_TARGET, validateVariationSet } from "./ai/generationValidation";
 import {
   advancedLayoutSettingsSchema,
@@ -636,6 +638,80 @@ export const appRouter = router({
             status: "started",
             detail: "Generation pipeline started.",
           });
+          const normalizedExecutionBrief = input.creationMode === "execution" && input.executionBrief ? normalizeExecutionBrief(input.executionBrief) : null;
+          if (ENV.aiHighTicketPipelineEnabled) {
+            try {
+              recordGenerationEvent({
+                stage: "high_ticket_pipeline",
+                status: "started",
+                detail: "High Ticket pipeline branch enabled.",
+              });
+              const result = await runHighTicketPipeline({
+                runId: generationTrace.id,
+                userUuid: ctx.user.id,
+                inputType: input.inputType,
+                content: input.content,
+                platform: input.platform,
+                postMode: input.postMode,
+                model: input.model,
+                creationMode: input.creationMode,
+                executionBrief: normalizedExecutionBrief ?? undefined,
+                siteIntelligenceId: input.siteIntelligenceId,
+                debug: debugEnabled,
+              });
+              await finishGenerationTrace({
+                trace: generationTrace,
+                status: "completed",
+                strategies: result.graphState.routing,
+                evaluations: result.graphState.qa.map((item) => item.evaluation),
+                revisionCount: result.graphState.attempt,
+                strategyFallbackUsed: result.graphState.routing?.fallbackUsed,
+                originalityFallbackUsed: result.graphState.originality?.fallbackUsed,
+                output: result.variations,
+              });
+              await appendOperationalLog("POST_GENERATION_COMPLETED", {
+                generationRunId: generationTrace.id,
+                userUuid: ctx.user.id,
+                durationMs: Date.now() - generationTrace.startedAt,
+                inputType: input.inputType,
+                platform: input.platform,
+                postMode: input.postMode,
+                creationMode: input.creationMode,
+                requestedModel: input.model ?? "llama",
+                highTicketPipeline: true,
+                variationCount: result.variations.length,
+                graphStatus: result.graphState.status,
+                graphEvents: result.graphState.events.map((event) => ({
+                  status: event.status,
+                  detail: event.detail,
+                  at: event.at,
+                })),
+              });
+              return {
+                variations: result.variations,
+                generationRunId: result.generationRunId,
+                ...(debugEnabled
+                  ? {
+                      debug: buildGenerationDebugTrace({
+                        trace: generationTrace,
+                        strategies: result.graphState.routing,
+                        evaluations: result.graphState.qa.map((item) => item.evaluation),
+                        output: result.variations,
+                      }),
+                    }
+                  : {}),
+              };
+            } catch (highTicketError) {
+              recordGenerationEvent({
+                stage: "high_ticket_pipeline",
+                status: ENV.aiHighTicketLegacyFallbackEnabled ? "fallback" : "failed",
+                detail: highTicketError instanceof Error ? highTicketError.message : String(highTicketError),
+              });
+              if (!ENV.aiHighTicketLegacyFallbackEnabled) {
+                throw highTicketError;
+              }
+            }
+          }
           const recentPostsPromise = getUserPosts(ctx.user.id, 20).catch(error => {
             console.warn("[post.generate] Recent post history unavailable:", error);
             return [];
@@ -644,7 +720,6 @@ export const appRouter = router({
           let brandDnaContext = "";
           let chameleonResult: import("@shared/postspark").ChameleonVisionResult | null = null;
           let siteIntelligence: SiteIntelligence | null = null;
-          const normalizedExecutionBrief = input.creationMode === "execution" && input.executionBrief ? normalizeExecutionBrief(input.executionBrief) : null;
 
           // If URL, scrape it first and extract Brand DNA for visual cloning
           if (isLegacySitePipelineEnabled() && input.inputType === "url") {
@@ -1566,7 +1641,7 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
           const generatedVariations = variations.map((v: any, i: number) => {
             const chameleonPost = chameleonPosts[i];
             const normalizedSlides = isCarousel ? normalizeCarouselSlides(v) : undefined;
-            return {
+            const baseVar: import("@shared/postspark").PostVariation = {
               id: `var-${Date.now()}-${i}`,
               ...v,
               caption: v.caption || "",
@@ -1598,7 +1673,13 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
                 evaluation: evaluationPipeline.evaluations[i],
                 originality: originality.assessments[i],
               },
-            };
+            } as any;
+            
+            // --- Injeção do Motor de Variabilidade Criativa ---
+            // Passa a variação, null para intent (o motor deduz), e uma seed determinística do ID
+            const seed = hashString(baseVar.id);
+            const dir = directCreative(baseVar, null, seed);
+            return composeVariation(baseVar, chameleonDesignTokens || {} as any);
           });
           const finalValidation = validateVariationSet(generatedVariations, input.postMode);
           recordGenerationEvent({
@@ -1788,6 +1869,7 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
         try {
           const postId = await createPost({
             ...input,
+            variationSnapshot: input.variationSnapshot as any,
             userUuid: ctx.user.id,
           });
           return { id: postId };
@@ -1831,7 +1913,7 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
         })
       )
       .mutation(async ({ input, ctx }) => {
-        await updatePost(input.id, ctx.user.id, input);
+        await updatePost(input.id, ctx.user.id, { ...input, variationSnapshot: input.variationSnapshot as any });
         return { success: true };
       }),
 

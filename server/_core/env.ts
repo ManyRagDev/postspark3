@@ -39,6 +39,16 @@ export const ENV = {
   aiTraceStoreContent: envFlag("AI_TRACE_STORE_CONTENT", false),
   aiUiDebugEnabled: envFlag("AI_UI_DEBUG_ENABLED", !isProduction),
   aiModelFallbackEnabled: envFlag("AI_MODEL_FALLBACK_ENABLED", true),
+  aiHighTicketPipelineEnabled: envFlag("AI_HIGH_TICKET_PIPELINE", false),
+  aiHighTicketLegacyFallbackEnabled: envFlag("AI_HIGH_TICKET_LEGACY_FALLBACK", false),
+
+  // High Ticket: modelos por nó (default = texto principal)
+  highTicketContextSummaryModel: process.env.HT_CONTEXT_SUMMARY_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5-mini",
+  highTicketIntentRouterModel: process.env.HT_INTENT_ROUTER_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5-mini",
+  highTicketWorkerModel: process.env.HT_WORKER_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5-mini",
+  highTicketQaModel: process.env.HT_QA_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "anthropic/claude-3.5-sonnet",
+  highTicketRevisionModel: process.env.HT_REVISION_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5-mini",
+  highTicketCaptionSynthesisModel: process.env.HT_CAPTION_SYNTHESIS_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5-mini",
   llmTransientRetries: envInteger("LLM_TRANSIENT_RETRIES", 2, 0, 4),
   llmRetryBaseDelayMs: envInteger("LLM_RETRY_BASE_DELAY_MS", 700, 100, 10_000),
   llmRequestTimeoutMs: envInteger("LLM_REQUEST_TIMEOUT_MS", 90_000, 5_000, 180_000),

@@ -436,6 +436,35 @@ export const DEFAULT_LAYOUT_SETTINGS: AdvancedLayoutSettings = {
   padding: 24,
 };
 
+// ── Motor Criativo ──────────────────────────────────────────────────────────────
+
+export type CompositionAxis = "poster" | "split" | "grid" | "freeform" | "centered-minimal";
+export type TypographyAxis  = "display-brutal" | "editorial-serif" | "mono-tech" | "clean-sans";
+export type ColorAxis = "monochrome" | "duotone" | "vibrant" | "chromatic-block" | "desaturated";
+export type OrnamentsAxis = "minimal" | "badges-stickers" | "scanlines-glitch" | "frames";
+export type TextureAxis = "clean" | "grain" | "paper" | "halftone";
+export type VibeAxis = "tech" | "urgente" | "sereno" | "premium" | "divertido" | "cru" | "editorial";
+
+export interface CreativeAxes {
+  composition: CompositionAxis;
+  typography: TypographyAxis;
+  color: ColorAxis;
+  ornaments: OrnamentsAxis;
+  texture: TextureAxis;
+  vibe: VibeAxis;
+}
+
+export interface CreativeDirection {
+  version: 1;
+  familyId: string;
+  paletteId: string;
+  paletteInverted: boolean;
+  seed: number;
+  axes: CreativeAxes;
+  source: "llm-intent" | "classifier" | "user";
+  hiddenOrnaments?: { badge?: string; stickerText?: string };
+}
+
 /** A single generated post variation */
 export interface PostVariation {
   id: string;
@@ -448,6 +477,7 @@ export interface PostVariation {
   platform: Platform;
   imagePrompt: string;
   imageUrl?: string;
+  creativeDirection?: CreativeDirection;
   backgroundColor: string;
   textColor: string;
   /** Cor independente do título. Se ausente, herda textColor. */

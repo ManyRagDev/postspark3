@@ -181,6 +181,90 @@ describe("variationSnapshot", () => {
     expect(useEditorStore.getState().visualSnapshot?.designTokens?.colors?.primary).toBe("#14B8A6");
   });
 
+  it("keeps a High Ticket variation identical across HoloDeck selection and Workbench restore", () => {
+    const highTicketVariation = createPostVariation({
+      headline: "Diagnostico executivo do funil",
+      body: "Um roteiro direto para reposicionar a oferta sem perder margem.",
+      layout: "split",
+      backgroundColor: "#101828",
+      textColor: "#F8FAFC",
+      accentColor: "#F97316",
+      aspectRatioOptimizations: {
+        "1:1": {
+          layout: "split",
+          backgroundColor: "#101828",
+          textColor: "#F8FAFC",
+          accentColor: "#F97316",
+        },
+        "4:5": {
+          layout: "stacked",
+          backgroundColor: "#0F172A",
+          textColor: "#F8FAFC",
+          accentColor: "#FB923C",
+        },
+        "9:16": {
+          layout: "centered",
+          backgroundColor: "#111827",
+          textColor: "#FFFFFF",
+          accentColor: "#FDBA74",
+        },
+      },
+      layoutSettingsByAspectRatio: {
+        "4:5": {
+          headline: {
+            position: "top",
+            textAlign: "left",
+            width: 78,
+            freePosition: { x: 14, y: 16 },
+          },
+          body: {
+            position: "bottom",
+            textAlign: "left",
+            width: 72,
+            freePosition: { x: 14, y: 64 },
+          },
+        },
+      },
+      designTokens: {
+        colors: {
+          background: "#101828",
+          primary: "#F97316",
+          secondary: "#FB923C",
+          text: "#F8FAFC",
+          card: "#1D2939",
+        },
+        typography: {
+          fontFamily: "Inter",
+          customFontUrl: "",
+          originalFont: "Inter",
+          textTransform: "none",
+          textAlign: "left",
+        },
+        structure: {
+          borderRadius: "12px",
+          boxShadow: "none",
+          border: "1px solid #344054",
+        },
+        decorations: "minimal",
+      },
+    });
+
+    const holodeckSnapshot = createPostVisualSnapshot(highTicketVariation, "4:5");
+    useEditorStore.getState().loadSnapshot(holodeckSnapshot);
+
+    const workbenchSnapshot = useEditorStore.getState().visualSnapshot;
+
+    expect(workbenchSnapshot).toMatchObject(holodeckSnapshot);
+    expect(workbenchSnapshot?.snapshotVersion).toBe(3);
+    expect(workbenchSnapshot?.layout).toBe("stacked");
+    expect(workbenchSnapshot?.backgroundColor).toBe("#0F172A");
+    expect(workbenchSnapshot?.accentColor).toBe("#FB923C");
+    expect(workbenchSnapshot?.aspectRatioOptimizations).toEqual(
+      highTicketVariation.aspectRatioOptimizations,
+    );
+    expect(workbenchSnapshot?.layoutSettings.headline.freePosition).toEqual({ x: 14, y: 16 });
+  });
+
   it("round-trips image elements through the canonical schema and store restore", () => {
     const selected = createPostVisualSnapshot(
       createPostVariation({ imageElements: IMAGE_ELEMENTS }),

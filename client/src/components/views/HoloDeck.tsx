@@ -1,4 +1,4 @@
-﻿import { useState, useCallback, useEffect, useRef, type MutableRefObject } from "react";
+import { useState, useCallback, useEffect, useRef, type MutableRefObject } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { ArrowLeft, Layers, Sparkles, ImagePlus, Loader2, Palette, LayoutGrid, AlignJustify, Globe, Check, Settings2, PenTool, BriefcaseBusiness } from "lucide-react";
 import type { PostVariation, PostVisualSnapshot, AspectRatio, TemporaryTheme, DesignTokens, CreativeExecutionBrief, GenerationDebugTrace } from "@shared/postspark";
@@ -10,6 +10,8 @@ import StyleSelector from "../StyleSelector";
 import CopyEditorPanel from "../CopyEditorPanel";
 import type { ThemeConfig } from "@/lib/themes";
 import { themeToDesignTokens } from "@/lib/themes";
+import { adaptContentForFamily } from "@/lib/adaptContentForFamily";
+import type { CreativeFamily } from "@shared/creative/types";
 import { useAIProcessingStages, useCompletionFlash } from "@/hooks/useAIProcessingStages";
 import { useEditorStore } from "@/store/editorStore";
 import { applyDesignTokensToSnapshot, createPostVisualSnapshot } from "@/lib/variationSnapshot";
@@ -331,11 +333,29 @@ export default function HoloDeck({
     });
   }, [variations]);
 
-  // When user selects a preset theme, convert to tokens and enter custom mode
-  const handleThemeSelect = useCallback((theme: ThemeConfig) => {
+  // When user selects a preset theme (Chameleon), convert to tokens and enter custom mode
+  const handleChameleonThemeSelect = useCallback((theme: ThemeConfig) => {
     setSelectedTheme(theme);
     setCustomTokens(themeToDesignTokens(theme));
   }, []);
+
+  const handleFamilySelect = useCallback((family: CreativeFamily) => {
+    if (!localVariations[currentIndex]) return;
+    const active = localVariations[currentIndex];
+    
+    // Roda motor localmente preservando os drags!
+    const adapted = adaptContentForFamily(active, family.id);
+    
+    setLocalVariations(prev => {
+      const next = [...prev];
+      next[currentIndex] = adapted;
+      return next;
+    });
+    
+    // Atualiza tokens globais do preview se houvessem (limpando o Chameleon)
+    setCustomTokens(undefined);
+    setSelectedTheme(undefined);
+  }, [localVariations, currentIndex]);
 
   // Update local variation (for copy editor)
   const updateActiveVariation = useCallback(
@@ -905,7 +925,7 @@ export default function HoloDeck({
                   </p>
                   <div className="flex flex-col gap-2">
                     {extractedThemes.map(theme => (
-                      <ExtractedThemeCard key={theme.id} theme={theme} isSelected={selectedTheme?.id === theme.id} onSelect={() => handleThemeSelect(theme as ThemeConfig)} />
+                      <ExtractedThemeCard key={theme.id} theme={theme} isSelected={selectedTheme?.id === theme.id} onSelect={() => handleChameleonThemeSelect(theme as ThemeConfig)} />
                     ))}
                   </div>
                 </div>
@@ -984,8 +1004,8 @@ export default function HoloDeck({
           </div>
         </motion.aside>
       </div>{" "}
-      {/* /wrapper desktop */}
-      <StyleSelector isOpen={isStyleSelectorOpen} onClose={() => setIsStyleSelectorOpen(false)} onSelect={handleThemeSelect} currentThemeId={selectedTheme?.id} />
+      {/* Modal StyleSelector atualizado para Famílias Criativas */}
+      <StyleSelector isOpen={isStyleSelectorOpen} onClose={() => setIsStyleSelectorOpen(false)} onSelect={handleFamilySelect} currentThemeId={activeVariation?.creativeDirection?.familyId} />
       {/* AUDIT_DEBUG_START */}
       <GenerationAuditPanel trace={generationDebug} title="Auditoria do HoloDeck" />
       {/* AUDIT_DEBUG_END */}

@@ -1,11 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles } from "lucide-react";
-import { THEMES, type ThemeConfig } from "@/lib/themes";
+import { FAMILIES } from "@shared/creative/families";
+import type { CreativeFamily } from "@shared/creative/types";
 
 interface StyleSelectorProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (theme: ThemeConfig) => void;
+  onSelect: (family: CreativeFamily) => void;
   currentThemeId?: string;
 }
 
@@ -69,65 +70,50 @@ export default function StyleSelector({
             {/* Grid of themes */}
             <div className="p-4 max-h-[60vh] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {THEMES.map((theme) => (
+                {FAMILIES.map((family) => (
                   <motion.button
-                    key={theme.id}
-                    data-tour={`theme-${theme.label}`}
+                    key={family.id}
+                    data-tour={`theme-${family.id}`}
                     onClick={() => {
-                      onSelect(theme);
+                      onSelect(family);
                       onClose();
                     }}
                     className="relative text-left rounded-xl overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98]"
                     style={{
-                      background: theme.colors.bg,
-                      border: `2px solid ${currentThemeId === theme.id ? theme.colors.accent : "transparent"}`,
-                      boxShadow: currentThemeId === theme.id ? `0 0 20px ${theme.colors.accent}44` : "none",
+                      background: "oklch(0.15 0.02 280)", // Cor neutra de fundo
+                      border: `2px solid ${currentThemeId === family.id ? "oklch(0.7 0.1 280)" : "transparent"}`,
+                      boxShadow: currentThemeId === family.id ? `0 0 20px oklch(0.7 0.1 280 / 0.4)` : "none",
                     }}
                     whileHover={{ y: -4 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                   >
                     {/* Preview */}
-                    <div className="p-4" style={{ background: theme.colors.surface }}>
+                    <div className="p-4" style={{ background: "oklch(0.2 0.02 280)" }}>
                       <div
                         className="text-sm font-bold mb-1"
                         style={{
-                          color: theme.colors.text,
-                          fontFamily: theme.typography.headingFont,
+                          color: "#ffffff",
                         }}
                       >
-                        {theme.label}
+                        {family.label || family.id}
                       </div>
                       <div
-                        className="text-xs"
-                        style={{
-                          color: theme.colors.text,
-                          opacity: 0.7,
-                          fontFamily: theme.typography.bodyFont,
-                        }}
+                        className="text-[10px] uppercase tracking-wider font-semibold opacity-70"
+                        style={{ color: "#ffffff" }}
                       >
-                        {theme.description}
-                      </div>
-                      <div
-                        className="mt-2 px-2 py-1 rounded text-[10px] font-medium inline-block"
-                        style={{
-                          background: theme.colors.accent,
-                          color: theme.colors.bg,
-                        }}
-                      >
-                        {theme.category}
+                        {family.description}
                       </div>
                     </div>
-
                     {/* Selected indicator */}
-                    {currentThemeId === theme.id && (
+                    {currentThemeId === family.id && (
                       <motion.div
                         className="absolute top-2 right-2 p-1 rounded-full"
-                        style={{ background: theme.colors.accent }}
+                        style={{ background: "oklch(0.7 0.1 280)" }}
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 400, damping: 20 }}
                       >
-                        <Sparkles size={12} style={{ color: theme.colors.bg }} />
+                        <Sparkles size={12} style={{ color: "oklch(0.12 0.02 280)" }} />
                       </motion.div>
                     )}
                   </motion.button>

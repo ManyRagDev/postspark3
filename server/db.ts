@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { ENV } from "./_core/env";
 
-type JsonValue =
+export type JsonValue =
   | string
   | number
   | boolean
@@ -147,6 +147,9 @@ export type CreateGenerationRunInput = {
   estimatedCostUsd: number;
   latencyMs: number;
   errorMessage?: string;
+  graphState?: JsonValue;
+  sparkCost?: number;
+  completedAt?: string;
 };
 
 export type CreateContentFingerprintInput = {
@@ -188,7 +191,53 @@ export type GenerationRunRecord = {
   estimated_cost_usd: number;
   latency_ms: number;
   error_message: string | null;
+  graph_state?: JsonValue | null;
+  spark_cost?: number | null;
+  completed_at?: string | null;
   createdAt: string;
+};
+
+export type BrandKitRecord = {
+  id: string;
+  user_uuid: string;
+  tone: string;
+  formatting_rules: string[] | null;
+  forbidden_terms: string[] | null;
+  must_include: string[] | null;
+  dictionary: Record<string, string> | null;
+  visual_palette: string[] | null;
+  font_family: string | null;
+  border_radius: string | null;
+  box_shadow: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PersonaRecord = {
+  id: string;
+  user_uuid: string;
+  audience: string;
+  pains: string[] | null;
+  goals: string[] | null;
+  language_style: string | null;
+  objections: string[] | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UpdateGenerationRunInput = {
+  status?: string;
+  graphState?: JsonValue;
+  sparkCost?: number;
+  completedAt?: string | null;
+  errorMessage?: string | null;
+  outputSnapshot?: JsonValue;
+  evaluationSnapshot?: JsonValue;
+  revisionCount?: number;
+  candidateCount?: number;
+  acceptedCount?: number;
+  averageQualityScore?: number;
+  originalityFallbackUsed?: boolean;
 };
 
 export type GenerationOperationalMetrics = {
@@ -477,7 +526,7 @@ export async function createGenerationRun(
   input: CreateGenerationRunInput,
 ): Promise<void> {
   const db = getSupabaseDbClient();
-  const { error } = await db.from("generation_runs").insert({
+  const payload = removeUndefined({
     id: input.id,
     user_uuid: input.userUuid,
     site_intelligence_id: input.siteIntelligenceId ?? null,
@@ -505,11 +554,83 @@ export async function createGenerationRun(
     estimated_cost_usd: input.estimatedCostUsd,
     latency_ms: input.latencyMs,
     error_message: input.errorMessage ?? null,
+    graph_state: input.graphState,
+    spark_cost: input.sparkCost,
+    completed_at: input.completedAt,
   });
+  const { error } = await db.from("generation_runs").upsert(payload);
 
   if (error) {
     throw new Error(`[Database] createGenerationRun failed: ${error.message}`);
   }
+}
+
+export async function updateGenerationRun(
+  id: string,
+  userUuid: string,
+  input: UpdateGenerationRunInput,
+): Promise<void> {
+  const db = getSupabaseDbClient();
+  const payload = removeUndefined({
+    status: input.status,
+    graph_state: input.graphState,
+    spark_cost: input.sparkCost,
+    completed_at: input.completedAt,
+    error_message: input.errorMessage,
+    output_snapshot: input.outputSnapshot,
+    evaluation_snapshot: input.evaluationSnapshot,
+    revision_count: input.revisionCount,
+    candidate_count: input.candidateCount,
+    accepted_count: input.acceptedCount,
+    average_quality_score: input.averageQualityScore,
+    originality_fallback_used: input.originalityFallbackUsed,
+  });
+
+  if (Object.keys(payload).length === 0) return;
+
+  const { error } = await db
+    .from("generation_runs")
+    .update(payload)
+    .eq("id", id)
+    .eq("user_uuid", userUuid);
+
+  if (error) {
+    throw new Error(`[Database] updateGenerationRun failed: ${error.message}`);
+  }
+}
+
+export async function getBrandKitByUser(
+  userUuid: string,
+): Promise<BrandKitRecord | undefined> {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db
+    .from("brand_kits")
+    .select("*")
+    .eq("user_uuid", userUuid)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`[Database] getBrandKitByUser failed: ${error.message}`);
+  }
+
+  return (data ?? undefined) as BrandKitRecord | undefined;
+}
+
+export async function getPersonaByUser(
+  userUuid: string,
+): Promise<PersonaRecord | undefined> {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db
+    .from("personas")
+    .select("*")
+    .eq("user_uuid", userUuid)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`[Database] getPersonaByUser failed: ${error.message}`);
+  }
+
+  return (data ?? undefined) as PersonaRecord | undefined;
 }
 
 export async function createContentFingerprints(
