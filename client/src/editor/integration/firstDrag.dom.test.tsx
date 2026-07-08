@@ -179,7 +179,7 @@ describe("first drag DOM invariants", () => {
     });
 
     expect(useEditorStore.getState().layoutSettings.headline.freePosition?.x)
-      .toBeCloseTo(36.1111111111, 8);
+      .toBeCloseTo(36.6666666667, 8);
 
     await act(async () => root.unmount());
   });

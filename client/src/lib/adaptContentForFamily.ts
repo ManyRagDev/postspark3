@@ -1,5 +1,5 @@
-import { PostVisualSnapshot, PostVariation, TextElement } from "@shared/postspark";
-import { composeVariation } from "@shared/creative/compose";
+import { DEFAULT_DESIGN_TOKENS, PostVisualSnapshot, PostVariation, TextElement, type DesignTokens } from "@shared/postspark";
+import { composeVariation, directCreative, hashString } from "@shared/creative";
 
 /**
  * Adapt a PostVisualSnapshot to a new Creative Family, PRESERVING user's manual edits
@@ -9,14 +9,42 @@ export function adaptContentForFamily(
   variation: PostVisualSnapshot,
   newFamilyId: string
 ): PostVisualSnapshot {
+  const baseCreativeDir = variation.creativeDirection ?? directCreative(
+    variation,
+    null,
+    hashString(variation.id),
+  );
   const newCreativeDir = {
-    ...variation.creativeDirection,
+    ...baseCreativeDir,
     familyId: newFamilyId,
-    // Preserve other traits like palette, ornaments tweaks
   };
 
-  // Re-run the pure function to get the target layout/designTokens for this family
-  const composed = composeVariation(variation, newCreativeDir as any);
+  const baseForCompose: PostVariation = {
+    ...variation,
+    creativeDirection: newCreativeDir as PostVariation["creativeDirection"],
+  };
+  const brandTokens = {
+    ...DEFAULT_DESIGN_TOKENS,
+    ...(variation.designTokens ?? {}),
+    colors: {
+      ...DEFAULT_DESIGN_TOKENS.colors,
+      ...(variation.designTokens as DesignTokens | undefined)?.colors,
+      background: variation.backgroundColor,
+      text: variation.textColor,
+      primary: variation.accentColor,
+    },
+    typography: {
+      ...DEFAULT_DESIGN_TOKENS.typography,
+      ...(variation.designTokens as DesignTokens | undefined)?.typography,
+    },
+    structure: {
+      ...DEFAULT_DESIGN_TOKENS.structure,
+      ...(variation.designTokens as DesignTokens | undefined)?.structure,
+    },
+  } as DesignTokens;
+
+  // Re-run the pure function with the requested family and real brand tokens.
+  const composed = composeVariation(baseForCompose, brandTokens);
 
   // But wait! composed overwrites textElements, layoutSettings (which has no aspectRatio memory), etc.
   // We MUST MERGE the existing layoutSettingsByAspectRatio and text content to preserve the Workbench state.

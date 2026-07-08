@@ -143,7 +143,14 @@
       "Bash(where python *)",
       "Bash(python *)",
       "Bash(graphify export *)",
-      "Bash(taskkill *)"
+      "Bash(taskkill *)",
+      "Bash(python3 -c \"import graphify\")",
+      "Bash(python3 -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(mkdir -p graphify-out)",
+      "Bash(echo \"C:\\\\Users\\\\emanu\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\\\python.exe\")",
+      "Bash(echo \".\")",
+      "Bash(cat)",
+      "Read(//tmp/**)"
     ]
   },
   "enabledMcpjsonServers": [

@@ -3,6 +3,14 @@ import { isDark, darken, lighten, mix } from "./color";
 import { splitHeadline } from "./utils";
 import { TextElement } from "../postspark";
 
+/**
+ * `freePosition.x` é o CENTRO do bloco (contrato do renderer/drag: `translate(-50%, -50%)`).
+ * As famílias raciocinam a partir da margem esquerda, então convertemos aqui:
+ * centro = margem esquerda + largura/2. Assim um bloco de `width: 84` com margem 8
+ * ocupa 8%..92% e centro 50%, reproduzindo exatamente o design pretendido.
+ */
+const flX = (leftPercent: number, widthPercent: number): number => leftPercent + widthPercent / 2;
+
 /** Helper to create a base TextElement with default styles */
 function createTextElement(id: string, text: string, x: number, y: number, width: number, overrides?: Partial<TextElement>): TextElement {
   const baseStyles = {
@@ -51,9 +59,9 @@ export const FAMILIES: CreativeFamily[] = [
         headlineFontFamily: "Playfair Display",
         bodyFontFamily: "Inter",
         layoutSettings: {
-          headline: { position: "bottom-left", textAlign: "left", freePosition: { x: 8, y: 62 + rand() * 6 }, width: 84 },
+          headline: { position: "bottom-left", textAlign: "left", freePosition: { x: flX(8, 84), y: 62 + rand() * 6 }, width: 84 },
           badge: { position: "top-left", textAlign: "left", width: 12 },
-          accentBar: { position: "top-left", textAlign: "left", freePosition: { x: 8, y: 56 }, width: 12 },
+          accentBar: { position: "top-left", textAlign: "left", freePosition: { x: flX(8, 12), y: 56 }, width: 12 },
         },
         ornaments: { badge: "keep", sticker: "hide", accentBar: "keep" },
         cardMode: "full-bleed",
@@ -164,7 +172,7 @@ export const FAMILIES: CreativeFamily[] = [
       return {
         headlineFontFamily: "Space Mono",
         layoutSettings: {
-          headline: { position: "center", textAlign: "center", freePosition: { x: 10, y: 45 }, width: 80 }
+          headline: { position: "center", textAlign: "center", freePosition: { x: flX(10, 80), y: 45 }, width: 80 }
         },
         ornaments: { badge: "hide", sticker: "hide", accentBar: "hide" },
         cardMode: "full-bleed",
@@ -254,7 +262,7 @@ export const FAMILIES: CreativeFamily[] = [
         headlineFontFamily: "Anton",
         typography: { textTransform: "uppercase" },
         layoutSettings: {
-          headline: { position: "top-left", textAlign: "left", freePosition: { x: 10, y: lastY }, width: 80 }
+          headline: { position: "top-left", textAlign: "left", freePosition: { x: flX(10, 80), y: lastY }, width: 80 }
         },
         ornaments: { badge: "hide", sticker: "keep", accentBar: "hide" },
         cardMode: "full-bleed",
@@ -282,8 +290,8 @@ export const FAMILIES: CreativeFamily[] = [
       return {
         headlineFontSize: 0.8,
         layoutSettings: {
-          headline: { position: "top-left", textAlign: "left", freePosition: { x: 8, y: 58 }, width: 84 },
-          accentBar: { position: "top-left", textAlign: "left", freePosition: { x: 8, y: 50 }, width: 12 },
+          headline: { position: "top-left", textAlign: "left", freePosition: { x: flX(8, 84), y: 58 }, width: 84 },
+          accentBar: { position: "top-left", textAlign: "left", freePosition: { x: flX(8, 12), y: 50 }, width: 12 },
         },
         ornaments: { badge: "keep", sticker: "hide", accentBar: "keep" },
         cardMode: "full-bleed",

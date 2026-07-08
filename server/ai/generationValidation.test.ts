@@ -86,7 +86,7 @@ describe("validateVariationSet", () => {
           sections: Array.from({ length: 5 }, (_, index) => ({
             icon: "Star",
             label: `Item ${index + 1}`,
-            description: "Descricao extensa demais para o espaco visual de um post quadrado",
+            description: "Descricao longa demais",
             number: index + 1,
           })),
         }),
@@ -98,5 +98,27 @@ describe("validateVariationSet", () => {
 
     expect(result.valid).toBe(false);
     expect(result.errors.join(" ")).toContain("exactly 3 short sections");
+  });
+
+  it("rejects structured static posts whose headline promises a different item count", () => {
+    const result = validateVariationSet(
+      [
+        variation(1, {
+          headline: "Antes de comprar: 7...",
+          template: "feature-grid",
+          sections: [
+            { icon: "Star", label: "Rapido", description: "Configuracao simples", number: 1 },
+            { icon: "Shield", label: "Seguro", description: "Atualizacoes confiaveis", number: 2 },
+            { icon: "Zap", label: "Leve", description: "Bom desempenho diario", number: 3 },
+          ],
+        }),
+        variation(2),
+        variation(3),
+      ],
+      "static",
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(" ")).toContain("different item count");
   });
 });

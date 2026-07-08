@@ -2557,3 +2557,484 @@ formato que o LLM produziu seja efetivamente usado por HoloDeck e Workbench.
 - `editorStore.test.ts`: 30/30 testes passaram.
 - Testes de compose.ts: não existiam previamente; a mudança apenas preserva
   valores existentes (sem quebra de contrato).
+
+## 50. Correção de vazamentos de precedência layout/cores por formato — 2026-07-07
+
+### Diagnóstico
+
+Após a integração de `aspectRatioOptimizations` ao `normalizeLayoutSettings`
+(seção 49), uma auditoria revelou dois vazamentos de precedência onde o layout
+resolvido por formato era descartado:
+
+1. **HoloDeck `getPreviewVariation`** ignorava troca de formato para snapshots
+   (`HoloDeck.tsx:379-380`): variações com `snapshotVersion` pulavam a
+   renormalização por `createPostVisualSnapshot(variation, aspectRatio)`. O
+   `aspectRatio` do seletor estava na dependência do `useCallback` mas só era
+   usado no branch `else` (variações legadas sem versão). Resultado: ao trocar
+   de 1:1 para 5:6, o preview mantinha `layoutSettings` e cores do formato
+   original.
+
+2. **`editorStore.setAspectRatio`** descartava o layout resolvido
+   (`editorStore.ts:616-627`): `createPostVisualSnapshot` produzia o layout
+   correto via `aspectRatioOptimizations`, mas `nextLayout` (calculado sem
+   consultar `aspectRatioOptimizations`) sobrescrevia o resultado. O
+   `nextLayout` usava apenas `storedLayouts[currentRatio]` (layout manual
+   salvo) ou `layoutToAdvanced` (fallback genérico).
+
+### Correção 1: HoloDeck sempre renormaliza com aspectRatio atual
+
+`getPreviewVariation` em [`client/src/components/views/HoloDeck.tsx`](./client/src/components/views/HoloDeck.tsx)
+agora sempre chama `createPostVisualSnapshot(variation, aspectRatio)`,
+independente de `snapshotVersion`. `customTokens` (tema aplicado pelo usuário)
+continua sendo aplicado depois via `applyDesignTokensToSnapshot`, preservando
+edições locais.
+
+### Correção 2: setAspectRatio respeita o layout resolvido
+
+`setAspectRatio` em [`client/src/store/editorStore.ts`](./client/src/store/editorStore.ts)
+foi reestruturado:
+
+- `createPostVisualSnapshot` produz o layout correto para o formato destino
+  (resolvendo `aspectRatioOptimizations` quando disponível).
+- Se existe `layoutSettingsByAspectRatio[currentRatio]` (layout salvo
+  manualmente pelo usuário para este formato), este tem precedência.
+- Caso contrário, `arPatched.layoutSettings` (resolvido de
+  `aspectRatioOptimizations`) é usado.
+- O `resolvedLayout` do retorno agora deriva da variação processada, não de
+  um cálculo paralelo que ignorava `aspectRatioOptimizations`.
+
+### Cadeia final de precedência de layout (pós-correção)
+
+1. `layoutSettingsByAspectRatio[aspectRatio]` — salvo pelo usuário no editor
+2. `aspectRatioOptimizations[aspectRatio]` → `formatOptimizationToLayoutSettings` — gerado pelo LLM
+3. `layoutSettings` — global do editor
+4. `layoutToAdvanced(variation.layout)` — fallback genérico
+
+### Validação
+
+- `tsc --noEmit`: passou sem erros.
+- `variationSnapshot.test.ts`: 13/13 passaram.
+- `editorStore.test.ts`: 30/30 passaram.
+- Falhas restantes (9) são pré-existentes em `interaction.test.ts` e
+  `firstDrag.dom.test.tsx` (zoom/slop não relacionados).
+
+## 51. Correção de contenção horizontal de blocos absolutos — 2026-07-08
+
+Fato observado:
+
+- Após a correção de precedência por formato, HoloDeck e Workbench passaram a
+  renderizar consistentemente o mesmo `PostVisualSnapshot`, mas alguns posts
+  gerados ainda podiam sair mal diagramados.
+- O caso reproduzido usava o layout criativo `data-punch`, que posiciona a
+  headline com `freePosition: { x: 8, y: 58 }` e `width: 84`.
+- `DraggableBlock` interpretava todo `freePosition` como centro do bloco e
+  aplicava `transform: translate(-50%, -50%)`. Com `x: 8` e `width: 84`, metade
+  do bloco ficava fora do canvas à esquerda.
+
+Correção aplicada:
+
+- [`client/src/components/canvas/DraggableBlock.tsx`](./client/src/components/canvas/DraggableBlock.tsx)
+  agora limita horizontalmente o centro renderizado de blocos absolutos quando
+  `layoutPos.width` existe.
+- A regra preserva o contrato atual de `freePosition` como centro geométrico
+  usado pelos drags e pelo `layoutPositionAdapter`, mas impede que um bloco largo
+  renderize fora do canvas.
+- Exemplo: `x: 8`, `width: 84` passa a renderizar com centro mínimo em `42%`,
+  mantendo o bloco inteiro dentro do card.
+
+Validação:
+
+- `client/src/components/canvas/DraggableBlock.test.ts`: 2/2 testes passaram.
+- `client/src/lib/variationSnapshot.test.ts` e
+  `client/src/store/editorStore.test.ts`: 43/43 testes passaram.
+
+## 52. Restauração do contrato de placeholder no primeiro drag — 2026-07-08
+
+Fato observado:
+
+- O bug antigo de elementos "mudarem de plano" durante drag estava documentado
+  nas seções 32, 36, 38 e 44.
+- O contrato correto para `DraggableBlock` é:
+  - o nó interativo não pode ser desmontado/remontado ao cruzar o slop;
+  - enquanto um bloco estrutural nasce em fluxo e passa a ter `freePosition`,
+    um espaçador invisível deve preservar a largura/altura originais;
+  - elementos que já chegam absolutos sem medida de primeiro drag continuam com
+    `display: contents`, para posicionar contra o canvas/card correto.
+- A regressão atual apareceu porque `flowFootprint` podia ser medido antes do
+  layout real existir e ficar congelado com `0px x 0px`. Nesse estado, o shell
+  existia, mas não preservava espaço, reabrindo o rearranjo dos irmãos.
+
+Correção aplicada:
+
+- [`client/src/components/canvas/DraggableBlock.tsx`](./client/src/components/canvas/DraggableBlock.tsx)
+  agora ignora medições de `flowFootprint` com largura ou altura zerada.
+- A medição é tentada no mount e novamente quando a interação entra em
+  `pressing`/`dragging`, permitindo capturar a geometria real antes do primeiro
+  movimento efetivo.
+
+Validação:
+
+- `client/src/editor/integration/firstDrag.dom.test.tsx`,
+  `client/src/editor/integration/blockInteraction.test.ts` e
+  `client/src/components/canvas/DraggableBlock.test.ts`: 6/6 testes passaram.
+
+## 53. Correcao da precedencia entre motor criativo e layout por formato - 2026-07-08
+
+Fato observado:
+
+- O fluxo de geracao monta `aspectRatioOptimizations` no LLM e, depois disso,
+  aplica o motor criativo via `composeVariation`.
+- `composeVariation` pode injetar `layoutSettings` globais, `textElements`,
+  fontes e multiplicadores de fonte apos a geracao original.
+- `normalizeLayoutSettings` estava escolhendo `layoutSettings` antes de
+  `aspectRatioOptimizations[aspectRatio]`.
+- Na pratica, um layout global injetado pelo motor criativo podia sobrepor o
+  layout especifico por formato gerado pela IA, causando posts com elementos
+  coincidentes ou texto atropelado em HoloDeck e Workbench.
+
+Correcao aplicada:
+
+- [`client/src/lib/variationSnapshot.ts`](./client/src/lib/variationSnapshot.ts)
+  voltou a resolver layout com a precedencia canonica:
+  1. `layoutSettingsByAspectRatio[aspectRatio]` - posicao manual salva pelo usuario;
+  2. `aspectRatioOptimizations[aspectRatio]` - layout por formato gerado pela IA;
+  3. `layoutSettings` - layout global herdado/editorial/criativo;
+  4. `layoutToAdvanced(variation.layout)` - fallback.
+- O motor criativo ainda pode contribuir com estilo global, mas nao pode mais
+  derrubar a geometria especifica do formato quando ela existe.
+
+Validacao adicionada:
+
+- [`client/src/lib/variationSnapshot.test.ts`](./client/src/lib/variationSnapshot.test.ts)
+  ganhou um teste que simula `layoutSettings` global injetado pelo motor
+  criativo competindo com `aspectRatioOptimizations["5:6"]`.
+- O teste confirma que o snapshot final usa a geometria por formato para
+  headline e body.
+
+## 54. Correcao da ancora de coordenadas e anti-colisao de blocos - 2026-07-08
+
+### Diagnostico (causa raiz do "titulo em cima do corpo")
+
+As secoes 49-53 trataram *precedencia* (quem escreve o layout) e *contencao
+horizontal* (clamp de X), mas o defeito estrutural persistia porque era de
+**semantica de coordenadas**, nao de precedencia:
+
+- `freePosition` e o **CENTRO geometrico** do bloco. E o que o drag manual grava
+  ([`layoutPositionAdapter.ts`](./client/src/editor/adapters/layoutPositionAdapter.ts)
+  via `geometryCenterPercent`) e o que o renderer aplica
+  ([`DraggableBlock.tsx`](./client/src/components/canvas/DraggableBlock.tsx):
+  `translate(-50%, -50%)`).
+- Os dois produtores automaticos de layout escreviam no mesmo campo com a
+  convencao **oposta** (canto superior esquerdo):
+  1. O schema do prompt em [`server/routers.ts`](./server/routers.ts) descrevia
+     apenas `"Posicao X em % (0-100)"`, sem ancora. Um LLM assume top-left
+     (convencao universal de design), entao headline `y:12` e body `y:30`
+     chegavam colados; renderizados como centro, o headline subia meia-altura
+     (truncando no topo) e o body colidia com ele.
+  2. As familias do Motor de Variabilidade em
+     [`shared/creative/families.ts`](./shared/creative/families.ts) autoravam
+     `freePosition: { x: 8, ... }, width: 84` (margem esquerda de 8%), que como
+     centro jogava metade do bloco para fora do canvas.
+- Nao havia **nenhuma** validacao geometrica (sobreposicao / bounding box) em
+  ponto algum do pipeline; o clamp da secao 51 so tratava X.
+
+### Correcao 1: ancora explicita no schema do prompt
+
+`layoutPositionSchema` em [`server/routers.ts`](./server/routers.ts) agora
+declara que `x`/`y` sao o **centro** do bloco, que a caixa vai de `x - width/2`
+a `x + width/2`, e exige folga vertical minima de 20 pontos percentuais entre o
+`y` do headline e o do body. Ataca a fonte primaria do overlap (caminho
+`aspectRatioOptimizations` do LLM, hoje de maior precedencia efetiva).
+
+### Correcao 2: saneamento no boundary do cliente (rede de protecao)
+
+`formatOptimizationToLayoutSettings` em
+[`client/src/lib/variationSnapshot.ts`](./client/src/lib/variationSnapshot.ts)
+passou a **sanear** (nao rejeitar) as coordenadas da IA:
+
+- `clampFreePosition` prende o centro dentro do canvas considerando a largura
+  (X entre `width/2` e `100 - width/2`; Y entre 8% e 92%).
+- Anti-colisao: se headline e body usam posicao livre e o body esta a menos de
+  18 pontos percentuais abaixo do headline, o body e empurrado para baixo
+  respeitando a folga minima. E o que garante que "titulo em cima do corpo" nao
+  chegue ao HoloDeck mesmo que a IA agrupe os dois no mesmo ponto.
+- Optou-se por sanear no boundary (`createPostVisualSnapshot`, contrato canonico
+  da secao 27, atravessado por todo render) em vez de validar no servidor:
+  `assertVariationSet` lanca `BAD_GATEWAY` e rejeitaria posts, reintroduzindo o
+  erro "A IA nao conseguiu produzir tres variacoes validas".
+
+### Correcao 3: familias emitem centro correto
+
+[`shared/creative/families.ts`](./shared/creative/families.ts) ganhou o helper
+`flX(left, width) => left + width/2` e converteu as 6 ocorrencias de
+`freePosition` (editorial-poster, glitch-signal, kinetic-type, data-punch) da
+margem esquerda para o centro. Como o texto interno mantem `textAlign: "left"`
+dentro da largura original, o design pretendido e reproduzido exatamente. Com
+isso o clamp horizontal da secao 51 deixa de mascarar posicao errada e volta a
+ser apenas protecao de borda.
+
+### Pendencia registrada (nao incluida nesta correcao)
+
+Os `textElements` decorativos ("figuras mal diagramadas" fora do 1:1) sao
+autorados em px absolutos num doc fixo 360x360
+([`shared/creative/compose.ts`](./shared/creative/compose.ts)) e renderizados
+sem escala (`scale={1}`) em cards de 200-360px
+([`PostCardV2.tsx`](./client/src/components/views/WorkbenchV2/PostCardV2.tsx) →
+[`AdvancedTextNode.tsx`](./client/src/components/canvas/AdvancedTextNode.tsx)).
+O espaco de coordenadas dos textElements e inconsistente (360-space no compose
+vs px-real no commit de drag), entao a correcao correta unifica esse espaco e
+toca o motor de interacao (auditado nas secoes 28-44) — fica isolada em tarefa
+propria para nao desestabilizar o drag.
+
+### Validacao
+
+- `tsc --noEmit`: passou sem erros.
+- Testes unitarios (variationSnapshot / editorStore / DraggableBlock): a cargo
+  do operador nesta iteracao.
+
+## 55. Saneamento geometrico por caixa estimada e fluxo obrigatorio - 2026-07-08
+
+### Fato observado (prints do HoloDeck pos-secao 54)
+
+Dois prints de variacoes do mesmo post mostraram que a correcao de ancora
+funcionou (blocos centralizados, dentro do canvas), mas o overlap persistia em
+duas formas:
+
+1. **Headline e body atravessados**: com folga fixa de 18 p.p. entre CENTROS,
+   um body de ~10 linhas e um headline de ~3 linhas ainda se cruzam — metade da
+   altura de cada caixa ultrapassa a folga. Alem disso o post era estruturado
+   (sections), e as sections renderizam em fluxo comecando por baixo dos blocos
+   absolutos, cruzando o body no meio do card.
+2. **Card espremido**: a IA sugeriu um `card` com largura minuscula; o conteudo
+   inteiro (headline serif grande) estourou a caixa com texto cortado.
+
+Licao consolidada: coordenada absoluta emitida por LLM e cega para a altura
+renderizada do texto. Nao existe folga fixa correta — a viabilidade tem de ser
+calculada com estimativa de altura por bloco.
+
+### Correcao (client/src/lib/variationSnapshot.ts)
+
+`formatOptimizationToLayoutSettings` agora recebe um `AiLayoutContext`
+(headline/body reais, presenca de sections estruturadas, aspect ratio) e aplica
+tres regras, todas no boundary canonico:
+
+1. **Templates estruturados nunca usam geometria absoluta da IA**: se
+   `template !== "simple"` e ha sections, `x/y` da IA sao descartados e a
+   geometria fica com o layout de fluxo (`layoutToAdvanced`), que empilha sem
+   sobreposicao. Estilo da IA (textAlign, width, cores, borderRadius, padding)
+   e preservado.
+2. **Anti-colisao por caixa estimada (templates simple)**:
+   `estimateTextHeightPercent` estima a altura renderizada de headline e body
+   (fonte de referencia 26px/13px, canvas 360xH proporcional ao ratio, margem de
+   seguranca 15%). O body precisa comecar abaixo da borda inferior estimada do
+   headline com folga de 4%; se couber, e empurrado para baixo; se nao couber no
+   canvas, headline E body voltam ao fluxo.
+3. **Guarda de largura do card**: card com `width < 45` volta a geometria de
+   fluxo com a largura base, preservando o estilo.
+
+### Ajuste de teste
+
+O teste "prioritizes aspect-ratio layout over global creative layout settings"
+(secao 53) usava o fixture padrao, que e estruturado (feature-grid + 3
+sections). Sob a regra 1 ele deixaria de receber geometria absoluta — o teste
+foi ajustado para `template: "simple"`, onde a precedencia de geometria da IA
+continua valendo e as assercoes originais se mantem.
+
+### Validacao
+
+- `tsc --noEmit`: passou sem erros.
+- Testes unitarios: a cargo do operador nesta iteracao.
+
+## 56. Auditoria da renderizacao final de posts - 2026-07-08
+
+Relatorio tecnico emitido em [`AUDITORIA_RENDERIZACAO_POSTS.md`](./AUDITORIA_RENDERIZACAO_POSTS.md).
+
+### Diagnostico consolidado
+
+Martelo batido: o problema dos posts "horriveis" nao e apenas copy ruim ou
+modelo ruim. A causa estrutural e que o pipeline aprova `PostVariation` e
+`PostVisualSnapshot` sem validar o render final do browser.
+
+Fato observado:
+
+- `post.generate` avalia e revisa candidatos antes de `composeVariation`.
+- `composeVariation` injeta `layoutSettings`, `textElements`, fontes,
+  multiplicadores e `designTokens` depois da avaliacao de qualidade.
+- `validateVariationSet` valida quantidade/campos/diversidade/sections/slides,
+  mas nao valida bounding boxes, clipping, overlap, z-index, escala ou area util.
+- `postEvaluation.visualReadability` mede contraste entre texto e fundo; nao mede
+  se texto ficou em cima de texto ou se o card cortou conteudo.
+- `ThemeRenderer` adiciona uma segunda camada de card com `overflow:hidden`.
+- `textElements` decorativos ainda sao autorados em um documento logico 360x360
+  e renderizados com `scale={1}`, mantendo inconsistencia entre coordenadas
+  logicas e pixels reais.
+
+### Implicacao
+
+As protecoes atuais em `client/src/lib/variationSnapshot.ts` mitigam os sintomas
+dos prints anexados (coordenadas da IA, templates estruturados, caixa estimada e
+largura minima de card), mas continuam sendo heuristicas. O sistema ainda precisa
+de um gate visual pos-composicao, capaz de renderizar/medir o snapshot final e
+reflowar ou rejeitar layouts com overlap, clipping ou texto fora da area util.
+
+### Validacao executada na auditoria
+
+- `node_modules/.bin/pnpm.cmd exec tsc --noEmit`: passou.
+- Testes focados (`variationSnapshot`, `editorStore`, `DraggableBlock`,
+  `generationValidation`): 52/52 passaram.
+- `node_modules/.bin/pnpm.cmd test`: falhou apenas em
+  `client/src/editor/interaction/interaction.test.ts`, com 7 falhas
+  preexistentes/relacionadas a slop, snap e click do motor de interacao.
+
+## 57. Gate visual deterministico e escala de elementos avancados - 2026-07-08
+
+Correcao aplicada:
+
+- Criado [`client/src/lib/visualFitValidator.ts`](./client/src/lib/visualFitValidator.ts)
+  como gate visual deterministico pos-normalizacao.
+- `createPostVisualSnapshot` agora aplica `applyVisualFitFallback` antes de
+  retornar o snapshot autoritativo.
+- O gate estima caixas de headline/body, detecta overlap, `card` estreito,
+  geometria absoluta em templates estruturados e `textElements` decorativos
+  gerados (`cd-*`) fora do canvas ou sobre a copy principal.
+- Quando encontra problema:
+  - headline/body voltam para layout de fluxo;
+  - `card` estreito e expandido;
+  - `sectionLayouts` automaticos sao limpos em templates estruturados;
+  - `textElements` decorativos problematicos sao removidos, preservando
+    elementos manuais.
+- `PostCardV2` passou a medir a largura real do canvas/card com
+  `ResizeObserver` e enviar escala para `AdvancedTextNode`.
+- `AdvancedTextNode` aplica essa escala tambem em `x`, `y`, `width`, `height` e
+  `fontSize`, alinhando os elementos autorados no doc logico 360x360 com o
+  tamanho real do card.
+- `adaptContentForFamily` foi corrigido para atualizar `creativeDirection.familyId`
+  antes de chamar `composeVariation` e passar `brandTokens` reais, em vez de
+  passar a direcao criativa no parametro errado.
+- Itens nao bloqueantes descobertos durante a implementacao foram registrados em
+  [`BACKLOG_RENDERIZACAO_POS_TESTES.md`](./BACKLOG_RENDERIZACAO_POS_TESTES.md).
+
+Validacao:
+
+- Testes automatizados nao foram executados nesta iteracao a pedido do operador,
+  que fara a validacao manual.
+
+## 58. Remocao do wrapper visual duplicado no PostCardV2 - 2026-07-08
+
+Fato observado apos nova validacao visual:
+
+- Os previews melhoraram, mas ainda exibiam um "quadro dentro do canvas".
+- A origem confirmada era `ThemeRenderer`: em caminhos com `designTokens` ou
+  `theme`, ele sempre criava um `DraggableBlock` com `.inner-card-layer`.
+- `PostCardV2` ja entregava como filho um layout completo de post, com canvas,
+  background e conteudo. Portanto o renderer estava embrulhando um post completo
+  dentro de outro card visual.
+
+Correcao aplicada:
+
+- `ThemeRenderer` ganhou a opcao `wrapContentInCard`.
+- O valor padrao continua `true`, preservando comportamento antigo para usos
+  isolados do componente.
+- `PostCardV2` passa `wrapContentInCard={false}` nos caminhos de `designTokens`
+  e `themeOverride`.
+- Nesses caminhos, `ThemeRenderer` continua fornecendo a camada de canvas,
+  background/decoracoes e contexto visual, mas renderiza os filhos diretamente
+  em `.theme-content`, sem `.inner-card-layer` e sem `DraggableBlock` interno.
+- No caminho legado de `theme`, `wrapContentInCard=false` tambem desliga padding
+  e border radius estruturais do canvas para nao criar um segundo inset visual.
+- Quando o wrapper esta desligado, `cardRef` aponta para o canvas como fallback,
+  evitando refs nulas para consumidores que ainda esperam uma referencia.
+
+Implicacao:
+
+- O fluxo principal deixa de criar a segunda moldura/clipping responsavel pelo
+  efeito de "post dentro do post".
+- `cardLayout`/`isEditingCard` nao devem ser reativados no `PostCardV2` por meio
+  de um wrapper interno; se a edicao do card inteiro for necessaria, ela deve ser
+  redesenhada no canvas externo ou no snapshot canonico.
+- O item foi registrado em
+  [`BACKLOG_RENDERIZACAO_POS_TESTES.md`](./BACKLOG_RENDERIZACAO_POS_TESTES.md).
+
+## 59. Correcao global de overlap por pegada de fluxo e clamps - 2026-07-08
+
+Fato observado apos novo print:
+
+- A segunda moldura foi removida, mas headline, body e sections ainda podiam
+  colidir verticalmente.
+- A causa global nao era uma variacao especifica: `DraggableBlock` media uma
+  `flowFootprint` e passava a fixar largura/altura do shell mesmo quando o bloco
+  nao estava sendo arrastado.
+- Se a medicao inicial acontecia antes da quebra final de linha/fonte, o shell
+  ficava menor que o conteudo real; o proximo bloco subia no fluxo e invadia o
+  texto anterior.
+- Isso afetava preview, HoloDeck e render normal porque o componente era usado
+  tambem quando `isDraggable=false`.
+- `useTextAutoFit` ja calculava `headlineLineClamp` e `bodyLineClamp`, mas os
+  layouts de `PostCardV2` quase nao aplicavam esses limites fora do modo
+  compacto.
+
+Correcao aplicada:
+
+- `DraggableBlock` continua medindo `flowFootprint`, mas so reserva a caixa fixa
+  durante `pressing`/`dragging` ou quando o bloco ja esta em `freePosition`.
+- Em render normal de bloco em fluxo, o shell volta a acompanhar a altura real
+  do conteudo, impedindo overlap por medicao congelada.
+- `PostCardV2` agora aplica os clamps calculados por `useTextAutoFit` nos
+  estilos de headline e body em todos os layouts principais.
+
+Implicacao:
+
+- A protecao de primeira interacao do drag permanece, mas deixa de contaminar o
+  layout final.
+- Posts estruturados deixam de depender de uma medicao inicial perfeita para nao
+  colidir texto e sections.
+- A garantia ainda nao substitui um gate visual com DOM real; esse ponto segue
+  no backlog como validacao pos-testes.
+
+Validacao:
+
+- `node_modules/.bin/pnpm.cmd exec tsc --noEmit`: passou.
+
+## 60. Gate de direcao de arte para posts estaticos estruturados - 2026-07-08
+
+Fato observado apos os posts sairem de "quebrados" para "ok":
+
+- Os cards passaram a caber e respeitar fluxo, mas ainda faltava acabamento de
+  direcao de arte.
+- Prints mostraram headlines com promessa incompleta ou numerica ("7...") em
+  posts estaticos que, por contrato, renderizam exatamente 3 secoes.
+- Isso nao era erro de renderer: era uma resposta de LLM aceita por gates que
+  validavam campos, contraste, diversidade e quantidade de secoes, mas nao a
+  coerencia entre promessa visual e estrutura renderizavel.
+- As descricoes de secoes tambem estavam pequenas demais para funcionar como
+  informacao visual; quando longas, viravam ruido de baixa legibilidade.
+
+Correcao aplicada:
+
+- O prompt de `post.generate` passou a instruir posts estaticos como
+  pecas de poster/editorial, nao mini-artigos.
+- Headline cortado, reticencias finais, dois-pontos finais e numero solto no fim
+  passaram a ser proibidos na instrucao.
+- Templates estruturados continuam com exatamente 3 secoes, mas agora:
+  - headline que promete quantidade de itens deve prometer 3;
+  - ideias com 5, 7 ou 10 itens devem virar carrossel ou ser reformuladas sem
+    numero;
+  - descriptions foram reduzidas de 48 para 36 caracteres.
+- `generationValidation` ganhou `hasCoherentStaticItemCount` e rejeita posts
+  estaticos estruturados cujo headline promete quantidade diferente das 3
+  secoes.
+- O criterio de slot completo em `post.generate` agora exige essa coerencia antes
+  de aceitar a primeira resposta da LLM.
+- `postEvaluation` passou a penalizar discrepancia numerica no headline, nao
+  apenas na caption.
+- `applyDeterministicCopyGuards` remove reticencias finais e contador solto em
+  headline estruturado antes da validacao final.
+- O renderer aumentou levemente a legibilidade das descriptions de secoes e
+  aplicou `line-clamp-2`, para transformar suporte textual em microcopy legivel
+  em vez de ruído.
+
+Validacao:
+
+- `server/ai/generationValidation.test.ts`: 7/7 passaram.
+- `server/ai/postEvaluation.test.ts`: 4/4 passaram.
+- `node_modules/.bin/pnpm.cmd exec tsc --noEmit`: passou.

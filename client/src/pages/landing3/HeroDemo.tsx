@@ -13,11 +13,10 @@ import {
   useMotionValue,
   useReducedMotion,
 } from "framer-motion";
-import { RotateCcw } from "lucide-react";
+import { Chrome, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useIsMobile } from "@/hooks/useMobile";
 import { analytics } from "@/lib/analytics";
-import CtaButton from "./CtaButton";
 import MiniPost from "./MiniPost";
 import { demoScenarios, type DemoScenario } from "./demoScenarios";
 
@@ -355,7 +354,31 @@ export default function HeroDemo() {
             ou carrossel — design, copy e legenda — prontas para editar e
             publicar.
           </p>,
-          <CtaButton key="cta" source="hero" className="mt-8" />,
+          <motion.div key="cta" className="mt-8 flex flex-col items-center gap-2.5 sm:items-start">
+            <motion.a
+              href="https://www.postspark.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              className="group relative inline-flex items-center gap-3 rounded-2xl px-7 py-4 font-display text-base font-semibold text-primary-foreground"
+              style={{
+                background: "linear-gradient(135deg, oklch(0.72 0.22 40), oklch(0.64 0.23 30))",
+                boxShadow: "0 0 0 1px oklch(0.7 0.22 40 / 45%), 0 12px 40px -8px oklch(0.7 0.22 40 / 45%)",
+              }}
+            >
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                style={{ boxShadow: "0 0 60px -6px oklch(0.7 0.22 40 / 70%)" }}
+              />
+              <Chrome size={19} />
+              Criar meu primeiro post grátis
+            </motion.a>
+            <span className="text-xs tracking-wide text-muted-foreground">
+              Google · sem cartão · em 30 segundos
+            </span>
+          </motion.div>,
         ].map((node, i) => (
           <motion.div
             key={i}

@@ -86,9 +86,10 @@ export function AdvancedTextNode({
     return () => document.fonts?.removeEventListener("loadingdone", handleFontsLoaded);
   }, [interaction, target]);
 
-  const x = draft?.rect.x ?? element.x;
-  const y = draft?.rect.y ?? element.y;
-  const width = draft?.rect.width ?? element.width;
+  const x = draft?.rect.x ?? element.x * scale;
+  const y = draft?.rect.y ?? element.y * scale;
+  const width = draft?.rect.width ?? (element.width === "auto" ? element.width : element.width * scale);
+  const height = element.height === "auto" ? "auto" : `${element.height * scale}px`;
   const pointerLifecycle = {
     ...transient.bind,
     onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
@@ -106,7 +107,7 @@ export function AdvancedTextNode({
         transform: `translate(${x}px, ${y}px) rotate(${element.rotation}deg)`,
         transformOrigin: "top left",
         width: width === "auto" ? "auto" : `${width}px`,
-        height: element.height === "auto" ? "auto" : `${element.height}px`,
+        height,
         zIndex: isSelected ? 100 : 1,
       }}
       onDoubleClick={handleDoubleClick}

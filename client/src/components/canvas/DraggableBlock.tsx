@@ -42,9 +42,15 @@ export function resolvePosition(
 
 export function resolveLayoutStyle(lp: LayoutPosition, _padding: number): React.CSSProperties {
     if (lp.freePosition) {
+        const width = typeof lp.width === "number" ? Math.max(0, Math.min(100, lp.width)) : undefined;
+        const halfWidth = width != null ? width / 2 : 0;
+        const x = width != null
+            ? Math.max(halfWidth, Math.min(100 - halfWidth, lp.freePosition.x))
+            : lp.freePosition.x;
+
         return {
             position: "absolute",
-            left: `${lp.freePosition.x}%`,
+            left: `${x}%`,
             top: `${lp.freePosition.y}%`,
             transform: "translate(-50%, -50%)",
         };
@@ -104,11 +110,12 @@ export function DraggableBlock({
     const isDragging = interaction.phase === "dragging" || interaction.phase === "pressing";
     const isResizing = interaction.phase === "resizing";
     const isAbsolute = Boolean(layoutPos.freePosition);
+    const reservedFlowFootprint = flowFootprint && (isDragging || isAbsolute) ? flowFootprint : null;
 
     useLayoutEffect(() => {
         if (isAbsolute) return;
-        // Calculate footprint immediately on mount, not waiting for drag
-        // This prevents layout shift during first interaction
+        // Keep the flow placeholder ready before the first real drag, but do not
+        // freeze a zero-sized measurement from DOM/test environments before layout.
         if (flowFootprint) return;
         const element = blockRef.current;
         if (!element) return;
@@ -117,8 +124,9 @@ export function DraggableBlock({
         const contentHeight = content?.scrollHeight || element.offsetHeight;
         const measuredWidth = Math.min(element.offsetWidth, Math.max(1, contentWidth));
         const measuredHeight = Math.min(element.offsetHeight, Math.max(1, contentHeight));
+        if (measuredWidth <= 0 || measuredHeight <= 0) return;
         setFlowFootprint({ width: measuredWidth, height: measuredHeight });
-    }, [flowFootprint, isAbsolute]);
+    }, [flowFootprint, isAbsolute, isDragging]);
 
     const hasExplicitWidth = layoutPos.width != null;
     const defaultWidthForMode = isDraggable && defaultWidth === "100%" ? "fit-content" : defaultWidth;
@@ -169,18 +177,18 @@ export function DraggableBlock({
         <div
             data-draggable-flow-shell={elementId}
             style={isAbsolute
-                ? flowFootprint
+                ? reservedFlowFootprint
                     ? {
                         position: "static",
-                        width: `${flowFootprint.width}px`,
-                        height: `${flowFootprint.height}px`,
+                        width: `${reservedFlowFootprint.width}px`,
+                        height: `${reservedFlowFootprint.height}px`,
                     }
                     : { display: "contents" }
-                : flowFootprint
+                : reservedFlowFootprint
                     ? {
                         position: "relative",
-                        width: `${flowFootprint.width}px`,
-                        height: `${flowFootprint.height}px`,
+                        width: `${reservedFlowFootprint.width}px`,
+                        height: `${reservedFlowFootprint.height}px`,
                     }
                     : { position: "relative" }}
         >

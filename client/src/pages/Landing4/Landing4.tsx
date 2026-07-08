@@ -1,5 +1,5 @@
 /**
- * Landing4 — fusão Landing2 + Landing3 (rota /landing4).
+ * Landing4 — fusão Landing2 + Landing3 (rota /crie-posts-incriveis).
  *
  * Sequência:
  * 1. Hero Section ← Landing3
@@ -12,7 +12,6 @@
  */
 
 import { useEffect } from "react";
-import { Link } from "wouter";
 import OrganicBackground from "@/components/OrganicBackground";
 import SparkLogo from "@/components/SparkLogo";
 import SparkParticles from "@/components/SparkParticles";
@@ -32,7 +31,7 @@ export default function Landing4() {
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    analytics.trackPageView("/landing4", document.referrer || undefined);
+    analytics.trackPageView("/crie-posts-incriveis", document.referrer || undefined);
   }, []);
 
   return (
@@ -60,12 +59,14 @@ export default function Landing4() {
             PostSpark
           </span>
         </div>
-        <Link
-          href="/"
+        <a
+          href="https://www.postspark.com.br"
+          target="_blank"
+          rel="noopener noreferrer"
           className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-1.5 text-xs text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground"
         >
           Entrar
-        </Link>
+        </a>
       </header>
 
       <main className="relative z-10">

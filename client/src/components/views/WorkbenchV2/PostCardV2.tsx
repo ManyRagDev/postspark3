@@ -67,6 +67,8 @@ import { ImageElementBlock } from "@/components/canvas/ImageElementBlock";
 import { normalizeSectionIcon, normalizeSections } from "@/lib/variationSnapshot";
 import type { PostEditorBindings } from "@/editor/integration/editorBindings";
 
+const CREATIVE_DOC_WIDTH = 360;
+
 interface PostCardV2Props {
   mode?: "preview" | "edit" | "export";
   snapshot: PostVariation;
@@ -202,11 +204,11 @@ function FeatureGrid({
             </span>
             {section.description && (
               <span
-                className="opacity-60 leading-tight"
+                className="opacity-70 leading-tight line-clamp-2"
                 style={{
                   color: textColor,
                   fontFamily: bodyFont,
-                  fontSize: "0.55rem",
+                  fontSize: "0.6rem",
                 }}
               >
                 {section.description}
@@ -267,11 +269,11 @@ function NumberedList({
             </span>
             {section.description && (
               <span
-                className="opacity-60 leading-tight"
+                className="opacity-70 leading-tight line-clamp-2"
                 style={{
                   color: textColor,
                   fontFamily: bodyFont,
-                  fontSize: "0.55rem",
+                  fontSize: "0.6rem",
                 }}
               >
                 {section.description}
@@ -335,11 +337,11 @@ function StepByStep({
               </span>
               {section.description && (
                 <span
-                  className="opacity-60 leading-tight"
+                  className="opacity-70 leading-tight line-clamp-2"
                   style={{
                     color: textColor,
                     fontFamily: bodyFont,
-                    fontSize: "0.55rem",
+                    fontSize: "0.6rem",
                   }}
                 >
                   {section.description}
@@ -480,6 +482,7 @@ function PostCardV2Content({
 
   const cardRef = useRef<HTMLDivElement | null>(null);
   const layoutRef = useRef<HTMLDivElement | null>(null);
+  const [textElementScale, setTextElementScale] = useState(1);
 
   // Editability is controlled by the renderer mode. Supplying the canonical
   // snapshot must not turn the Workbench into a read-only preview.
@@ -519,6 +522,20 @@ function PostCardV2Content({
   const ratio = aspectRatio ?? variation.aspectRatio ?? globalAspectRatio ?? "1:1";
   const aspectRatioCSS = ASPECT_RATIO_VALUES[ratio];
   const isStory = ratio === "9:16";
+
+  useEffect(() => {
+    if (typeof ResizeObserver === "undefined") return;
+    const target = layoutRef.current ?? cardRef.current;
+    if (!target) return;
+    const updateScale = () => {
+      const width = target.getBoundingClientRect().width;
+      if (width > 0) setTextElementScale(width / CREATIVE_DOC_WIDTH);
+    };
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [ratio, compact, variation.id]);
 
   const effectiveBg = isSolid && bgValue?.color ? bgValue.color : dt ? "transparent" : backgroundColor;
   const protectionColor = isSolid && bgValue?.color ? bgValue.color : backgroundColor;
@@ -583,6 +600,22 @@ function PostCardV2Content({
 
   // ── Padding dinâmico baseado no aspect ratio ──
   const dynamicPadding = autoFit.padding;
+  const headlineClampStyle: React.CSSProperties = headlineLineClamp
+    ? {
+        display: "-webkit-box",
+        WebkitBoxOrient: "vertical",
+        WebkitLineClamp: headlineLineClamp,
+        overflow: "hidden",
+      }
+    : {};
+  const bodyClampStyle: React.CSSProperties = bodyLineClamp
+    ? {
+        display: "-webkit-box",
+        WebkitBoxOrient: "vertical",
+        WebkitLineClamp: bodyLineClamp,
+        overflow: "hidden",
+      }
+    : {};
 
   // ── Layout patterns distintos ──
   {
@@ -684,7 +717,7 @@ function PostCardV2Content({
               setLayoutTarget(`textElement:${el.id}`);
             }}
             onChange={(id, text) => updateTextElement(id, { text })}
-            scale={1}
+            scale={mode === "edit" ? 1 : textElementScale}
             editable={isEditable}
             snapEnabled={isEditable && isMagnetActive && !compact}
           />
@@ -809,12 +842,12 @@ function PostCardV2Content({
             {section.description && (
               <span
                 {...editableSectionTextProps(sectionId, "description")}
-                className="opacity-60 leading-tight outline-none"
-                style={{
-                  color: effectiveText,
-                  fontFamily: bodyFont,
-                  fontSize: "0.55rem",
-                }}
+              className="opacity-70 leading-tight outline-none line-clamp-2"
+              style={{
+                color: effectiveText,
+                fontFamily: bodyFont,
+                fontSize: "0.6rem",
+              }}
               >
                 {section.description}
               </span>
@@ -855,12 +888,12 @@ function PostCardV2Content({
             {section.description && (
               <span
                 {...editableSectionTextProps(sectionId, "description")}
-                className="opacity-60 leading-tight outline-none"
-                style={{
-                  color: effectiveText,
-                  fontFamily: bodyFont,
-                  fontSize: "0.55rem",
-                }}
+              className="opacity-70 leading-tight outline-none line-clamp-2"
+              style={{
+                color: effectiveText,
+                fontFamily: bodyFont,
+                fontSize: "0.6rem",
+              }}
               >
                 {section.description}
               </span>
@@ -896,12 +929,12 @@ function PostCardV2Content({
         {section.description && (
           <span
             {...editableSectionTextProps(sectionId, "description")}
-            className="opacity-60 leading-tight outline-none"
-            style={{
-              color: effectiveText,
-              fontFamily: bodyFont,
-              fontSize: "0.55rem",
-            }}
+              className="opacity-70 leading-tight outline-none line-clamp-2"
+              style={{
+                color: effectiveText,
+                fontFamily: bodyFont,
+                fontSize: "0.6rem",
+              }}
           >
             {section.description}
           </span>
@@ -1156,6 +1189,7 @@ function PostCardV2Content({
                 overflowWrap: "break-word",
                 whiteSpace: "pre-wrap",
                 outline: "none",
+                ...headlineClampStyle,
               }}
             >
               {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
@@ -1187,6 +1221,7 @@ function PostCardV2Content({
                   textAlign: textAlign ?? "left",
                   whiteSpace: "pre-wrap",
                   outline: "none",
+                  ...bodyClampStyle,
                 }}
               >
                 {body}
@@ -1255,6 +1290,7 @@ function PostCardV2Content({
                 fontSize: `calc(${headingSize} * 1.15)`,
                 whiteSpace: "pre-wrap",
                 outline: "none",
+                ...headlineClampStyle,
               }}
             >
               {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
@@ -1283,6 +1319,7 @@ function PostCardV2Content({
                   lineHeight: 1.6,
                   whiteSpace: "pre-wrap",
                   outline: "none",
+                  ...bodyClampStyle,
                 }}
               >
                 {body}
@@ -1351,6 +1388,7 @@ function PostCardV2Content({
                 fontSize: headingSize,
                 whiteSpace: "pre-wrap",
                 outline: "none",
+                ...headlineClampStyle,
               }}
             >
               {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
@@ -1378,6 +1416,7 @@ function PostCardV2Content({
                   fontSize: bodySize,
                   lineHeight: 1.55,
                   outline: "none",
+                  ...bodyClampStyle,
                 }}
               >
                 {body}
@@ -1473,6 +1512,7 @@ function PostCardV2Content({
               whiteSpace: "pre-wrap",
               overflowWrap: "break-word",
               outline: "none",
+              ...headlineClampStyle,
             }}
           >
             {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
@@ -1502,6 +1542,7 @@ function PostCardV2Content({
                 whiteSpace: "pre-wrap",
                 overflowWrap: "break-word",
                 outline: "none",
+                ...bodyClampStyle,
               }}
             >
               {body}
@@ -1579,6 +1620,7 @@ function PostCardV2Content({
                 maxWidth: "95%",
                 whiteSpace: "pre-wrap",
                 outline: "none",
+                ...headlineClampStyle,
               }}
             >
               {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
@@ -1692,6 +1734,7 @@ function PostCardV2Content({
                   outline: "none",
                   width: "100%",
                   textTransform: headlineTextTransform as any,
+                  ...headlineClampStyle,
                 }}
               >
                 {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
@@ -1721,6 +1764,7 @@ function PostCardV2Content({
                       lineHeight: 1.55,
                       outline: "none",
                       width: "100%",
+                      ...bodyClampStyle,
                     }}
                   >
                     {body}
@@ -1797,6 +1841,7 @@ function PostCardV2Content({
             cardRef={cardRef}
             cardLayout={layoutSettings?.card}
             isEditingCard={isEditable && isEditingCard}
+            wrapContentInCard={false}
           >
             {resolvedBrandMeta && (
               <BrandOverlay logoUrl={resolvedBrandMeta.logoUrl} brandName={resolvedBrandMeta.brandName} platform={variation.platform} accentColor={dt.colors?.primary!} textColor={dt.colors?.text!} />
@@ -1846,6 +1891,7 @@ function PostCardV2Content({
             cardRef={cardRef}
             cardLayout={layoutSettings?.card}
             isEditingCard={isEditable && isEditingCard}
+            wrapContentInCard={false}
           >
             {resolvedBrandMeta && (
               <BrandOverlay

@@ -118,6 +118,8 @@ interface ThemeRendererProps {
   cardLayout?: import("@/types/editor").LayoutPosition;
   /** Se o card está em modo de edição (mostra handles) */
   isEditingCard?: boolean;
+  /** When false, children are rendered directly on the canvas without the inner card wrapper. */
+  wrapContentInCard?: boolean;
 }
 
 export default function ThemeRenderer({
@@ -129,6 +131,7 @@ export default function ThemeRenderer({
   cardRef,
   cardLayout,
   isEditingCard = false,
+  wrapContentInCard = true,
 }: ThemeRendererProps) {
   const internalCanvasRef = React.useRef<HTMLDivElement>(null);
   const internalCardRef = React.useRef<HTMLDivElement>(null);
@@ -142,9 +145,10 @@ export default function ThemeRenderer({
 
   React.useEffect(() => {
     if (cardRef) {
-      (cardRef as React.MutableRefObject<HTMLDivElement | null>).current = internalCardRef.current;
+      (cardRef as React.MutableRefObject<HTMLDivElement | null>).current =
+        internalCardRef.current ?? internalCanvasRef.current;
     }
-  }, [cardRef]);
+  }, [cardRef, wrapContentInCard]);
 
   // DesignTokens path — direct CSS, no translation
   if (designTokens) {
@@ -199,25 +203,28 @@ export default function ThemeRenderer({
           }} />
         )}
 
-        {/* The Card Layer with Draggability */}
-        <DraggableBlock
-          elementId="card"
-          elementKind="card"
-          layoutPos={cardLayout || { position: 'center', textAlign: 'center', width: 100 }}
-          padding={0}
-          containerRef={internalCanvasRef}
-          snapEnabled={false}
-          isDraggable={isEditingCard}
-          accentColor={designTokens.colors.primary}
-        >
-          <div
-            ref={internalCardRef}
-            className="inner-card-layer w-full h-full relative"
-            style={cardVisualStyles}
+        {wrapContentInCard ? (
+          <DraggableBlock
+            elementId="card"
+            elementKind="card"
+            layoutPos={cardLayout || { position: 'center', textAlign: 'center', width: 100 }}
+            padding={0}
+            containerRef={internalCanvasRef}
+            snapEnabled={false}
+            isDraggable={isEditingCard}
+            accentColor={designTokens.colors.primary}
           >
-            <div className="theme-content relative z-10 w-full h-full">{children}</div>
-          </div>
-        </DraggableBlock>
+            <div
+              ref={internalCardRef}
+              className="inner-card-layer w-full h-full relative"
+              style={cardVisualStyles}
+            >
+              <div className="theme-content relative z-10 w-full h-full">{children}</div>
+            </div>
+          </DraggableBlock>
+        ) : (
+          <div className="theme-content relative z-10 w-full h-full">{children}</div>
+        )}
       </div>
     );
   }
@@ -246,7 +253,8 @@ export default function ThemeRenderer({
     height: '100%',
     overflow: 'hidden',
     ...themeStyles,
-    padding: effectivePadding,
+    padding: wrapContentInCard ? effectivePadding : 0,
+    borderRadius: wrapContentInCard ? themeStyles.borderRadius : 0,
     color: theme.colors.text,
   };
 
@@ -283,24 +291,28 @@ export default function ThemeRenderer({
       {/* Noise texture */}
       {theme.effects?.noise && <div className="noise-texture" aria-hidden="true" />}
 
-      <DraggableBlock
-        elementId="card"
-        elementKind="card"
-        layoutPos={cardLayout || { position: 'center', textAlign: 'center', width: 100 }}
-        padding={0}
-        containerRef={internalCanvasRef}
-        snapEnabled={false}
-        isDraggable={isEditingCard}
-        accentColor={theme.colors.accent}
-      >
-        <div
-          ref={internalCardRef}
-          className="inner-card-layer w-full h-full relative"
-          style={cardVisualStyles}
+      {wrapContentInCard ? (
+        <DraggableBlock
+          elementId="card"
+          elementKind="card"
+          layoutPos={cardLayout || { position: 'center', textAlign: 'center', width: 100 }}
+          padding={0}
+          containerRef={internalCanvasRef}
+          snapEnabled={false}
+          isDraggable={isEditingCard}
+          accentColor={theme.colors.accent}
         >
-          <div className="theme-content relative z-10 w-full h-full">{children}</div>
-        </div>
-      </DraggableBlock>
+          <div
+            ref={internalCardRef}
+            className="inner-card-layer w-full h-full relative"
+            style={cardVisualStyles}
+          >
+            <div className="theme-content relative z-10 w-full h-full">{children}</div>
+          </div>
+        </DraggableBlock>
+      ) : (
+        <div className="theme-content relative z-10 w-full h-full">{children}</div>
+      )}
     </div>
   );
 }

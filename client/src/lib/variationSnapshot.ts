@@ -15,6 +15,7 @@ import {
 } from "@shared/postspark";
 import type { EditorState } from "@/store/editorStore";
 import { layoutToAdvanced } from "@/lib/layoutToAdvanced";
+import { applyVisualFitFallback } from "@/lib/visualFitValidator";
 
 const ICON_FALLBACKS = ["Zap", "Shield", "Target", "TrendingUp", "CheckCircle"];
 
@@ -70,35 +71,158 @@ function normalizeImageSettings(variation: PostVariation) {
   };
 }
 
+/**
+ * `freePosition` é o CENTRO geométrico do bloco (mesmo contrato do drag manual e
+ * do `layoutPositionAdapter`). A IA e o motor criativo podem emitir coordenadas
+ * fora do contêiner ou com headline/body colados. Estas constantes definem os
+ * limites de saneamento aplicados no boundary — nunca no renderer.
+ */
+const MIN_CENTER_Y = 8;
+const MAX_CENTER_Y = 92;
+/** Folga vertical mínima entre as BORDAS estimadas de headline e body, em % da altura. */
+const MIN_BLOCK_GAP_Y = 4;
+/** Borda inferior máxima (em %) que a caixa estimada do body pode alcançar. */
+const MAX_BLOCK_BOTTOM_Y = 98;
+/** Card-contêiner mais estreito que isso espreme o conteúdo até estourar o texto. */
+const MIN_AI_CARD_WIDTH = 45;
+/** Dimensões de referência do canvas (mesma base do motor criativo). */
+const REFERENCE_CANVAS_WIDTH = 360;
+
+interface AiLayoutContext {
+  headlineText: string;
+  bodyText: string;
+  hasStructuredSections: boolean;
+  aspectRatio: AspectRatio;
+}
+
+function referenceCanvasHeight(aspectRatio: AspectRatio): number {
+  const [w, h] = aspectRatio.split(":").map(Number);
+  if (!w || !h) return REFERENCE_CANVAS_WIDTH;
+  return (REFERENCE_CANVAS_WIDTH * h) / w;
+}
+
+/**
+ * Estimativa conservadora da altura renderizada de um bloco de texto, em % da
+ * altura do canvas. A IA não conhece métricas de fonte nem quebra de linha —
+ * centros "separados" ainda produzem caixas sobrepostas quando o texto é longo;
+ * qualquer decisão de geometria baseada em coordenadas dela precisa passar por
+ * esta estimativa antes de ser aceita.
+ */
+function estimateTextHeightPercent(
+  text: string,
+  widthPercent: number,
+  aspectRatio: AspectRatio,
+  kind: "headline" | "body",
+): number {
+  const fontPx = kind === "headline" ? 26 : 13;
+  const lineHeightFactor = kind === "headline" ? 1.15 : 1.5;
+  const usableWidthPx =
+    (Math.max(10, Math.min(100, widthPercent)) / 100) * REFERENCE_CANVAS_WIDTH;
+  const charsPerLine = Math.max(6, usableWidthPx / (fontPx * 0.55));
+  const lines = Math.max(1, Math.ceil(text.length / charsPerLine));
+  const heightPx = lines * fontPx * lineHeightFactor;
+  const safetyFactor = 1.15;
+  return Math.min(100, (heightPx / referenceCanvasHeight(aspectRatio)) * 100 * safetyFactor);
+}
+
+/** Prende o centro de um bloco dentro do canvas considerando sua largura. */
+function clampFreePosition(
+  free: { x: number; y: number },
+  width: number | undefined,
+): { x: number; y: number } {
+  const halfWidth = typeof width === "number" ? Math.max(0, Math.min(100, width)) / 2 : 0;
+  return {
+    x: Math.max(halfWidth, Math.min(100 - halfWidth, free.x)),
+    y: Math.max(MIN_CENTER_Y, Math.min(MAX_CENTER_Y, free.y)),
+  };
+}
+
 function formatOptimizationToLayoutSettings(
   fopt: Partial<FormatOptimization>,
+  ctx: AiLayoutContext,
 ): AdvancedLayoutSettings {
   const base = layoutToAdvanced(fopt.layout);
+
+  // Templates estruturados renderizam sections em fluxo; headline/body absolutos
+  // por coordenada da IA atravessam esse fluxo (as caixas se cruzam no meio do
+  // card). Nesses casos aproveitamos apenas estilo (textAlign/width/cores) e a
+  // geometria fica com o layout de fluxo, que empilha sem sobreposição.
+  const allowFreePosition = !ctx.hasStructuredSections;
 
   const toPosition = (
     foptItem: Partial<NonNullable<FormatOptimization["headline"]>> | undefined,
     basePos: LayoutPosition,
   ): LayoutPosition => {
     if (!foptItem) return basePos;
-    const hasCoord = foptItem.x != null && foptItem.y != null;
+    const hasCoord = allowFreePosition && foptItem.x != null && foptItem.y != null;
+    const width = foptItem.width ?? basePos.width;
     return {
       position: hasCoord ? "top-left" : basePos.position,
       textAlign: (foptItem.textAlign as TextAlignment) ?? basePos.textAlign,
-      freePosition: hasCoord ? { x: foptItem.x!, y: foptItem.y! } : basePos.freePosition,
-      width: foptItem.width ?? basePos.width,
+      freePosition: hasCoord
+        ? clampFreePosition({ x: foptItem.x!, y: foptItem.y! }, width)
+        : basePos.freePosition,
+      width,
       backgroundColor: foptItem.backgroundColor ?? basePos.backgroundColor,
       borderRadius: foptItem.borderRadius ?? basePos.borderRadius,
     };
   };
 
+  /** Descarta a geometria da IA mantendo o estilo que ela escolheu. */
+  const toFlow = (pos: LayoutPosition, basePos: LayoutPosition): LayoutPosition => ({
+    ...pos,
+    position: basePos.position,
+    freePosition: basePos.freePosition,
+  });
+
+  let headline = toPosition(fopt.headline, base.headline);
+  let body = toPosition(fopt.body, base.body);
+
+  // Anti-colisão por caixa estimada (não por centro): garante folga real entre a
+  // borda inferior do headline e a borda superior do body. Se não há espaço no
+  // canvas para as duas caixas, as coordenadas da IA são inviáveis e ambos os
+  // blocos voltam ao layout de fluxo. É o que impede o "título em cima do corpo".
+  if (headline.freePosition && body.freePosition) {
+    const headlineHeight = estimateTextHeightPercent(
+      ctx.headlineText,
+      headline.width ?? 90,
+      ctx.aspectRatio,
+      "headline",
+    );
+    const bodyHeight = estimateTextHeightPercent(
+      ctx.bodyText,
+      body.width ?? 90,
+      ctx.aspectRatio,
+      "body",
+    );
+    const minBodyCenterY =
+      headline.freePosition.y + headlineHeight / 2 + MIN_BLOCK_GAP_Y + bodyHeight / 2;
+    if (body.freePosition.y < minBodyCenterY) {
+      if (minBodyCenterY + bodyHeight / 2 <= MAX_BLOCK_BOTTOM_Y) {
+        body = { ...body, freePosition: { ...body.freePosition, y: minBodyCenterY } };
+      } else {
+        headline = toFlow(headline, base.headline);
+        body = toFlow(body, base.body);
+      }
+    }
+  }
+
+  // Card é o contêiner do conteúdo inteiro: largura pequena demais vinda da IA
+  // espreme headline/body até o texto estourar. Abaixo do mínimo, a geometria do
+  // card volta ao fluxo (estilo preservado).
+  let card = toPosition(fopt.card, base.card);
+  if (typeof card.width === "number" && card.width < MIN_AI_CARD_WIDTH) {
+    card = { ...toFlow(card, base.card), width: base.card.width };
+  }
+
   return {
-    headline: toPosition(fopt.headline, base.headline),
-    body: toPosition(fopt.body, base.body),
+    headline,
+    body,
     accentBar: base.accentBar,
     badge: base.badge,
     sticker: base.sticker,
     carouselArrow: base.carouselArrow,
-    card: toPosition(fopt.card, base.card),
+    card,
     sectionLayouts: base.sectionLayouts ?? {},
     padding: fopt.padding ?? base.padding,
   };
@@ -111,13 +235,20 @@ function normalizeLayoutSettings(
   const arOpt = variation.aspectRatioOptimizations?.[aspectRatio];
   const fromArOpt =
     arOpt && (arOpt.headline || arOpt.body || arOpt.card)
-      ? formatOptimizationToLayoutSettings(arOpt)
+      ? formatOptimizationToLayoutSettings(arOpt, {
+          headlineText: variation.headline ?? "",
+          bodyText: variation.body ?? "",
+          hasStructuredSections:
+            (variation.template ?? "simple") !== "simple" &&
+            (variation.sections?.length ?? 0) > 0,
+          aspectRatio,
+        })
       : undefined;
 
   const selected =
     variation.layoutSettingsByAspectRatio?.[aspectRatio] ??
-    variation.layoutSettings ??
     fromArOpt ??
+    variation.layoutSettings ??
     layoutToAdvanced(variation.layout);
 
   return {
@@ -196,7 +327,7 @@ export function createPostVisualSnapshot(
       ? { type: "ai" as const, url: adjusted.imageUrl }
       : { type: "solid" as const, color: backgroundColor };
 
-  return {
+  const snapshot: PostVisualSnapshot = {
     ...adjusted,
     snapshotVersion: 3,
     aspectRatio: requestedAspectRatio,
@@ -215,6 +346,8 @@ export function createPostVisualSnapshot(
       ...(adjusted.bgOverlay ?? {}),
     },
   };
+
+  return applyVisualFitFallback(snapshot);
 }
 
 /** Apply an explicit visual choice (theme/custom tokens) to the snapshot itself. */

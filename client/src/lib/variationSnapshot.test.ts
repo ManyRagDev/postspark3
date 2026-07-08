@@ -154,6 +154,61 @@ describe("variationSnapshot", () => {
     expect(snapshot.layoutSettings.headline.textAlign).toBe("center");
   });
 
+  it("prioritizes aspect-ratio layout over global creative layout settings", () => {
+    const variation = createPostVariation({
+      layout: "minimal",
+      // Geometria absoluta da IA só é honrada em templates simple: nos
+      // estruturados as sections fluem e o snapshot cai para layout de fluxo.
+      template: "simple",
+      sections: undefined,
+      layoutSettings: {
+        headline: {
+          position: "top-left",
+          textAlign: "left",
+          freePosition: { x: 8, y: 58 },
+          width: 84,
+        },
+        body: {
+          position: "top-left",
+          textAlign: "left",
+          freePosition: { x: 8, y: 72 },
+          width: 84,
+        },
+      },
+      aspectRatioOptimizations: {
+        "5:6": {
+          layout: "centered",
+          headline: {
+            x: 50,
+            y: 24,
+            width: 70,
+            textAlign: "center",
+          },
+          body: {
+            x: 50,
+            y: 48,
+            width: 64,
+            textAlign: "center",
+          },
+        },
+      },
+    });
+
+    const snapshot = createPostVisualSnapshot(variation, "5:6");
+
+    expect(snapshot.layout).toBe("centered");
+    expect(snapshot.layoutSettings.headline).toMatchObject({
+      textAlign: "center",
+      freePosition: { x: 50, y: 24 },
+      width: 70,
+    });
+    expect(snapshot.layoutSettings.body).toMatchObject({
+      textAlign: "center",
+      freePosition: { x: 50, y: 48 },
+      width: 64,
+    });
+  });
+
   it("stores the exact selected snapshot and keeps it current after editing", () => {
     const selected = applyDesignTokensToSnapshot(
       createPostVisualSnapshot(createPostVariation()),

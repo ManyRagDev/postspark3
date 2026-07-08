@@ -5,7 +5,7 @@ export const POST_VARIATION_TARGET = 3;
 export const CAROUSEL_SLIDE_TARGET = 5;
 export const STATIC_SECTION_TARGET = 3;
 export const STATIC_SECTION_LABEL_MAX_LENGTH = 24;
-export const STATIC_SECTION_DESCRIPTION_MAX_LENGTH = 48;
+export const STATIC_SECTION_DESCRIPTION_MAX_LENGTH = 36;
 
 export interface VariationSetValidation {
   valid: boolean;
@@ -20,6 +20,33 @@ function hasRequiredCopy(variation: Partial<PostVariation>): boolean {
       variation.callToAction?.trim() &&
       variation.imagePrompt?.trim(),
   );
+}
+
+function advertisedItemCounts(text: string | undefined): number[] {
+  if (!text) return [];
+  const normalized = text.toLowerCase();
+  const counts = new Set<number>();
+  const itemWords = "(dicas|criterios|critérios|perguntas|passos|sinais|motivos|erros|formas|maneiras|itens|pontos|topicos|tópicos|metricas|métricas)";
+  const explicitPattern = new RegExp(`\\b([2-9]|1[0-9]|20)\\s+${itemWords}\\b`, "gi");
+  let match: RegExpExecArray | null;
+  while ((match = explicitPattern.exec(normalized))) {
+    counts.add(Number(match[1]));
+  }
+
+  const danglingCountPattern = /[:\-–—]\s*([2-9]|1[0-9]|20)\s*(?:\.{2,}|…)?\s*$/g;
+  while ((match = danglingCountPattern.exec(normalized))) {
+    counts.add(Number(match[1]));
+  }
+
+  return Array.from(counts);
+}
+
+export function hasCoherentStaticItemCount(
+  variation: Partial<PostVariation>,
+): boolean {
+  if (!variation.template || variation.template === "simple") return true;
+  const counts = advertisedItemCounts(variation.headline);
+  return counts.length === 0 || counts.every((count) => count === STATIC_SECTION_TARGET);
 }
 
 export function hasValidStaticSections(
@@ -65,6 +92,11 @@ export function validateVariationSet(
     if (postMode === "static" && !hasValidStaticSections(variation)) {
       errors.push(
         `variation ${index + 1} must use no sections for simple templates or exactly ${STATIC_SECTION_TARGET} short sections for structured templates`,
+      );
+    }
+    if (postMode === "static" && !hasCoherentStaticItemCount(variation)) {
+      errors.push(
+        `variation ${index + 1} headline advertises a different item count than its ${STATIC_SECTION_TARGET} structured sections`,
       );
     }
     if (

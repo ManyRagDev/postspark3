@@ -151,6 +151,19 @@ function normalizeNumbers(value: string): string[] {
   return value.match(/\b\d+(?:[.,]\d+)?%?\b/g) ?? [];
 }
 
+function advertisedItemCounts(text: string | undefined): number[] {
+  if (!text) return [];
+  const normalized = text.toLowerCase();
+  const counts = new Set<number>();
+  const itemWords = "(dicas|criterios|critérios|perguntas|passos|sinais|motivos|erros|formas|maneiras|itens|pontos|topicos|tópicos|metricas|métricas)";
+  const explicitPattern = new RegExp(`\\b([2-9]|1[0-9]|20)\\s+${itemWords}\\b`, "gi");
+  let match: RegExpExecArray | null;
+  while ((match = explicitPattern.exec(normalized))) counts.add(Number(match[1]));
+  const danglingCountPattern = /[:\-–—]\s*([2-9]|1[0-9]|20)\s*(?:\.{2,}|…)?\s*$/g;
+  while ((match = danglingCountPattern.exec(normalized))) counts.add(Number(match[1]));
+  return Array.from(counts);
+}
+
 /**
  * Calcula a coerência entre a legenda (caption) e o conteúdo visual
  * (slides ou seções) do post.
@@ -211,6 +224,10 @@ function computeCaptionCoherence(candidate: EvaluatedCandidate): number {
   }
 
   // 3. Comprimento da caption (muito curta = baixa coerência potencial)
+  if (itemCount > 1 && advertisedItemCounts(candidate.headline).some((n) => n !== itemCount)) {
+    numberCoherence = Math.min(numberCoherence, 20);
+  }
+
   const lengthScore = caption.length < 80 ? 45 : caption.length > 2000 ? 80 : 90;
 
   // Combinação ponderada

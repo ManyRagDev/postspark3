@@ -613,24 +613,24 @@ export const useEditorStore = create<EditorState>((set, get) => {
                 [state.aspectRatio]: state.baseLayoutSettings,
             };
 
-            const nextLayout = normalizeLayoutSettings(storedLayouts[currentRatio] ?? layoutToAdvanced(state.baseVariation?.layout ?? 'centered'));
-
-            // "Fonte única da verdade": ao trocar de aspect ratio, aplica
-            // aspectRatioOptimizations[currentRatio] sobre a variação para
-            // refletir cores/layout específicos daquele formato.
             const patchVariation = (variation: PostVariation | null) => {
                 if (!variation) return null;
                 const arPatched = createPostVisualSnapshot(variation, currentRatio);
+                const hasExplicitLayout = storedLayouts[currentRatio] != null;
                 return {
                     ...arPatched,
                     platform: state.platform,
-                    layoutSettings: nextLayout,
+                    layoutSettings: hasExplicitLayout
+                        ? normalizeLayoutSettings(storedLayouts[currentRatio])
+                        : arPatched.layoutSettings,
                     layoutSettingsByAspectRatio: storedLayouts,
                 };
             };
 
             const nextActiveVariation = patchVariation(state.activeVariation);
             const nextBaseVariation = patchVariation(state.baseVariation);
+
+            const resolvedLayout = nextBaseVariation?.layoutSettings ?? nextActiveVariation?.layoutSettings ?? normalizeLayoutSettings(layoutToAdvanced('centered'));
 
             // Recria bgValue a partir da cor efetiva do novo aspect ratio
             const effectiveBgColor = nextActiveVariation?.backgroundColor;
@@ -643,8 +643,8 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
             return {
                 aspectRatio: currentRatio,
-                layoutSettings: nextLayout,
-                baseLayoutSettings: nextLayout,
+                layoutSettings: resolvedLayout,
+                baseLayoutSettings: resolvedLayout,
                 activeVariation: nextActiveVariation,
                 baseVariation: nextBaseVariation,
                 bgValue: nextBgValue,

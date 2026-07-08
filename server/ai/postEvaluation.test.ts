@@ -87,4 +87,38 @@ describe("postEvaluation", () => {
     expect(result.revisedIndexes).toEqual([]);
     expect(result.revisionFailedIndexes).toEqual([0]);
   });
+
+  it("rejects structured candidates when headline promises a different item count", async () => {
+    const candidate = {
+      headline: "Antes de comprar: 7...",
+      body: "Decida com seguranca",
+      caption: "Confira autonomia conforto precisao e escolha melhor com seguranca antes da compra",
+      callToAction: "Ver checklist",
+      tone: "direto",
+      layout: "centered",
+      backgroundColor: "#000000",
+      textColor: "#FFFFFF",
+      accentColor: "#38BDF8",
+      platform: "instagram" as const,
+      sections: [
+        { label: "Autonomia", description: "Bateria para o dia todo" },
+        { label: "Conforto", description: "Leve no pulso" },
+        { label: "Precisao", description: "GPS confiavel" },
+      ],
+    };
+    const revise = vi.fn(async () => ({
+      ...candidate,
+      headline: "Antes de comprar: 3 sinais",
+    }));
+
+    const result = await evaluateAndReviseCandidates({
+      candidates: [candidate],
+      strategies: [],
+      platform: "instagram",
+      revise,
+    });
+
+    expect(revise).toHaveBeenCalledTimes(1);
+    expect(result.revisedIndexes).toEqual([0]);
+  });
 });

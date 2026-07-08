@@ -186,7 +186,7 @@ function Router() {
       <Route path={"/landing"} component={LandingPage} />
       <Route path={"/landing2"} component={LandingPage2} />
       <Route path={"/landing3"} component={Landing3} />
-      <Route path={"/landing4"} component={Landing4} />
+      <Route path={"/crie-posts-incriveis"} component={Landing4} />
       <Route path={"/thevoid"} component={() => <ProtectedRoute component={Home} />} />
       <Route path={"/thevoid2"} component={LegacyTheVoid2Route} />
       <Route path={"/pricing"} component={Pricing} />
@@ -214,7 +214,7 @@ function Router() {
 function AppInner() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
-  const isTheVoid2Route = location === "/" || location === "/thevoid2" || location === "/landing3" || location === "/landing4";
+  const isTheVoid2Route = location === "/" || location === "/thevoid2" || location === "/landing3" || location === "/crie-posts-incriveis";
 
   return (
     <>

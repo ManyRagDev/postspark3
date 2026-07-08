@@ -34,7 +34,7 @@ import { evaluateAndReviseCandidates } from "./ai/postEvaluation";
 import { buildGenerationDebugTrace, finishGenerationTrace, recordGenerationEvent, startGenerationTrace } from "./ai/generationTrace";
 import { assessSemanticOriginality, persistCandidateFingerprints } from "./ai/semanticOriginality";
 import { runHighTicketPipeline } from "./ai/highTicket";
-import { assertVariationSet, hasValidStaticSections, POST_VARIATION_TARGET, validateVariationSet } from "./ai/generationValidation";
+import { assertVariationSet, hasCoherentStaticItemCount, hasValidStaticSections, POST_VARIATION_TARGET, validateVariationSet } from "./ai/generationValidation";
 import {
   advancedLayoutSettingsSchema,
   backgroundValueSchema,
@@ -860,6 +860,8 @@ REGRAS DE COPY — SIGA COM RIGOR:
 - Headline: máximo 60 caracteres. Seja direto e impactante. Sem ponto final.
 - Body: máximo 2 frases curtas. Máximo 100 caracteres no total. Sem rodeios.
 - Caption/Legenda: forneça uma legenda INICIAL curta (1-2 frases). Esta legenda será substituída por uma versão mais rica e coerente em um passo dedicado posterior, então não precisa ser longa — apenas garantida.
+- Para post ESTATICO, pense como poster/editorial, nao como artigo. Uma ideia principal + poucos apoios legiveis.
+- Nao use headline cortado, reticencias ou promessa incompleta. Proibido terminar headline com "...", ":", ou numero solto.
 - NUNCA coloque hashtags ou emojis dentro do headline ou body.
 - Hashtags: máximo 4, somente no campo separado "hashtags".
 - CallToAction: máximo 40 caracteres. Verbo de ação. Ex: "Saiba mais", "Experimente agora".
@@ -895,8 +897,10 @@ PRINCÍPIOS DE DESIGN VISUAL E MIMETISMO:
    - Use 'simple' quando headline e body forem suficientes. Não invente seções apenas para preencher o layout.
    - Use 'feature-grid', 'numbered-list' ou 'step-by-step' somente quando a mensagem realmente exigir itens distintos.
    - Todo template estruturado deve ter EXATAMENTE 3 seções. Nunca gere 4 ou 5 itens em um único post estático.
-   - Cada label deve ter no máximo 24 caracteres e cada description no máximo 48 caracteres.
+   - Se o headline promete quantidade de itens, esse numero DEVE ser 3. Ex.: "3 sinais", "3 criterios". Se a ideia tem 5, 7 ou 10 itens, escolha carrossel ou reformule sem numero.
+   - Cada label deve ter no máximo 24 caracteres e cada description no máximo 36 caracteres.
    - Resuma cada item em uma única ideia. Não repita no item o que já está no headline ou body.
+   - Sections sao micro-blocos visuais, nao paragrafos. Prefira substantivos claros e descricoes telegraficas.
 
 7. FLOATING CARDS & ELEMENT STYLING (NEW):
    - O card PRINCIPAL não precisa estar sempre centralizado ou ocupar 100% da tela.
@@ -951,9 +955,21 @@ ${buildExecutionBriefContext(normalizedExecutionBrief)}`
           const layoutPositionSchema = {
             type: "object",
             properties: {
-              x: { type: "number", description: "Posição X em % (0-100)" },
-              y: { type: "number", description: "Posição Y em % (0-100)" },
-              width: { type: "number", description: "Largura em % (10-100)" },
+              x: {
+                type: "number",
+                description:
+                  "Posição X do CENTRO do bloco, em % da largura (0-100). O bloco ocupa de (x - width/2) a (x + width/2); mantenha x entre width/2 e 100-width/2 para não vazar. Ex.: 50 centraliza.",
+              },
+              y: {
+                type: "number",
+                description:
+                  "Posição Y do CENTRO do bloco, em % da altura (0-100). headline e body NÃO podem coincidir: garanta folga vertical ampla (o texto quebra em várias linhas). Regra prática: mantenha pelo menos 20 pontos percentuais entre o y do headline e o y do body.",
+              },
+              width: {
+                type: "number",
+                description:
+                  "Largura do bloco em % (10-100). Junto com x define a caixa horizontal: de (x - width/2) a (x + width/2).",
+              },
               textAlign: { type: "string", enum: ["left", "center", "right"] },
               backgroundColor: {
                 type: "string",
@@ -1194,8 +1210,8 @@ ${buildExecutionBriefContext(normalizedExecutionBrief)}`
                         },
                         description: {
                           type: "string",
-                          maxLength: 48,
-                          description: "Texto de suporte opcional, máximo 48 caracteres",
+                          maxLength: 36,
+                          description: "Texto de suporte opcional, máximo 36 caracteres",
                         },
                         number: {
                           type: "integer",
@@ -1363,6 +1379,7 @@ Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategi
                   first?.imagePrompt?.trim() &&
                   first?.copyAngle?.type &&
                   (input.postMode === "carousel" || hasValidStaticSections(first)) &&
+                  (input.postMode === "carousel" || hasCoherentStaticItemCount(first)) &&
                   (input.postMode !== "carousel" || first?.slides?.length === CAROUSEL_SLIDE_TARGET)
               );
               if (firstIsComplete) return first;
@@ -1535,7 +1552,8 @@ Responda APENAS com JSON válido.`;
 Revise exatamente UMA variacao rejeitada, preservando a estrategia, o layout e a estrutura.
 Corrija apenas os problemas apontados na avaliacao.
 Nao reescreva do zero, nao misture estrategias, nao invente fatos e responda somente JSON valido.
-COERENCIA DA LEGENDA: se houver slides ou secoes, a caption deve refletir o mesmo numero de topicos. Se os slides apresentam 5 dicas, a legenda nao deve dizer "3 dicas".`,
+COERENCIA DA LEGENDA: se houver slides ou secoes, a caption deve refletir o mesmo numero de topicos. Se os slides apresentam 5 dicas, a legenda nao deve dizer "3 dicas".
+COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode prometer 5, 7 ou 10 itens quando o visual tem exatamente 3 secoes. Reformule sem numero ou prometa 3.`,
                   },
                   {
                     role: "user",
@@ -2410,7 +2428,18 @@ async function scrapeUrl(url: string) {
 
 function applyDeterministicCopyGuards<T extends Record<string, any>>(variation: T): T {
   const next: Record<string, any> = { ...variation };
-  if (typeof next.headline === "string") next.headline = next.headline.slice(0, 60).trim();
+  if (typeof next.headline === "string") {
+    let headline = next.headline
+      .slice(0, 60)
+      .trim()
+      .replace(/(?:\.{2,}|…)+$/, "")
+      .trim();
+    if (next.template && next.template !== "simple") {
+      headline = headline.replace(/[:\-–—]\s*([2-9]|1[0-9]|20)\s*$/, "").trim();
+    }
+    headline = headline.replace(/[:\-–—]\s*$/, "").trim();
+    next.headline = headline;
+  }
   if (typeof next.body === "string") next.body = next.body.slice(0, 140).trim();
   if (typeof next.caption === "string") {
     next.caption = next.caption.slice(0, 1500).trim();

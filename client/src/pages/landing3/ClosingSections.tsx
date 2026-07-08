@@ -3,9 +3,7 @@
  */
 
 import { motion } from "framer-motion";
-import { Megaphone, PenTool, Store } from "lucide-react";
-import { Link } from "wouter";
-import CtaButton from "./CtaButton";
+import { Chrome, Megaphone, PenTool, Store } from "lucide-react";
 
 const personas = [
   {
@@ -111,14 +109,35 @@ export function FinalCta() {
           Grátis para começar. Sem cartão. Login com Google em um clique.
         </p>
         <div className="mt-9 flex justify-center">
-          <CtaButton source="final" className="!items-center" />
+          <motion.a
+            href="https://www.postspark.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            className="group relative inline-flex items-center gap-3 rounded-2xl px-7 py-4 font-display text-base font-semibold text-primary-foreground"
+            style={{
+              background: "linear-gradient(135deg, oklch(0.72 0.22 40), oklch(0.64 0.23 30))",
+              boxShadow: "0 0 0 1px oklch(0.7 0.22 40 / 45%), 0 12px 40px -8px oklch(0.7 0.22 40 / 45%)",
+            }}
+          >
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              style={{ boxShadow: "0 0 60px -6px oklch(0.7 0.22 40 / 70%)" }}
+            />
+            <Chrome size={19} />
+            Criar meu primeiro post grátis
+          </motion.a>
         </div>
-        <Link
-          href="/pricing"
+        <a
+          href="https://www.postspark.com.br/pricing"
+          target="_blank"
+          rel="noopener noreferrer"
           className="mt-7 inline-block text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-accent hover:underline"
         >
           Ver planos e preços →
-        </Link>
+        </a>
       </motion.div>
     </section>
   );
@@ -130,21 +149,46 @@ export function Footer() {
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 text-xs text-muted-foreground sm:flex-row">
         <span>© {new Date().getFullYear()} PostSpark · ManyLabs</span>
         <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-          <Link href="/pricing" className="transition-colors hover:text-foreground">
+          <a
+            href="https://www.postspark.com.br/pricing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-foreground"
+          >
             Planos
-          </Link>
-          <Link href="/privacy" className="transition-colors hover:text-foreground">
+          </a>
+          <a
+            href="https://www.postspark.com.br/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-foreground"
+          >
             Privacidade
-          </Link>
-          <Link href="/terms" className="transition-colors hover:text-foreground">
+          </a>
+          <a
+            href="https://www.postspark.com.br/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-foreground"
+          >
             Termos
-          </Link>
-          <Link href="/cookies" className="transition-colors hover:text-foreground">
+          </a>
+          <a
+            href="https://www.postspark.com.br/cookies"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-foreground"
+          >
             Cookies
-          </Link>
-          <Link href="/" className="transition-colors hover:text-foreground">
+          </a>
+          <a
+            href="https://www.postspark.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-foreground"
+          >
             Entrar
-          </Link>
+          </a>
         </nav>
       </div>
     </footer>
