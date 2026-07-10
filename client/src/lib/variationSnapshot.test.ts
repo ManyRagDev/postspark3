@@ -154,6 +154,46 @@ describe("variationSnapshot", () => {
     expect(snapshot.layoutSettings.headline.textAlign).toBe("center");
   });
 
+  it("is idempotent when a visual snapshot crosses the canonical boundary again", () => {
+    const fixtures = [
+      createPostVariation({
+        textElements: [
+          {
+            id: "cd-outside",
+            type: "text",
+            text: "Decoracao",
+            x: 340,
+            y: 520,
+            width: 120,
+            styles: { fontSize: "24", color: "#FFFFFF" },
+          },
+        ],
+      }),
+      createPostVariation({
+        template: "simple",
+        sections: undefined,
+        headline: "Um titulo longo o bastante para testar quebra de linha no snapshot",
+        body: "Uma descricao tambem longa para validar que a segunda passagem nao muda a geometria ja saneada.",
+        aspectRatioOptimizations: {
+          "5:6": {
+            layout: "centered",
+            headline: { x: 50, y: 44, width: 58, textAlign: "center" },
+            body: { x: 50, y: 48, width: 58, textAlign: "center" },
+          },
+        },
+      }),
+      createCarouselVariation(CAROUSEL_SLIDES),
+    ];
+
+    for (const variation of fixtures) {
+      for (const aspectRatio of ["1:1", "5:6", "9:16"] as const) {
+        const first = createPostVisualSnapshot(variation, aspectRatio);
+        const second = createPostVisualSnapshot(first, aspectRatio);
+        expect(second).toEqual(first);
+      }
+    }
+  });
+
   it("prioritizes aspect-ratio layout over global creative layout settings", () => {
     const variation = createPostVariation({
       layout: "minimal",

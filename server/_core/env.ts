@@ -37,6 +37,24 @@ export const ENV = {
   aiLlmJudgeEnabled: envFlag("AI_LLM_JUDGE_ENABLED", true),
   aiSemanticEmbeddingsEnabled: envFlag("AI_SEMANTIC_EMBEDDINGS_ENABLED", true),
   aiTraceStoreContent: envFlag("AI_TRACE_STORE_CONTENT", false),
+  /**
+   * AI_GRAPH_PIPELINE - Placeholder para Fase 2 do grafo de geração
+   *
+   * Quando ativado, substitui o pipeline legado imperativo por um grafo de estados
+   * completo com nós de estratégia, geração, composição, validação visual, revisão
+   * e aprovação final.
+   *
+   * PRÉ-REQUISITOS (bloqueantes):
+   * - Shadow graph (AI_GRAPH_SHADOW) estabelecido
+   * - Baseline de paridade medida com divergência < 1%
+   * - Métricas agregadas coletadas por N runs de produção
+   * - Fase 0 (consolidação) completa - sem duplicatas locais
+   *
+   * ATENÇÃO: Esta flag não tem consumidor implementado ainda. Ela existe apenas
+   * para documentar o planejamento futuro. Ativar sem implementação não terá efeito.
+   */
+  aiGraphPipelineEnabled: envFlag("AI_GRAPH_PIPELINE", false),
+  aiGraphShadowEnabled: envFlag("AI_GRAPH_SHADOW", false),
   aiUiDebugEnabled: envFlag("AI_UI_DEBUG_ENABLED", !isProduction),
   aiModelFallbackEnabled: envFlag("AI_MODEL_FALLBACK_ENABLED", true),
   aiHighTicketPipelineEnabled: envFlag("AI_HIGH_TICKET_PIPELINE", false),

@@ -119,6 +119,18 @@ export function hashPrompt(messages: unknown[]): string {
   return createHash("sha256").update(JSON.stringify(messages)).digest("hex");
 }
 
+function buildPromptSnapshot(trace: GenerationTrace): unknown {
+  const replayable = ENV.aiTraceStoreContent;
+  return {
+    version: 2,
+    replayable,
+    calls: trace.calls.map(({ messages, response, ...call }) => ({
+      ...call,
+      ...(replayable ? { messages, response } : {}),
+    })),
+  };
+}
+
 export async function finishGenerationTrace(input: {
   trace: GenerationTrace;
   status: "completed" | "failed";
@@ -168,10 +180,11 @@ export async function finishGenerationTrace(input: {
       effectiveModels: Array.from(
         new Set(trace.calls.map((call) => call.effectiveModel)),
       ),
-      promptSnapshot: trace.calls.map(({ messages: _messages, response: _response, ...call }) => call) as any,
+      promptSnapshot: buildPromptSnapshot(trace) as any,
       strategySnapshot: ENV.aiTraceStoreContent ? input.strategies as any : undefined,
       evaluationSnapshot: input.evaluations as any,
       outputSnapshot: ENV.aiTraceStoreContent ? input.output as any : undefined,
+      events: trace.events as any,
       revisionCount: input.revisionCount ?? 0,
       candidateCount: Array.isArray(input.output)
         ? input.output.length

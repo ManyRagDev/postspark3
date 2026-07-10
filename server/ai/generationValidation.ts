@@ -1,73 +1,28 @@
 import type { PostVariation } from "@shared/postspark";
+import {
+  STATIC_SECTION_DESCRIPTION_MAX_LENGTH,
+  STATIC_SECTION_LABEL_MAX_LENGTH,
+  STATIC_SECTION_TARGET,
+  hasCoherentStaticItemCount,
+  hasRequiredCopy,
+  hasValidStaticSections,
+} from "@shared/validation";
 import { variationsNeedDiversification } from "./variationDiversity";
 
 export const POST_VARIATION_TARGET = 3;
 export const CAROUSEL_SLIDE_TARGET = 5;
-export const STATIC_SECTION_TARGET = 3;
-export const STATIC_SECTION_LABEL_MAX_LENGTH = 24;
-export const STATIC_SECTION_DESCRIPTION_MAX_LENGTH = 36;
+export {
+  STATIC_SECTION_DESCRIPTION_MAX_LENGTH,
+  STATIC_SECTION_LABEL_MAX_LENGTH,
+  STATIC_SECTION_TARGET,
+  hasCoherentStaticItemCount,
+  hasRequiredCopy,
+  hasValidStaticSections,
+} from "@shared/validation";
 
 export interface VariationSetValidation {
   valid: boolean;
   errors: string[];
-}
-
-function hasRequiredCopy(variation: Partial<PostVariation>): boolean {
-  return Boolean(
-    variation.headline?.trim() &&
-      variation.body?.trim() &&
-      variation.caption?.trim() &&
-      variation.callToAction?.trim() &&
-      variation.imagePrompt?.trim(),
-  );
-}
-
-function advertisedItemCounts(text: string | undefined): number[] {
-  if (!text) return [];
-  const normalized = text.toLowerCase();
-  const counts = new Set<number>();
-  const itemWords = "(dicas|criterios|critérios|perguntas|passos|sinais|motivos|erros|formas|maneiras|itens|pontos|topicos|tópicos|metricas|métricas)";
-  const explicitPattern = new RegExp(`\\b([2-9]|1[0-9]|20)\\s+${itemWords}\\b`, "gi");
-  let match: RegExpExecArray | null;
-  while ((match = explicitPattern.exec(normalized))) {
-    counts.add(Number(match[1]));
-  }
-
-  const danglingCountPattern = /[:\-–—]\s*([2-9]|1[0-9]|20)\s*(?:\.{2,}|…)?\s*$/g;
-  while ((match = danglingCountPattern.exec(normalized))) {
-    counts.add(Number(match[1]));
-  }
-
-  return Array.from(counts);
-}
-
-export function hasCoherentStaticItemCount(
-  variation: Partial<PostVariation>,
-): boolean {
-  if (!variation.template || variation.template === "simple") return true;
-  const counts = advertisedItemCounts(variation.headline);
-  return counts.length === 0 || counts.every((count) => count === STATIC_SECTION_TARGET);
-}
-
-export function hasValidStaticSections(
-  variation: Partial<PostVariation>,
-): boolean {
-  const sections = variation.sections ?? [];
-
-  if (!variation.template || variation.template === "simple") {
-    return sections.length === 0;
-  }
-
-  return (
-    sections.length === STATIC_SECTION_TARGET &&
-    sections.every(
-      (section) =>
-        Boolean(section.label?.trim()) &&
-        section.label.trim().length <= STATIC_SECTION_LABEL_MAX_LENGTH &&
-        (section.description?.trim().length ?? 0) <=
-          STATIC_SECTION_DESCRIPTION_MAX_LENGTH,
-    )
-  );
 }
 
 export function validateVariationSet(

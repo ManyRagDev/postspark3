@@ -3,6 +3,7 @@ import type {
   Platform,
   SiteIntelligence,
 } from "@shared/postspark";
+import { advertisedItemCounts } from "@shared/validation";
 import { invokeLLM } from "../_core/llm";
 import { ENV } from "../_core/env";
 import type { ContentStrategy } from "./contentStrategy";
@@ -149,19 +150,6 @@ function deterministicEvaluation(input: {
 
 function normalizeNumbers(value: string): string[] {
   return value.match(/\b\d+(?:[.,]\d+)?%?\b/g) ?? [];
-}
-
-function advertisedItemCounts(text: string | undefined): number[] {
-  if (!text) return [];
-  const normalized = text.toLowerCase();
-  const counts = new Set<number>();
-  const itemWords = "(dicas|criterios|critérios|perguntas|passos|sinais|motivos|erros|formas|maneiras|itens|pontos|topicos|tópicos|metricas|métricas)";
-  const explicitPattern = new RegExp(`\\b([2-9]|1[0-9]|20)\\s+${itemWords}\\b`, "gi");
-  let match: RegExpExecArray | null;
-  while ((match = explicitPattern.exec(normalized))) counts.add(Number(match[1]));
-  const danglingCountPattern = /[:\-–—]\s*([2-9]|1[0-9]|20)\s*(?:\.{2,}|…)?\s*$/g;
-  while ((match = danglingCountPattern.exec(normalized))) counts.add(Number(match[1]));
-  return Array.from(counts);
 }
 
 /**

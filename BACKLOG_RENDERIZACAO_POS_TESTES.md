@@ -37,16 +37,19 @@ Verificar depois:
 - medir `getBoundingClientRect` de headline/body/sections/card/textElements;
 - comparar contra screenshots de HoloDeck e Workbench.
 
-## 3. Backend ainda nao registra flags visuais
+## 3. Backend registra fit visual apenas no shadow graph
 
-O gate roda no boundary do cliente (`createPostVisualSnapshot`). O backend segue
-validando apenas campos, diversidade, sections/slides e contraste textual.
+O gate canonico agora tambem pode rodar no backend quando `AI_GRAPH_SHADOW=true`:
+o shadow graph cria `PostVisualSnapshot` via `shared/variationSnapshot` e roda
+`validateVisualFit`. No caminho normal sem shadow, o backend segue retornando o
+output legado sem bloquear por fit visual.
 
 Verificar depois:
 
-- adicionar resumo visual ao `generationTrace` quando um fallback for aplicado;
-- decidir se `post.generate` deve receber um passo pos-composicao server-side
-  ou manter o gate no cliente por depender de renderer.
+- transformar os eventos `generation_graph_shadow` em metricas agregadas;
+- decidir quando o fit visual deixa de ser auditoria shadow e passa a bloquear o
+  caminho principal;
+- registrar no `generationMeta` quando um fallback visual foi aplicado.
 
 ## 4. `generationMeta` nao tem campo para telemetria visual
 
@@ -133,3 +136,84 @@ Verificar depois:
 - atribuir score de direcao de arte separado de `visualReadability`;
 - usar esse score para escolher/revisar familias criativas, tokens e templates
   antes de mostrar no HoloDeck.
+
+## 10. Remover duplicatas locais apos extracao para `shared/` — resolvido em 2026-07-10
+
+Neste primeiro corte da Fase 0, o caminho executado passou a usar
+`shared/validation`, mas algumas funcoes locais antigas permaneceram no arquivo
+por diferencas de encoding que tornam patches textuais arriscados.
+
+Resolvido (verificação em auditoria de 2026-07-10, DOCUMENTO_MESTRE §67.4):
+
+- `applyDeterministicCopyGuards` local de `server/routers.ts`: removido. O
+  router importa a função de `@shared/validation`.
+- `advertisedItemCounts` local de `server/ai/postEvaluation.ts`: removido. O
+  módulo importa de `@shared/validation`.
+- Wrappers internos inutilizados em `client/src/lib/variationSnapshot.ts`: não
+  existem mais. O arquivo só mantém `buildVariationSnapshot` (legitimamente
+  local, depende de `EditorState`) e re-exports de `@shared/variationSnapshot`.
+
+Pendência remanescente (menor):
+
+- Considerar normalizar o encoding dos arquivos mais antigos antes de novos
+  refactors grandes, para reduzir o risco de patches textuais.
+
+## 11. Confirmar capacidade real de replay do `generationTrace` — resolvido no corte 2026-07-08
+
+O blueprint assume que o shadow mode da Fase 1 pode reaproveitar artefatos do
+`generationTrace` sem chamar LLM de novo. A auditoria confirmou que a premissa
+nao estava atendida pelo formato persistido anterior, porque `prompt_snapshot`
+removia `messages` e `response`.
+
+Implementado:
+
+- `promptSnapshot.version = 2`;
+- `promptSnapshot.replayable = false` por padrao, sem persistir conteudo sensivel;
+- com `AI_TRACE_STORE_CONTENT=true`, `promptSnapshot.calls[]` inclui `messages`
+  e `response`, permitindo replay offline sem nova chamada de LLM.
+
+Pendencia residual:
+
+- a Fase 1 ainda precisa implementar o runner/replay reader que consumira esse
+  formato versionado.
+
+## 12. Conectar shadow graph ao `post.generate` — expandido no corte 2026-07-09
+
+O runner generico (`shared/graphEngine.ts`) e o replay reader
+(`server/ai/generationGraph/replay.ts`) ja existem. O primeiro shadow graph foi
+conectado ao `post.generate` atras de `AI_GRAPH_SHADOW`.
+
+Implementado (corte 2026-07-08):
+
+- `server/ai/generationGraph/shadow.ts` roda replay/schema audit sem LLM;
+- registra `generation_graph_shadow` em `generationTrace.events`;
+- nao altera a resposta do usuario;
+- `AI_GRAPH_PIPELINE` segue reservado e desligado.
+
+Expansao implementada (corte 2026-07-09):
+
+- Shadow graph expandido de 3 para 6 nos deterministicos:
+  ```
+  replay_audit -> schema_validation -> copy_validation -> sections_validation
+  -> copy_guards -> visual_fit_validation -> completed
+  ```
+- `copy_validation` audita completude de copy (headline, body, caption, CTA,
+  imagePrompt)
+- `sections_validation` audita templates estruturados (3 secoes validas,
+  coerencia numero vs secoes)
+- `copy_guards` aplica truncamentos determinísticos e registra alteracoes
+- Metricas agregadas capturam taxa de falha de copy/estrutura em producao
+- Teste adicional `detects copy and sections validation failures` valida deteccao
+  de falhas
+
+Proximo passo:
+
+- implementar infraestrutura de metricas agregadas do shadow graph para baseline
+  de paridade (corte 2026-07-09):
+  - criado `ShadowGraphMetrics` com metricas especificas de divergencia
+  - implementado `extractShadowGraphEvents` e `calculateShadowGraphMetrics`
+  - expandido `getGenerationOperationalMetrics` para incluir `shadowGraph`
+  - adicionados 10 testes em `server/db.test.ts`
+- proximo passo tecnico: adicionar persistencia de events em `generation_runs`
+  (tabela `generation_events` ou coluna `events`) para analise historica completa;
+- manter `AI_GRAPH_PIPELINE` desligado ate houver baseline de paridade estabelecida.

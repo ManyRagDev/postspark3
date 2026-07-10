@@ -55,6 +55,16 @@ describe("generationTrace", () => {
       expect.objectContaining({
         status: "failed",
         inputContent: expect.stringMatching(/^\[sha256:[a-f0-9]{64}\]$/),
+        promptSnapshot: {
+          version: 2,
+          replayable: false,
+          calls: [
+            expect.not.objectContaining({
+              messages: expect.anything(),
+              response: expect.anything(),
+            }),
+          ],
+        },
         candidateCount: 0,
         acceptedCount: 0,
         errorMessage: "generation failed",
@@ -121,6 +131,58 @@ describe("generationTrace", () => {
         revisionCount: 1,
         strategyFallbackUsed: true,
         originalityFallbackUsed: false,
+      }),
+    );
+  });
+
+  it("persists replayable LLM artifacts only when trace content storage is enabled", async () => {
+    ENV.aiTraceStoreContent = true;
+    const trace = startGenerationTrace({
+      userUuid: "00000000-0000-0000-0000-000000000001",
+      inputType: "text",
+      inputContent: "conteudo autorizado para replay",
+      platform: "instagram",
+      postMode: "static",
+      creationMode: "ideation",
+      requestedModel: "gemini",
+    });
+    const messages = [{ role: "user", content: "gere um post" }];
+    const response = { choices: [{ message: { content: "{\"ok\":true}" } }] };
+
+    recordLlmTraceCall({
+      label: "post_generation",
+      requestedModel: "gemini",
+      effectiveModel: "gemini-2.5-flash",
+      provider: "google",
+      promptHash: "hash",
+      messages,
+      response,
+      promptTokens: 10,
+      completionTokens: 5,
+      totalTokens: 15,
+      latencyMs: 12,
+      estimatedCostUsd: 0.01,
+    });
+
+    await finishGenerationTrace({
+      trace,
+      status: "completed",
+    });
+
+    expect(createGenerationRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputContent: "conteudo autorizado para replay",
+        promptSnapshot: {
+          version: 2,
+          replayable: true,
+          calls: [
+            expect.objectContaining({
+              label: "post_generation",
+              messages,
+              response,
+            }),
+          ],
+        },
       }),
     );
   });

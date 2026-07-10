@@ -440,7 +440,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
             const slides = arAdjustedVariation.slides ?? [];
             const postMode = arAdjustedVariation.postMode ?? (slides.length > 0 ? 'carousel' : 'static');
             const responsiveLayouts = arAdjustedVariation.layoutSettingsByAspectRatio ?? {};
-            const initialLayout = responsiveLayouts[aspectRatio] ?? arAdjustedVariation.layoutSettings ?? layoutToAdvanced(arAdjustedVariation.layout);
+            const initialLayout = arAdjustedVariation.snapshotVersion === 3 && arAdjustedVariation.aspectRatio === aspectRatio
+                ? arAdjustedVariation.layoutSettings
+                : responsiveLayouts[aspectRatio] ?? arAdjustedVariation.layoutSettings ?? layoutToAdvanced(arAdjustedVariation.layout);
             const imageSettings = normalizeImageSettings(arAdjustedVariation.imageSettings);
             const layoutSettings = normalizeLayoutSettings(initialLayout);
             const bgValue = arAdjustedVariation.bgValue

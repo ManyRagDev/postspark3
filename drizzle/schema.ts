@@ -116,6 +116,7 @@ export const generationRuns = postsparkSchema.table("generation_runs", {
   estimatedCostUsd: numeric("estimated_cost_usd", { precision: 12, scale: 6 }).default("0").notNull(),
   latencyMs: integer("latency_ms").default(0).notNull(),
   errorMessage: text("error_message"),
+  events: jsonb("events").$type<any[]>().notNull().default([]),
   graphState: jsonb("graph_state").$type<any>().notNull().default({}),
   sparkCost: integer("spark_cost"),
   completedAt: timestamp("completed_at", { withTimezone: true }),

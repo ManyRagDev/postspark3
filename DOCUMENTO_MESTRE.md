@@ -3038,3 +3038,466 @@ Validacao:
 - `server/ai/generationValidation.test.ts`: 7/7 passaram.
 - `server/ai/postEvaluation.test.ts`: 4/4 passaram.
 - `node_modules/.bin/pnpm.cmd exec tsc --noEmit`: passou.
+
+## 61. Inicio da Fase 0 do blueprint de orquestracao - 2026-07-08
+
+Fato observado durante o inicio da migracao:
+
+- O boundary canonico de snapshot ainda podia ser atravessado mais de uma vez.
+- Quando um `PostVisualSnapshot` v3 entrava novamente em
+  `createPostVisualSnapshot`, `layoutSettingsByAspectRatio` podia voltar a vencer
+  o `layoutSettings` ja saneado pelo fit visual.
+- O mesmo problema aparecia no handoff `HoloDeck -> Workbench`: `editorStore`
+  recarregava o snapshot e reescolhia `layoutSettingsByAspectRatio`, desfazendo
+  parte da normalizacao visual final.
+- A estimativa de altura de texto existia em dois lugares com constantes
+  diferentes: `variationSnapshot.ts` e `visualFitValidator.ts`.
+
+Correcao aplicada:
+
+- Criados modulos compartilhados:
+  - `shared/layoutToAdvanced.ts`;
+  - `shared/visualFit.ts`;
+  - `shared/validation.ts`.
+- `client/src/lib/layoutToAdvanced.ts` e
+  `client/src/lib/visualFitValidator.ts` viraram re-exports compatíveis para os
+  imports antigos do frontend.
+- `variationSnapshot.ts` passou a usar `shared/visualFit.textHeightPercent` como
+  fisica unica para estimar altura de texto.
+- `createPostVisualSnapshot` agora preserva `layoutSettings` quando recebe um
+  snapshot v3 no mesmo aspect ratio, tornando a reentrada idempotente para esse
+  contrato.
+- `editorStore.setActiveVariation` preserva `layoutSettings` de snapshots v3 ja
+  normalizados, em vez de reabrir a precedencia por
+  `layoutSettingsByAspectRatio`.
+- `generationValidation.ts` passou a importar as regras compartilhadas de copy,
+  sections e coerencia numerica de `shared/validation`.
+- `postEvaluation.ts` passou a usar a contagem compartilhada para a penalidade
+  de headline/caption.
+- `server/routers.ts` passou a chamar o copy guard compartilhado no caminho de
+  geracao.
+
+Validacao:
+
+- `client/src/lib/variationSnapshot.test.ts`: 15/15 passaram, incluindo novo
+  teste de idempotencia
+  `createPostVisualSnapshot(createPostVisualSnapshot(v, ar), ar)`.
+- `server/ai/generationValidation.test.ts`: 7/7 passaram.
+- `server/ai/postEvaluation.test.ts`: 4/4 passaram; o stderr de "judge offline"
+  e esperado pelo mock do teste.
+- `node_modules/.bin/pnpm.cmd exec tsc --noEmit`: passou.
+
+Pendencias registradas:
+
+- Ainda existem funcoes locais antigas em `server/routers.ts` e
+  `server/ai/postEvaluation.ts` que ficaram sem uso no caminho executado, mas
+  nao foram removidas neste corte por diferencas de encoding no arquivo. O
+  cleanup deve ser feito em PR separado ou com normalizacao de encoding.
+- A premissa de replay por `generationTrace` do blueprint ainda precisa ser
+  validada no codigo antes de virar dependencia da Fase 1.
+
+## 62. Preparacao do generationTrace para replay sem nova chamada de LLM - 2026-07-08
+
+Fato observado:
+
+- O trace em memoria (`GenerationTrace.calls`) ja guardava `messages` e
+  `response` de cada chamada LLM.
+- A persistencia em `generation_runs.prompt_snapshot`, porem, removia
+  explicitamente `messages` e `response` antes de salvar.
+- Com isso, o shadow mode por replay descrito no blueprint nao era possivel a
+  partir dos dados persistidos: havia metadados, custos e hashes, mas nao o
+  artefato necessario para reproduzir as saidas sem chamar LLM novamente.
+
+Correcao aplicada:
+
+- `finishGenerationTrace` passou a persistir `promptSnapshot` em formato
+  versionado:
+  - `version: 2`;
+  - `replayable: boolean`;
+  - `calls: [...]`.
+- Por padrao (`AI_TRACE_STORE_CONTENT=false`), o comportamento continua
+  redigido: `messages` e `response` nao sao persistidos.
+- Quando `AI_TRACE_STORE_CONTENT=true`, `promptSnapshot.calls[]` inclui
+  `messages` e `response`, permitindo replay offline de nos LLM sem novo custo
+  de token.
+- A mudanca reutiliza a coluna JSONB existente `prompt_snapshot`; nao houve
+  alteracao de schema SQL.
+
+Implicacao:
+
+- A Fase 1 do blueprint agora tem um caminho tecnico viavel para replay de
+  traces reais sem dupla execucao de LLM, desde que a flag de conteudo esteja
+  habilitada no ambiente onde os traces de calibracao forem coletados.
+- Ambientes com a flag desligada continuam adequados para metricas e auditoria
+  redigida, mas nao para replay completo.
+
+Validacao:
+
+- `server/ai/generationTrace.test.ts`: 3/3 passaram.
+
+## 68. Landing publica `/crie-posts-incriveis` e dobra de prova visual - 2026-07-10
+
+Fato observado:
+
+- A rota publica `/crie-posts-incriveis` e definida em `client/src/App.tsx` e
+  renderiza `client/src/pages/Landing4/Landing4.tsx`.
+- `Landing4` combina blocos da landing viva (`client/src/pages/landing3`) com
+  blocos da Landing2 (`client/src/pages/Landing2`):
+  - `HeroDemo`, `HowItWorks`, `Personas`, `FinalCta` e `Footer` vem de
+    `landing3`;
+  - `ProofSection` e `ShowcaseMarquee` vem de `Landing2`.
+- A segunda dobra da landing e `client/src/pages/Landing2/ProofSection.tsx`.
+  Ela mostra tres pares "Antes -> Depois" e renderiza os posts com
+  `PostRenderer` a partir dos snapshots canonicos criados por
+  `createLanding2Snapshot`.
+- Os dados demonstrativos ficam em `client/src/pages/Landing2/demoContent.ts`.
+  Cada demo possui tres `PostVariation`, normalizadas por
+  `createPostVisualSnapshot` antes de renderizar.
+
+Correcao aplicada:
+
+- `ProofSection` deixou de escolher sempre `demo.variations[0]`.
+- A dobra agora escolhe intencionalmente uma direcao visual diferente por nicho:
+  - restaurante/almoco: variacao `split`, com fotografia de comida e acento
+    quente;
+  - eletricista: variacao `minimal`, com composicao tecnica e paleta de
+    autoridade;
+  - salao de beleza: variacao `centered`, com visual de campanha premium em
+    preto e rosa.
+- O terceiro caso demonstrativo foi ajustado de clinica estetica generica para
+  salao de beleza, alinhando prompt, copy, CTA, imagens e tokens visuais.
+
+Implicacao:
+
+- A dobra passa a reforcar a promessa de autoridade visual do PostSpark: tres
+  entradas simples geram tres saidas com direcoes de arte distintas, sem criar
+  renderer paralelo.
+- A implementacao preserva a invariante de fonte unica visual: os exemplos
+  continuam passando por `createPostVisualSnapshot` e renderizando pelo mesmo
+  `PostRenderer` usado no produto.
+
+Validacao:
+
+- `node_modules/.bin/pnpm.cmd exec tsc --noEmit`: passou.
+- `node_modules/.bin/pnpm.cmd exec tsc --noEmit`: passou.
+
+## 63. Fundacao da Fase 1: runner de grafo e replay reader - 2026-07-08
+
+Fato observado:
+
+- O blueprint pede que a Fase 1 comece em shadow/replay, sem trocar o caminho de
+  producao e sem duplicar chamadas de LLM.
+- A base necessaria para isso ainda nao existia: nao havia runner generico de
+  grafo, nem leitor versionado para consumir `prompt_snapshot.version = 2`.
+- As metricas operacionais ainda assumiam que `prompt_snapshot` era um array
+  legado; apos a secao 62, ele tambem pode ser um objeto `{ version, replayable,
+  calls }`.
+
+Correcao aplicada:
+
+- Criado `shared/graphEngine.ts`, um runner tipado minimalista:
+  - `nodes` como funcoes `(state, context) => state`;
+  - `next` como edge condicional;
+  - limite `maxTransitions` para impedir loops infinitos;
+  - retorno com `state` final e lista `visited`.
+- Criado `server/ai/generationGraph/replay.ts`, leitor de replay versionado:
+  - aceita snapshots legados em array como `version: 1`, nao replayaveis;
+  - aceita snapshots v2 `{ version, replayable, calls }`;
+  - fornece `createReplayCallReader`, que consome chamadas por ordem/label sem
+    reutilizar a mesma chamada duas vezes.
+- `server/_core/env.ts` ganhou flags ainda nao conectadas ao router:
+  - `AI_GRAPH_PIPELINE`;
+  - `AI_GRAPH_SHADOW`.
+- `server/db.ts` passou a calcular metricas de LLM/fallback tanto com
+  `prompt_snapshot` legado em array quanto com o novo formato v2.
+- Criado `server/ai/generationGraph/shadow.ts`, que executa um shadow graph
+  deterministico atras de `AI_GRAPH_SHADOW`.
+- `post.generate` chama esse shadow graph apos a validacao final do caminho
+  legado. O shadow:
+  - audita metadados de replay a partir do trace em memoria;
+  - reexecuta `validateVariationSet` sobre as variacoes finais;
+  - registra evento `generation_graph_shadow` no trace;
+  - nunca altera a resposta servida ao usuario e nunca chama LLM.
+
+Implicacao:
+
+- A Fase 1 agora roda em modo shadow deterministico quando
+  `AI_GRAPH_SHADOW=true`, sem trocar o caminho de producao.
+- `AI_GRAPH_PIPELINE` permanece reservado para cutover futuro, depois de paridade
+  mensurada.
+- O shadow atual ainda cobre apenas replay/schema audit. Os proximos nos
+  candidatos sao `creative_composition` e `visual_fit_validation`, depois que o
+  snapshot server-side estiver disponivel em `shared/`.
+
+Validacao:
+
+- `shared/graphEngine.test.ts`: 2/2 passaram.
+- `server/ai/generationGraph/replay.test.ts`: 2/2 passaram.
+- `server/ai/generationGraph/shadow.test.ts`: 2/2 passaram.
+- `server/ai/generationTrace.test.ts`: 3/3 passaram.
+- `node_modules/.bin/pnpm.cmd exec tsc --noEmit`: passou.
+
+## 64. Snapshot canonico compartilhado e fit visual no shadow graph - 2026-07-08
+
+Fato observado:
+
+- Para o shadow graph evoluir de schema audit para validacao visual, o servidor
+  precisava conseguir executar o mesmo normalizador canonico usado pelo client.
+- Antes deste corte, `createPostVisualSnapshot` vivia em
+  `client/src/lib/variationSnapshot.ts`, junto com uma funcao dependente do
+  estado do editor (`buildVariationSnapshot`).
+- Isso impedia `visual_fit_validation` server-side sem criar um segundo
+  normalizador, o que violaria a invariante de fonte unica dos posts.
+
+Correcao aplicada:
+
+- Criado `shared/variationSnapshot.ts` com o nucleo canonico puro:
+  - `createPostVisualSnapshot`;
+  - `applyAspectRatioToVariation`;
+  - `applyDesignTokensToSnapshot`;
+  - `projectSnapshotForSlide`;
+  - normalizacao de sections/layouts;
+  - sincronizacao de tokens de design.
+- `client/src/lib/variationSnapshot.ts` virou wrapper de compatibilidade:
+  - reexporta as funcoes canonicas de `shared/variationSnapshot`;
+  - mantem localmente apenas `buildVariationSnapshot`, porque essa funcao ainda
+    depende do `EditorState`/Zustand.
+- `server/ai/generationGraph/shadow.ts` ganhou o no `visual_fit_validation`:
+  - cria snapshots com `createPostVisualSnapshot` vindo de `shared`;
+  - roda `validateVisualFit` server-side;
+  - para carrossel, valida tambem as projecoes por slide via
+    `projectSnapshotForSlide`;
+  - registra `visualFitIssueCount` e `visualFitErrors` no evento
+    `generation_graph_shadow`.
+
+Implicacao:
+
+- O servidor agora consegue auditar o contrato visual final sem depender do
+  HoloDeck e sem criar normalizador paralelo.
+- O caminho de producao segue inalterado: `AI_GRAPH_SHADOW` apenas registra
+  divergencias; `AI_GRAPH_PIPELINE` continua sem cutover.
+- Este corte antecipa parte da Fase 2 com baixo risco, porque o client continua
+  importando pelo mesmo caminho antigo.
+
+Validacao:
+
+- `client/src/lib/variationSnapshot.test.ts`: 15/15 passaram.
+- `server/ai/generationGraph/shadow.test.ts`: 2/2 passaram.
+- `server/ai/generationGraph/replay.test.ts`: 2/2 passaram.
+- `shared/graphEngine.test.ts`: 2/2 passaram.
+- `server/ai/generationTrace.test.ts`: 3/3 passaram.
+- `node_modules/.bin/pnpm.cmd exec tsc --noEmit`: passou.
+
+## 65. Expansao do shadow graph com validacoes de copy e estrutura - 2026-07-09
+
+Fato observado:
+
+- A Fase 1 (shadow graph deterministico) começou com 3 nos: replay_audit,
+  schema_validation e visual_fit_validation.
+- O Blueprint define que o shadow graph deve expandir gradualmente para incluir
+  todos os nos deterministicos do pipeline, acumulando baseline de metricas antes
+  do cutover.
+- Validacoes de copy e estrutura ja existiam em `shared/validation.ts`, mas nao
+  eram auditadas no shadow.
+
+Correcao aplicada:
+
+- Expandido `GenerationShadowState` com novos campos de metrica:
+  - `copyValidationErrors`: erros de completude de copy (headline, body, caption,
+    CTA, imagePrompt)
+  - `sectionsValidationErrors`: erros de templates estruturados (3 secoes,
+    label/description validos, coerencia numero vs secoes)
+  - `copyGuardsApplied`: indica se guards deterministicos truncaram conteudo
+  - `copyGuardsChanges`: lista de campos alterados pelos guards
+- Adicionados 3 novos nos ao shadow graph:
+  - `copy_validation`: executa `hasRequiredCopy` de `shared/validation`
+  - `sections_validation`: executa `hasValidStaticSections` e
+    `hasCoherentStaticItemCount` de `shared/validation`
+  - `copy_guards`: executa `applyDeterministicCopyGuards` e registra alteracoes
+- Nova topologia do shadow graph:
+  ```
+  replay_audit -> schema_validation -> copy_validation -> sections_validation
+  -> copy_guards -> visual_fit_validation -> completed
+  ```
+- Atualizado `recordGenerationEvent` para considerar todas as validacoes na
+  determinacao do status (completed/rejected)
+- Adicionado teste `detects copy and sections validation failures` para validar
+  deteccao de falhas de copy/estrutura
+
+Implicacao:
+
+- O shadow graph agora audita 6 nos deterministicos: replay, schema, copy,
+  sections, guards e visual-fit
+- Metricas agregadas capturam taxa de falha de copy/estrutura em producao antes
+  do cutover
+- Novos campos no `generation_graph_shadow` event permitem comparar baseline de
+  qualidade antes/depois de expandir nos
+- O caminho de producao segue inalterado: divergencias sao registradas mas a
+  resposta legado e mantida
+
+Validacao:
+
+- `server/ai/generationGraph/shadow.test.ts`: 3/3 passaram (novo teste adicionado)
+- `server/ai/generationGraph/replay.test.ts`: 2/2 passaram
+- `shared/graphEngine.test.ts`: 2/2 passaram
+- `server/ai/generationTrace.test.ts`: 3/3 passaram
+- Total de testes do shadow graph: 10/10 passaram
+- `node_modules/.bin/pnpm.cmd exec tsc --noEmit`: passou
+
+## 66. Metricas agregadas do shadow graph para baseline de paridade - 2026-07-09
+
+Fato observado:
+
+- O BLUEPRINT define que o cutover do grafo so deve acontecer apos N runs de
+  replay sem divergencia, com baseline numerica estabelecida.
+- A Fase 1 especifica coleta de KPIs: taxa de retry por slot, taxa de fallback por
+  no, taxa de auto-fix do visual fit, taxa de rejeicao do juiz, taxa de degradacao
+  de carrossel.
+- Sem esses agregados, "paridade" vira opiniao; com eles, o cutover tem baseline
+  numerica para detectar regressao.
+- O servidor ja coletava metricas operacionais em `getGenerationOperationalMetrics`,
+  mas o shadow graph nao tinha metricas especificas.
+
+Correcao aplicada:
+
+- Expandido `GenerationOperationalMetrics` com novo campo `shadowGraph:
+  ShadowGraphMetrics`
+- Criado tipo `ShadowGraphMetrics` com metricas especificas:
+  - `totalShadowRuns`: total de runs com shadow events
+  - `shadowCompletedRuns`/`shadowRejectedRuns`/`shadowFailedRuns`: por status
+  - `shadowValidationErrors`/`shadowCopyErrors`/`shadowSectionsErrors`/
+    `shadowVisualFitErrors`: contagem de erros por tipo de validacao
+  - `shadowGuardsAppliedRate`: taxa de runs onde guards deterministicos alteraram
+    conteudo
+  - `shadowDivergenceRate`: taxa de runs com qualquer divergencia do shadow
+- Implementado `extractShadowGraphEvents`: filtra eventos `generation_graph_shadow`
+  de arrays de events
+- Implementado `calculateShadowGraphMetrics`: calcula metricas agregadas a partir
+  de eventos shadow
+- Implementado `getEmptyShadowGraphMetrics`: retorna metricas zeradas quando nao
+  ha dados de events disponiveis
+- Modificado `getGenerationOperationalMetrics` para incluir `output_snapshot` no
+  SELECT e processar shadow events
+- Adicionado `server/db.test.ts` com 10 testes para validar as novas funcoes
+
+Implicacao:
+
+- `getGenerationOperationalMetrics` agora retorna metricas completas do shadow
+  graph no campo `shadowGraph`
+- A infraestrutura de metricas esta pronta para coletar baseline de paridade assim
+  que events forem persistidos no banco
+- NOTA: Atualmente, eventos do shadow graph sao mantidos apenas em memoria no
+  `GenerationTrace` e nao persistidos em `generation_runs`. Para analise historica
+  completa, sera necessario adicionar persistencia de events (tabela
+  `generation_events` ou coluna `events` em `generation_runs`)
+- As metricas retornam zeradas enquanto events nao forem persistidos, preparando
+  a infraestrutura para o cutover
+
+Limitacao conhecida:
+
+- Sem persistencia de events no banco, as metricas do shadow graph so podem ser
+  calculadas em tempo real, nao historicamente
+- A proxima iteracao deve adicionar suporte a persistencia de events para permitir
+  analise de baseline ao longo do tempo
+
+Validacao:
+
+- `server/db.test.ts`: 10/10 testes passaram (nova suite de testes de metricas)
+- `server/ai/generationGraph/shadow.test.ts`: 3/3 passaram
+- `server/ai/generationGraph/replay.test.ts`: 2/2 passaram
+- `shared/graphEngine.test.ts`: 2/2 passaram
+- `server/ai/generationTrace.test.ts`: 3/3 passaram
+- Total de testes relacionados: 20/20 passaram
+- `node_modules/.bin/pnpm.cmd exec tsc --noEmit`: passou
+
+## 67. Auditoria e correções do blueprint de orquestração — 2026-07-10
+
+Auditoria técnica read-only seguida de correções sobre tudo implementado até aqui
+do `BLUEPRINT_ORQUESTRACAO_PIPELINE_GERACAO.md` (Fases 0 e 1). Esta seção registra
+os defeitos encontrados e as correções aplicadas.
+
+### 67.1. Pipeline graph determinístico (`server/ai/generationGraph/pipeline.ts`)
+
+Fato confirmado (módulo não documentado antes desta seção):
+
+- `pipeline.ts` é um segundo grafo determinístico, mais ambicioso que o shadow
+  graph, conectado a `post.generate` em `server/routers.ts` atrás da flag
+  `AI_GRAPH_PIPELINE` (default desligada).
+- Diferente do shadow graph (auditoria silenciosa, sempre que
+  `AI_GRAPH_SHADOW=true`), o pipeline graph percorre 13 nós cobrindo quase todo o
+  fluxo canônico: `replay_audit → context_audit → schema_validation →
+  copy_validation → sections_validation → copy_guards → quality_audit →
+  composition_audit → snapshot_audit → visual_fit_validation → caption_audit →
+  final_approval → completed`.
+- Cada nó emite um `PipelineEvent` (`ok`/`warn`/`error`) e o `completed` computa
+  KPIs agregados (`PipelineKpi`). O resultado é registrado como evento
+  `generation_graph_pipeline` no trace, consumido por
+  `calculatePipelineGraphMetrics` em `server/db.ts`.
+- Como o shadow graph, é determinístico, re-executa apenas nós sem LLM e nunca
+  altera a resposta servida ao usuário quando desligado.
+
+### 67.2. Correções de bugs aplicadas
+
+1. **`shadow.ts` quebrava o build e o runtime** (`tsc` → `TS2304`,
+   `ReferenceError: updateGenerationRun is not defined`): um bloco tentava
+   persistir os events do shadow chamando `updateGenerationRun`, mas a função não
+   era importada e, mesmo importada, a chamada seria prematura (rode antes do
+   `finishGenerationTrace` criar a linha em `generation_runs`). Removido. Os
+   events do shadow graph já são persistidos pelo caminho correto:
+   `recordGenerationEvent` adiciona ao `trace.events` em memória e
+   `finishGenerationTrace` grava o array completo em `generation_runs.events`
+   (após o upsert). Isto corrige também a descrição da §66: a persistência de
+   events já funciona; não há lacuna pendente.
+2. **Flag `replayable` hardcoded em `shadow.ts`/`pipeline.ts`**: agora deriva da
+   realidade das calls em memória (`calls.every((c) => c.response !== undefined)`),
+   com comentário esclarecendo que o trace em memória sempre popula
+   `messages`/`response` e que `AI_TRACE_STORE_CONTENT` só controla persistência,
+   não o objeto lido pelo grafo.
+3. **`replayableCallCount`/`replayCallsReplayable` inconsistentes com o flag**:
+   usavam `"response" in c` (verdadeiro mesmo para `response: undefined`).
+   Alinhados para `c.response !== undefined`, consistentes com o cálculo do flag.
+4. **`brandGuardianFallbackRate` era dead code** (`state.brandGuardianApplied ? 0
+   : 0` — sempre zero). Agora reflete o estado: `0` quando o guardian
+   determinístico rodou, `1` quando não há evento `brand_visual_qa` (caminho
+   determinístico implícito).
+5. **`visualFitAutoFixRate` misturava unidades** (total de issues vs número de
+   variações com erro) e podia ser negativo. Como o nó observa apenas o snapshot
+   pós-`applyVisualFitFallback`, a taxa real de auto-fix não é computável sem um
+   hook pré-fallback. O KPI agora é `null` (indisponível) honestamente, e o tipo
+   `PipelineGraphMetrics.pipelineVisualFitAutoFixRate` passou a `number | null`.
+   `calculatePipelineGraphMetrics` ignora runs `null` no denominador da média.
+
+### 67.3. Cobertura de testes adicionada
+
+- Criado `server/ai/generationGraph/pipeline.test.ts` (5 testes): flag desligada,
+  execução completa aprovando conjunto válido, `replayable` derivado de calls sem
+  `response`, detecção de falhas de schema/copy/sections, e reprovação terminal no
+  `final_approval`. O teste do flag `replayable` expôs o bug #3 acima (inconsistência
+  entre o flag e o contador), que foi então corrigido em `shadow.ts` e `pipeline.ts`.
+
+### 67.4. Gate da Fase 0 confirmado resolvido (sem seção própria até aqui)
+
+Itens do diagnóstico do blueprint já estavam corrigidos no código, mas sem registro
+no mestre:
+
+- **G3** (chamada morta de `directCreative` em `routers.ts`): removida — não há mais
+  referência.
+- **G11** (branch morto do pipeline legado de URL: `isLegacySitePipelineEnabled`,
+  `chameleonVision`, `captureScreenshot`, enriquecimento por `chameleonPosts`):
+  removido — não há mais referência.
+- **G12** (drift de contrato do snapshot persistido): `post.save`/`post.update` agora
+  validam via `postVisualSnapshotSchema.parse(input.variationSnapshot)` em vez de
+  `as any`; os casts foram eliminados.
+- **Backlog item 10** (duplicatas locais): `applyDeterministicCopyGuards` em
+  `routers.ts` e `advertisedItemCounts` em `postEvaluation.ts` foram removidos; ambos
+  importam de `@shared/validation`. Confirmação atualizada no
+  `BACKLOG_RENDERIZACAO_POS_TESTES.md`.
+
+Validação:
+
+- `npx tsc --noEmit`: passou (era `exit 2` antes da correção #1).
+- `server/ai/generationGraph/` (shadow + replay + pipeline): 10/10 passaram.
+- `server/db.test.ts`: 10/10 passaram.
+- `shared/graphEngine.test.ts`: 2/2 passaram.
+- `server/ai/generationTrace.test.ts`: 3/3 passaram.
+

@@ -16,10 +16,8 @@ import type { SiteIntelligence } from "@shared/postspark";
 import { analyzeSiteIntelligence, loadSiteIntelligence, siteIntelligenceToDesignTokens, siteIntelligenceToPrompt } from "./siteIntelligence";
 import { scrapeUrl as scrapeSiteUrl } from "./siteContent";
 import { extractBrandDNA } from "./brandDNA";
-import { chameleonVision } from "./chameleonVision";
-import { captureScreenshot } from "./screenshotService";
-import { chameleonResultToDesignTokens } from "@shared/postspark";
-import { directCreative, composeVariation, hashString } from "@shared/creative";
+import { composeVariation } from "@shared/creative";
+import { applyDeterministicCopyGuards } from "@shared/validation";
 import * as fs from "fs";
 import * as path from "path";
 import { getBillingProfile, debitSparks, getTopupPackages, createSubscriptionCheckout, createTopupCheckout, getSubscriptionPriceId, getSupabase, SPARK_COSTS } from "./billing";
@@ -34,6 +32,8 @@ import { evaluateAndReviseCandidates } from "./ai/postEvaluation";
 import { buildGenerationDebugTrace, finishGenerationTrace, recordGenerationEvent, startGenerationTrace } from "./ai/generationTrace";
 import { assessSemanticOriginality, persistCandidateFingerprints } from "./ai/semanticOriginality";
 import { runHighTicketPipeline } from "./ai/highTicket";
+import { runGenerationShadowGraph } from "./ai/generationGraph/shadow";
+import { runGenerationPipeline } from "./ai/generationGraph/pipeline";
 import { assertVariationSet, hasCoherentStaticItemCount, hasValidStaticSections, POST_VARIATION_TARGET, validateVariationSet } from "./ai/generationValidation";
 import {
   advancedLayoutSettingsSchema,
@@ -49,10 +49,6 @@ import {
   postVisualSnapshotSchema,
   textElementSchema,
 } from "@shared/postsparkSchemas";
-
-function isLegacySitePipelineEnabled(): boolean {
-  return false;
-}
 
 const logSnippet = (value: unknown, maxLength = 320): string | undefined => {
   if (value === undefined || value === null) return undefined;
@@ -718,63 +714,7 @@ export const appRouter = router({
           });
           let contextContent = input.content;
           let brandDnaContext = "";
-          let chameleonResult: import("@shared/postspark").ChameleonVisionResult | null = null;
           let siteIntelligence: SiteIntelligence | null = null;
-
-          // If URL, scrape it first and extract Brand DNA for visual cloning
-          if (isLegacySitePipelineEnabled() && input.inputType === "url") {
-            try {
-              // 1. Extração de conteúdo bruto
-              const scrapeResult = await scrapeUrl(input.content);
-              contextContent = `URL: ${input.content}\nTítulo: ${scrapeResult.title}\nDescrição: ${scrapeResult.description}\nConteúdo: ${scrapeResult.content}`;
-
-              // 2. Chameleon Vision — direct CSS extraction (parallel with BrandDNA)
-              const [screenshot, brandDNA] = await Promise.all([
-                captureScreenshot(input.content).catch(() => null),
-                extractBrandDNA(input.content).catch((err: unknown) => {
-                  console.warn("Falha ao extrair Brand DNA no processamento da geração.", err);
-                  return null;
-                }),
-              ]);
-
-              // 2a. Chameleon Vision: image → CSS tokens + copy (primary source)
-              if (screenshot) {
-                try {
-                  chameleonResult = await chameleonVision(screenshot, contextContent);
-                  if (chameleonResult) {
-                    console.log("[Chameleon Vision] Extraction successful — CSS tokens + 5 copy angles ready");
-                  }
-                } catch (cvErr) {
-                  console.warn("[Chameleon Vision] Failed, falling back to BrandDNA:", cvErr);
-                }
-              }
-
-              // 2b. BrandDNA context for copy generation enrichment
-              if (brandDNA) {
-                brandDnaContext = `
-
-INSTRUÇÕES DE CLONAGEM DE MARCA (BRAND SOUL):
-Você DEVE FORÇAR o post gerado a ser uma extensão orgânica do site original.
-Dados da Marca extraídos:
-- Nome/Setor: ${brandDNA.brandName} (${brandDNA.industry})
-- Cores Sugeridas (UTILIZE OBRIGATORIAMENTE ESTAS BASEADAS EM PSICOLOGIA DE CONTRASTE):
-  Primária: ${chameleonResult?.colors.primary || brandDNA.colors.primary}
-  Secundárias: ${chameleonResult?.colors.secondary || brandDNA.colors.secondary}
-  Background Sugerido: ${chameleonResult?.colors.background || brandDNA.colors.background}
-  Accent Sugerido: ${chameleonResult?.colors.primary || brandDNA.colors.accent}
-  Paleta Geral: ${brandDNA.colors.palette.join(", ")}
-- Ritmo Visual/Dinâmica: ${brandDNA.composition.dynamics} / ${brandDNA.composition.rhythm}
-
-REGRA CARDINAL DE CORES (A FONTE É URL):
-1) Você NÃO PODE IGNORAR a paleta fornecida acima. O post DEVE pertencer ao site visualmente.
-2) Selecione backgroundColor, accentColor e textColor EXCLUSIVAMENTE extraídos dessa paleta extraída, garantindo ratio > 4.5:1 WCAG.
-3) Se o site for Dark Mode, gere posts escuros. Se o site for claro, gere variabilidades claras.
-              `;
-              }
-            } catch {
-              contextContent = `URL fornecida: ${input.content} (não foi possível extrair conteúdo, crie baseado na URL)`;
-            }
-          }
 
           const siteUrl = input.inputType === "url" ? input.content : normalizedExecutionBrief?.brandInput?.websiteUrl;
 
@@ -1649,15 +1589,11 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
                 })
               : initialOriginality;
 
-          // Build DesignTokens from Chameleon Vision result if available
-          const chameleonDesignTokens = siteIntelligence ? siteIntelligenceToDesignTokens(siteIntelligence) : chameleonResult ? chameleonResultToDesignTokens(chameleonResult) : undefined;
+          // Build DesignTokens from Site Intelligence result if available
+          const chameleonDesignTokens = siteIntelligence ? siteIntelligenceToDesignTokens(siteIntelligence) : undefined;
 
-          // Map Chameleon Vision copy angles to variations
-          const chameleonPosts = chameleonResult?.posts || [];
-
-          // Generate unique IDs and return — enrich with Chameleon Vision data
+          // Generate unique IDs and return — enrich with Site Intelligence data
           const generatedVariations = variations.map((v: any, i: number) => {
-            const chameleonPost = chameleonPosts[i];
             const normalizedSlides = isCarousel ? normalizeCarouselSlides(v) : undefined;
             const baseVar: import("@shared/postspark").PostVariation = {
               id: `var-${Date.now()}-${i}`,
@@ -1667,18 +1603,8 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
               hashtags: v.hashtags || [],
               postMode: input.postMode,
               slides: normalizedSlides,
-              // Chameleon Vision enrichments
+              // Site Intelligence enrichments
               ...(chameleonDesignTokens ? { designTokens: chameleonDesignTokens } : {}),
-              ...(chameleonPost
-                ? {
-                    copyAngle: {
-                      type: chameleonPost.angle,
-                      label: chameleonPost.label,
-                      badge: chameleonPost.badge,
-                      stickerText: chameleonPost.stickerText,
-                    },
-                  }
-                : {}),
               generationMeta: {
                 creationMode: input.creationMode,
                 fidelity: normalizedExecutionBrief ? "high" : "medium",
@@ -1692,11 +1618,7 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
                 originality: originality.assessments[i],
               },
             } as any;
-            
-            // --- Injeção do Motor de Variabilidade Criativa ---
-            // Passa a variação, null para intent (o motor deduz), e uma seed determinística do ID
-            const seed = hashString(baseVar.id);
-            const dir = directCreative(baseVar, null, seed);
+
             return composeVariation(baseVar, chameleonDesignTokens || {} as any);
           });
           const finalValidation = validateVariationSet(generatedVariations, input.postMode);
@@ -1705,6 +1627,45 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
             status: finalValidation.valid ? "completed" : "rejected",
             detail: finalValidation.valid ? "Exactly three complete and distinct variations approved." : finalValidation.errors.join("; "),
             data: finalValidation,
+          });
+          const shadowResult = await runGenerationShadowGraph({
+            variations: generatedVariations,
+            postMode: input.postMode,
+          });
+          if (shadowResult) {
+            if (shadowResult.status === "failed") {
+              recordGenerationEvent({
+                stage: "shadow_graph_failed",
+                status: "failed",
+                detail: "Shadow graph execution failed with error.",
+                data: {
+                  validationErrors: shadowResult.validationErrors,
+                },
+              });
+            } else if (
+              shadowResult.validationErrors.length > 0 ||
+              shadowResult.copyValidationErrors.length > 0 ||
+              shadowResult.sectionsValidationErrors.length > 0 ||
+              shadowResult.visualFitErrors.length > 0
+            ) {
+              recordGenerationEvent({
+                stage: "shadow_graph_divergence",
+                status: "rejected",
+                detail: "Shadow graph detected validation divergence from legacy output.",
+                data: {
+                  validationErrors: shadowResult.validationErrors,
+                  copyValidationErrors: shadowResult.copyValidationErrors,
+                  sectionsValidationErrors: shadowResult.sectionsValidationErrors,
+                  visualFitErrors: shadowResult.visualFitErrors,
+                  copyGuardsApplied: shadowResult.copyGuardsApplied,
+                  copyGuardsChanges: shadowResult.copyGuardsChanges,
+                },
+              });
+            }
+          }
+          await runGenerationPipeline({
+            variations: generatedVariations,
+            postMode: input.postMode,
           });
           try {
             assertVariationSet(generatedVariations, input.postMode);
@@ -1885,9 +1846,12 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
       )
       .mutation(async ({ input, ctx }) => {
         try {
+          const validatedSnapshot = input.variationSnapshot
+            ? postVisualSnapshotSchema.parse(input.variationSnapshot)
+            : undefined;
           const postId = await createPost({
             ...input,
-            variationSnapshot: input.variationSnapshot as any,
+            variationSnapshot: validatedSnapshot,
             userUuid: ctx.user.id,
           });
           return { id: postId };
@@ -1931,7 +1895,10 @@ Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
         })
       )
       .mutation(async ({ input, ctx }) => {
-        await updatePost(input.id, ctx.user.id, { ...input, variationSnapshot: input.variationSnapshot as any });
+        const validatedSnapshot = input.variationSnapshot
+          ? postVisualSnapshotSchema.parse(input.variationSnapshot)
+          : undefined;
+        await updatePost(input.id, ctx.user.id, { ...input, variationSnapshot: validatedSnapshot });
         return { success: true };
       }),
 
@@ -2424,34 +2391,6 @@ async function scrapeUrl(url: string) {
       content: "",
     };
   }
-}
-
-function applyDeterministicCopyGuards<T extends Record<string, any>>(variation: T): T {
-  const next: Record<string, any> = { ...variation };
-  if (typeof next.headline === "string") {
-    let headline = next.headline
-      .slice(0, 60)
-      .trim()
-      .replace(/(?:\.{2,}|…)+$/, "")
-      .trim();
-    if (next.template && next.template !== "simple") {
-      headline = headline.replace(/[:\-–—]\s*([2-9]|1[0-9]|20)\s*$/, "").trim();
-    }
-    headline = headline.replace(/[:\-–—]\s*$/, "").trim();
-    next.headline = headline;
-  }
-  if (typeof next.body === "string") next.body = next.body.slice(0, 140).trim();
-  if (typeof next.caption === "string") {
-    next.caption = next.caption.slice(0, 1500).trim();
-  }
-  if (typeof next.callToAction === "string") next.callToAction = next.callToAction.slice(0, 40).trim();
-  if (Array.isArray(next.hashtags)) {
-    next.hashtags = next.hashtags
-      .filter((item: unknown): item is string => typeof item === "string" && item.trim().startsWith("#"))
-      .map((item: string) => item.trim())
-      .slice(0, 4);
-  }
-  return next as T;
 }
 
 export type AppRouter = typeof appRouter;

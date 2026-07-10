@@ -4,11 +4,19 @@ import { createLanding2Snapshot, LANDING2_DEMOS } from './demoContent';
 
 const SPRING_ENTRY = { stiffness: 220, damping: 28 };
 
+const PROOF_VARIATION_BY_DEMO_ID: Record<string, number> = {
+  'restaurant-promo': 0,
+  'service-authority': 1,
+  'beauty-salon-campaign': 2,
+};
+
 const PROOF_CASES = LANDING2_DEMOS.map((demo) => ({
   id: demo.id,
   label: demo.chip,
   beforeText: demo.prompt,
-  afterSnapshot: createLanding2Snapshot(demo.variations[0]),
+  afterSnapshot: createLanding2Snapshot(
+    demo.variations[PROOF_VARIATION_BY_DEMO_ID[demo.id] ?? 0] ?? demo.variations[0],
+  ),
 }));
 
 export default function ProofSection() {
