@@ -11,6 +11,7 @@ import Billing from "./pages/Billing";
 import History from "./pages/History";
 import SavedPosts from "./pages/SavedPosts";
 import Admin from "./pages/Admin";
+import FamilyCatalog from "./pages/FamilyCatalog";
 import TheVoid2Page from "./pages/TheVoid2Page";
 import { LandingPage } from "./pages/Landing";
 import { LandingPage as LandingPage2 } from "./pages/Landing2";
@@ -200,6 +201,8 @@ function Router() {
       <Route path={"/billing/success"} component={PostCheckoutSuccess} />
       <Route path={"/billing/topup-success"} component={TopupSuccess} />
       <Route path={"/admin"} component={() => <AdminRoute component={Admin} />} />
+      {/* Ferramenta interna de avaliação do catálogo criativo */}
+      <Route path={"/familias"} component={FamilyCatalog} />
       <Route path={"/auth/google-callback"} component={GoogleAuthCallback} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

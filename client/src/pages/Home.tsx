@@ -13,6 +13,18 @@ import { useEditorStore } from "@/store/editorStore";
 import { createPostVisualSnapshot } from "@/lib/variationSnapshot";
 import type { GenerationDebugTrace } from "@shared/postspark";
 
+/**
+ * Fase 2: o servidor agora retorna PostVisualSnapshot frozen (snapshotVersion
+ * 3 ou 4 — SPEC-001 acrescenta `resolvedTypography` sem invalidar o v3).
+ * Pass-through direto quando já é v3/v4; normaliza apenas variações legadas.
+ */
+function ensureSnapshot(variation: PostVariation | PostVisualSnapshot): PostVisualSnapshot {
+  const version = (variation as PostVisualSnapshot).snapshotVersion;
+  return version === 3 || version === 4
+    ? variation as PostVisualSnapshot
+    : createPostVisualSnapshot(variation as PostVariation);
+}
+
 export default function Home() {
   const [appState, setAppState] = useState<AppState>("void");
   const [creationMode, setCreationMode] = useState<CreationMode>("ideation");
@@ -137,7 +149,7 @@ export default function Home() {
         });
 
         if (result?.variations.length === 3) {
-          setVariations(result.variations.map(variation => createPostVisualSnapshot(variation as PostVariation)));
+          setVariations(result.variations.map(variation => ensureSnapshot(variation)));
           setGenerationDebug(mergeDebugTraces(siteResult?.debug, result.debug));
           setAppState("holodeck");
         } else {
@@ -203,7 +215,7 @@ export default function Home() {
         });
 
         if (result?.variations.length === 3) {
-          setVariations(result.variations.map(variation => createPostVisualSnapshot(variation as PostVariation)));
+          setVariations(result.variations.map(variation => ensureSnapshot(variation)));
           setGenerationDebug(mergeDebugTraces(siteResult?.debug, result.debug));
           setAppState("holodeck");
         } else {
@@ -343,7 +355,7 @@ export default function Home() {
     try {
       const restored = JSON.parse(restoredGeneration) as PostVariation[];
       if (Array.isArray(restored) && restored.length > 0) {
-        setVariations(restored.map(variation => createPostVisualSnapshot(variation)));
+          setVariations(restored.map(variation => ensureSnapshot(variation)));
         setAppState("holodeck");
       }
     } catch (error) {

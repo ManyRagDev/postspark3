@@ -1,9 +1,18 @@
 import type {
+  AdvancedLayoutSettings,
+  AspectRatio,
+  BackgroundValue,
+  BgOverlaySettings,
   GenerationEvaluationSummary,
   Platform,
+  PostVariation,
   SiteIntelligence,
+  TextElement,
 } from "@shared/postspark";
+import { contrastRatio as sharedContrastRatio, effectiveBackgroundColor } from "@shared/creative/color";
 import { advertisedItemCounts } from "@shared/validation";
+import { createPostVisualSnapshot, projectSnapshotForSlide } from "@shared/variationSnapshot";
+import { validateVisualFit, type VisualFitIssueType } from "@shared/visualFit";
 import { invokeLLM } from "../_core/llm";
 import { ENV } from "../_core/env";
 import type { ContentStrategy } from "./contentStrategy";
@@ -22,14 +31,16 @@ export interface EvaluatedCandidate extends VariationDiversityInput {
   platform?: Platform;
   slides?: Array<{ headline?: string; body?: string }>;
   sections?: Array<{ label?: string; description?: string }>;
-}
-
-export interface EvaluationPipelineResult<T extends EvaluatedCandidate> {
-  candidates: T[];
-  evaluations: GenerationEvaluationSummary[];
-  revisionCount: number;
-  revisedIndexes: number[];
-  revisionFailedIndexes: number[];
+  // Fase 3: campos visuais para alimentar layoutIntegrity. Opcionais porque
+  // o avaliador também aceita candidatos parciais (texto puro) de testes.
+  template?: string;
+  aspectRatio?: AspectRatio;
+  layoutSettings?: AdvancedLayoutSettings;
+  textElements?: TextElement[];
+  // SPEC-002 passo 5: para medir contraste contra o fundo EFETIVO (imagem +
+  // overlay), não só a cor sólida de fallback.
+  bgValue?: BackgroundValue;
+  bgOverlay?: BgOverlaySettings;
 }
 
 type Dimensions = GenerationEvaluationSummary["dimensions"];
@@ -38,37 +49,24 @@ function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function hexToRgb(hex: string | undefined): [number, number, number] | null {
-  if (!hex) return null;
-  const normalized = hex.replace("#", "");
-  if (!/^[0-9a-f]{6}$/i.test(normalized)) return null;
-  return [
-    parseInt(normalized.slice(0, 2), 16),
-    parseInt(normalized.slice(2, 4), 16),
-    parseInt(normalized.slice(4, 6), 16),
-  ];
-}
-
-function luminance(rgb: [number, number, number]): number {
-  const values = rgb.map((channel) => {
-    const value = channel / 255;
-    return value <= 0.03928
-      ? value / 12.92
-      : Math.pow((value + 0.055) / 1.055, 2.4);
-  });
-  return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
-}
-
+/**
+ * SPEC-002 (docs/reforma/SPEC-002): delega para `shared/creative/color.ts`,
+ * a única implementação produtiva de contraste WCAG do repositório. Este
+ * wrapper preserva o contrato antigo deste módulo — `undefined`/hex inválido
+ * devolve `1` (sem contraste comprovado) em vez de lançar, porque
+ * `deterministicEvaluation` roda sobre candidatos gerados por IA que podem
+ * trazer cor malformada; a avaliação precisa de um número, não de uma exceção.
+ */
 export function contrastRatio(
   foreground: string | undefined,
   background: string | undefined,
 ): number {
-  const fg = hexToRgb(foreground);
-  const bg = hexToRgb(background);
-  if (!fg || !bg) return 1;
-  const a = luminance(fg);
-  const b = luminance(bg);
-  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  if (!foreground || !background) return 1;
+  try {
+    return sharedContrastRatio(foreground, background);
+  } catch {
+    return 1;
+  }
 }
 
 function overlapScore(value: string, reference: string): number {
@@ -81,7 +79,64 @@ function overlapScore(value: string, reference: string): number {
   return clampScore(45 + (overlap / valueTokens.length) * 80);
 }
 
-function deterministicEvaluation(input: {
+/**
+ * Fase 3 — Integridade do layout (geometria visual).
+ *
+ * Constrói um snapshot transitório do candidato e roda validateVisualFit.
+ * Como createPostVisualSnapshot aplica applyVisualFitFallback internamente,
+ * validateVisualFit só vê issues NÃO-corrigíveis — se o fallback resolveu,
+ * integridade é alta; se sobraram issues, penaliza por severidade.
+ *
+ * Penas por tipo de issue (0-100, somadas e subtraídas de 100):
+ * - headline_body_overlap: grave (texto sobre texto)
+ * - structured_absolute_layout: médio (template estruturado mal posicionado)
+ * - card_too_narrow: médio (card corta conteúdo)
+ * - text_element_outside_canvas / text_element_overlaps_copy: decorações
+ */
+const LAYOUT_INTEGRITY_PENALTY: Record<VisualFitIssueType, number> = {
+  headline_body_overlap: 35,
+  structured_absolute_layout: 25,
+  card_too_narrow: 20,
+  text_element_outside_canvas: 15,
+  text_element_overlaps_copy: 15,
+  text_exceeds_visible_area: 55,
+  // SPEC-002 passo 6: menos grave que overlap/overflow de texto — o bloco
+  // ainda está legível, só invade a margem de segurança (ex.: zona de UI do
+  // Instagram Stories em 9:16).
+  outside_safe_area: 10,
+  section_overlap: 35, // mesma classe de headline_body_overlap (texto sobre texto)
+  section_missing_geometry: 25, // mesma classe de structured_absolute_layout (defeito de autoria)
+};
+
+function computeLayoutIntegrity(candidate: EvaluatedCandidate): number {
+  try {
+    const snapshot = createPostVisualSnapshot(
+      candidate as unknown as PostVariation,
+      candidate.aspectRatio ?? "1:1",
+    );
+    // Fase A.4 — carrosséis são avaliados POR SLIDE. Projetamos cada slide
+    // (merge de overrides de editorState + headline/body do slide) sobre o
+    // snapshot base e validamos cada projeção. Issues de qualquer slide
+    // alimentam a penalidade agregada. Referência: shadow.ts:157-186.
+    const slides = snapshot.slides ?? [];
+    const snapshotsToValidate = slides.length > 0
+      ? slides.map((_, slideIndex) => projectSnapshotForSlide(snapshot, slideIndex))
+      : [snapshot];
+    const allIssues = snapshotsToValidate.flatMap((projected) => validateVisualFit(projected).issues);
+    if (allIssues.length === 0) return 100;
+    const totalPenalty = allIssues.reduce(
+      (sum, issue) => sum + (LAYOUT_INTEGRITY_PENALTY[issue.type] ?? 10),
+      0,
+    );
+    return clampScore(100 - totalPenalty);
+  } catch {
+    // Se o candidato é parcial (sem campos visuais suficientes para um
+    // snapshot), assume integridade neutra para não penalizar indevidamente.
+    return 75;
+  }
+}
+
+export function deterministicEvaluation(input: {
   candidate: EvaluatedCandidate;
   allCandidates: EvaluatedCandidate[];
   strategy?: ContentStrategy;
@@ -121,10 +176,21 @@ function deterministicEvaluation(input: {
   const captionLength = candidate.caption?.length ?? 0;
   const platformLimit =
     platform === "twitter" ? 280 : platform === "instagram" ? 2200 : 3000;
-  const contrast = contrastRatio(
-    candidate.textColor,
-    candidate.backgroundColor,
+  // SPEC-002 passo 5: mede contra o fundo EFETIVO, não a cor sólida crua.
+  // Fundo de imagem sem overlay opaco o bastante é "unproven" — política
+  // explícita (não assumida): o score nunca pode alegar leitura perfeita
+  // (100) quando não há como provar o contraste real contra a imagem.
+  const effectiveBg = effectiveBackgroundColor(
+    {
+      backgroundType: candidate.bgValue?.type ?? "solid",
+      solidColor: candidate.bgValue?.color ?? candidate.backgroundColor,
+      overlayColor: candidate.bgOverlay?.color,
+      overlayOpacity: candidate.bgOverlay?.opacity,
+    },
+    candidate.backgroundColor ?? "#000000",
   );
+  const contrast = contrastRatio(candidate.textColor, effectiveBg.color);
+  const UNPROVEN_READABILITY_CAP = 70;
 
   const dimensions: Dimensions = {
     brandAlignment: overlapScore(fullText, brandReference),
@@ -141,8 +207,14 @@ function deterministicEvaluation(input: {
     platformFit: clampScore(
       100 - Math.max(0, captionLength - platformLimit) * 0.5,
     ),
-    visualReadability: contrast >= 4.5 ? 100 : clampScore(contrast * 20),
+    visualReadability:
+      effectiveBg.basis === "unproven"
+        ? Math.min(UNPROVEN_READABILITY_CAP, clampScore(contrast * 20))
+        : contrast >= 4.5
+          ? 100
+          : clampScore(contrast * 20),
     captionCoherence: computeCaptionCoherence(candidate),
+    layoutIntegrity: computeLayoutIntegrity(candidate),
   };
 
   return summarize(dimensions, []);
@@ -231,15 +303,16 @@ function summarize(
   feedback: string[],
 ): GenerationEvaluationSummary {
   const weights: Record<keyof Dimensions, number> = {
-    brandAlignment: 0.12,
-    objectiveAlignment: 0.14,
-    audienceRelevance: 0.1,
-    factuality: 0.14,
-    originality: 0.1,
-    clarity: 0.08,
-    platformFit: 0.06,
-    visualReadability: 0.1,
-    captionCoherence: 0.16,
+    brandAlignment: 0.1,
+    objectiveAlignment: 0.12,
+    audienceRelevance: 0.09,
+    factuality: 0.12,
+    originality: 0.09,
+    clarity: 0.07,
+    platformFit: 0.05,
+    visualReadability: 0.09,
+    captionCoherence: 0.17,
+    layoutIntegrity: 0.1,
   };
   const overallScore = clampScore(
     (Object.keys(dimensions) as Array<keyof Dimensions>).reduce(
@@ -252,13 +325,24 @@ function summarize(
     dimensions.factuality >= 65 &&
     dimensions.visualReadability >= 65 &&
     dimensions.objectiveAlignment >= 60 &&
-    dimensions.captionCoherence >= 50;
+    dimensions.captionCoherence >= 50 &&
+    dimensions.layoutIntegrity >= 50;
+
+  // Fase 3: feedback geométrico acionável para a revisão. Quando o layout está
+  // quebrado, orienta o revisor a encurtar textos (o que reduz overflow e
+  // permite que applyVisualFitFallback resolva a geometria).
+  const layoutFeedback =
+    dimensions.layoutIntegrity < 50
+      ? [
+          "Layout com sobreposicao, estouro ou texto truncado: ajuste a caixa de texto quando houver espaco; caso contrario, encurte headline/body ate todo o conteudo ficar visivel, sem reticencias.",
+        ]
+      : [];
 
   return {
     overallScore,
     accepted,
     dimensions,
-    feedback,
+    feedback: [...layoutFeedback, ...feedback],
   };
 }
 
@@ -320,6 +404,7 @@ ${JSON.stringify(
                   platformFit: { type: "number" },
                   visualReadability: { type: "number" },
                   captionCoherence: { type: "number" },
+                  layoutIntegrity: { type: "number" },
                 },
                 required: [
                   "brandAlignment",
@@ -331,6 +416,7 @@ ${JSON.stringify(
                   "platformFit",
                   "visualReadability",
                   "captionCoherence",
+                  "layoutIntegrity",
                 ],
                 additionalProperties: false,
               },
@@ -358,6 +444,7 @@ ${JSON.stringify(
       "platformFit",
       "visualReadability",
       "captionCoherence",
+      "layoutIntegrity",
     ];
     if (
       !parsed.dimensions ||
@@ -375,12 +462,14 @@ ${JSON.stringify(
   }
 }
 
-async function evaluateCandidates<T extends EvaluatedCandidate>(input: {
+export async function evaluateCandidates<T extends EvaluatedCandidate>(input: {
   candidates: T[];
   strategies: ContentStrategy[];
   siteIntelligence?: SiteIntelligence | null;
   platform: Platform;
   originalityScores?: number[];
+  /** Índices que já falharam na validação estrutural — não vale pagar um juiz. */
+  skipJudgeIndexes?: number[];
 }): Promise<GenerationEvaluationSummary[]> {
   return Promise.all(
     input.candidates.map(async (candidate, index) => {
@@ -392,6 +481,7 @@ async function evaluateCandidates<T extends EvaluatedCandidate>(input: {
         platform: input.platform,
         originalityScore: input.originalityScores?.[index],
       });
+      if (input.skipJudgeIndexes?.includes(index)) return deterministic;
       const judged = await llmEvaluation({
         candidate,
         strategy: input.strategies[index],
@@ -415,72 +505,22 @@ async function evaluateCandidates<T extends EvaluatedCandidate>(input: {
   );
 }
 
-export async function evaluateAndReviseCandidates<
-  T extends EvaluatedCandidate,
->(input: {
-  candidates: T[];
-  strategies: ContentStrategy[];
-  siteIntelligence?: SiteIntelligence | null;
-  platform: Platform;
-  originalityScores?: number[];
-  revise: (
-    candidate: T,
-    evaluation: GenerationEvaluationSummary,
-    index: number,
-  ) => Promise<T | null>;
-}): Promise<EvaluationPipelineResult<T>> {
-  let candidates = input.candidates;
-  let evaluations = await evaluateCandidates({
-    candidates,
-    strategies: input.strategies,
-    siteIntelligence: input.siteIntelligence,
-    platform: input.platform,
-    originalityScores: input.originalityScores,
+/**
+ * SPEC-003 — Reaplica os scores de originalidade (embeddings) sobre avaliações
+ * já computadas, recomputando o resumo e o estado `accepted` sem nova chamada
+ * de juiz. Slots sem score são preservados.
+ */
+export function applyOriginalityToEvaluations(
+  evaluations: GenerationEvaluationSummary[],
+  originalityScores: number[],
+): GenerationEvaluationSummary[] {
+  return evaluations.map((evaluation, index) => {
+    const score = originalityScores[index];
+    if (score === undefined || !Number.isFinite(score)) return evaluation;
+    const dimensions = {
+      ...evaluation.dimensions,
+      originality: clampScore(score),
+    };
+    return summarize(dimensions, evaluation.feedback);
   });
-
-  if (evaluations.every((evaluation) => evaluation.accepted)) {
-    return { candidates, evaluations, revisionCount: 0, revisedIndexes: [], revisionFailedIndexes: [] };
-  }
-
-  if (!ENV.aiLlmJudgeEnabled) {
-    return { candidates, evaluations, revisionCount: 0, revisedIndexes: [], revisionFailedIndexes: [] };
-  }
-
-  const revisedCandidates = [...candidates];
-  const revisedIndexes: number[] = [];
-  const revisionFailedIndexes: number[] = [];
-  let revisionCount = 0;
-
-  await Promise.all(
-    evaluations.map(async (evaluation, index) => {
-      if (evaluation.accepted) return;
-      try {
-        const revised = await input.revise(candidates[index], evaluation, index);
-        if (revised) {
-          revisedCandidates[index] = revised;
-          revisedIndexes.push(index);
-          revisionCount += 1;
-        } else {
-          revisionFailedIndexes.push(index);
-        }
-      } catch (error) {
-        console.warn(`[postEvaluation] Revision failed for candidate ${index + 1}:`, error);
-        revisionFailedIndexes.push(index);
-      }
-    }),
-  );
-
-  if (revisionCount === 0) {
-    return { candidates, evaluations, revisionCount: 0, revisedIndexes: [], revisionFailedIndexes };
-  }
-
-  candidates = revisedCandidates;
-  evaluations = await evaluateCandidates({
-    candidates,
-    strategies: input.strategies,
-    siteIntelligence: input.siteIntelligence,
-    platform: input.platform,
-    originalityScores: input.originalityScores,
-  });
-  return { candidates, evaluations, revisionCount, revisedIndexes, revisionFailedIndexes };
 }

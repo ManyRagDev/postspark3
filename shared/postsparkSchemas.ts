@@ -17,6 +17,7 @@ export const layoutPositionSchema = z.object({
     })
     .optional(),
   width: z.number().optional(),
+  height: z.number().optional(),
   backgroundColor: z.string().optional(),
   borderRadius: z.number().optional(),
 });
@@ -184,6 +185,7 @@ export const generationEvaluationSchema = z.object({
     platformFit: z.number(),
     visualReadability: z.number(),
     captionCoherence: z.number(),
+    layoutIntegrity: z.number(),
   }),
   feedback: z.array(z.string()),
 });
@@ -275,6 +277,28 @@ const variationVisualPatchSchema = z.object({
     .optional(),
 });
 
+export const resolvedTextBlockSchema = z.object({
+  text: z.string(),
+  fontFamily: z.string(),
+  fontWeight: z.number(),
+  fontSizePx: z.number(),
+  lineHeight: z.number(),
+  lines: z.array(z.string()),
+  box: z.object({
+    x: z.number(),
+    y: z.number(),
+    width: z.number(),
+    height: z.number(),
+  }),
+  textTransform: z.enum(["none", "uppercase", "lowercase"]).optional(),
+});
+
+export const resolvedTypographySchema = z.object({
+  engineVersion: z.string(),
+  headline: resolvedTextBlockSchema,
+  body: resolvedTextBlockSchema.optional(),
+});
+
 export const carouselSlideSchema = z.object({
   headline: z.string(),
   body: z.string(),
@@ -288,12 +312,34 @@ export const carouselSlideSchema = z.object({
       layoutSettings: advancedLayoutSettingsSchema.partial().optional(),
       bgValue: backgroundValueSchema.optional(),
       bgOverlay: bgOverlaySettingsSchema.partial().optional(),
+      resolvedTypography: resolvedTypographySchema.optional(),
+      typographyResolutionError: z.string().optional(),
     })
     .optional(),
 });
 
+export const visualFitIssueSchema = z.object({
+  type: z.enum([
+    "headline_body_overlap",
+    "structured_absolute_layout",
+    "card_too_narrow",
+    "text_element_outside_canvas",
+    "text_element_overlaps_copy",
+    "text_exceeds_visible_area",
+    "outside_safe_area",
+    "section_overlap",
+    "section_missing_geometry",
+  ]),
+  target: z.string(),
+  detail: z.string(),
+});
+
 export const postVisualSnapshotSchema = z.object({
-  snapshotVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  snapshotVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+  resolvedTypography: resolvedTypographySchema.optional(),
+  typographyResolutionError: z.string().optional(),
+  visualFitIssues: z.array(visualFitIssueSchema).optional(),
+  removedTextElementIds: z.array(z.string()).optional(),
   id: z.string(),
   headline: z.string(),
   body: z.string(),
@@ -339,4 +385,30 @@ export const postVisualSnapshotSchema = z.object({
   layoutSettings: advancedLayoutSettingsSchema,
   bgValue: backgroundValueSchema,
   bgOverlay: bgOverlaySettingsSchema,
+})
+// Fase A.3 — snapshots v3 produzidos em runtime passam por
+// synchronizeDesignTokenColors, que sempre emite tokens COMPLETOS. O schema
+// abaixo garante que nenhum snapshot v3 seja persistido com contrato mais
+// frouxo que essa garantia. v1/v2 legados permanecem aceitos com tokens
+// parciais (serão normalizados pelo createPostVisualSnapshot).
+.superRefine((value, ctx) => {
+  if (value.snapshotVersion !== 3 && value.snapshotVersion !== 4) return;
+  if (!value.designTokens) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["designTokens"],
+      message: "v3+ snapshots must carry complete designTokens",
+    });
+    return;
+  }
+  const requiredGroups = ["colors", "typography", "structure"] as const;
+  for (const group of requiredGroups) {
+    if (!value.designTokens[group]) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["designTokens", group],
+        message: `v3+ snapshots must carry complete designTokens.${group}`,
+      });
+    }
+  }
 });

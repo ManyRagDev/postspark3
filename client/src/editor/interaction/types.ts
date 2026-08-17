@@ -7,7 +7,7 @@ import type {
 } from "../geometry";
 import type { SnapCandidate, SnapConfig, SnapResult } from "../snap/snapEngine";
 
-export const DEFAULT_INTERACTION_SLOP_PX = 3;
+export const DEFAULT_INTERACTION_SLOP_PX = 5;
 
 export type InteractionOperation = "drag" | "resize";
 
@@ -76,6 +76,8 @@ type PreviewState = Readonly<{
   intent: InteractionIntent;
   constraints: InteractionConstraints;
   modifiers: InteractionModifiers;
+  candidates?: readonly SnapCandidate[];
+  snapConfig?: SnapConfig;
 }>;
 
 export type InteractionState =

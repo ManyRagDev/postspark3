@@ -49,7 +49,7 @@ import {
   Sparkles,
   ArrowRight,
 } from "lucide-react";
-import type { PostVariation, AspectRatio, BackgroundValue, BgOverlaySettings, ContentSection, PostTemplate, DesignTokens } from "@shared/postspark";
+import type { PostVariation, PostVisualSnapshot, AspectRatio, BackgroundValue, BgOverlaySettings, ContentSection, PostTemplate, DesignTokens } from "@shared/postspark";
 import { ASPECT_RATIO_VALUES, DEFAULT_DESIGN_TOKENS } from "@shared/postspark";
 import type { ThemeConfig } from "@/lib/themes";
 import type { ImageSettings, AdvancedLayoutSettings, LayoutPosition } from "@/types/editor";
@@ -580,6 +580,10 @@ function PostCardV2Content({
   };
 
   // ── Auto-fit: Ajusta texto automaticamente ao mudar aspect ratio ──
+  // Só roda como FALLBACK quando o snapshot não tem resolvedTypography (v1-v3,
+  // ou v4 cuja resolução falhou de forma estruturada). Chamado incondicionalmente
+  // porque hooks não podem ser condicionais — o resultado é descartado quando a
+  // resolução determinística está disponível.
   const autoFit = useTextAutoFit({
     headline,
     body: body || "",
@@ -588,15 +592,80 @@ function PostCardV2Content({
     structuredSectionCount: variation.template && variation.template !== "simple" ? (variation.sections?.length ?? 0) : 0,
   });
 
-  // ── Tamanhos adaptativos (sempre usa auto-fit) ──
-  // Theme controla apenas fontes. Tamanhos sempre vêm do auto-fit
-  // para evitar overflow em cards menores ou aspect ratios diferentes.
-  const headingSize = `calc(${autoFit.headlineSize} * ${variation.headlineFontSize ?? 1})`;
-  const bodySize = `calc(${autoFit.bodySize} * ${variation.bodyFontSize ?? 1})`;
+  // ── SPEC-001: snapshots v4 com resolução bem-sucedida usam o tamanho
+  // medido com a fonte real, no MESMO documento de referência de 360px que
+  // este card renderiza (`CREATIVE_DOC_WIDTH`) — sem multiplicador tardio,
+  // sem line-clamp. `useTextAutoFit` e o clamp continuam existindo só para
+  // ler snapshots legados (v1-v3) e para falhas estruturadas de resolução.
+  //
+  // Duas formas do snapshot chegam aqui: (1) já projetado para o slide atual
+  // — `PostRenderer` chama `projectSnapshotForSlide` antes de renderizar, e a
+  // resolução do slide já está em `snapshot.resolvedTypography` na raiz; (2)
+  // raw, com `.slides[]` intacto — usado pelo Workbench durante edição, onde
+  // a resolução do slide vive em `activeSlide.editorState.resolvedTypography`.
+  // O guard de `text` abaixo (`resolvedHeadline`) garante que só usamos um
+  // valor cujo texto bate com o headline/body correntes, então tentar a raiz
+  // primeiro é seguro nos dois casos.
+  const typedSnapshot = snapshot as PostVisualSnapshot | undefined;
+  const resolved =
+    typedSnapshot?.snapshotVersion === 4
+      ? (typedSnapshot.resolvedTypography ?? activeSlide?.editorState?.resolvedTypography)
+      : undefined;
+  const resolvedHeadline = resolved?.headline?.text === headline ? resolved.headline : undefined;
+  const resolvedBody = resolved?.body?.text === body ? resolved.body : undefined;
 
-  // ── Line clamp dinâmico baseado no aspect ratio ──
-  const headlineLineClamp = autoFit.headlineLineClamp;
-  const bodyLineClamp = autoFit.bodyLineClamp;
+  // ── CR-001: consumo VINCULANTE do bloco resolvido (snapshot v4) ────────────
+  // `ResolvedTextBlock` decide caixa, linhas, fontSize, lineHeight, fontWeight
+  // e textTransform. O texto é renderizado com as linhas JÁ quebradas pela
+  // medição (`lines.join("\n")` + `whiteSpace: pre-line`) — o browser não pode
+  // re-quebrar nem re-escalar. `maxWidth`/`minHeight` vêm da caixa medida.
+  // Nenhum multiplicador tardio, nenhum clamp, nenhuma decisão local no caminho
+  // resolvido. O fallback legado (autoFit + clamp) só existe para v1-v3 e
+  // falhas estruturadas.
+  //
+  // `compact` (thumbnail) aplica uma escala de ZOOM de 0.6 sobre a mesma
+  // projeção — proporção idêntica à do fallback legado (1rem vs 1.65rem);
+  // não é uma nova decisão tipográfica.
+  const thumbnailZoom = compact ? 0.6 : 1;
+  const headlineDisplayText = resolvedHeadline ? resolvedHeadline.lines.join("\n") : headline;
+  const bodyDisplayText = resolvedBody ? resolvedBody.lines.join("\n") : body;
+  const headlineResolvedCss: React.CSSProperties = resolvedHeadline
+    ? {
+        fontSize: `${Math.round(resolvedHeadline.fontSizePx * thumbnailZoom * 10) / 10}px`,
+        lineHeight: resolvedHeadline.lineHeight,
+        fontWeight: resolvedHeadline.fontWeight,
+        textTransform: resolvedHeadline.textTransform,
+        whiteSpace: "pre-line",
+        overflowWrap: "break-word",
+        ...(resolvedHeadline.box
+          ? { maxWidth: `${resolvedHeadline.box.width}px`, minHeight: `${resolvedHeadline.box.height}px` }
+          : {}),
+      }
+    : {};
+  const bodyResolvedCss: React.CSSProperties = resolvedBody
+    ? {
+        fontSize: `${Math.round(resolvedBody.fontSizePx * thumbnailZoom * 10) / 10}px`,
+        lineHeight: resolvedBody.lineHeight,
+        fontWeight: resolvedBody.fontWeight,
+        textTransform: resolvedBody.textTransform,
+        whiteSpace: "pre-line",
+        overflowWrap: "break-word",
+        ...(resolvedBody.box
+          ? { maxWidth: `${resolvedBody.box.width}px`, minHeight: `${resolvedBody.box.height}px` }
+          : {}),
+      }
+    : {};
+
+  const headingSize = resolvedHeadline
+    ? undefined
+    : `calc(${autoFit.headlineSize} * ${variation.headlineFontSize ?? 1})`;
+  const bodySize = resolvedBody
+    ? undefined
+    : `calc(${autoFit.bodySize} * ${variation.bodyFontSize ?? 1})`;
+
+  // ── Line clamp dinâmico baseado no aspect ratio (só para o caminho legado) ──
+  const headlineLineClamp = resolvedHeadline ? undefined : autoFit.headlineLineClamp;
+  const bodyLineClamp = resolvedBody ? undefined : autoFit.bodyLineClamp;
 
   // ── Padding dinâmico baseado no aspect ratio ──
   const dynamicPadding = autoFit.padding;
@@ -706,7 +775,7 @@ function PostCardV2Content({
     };
 
     return (
-      <div className="absolute inset-0 z-20">
+      <div className="absolute inset-0 z-20 pointer-events-none">
         {variation.textElements.map(el => (
           <AdvancedTextNode
             key={el.id}
@@ -730,7 +799,7 @@ function PostCardV2Content({
     if (!variation.imageElements || variation.imageElements.length === 0) return null;
 
     return (
-      <div className="absolute inset-0 z-20">
+      <div className="absolute inset-0 z-20 pointer-events-none">
         {variation.imageElements?.map(el => (
           <ImageElementBlock
             key={el.id}
@@ -1189,17 +1258,18 @@ function PostCardV2Content({
                 overflowWrap: "break-word",
                 whiteSpace: "pre-wrap",
                 outline: "none",
-                ...headlineClampStyle,
+                ...headlineResolvedCss,
+                ...(resolvedHeadline ? {} : headlineClampStyle),
               }}
             >
-              {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
+              {inlineEditTarget === "headline" ? headline : renderHeadline(headlineDisplayText, effectiveAccent, isPlayful)}
             </h2>
           </Draggable>
           {body && !compact && <div className="w-full rounded-full" style={{ height: "1px", background: `${effectiveAccent}30` }} />}
           {body && (
             <Draggable target="body" color={effectiveBodyText}>
               <p
-                className={compact ? "line-clamp-2" : ""}
+                className={compact && !resolvedBody ? "line-clamp-2" : ""}
                 contentEditable={isEditable && inlineEditTarget === "body"}
                 suppressContentEditableWarning={true}
                 onPaste={e => {
@@ -1221,10 +1291,11 @@ function PostCardV2Content({
                   textAlign: textAlign ?? "left",
                   whiteSpace: "pre-wrap",
                   outline: "none",
-                  ...bodyClampStyle,
+                  ...bodyResolvedCss,
+                  ...(resolvedBody ? {} : bodyClampStyle),
                 }}
               >
-                {body}
+                {bodyDisplayText}
               </p>
             </Draggable>
           )}
@@ -1287,19 +1358,20 @@ function PostCardV2Content({
               style={{
                 color: effectiveHeadlineText,
                 fontFamily: headingFont,
-                fontSize: `calc(${headingSize} * 1.15)`,
+                fontSize: headingSize ? `calc(${headingSize} * 1.15)` : undefined,
                 whiteSpace: "pre-wrap",
                 outline: "none",
-                ...headlineClampStyle,
+                ...headlineResolvedCss,
+                ...(resolvedHeadline ? {} : headlineClampStyle),
               }}
             >
-              {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
+              {inlineEditTarget === "headline" ? headline : renderHeadline(headlineDisplayText, effectiveAccent, isPlayful)}
             </h2>
           </Draggable>
           {body && (
             <Draggable target="body" color={effectiveBodyText}>
               <p
-                className={`${compact ? "line-clamp-2" : ""} opacity-75 max-w-[90%] mx-auto`}
+                className={`${compact && !resolvedBody ? "line-clamp-2" : ""} opacity-75 max-w-[90%] mx-auto`}
                 contentEditable={isEditable && inlineEditTarget === "body"}
                 suppressContentEditableWarning={true}
                 onPaste={e => {
@@ -1319,10 +1391,11 @@ function PostCardV2Content({
                   lineHeight: 1.6,
                   whiteSpace: "pre-wrap",
                   outline: "none",
-                  ...bodyClampStyle,
+                  ...bodyResolvedCss,
+                  ...(resolvedBody ? {} : bodyClampStyle),
                 }}
               >
-                {body}
+                {bodyDisplayText}
               </p>
             </Draggable>
           )}
@@ -1388,16 +1461,17 @@ function PostCardV2Content({
                 fontSize: headingSize,
                 whiteSpace: "pre-wrap",
                 outline: "none",
-                ...headlineClampStyle,
+                ...headlineResolvedCss,
+                ...(resolvedHeadline ? {} : headlineClampStyle),
               }}
             >
-              {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
+              {inlineEditTarget === "headline" ? headline : renderHeadline(headlineDisplayText, effectiveAccent, isPlayful)}
             </h2>
           </Draggable>
           {body && (
             <Draggable target="body" color={effectiveBodyText}>
               <p
-                className={`${compact ? "line-clamp-2" : ""} opacity-80`}
+                className={`${compact && !resolvedBody ? "line-clamp-2" : ""} opacity-80`}
                 contentEditable={isEditable && inlineEditTarget === "body"}
                 suppressContentEditableWarning={true}
                 onPaste={e => {
@@ -1416,10 +1490,11 @@ function PostCardV2Content({
                   fontSize: bodySize,
                   lineHeight: 1.55,
                   outline: "none",
-                  ...bodyClampStyle,
+                  ...bodyResolvedCss,
+                  ...(resolvedBody ? {} : bodyClampStyle),
                 }}
               >
-                {body}
+                {bodyDisplayText}
               </p>
             </Draggable>
           )}
@@ -1512,16 +1587,17 @@ function PostCardV2Content({
               whiteSpace: "pre-wrap",
               overflowWrap: "break-word",
               outline: "none",
-              ...headlineClampStyle,
+              ...headlineResolvedCss,
+              ...(resolvedHeadline ? {} : headlineClampStyle),
             }}
           >
-            {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
+            {inlineEditTarget === "headline" ? headline : renderHeadline(headlineDisplayText, effectiveAccent, isPlayful)}
           </h2>
         </Draggable>
         {body && (
           <Draggable target="body" color={effectiveBodyText}>
             <p
-              className={`${compact ? "line-clamp-2" : ""} opacity-80`}
+              className={`${compact && !resolvedBody ? "line-clamp-2" : ""} opacity-80`}
               contentEditable={isEditable && inlineEditTarget === "body"}
               suppressContentEditableWarning={true}
               onPaste={e => {
@@ -1542,10 +1618,11 @@ function PostCardV2Content({
                 whiteSpace: "pre-wrap",
                 overflowWrap: "break-word",
                 outline: "none",
-                ...bodyClampStyle,
+                ...bodyResolvedCss,
+                ...(resolvedBody ? {} : bodyClampStyle),
               }}
             >
-              {body}
+              {bodyDisplayText}
             </p>
           </Draggable>
         )}
@@ -1616,14 +1693,15 @@ function PostCardV2Content({
               style={{
                 color: effectiveHeadlineText,
                 fontFamily: headingFont,
-                fontSize: compact ? headingSize : `calc(${headingSize} * 1.4)`,
+                fontSize: headingSize ? (compact ? headingSize : `calc(${headingSize} * 1.4)`) : undefined,
                 maxWidth: "95%",
                 whiteSpace: "pre-wrap",
                 outline: "none",
-                ...headlineClampStyle,
+                ...headlineResolvedCss,
+                ...(resolvedHeadline ? {} : headlineClampStyle),
               }}
             >
-              {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
+              {inlineEditTarget === "headline" ? headline : renderHeadline(headlineDisplayText, effectiveAccent, isPlayful)}
             </h2>
           </Draggable>
           {/* Corpo NÃO aparece no layout minimal - apenas headline */}
@@ -1733,18 +1811,19 @@ function PostCardV2Content({
                   whiteSpace: "pre-wrap",
                   outline: "none",
                   width: "100%",
-                  textTransform: headlineTextTransform as any,
-                  ...headlineClampStyle,
+                  textTransform: (resolvedHeadline ? resolvedHeadline.textTransform : headlineTextTransform) as any,
+                  ...headlineResolvedCss,
+                  ...(resolvedHeadline ? {} : headlineClampStyle),
                 }}
               >
-                {inlineEditTarget === "headline" ? headline : renderHeadline(headline, effectiveAccent, isPlayful)}
+                {inlineEditTarget === "headline" ? headline : renderHeadline(headlineDisplayText, effectiveAccent, isPlayful)}
               </h2>
             </Draggable>
             {body && (
               <div className="mt-4 w-full">
                 <Draggable target="body" color={effectiveBodyText}>
                   <p
-                    className={`${compact ? "line-clamp-2" : ""} opacity-80`}
+                    className={`${compact && !resolvedBody ? "line-clamp-2" : ""} opacity-80`}
                     contentEditable={isEditable && inlineEditTarget === "body"}
                     suppressContentEditableWarning={true}
                     onPaste={e => {
@@ -1764,10 +1843,11 @@ function PostCardV2Content({
                       lineHeight: 1.55,
                       outline: "none",
                       width: "100%",
-                      ...bodyClampStyle,
+                      ...bodyResolvedCss,
+                      ...(resolvedBody ? {} : bodyClampStyle),
                     }}
                   >
-                    {body}
+                    {bodyDisplayText}
                   </p>
                 </Draggable>
               </div>

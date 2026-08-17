@@ -2,8 +2,6 @@ import type {
   CreativeExecutionBrief,
   SiteIntelligence,
 } from "@shared/postspark";
-import { invokeLLM } from "../_core/llm";
-import { ENV } from "../_core/env";
 
 export type ContentObjective =
   | "educate"
@@ -123,152 +121,6 @@ function buildFallbackCandidates(
   });
 }
 
-function parseResponse(content: unknown): RawStrategy[] {
-  const text =
-    typeof content === "string"
-      ? content
-      : Array.isArray(content)
-        ? content
-            .filter(
-              (part): part is { type: "text"; text: string } =>
-                Boolean(part) &&
-                typeof part === "object" &&
-                "type" in part &&
-                part.type === "text" &&
-                "text" in part,
-            )
-            .map((part) => part.text)
-            .join("\n")
-        : "";
-  const parsed = JSON.parse(text) as { strategies?: RawStrategy[] };
-  return Array.isArray(parsed.strategies) ? parsed.strategies.slice(0, 5) : [];
-}
-
-async function generateCandidates(
-  sourceContent: string,
-  objective: ContentObjective,
-  intelligence?: SiteIntelligence | null,
-  executionBrief?: CreativeExecutionBrief | null,
-): Promise<{ candidates: RawStrategy[]; fallbackUsed: boolean }> {
-  if (!ENV.aiContentStrategyEnabled) {
-    return {
-      candidates: buildFallbackCandidates(sourceContent, objective, intelligence),
-      fallbackUsed: true,
-    };
-  }
-
-  const evidence = intelligence?.evidence
-    .map((item) => `[${item.id}] ${item.text}`)
-    .join("\n")
-    .slice(0, 18_000);
-  const context = intelligence
-    ? `Negocio: ${intelligence.business.summary}
-Proposta de valor: ${intelligence.business.valueProposition}
-Publicos: ${intelligence.business.audiences.join("; ")}
-Problemas: ${intelligence.business.audienceProblems.join("; ")}
-Pilares: ${intelligence.editorial.pillars.join("; ")}
-Temas prioritarios: ${intelligence.editorial.priorityTopics.join("; ")}
-Evidencias:
-${evidence}`
-    : `Conteudo fornecido:\n${sourceContent.slice(0, 18_000)}`;
-
-  try {
-    const response = await invokeLLM({
-      traceLabel: "content_strategy",
-      taskRoute: "content_strategy",
-      maxCompletionTokens: 1024,
-      messages: [
-        {
-          role: "system",
-          content: `Voce e um estrategista editorial. Proponha exatamente 5 estrategias de post diferentes.
-Cada estrategia deve ser relevante ao contexto, servir ao objetivo informado e citar apenas evidenceIds existentes.
-Nao escreva o post final. Nao invente fatos. Varie topico, angulo e promessa.
-Em modo execution, preserve a intencao do briefing e varie somente a abordagem permitida.`,
-        },
-        {
-          role: "user",
-          content: `Objetivo: ${objective}
-Modo: ${executionBrief ? "execution" : "ideation"}
-${executionBrief ? `Briefing: ${executionBrief.rawInput}` : ""}
-
-${context}`,
-        },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "content_strategies",
-          strict: true,
-          schema: {
-            type: "object",
-            properties: {
-              strategies: {
-                type: "array",
-                minItems: 5,
-                maxItems: 5,
-                items: {
-                  type: "object",
-                  properties: {
-                    title: { type: "string" },
-                    topic: { type: "string" },
-                    objective: {
-                      type: "string",
-                      enum: ["educate", "authority", "sell", "engage", "lead"],
-                    },
-                    audience: { type: "string" },
-                    angle: {
-                      type: "string",
-                      enum: [
-                        "pain",
-                        "benefit",
-                        "objection",
-                        "authority",
-                        "story",
-                        "myth",
-                        "how-to",
-                      ],
-                    },
-                    hook: { type: "string" },
-                    promise: { type: "string" },
-                    evidenceIds: {
-                      type: "array",
-                      items: { type: "string" },
-                    },
-                  },
-                  required: [
-                    "title",
-                    "topic",
-                    "objective",
-                    "audience",
-                    "angle",
-                    "hook",
-                    "promise",
-                    "evidenceIds",
-                  ],
-                  additionalProperties: false,
-                },
-              },
-            },
-            required: ["strategies"],
-            additionalProperties: false,
-          },
-        },
-      },
-    });
-    const candidates = parseResponse(response.choices[0]?.message?.content);
-    if (candidates.length === 5) {
-      return { candidates, fallbackUsed: false };
-    }
-  } catch (error) {
-    console.warn("[contentStrategy] Candidate generation failed:", error);
-  }
-
-  return {
-    candidates: buildFallbackCandidates(sourceContent, objective, intelligence),
-    fallbackUsed: true,
-  };
-}
-
 function scoreCandidates(
   candidates: RawStrategy[],
   sourceContent: string,
@@ -358,32 +210,31 @@ function selectDistinctStrategies(
   return selected;
 }
 
-export async function planContentStrategies(input: {
+/**
+ * SPEC-003/005 — Planejamento determinístico de estratégia (caminho único).
+ *
+ * A chamada LLM de `content_strategy` saiu do caminho síncrono (SPEC-003) e o
+ * caminho LLM foi removido na SPEC-005: o orçamento admite exatamente uma
+ * chamada generativa no caminho feliz, e planejamento de estratégia é
+ * determinístico. Os candidatos usam inteligência de site real (tópicos,
+ * evidências, públicos, proposta de valor) quando disponível.
+ */
+export function planContentStrategiesDeterministic(input: {
   sourceContent: string;
   siteIntelligence?: SiteIntelligence | null;
   executionBrief?: CreativeExecutionBrief | null;
-}): Promise<ContentStrategyPlan> {
-  const objective = resolveObjective(
-    input.siteIntelligence,
-    input.executionBrief,
-  );
-  const generated = await generateCandidates(
-    input.sourceContent,
-    objective,
-    input.siteIntelligence,
-    input.executionBrief,
-  );
+}): ContentStrategyPlan {
+  const objective = resolveObjective(input.siteIntelligence, input.executionBrief);
   const candidates = scoreCandidates(
-    generated.candidates,
+    buildFallbackCandidates(input.sourceContent, objective, input.siteIntelligence),
     input.sourceContent,
     objective,
     input.siteIntelligence,
   );
-
   return {
     objective,
     candidates,
     selected: selectDistinctStrategies(candidates),
-    fallbackUsed: generated.fallbackUsed,
+    fallbackUsed: true,
   };
 }

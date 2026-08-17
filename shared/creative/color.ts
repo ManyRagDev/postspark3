@@ -7,7 +7,10 @@ function parseHex(hex: string): [number, number, number] {
   if (hex.length === 3) {
     hex = hex.split("").map((c) => c + c).join("");
   }
-  if (hex.length !== 6) {
+  // SPEC-002: valida os dígitos, não só o comprimento — um caractere fora de
+  // 0-9a-f produzia NaN silencioso (via parseInt) em vez de erro explícito,
+  // o que os avaliadores consolidados aqui dependem de nunca acontecer.
+  if (!/^[0-9a-f]{6}$/i.test(hex)) {
     throw new Error(`Invalid hex color: ${hex}`);
   }
   const r = parseInt(hex.slice(0, 2), 16);
@@ -123,4 +126,72 @@ export function contrastRatio(hexA: string, hexB: string): number {
 export function isDark(hex: string): boolean {
   // Returns true if the color has a higher contrast ratio with white than with black.
   return contrastRatio(hex, "#ffffff") > contrastRatio(hex, "#000000");
+}
+
+/**
+ * Entrada mínima para calcular o fundo efetivo de um texto (SPEC-002,
+ * docs/reforma/SPEC-002 passo 5). Deliberadamente não importa
+ * `shared/postspark.ts` — só os campos que realmente participam da conta,
+ * para manter `shared/creative/color.ts` livre de dependência do contrato
+ * de snapshot (evita import circular e mantém este módulo testável isolado).
+ */
+export interface EffectiveBackgroundInput {
+  /** Tipo de fundo: "solid" tem cor confiável; qualquer outro é imagem arbitrária. */
+  backgroundType: string;
+  /** Cor sólida declarada (bgValue.color, ou o campo legado backgroundColor). */
+  solidColor?: string;
+  /** Cor do overlay sobre a imagem, quando houver. */
+  overlayColor?: string;
+  /** Opacidade do overlay, 0–1. */
+  overlayOpacity?: number;
+}
+
+export interface EffectiveBackgroundResult {
+  /** Cor usada para medir contraste. */
+  color: string;
+  /**
+   * `solid`: fundo é cor sólida, contraste é exato.
+   * `overlay-dominant`: fundo é imagem, mas o overlay é opaco o bastante
+   * (>= `OVERLAY_DOMINANT_THRESHOLD`) para tratá-lo como o fundo efetivo.
+   * `unproven`: fundo é imagem arbitrária sem overlay opaco o bastante —
+   * não há como provar contraste sem amostrar a imagem (fora de escopo
+   * desta reforma). Política explícita: o chamador NÃO deve tratar isto
+   * como aprovado silenciosamente.
+   */
+  basis: "solid" | "overlay-dominant" | "unproven";
+}
+
+/**
+ * Opacidade de overlay a partir da qual ele é tratado como o fundo efetivo
+ * do texto para fins de contraste — abaixo disso, a imagem por baixo ainda
+ * participa o bastante para que a cor do overlay sozinha minta sobre o
+ * contraste real.
+ */
+export const OVERLAY_DOMINANT_THRESHOLD = 0.55;
+
+export function effectiveBackgroundColor(
+  input: EffectiveBackgroundInput,
+  fallbackColor: string,
+): EffectiveBackgroundResult {
+  if (input.backgroundType === "solid") {
+    const solid = input.solidColor || fallbackColor;
+    // CR-003: fundo sólido com overlay DOMINANTE (≥ 55%) — o texto vive sobre
+    // a MISTURA, não sobre a cor crua (ex.: duotone-wash, glitch-signal).
+    // Sem isso, o contraste do produto e o do harness divergiriam da
+    // realidade renderizada e famílias legítimas seriam rejeitadas.
+    const overlayOpacity = input.overlayOpacity ?? 0;
+    if (input.overlayColor && overlayOpacity >= OVERLAY_DOMINANT_THRESHOLD) {
+      return { color: mix(solid, input.overlayColor, overlayOpacity), basis: "overlay-dominant" };
+    }
+    return { color: solid, basis: "solid" };
+  }
+  if (input.overlayColor && (input.overlayOpacity ?? 0) >= OVERLAY_DOMINANT_THRESHOLD) {
+    return { color: input.overlayColor, basis: "overlay-dominant" };
+  }
+  // Política explícita (não assumida): sem overlay opaco o bastante, o
+  // texto está sobre pixels de imagem que este módulo não pode amostrar.
+  // Devolve o melhor palpite (overlay se houver, senão o fallback) mas
+  // marca `unproven` — o chamador decide a política de aceite, nunca este
+  // módulo silenciosamente.
+  return { color: input.overlayColor || fallbackColor, basis: "unproven" };
 }

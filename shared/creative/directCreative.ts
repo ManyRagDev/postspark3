@@ -37,17 +37,21 @@ function classifyIntentFromContent(variation: PostVariation): CreativeIntent {
 function fitsContent(fit: CreativeFamily["fit"], variation: PostVariation): boolean {
   if (fit.maxHeadlineChars && (variation.headline?.length || 0) > fit.maxHeadlineChars) return false;
   if (fit.minHeadlineChars && (variation.headline?.length || 0) < fit.minHeadlineChars) return false;
+  const sectionsCount = variation.sections?.length || 0;
+  const isStructured = Boolean(variation.template && variation.template !== "simple");
+  const hasSectionsContent = sectionsCount >= 2 || isStructured;
+
   if (fit.needsSections) {
-    const sectionsCount = variation.sections?.length || 0;
-    const isStructured = variation.template && variation.template !== "simple";
-    if (sectionsCount < 2 && !isStructured) return false;
+    if (!hasSectionsContent) return false;
+  } else if (hasSectionsContent) {
+    return false;
   }
   if (fit.needsNumber && !/\d/.test((variation.headline || "") + " " + (variation.body || ""))) return false;
   if (fit.needsImage && !variation.imageUrl && !variation.bgValue?.url) return false;
   return true;
 }
 
-function cellOf(family: CreativeFamily): string {
+export function creativeCellOf(family: CreativeFamily): string {
   const structureGroup =
     family.axes.composition === "grid" ? "grid" :
     family.axes.composition === "poster" || family.axes.composition === "split" ? "poster" :
@@ -63,8 +67,8 @@ export function cellTaken(f: CreativeFamily, excludeIds?: string[]): boolean {
   const takenCells = excludeIds
     .map(id => FAMILIES.find(fam => fam.id === id))
     .filter(Boolean)
-    .map(fam => cellOf(fam!));
-  return takenCells.includes(cellOf(f));
+    .map(fam => creativeCellOf(fam!));
+  return takenCells.includes(creativeCellOf(f));
 }
 
 function pickSeeded<T>(arr: T[], rand: () => number): T {
@@ -98,7 +102,7 @@ export interface DirectCreativeOpts {
   brandLocked?: boolean;
 }
 
-export function directCreative(variation: PostVariation, intent: any, seed: number, opts: DirectCreativeOpts = {}): CreativeDirection {
+export function directCreative(variation: PostVariation, intent: CreativeIntent | null, seed: number, opts: DirectCreativeOpts = {}): CreativeDirection {
   const rand = mulberry32(seed);
 
   const resolvedIntent = isValidIntent(intent) ? intent : classifyIntentFromContent(variation);

@@ -5,120 +5,155 @@ vi.mock("../_core/llm", () => ({
 }));
 
 import {
+  applyOriginalityToEvaluations,
   contrastRatio,
-  evaluateAndReviseCandidates,
+  deterministicEvaluation,
+  evaluateCandidates,
 } from "./postEvaluation";
 
-describe("postEvaluation", () => {
+function cleanCandidate(overrides: Record<string, unknown> = {}) {
+  return {
+    headline: "Foco em resultado",
+    body: "Mensagem objetiva",
+    caption: "Legenda coerente com o post",
+    callToAction: "Saiba mais",
+    tone: "direto",
+    layout: "centered",
+    template: "simple",
+    aspectRatio: "1:1" as const,
+    backgroundColor: "#000000",
+    textColor: "#FFFFFF",
+    accentColor: "#FFFFFF",
+    platform: "instagram" as const,
+    ...overrides,
+  };
+}
+
+describe("postEvaluation (API mantida pós-SPEC-005)", () => {
   it("calculates WCAG contrast for deterministic readability checks", () => {
     expect(contrastRatio("#FFFFFF", "#000000")).toBeCloseTo(21, 1);
     expect(contrastRatio("#777777", "#777777")).toBeCloseTo(1, 1);
   });
 
-  it("revises only rejected candidates once and re-evaluates the set", async () => {
-    // Candidates use rich text with good caption-body overlap and no unverified numbers.
-    // Candidate index 1 has bad contrast (#777777 / #777777) to trigger rejection.
-    const candidates = Array.from({ length: 3 }, (_, index) => ({
-      headline: `Produto alpha ${index === 0 ? "essencial" : index === 1 ? "premium" : "inovador"}`,
-      body: `Solucao completa para equipes que buscam produtividade e foco real`,
-      caption: `Descubra como este produto traz produtividade e foco para sua equipe com solucao completa e pratica`,
-      callToAction: "Saiba mais",
-      tone: `tom-${index === 0 ? "profissional" : index === 1 ? "direto" : "criativo"}`,
-      layout: index === 0 ? "centered" : "left-aligned",
-      backgroundColor: index === 1 ? "#777777" : "#000000",
-      textColor: index === 1 ? "#777777" : "#FFFFFF",
-      accentColor: "#FFFFFF",
-      platform: "instagram" as const,
-    }));
-    const revise = vi.fn(async (
-      candidate: typeof candidates[number],
-      _evaluation: unknown,
-      index: number,
-    ) => ({
-      ...candidate,
-      headline: `Revisado ${index + 1}`,
-      backgroundColor: "#000000",
-      textColor: "#FFFFFF",
-    }));
-
-    const result = await evaluateAndReviseCandidates({
-      candidates,
-      strategies: [],
-      platform: "instagram",
-      revise,
-    });
-
-    expect(revise).toHaveBeenCalledTimes(1);
-    expect(revise.mock.calls[0][2]).toBe(1);
-    expect(result.revisionCount).toBe(1);
-    expect(result.revisedIndexes).toEqual([1]);
-    expect(result.revisionFailedIndexes).toEqual([]);
-    expect(result.candidates[1].headline).toBe("Revisado 2");
-    expect(result.evaluations.every((item) => item.dimensions.visualReadability === 100)).toBe(true);
-  });
-
-  it("preserves rejected candidates when surgical revision fails", async () => {
-    const candidates = [
-      {
-        headline: "Produto essencial",
-        body: "Solucao completa para equipes que buscam produtividade e foco real",
-        caption: "Descubra como este produto traz produtividade e foco para sua equipe",
-        callToAction: "Saiba mais",
-        tone: "direto",
-        layout: "centered",
-        backgroundColor: "#777777",
-        textColor: "#777777",
-        accentColor: "#777777",
-        platform: "instagram" as const,
-      },
-    ];
-    const revise = vi.fn(async () => null);
-
-    const result = await evaluateAndReviseCandidates({
-      candidates,
-      strategies: [],
-      platform: "instagram",
-      revise,
-    });
-
-    expect(revise).toHaveBeenCalledTimes(1);
-    expect(result.candidates[0]).toBe(candidates[0]);
-    expect(result.revisionCount).toBe(0);
-    expect(result.revisedIndexes).toEqual([]);
-    expect(result.revisionFailedIndexes).toEqual([0]);
-  });
-
-  it("rejects structured candidates when headline promises a different item count", async () => {
-    const candidate = {
-      headline: "Antes de comprar: 7...",
-      body: "Decida com seguranca",
-      caption: "Confira autonomia conforto precisao e escolha melhor com seguranca antes da compra",
-      callToAction: "Ver checklist",
-      tone: "direto",
-      layout: "centered",
-      backgroundColor: "#000000",
-      textColor: "#FFFFFF",
-      accentColor: "#38BDF8",
-      platform: "instagram" as const,
-      sections: [
-        { label: "Autonomia", description: "Bateria para o dia todo" },
-        { label: "Conforto", description: "Leve no pulso" },
-        { label: "Precisao", description: "GPS confiavel" },
+  it("rejeita candidato com contraste ruim (visualReadability < 65)", async () => {
+    const result = await evaluateCandidates({
+      candidates: [
+        cleanCandidate({ backgroundColor: "#777777", textColor: "#777777" }),
       ],
-    };
-    const revise = vi.fn(async () => ({
-      ...candidate,
-      headline: "Antes de comprar: 3 sinais",
-    }));
-
-    const result = await evaluateAndReviseCandidates({
-      candidates: [candidate],
       strategies: [],
       platform: "instagram",
-      revise,
     });
 
-    expect(revise).toHaveBeenCalledTimes(1);
-    expect(result.revisedIndexes).toEqual([0]);
+    expect(result[0].accepted).toBe(false);
+    expect(result[0].dimensions.visualReadability).toBeLessThan(65);
+  });
+
+  it("candidato limpo passa com layoutIntegrity 100 e accepted true", async () => {
+    const result = await evaluateCandidates({
+      candidates: [cleanCandidate()],
+      strategies: [],
+      platform: "instagram",
+    });
+
+    expect(result[0].dimensions.layoutIntegrity).toBe(100);
+    expect(result[0].accepted).toBe(true);
+  });
+
+  it("dimensões incluem layoutIntegrity numérico", async () => {
+    const result = await evaluateCandidates({
+      candidates: [cleanCandidate()],
+      strategies: [],
+      platform: "instagram",
+    });
+
+    expect(result[0].dimensions).toHaveProperty("layoutIntegrity");
+    expect(typeof result[0].dimensions.layoutIntegrity).toBe("number");
+  });
+
+  it("carrossel limpo com 5 slides pontua layoutIntegrity 100", async () => {
+    const result = await evaluateCandidates({
+      candidates: [
+        cleanCandidate({
+          postMode: "carousel" as const,
+          slides: Array.from({ length: 5 }, (_, i) => ({
+            headline: `Slide ${i + 1}`,
+            body: "Conteudo curto",
+            slideNumber: i + 1,
+          })),
+        }),
+      ],
+      strategies: [],
+      platform: "instagram",
+    });
+
+    expect(result[0].dimensions.layoutIntegrity).toBe(100);
+  });
+
+  it("carrossel com slide quebrado (overflow) penaliza layoutIntegrity", async () => {
+    const result = await evaluateCandidates({
+      candidates: [
+        cleanCandidate({
+          postMode: "carousel" as const,
+          slides: Array.from({ length: 5 }, (_, i) => ({
+            headline:
+              i === 4
+                ? "Titulo extremamente longo que extrapola a caixa de texto do slide final do carrossel"
+                : `Slide ${i + 1}`,
+            body: i === 4 ? "Body tambem longo para forcar multiple issues no slide problemático" : "Curto",
+            slideNumber: i + 1,
+            ...(i === 4
+              ? {
+                  editorState: {
+                    layoutSettings: {
+                      headline: { position: "top-left" as const, textAlign: "left" as const, freePosition: { x: 50, y: 20 }, width: 22 },
+                      body: { position: "top-left" as const, textAlign: "left" as const, freePosition: { x: 50, y: 30 }, width: 22 },
+                    },
+                  },
+                }
+              : {}),
+          })),
+        }),
+      ],
+      strategies: [],
+      platform: "instagram",
+    });
+
+    expect(result[0].dimensions.layoutIntegrity).toBeLessThan(100);
+  });
+
+  it("applyOriginalityToEvaluations reaplica o score e reduz o overallScore", async () => {
+    const base = await evaluateCandidates({
+      candidates: [cleanCandidate()],
+      strategies: [],
+      platform: "instagram",
+    });
+
+    const withScore = applyOriginalityToEvaluations(base, [30]);
+    expect(withScore[0].dimensions.originality).toBe(30);
+    expect(withScore[0].overallScore).toBeLessThan(base[0].overallScore);
+    // Originality não é dimensão com limiar (peso 0.09): sozinha não
+    // derruba a aceitação — o gate de aceite usa factuality, visualReadability,
+    // objectiveAlignment, captionCoherence e layoutIntegrity.
+    expect(withScore[0].accepted).toBe(base[0].accepted);
+  });
+
+  it("deterministicEvaluation detecta contagem incoerente headline vs sections", () => {
+    const candidate = cleanCandidate({
+      headline: "Antes de comprar: 7 sinais",
+      sections: [
+        { label: "Autonomia", description: "Bateria" },
+        { label: "Conforto", description: "Leve" },
+        { label: "Precisao", description: "GPS" },
+      ],
+    });
+
+    const evaluation = deterministicEvaluation({
+      candidate,
+      allCandidates: [candidate],
+      platform: "instagram",
+    });
+
+    expect(evaluation.dimensions.captionCoherence).toBeLessThan(50);
+    expect(evaluation.accepted).toBe(false);
   });
 });

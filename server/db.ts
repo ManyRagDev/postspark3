@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { ENV } from "./_core/env";
+import type { GenerationDebugEvent } from "@shared/postspark";
 
 export type JsonValue =
   | string
@@ -135,7 +136,8 @@ export type CreateGenerationRunInput = {
   strategySnapshot?: JsonValue;
   evaluationSnapshot?: JsonValue;
   outputSnapshot?: JsonValue;
-  events?: JsonValue;
+  events?: GenerationDebugEvent[];
+  eventsVersion?: number;
   revisionCount: number;
   candidateCount: number;
   acceptedCount: number;
@@ -180,7 +182,8 @@ export type GenerationRunRecord = {
   strategy_snapshot: JsonValue | null;
   evaluation_snapshot: JsonValue | null;
   output_snapshot: JsonValue | null;
-  events: JsonValue | null;
+  events: GenerationDebugEvent[];
+  events_version: number;
   revision_count: number;
   candidate_count: number;
   accepted_count: number;
@@ -240,38 +243,8 @@ export type UpdateGenerationRunInput = {
   acceptedCount?: number;
   averageQualityScore?: number;
   originalityFallbackUsed?: boolean;
-  events?: JsonValue;
-};
-
-export type ShadowGraphMetrics = {
-  totalShadowRuns: number;
-  shadowCompletedRuns: number;
-  shadowRejectedRuns: number;
-  shadowFailedRuns: number;
-  shadowValidationErrors: number;
-  shadowCopyErrors: number;
-  shadowSectionsErrors: number;
-  shadowVisualFitErrors: number;
-  shadowGuardsAppliedRate: number;
-  shadowDivergenceRate: number;
-};
-
-export type PipelineGraphMetrics = {
-  totalPipelineRuns: number;
-  pipelineCompletedRuns: number;
-  pipelineFailedRuns: number;
-  pipelineSlotRetryRate: number;
-  pipelineDiversificationRate: number;
-  pipelineRevisionRate: number;
-  /**
-   * Average share of visual-fit issues auto-fixed by applyVisualFitFallback.
-   * `null` when no run in the window reported a computable value (the current
-   * pipeline reports null per run because it only observes the post-fit snapshot).
-   */
-  pipelineVisualFitAutoFixRate: number | null;
-  pipelineJudgeRejectionRate: number;
-  pipelineCarouselDegradationRate: number;
-  pipelineLlmCallsAvg: number;
+  events?: GenerationDebugEvent[];
+  eventsVersion?: number;
 };
 
 export type GenerationOperationalMetrics = {
@@ -289,8 +262,6 @@ export type GenerationOperationalMetrics = {
   p95LatencyMs: number;
   totalTokens: number;
   estimatedCostUsd: number;
-  shadowGraph: ShadowGraphMetrics;
-  pipelineGraph: PipelineGraphMetrics;
 };
 
 function promptSnapshotCalls(promptSnapshot: unknown): Array<Record<string, any>> {
@@ -312,187 +283,6 @@ function promptSnapshotCalls(promptSnapshot: unknown): Array<Record<string, any>
     );
   }
   return [];
-}
-
-/**
- * Extrai eventos do shadow graph de um generation_run.
- * Suporta tanto o formato legado (array vazio) quanto o novo formato com events.
- */
-export function extractShadowGraphEvents(events: unknown): Array<Record<string, any>> {
-  if (!Array.isArray(events)) return [];
-  return events.filter(
-    (event): event is Record<string, any> =>
-      typeof event === "object" &&
-      event !== null &&
-      !Array.isArray(event) &&
-      event.stage === "generation_graph_shadow"
-  );
-}
-
-/**
- * Calcula métricas agregadas do shadow graph a partir de eventos.
- * NOTA: Atualmente, eventos do shadow graph são mantidos apenas em memória
- * no GenerationTrace e não persistidos no banco. Para análise histórica completa,
- * será necessário adicionar persistência de events (tabela generation_events ou
- * coluna events em generation_runs).
- */
-export function calculateShadowGraphMetrics(events: Array<Record<string, any>>): ShadowGraphMetrics {
-  const shadowEvents = extractShadowGraphEvents(events);
-  const totalShadowRuns = shadowEvents.length;
-
-  const shadowCompletedRuns = shadowEvents.filter((e) => e.status === "completed").length;
-  const shadowRejectedRuns = shadowEvents.filter((e) => e.status === "rejected").length;
-  const shadowFailedRuns = shadowEvents.filter((e) => e.status === "failed").length;
-
-  const shadowValidationErrors = shadowEvents.reduce(
-    (sum, event) => sum + (event.data?.validationErrors?.length ?? 0),
-    0
-  );
-  const shadowCopyErrors = shadowEvents.reduce(
-    (sum, event) => sum + (event.data?.copyValidationErrors?.length ?? 0),
-    0
-  );
-  const shadowSectionsErrors = shadowEvents.reduce(
-    (sum, event) => sum + (event.data?.sectionsValidationErrors?.length ?? 0),
-    0
-  );
-  const shadowVisualFitErrors = shadowEvents.reduce(
-    (sum, event) => sum + (event.data?.visualFitErrors?.length ?? 0),
-    0
-  );
-
-  const shadowGuardsAppliedRuns = shadowEvents.filter(
-    (e) => e.data?.copyGuardsApplied === true
-  ).length;
-
-  const shadowDivergenceRuns = shadowEvents.filter(
-    (e) =>
-      e.status === "rejected" ||
-      (e.data?.validationErrors?.length ?? 0) > 0 ||
-      (e.data?.copyValidationErrors?.length ?? 0) > 0 ||
-      (e.data?.sectionsValidationErrors?.length ?? 0) > 0 ||
-      (e.data?.visualFitErrors?.length ?? 0) > 0
-  ).length;
-
-  const ratio = (numerator: number, denominator: number) =>
-    denominator > 0 ? numerator / denominator : 0;
-
-  return {
-    totalShadowRuns,
-    shadowCompletedRuns,
-    shadowRejectedRuns,
-    shadowFailedRuns,
-    shadowValidationErrors,
-    shadowCopyErrors,
-    shadowSectionsErrors,
-    shadowVisualFitErrors,
-    shadowGuardsAppliedRate: ratio(shadowGuardsAppliedRuns, totalShadowRuns),
-    shadowDivergenceRate: ratio(shadowDivergenceRuns, totalShadowRuns),
-  };
-}
-
-/**
- * Retorna métricas zeradas para o shadow graph.
- * Usado quando não há dados de eventos disponíveis (persistência não implementada).
- */
-export function getEmptyShadowGraphMetrics(): ShadowGraphMetrics {
-  return {
-    totalShadowRuns: 0,
-    shadowCompletedRuns: 0,
-    shadowRejectedRuns: 0,
-    shadowFailedRuns: 0,
-    shadowValidationErrors: 0,
-    shadowCopyErrors: 0,
-    shadowSectionsErrors: 0,
-    shadowVisualFitErrors: 0,
-    shadowGuardsAppliedRate: 0,
-    shadowDivergenceRate: 0,
-  };
-}
-
-/**
- * Extrai eventos do pipeline graph de um generation_run.
- */
-export function extractPipelineGraphEvents(events: unknown): Array<Record<string, any>> {
-  if (!Array.isArray(events)) return [];
-  return events.filter(
-    (event): event is Record<string, any> =>
-      typeof event === "object" &&
-      event !== null &&
-      !Array.isArray(event) &&
-      event.stage === "generation_graph_pipeline"
-  );
-}
-
-/**
- * Calcula métricas agregadas do pipeline graph a partir de eventos.
- */
-export function calculatePipelineGraphMetrics(events: Array<Record<string, any>>): PipelineGraphMetrics {
-  const pipelineEvents = extractPipelineGraphEvents(events);
-  const totalPipelineRuns = pipelineEvents.length;
-
-  const pipelineCompletedRuns = pipelineEvents.filter((e) => e.status === "completed").length;
-  const pipelineFailedRuns = pipelineEvents.filter((e) => e.status === "failed").length;
-
-  const pipelineSlotRetryRate = pipelineEvents.reduce(
-    (sum, event) => sum + (event.data?.kpi?.slotRetryRate ?? 0),
-    0
-  );
-  const pipelineDiversificationRate = pipelineEvents.reduce(
-    (sum, event) => sum + (event.data?.kpi?.diversificationTriggered ? 1 : 0),
-    0
-  );
-  const pipelineRevisionRate = pipelineEvents.reduce(
-    (sum, event) => sum + (event.data?.kpi?.qualityRevisionRate ?? 0),
-    0
-  );
-  const pipelineVisualFitAutoFixValues = pipelineEvents
-    .map((event) => event.data?.kpi?.visualFitAutoFixRate)
-    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-  const pipelineVisualFitAutoFixRate = pipelineVisualFitAutoFixValues.length > 0
-    ? pipelineVisualFitAutoFixValues.reduce((sum, value) => sum + value, 0) /
-      pipelineVisualFitAutoFixValues.length
-    : null;
-  const pipelineJudgeRejectionRate = pipelineEvents.reduce(
-    (sum, event) => sum + (event.data?.kpi?.judgeRejectionRate ?? 0),
-    0
-  );
-  const pipelineCarouselDegradationRate = pipelineEvents.reduce(
-    (sum, event) => sum + (event.data?.kpi?.carouselDegradationRate ?? 0),
-    0
-  );
-  const pipelineLlmCallsAvg = pipelineEvents.reduce(
-    (sum, event) => sum + (event.data?.kpi?.llmCallsTotal ?? 0),
-    0
-  );
-
-  return {
-    totalPipelineRuns,
-    pipelineCompletedRuns,
-    pipelineFailedRuns,
-    pipelineSlotRetryRate,
-    pipelineDiversificationRate: totalPipelineRuns > 0 ? pipelineDiversificationRate / totalPipelineRuns : 0,
-    pipelineRevisionRate: totalPipelineRuns > 0 ? pipelineRevisionRate / totalPipelineRuns : 0,
-    pipelineVisualFitAutoFixRate,
-    pipelineJudgeRejectionRate: totalPipelineRuns > 0 ? pipelineJudgeRejectionRate / totalPipelineRuns : 0,
-    pipelineCarouselDegradationRate: totalPipelineRuns > 0 ? pipelineCarouselDegradationRate / totalPipelineRuns : 0,
-    pipelineLlmCallsAvg: totalPipelineRuns > 0 ? pipelineLlmCallsAvg / totalPipelineRuns : 0,
-  };
-}
-
-export function getEmptyPipelineGraphMetrics(): PipelineGraphMetrics {
-  return {
-    totalPipelineRuns: 0,
-    pipelineCompletedRuns: 0,
-    pipelineFailedRuns: 0,
-    pipelineSlotRetryRate: 0,
-    pipelineDiversificationRate: 0,
-    pipelineRevisionRate: 0,
-    pipelineVisualFitAutoFixRate: null,
-    pipelineJudgeRejectionRate: 0,
-    pipelineCarouselDegradationRate: 0,
-    pipelineLlmCallsAvg: 0,
-  };
 }
 
 let _supabaseDbClient: any = null;
@@ -781,6 +571,7 @@ export async function createGenerationRun(
     evaluation_snapshot: input.evaluationSnapshot ?? null,
     output_snapshot: input.outputSnapshot ?? null,
     events: input.events ?? [],
+    events_version: input.eventsVersion ?? 1,
     revision_count: input.revisionCount,
     candidate_count: input.candidateCount,
     accepted_count: input.acceptedCount,
@@ -824,6 +615,7 @@ export async function updateGenerationRun(
     average_quality_score: input.averageQualityScore,
     originality_fallback_used: input.originalityFallbackUsed,
     events: input.events,
+    events_version: input.eventsVersion,
   });
 
   if (Object.keys(payload).length === 0) return;
@@ -945,21 +737,6 @@ export async function getGenerationOperationalMetrics(
     (row) => Number(row.revision_count ?? 0) > 0,
   ).length;
 
-  // Processar shadow events dos output_snapshots que contêm events
-  const allShadowEvents = rows.flatMap((row) => extractShadowGraphEvents(row.events));
-
-  // Calcular métricas do shadow graph (será empty array até events serem persistidos)
-  const shadowGraphMetrics = allShadowEvents.length > 0
-    ? calculateShadowGraphMetrics(allShadowEvents)
-    : getEmptyShadowGraphMetrics();
-
-  // Processar pipeline graph events
-  const allPipelineEvents = rows.flatMap((row) => extractPipelineGraphEvents(row.events));
-
-  const pipelineGraphMetrics = allPipelineEvents.length > 0
-    ? calculatePipelineGraphMetrics(allPipelineEvents)
-    : getEmptyPipelineGraphMetrics();
-
   const ratio = (numerator: number, denominator: number) =>
     denominator > 0 ? numerator / denominator : 0;
 
@@ -996,8 +773,6 @@ export async function getGenerationOperationalMetrics(
       (sum, row) => sum + Number(row.estimated_cost_usd ?? 0),
       0,
     ),
-    shadowGraph: shadowGraphMetrics,
-    pipelineGraph: pipelineGraphMetrics,
   };
 }
 

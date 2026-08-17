@@ -11,7 +11,8 @@
  */
 
 import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createHash } from "node:crypto";
 import { ENV } from "./_core/env";
 
 // ─── Spark costs (keep in sync with BILLING_HANDOFF.md) ──────────────────────
@@ -35,21 +36,46 @@ export function getStripe(): Stripe {
 }
 
 // ─── Supabase service role client ─────────────────────────────────────────────
-let _supabase: ReturnType<typeof createClient> | null = null;
+let _supabase: SupabaseClient<any, "postspark"> | null = null;
 
-export function getSupabase() {
+export function getSupabase(): SupabaseClient<any, "postspark"> {
   if (!_supabase) {
     if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
       throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set");
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     _supabase = createClient(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
       auth: { persistSession: false },
       db: { schema: "postspark" },
-    }) as any;
+    });
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return _supabase as any;
+  return _supabase;
+}
+
+/**
+ * SPEC-004 — wrapper tipado de chamadas RPC. Elimina os casts `as any` das
+ * chamadas críticas de billing e normaliza o erro para { message, code }.
+ */
+export interface RpcError {
+  message: string;
+  code?: string;
+  details?: string;
+}
+
+export interface RpcResult<T> {
+  data: T | null;
+  error: RpcError | null;
+}
+
+export async function rpcCall<T>(
+  fn: string,
+  args: Record<string, unknown>,
+): Promise<RpcResult<T>> {
+  const sb = getSupabase();
+  const { data, error } = await sb.rpc(fn, args);
+  return {
+    data: (data as T | null) ?? null,
+    error: error ? { message: error.message, code: error.code, details: error.details } : null,
+  };
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -127,9 +153,7 @@ export async function debitSparks(
   }
 
   try {
-    const sb = getSupabase();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (sb as any).rpc("debit_sparks", {
+    const { data, error } = await rpcCall<boolean>("debit_sparks", {
       p_user_id: profileId,
       p_amount: amount,
       p_description: description,
@@ -139,6 +163,136 @@ export async function debitSparks(
     return { success: Boolean(data), reason: data ? undefined : "insufficient_sparks" };
   } catch (err: any) {
     return { success: false, reason: err.message };
+  }
+}
+
+// ─── Transactional billing (Fase C): reserve / commit / refund ────────────────
+// Substitui o débito imediato não-idempotente em post.generate por um modelo
+// de reserva. A reserva BLOQUEIA saldo; commit_spark_reservation debita de
+// fato; refund_spark_reservation libera sem custo em falha. Referência:
+// DOCUMENTO_MESTRE §72, drizzle/0014_spark_reservations.sql.
+
+/** Sentinel profile IDs que bypassam billing (dev mode / perfil não encontrado). */
+function isSentinelProfile(profileId: string): boolean {
+  return profileId === "dev-mock" || profileId === "no-profile" || profileId === "error";
+}
+
+/**
+ * Planos com Sparks ilimitados (FOUNDER/DEV). A RPC debit_sparks legada tem
+ * bypass total para esses planos (débito simbólico sem consumo real — ver
+ * BILLING_HANDOFF.md:123). Replicamos o bypass no modelo transacional: a
+ * reserva/commit/refund torna-se no-op (handle mock), sem tocar o banco.
+ */
+function isUnlimitedPlan(plan: BillingPlan): boolean {
+  return plan === "FOUNDER" || plan === "DEV";
+}
+
+/** True quando o Supabase não está configurado (dev local). */
+function isBillingDisabled(): boolean {
+  return !ENV.supabaseUrl || !ENV.supabaseServiceRoleKey;
+}
+
+/**
+ * Deriva uma chave de idempotência estável a partir do usuário e do input.
+ * Dois requests idênticos do mesmo usuário (duplo-click no botão Gerar)
+ * produzem a mesma chave → a RPC reutiliza a reserva existente em vez de
+ * criar uma segunda. O client pode opcionalmente enviar sua própria chave.
+ */
+export function deriveIdempotencyKey(
+  userUuid: string,
+  input: { inputType: string; content: string; postMode: string; platform: string },
+): string {
+  const normalized = `${userUuid}:${input.inputType}:${input.postMode}:${input.platform}:${input.content.trim()}`;
+  return "gen_" + createHash("sha256").update(normalized).digest("hex").slice(0, 24);
+}
+
+/**
+ * Reserva Sparks de forma idempotente. Bloqueia saldo sem debitar.
+ * Retorna { reservationId } em sucesso; { reservationId: null, reason } em falha.
+ * Dev mode (Supabase desconfigurado, perfil sentinel ou plano ilimitado
+ * FOUNDER/DEV) retorna handle mock sem tocar o banco — espelhando o bypass
+ * da RPC debit_sparks legada (BILLING_HANDOFF.md:123).
+ */
+export async function reserveSparks(
+  profile: BillingProfile,
+  amount: number,
+  idempotencyKey: string,
+  description: string,
+): Promise<{ reservationId: string | null; reason?: string }> {
+  if (isBillingDisabled() || isSentinelProfile(profile.id) || isUnlimitedPlan(profile.plan)) {
+    return { reservationId: "dev-mock" };
+  }
+
+  try {
+    const { data, error } = await rpcCall<string>("reserve_sparks", {
+      p_user_id: profile.id,
+      p_amount: amount,
+      p_idempotency_key: idempotencyKey,
+      p_description: description,
+    });
+    if (error) return { reservationId: null, reason: error.message };
+    if (!data) return { reservationId: null, reason: "insufficient_sparks" };
+    return { reservationId: data };
+  } catch (err: any) {
+    return { reservationId: null, reason: err.message };
+  }
+}
+
+/**
+ * Confirma a reserva, debitando de profiles.sparks de forma definitiva.
+ * Idempotente: commit repetido retorna true sem debitar duas vezes.
+ * Víncula a reserva ao generationRunId ao confirmar.
+ */
+export async function commitSparkReservation(
+  reservationId: string,
+  generationRunId: string,
+): Promise<boolean> {
+  if (isBillingDisabled() || reservationId === "dev-mock") {
+    return true;
+  }
+
+  try {
+    const { data, error } = await rpcCall<boolean>("commit_spark_reservation", {
+      p_reservation_id: reservationId,
+      p_generation_run_id: generationRunId,
+    });
+    if (error) {
+      console.warn("[billing] commit_spark_reservation failed:", error.message);
+      return false;
+    }
+    return Boolean(data);
+  } catch (err: any) {
+    console.warn("[billing] commit_spark_reservation error:", err.message);
+    return false;
+  }
+}
+
+/**
+ * Libera a reserva em falha, sem custo para o usuário. Idempotente.
+ * Não decrementa sparks (a reserva só bloqueava). Falha (false) se a
+ * reserva já foi commitada.
+ */
+export async function refundSparkReservation(
+  reservationId: string,
+  errorDetail: string,
+): Promise<boolean> {
+  if (isBillingDisabled() || reservationId === "dev-mock") {
+    return true;
+  }
+
+  try {
+    const { data, error } = await rpcCall<boolean>("refund_spark_reservation", {
+      p_reservation_id: reservationId,
+      p_error_detail: errorDetail,
+    });
+    if (error) {
+      console.warn("[billing] refund_spark_reservation failed:", error.message);
+      return false;
+    }
+    return Boolean(data);
+  } catch (err: any) {
+    console.warn("[billing] refund_spark_reservation error:", err.message);
+    return false;
   }
 }
 
@@ -294,8 +448,7 @@ export async function handleStripeWebhook(event: Stripe.Event): Promise<void> {
         const packageId = meta.package_id;
         if (!packageId || !session.payment_intent) return;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (sb as any).rpc("process_topup", {
+        await rpcCall<boolean>("process_topup", {
           p_user_id: profileId,
           p_package_id: packageId,
           p_stripe_payment_intent_id: session.payment_intent as string,

@@ -335,7 +335,11 @@ const OPENROUTER_TASK_POLICY: Partial<
     temperature: 0.4,
     topP: 0.85,
     reasoningEffort: "minimal",
-    timeoutMs: 35_000,
+    // Ajustado de 35s: o gpt-5-mini via OpenRouter com strict JSON schema
+    // frequentemente passa de 35s — o corte prematuro forçava 2 retries que
+    // consumiam o deadline inteiro do run (rodagens manuais 2026-08-14,
+    // runs d241c373 e c041215e: aborts aos ~35s e 504 por deadline).
+    timeoutMs: 60_000,
   },
   carousel_generation: {
     temperature: 0.45,
@@ -353,7 +357,9 @@ const OPENROUTER_TASK_POLICY: Partial<
     temperature: 0.3,
     topP: 0.85,
     reasoningEffort: "minimal",
-    timeoutMs: 25_000,
+    // Ajustado de 25s: reparo real observado em ~34s; o corte forçava retry
+    // dentro de um run já perto do deadline.
+    timeoutMs: 60_000,
   },
   caption_synthesis: {
     temperature: 0.5,

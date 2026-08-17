@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createSnapshotV1, createSnapshotV2 } from "../../../tests/fixtures/postspark";
 import { postVisualSnapshotSchema } from "../../../shared/postsparkSchemas";
-import { migrateToLatest, migrateV1ToV2, migrateV2ToV3, isSnapshotV1, isSnapshotV2, isSnapshotV3 } from "./snapshotMigration";
+import { migrateToLatest, migrateV1ToV2, migrateV2ToV3, isSnapshotV1, isSnapshotV2, isSnapshotV4 } from "./snapshotMigration";
 import type { PostVisualSnapshot } from "@shared/postspark";
 
 describe("snapshotMigration", () => {
@@ -31,20 +31,20 @@ describe("snapshotMigration", () => {
     expect(v3.bgValue).toBeDefined();
   });
 
-  it("migrates v1 to v3 in one step", () => {
+  it("migrates v1 to v4 in one step", () => {
     const v1 = createSnapshotV1({ snapshotVersion: 1 });
-    const v3 = migrateToLatest(v1);
+    const v4 = migrateToLatest(v1);
 
-    expect(v3.snapshotVersion).toBe(3);
-    expect(isSnapshotV3(v3)).toBe(true);
+    expect(v4.snapshotVersion).toBe(4);
+    expect(isSnapshotV4(v4)).toBe(true);
   });
 
-  it("v3 is idempotent under migration", () => {
+  it("v4 is idempotent under migration", () => {
     const v2 = createSnapshotV2({ snapshotVersion: 2 });
     const first = migrateToLatest(v2);
     const second = migrateToLatest(first);
 
-    expect(first.snapshotVersion).toBe(3);
+    expect(first.snapshotVersion).toBe(4);
     expect(second).toEqual(first);
   });
 

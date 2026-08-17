@@ -11,17 +11,29 @@ import {
   type LayoutPosition,
   type PostVariation,
   type PostVisualSnapshot,
+  type ResolvedTypography,
   type TextAlignment,
 } from "./postspark";
 import { layoutToAdvanced } from "./layoutToAdvanced";
 import { applyVisualFitFallback, textHeightPercent } from "./visualFit";
+import { resolveTypography, TypographyResolutionError } from "./typography/resolve";
 
 const ICON_FALLBACKS = ["Zap", "Shield", "Target", "TrendingUp", "CheckCircle"];
 const MIN_CENTER_Y = 8;
 const MAX_CENTER_Y = 92;
 const MIN_BLOCK_GAP_Y = 4;
 const MAX_BLOCK_BOTTOM_Y = 98;
+const MIN_AI_TEXT_WIDTH = 36;
 const MIN_AI_CARD_WIDTH = 45;
+
+export interface CreatePostVisualSnapshotOptions {
+  /**
+   * Used when an already-authoritative snapshot is previewed in another format.
+   * Format hints may adapt geometry, but cannot replace the chosen visual
+   * identity (palette, background or layout family) or drop visual elements.
+   */
+  preserveVisualIdentity?: boolean;
+}
 
 interface AiLayoutContext {
   headlineText: string;
@@ -106,7 +118,13 @@ function formatOptimizationToLayoutSettings(
   ): LayoutPosition => {
     if (!foptItem) return basePos;
     const hasCoord = allowFreePosition && foptItem.x != null && foptItem.y != null;
-    const width = foptItem.width ?? basePos.width;
+    const safeBaseWidth = typeof basePos.width === "number" && basePos.width >= MIN_AI_TEXT_WIDTH
+      ? basePos.width
+      : 90;
+    const requestedWidth = foptItem.width ?? safeBaseWidth;
+    const width = requestedWidth < MIN_AI_TEXT_WIDTH
+      ? safeBaseWidth
+      : Math.min(100, requestedWidth);
     return {
       position: hasCoord ? "top-left" : basePos.position,
       textAlign: (foptItem.textAlign as TextAlignment) ?? basePos.textAlign,
@@ -174,11 +192,16 @@ function formatOptimizationToLayoutSettings(
 function normalizeLayoutSettings(
   variation: PostVariation,
   aspectRatio: AspectRatio,
+  preserveVisualIdentity = false,
+  originalAspectRatio?: AspectRatio,
 ): AdvancedLayoutSettings {
   const arOpt = variation.aspectRatioOptimizations?.[aspectRatio];
+  const geometryOptimization = arOpt && preserveVisualIdentity
+    ? { ...arOpt, layout: variation.layout }
+    : arOpt;
   const fromArOpt =
-    arOpt && (arOpt.headline || arOpt.body || arOpt.card)
-      ? formatOptimizationToLayoutSettings(arOpt, {
+    geometryOptimization && (geometryOptimization.headline || geometryOptimization.body || geometryOptimization.card)
+      ? formatOptimizationToLayoutSettings(geometryOptimization, {
           headlineText: variation.headline ?? "",
           bodyText: variation.body ?? "",
           hasStructuredSections:
@@ -189,20 +212,34 @@ function normalizeLayoutSettings(
       : undefined;
 
   const existingSnapshot = variation as Partial<PostVisualSnapshot>;
+  // `originalAspectRatio` é a proporção do objeto ANTES de `applyAspectRatioToVariation`
+  // sobrescrever `variation.aspectRatio` para a proporção pedida — sem isso, essa
+  // comparação vira tautologia (os dois lados já são o mesmo valor) e este ramo
+  // vence mesmo quando a proporção pedida é diferente da nativa do objeto.
   const sameRatioSnapshotLayout =
-    existingSnapshot.snapshotVersion === 3 &&
-    variation.aspectRatio === aspectRatio
+    (existingSnapshot.snapshotVersion === 3 || existingSnapshot.snapshotVersion === 4) &&
+    originalAspectRatio === aspectRatio
       ? variation.layoutSettings
       : undefined;
 
+  // CR-003/CR-008: a FAMÍLIA é a autoridade do layout efetivo (SPEC-002) —
+  // sua `layoutSettings` (calibrada por proporção em families.ts) tem
+  // precedência sobre as otimizações por-ratio do LLM (`fromArOpt`), que para
+  // templates estruturados nem carregam freePosition — o que descartava a
+  // geometria calibrada e deixava o snapshot sem resolução tipográfica.
+  //
+  // `layoutSettingsByAspectRatio[aspectRatio]` vem ANTES de `variation.layoutSettings`
+  // simples (que é a geometria congelada na proporção de composição/edição
+  // anterior) — só perde para `sameRatioSnapshotLayout`, que protege edição ao
+  // vivo na MESMA proporção que o objeto já representa.
   const selected =
     sameRatioSnapshotLayout ??
     variation.layoutSettingsByAspectRatio?.[aspectRatio] ??
-    fromArOpt ??
     variation.layoutSettings ??
+    fromArOpt ??
     layoutToAdvanced(variation.layout);
 
-  return {
+  const resolved: AdvancedLayoutSettings = {
     headline: { ...DEFAULT_LAYOUT_SETTINGS.headline, ...selected.headline },
     body: { ...DEFAULT_LAYOUT_SETTINGS.body, ...selected.body },
     accentBar: { ...DEFAULT_LAYOUT_SETTINGS.accentBar, ...selected.accentBar },
@@ -215,6 +252,25 @@ function normalizeLayoutSettings(
     card: { ...DEFAULT_LAYOUT_SETTINGS.card, ...selected.card },
     sectionLayouts: selected.sectionLayouts ?? {},
     padding: selected.padding ?? DEFAULT_LAYOUT_SETTINGS.padding,
+  };
+
+  if (!preserveVisualIdentity) return resolved;
+
+  const safeReflowWidth = (width: number | undefined) =>
+    typeof width === "number" && width >= MIN_AI_TEXT_WIDTH
+      ? Math.min(100, width)
+      : 90;
+
+  return {
+    ...resolved,
+    headline: {
+      ...resolved.headline,
+      width: safeReflowWidth(resolved.headline.width),
+    },
+    body: {
+      ...resolved.body,
+      width: safeReflowWidth(resolved.body.width),
+    },
   };
 }
 
@@ -246,12 +302,80 @@ export function synchronizeDesignTokenColors(
   };
 }
 
+/**
+ * Templates estruturados (`feature-grid`) renderizam headline/body em fluxo
+ * por `sectionLayouts`, não em posição livre — `validateVisualFit` já proíbe
+ * `freePosition` nesse template. Resolução de texto em seções é escopo
+ * futuro; aqui só sinalizamos "não se aplica", nunca um erro.
+ */
+function isStructuredTemplate(snapshot: Pick<PostVisualSnapshot, "template" | "sections">): boolean {
+  return (snapshot.template ?? "simple") !== "simple" && (snapshot.sections?.length ?? 0) > 0;
+}
+
+/**
+ * Resolve a tipografia de um snapshot já com layoutSettings/geometria
+ * fechados (SPEC-001). Nunca lança: falhas viram `typographyResolutionError`
+ * estruturado, para que o chamador decida a política (nunca um corte
+ * silencioso no renderer).
+ */
+export function resolveSnapshotTypography(
+  snapshot: Pick<
+    PostVisualSnapshot,
+    "headline" | "body" | "aspectRatio" | "layoutSettings" | "headlineFontFamily" | "bodyFontFamily" | "headlineFontSize" | "bodyFontSize" | "template" | "sections"
+  >,
+): { resolvedTypography?: ResolvedTypography; typographyResolutionError?: string } {
+  // CR-003/CR-008: template estruturado com HEADLINE explícito (freePosition)
+  // resolve o título normalmente — as seções fluem abaixo e o body em fluxo
+  // não entra na resolução (guard em resolveTypography). Sem geometria
+  // declarada, continua "não se aplica", nunca erro.
+  const structured = isStructuredTemplate(snapshot);
+  const headlineHasGeometry = Boolean(snapshot.layoutSettings?.headline?.freePosition);
+  if (structured && !headlineHasGeometry) return {};
+  try {
+    const resolvedTypography = resolveTypography({
+      headline: snapshot.headline,
+      body: snapshot.body,
+      aspectRatio: snapshot.aspectRatio,
+      layoutSettings: snapshot.layoutSettings,
+      headlineFontFamily: snapshot.headlineFontFamily,
+      bodyFontFamily: snapshot.bodyFontFamily,
+      headlineFontSize: snapshot.headlineFontSize,
+      bodyFontSize: snapshot.bodyFontSize,
+    });
+    return { resolvedTypography };
+  } catch (error) {
+    if (error instanceof TypographyResolutionError) {
+      return { typographyResolutionError: error.message };
+    }
+    throw error;
+  }
+}
+
 export function createPostVisualSnapshot(
   variation: PostVariation,
   requestedAspectRatio: AspectRatio = variation.aspectRatio ?? "1:1",
+  options: CreatePostVisualSnapshotOptions = {},
 ): PostVisualSnapshot {
+  // Capturado ANTES de `applyAspectRatioToVariation` sobrescrever `.aspectRatio`
+  // para a proporção pedida — ver comentário em `normalizeLayoutSettings`.
+  const originalAspectRatio = variation.aspectRatio;
   const normalized = normalizeVariationForEditor(variation);
-  const adjusted = applyAspectRatioToVariation(normalized, requestedAspectRatio);
+  const formatAdjusted = applyAspectRatioToVariation(normalized, requestedAspectRatio);
+  const adjusted = options.preserveVisualIdentity
+    ? {
+        ...formatAdjusted,
+        backgroundColor: normalized.backgroundColor,
+        textColor: normalized.textColor,
+        accentColor: normalized.accentColor,
+        headlineColor: normalized.headlineColor,
+        bodyColor: normalized.bodyColor,
+        layout: normalized.layout,
+        bgValue: normalized.bgValue,
+        designTokens: normalized.designTokens,
+        textElements: normalized.textElements,
+        imageElements: normalized.imageElements,
+      }
+    : formatAdjusted;
   const backgroundColor = adjusted.backgroundColor || "#171717";
   const textColor = adjusted.textColor || "#ffffff";
   const accentColor = adjusted.accentColor || "#a855f7";
@@ -263,19 +387,39 @@ export function createPostVisualSnapshot(
     accentColor,
   });
   const imageSettings = normalizeImageSettings(adjusted);
-  const layoutSettings = normalizeLayoutSettings(adjusted, requestedAspectRatio);
+  const layoutSettings = normalizeLayoutSettings(
+    adjusted,
+    requestedAspectRatio,
+    options.preserveVisualIdentity,
+    originalAspectRatio,
+  );
   const hasFormatOptimization = Boolean(
     adjusted.aspectRatioOptimizations?.[requestedAspectRatio],
   );
-  const bgValue = adjusted.bgValue && !(hasFormatOptimization && adjusted.bgValue.type === "solid")
+  const bgValue = adjusted.bgValue && (options.preserveVisualIdentity || !(hasFormatOptimization && adjusted.bgValue.type === "solid"))
     ? adjusted.bgValue
     : adjusted.imageUrl
       ? { type: "ai" as const, url: adjusted.imageUrl }
       : { type: "solid" as const, color: backgroundColor };
 
+  const bgOverlayBase = {
+    ...DEFAULT_BG_OVERLAY,
+    ...(adjusted.bgOverlay ?? {}),
+  };
+  // CR-003 — proteção visual REAL para fundo de imagem sem overlay dominante:
+  // em vez de "cap de score" (política que a conferência rejeitou), o snapshot
+  // recebe um scrim escuro explícito quando o texto viveria sobre pixels de
+  // imagem não amostráveis. Com overlay ≥ 55%, o fundo efetivo é mensurável
+  // (basis overlay-dominant) e o texto tem proteção real em tela.
+  const isImageBackground = bgValue.type !== "solid";
+  const protectedOverlay =
+    isImageBackground && (bgOverlayBase.opacity ?? 0) < 0.55
+      ? { ...bgOverlayBase, color: bgOverlayBase.color ?? "#000000", opacity: 0.6 }
+      : bgOverlayBase;
+
   const snapshot: PostVisualSnapshot = {
     ...adjusted,
-    snapshotVersion: 3,
+    snapshotVersion: 4,
     aspectRatio: requestedAspectRatio,
     postMode: adjusted.postMode ?? (adjusted.slides?.length ? "carousel" : "static"),
     backgroundColor,
@@ -287,13 +431,33 @@ export function createPostVisualSnapshot(
     imageSettings,
     layoutSettings,
     bgValue,
-    bgOverlay: {
-      ...DEFAULT_BG_OVERLAY,
-      ...(adjusted.bgOverlay ?? {}),
-    },
+    bgOverlay: protectedOverlay,
   };
 
-  return applyVisualFitFallback(snapshot);
+  // A resolução canônica decide ANTES: se ela encaixou a geometria, as
+  // heurísticas legadas do fallback não podem desfazê-la; se falhou, o
+  // snapshot não tem autoridade de encaixe e o fallback volta a valer.
+  const preResolution = resolveSnapshotTypography(snapshot);
+  const fitted = applyVisualFitFallback(snapshot, {
+    geometryResolved: Boolean(preResolution.resolvedTypography),
+  });
+  const { resolvedTypography, typographyResolutionError } =
+    fitted.layoutSettings === snapshot.layoutSettings
+      ? preResolution
+      : resolveSnapshotTypography(fitted);
+  const withTypography: PostVisualSnapshot = {
+    ...fitted,
+    resolvedTypography,
+    typographyResolutionError,
+  };
+
+  return options.preserveVisualIdentity
+    ? {
+        ...withTypography,
+        textElements: snapshot.textElements,
+        imageElements: snapshot.imageElements,
+      }
+    : withTypography;
 }
 
 export function applyDesignTokensToSnapshot(
@@ -327,37 +491,65 @@ export function projectSnapshotForSlide(
   const editorState = slide.editorState;
   const layoutOverride = editorState?.layoutSettings;
 
+  const projectedHeadline = slide.headline || snapshot.headline;
+  const projectedBody = slide.body || snapshot.body;
+  const projectedLayoutSettings: AdvancedLayoutSettings = layoutOverride
+    ? {
+        ...snapshot.layoutSettings,
+        ...layoutOverride,
+        headline: { ...snapshot.layoutSettings.headline, ...layoutOverride.headline },
+        body: { ...snapshot.layoutSettings.body, ...layoutOverride.body },
+        accentBar: { ...snapshot.layoutSettings.accentBar, ...layoutOverride.accentBar },
+        badge: { ...snapshot.layoutSettings.badge, ...layoutOverride.badge },
+        sticker: { ...snapshot.layoutSettings.sticker, ...layoutOverride.sticker },
+        carouselArrow: { ...snapshot.layoutSettings.carouselArrow, ...layoutOverride.carouselArrow },
+        card: { ...snapshot.layoutSettings.card, ...layoutOverride.card },
+        sectionLayouts: {
+          ...(snapshot.layoutSettings.sectionLayouts ?? {}),
+          ...(layoutOverride.sectionLayouts ?? {}),
+        },
+      }
+    : snapshot.layoutSettings;
+
+  // Resolução do slide (SPEC-001): a resolução do slide atual NUNCA vaza
+  // para `snapshot.slides` base — vive só no objeto retornado aqui. Reusa a
+  // do editorState quando já foi calculada e nada relevante mudou; caso
+  // contrário recalcula (determinístico — mesmos inputs, mesmo resultado).
+  const cached = editorState?.resolvedTypography;
+  const needsFreshResolution =
+    !cached || cached.headline.text !== projectedHeadline || (projectedBody && cached.body?.text !== projectedBody);
+  const { resolvedTypography, typographyResolutionError } = needsFreshResolution
+    ? resolveSnapshotTypography({
+        headline: projectedHeadline,
+        body: projectedBody,
+        aspectRatio: snapshot.aspectRatio,
+        layoutSettings: projectedLayoutSettings,
+        headlineFontFamily: editorState?.variation?.headlineFontFamily ?? snapshot.headlineFontFamily,
+        bodyFontFamily: editorState?.variation?.bodyFontFamily ?? snapshot.bodyFontFamily,
+        headlineFontSize: editorState?.variation?.headlineFontSize ?? snapshot.headlineFontSize,
+        bodyFontSize: editorState?.variation?.bodyFontSize ?? snapshot.bodyFontSize,
+        template: snapshot.template,
+        sections: snapshot.sections,
+      })
+    : { resolvedTypography: cached, typographyResolutionError: editorState?.typographyResolutionError };
+
   return {
     ...snapshot,
     ...(editorState?.variation ?? {}),
-    headline: slide.headline || snapshot.headline,
-    body: slide.body || snapshot.body,
+    headline: projectedHeadline,
+    body: projectedBody,
     imageSettings: {
       ...snapshot.imageSettings,
       ...(editorState?.imageSettings ?? {}),
     },
-    layoutSettings: layoutOverride
-      ? {
-          ...snapshot.layoutSettings,
-          ...layoutOverride,
-          headline: { ...snapshot.layoutSettings.headline, ...layoutOverride.headline },
-          body: { ...snapshot.layoutSettings.body, ...layoutOverride.body },
-          accentBar: { ...snapshot.layoutSettings.accentBar, ...layoutOverride.accentBar },
-          badge: { ...snapshot.layoutSettings.badge, ...layoutOverride.badge },
-          sticker: { ...snapshot.layoutSettings.sticker, ...layoutOverride.sticker },
-          carouselArrow: { ...snapshot.layoutSettings.carouselArrow, ...layoutOverride.carouselArrow },
-          card: { ...snapshot.layoutSettings.card, ...layoutOverride.card },
-          sectionLayouts: {
-            ...(snapshot.layoutSettings.sectionLayouts ?? {}),
-            ...(layoutOverride.sectionLayouts ?? {}),
-          },
-        }
-      : snapshot.layoutSettings,
+    layoutSettings: projectedLayoutSettings,
     bgValue: editorState?.bgValue ?? snapshot.bgValue,
     bgOverlay: {
       ...snapshot.bgOverlay,
       ...(editorState?.bgOverlay ?? {}),
     },
+    resolvedTypography,
+    typographyResolutionError,
   };
 }
 

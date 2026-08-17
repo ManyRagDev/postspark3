@@ -1,0 +1,7605 @@
+{
+ "q-001": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/oauth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/supabaseAuth.ts",
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 3
+  }
+ },
+ "q-002": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/sdk.ts",
+    "server/_core/context.ts",
+    "server/_core/trpc.ts"
+   ],
+   "anchor_hit_count": 4
+  }
+ },
+ "q-003": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/billing.ts",
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 4
+  }
+ },
+ "q-004": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts",
+    "server/billing.ts"
+   ],
+   "anchor_hit_count": 4
+  }
+ },
+ "q-005": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/SparkBalance.tsx"
+   ],
+   "anchor_hit_count": 1
+  }
+ },
+ "q-006": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/UpgradePrompt.tsx"
+   ],
+   "anchor_hit_count": 2
+  }
+ },
+ "q-007": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 6
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 6
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 6
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/schema.ts"
+   ],
+   "anchor_hit_count": 1
+  }
+ },
+ "q-008": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/db.ts"
+   ],
+   "anchor_hit_count": 7
+  }
+ },
+ "q-009": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 12
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 13
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 16
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 12
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 13
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 16
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 4
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 13
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 12
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 13
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 12
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 13
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 13
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 4
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 12
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 13
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 9
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 16
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 13
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "drizzle/0002_user_uuid_dual_write.sql"
+   ],
+   "anchor_hit_count": 4
+  }
+ },
+ "q-010": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/llm.ts"
+   ],
+   "anchor_hit_count": 1
+  }
+ },
+ "q-011": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationPipeline.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-012": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 8
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 11
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/contentStrategy.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-013": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 8
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 8
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 8
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/semanticOriginality.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-014": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 6
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 6
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/imageGenerateBackground.ts",
+    "server/_core/imageGeneration.ts"
+   ],
+   "anchor_hit_count": 7
+  }
+ },
+ "q-015": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 15
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 16
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 15
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 15
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 16
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 15
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 15
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 16
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 15
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 16
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 16
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 16
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 16
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 15
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 16
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 16
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 15
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/chameleon.ts",
+    "server/chameleonVision.ts",
+    "client/src/components/ChameleonPanel.tsx"
+   ],
+   "anchor_hit_count": 17
+  }
+ },
+ "q-016": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/brandDNA.ts"
+   ],
+   "anchor_hit_count": 9
+  }
+ },
+ "q-017": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 25
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 25
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 17
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 26
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/siteIntelligence.ts",
+    "server/siteContent.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-018": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts",
+    "server/ai/postEvaluation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/postJudge.ts"
+   ],
+   "anchor_hit_count": 3
+  }
+ },
+ "q-019": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/voiceTranscription.ts"
+   ],
+   "anchor_hit_count": 1
+  }
+ },
+ "q-020": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/modelRouter.ts",
+    "server/ai/providers/modelAdapters.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-021": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/highTicket/graph.ts",
+    "server/ai/highTicket/index.ts",
+    "shared/highTicket.ts"
+   ],
+   "anchor_hit_count": 22
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/highTicket/graph.ts",
+    "server/ai/highTicket/index.ts",
+    "shared/highTicket.ts"
+   ],
+   "anchor_hit_count": 22
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/highTicket/graph.ts",
+    "server/ai/highTicket/index.ts",
+    "shared/highTicket.ts"
+   ],
+   "anchor_hit_count": 22
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-022": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts",
+    "server/ai/highTicket/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts",
+    "server/ai/highTicket/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts",
+    "server/ai/highTicket/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/captionSynthesis.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-023": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationTrace.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-024": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/ai/generationValidation.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-025": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts",
+    "client/src/lib/snapshotMigration.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts",
+    "client/src/lib/snapshotMigration.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts",
+    "client/src/lib/snapshotMigration.ts"
+   ],
+   "anchor_hit_count": 16
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts",
+    "client/src/lib/snapshotMigration.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts",
+    "client/src/lib/snapshotMigration.ts"
+   ],
+   "anchor_hit_count": 16
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts",
+    "client/src/lib/snapshotMigration.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts",
+    "client/src/lib/snapshotMigration.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts"
+   ],
+   "anchor_hit_count": 11
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts",
+    "client/src/lib/snapshotMigration.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts",
+    "client/src/lib/snapshotMigration.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts"
+   ],
+   "anchor_hit_count": 11
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts",
+    "client/src/lib/snapshotMigration.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts"
+   ],
+   "anchor_hit_count": 9
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts",
+    "client/src/lib/snapshotMigration.ts",
+    "shared/variationSnapshot.ts"
+   ],
+   "anchor_hit_count": 19
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/variationSnapshot.ts",
+    "client/src/lib/snapshotMigration.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-026": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 24
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 24
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 25
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 17
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 24
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 25
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 24
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 17
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 24
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 23
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 24
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 25
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 23
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 24
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 18
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 25
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 24
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/store/editorStore.ts"
+   ],
+   "anchor_hit_count": 14
+  }
+ },
+ "q-027": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 3
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 7
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 3
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 3
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 7
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/interaction/interactionReducer.ts",
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/DraggableBlock.tsx"
+   ],
+   "anchor_hit_count": 5
+  }
+ },
+ "q-028": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 3
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/hooks/useTextAutoFit.ts"
+   ],
+   "anchor_hit_count": 4
+  }
+ },
+ "q-029": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx",
+    "client/src/components/PostCard.tsx"
+   ],
+   "anchor_hit_count": 10
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/PostCard.tsx"
+   ],
+   "anchor_hit_count": 7
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx",
+    "client/src/components/PostCard.tsx"
+   ],
+   "anchor_hit_count": 10
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx",
+    "client/src/components/PostCard.tsx"
+   ],
+   "anchor_hit_count": 10
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx",
+    "client/src/components/PostCard.tsx"
+   ],
+   "anchor_hit_count": 10
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx",
+    "client/src/components/PostCard.tsx"
+   ],
+   "anchor_hit_count": 10
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/WorkbenchV2/PostCardV2.tsx",
+    "client/src/components/PostCard.tsx"
+   ],
+   "anchor_hit_count": 10
+  }
+ },
+ "q-030": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/history/useEditorHistory.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/history/useEditorHistory.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/history/useEditorHistory.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/history/useEditorHistory.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/history/useEditorHistory.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/history/useEditorHistory.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/history/useEditorHistory.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/history/useEditorHistory.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/history/useEditorHistory.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/history/useEditorHistory.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/history/useEditorHistory.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/history/useEditorHistory.ts"
+   ],
+   "anchor_hit_count": 2
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-031": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": false,
+   "relevant_files": [
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 0
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/snap/snapEngine.ts",
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/snap/snapEngine.ts",
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/snap/snapEngine.ts",
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/snap/snapEngine.ts",
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/snap/snapEngine.ts",
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/snap/snapEngine.ts",
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": false,
+   "relevant_files": [
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 0
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/snap/snapEngine.ts",
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/snap/snapEngine.ts",
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": false,
+   "relevant_files": [
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 0
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/snap/snapEngine.ts",
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/snap/snapEngine.ts",
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/editor/snap/snapEngine.ts",
+    "client/src/editor/integration/InteractionOverlay.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-032": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 22
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 20
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 15
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 7
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 8
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 20
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 8
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 17
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/App.tsx"
+   ],
+   "anchor_hit_count": 9
+  }
+ },
+ "q-033": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 29
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 32
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 23
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 26
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 29
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 31
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 29
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 33
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/lib/trpc.ts",
+    "client/src/main.tsx"
+   ],
+   "anchor_hit_count": 29
+  }
+ },
+ "q-034": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 8
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers/admin.ts",
+    "client/src/pages/Admin.tsx"
+   ],
+   "anchor_hit_count": 9
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-035": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 8
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 8
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 8
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 8
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 8
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 14
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/env.ts"
+   ],
+   "anchor_hit_count": 8
+  }
+ },
+ "q-036": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/index.ts"
+   ],
+   "anchor_hit_count": 1
+  }
+ },
+ "q-037": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 6
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 5
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/routers.ts"
+   ],
+   "anchor_hit_count": 5
+  }
+ },
+ "q-038": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 11
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 11
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 11
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 11
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 11
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 13
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/screenshotService.ts"
+   ],
+   "anchor_hit_count": 11
+  }
+ },
+ "q-039": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 12
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/sentiment.ts"
+   ],
+   "anchor_hit_count": 4
+  }
+ },
+ "q-040": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "server/designPatternAnalyzer.ts",
+    "server/styleExtractor.ts",
+    "server/visionExtractor.ts"
+   ],
+   "anchor_hit_count": 10
+  }
+ },
+ "q-041": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "server/_core/gdpr.ts",
+    "server/routers/privacy.ts",
+    "server/_core/privacyLog.ts"
+   ],
+   "anchor_hit_count": 7
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-042": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/CookieBanner.tsx",
+    "client/src/components/ConsentModal.tsx"
+   ],
+   "anchor_hit_count": 4
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-043": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "shared/creative/index.ts",
+    "shared/creative/palettes.ts",
+    "shared/creative/seed.ts",
+    "shared/creative/families.ts"
+   ],
+   "anchor_hit_count": 8
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "shared/creative/index.ts",
+    "shared/creative/palettes.ts",
+    "shared/creative/seed.ts",
+    "shared/creative/families.ts"
+   ],
+   "anchor_hit_count": 8
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "shared/creative/index.ts",
+    "shared/creative/palettes.ts",
+    "shared/creative/seed.ts",
+    "shared/creative/families.ts"
+   ],
+   "anchor_hit_count": 8
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  }
+ },
+ "q-044": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/AdvancedTextCanvas.tsx",
+    "client/src/components/canvas/AdvancedTextSelectionBox.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/AdvancedTextCanvas.tsx",
+    "client/src/components/canvas/AdvancedTextSelectionBox.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/AdvancedTextCanvas.tsx",
+    "client/src/components/canvas/AdvancedTextSelectionBox.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/AdvancedTextCanvas.tsx",
+    "client/src/components/canvas/AdvancedTextSelectionBox.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/AdvancedTextCanvas.tsx",
+    "client/src/components/canvas/AdvancedTextSelectionBox.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/AdvancedTextCanvas.tsx",
+    "client/src/components/canvas/AdvancedTextSelectionBox.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/AdvancedTextCanvas.tsx",
+    "client/src/components/canvas/AdvancedTextSelectionBox.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/AdvancedTextCanvas.tsx",
+    "client/src/components/canvas/AdvancedTextSelectionBox.tsx"
+   ],
+   "anchor_hit_count": 1
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/canvas/AdvancedTextCanvas.tsx",
+    "client/src/components/canvas/AdvancedTextSelectionBox.tsx"
+   ],
+   "anchor_hit_count": 1
+  }
+ },
+ "q-045": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/DraggableCardOverlay.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/DraggableCardOverlay.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/DraggableCardOverlay.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/DraggableCardOverlay.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/DraggableCardOverlay.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/DraggableCardOverlay.tsx"
+   ],
+   "anchor_hit_count": 2
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": false,
+   "relevant_files": [],
+   "anchor_hit_count": 0
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/DraggableCardOverlay.tsx"
+   ],
+   "anchor_hit_count": 2
+  }
+ },
+ "q-046": {
+  "0c8534b51a0b380b07b372c6babf3be0e8642784": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "10b598724514f1cd7e68e541b4aef104b8d56c6c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "29a4e15d72f3afb9bc86ca5c2856c3ed9cf1be84": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 8
+  },
+  "374597feb3538d5b1bfc6e7d1bd0f552f8ec132b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "458bf58625d955f74964226e7ad5a4a0eefbc68c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "4854517f7b80ec614504e876618df6d503552936": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 8
+  },
+  "5192f8bcca1cbfadfd06c6fc9062aabd5b3f2268": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "552aa4343fae141b29aaf87eb870218d65d6afb3": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "55fa51a8b4f0a19d038da5a994359b764b599894": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "5b2c84088afe5a21e734814fec2c2c1889bf85c4": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "808174633bb4c4506df57903ae464d337f311ae9": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "9262d1dffb93244a23d6151503a12f0ebcb91683": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "a0bea6137093370c9a37eb93bb362fead362cb56": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "a4d32bab9b7b28718eda2f35137a97b778bd54f7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 7
+  },
+  "a69eacf1761b2ec80c0d4a8243b249ee11b840ed": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "aa2521c96ff2831a63a18c9711579f4da52ea5d0": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "afd9e04a94459a9f8a45163db66ec9db1bdce05c": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "e54d47184b2cc02aa52fa7b810b635132eaf7590": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "ec3dbfd291ad3a5242c97cd151c36dc454d62242": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "f4025186a609deffee9f1d099cc50ee4ef6c826b": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 7
+  },
+  "f7c0b2d2f078c2ca8655d66f59c71a256b5fa9c7": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 6
+  },
+  "fbe27e0bfd1bc44ee0254284ce6aa6155473f09d": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 5
+  },
+  "fd26cb58fddd21b22df25656ebeaa259f4e76261": {
+   "eligible": true,
+   "relevant_files": [
+    "client/src/components/views/HoloDeck.tsx"
+   ],
+   "anchor_hit_count": 6
+  }
+ }
+}

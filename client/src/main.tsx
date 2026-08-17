@@ -6,6 +6,13 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import "./index.css";
+import { browserMeasurer } from "@/lib/browserMeasurer";
+import { setTypographyMeasurer } from "@shared/typography/measurer";
+
+// CR-002: o browser mede tipografia com a fonte REALMENTE carregada (canvas).
+// Sem este registro, a re-resolução de edição falharia (missing-font) e o
+// renderer voltaria silenciosamente ao autofit legado.
+setTypographyMeasurer(browserMeasurer);
 
 const queryClient = new QueryClient();
 

@@ -117,6 +117,7 @@ export const generationRuns = postsparkSchema.table("generation_runs", {
   latencyMs: integer("latency_ms").default(0).notNull(),
   errorMessage: text("error_message"),
   events: jsonb("events").$type<any[]>().notNull().default([]),
+  eventsVersion: integer("events_version").default(1).notNull(),
   graphState: jsonb("graph_state").$type<any>().notNull().default({}),
   sparkCost: integer("spark_cost"),
   completedAt: timestamp("completed_at", { withTimezone: true }),
@@ -177,3 +178,26 @@ export const personas = postsparkSchema.table("personas", {
 
 export type Persona = typeof personas.$inferSelect;
 export type InsertPersona = typeof personas.$inferInsert;
+
+// ─── Billing transacional (Fase C) ────────────────────────────────────────────
+// spark_reservations implementa reserve-on-start / commit-on-approval /
+// refund-on-fail. A reserva apenas BLOQUEIA saldo; commit_spark_reservation
+// debita de fato. Referência: DOCUMENTO_MESTRE §72, drizzle/0014_spark_reservations.sql.
+
+export const sparkReservations = postsparkSchema.table("spark_reservations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  idempotencyKey: text("idempotency_key").notNull(),
+  userUuid: uuid("user_uuid").notNull(),
+  generationRunId: text("generation_run_id"),
+  amount: integer("amount").notNull(),
+  status: varchar("status", { length: 16 }).notNull().default("reserved"),
+  description: text("description"),
+  errorDetail: text("error_detail"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  committedAt: timestamp("committed_at", { withTimezone: true }),
+  refundedAt: timestamp("refunded_at", { withTimezone: true }),
+});
+
+export type SparkReservation = typeof sparkReservations.$inferSelect;
+export type InsertSparkReservation = typeof sparkReservations.$inferInsert;

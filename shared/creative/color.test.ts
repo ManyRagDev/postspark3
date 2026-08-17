@@ -1,5 +1,5 @@
 import { expect, test, describe } from 'vitest';
-import { lighten, darken, mix, contrastRatio, isDark } from './color';
+import { lighten, darken, mix, contrastRatio, isDark, effectiveBackgroundColor } from './color';
 
 describe('color operations', () => {
   test('lighten-changes-hex', () => {
@@ -41,5 +41,40 @@ describe('color operations', () => {
     expect(isDark("#ffffff")).toBe(false);
     expect(isDark("#1a1a1a")).toBe(true);
     expect(isDark("#f0f0f0")).toBe(false);
+  });
+
+  test('invalid hex characters throw instead of silently producing NaN', () => {
+    expect(() => contrastRatio("#zzzzzz", "#ffffff")).toThrow();
+  });
+});
+
+describe('effectiveBackgroundColor (SPEC-002 passo 5)', () => {
+  test('solid background: uses the solid color exactly, basis "solid"', () => {
+    const result = effectiveBackgroundColor(
+      { backgroundType: "solid", solidColor: "#112233" },
+      "#000000",
+    );
+    expect(result).toEqual({ color: "#112233", basis: "solid" });
+  });
+
+  test('image background with opaque overlay: overlay dominates, basis "overlay-dominant"', () => {
+    const result = effectiveBackgroundColor(
+      { backgroundType: "ai", overlayColor: "#000000", overlayOpacity: 0.7 },
+      "#ffffff",
+    );
+    expect(result).toEqual({ color: "#000000", basis: "overlay-dominant" });
+  });
+
+  test('image background with weak/no overlay: cannot prove contrast, basis "unproven"', () => {
+    const result = effectiveBackgroundColor(
+      { backgroundType: "gallery", overlayColor: "#000000", overlayOpacity: 0.1 },
+      "#ffffff",
+    );
+    expect(result.basis).toBe("unproven");
+  });
+
+  test('image background with no overlay at all falls back to the fallback color, still "unproven"', () => {
+    const result = effectiveBackgroundColor({ backgroundType: "upload" }, "#ffffff");
+    expect(result).toEqual({ color: "#ffffff", basis: "unproven" });
   });
 });

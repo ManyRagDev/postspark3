@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PostVariation } from "@shared/postspark";
+import { directCreative } from "@shared/creative";
+import { directCreative } from "@shared/creative";
 import { validateVariationSet } from "./generationValidation";
 
 function variation(
@@ -51,6 +53,36 @@ describe("validateVariationSet", () => {
     );
     expect(result.valid).toBe(false);
     expect(result.errors).toContain("variations are not sufficiently distinct");
+  });
+
+  it("rejects a composed set that collapses to one visual layout", () => {
+    const direction = directCreative(variation(1), null, 42);
+    const result = validateVariationSet(
+      [
+        variation(1, { layout: "split", creativeDirection: direction }),
+        variation(2, { layout: "split", creativeDirection: direction }),
+        variation(3, { layout: "split", creativeDirection: direction }),
+      ],
+      "static",
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(" ")).toContain("visual diversity requires at least two composed layouts");
+  });
+
+  it("rejects a composed set that collapses to one visual layout", () => {
+    const direction = directCreative(variation(1), null, 42);
+    const result = validateVariationSet(
+      [
+        variation(1, { layout: "split", creativeDirection: direction }),
+        variation(2, { layout: "split", creativeDirection: direction }),
+        variation(3, { layout: "split", creativeDirection: direction }),
+      ],
+      "static",
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(" ")).toContain("visual diversity requires at least two composed layouts");
   });
 
   it("rejects carousels without five slides per variation", () => {

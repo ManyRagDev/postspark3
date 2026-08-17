@@ -5,6 +5,7 @@ import type { ImageSettings, AdvancedLayoutSettings } from '@/types/editor';
 import { DEFAULT_IMAGE_SETTINGS, DEFAULT_LAYOUT_SETTINGS } from '@/types/editor';
 import { layoutToAdvanced } from '@/lib/layoutToAdvanced';
 import { buildVariationSnapshot, createPostVisualSnapshot } from '@/lib/variationSnapshot';
+import { postVisualSnapshotSchema } from '@shared/postsparkSchemas';
 import {
     isLayoutGeometryTarget,
     isImageGeometryTarget,
@@ -433,14 +434,29 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
             const aspectRatio = variation.aspectRatio ?? state.aspectRatio;
             const platform = variation.platform ?? state.platform;
-            // "Fonte única da verdade": aplica aspectRatioOptimizations[aspectRatio]
-            // sobre a variação ANTES de derivar cores e bgValue. Isso garante que
-            // HoloDeck e Workbench leiam a mesma fonte para cores/layout por formato.
-            const arAdjustedVariation = createPostVisualSnapshot(variation, aspectRatio);
+            // Fase A.2 (SPEC-001 estende para v4): snapshots frozen (snapshotVersion
+            // 3 ou 4) já foram normalizados server-side. Confiamos neles verbatim
+            // quando (a) declaram v3/v4, (b) o aspect ratio bate e (c) o shape passa
+            // por safeParse do schema canônico. Sem (c), um objeto com versão
+            // correta mas campos faltantes/inválidos atravessa o normalizador
+            // (compatibilidade). Variações legadas (v1/v2 ou sem snapshotVersion)
+            // sempre normalizam.
+            const declaredVersion = (variation as PostVisualSnapshot).snapshotVersion;
+            const isFrozenVersion = declaredVersion === 3 || declaredVersion === 4;
+            const frozenShape = isFrozenVersion
+                && variation.aspectRatio === aspectRatio
+                && postVisualSnapshotSchema.safeParse(variation).success;
+            if (!frozenShape && isFrozenVersion && import.meta.env.DEV) {
+                console.warn('[editorStore] snapshot v3/v4 rejeitou safeParse — caindo para normalizador canônico');
+            }
+            const isFrozenV3 = frozenShape;
+            const arAdjustedVariation = isFrozenV3
+                ? (variation as PostVisualSnapshot)
+                : createPostVisualSnapshot(variation, aspectRatio);
             const slides = arAdjustedVariation.slides ?? [];
             const postMode = arAdjustedVariation.postMode ?? (slides.length > 0 ? 'carousel' : 'static');
             const responsiveLayouts = arAdjustedVariation.layoutSettingsByAspectRatio ?? {};
-            const initialLayout = arAdjustedVariation.snapshotVersion === 3 && arAdjustedVariation.aspectRatio === aspectRatio
+            const initialLayout = (arAdjustedVariation.snapshotVersion === 3 || arAdjustedVariation.snapshotVersion === 4) && arAdjustedVariation.aspectRatio === aspectRatio
                 ? arAdjustedVariation.layoutSettings
                 : responsiveLayouts[aspectRatio] ?? arAdjustedVariation.layoutSettings ?? layoutToAdvanced(arAdjustedVariation.layout);
             const imageSettings = normalizeImageSettings(arAdjustedVariation.imageSettings);
@@ -617,7 +633,9 @@ export const useEditorStore = create<EditorState>((set, get) => {
 
             const patchVariation = (variation: PostVariation | null) => {
                 if (!variation) return null;
-                const arPatched = createPostVisualSnapshot(variation, currentRatio);
+                const arPatched = createPostVisualSnapshot(variation, currentRatio, {
+                    preserveVisualIdentity: true,
+                });
                 const hasExplicitLayout = storedLayouts[currentRatio] != null;
                 return {
                     ...arPatched,

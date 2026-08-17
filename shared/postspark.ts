@@ -291,6 +291,13 @@ export interface CarouselSlideEditorState {
   layoutSettings?: Partial<AdvancedLayoutSettings>;
   bgValue?: BackgroundValue;
   bgOverlay?: Partial<BgOverlaySettings>;
+  /**
+   * Resolução tipográfica própria do slide (SPEC-001). Guardada aqui — não
+   * nos campos-base do snapshot — para que a resolução do slide atual nunca
+   * vaze para os outros slides nem para o documento base.
+   */
+  resolvedTypography?: ResolvedTypography;
+  typographyResolutionError?: string;
 }
 
 /** Specific design optimizations for an aspect ratio */
@@ -345,6 +352,16 @@ export interface LayoutPosition {
   textAlign: TextAlignment;
   freePosition?: FreePosition;
   width?: number;
+  /**
+   * Altura disponível para o slot, em % da altura do canvas (mesmo sistema de
+   * coordenadas de `pxY`/`freePosition.y`). Junto de `width`, é o orçamento
+   * geométrico que o resolvedor tipográfico (SPEC-001, `shared/typography/`)
+   * usa para `fitText` — sem isso, a altura só existia implicitamente no CSS
+   * do renderer e não podia ser medida no servidor. Slots simbólicos legados
+   * (sem `freePosition`) continuam sem `height`; só a física do cliente
+   * (flex/grid) resolve esses.
+   */
+  height?: number;
   backgroundColor?: string;
   borderRadius?: number;
 }
@@ -404,6 +421,14 @@ export interface TextElement {
     textAlign: "left" | "center" | "right";
     lineHeight: string;
     opacity: string;
+    /**
+     * Opcional: `AdvancedTextNode.tsx` espalha `styles` inteiro num
+     * `style` React (`...element.styles`), então qualquer campo aqui É
+     * aplicado como CSS de verdade — não é decorativo/ignorado. Adicionado
+     * na SPEC-002 porque famílias como `kinetic-type` já dependiam disto
+     * via `as any` (campo existia em runtime, fora do tipo).
+     */
+    textTransform?: "none" | "uppercase" | "lowercase" | "capitalize";
   };
 }
 
@@ -462,7 +487,7 @@ export interface CreativeDirection {
   seed: number;
   axes: CreativeAxes;
   source: "llm-intent" | "classifier" | "user";
-  hiddenOrnaments?: { badge?: string; stickerText?: string };
+  hiddenOrnaments?: { badge?: string; stickerText?: string; body?: string };
 }
 
 /** A single generated post variation */
@@ -565,12 +590,86 @@ export interface PostVariation {
   bgOverlay?: BgOverlaySettings;
 }
 
+/**
+ * Bloco de texto com tipografia resolvida deterministicamente (SPEC-001,
+ * docs/reforma/SPEC-001). Medido com a fonte real via `shared/typography/`
+ * — nunca recalculado pelo renderer (`useTextAutoFit` e line-clamp não
+ * decidem mais layout em snapshots v4).
+ */
+export interface ResolvedTextBlock {
+  text: string;
+  fontFamily: string;
+  fontWeight: number;
+  fontSizePx: number;
+  lineHeight: number;
+  lines: string[];
+  box: { x: number; y: number; width: number; height: number };
+  textTransform?: "none" | "uppercase" | "lowercase";
+}
+
+export interface ResolvedTypography {
+  engineVersion: string;
+  headline: ResolvedTextBlock;
+  body?: ResolvedTextBlock;
+}
+
+/**
+ * Diagnóstico estrutural do resolvedor de geometria (SPEC-002,
+ * docs/reforma/SPEC-002 passo 7). Tipos movidos de `shared/visualFit.ts`
+ * para cá para poderem ser referenciados por `PostVisualSnapshot` sem criar
+ * import circular (`visualFit.ts` já importa `PostVisualSnapshot` daqui).
+ */
+export type VisualFitIssueType =
+  | "headline_body_overlap"
+  | "structured_absolute_layout"
+  | "card_too_narrow"
+  | "text_element_outside_canvas"
+  | "text_element_overlaps_copy"
+  | "text_exceeds_visible_area"
+  | "outside_safe_area"
+  | "section_overlap"
+  | "section_missing_geometry";
+
+export interface VisualFitIssue {
+  type: VisualFitIssueType;
+  target: string;
+  detail: string;
+}
+
 export interface PostVisualSnapshot extends PostVariation {
   /**
    * Version 2 marks snapshots resolved by the canonical frontend pipeline.
    * Version 1 remains readable for persisted posts created before that pipeline.
+   * Version 4 (SPEC-001) carries `resolvedTypography` — a single deterministic
+   * typography decision that HoloDeck, Workbench, exportação e histórico
+   * consomem verbatim. Snapshots v1-v3 continuam legíveis; são promovidos
+   * para v4 pelo normalizador canônico quando entram em edição/persistência
+   * nova, nunca mutados silenciosamente pelo renderer.
    */
-  snapshotVersion: 1 | 2 | 3;
+  snapshotVersion: 1 | 2 | 3 | 4;
+  /**
+   * Presente quando `snapshotVersion === 4` e a resolução teve sucesso.
+   * Ausente em v4 quando a resolução falhou de forma estruturada (ver
+   * `typographyResolutionError`) ou quando a família usa template
+   * estruturado (fora do escopo de headline/body livre desta spec).
+   */
+  resolvedTypography?: ResolvedTypography;
+  /**
+   * Motivo estruturado e observável de uma falha de resolução tipográfica
+   * (fonte ausente, palavra indivisível, copy que não cabe no piso de
+   * legibilidade, geometria ausente). Nunca uma mutação silenciosa do
+   * renderer — ver "Falhas explícitas" na SPEC-001.
+   */
+  typographyResolutionError?: string;
+  /**
+   * Issues que `applyVisualFitFallback` (shared/visualFit.ts) encontrou e
+   * corrigiu ao fechar este snapshot — o diagnóstico que motivou a correção,
+   * não só o resultado já corrigido (SPEC-002 passo 7: "falha que não cabe
+   * deve retornar issue estruturada... não apagar elementos silenciosamente").
+   */
+  visualFitIssues?: VisualFitIssue[];
+  /** IDs dos `textElements` decorativos removidos pelo fallback por colidir com a cópia ou sair do canvas. */
+  removedTextElementIds?: string[];
   aspectRatio: AspectRatio;
   postMode: PostMode;
   imageSettings: ImageSettings;
@@ -647,6 +746,7 @@ export interface GenerationEvaluationSummary {
     platformFit: number;
     visualReadability: number;
     captionCoherence: number;
+    layoutIntegrity: number;
   };
   feedback: string[];
 }

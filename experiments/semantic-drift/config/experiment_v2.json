@@ -1,0 +1,41 @@
+{
+  "repo": "PostSpark 3",
+  "description": "PILOTO-2: mesma bateria congelada do piloto-1, instrumento de retrieval melhorado. Unicas mudancas: embedding model e chunking. Hipoteses, benchmark (hash a5732f25...), checkpoints e estatistica INALTERADOS.",
+  "created": "2026-08-14",
+  "file_universe": {
+    "comment": "Identico ao piloto-1 (experiment.json).",
+    "include_dirs": ["client/", "server/", "shared/", "api/", "drizzle/", "scripts/", "lib/"],
+    "include_extensions": [".ts", ".tsx", ".js", ".mjs", ".cjs", ".sql"],
+    "exclude_rules": [
+      "Arquivos binarios (numstat '-') sao excluidos",
+      "Qualquer path fora de include_dirs",
+      "Testes (*.test.ts) INCLUIDOS"
+    ]
+  },
+  "baselines": {
+    "A": {"s0": "d5b84620f21d7bfa23f2baf57ed21317a6a4fd34", "s0_abbrev": "d5b8462", "s0_date": "2026-02-26", "selection_step": 4},
+    "B": {"s0": "ec3dbfd291ad3a5242c97cd151c36dc454d62242", "s0_abbrev": "ec3dbfd", "s0_date": "2026-06-15", "selection_step": 2}
+  },
+  "checkpoint_selection_rule": "Identica ao piloto-1; reutiliza config/checkpoints.json sem regenerar.",
+  "head": "f4025186a609deffee9f1d099cc50ee4ef6c826b",
+  "d0": {
+    "comment": "Formula V0 congelada, identica ao piloto-1. D0 nao muda entre pilotos.",
+    "mass": "m_i = ln(1 + max(LOC_s0, LOC_st))",
+    "delta": "delta_i = (added_i + deleted_i) / (LOC_s0_i + LOC_st_i), clip [0,1]; 0 se denominador 0",
+    "universe": "U = arquivos do universo presentes em S0 ou St (uniao)",
+    "formula": "D0 = sum(m_i * delta_i) / sum(m_i)",
+    "loc_definition": "numero de '\\n' no blob + 1 se o blob nao termina em '\\n' e nao e vazio",
+    "diff_mode": "git diff --numstat SEM -M",
+    "rename_diagnostics": "git diff -M50 --name-status, apenas diagnostico"
+  },
+  "retrieval": {
+    "embedding_model": "intfloat/multilingual-e5-base",
+    "chunking": {"lines_per_chunk": 25, "overlap_lines": 5},
+    "search": "cosseno exato, forca bruta NumPy, sem ANN",
+    "top_k_primary": 5,
+    "query_prefix": "query: ",
+    "passage_prefix": "passage: "
+  },
+  "indexes_dir": "indexes-v2",
+  "results_dir": "results-v2"
+}

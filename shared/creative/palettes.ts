@@ -55,12 +55,38 @@ export function paletteToDesignTokens(p: PaletteDef, inverted: boolean): DesignT
   const secondary = mix(primary, background, 0.35);
   const card = isDark(background) ? lighten(background, 6) : darken(background, 4);
 
+  // CR-003 (E5): contraste WCAG AA garantido por construção. Se o par
+  // escolhido ficou abaixo de 4.5:1 (ex.: `true-pink` sem inversão — texto
+  // vermelho sobre fundo claro), ajusta a cor do TEXTO até passar — a cor de
+  // fundo da marca é preservada; o texto é que ganha a variante acessível.
+  // O acento (primary) também é calibrado contra o fundo efetivo: cor de
+  // marca desbotada é preferível a texto ilegível.
+  const ensureAa = (fg: string, bg: string): string => {
+    let candidate = fg;
+    let lighter = fg;
+    let darker = fg;
+    for (let step = 0; step < 40 && contrastRatio(candidate, bg) < 4.5; step += 1) {
+      if (isDark(bg)) {
+        lighter = lighten(lighter, 6);
+        candidate = lighter;
+      } else {
+        darker = darken(darker, 6);
+        candidate = darker;
+      }
+    }
+    return candidate;
+  };
+
+  const accessibleText = contrastRatio(text, background) >= 4.5 ? text : ensureAa(text, background);
+  const accessiblePrimary = contrastRatio(primary, background) >= 4.5 ? primary : ensureAa(primary, background);
+  const accessibleSecondary = contrastRatio(secondary, background) >= 4.5 ? secondary : ensureAa(secondary, background);
+
   return {
     colors: {
       background,
-      primary,
-      secondary,
-      text,
+      primary: accessiblePrimary,
+      secondary: accessibleSecondary,
+      text: accessibleText,
       card,
     },
     typography: {

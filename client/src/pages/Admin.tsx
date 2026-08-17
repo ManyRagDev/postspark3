@@ -75,15 +75,26 @@ export default function Admin() {
                                 Não foi possível carregar as métricas de geração.
                             </p>
                         ) : (
-                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                                {metricCards.map((metric) => (
-                                    <div key={metric.label} className="rounded-xl border border-white/10 bg-black/20 p-4">
-                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                                            {metric.label}
-                                        </span>
-                                        <p className="mt-2 text-xl font-mono text-cyan-300">{metric.value}</p>
+                            <div className="space-y-4">
+                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                    {metricCards.map((metric) => (
+                                        <div key={metric.label} className="rounded-xl border border-white/10 bg-black/20 p-4">
+                                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                                {metric.label}
+                                            </span>
+                                            <p className="mt-2 text-xl font-mono text-cyan-300">{metric.value}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                {generationMetrics && (
+                                    <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                                        <p className="text-sm font-semibold text-foreground">Gate do pipeline de grafo</p>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            O shadow graph e o pipeline experimental foram removidos na SPEC-003/005 —
+                                            não há mais gate de rollout baseado em grafo.
+                                        </p>
                                     </div>
-                                ))}
+                                )}
                             </div>
                         )}
                     </CardContent>

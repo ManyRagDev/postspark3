@@ -6,3 +6,4 @@ export * from "./palettes";
 export * from "./families";
 export * from "./directCreative";
 export * from "./compose";
+export * from "./visualDiversityPlan";

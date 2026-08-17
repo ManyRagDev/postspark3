@@ -331,7 +331,25 @@ export default function HoloDeck({
       if (variations.length === 0) return 0;
       return prev >= variations.length ? variations.length - 1 : prev;
     });
+    // Sincroniza o seletor de aspecto com o aspect ratio real do snapshot
+    // ativo. Sem isto, o seletor fica preso em "1:1" (default) e o snapshot
+    // frozen (que pode ser 9:16) é re-normalizado para o formato errado,
+    // produzindo layouts tortos e divergência HoloDeck/Workbench.
+    const firstVariation = variations[0];
+    if (firstVariation?.aspectRatio) {
+      setAspectRatio(firstVariation.aspectRatio);
+    }
   }, [variations]);
+
+  // Ao navegar entre variações, sincroniza o seletor com o aspect ratio da
+  // variação ativa. O design multi-formato faz cada variação ter seu próprio
+  // aspect ratio (uma 1:1, outra 5:6, outra 9:16); o seletor deve acompanhá-la.
+  useEffect(() => {
+    const activeVariation = localVariations[currentIndex];
+    if (activeVariation?.aspectRatio) {
+      setAspectRatio(activeVariation.aspectRatio);
+    }
+  }, [currentIndex, localVariations]);
 
   // When user selects a preset theme (Chameleon), convert to tokens and enter custom mode
   const handleChameleonThemeSelect = useCallback((theme: ThemeConfig) => {
@@ -376,7 +394,16 @@ export default function HoloDeck({
   const activeVariation = localVariations[currentIndex];
   const getPreviewVariation = useCallback(
     (variation: PostVisualSnapshot) => {
-      const snapshot = createPostVisualSnapshot(variation, aspectRatio);
+      // Snapshots frozen no formato original são consumidos verbatim. Ao trocar
+      // somente o formato, o normalizador canônico pode adaptar a geometria, mas
+      // deve preservar a identidade visual escolhida e todos os elementos.
+      const isFrozenAtThisRatio = (variation.snapshotVersion === 3 || variation.snapshotVersion === 4)
+        && variation.aspectRatio === aspectRatio;
+      const snapshot = isFrozenAtThisRatio
+        ? variation
+        : createPostVisualSnapshot(variation, aspectRatio, {
+            preserveVisualIdentity: true,
+          });
       return customTokens
         ? applyDesignTokensToSnapshot(snapshot, customTokens, selectedTheme?.brandMeta)
         : snapshot;

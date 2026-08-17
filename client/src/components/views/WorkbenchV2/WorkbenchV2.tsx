@@ -12,7 +12,7 @@
  */
 
 import React from "react";
-import { ArrowLeft, Download, Type, Palette, Image as ImageIcon, Layout as LayoutIcon, Save, Loader2, Undo2, Redo2 } from "lucide-react";
+import { ArrowLeft, Download, Type, Palette, Image as ImageIcon, Layout as LayoutIcon, Save, Loader2, Undo2, Redo2, ImagePlus } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { useEditorHistory } from "@/editor/history/useEditorHistory";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -227,6 +227,9 @@ function LeftSidebar({ onGenerateImage, isGenerating, accentColor }: LeftSidebar
 export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, generationDebug }: WorkbenchV2Props) {
   const activeVariation = useEditorStore(s => s.activeVariation);
   const baseVariation = useEditorStore(s => s.baseVariation);
+  const addImageElement = useEditorStore(s => s.addImageElement);
+  const setLayoutTarget = useEditorStore(s => s.setLayoutTarget);
+  const aspectRatio = useEditorStore(s => s.aspectRatio);
   const canvasRef = React.useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const arcDrawer = useArcDrawer();
@@ -265,6 +268,31 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
       }
     },
     [generateBackgroundMutation]
+  );
+
+  const handleImageUpload = React.useCallback(
+    (file: File) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const url = ev.target?.result as string;
+        const cardWidth = 360;
+        const cardHeight = aspectRatio === "9:16" ? 640 : aspectRatio === "5:6" ? 432 : 360;
+        const newElement = {
+          id: `img-${Date.now()}`,
+          url,
+          x: cardWidth / 2 - 60,
+          y: cardHeight / 2 - 60,
+          width: 120,
+          height: "auto" as const,
+          rotation: 0,
+          source: "upload" as const,
+        };
+        addImageElement(newElement);
+        setLayoutTarget(`imageElement:${newElement.id}`);
+      };
+      reader.readAsDataURL(file);
+    },
+    [aspectRatio, addImageElement, setLayoutTarget],
   );
 
   const handleExport = React.useCallback(async () => {
@@ -407,6 +435,15 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
         )}
 
         <div className="flex items-center gap-1.5 sm:gap-2 ml-auto shrink-0">
+          <label className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 hover:bg-white/10 cursor-pointer"
+            style={{ color: accentColor }}
+            title="Adicionar imagem ao canvas"
+          >
+            <ImagePlus size={14} />
+            {!isMobile && <span>Adicionar Imagem</span>}
+            <input type="file" accept="image/*" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) { handleImageUpload(f); e.target.value = ""; } }} />
+          </label>
           <button
             onClick={undo}
             disabled={!canUndo}

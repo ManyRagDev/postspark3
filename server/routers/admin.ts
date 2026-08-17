@@ -57,7 +57,6 @@ export const adminRouter = router({
 
     getAiRollout: adminProcedure.query(() => ({
         siteIntelligence: ENV.aiSiteIntelligenceEnabled,
-        contentStrategy: ENV.aiContentStrategyEnabled,
         llmJudge: ENV.aiLlmJudgeEnabled,
         semanticEmbeddings: ENV.aiSemanticEmbeddingsEnabled,
         modelFallback: ENV.aiModelFallbackEnabled,

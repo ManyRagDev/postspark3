@@ -5,6 +5,14 @@
  *  - 1:1  ≈ 380px wide  → fonte base compacta
  *  - 5:6  ≈ 320px wide  → fonte base média
  *  - 9:16 ≈ 260px wide  → fonte proporcionalmente menor (card estreito e alto)
+ *
+ * SUBSTITUÍDO PELA SPEC-001 (docs/reforma/SPEC-001) para snapshots v4: mede
+ * por contagem de caracteres, nunca pela fonte real. `PostCardV2` só usa o
+ * resultado deste hook quando `snapshot.resolvedTypography` está ausente —
+ * ou seja, snapshots v1-v3 (leitura legada) ou v4 cuja resolução determinística
+ * falhou de forma estruturada. Não decide mais nada para v4 resolvido com
+ * sucesso. Não usar em código novo — o caminho canônico é
+ * `shared/typography/resolve.ts`.
  */
 
 import { useMemo } from "react";

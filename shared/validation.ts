@@ -5,9 +5,16 @@ export const STATIC_SECTION_LABEL_MAX_LENGTH = 24;
 export const STATIC_SECTION_DESCRIPTION_MAX_LENGTH = 36;
 
 export function hasRequiredCopy(variation: Partial<PostVariation>): boolean {
+  // Famílias headline-only escondem o body do VISUAL via
+  // `ornaments.body: "hide"` (shared/creative/compose.ts) — o texto continua
+  // presente, só relocado para `creativeDirection.hiddenOrnaments.body`. Um
+  // body vazio nesse caso não é copy faltando, é supressão deliberada.
+  const hasBody = Boolean(
+    variation.body?.trim() || variation.creativeDirection?.hiddenOrnaments?.body?.trim(),
+  );
   return Boolean(
     variation.headline?.trim() &&
-      variation.body?.trim() &&
+      hasBody &&
       variation.caption?.trim() &&
       variation.callToAction?.trim() &&
       variation.imagePrompt?.trim(),

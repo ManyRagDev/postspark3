@@ -3,6 +3,7 @@ import { ENV } from "../_core/env";
 import { createGenerationRun } from "../db";
 import {
   finishGenerationTrace,
+  recordGenerationEvent,
   recordLlmTraceCall,
   startGenerationTrace,
 } from "./generationTrace";
@@ -68,6 +69,40 @@ describe("generationTrace", () => {
         candidateCount: 0,
         acceptedCount: 0,
         errorMessage: "generation failed",
+      }),
+    );
+  });
+
+  it("persists the versioned generation event stream", async () => {
+    const trace = startGenerationTrace({
+      userUuid: "00000000-0000-0000-0000-000000000001",
+      inputType: "text",
+      inputContent: "baseline",
+      platform: "instagram",
+      postMode: "static",
+      creationMode: "ideation",
+      requestedModel: "gemini",
+    });
+    recordGenerationEvent({
+      stage: "generation_graph_shadow",
+      status: "completed",
+      detail: "shadow parity confirmed",
+      data: { validationErrors: [] },
+    });
+
+    await finishGenerationTrace({ trace, status: "completed" });
+
+    expect(createGenerationRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventsVersion: 2,
+        events: [
+          expect.objectContaining({
+            stage: "generation_graph_shadow",
+            status: "completed",
+            detail: "shadow parity confirmed",
+            at: expect.any(String),
+          }),
+        ],
       }),
     );
   });

@@ -1,4 +1,4 @@
-﻿-- Dual-write migration for postspark.posts
+-- Dual-write migration for postspark.posts
 -- Date: 2026-03-08
 -- Goal: keep legacy integer userId and introduce UUID ownership via user_uuid
 

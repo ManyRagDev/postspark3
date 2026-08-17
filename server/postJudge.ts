@@ -10,39 +10,31 @@
  * Runs AFTER generation completes (lazy scoring) — never blocks the user.
  *
  * Cost: ~0 ✦ (included as quality differentiation, not charged separately)
+ *
+ * ── SPEC-005 · classificação: COMPATIBILIDADE ─────────────────────────────
+ * Endpoint público `post.evaluateQuality` (server/routers.ts) sem chamador
+ * interno confirmado no client. Mantido porque é superfície de contrato tRPC
+ * utilizável por clientes externos e não é apenas validação/contraste
+ * (agrega juiz LLM). Critério de retirada: remover na próxima reforma se,
+ * após 90 dias de uso registrado em logs, não houver chamador — registro em
+ * docs/reforma/SPEC-005-PEDIDO.md e teste de compatibilidade em
+ * server/postJudge.compat.test.ts.
  */
 
 import { invokeLLM } from "./_core/llm";
 import type { PostVariation, PostEvaluation, PostQualityResult, BrandDNA } from "@shared/postspark";
+import { contrastRatio as sharedContrastRatio } from "@shared/creative/color";
 
 // ─── Color contrast helper (WCAG AA) ────────────────────────────────────────
-
-function hexToRgb(hex: string): [number, number, number] | null {
-    const h = hex.replace('#', '');
-    if (h.length < 6) return null;
-    return [
-        parseInt(h.slice(0, 2), 16),
-        parseInt(h.slice(2, 4), 16),
-        parseInt(h.slice(4, 6), 16),
-    ];
-}
-
-function relativeLuminance(r: number, g: number, b: number): number {
-    const [rs, gs, bs] = [r, g, b].map((v) => {
-        const s = v / 255;
-        return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-    });
-    return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
-}
+// SPEC-002: delega para shared/creative/color.ts (única fonte); preserva o
+// contrato antigo (hex inválido → 1, "sem contraste comprovado") em vez de lançar.
 
 function contrastRatio(hex1: string, hex2: string): number {
-    const rgb1 = hexToRgb(hex1);
-    const rgb2 = hexToRgb(hex2);
-    if (!rgb1 || !rgb2) return 1;
-    const l1 = relativeLuminance(...rgb1);
-    const l2 = relativeLuminance(...rgb2);
-    const [light, dark] = l1 > l2 ? [l1, l2] : [l2, l1];
-    return (light + 0.05) / (dark + 0.05);
+    try {
+        return sharedContrastRatio(hex1, hex2);
+    } catch {
+        return 1;
+    }
 }
 
 /** Map contrast ratio to a 0-100 readability score (WCAG AA = 4.5:1 is 70+) */

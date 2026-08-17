@@ -75,12 +75,30 @@ export interface FamilyOutput {
   bodyFontSize?: number;
   headlineColor?: string;
   bodyColor?: string;
+  /**
+   * CR-003 — cor de TEXTO geral imposta pela família (ex.: duotone-wash usa
+   * a cor de alto contraste do seu overlay, não a cor de marca — usar a cor
+   * de marca como texto a faria sumir no próprio wash). Aplicada em
+   * `composeVariation` junto com headlineColor/bodyColor.
+   */
+  textColor?: string;
   structure?: Partial<DesignTokens["structure"]>;
   typography?: Partial<Pick<DesignTokens["typography"], "textTransform" | "textAlign">>;
+  /**
+   * SPEC-002 (docs/reforma/SPEC-002 passo 3): campo já existia em `families.ts`
+   * (`mosaic-grid`) fora do tipo — `composeVariation` nunca o lia, então não
+   * tinha efeito nenhum. Adicionado ao contrato e mesclado em `mergedTokens`
+   * em `compose.ts` para que a intenção da família (visual "playful") volte a
+   * ter efeito real.
+   */
+  decorations?: DesignTokens["decorations"];
   ornaments?: {
     badge?: "keep" | "hide";
     sticker?: "keep" | "hide";
     accentBar?: "keep" | "hide";
+    /** "hide" remove o body do VISUAL (fica no stash e na caption); usar em
+     *  famílias headline-only, que não têm orçamento vertical para body. */
+    body?: "keep" | "hide";
   };
   cardMode?: "card" | "full-bleed";
 }

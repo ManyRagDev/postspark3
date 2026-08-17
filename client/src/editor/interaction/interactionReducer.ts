@@ -12,7 +12,7 @@ import {
   type DocumentRect,
   type ElementGeometry,
 } from "../geometry";
-import { snapDraftToGrid, DEFAULT_SNAP_CONFIG } from "../snap/snapEngine";
+import { snapDraft, snapDraftToGrid, DEFAULT_SNAP_CONFIG } from "../snap/snapEngine";
 import { GRID_SNAP_COORDINATES } from "../adapters/layoutPositionAdapter";
 import { IDLE_INTERACTION_STATE } from "./transientStore";
 import type {
@@ -136,17 +136,66 @@ export function reduceInteractionState(
       let snappedDraft = draft;
       let snapGuides;
       if (state.intent.type === "drag" && snapConfig?.isSnapEnabled) {
-        const { documentSize } = state.viewport;
-        const gridXs = GRID_SNAP_COORDINATES.map(percent => (percent / 100) * documentSize.width);
-        const gridYs = GRID_SNAP_COORDINATES.map(percent => (percent / 100) * documentSize.height);
-        const result = snapDraftToGrid(
+        const resolvedSnapConfig = {
+          ...DEFAULT_SNAP_CONFIG,
+          ...snapConfig,
+          altSuspended: event.modifiers.alt || (snapConfig.altSuspended ?? false),
+        };
+        const candidateResult = snapDraft(
           draft.rect,
-          gridXs,
-          gridYs,
-          { ...DEFAULT_SNAP_CONFIG, ...snapConfig, toleranceScreenPx: 12, altSuspended: event.modifiers.alt || (snapConfig?.altSuspended ?? false) },
+          state.candidates ?? [],
+          resolvedSnapConfig,
           state.viewport.scaleX,
           state.viewport.scaleY,
         );
+        const { documentSize } = state.viewport;
+        const gridXs = GRID_SNAP_COORDINATES.map(percent => (percent / 100) * documentSize.width);
+        const gridYs = GRID_SNAP_COORDINATES.map(percent => (percent / 100) * documentSize.height);
+        const gridResult = snapDraftToGrid(
+          draft.rect,
+          gridXs,
+          gridYs,
+          { ...resolvedSnapConfig, toleranceScreenPx: 12 },
+          state.viewport.scaleX,
+          state.viewport.scaleY,
+        );
+        const candidateDx = candidateResult.guides.guideX === null
+          ? Number.POSITIVE_INFINITY
+          : Math.abs(candidateResult.rect.x - draft.rect.x);
+        const candidateDy = candidateResult.guides.guideY === null
+          ? Number.POSITIVE_INFINITY
+          : Math.abs(candidateResult.rect.y - draft.rect.y);
+        const gridDx = gridResult.guides.guideX === null
+          ? Number.POSITIVE_INFINITY
+          : Math.abs(gridResult.rect.x - draft.rect.x);
+        const gridDy = gridResult.guides.guideY === null
+          ? Number.POSITIVE_INFINITY
+          : Math.abs(gridResult.rect.y - draft.rect.y);
+        const hasCanvasCandidate = (state.candidates ?? []).some(
+          candidate => candidate.id === "canvas",
+        );
+        const xResult = hasCanvasCandidate && Number.isFinite(gridDx)
+          ? gridResult
+          : candidateDx <= gridDx ? candidateResult : gridResult;
+        const yResult = hasCanvasCandidate && Number.isFinite(gridDy)
+          ? gridResult
+          : candidateDy <= gridDy ? candidateResult : gridResult;
+        const result = {
+          rect: documentRect(
+            Number.isFinite(Math.min(candidateDx, gridDx)) ? xResult.rect.x : draft.rect.x,
+            Number.isFinite(Math.min(candidateDy, gridDy)) ? yResult.rect.y : draft.rect.y,
+            draft.rect.width,
+            draft.rect.height,
+          ),
+          guides: {
+            snapX: xResult.guides.snapX,
+            snapY: yResult.guides.snapY,
+            guideX: xResult.guides.guideX,
+            guideY: yResult.guides.guideY,
+            candidateIdX: xResult.guides.candidateIdX,
+            candidateIdY: yResult.guides.candidateIdY,
+          },
+        };
         snappedDraft = elementGeometry(draft.id, draft.kind, result.rect, draft.rotationDeg);
         if (result.guides.guideX !== null || result.guides.guideY !== null) {
           snapGuides = result.guides;

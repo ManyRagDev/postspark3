@@ -48,6 +48,124 @@ describe('editorStore', () => {
         expect(state.baseVariation?.body).toBe('Corpo editado');
     });
 
+    // SPEC-001 passo 5: toda edição de copy invalida e recalcula a resolução
+    // tipográfica ANTES do próximo render — provado aqui via o mesmo
+    // mecanismo atômico (`setWithSnapshot` → `buildVariationSnapshot`) que já
+    // recalcula o visualSnapshot inteiro a cada mutação de estado.
+    it('recomputes resolvedTypography atomically when headline/body copy changes', () => {
+        const store = useEditorStore.getState();
+        // template "simple" (não feature-grid): headline/body em posição
+        // livre, dentro do escopo de resolução da SPEC-001 — a fixture
+        // padrão usa feature-grid/sections, que é deliberadamente excluído.
+        store.setActiveVariation(
+            createPostVariation({ headline: 'Título inicial curto', template: 'simple', sections: undefined }),
+        );
+
+        const beforeSnapshot = useEditorStore.getState().visualSnapshot;
+        expect(beforeSnapshot?.snapshotVersion).toBe(4);
+        // Resolução bem-sucedida OU falha estruturada — nunca stale/ausente
+        // de forma silenciosa: um dos dois campos reflete o headline atual.
+        expect(
+            beforeSnapshot?.resolvedTypography?.headline.text === 'Título inicial curto' ||
+                typeof beforeSnapshot?.typographyResolutionError === 'string',
+        ).toBe(true);
+
+        store.updateVariation({ headline: 'Um título completamente diferente e mais longo' });
+        const afterSnapshot = useEditorStore.getState().visualSnapshot;
+
+        expect(afterSnapshot?.snapshotVersion).toBe(4);
+        // Nunca deve sobrar a resolução do headline ANTERIOR — provaria que a
+        // atualização não foi atômica (renderizaria texto novo com geometria
+        // resolvida para o texto velho).
+        expect(afterSnapshot?.resolvedTypography?.headline.text).not.toBe('Título inicial curto');
+        expect(
+            afterSnapshot?.resolvedTypography?.headline.text === 'Um título completamente diferente e mais longo' ||
+                typeof afterSnapshot?.typographyResolutionError === 'string',
+        ).toBe(true);
+    });
+
+    // CR-002: edição de headline/body/proporção precisa produzir uma NOVA
+    // resolução tipográfica VÁLIDA — `typographyResolutionError` não é
+    // sucesso. A fixture usa geometria explícita (freePosition + width +
+    // height, contrato canônico) para que a resolução seja possível; o
+    // medidor de fontkit está registrado globalmente (vitest.setup.ts).
+    function variationWithExplicitGeometry(overrides: Partial<ReturnType<typeof createPostVariation>> = {}) {
+        return createPostVariation({
+            headline: 'Título inicial curto',
+            template: 'simple',
+            sections: undefined,
+            layoutSettings: {
+                padding: 32,
+                headline: {
+                    position: 'top-left',
+                    textAlign: 'left',
+                    freePosition: { x: 50, y: 24 },
+                    width: 84,
+                    height: 30,
+                },
+                body: {
+                    position: 'top-left',
+                    textAlign: 'left',
+                    freePosition: { x: 50, y: 62 },
+                    width: 84,
+                    height: 20,
+                },
+            } as never,
+            ...overrides,
+        });
+    }
+
+    it('CR-002: editar headline e body produz resolução válida (nunca erro como sucesso)', () => {
+        const store = useEditorStore.getState();
+        store.setActiveVariation(variationWithExplicitGeometry());
+
+        const before = useEditorStore.getState().visualSnapshot;
+        expect(before?.snapshotVersion).toBe(4);
+        expect(before?.typographyResolutionError).toBeUndefined();
+        expect(before?.resolvedTypography?.headline.text).toBe('Título inicial curto');
+
+        store.updateVariation({ headline: 'Um título completamente diferente e mais longo' });
+        const afterHeadline = useEditorStore.getState().visualSnapshot;
+        expect(afterHeadline?.typographyResolutionError).toBeUndefined();
+        expect(afterHeadline?.resolvedTypography?.headline.text).toBe('Um título completamente diferente e mais longo');
+        expect(afterHeadline?.resolvedTypography?.headline.lines.length).toBeGreaterThan(1);
+
+        store.updateVariation({ body: 'Corpo editado com conteúdo maior para forçar nova quebra de linhas.' });
+        const afterBody = useEditorStore.getState().visualSnapshot;
+        expect(afterBody?.typographyResolutionError).toBeUndefined();
+        expect(afterBody?.resolvedTypography?.body.text).toBe('Corpo editado com conteúdo maior para forçar nova quebra de linhas.');
+        expect(afterBody?.resolvedTypography?.body.fontSizePx).toBeGreaterThan(0);
+    });
+
+    it('CR-002: mudar proporção re-resolve com geometria da nova proporção (sem erro)', () => {
+        const store = useEditorStore.getState();
+        store.setActiveVariation(variationWithExplicitGeometry());
+
+        store.setAspectRatio('9:16');
+        const snapshot = useEditorStore.getState().visualSnapshot;
+        expect(snapshot?.aspectRatio).toBe('9:16');
+        expect(snapshot?.snapshotVersion).toBe(4);
+        expect(snapshot?.typographyResolutionError).toBeUndefined();
+        expect(snapshot?.resolvedTypography?.headline.text).toBe('Título inicial curto');
+        expect(snapshot?.resolvedTypography?.headline.fontSizePx).toBeGreaterThan(0);
+    });
+
+    it('CR-002: ida e volta da edição preserva as mesmas linhas e caixa (determinismo)', () => {
+        const store = useEditorStore.getState();
+        store.setActiveVariation(variationWithExplicitGeometry());
+
+        const original = useEditorStore.getState().visualSnapshot;
+        expect(original?.typographyResolutionError).toBeUndefined();
+        const originalHeadline = original?.resolvedTypography?.headline;
+
+        store.updateVariation({ headline: 'Um título completamente diferente e mais longo' });
+        store.updateVariation({ headline: 'Título inicial curto' });
+
+        const back = useEditorStore.getState().visualSnapshot;
+        expect(back?.typographyResolutionError).toBeUndefined();
+        expect(back?.resolvedTypography?.headline).toEqual(originalHeadline);
+    });
+
     it('keeps platform synchronized across the editor state and variations', () => {
         const store = useEditorStore.getState();
         store.setActiveVariation(createPostVariation({ platform: 'instagram' }));
@@ -569,5 +687,43 @@ describe('editorStore', () => {
         });
 
         expect(useEditorStore.getState().visualSnapshot).toBe(snapshot);
+    });
+
+    it('preserves colors when switching aspect ratio, even with per-format color optimizations', () => {
+        // Regression test: the LLM emits aspectRatioOptimizations with different
+        // colors per format. Switching format in the editor must NOT re-apply
+        // those colors — the user expects the design they were viewing to be
+        // preserved, only the geometry adapts.
+        const variation = createPostVariation({
+            aspectRatio: '1:1',
+            backgroundColor: '#101828',
+            textColor: '#FFFFFF',
+            accentColor: '#7F56D9',
+            aspectRatioOptimizations: {
+                '1:1': { layout: 'centered', backgroundColor: '#101828', textColor: '#FFFFFF', accentColor: '#7F56D9' },
+                '5:6': { layout: 'centered', backgroundColor: '#FF0000', textColor: '#00FF00', accentColor: '#0000FF' },
+            },
+        });
+
+        const store = useEditorStore.getState();
+        store.setActiveVariation(variation);
+
+        // Snapshot the colors the user sees in 1:1.
+        const before = useEditorStore.getState().activeVariation;
+        expect(before?.backgroundColor).toBe('#101828');
+        expect(before?.accentColor).toBe('#7F56D9');
+
+        store.setAspectRatio('5:6');
+
+        const after = useEditorStore.getState().activeVariation;
+        // Colors must be preserved — the 5:6 optimization colors (#FF0000 etc.)
+        // must NOT leak into the editor when switching format.
+        expect(after?.backgroundColor).toBe('#101828');
+        expect(after?.textColor).toBe('#FFFFFF');
+        expect(after?.accentColor).toBe('#7F56D9');
+        expect(after?.aspectRatio).toBe('5:6');
+        // Design tokens must stay coherent with the preserved colors.
+        expect(after?.designTokens?.colors.background).toBe('#101828');
+        expect(after?.designTokens?.colors.primary).toBe('#7F56D9');
     });
 });

@@ -1,0 +1,48 @@
+{
+  "repo": "PostSpark 3",
+  "description": "Piloto D0: drift semantico observavel (S0 -> St) vs degradacao de retrieval de um indice RAG stale.",
+  "created": "2026-08-14",
+  "file_universe": {
+    "comment": "Criterios pre-registrados ANTES de qualquer calculo de D0 ou retrieval. Justificativas em preregistration.txt.",
+    "include_dirs": ["client/", "server/", "shared/", "api/", "drizzle/", "scripts/", "lib/"],
+    "include_extensions": [".ts", ".tsx", ".js", ".mjs", ".cjs", ".sql"],
+    "exclude_rules": [
+      "Arquivos binarios (numstat '-') sao excluidos",
+      "Qualquer path fora de include_dirs (docs .md, assets, dist, antigo/, tmp/, logs, patches, lockfiles)",
+      "Testes (*.test.ts) sao INCLUIDOS: sao codigo navegavel pela bussola"
+    ]
+  },
+  "baselines": {
+    "A": {
+      "s0": "d5b84620f21d7bfa23f2baf57ed21317a6a4fd34",
+      "s0_abbrev": "d5b8462",
+      "s0_date": "2026-02-26",
+      "selection_step": 4
+    },
+    "B": {
+      "s0": "ec3dbfd291ad3a5242c97cd151c36dc454d62242",
+      "s0_abbrev": "ec3dbfd",
+      "s0_date": "2026-06-15",
+      "selection_step": 2
+    }
+  },
+  "checkpoint_selection_rule": "git rev-list --first-parent --reverse S0..HEAD; indexacao 1-based; selecionar i % step == 0; incluir sempre o ultimo commit (HEAD) se ainda nao selecionado. Nenhuma exclusao posterior sem justificativa documentada.",
+  "head": "f4025186a609deffee9f1d099cc50ee4ef6c826b",
+  "d0": {
+    "mass": "m_i = ln(1 + max(LOC_s0, LOC_st))",
+    "delta": "delta_i = (added_i + deleted_i) / (LOC_s0_i + LOC_st_i), clip [0,1]; 0 se denominador 0",
+    "universe": "U = arquivos do universo presentes em S0 ou St (uniao)",
+    "formula": "D0 = sum(m_i * delta_i) / sum(m_i)",
+    "loc_definition": "numero de '\\n' no blob + 1 se o blob nao termina em '\\n' e nao e vazio",
+    "diff_mode": "git diff --numstat SEM -M: rename conta como delete total + add total (fraqueza conhecida da V0, registrada)",
+    "rename_diagnostics": "git diff -M50 --name-status registrado separadamente, apenas diagnostico"
+  },
+  "retrieval": {
+    "embedding_model": "intfloat/multilingual-e5-small",
+    "chunking": {"lines_per_chunk": 60, "overlap_lines": 10},
+    "search": "cosseno exato, forca bruta NumPy, sem ANN",
+    "top_k_primary": 5,
+    "query_prefix": "query: ",
+    "passage_prefix": "passage: "
+  }
+}

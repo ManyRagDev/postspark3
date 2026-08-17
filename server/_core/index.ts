@@ -10,9 +10,24 @@ import { serveStatic, setupVite } from "./vite";
 import { getStripe, handleStripeWebhook } from "../billing";
 import { ENV } from "./env";
 import {
+  appendOperationalLog,
   httpStatusFileLogger,
   installConsoleErrorFileLogging,
 } from "./operationalLog";
+import { ALL_FONTS, checkAvailability, FONT_DIR } from "@shared/typography/fonts/registry";
+
+const fontAvailability = checkAvailability(ALL_FONTS);
+if (fontAvailability.missing.length > 0) {
+  console.error(
+    `[typography] ${fontAvailability.missing.length} fonte(s) ausente(s) em ${FONT_DIR}: ` +
+      fontAvailability.missing.map((entry) => entry.family).join(", ") +
+      " — snapshots vão cair no caminho legado e sobrepor texto.",
+  );
+  void appendOperationalLog("TYPOGRAPHY_FONTS_MISSING", {
+    fontDir: FONT_DIR,
+    missing: fontAvailability.missing.map((entry) => entry.family),
+  });
+}
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {

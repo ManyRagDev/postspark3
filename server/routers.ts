@@ -13,28 +13,22 @@ import { extractStyleFromUrlWithMeta } from "./styleExtractor";
 import { analyzeDesignPattern, generateThemesFromPatterns } from "./designPatternAnalyzer";
 import { evaluatePostQuality } from "./postJudge";
 import type { SiteIntelligence } from "@shared/postspark";
-import { analyzeSiteIntelligence, loadSiteIntelligence, siteIntelligenceToDesignTokens, siteIntelligenceToPrompt } from "./siteIntelligence";
+import { analyzeSiteIntelligence, loadSiteIntelligence, siteIntelligenceToPrompt } from "./siteIntelligence";
 import { scrapeUrl as scrapeSiteUrl } from "./siteContent";
 import { extractBrandDNA } from "./brandDNA";
-import { composeVariation } from "@shared/creative";
-import { applyDeterministicCopyGuards } from "@shared/validation";
 import * as fs from "fs";
 import * as path from "path";
-import { getBillingProfile, debitSparks, getTopupPackages, createSubscriptionCheckout, createTopupCheckout, getSubscriptionPriceId, getSupabase, SPARK_COSTS } from "./billing";
+import { getBillingProfile, debitSparks, deriveIdempotencyKey, reserveSparks, commitSparkReservation, refundSparkReservation, getTopupPackages, createSubscriptionCheckout, createTopupCheckout, getSubscriptionPriceId, rpcCall, SPARK_COSTS } from "./billing";
 import { ENV } from "./_core/env";
 import { appendOperationalLog } from "./_core/operationalLog";
 import { TRPCError } from "@trpc/server";
-import { variationsNeedDiversification } from "./ai/variationDiversity";
-import { enforceBrandVisualGuardian } from "./ai/brandVisualGuardian";
 import { prepareGenerationPlan } from "./ai/generationPipeline";
-import { synthesizeCaptionsForVariations } from "./ai/captionSynthesis";
-import { evaluateAndReviseCandidates } from "./ai/postEvaluation";
+import { loadGenerationContext } from "./ai/contextLoader";
+import { routeHighTicketIntent, angleToStrategy } from "./ai/intentRouter";
 import { buildGenerationDebugTrace, finishGenerationTrace, recordGenerationEvent, startGenerationTrace } from "./ai/generationTrace";
 import { assessSemanticOriginality, persistCandidateFingerprints } from "./ai/semanticOriginality";
-import { runHighTicketPipeline } from "./ai/highTicket";
-import { runGenerationShadowGraph } from "./ai/generationGraph/shadow";
-import { runGenerationPipeline } from "./ai/generationGraph/pipeline";
-import { assertVariationSet, hasCoherentStaticItemCount, hasValidStaticSections, POST_VARIATION_TARGET, validateVariationSet } from "./ai/generationValidation";
+import { generatePostVariations, type ExecutionBriefContext } from "./ai/generationOrchestrator";
+import { safeJsonParse } from "./ai/llmJson";
 import {
   advancedLayoutSettingsSchema,
   backgroundValueSchema,
@@ -63,6 +57,12 @@ const summarizeGeneratedVariation = (variation: any, index: number) => ({
   layout: variation?.layout,
   platform: variation?.platform,
   postMode: variation?.postMode,
+  familyId: variation?.creativeDirection?.familyId,
+  typographyResolved: Boolean(variation?.resolvedTypography),
+  typographyResolutionError: variation?.typographyResolutionError,
+  visualFitIssues: Array.isArray(variation?.visualFitIssues)
+    ? variation.visualFitIssues.map((issue: any) => issue?.type)
+    : [],
   headline: logSnippet(variation?.headline),
   body: logSnippet(variation?.body),
   caption: logSnippet(variation?.caption, 500),
@@ -126,106 +126,7 @@ const summarizeGeneratedVariation = (variation: any, index: number) => ({
       }
     : undefined,
 });
-/**
- * Helper to safely parse JSON from LLM responses, handling markdown blocks and basic malformations.
- */
-function safeJsonParse<T>(str: string, fallback: T): T {
-  let cleaned = str.trim();
-
-  // 1. Markdown stripping
-  if (cleaned.startsWith("```json")) {
-    cleaned = cleaned
-      .replace(/^```json\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim();
-  } else if (cleaned.startsWith("```")) {
-    cleaned = cleaned
-      .replace(/^```\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim();
-  }
-
-  // 2. Bound recovery (find the outermost { ... })
-  const startIdx = cleaned.indexOf("{");
-  const endIdx = cleaned.lastIndexOf("}");
-  if (startIdx !== -1 && (endIdx === -1 || endIdx > startIdx)) {
-    cleaned = cleaned.substring(startIdx, endIdx !== -1 ? endIdx + 1 : undefined);
-  }
-
-  // Helper to attempt parsing
-  const tryParse = (jsonStr: string): T | null => {
-    try {
-      // Basic repair: remove trailing commas before closing braces/brackets
-      const repaired = jsonStr.replace(/,\s*([\]}])/g, "$1");
-      return JSON.parse(repaired) as T;
-    } catch {
-      return null;
-    }
-  };
-
-  // 3. First attempt
-  let result = tryParse(cleaned);
-  if (result) return result;
-
-  // 4. Heuristic Repair: Handling truncation
-  // LLMs often stop in the middle of a string, or deep in nested objects.
-  console.warn("[safeJsonParse] Initial parse failed. Attempting heuristic repair...");
-
-  let repairAttempt = cleaned;
-  const stack: ("{" | "[")[] = [];
-  let inString = false;
-  let escaped = false;
-
-  // Walk through to find the state of open structures
-  for (let i = 0; i < repairAttempt.length; i++) {
-    const char = repairAttempt[i];
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (char === "\\") {
-      escaped = true;
-      continue;
-    }
-    if (char === '"') {
-      inString = !inString;
-      continue;
-    }
-    if (inString) continue;
-
-    if (char === "{") stack.push("{");
-    else if (char === "[") stack.push("[");
-    else if (char === "}") stack.pop();
-    else if (char === "]") stack.pop();
-  }
-
-  // If we are inside a string, close it
-  if (inString) {
-    repairAttempt += '"';
-  }
-
-  // Close all open braces/brackets in reverse order
-  while (stack.length > 0) {
-    const last = stack.pop();
-    if (last === "{") repairAttempt += "}";
-    else if (last === "[") repairAttempt += "]";
-  }
-
-  // Try again with the surgically repaired JSON
-  result = tryParse(repairAttempt);
-  if (result) {
-    console.log("[safeJsonParse] Heuristic repair successful.");
-    return result;
-  }
-
-  console.error("[safeJsonParse] Failed to parse JSON even after repair.");
-  console.error("[safeJsonParse] Input snippet (100 chars):", str.substring(0, 100));
-  return fallback;
-}
-
 const CAROUSEL_SLIDE_TARGET = 5;
-const EXECUTION_VARIATION_TARGET = 3;
-
 const executionSlideInputSchema = z.object({
   slideNumber: z.number().int().min(1).max(CAROUSEL_SLIDE_TARGET),
   rawText: z.string(),
@@ -282,105 +183,6 @@ function normalizeExecutionBrief(input: any) {
         }
       : undefined,
   };
-}
-
-function buildExecutionBriefContext(brief: ReturnType<typeof normalizeExecutionBrief>) {
-  const slidesBlock =
-    brief.slides.length > 0
-      ? brief.slides.map(slide => `Slide ${slide.slideNumber} [${slide.role || "custom"}${slide.locked ? ", travado" : ""}]: ${slide.rawText}`).join("\n")
-      : "Nenhum slide estruturado foi fornecido.";
-
-  const brandBlock = brief.brandInput
-    ? [
-        `- Site: ${brief.brandInput.websiteUrl || "não informado"}`,
-        `- Referência visual: ${brief.brandInput.referenceImageUrl || "não informada"}`,
-        `- Cores: ${brief.brandInput.brandColors?.join(", ") || "não informadas"}`,
-        `- Fonte sugerida: ${brief.brandInput.fontHint || "não informada"}`,
-        `- Modo de adaptação: ${brief.brandInput.adaptationMode}`,
-      ].join("\n")
-    : "- Nenhuma identidade visual estruturada foi enviada.";
-
-  const mustKeepBlock = brief.mustKeep.length > 0 ? brief.mustKeep.join(" | ") : "nenhum";
-  const mustIncludeBlock = brief.mustInclude.length > 0 ? brief.mustInclude.join(" | ") : "nenhum";
-  const forbiddenBlock = brief.forbiddenTerms.length > 0 ? brief.forbiddenTerms.join(" | ") : "nenhum";
-
-  return `BRIEFING DE EXECUÇÃO:
-- Formato: ${brief.format}
-- Plataforma: ${brief.platform}
-- Objetivo: ${brief.objective}
-- Tom desejado: ${brief.tone || "não informado"}
-- CTA obrigatório: ${brief.callToAction || "não informado"}
-- Nível de intervenção: ${brief.interventionLevel}
-- Tipo de insumo: ${brief.contentSourceType}
-
-CONTEÚDO BRUTO:
-${brief.rawInput}
-
-SLIDES FORNECIDOS:
-${slidesBlock}
-
-ITENS QUE DEVEM SER PRESERVADOS:
-${mustKeepBlock}
-
-ITENS QUE DEVEM APARECER:
-${mustIncludeBlock}
-
-TERMOS PROIBIDOS:
-${forbiddenBlock}
-
-IDENTIDADE VISUAL:
-${brandBlock}
-
-OBSERVAÇÕES:
-${brief.notes || "nenhuma"}`;
-}
-
-function buildFallbackCarouselSlides(variation: any): Array<any> {
-  const baseHeadline = String(variation?.headline || "Resumo");
-  const baseBody = String(variation?.body || "").trim();
-  const callToAction = String(variation?.callToAction || "Saiba mais").trim();
-  const bodyParts = baseBody
-    .split(/(?<=[.!?])\s+/)
-    .map(part => part.trim())
-    .filter(Boolean);
-
-  const fallbackBodies = [
-    baseBody || "Entenda o contexto desta ideia.",
-    bodyParts[0] || baseBody || "Veja por que isso importa agora.",
-    bodyParts[1] || bodyParts[0] || "Descubra o principal benefício desta proposta.",
-    bodyParts[2] || bodyParts[1] || "Veja como aplicar isso no dia a dia.",
-    callToAction || "Dê o próximo passo com segurança.",
-  ];
-
-  const fallbackHeadlines = [baseHeadline, "O problema", "O que muda", "Na prática", callToAction || "Próximo passo"];
-
-  return fallbackHeadlines.map((headline, index) => ({
-    headline,
-    body: fallbackBodies[index],
-    slideNumber: index + 1,
-    isTitleSlide: index === 0,
-    isCtaSlide: index === CAROUSEL_SLIDE_TARGET - 1,
-  }));
-}
-
-function normalizeCarouselSlides(variation: any): Array<any> {
-  const rawSlides = Array.isArray(variation?.slides) ? variation.slides : [];
-  const normalized = rawSlides
-    .filter(Boolean)
-    .slice(0, CAROUSEL_SLIDE_TARGET)
-    .map((slide: any, index: number) => ({
-      headline: String(slide?.headline || variation?.headline || `Slide ${index + 1}`),
-      body: String(slide?.body || variation?.body || ""),
-      slideNumber: index + 1,
-      isTitleSlide: index === 0,
-      isCtaSlide: index === CAROUSEL_SLIDE_TARGET - 1,
-    }));
-
-  if (normalized.length === CAROUSEL_SLIDE_TARGET) {
-    return normalized;
-  }
-
-  return buildFallbackCarouselSlides(variation);
 }
 
 function decodeDataUrl(dataUrl: string): {
@@ -442,9 +244,7 @@ const billingRouter = router({
         return { success: false, reason: "profile_not_found" };
       }
 
-      const sb = getSupabase();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (sb as any).rpc("start_trial", {
+      const { data, error } = await rpcCall<{ success: boolean; reason: string }>("start_trial", {
         p_user_id: profile.id,
         p_email: email,
         p_ip_address: ip,
@@ -452,7 +252,7 @@ const billingRouter = router({
       });
 
       if (error) return { success: false, reason: error.message };
-      return data as { success: boolean; reason: string };
+      return data ?? { success: false, reason: "unknown" };
     }),
 
   /** Cria Stripe Checkout Session para assinatura */
@@ -572,18 +372,22 @@ export const appRouter = router({
           creationMode: z.enum(["ideation", "execution"]).default("ideation"),
           executionBrief: executionBriefSchema.optional(),
           siteIntelligenceId: z.string().uuid().optional(),
+          idempotencyKey: z.string().min(1).max(128).optional(),
           debug: z.boolean().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
-        // Debita Sparks antes de gerar
+        // Fase C — Billing transacional: reserva Sparks no início (bloqueando
+        // saldo), commit só na aprovação final, refund em qualquer falha.
+        // idempotencyKey derivada do input impede double-charge no duplo-click.
         const email = ctx.user.email ?? "dev@local.dev";
         const profile = await getBillingProfile(email);
         const cost = input.postMode === "carousel" ? SPARK_COSTS.CAROUSEL : SPARK_COSTS.GENERATE_TEXT;
-        const debit = await debitSparks(profile.id, cost, `Geração de post (${input.postMode})`);
-        if (!debit.success) {
+        const idempotencyKey = input.idempotencyKey ?? deriveIdempotencyKey(ctx.user.id, input);
+        const reservation = await reserveSparks(profile, cost, idempotencyKey, `Geração de post (${input.postMode})`);
+        if (!reservation.reservationId) {
           await appendOperationalLog("POST_GENERATION_REJECTED", {
-            reason: "INSUFFICIENT_SPARKS",
+            reason: reservation.reason ?? "INSUFFICIENT_SPARKS",
             userUuid: ctx.user.id,
             profileId: profile.id,
             inputType: input.inputType,
@@ -595,6 +399,7 @@ export const appRouter = router({
             contentLength: input.content.length,
             contentPreview: logSnippet(input.content, 500),
             sparkCost: cost,
+            idempotencyKey,
           });
           throw new TRPCError({
             code: "PAYMENT_REQUIRED",
@@ -635,79 +440,6 @@ export const appRouter = router({
             detail: "Generation pipeline started.",
           });
           const normalizedExecutionBrief = input.creationMode === "execution" && input.executionBrief ? normalizeExecutionBrief(input.executionBrief) : null;
-          if (ENV.aiHighTicketPipelineEnabled) {
-            try {
-              recordGenerationEvent({
-                stage: "high_ticket_pipeline",
-                status: "started",
-                detail: "High Ticket pipeline branch enabled.",
-              });
-              const result = await runHighTicketPipeline({
-                runId: generationTrace.id,
-                userUuid: ctx.user.id,
-                inputType: input.inputType,
-                content: input.content,
-                platform: input.platform,
-                postMode: input.postMode,
-                model: input.model,
-                creationMode: input.creationMode,
-                executionBrief: normalizedExecutionBrief ?? undefined,
-                siteIntelligenceId: input.siteIntelligenceId,
-                debug: debugEnabled,
-              });
-              await finishGenerationTrace({
-                trace: generationTrace,
-                status: "completed",
-                strategies: result.graphState.routing,
-                evaluations: result.graphState.qa.map((item) => item.evaluation),
-                revisionCount: result.graphState.attempt,
-                strategyFallbackUsed: result.graphState.routing?.fallbackUsed,
-                originalityFallbackUsed: result.graphState.originality?.fallbackUsed,
-                output: result.variations,
-              });
-              await appendOperationalLog("POST_GENERATION_COMPLETED", {
-                generationRunId: generationTrace.id,
-                userUuid: ctx.user.id,
-                durationMs: Date.now() - generationTrace.startedAt,
-                inputType: input.inputType,
-                platform: input.platform,
-                postMode: input.postMode,
-                creationMode: input.creationMode,
-                requestedModel: input.model ?? "llama",
-                highTicketPipeline: true,
-                variationCount: result.variations.length,
-                graphStatus: result.graphState.status,
-                graphEvents: result.graphState.events.map((event) => ({
-                  status: event.status,
-                  detail: event.detail,
-                  at: event.at,
-                })),
-              });
-              return {
-                variations: result.variations,
-                generationRunId: result.generationRunId,
-                ...(debugEnabled
-                  ? {
-                      debug: buildGenerationDebugTrace({
-                        trace: generationTrace,
-                        strategies: result.graphState.routing,
-                        evaluations: result.graphState.qa.map((item) => item.evaluation),
-                        output: result.variations,
-                      }),
-                    }
-                  : {}),
-              };
-            } catch (highTicketError) {
-              recordGenerationEvent({
-                stage: "high_ticket_pipeline",
-                status: ENV.aiHighTicketLegacyFallbackEnabled ? "fallback" : "failed",
-                detail: highTicketError instanceof Error ? highTicketError.message : String(highTicketError),
-              });
-              if (!ENV.aiHighTicketLegacyFallbackEnabled) {
-                throw highTicketError;
-              }
-            }
-          }
           const recentPostsPromise = getUserPosts(ctx.user.id, 20).catch(error => {
             console.warn("[post.generate] Recent post history unavailable:", error);
             return [];
@@ -754,999 +486,204 @@ export const appRouter = router({
             data: generationPlan.strategies,
           });
 
-          const platformSpecs: Record<string, { label: string; maxChars: number }> = {
-            instagram: { label: "Instagram", maxChars: 2200 },
-            twitter: { label: "Twitter/X", maxChars: 280 },
-            linkedin: { label: "LinkedIn", maxChars: 3000 },
-            facebook: { label: "Facebook", maxChars: 63206 },
-          };
-          const spec = platformSpecs[input.platform];
-
-          const effectiveTone = normalizedExecutionBrief?.tone || input.tone;
-          const toneHint = effectiveTone ? `\nTom detectado no input do usuário: "${effectiveTone}" — calibre o conteúdo gerado para esse estado emocional.\n` : "";
-
-          // Dynamic system prompt based on postMode
-          const isCarousel = input.postMode === "carousel";
-          const modeInstruction = normalizedExecutionBrief
-            ? isCarousel
-              ? `\nIMPORTANTE: Gere conteúdo para um CARROSSEL de execução guiada. Cada variação DEVE ter exatamente 5 slides organizados em "slides". Preserve a estrutura fornecida pelo usuário sempre que ela existir. Slide 1 = gancho, slides 2-4 = desenvolvimento, slide 5 = CTA final. Não coloque CTA nos slides 1-4.`
-              : "\nIMPORTANTE: Gere uma peça de execução guiada, fiel ao briefing, com baixa distância entre as variações."
-            : isCarousel
-              ? `\nIMPORTANTE: Gere conteúdo para um CARROSSEL (múltiplos slides). Cada variação DEVE ter exatamente 5 slides organizados em um array "slides". Não retorne array vazio, parcial ou simplificado. Estrutura obrigatória do carrossel: slide 1 = gancho forte e altamente curioso para fazer a pessoa folhear; slides 2, 3 e 4 = desenvolvimento progressivo do tema; slide 5 = CTA final, e somente ele deve conter call-to-action. Não coloque CTA nos slides 1-4. Cada slide deve ter: headline (título curto máx 50 caracteres), body (mensagem máx 80 caracteres), slideNumber (1-5), isTitleSlide (true apenas no slide 1), isCtaSlide (true apenas no slide 5). O headline/body de nível superior são apenas um resumo do carrossel; o conteúdo principal vive nos slides.`
-              : "\nGere posts individuais (estático).";
-
-          const executionSystemContext = normalizedExecutionBrief
-            ? `
-MODO DE EXECUÇÃO ATIVADO:
-- Você NÃO está criando do zero. Você está executando um briefing.
-- Preserve a intenção, a estrutura, o CTA e os termos obrigatórios enviados pelo usuário.
-- Se houver slides fornecidos, trate-os como material fonte prioritário.
-- Não reescreva agressivamente sem necessidade.
-- O nível de intervenção permitido é: ${normalizedExecutionBrief.interventionLevel}.
-- Gere EXATAMENTE ${EXECUTION_VARIATION_TARGET} variações próximas entre si. Varie principalmente acabamento visual, microcopy e hierarquia, não o conceito central.
-- Se o nível for "visual_only", mantenha o texto quase intacto.
-- Se o nível for "light_optimize", melhore clareza, ritmo e impacto sem alterar a estrutura principal.
-- Se o nível for "optimize_structure", você pode reorganizar trechos, mas sem trair a mensagem central.
-`
-            : "";
-
-          const generationInstructionCore = `${modeInstruction}
-${normalizedExecutionBrief ? "As 3 variações devem ser próximas entre si e altamente fiéis ao briefing." : "Cada variação deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado."}${toneHint}
-${brandDnaContext}
-${executionSystemContext}
-${generationPlan.promptContext}
-
-REGRAS DE COPY — SIGA COM RIGOR:
-- Headline: máximo 60 caracteres. Seja direto e impactante. Sem ponto final.
-- Body: máximo 2 frases curtas. Máximo 100 caracteres no total. Sem rodeios.
-- Caption/Legenda: forneça uma legenda INICIAL curta (1-2 frases). Esta legenda será substituída por uma versão mais rica e coerente em um passo dedicado posterior, então não precisa ser longa — apenas garantida.
-- Para post ESTATICO, pense como poster/editorial, nao como artigo. Uma ideia principal + poucos apoios legiveis.
-- Nao use headline cortado, reticencias ou promessa incompleta. Proibido terminar headline com "...", ":", ou numero solto.
-- NUNCA coloque hashtags ou emojis dentro do headline ou body.
-- Hashtags: máximo 4, somente no campo separado "hashtags".
-- CallToAction: máximo 40 caracteres. Verbo de ação. Ex: "Saiba mais", "Experimente agora".
-- copyAngle: Para cada variação, forneça um objeto com o Propósito e Ganchos do post com type (dor, beneficio, objecao, autoridade, escassez, storytelling, mito_vs_verdade), label (nome da abordagem), badge (palavra curta para o selo da marca/tema) e stickerText (uma palavra de impacto para adesivo decorativo).
-- As 3 variações DEVEM ser claramente distinguíveis entre si. Não repita headline, body, copyAngle, CTA, hashtags ou a mesma combinação de layout + paleta.
-- Faça cada variação abrir por uma ideia diferente: 1) institucional/autoridade, 2) conversa/engajamento, 3) criativa ou provocativa.
-- Seja conciso. Corte qualquer palavra desnecessária. Menos é mais.
-
-PRINCÍPIOS DE DESIGN VISUAL E MIMETISMO:
-
-1. HIERARQUIA VISUAL (Proporção 3:2:1):
-   - O headline deve ser a informação MAIS impactante (peso visual máximo).
-   - O body deve complementar, nunca competir com o headline.
-
-2. LAYOUT INTELIGENTE por objetivo do post:
-   - "centered": Inspiração, emoção, celebração, citações. Melhor em 1:1.
-   - "left-aligned": Educação, listas, tutoriais. Melhor em 5:6 e 9:16.
-   - "split": Promoções, impacto. Versátil.
-   - "minimal": Ultra-limpo, essencial. Para marcas focadas no white-space.
-
-3. PSICOLOGIA E CLONAGEM DE CORES:
-   - SE houver [INSTRUÇÕES DE CLONAGEM DE MARCA] no prompt, AS CORES SÃO MANDATÓRIAS. Mimetize a "Alma" injetando backgroundColor e textColor apenas baseados na Extração Fornecida.
-   - SE NÃO houver extração, use a psicologia clássica: backgroundColor neutro escuro/azul para tom Corporativo, cores quentes para Criativo, etc.
-
-4. CONTRASTE (WCAG 2.1):
-   - SEMPRE garanta contraste alto: fundo escuro → textColor claro (#FFFFFF). Fundo claro → textColor escuro (#1A1A1A).
-   - NUNCA use texto cinza médio sobre fundo cinza médio.
-
-5. PACOTE CRIATIVO MULTI-FORMATO:
-   - Cada variação deve fluir formatada no aspectRatio correspondente.
-
-6. TEMPLATES ESTRUTURADOS:
-   - Use 'simple' quando headline e body forem suficientes. Não invente seções apenas para preencher o layout.
-   - Use 'feature-grid', 'numbered-list' ou 'step-by-step' somente quando a mensagem realmente exigir itens distintos.
-   - Todo template estruturado deve ter EXATAMENTE 3 seções. Nunca gere 4 ou 5 itens em um único post estático.
-   - Se o headline promete quantidade de itens, esse numero DEVE ser 3. Ex.: "3 sinais", "3 criterios". Se a ideia tem 5, 7 ou 10 itens, escolha carrossel ou reformule sem numero.
-   - Cada label deve ter no máximo 24 caracteres e cada description no máximo 36 caracteres.
-   - Resuma cada item em uma única ideia. Não repita no item o que já está no headline ou body.
-   - Sections sao micro-blocos visuais, nao paragrafos. Prefira substantivos claros e descricoes telegraficas.
-
-7. FLOATING CARDS & ELEMENT STYLING (NEW):
-   - O card PRINCIPAL não precisa estar sempre centralizado ou ocupar 100% da tela.
-   - Use o objeto "card" dentro das otimizações para criar composições dinâmicas (ex: card inclinado, card menor no canto, layout Figma/Canva).
-   - Isso é especialmente útil quando o fundo (backgroundImage) é rico visualmente.
-   - Use 'backgroundColor' e 'borderRadius' em 'headline' ou 'body' para criar efeitos de BADGE ou STIKER (texto com fundo colorido e cantos arredondados). Isso ajuda a destacar informações de forma "divertida" e moderna. Use cores contrastantes.
-   
-Responda APENAS com JSON válido.`;
-
-          const systemPrompt = `Você é um especialista em marketing digital, design visual e criação de conteúdo para redes sociais.
-Gere EXATAMENTE 3 variações de post para ${spec.label}.
-${generationInstructionCore}`;
-
-          const slotGenerationInstructionCore = generationInstructionCore
-            .replace(generationPlan.promptContext, "")
-            .replace(
-              "As 3 variações devem ser próximas entre si e altamente fiéis ao briefing.",
-              "Esta variação deve ser altamente fiel ao briefing e ao contrato estratégico do slot.",
-            )
-            .replace(
-              "Cada variação deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado.",
-              "Esta variação deve seguir exclusivamente o tom e o ângulo definidos no contrato estratégico do slot.",
-            )
-            .replace(
-              "- As 3 variações DEVEM ser claramente distinguíveis entre si. Não repita headline, body, copyAngle, CTA, hashtags ou a mesma combinação de layout + paleta.",
-              "- Esta variação DEVE ser claramente alinhada ao contrato estratégico do slot. Não reaproveite mecanicamente headline, body, copyAngle, CTA, hashtags ou combinação de layout + paleta de outros ângulos.",
-            )
-            .replace(
-              "- Faça cada variação abrir por uma ideia diferente: 1) institucional/autoridade, 2) conversa/engajamento, 3) criativa ou provocativa.",
-              "- Faça esta variação abrir por uma ideia forte e alinhada ao contrato estratégico do slot, sem cair em fórmulas genéricas.",
-            );
-
-          const slotSystemPrompt = `Você é um especialista em marketing digital, design visual e criação de conteúdo para redes sociais.
-Gere exatamente UMA variação de post para ${spec.label}, correspondente ao slot solicitado pelo usuário.
-
-PRIORIDADE CRIATIVA:
-- O schema é apenas o contêiner de entrega; a peça precisa sair pronta para produção.
-- A variação deve ter uma ideia clara, copy objetiva, coerência visual e diferença real em relação aos outros ângulos.
-- Não preencha campos mecanicamente. Cada headline, body, seção, CTA e cor deve servir ao contrato estratégico do slot.
-
-${slotGenerationInstructionCore}`;
-
-          const userPrompt = normalizedExecutionBrief
-            ? `Execute este briefing com fidelidade. Otimize apenas no grau permitido.
-
-${buildExecutionBriefContext(normalizedExecutionBrief)}`
-            : input.inputType === "image"
-              ? `Crie posts baseados nesta imagem: ${input.imageUrl || input.content}`
-              : `Crie posts baseados neste conteúdo: ${contextContent}`;
-
-          // ─── JSON Schema Layout Definitions ───
-          const layoutPositionSchema = {
-            type: "object",
-            properties: {
-              x: {
-                type: "number",
-                description:
-                  "Posição X do CENTRO do bloco, em % da largura (0-100). O bloco ocupa de (x - width/2) a (x + width/2); mantenha x entre width/2 e 100-width/2 para não vazar. Ex.: 50 centraliza.",
-              },
-              y: {
-                type: "number",
-                description:
-                  "Posição Y do CENTRO do bloco, em % da altura (0-100). headline e body NÃO podem coincidir: garanta folga vertical ampla (o texto quebra em várias linhas). Regra prática: mantenha pelo menos 20 pontos percentuais entre o y do headline e o y do body.",
-              },
-              width: {
-                type: "number",
-                description:
-                  "Largura do bloco em % (10-100). Junto com x define a caixa horizontal: de (x - width/2) a (x + width/2).",
-              },
-              textAlign: { type: "string", enum: ["left", "center", "right"] },
-              backgroundColor: {
-                type: "string",
-                description: "Cor de fundo opcional para o elemento (RGBA ou Hex)",
-              },
-              borderRadius: {
-                type: "number",
-                description: "Raio da borda em px (0-40)",
-              },
-            },
-            required: ["x", "y", "width", "textAlign", "backgroundColor", "borderRadius"],
-            additionalProperties: false,
-          };
-
-          const formatOptimizationSchema = {
-            type: "object",
-            properties: {
-              layout: {
-                type: "string",
-                enum: ["centered", "left-aligned", "split", "minimal"],
-              },
-              backgroundColor: { type: "string" },
-              textColor: { type: "string" },
-              accentColor: { type: "string" },
-              headline: { $ref: "#/$defs/layoutPosition" },
-              body: { $ref: "#/$defs/layoutPosition" },
-              card: { $ref: "#/$defs/layoutPosition" },
-              padding: { type: "number" },
-            },
-            required: ["layout", "backgroundColor", "textColor", "accentColor", "headline", "body", "card", "padding"],
-            additionalProperties: false,
-          };
-
-          const layoutDefs = {
-            layoutPosition: layoutPositionSchema,
-            formatOptimization: formatOptimizationSchema,
-          };
-
-          // Dynamic schema based on postMode
-          const variationSchema = isCarousel
-            ? {
-                type: "object",
-                properties: {
-                  headline: {
-                    type: "string",
-                    description: "Título principal do carrossel",
-                  },
-                  body: {
-                    type: "string",
-                    description: "Descrição geral do carrossel",
-                  },
-                  hashtags: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Hashtags relevantes",
-                  },
-                  callToAction: {
-                    type: "string",
-                    description: "Call to action final do carrossel",
-                  },
-                  caption: {
-                    type: "string",
-                    description: "Legenda inicial do post. Será refinada posteriormente.",
-                  },
-                  tone: { type: "string", description: "Tom do post" },
-                  imagePrompt: {
-                    type: "string",
-                    description: "Prompt em inglês para gerar imagem de fundo",
-                  },
-                  backgroundColor: {
-                    type: "string",
-                    description: "Cor de fundo hex",
-                  },
-                  textColor: {
-                    type: "string",
-                    description: "Cor do texto hex",
-                  },
-                  accentColor: {
-                    type: "string",
-                    description: "Cor de destaque hex",
-                  },
-                  layout: {
-                    type: "string",
-                    enum: ["centered", "left-aligned", "split", "minimal"],
-                    description: "Layout sugerido",
-                  },
-                  aspectRatio: {
-                    type: "string",
-                    enum: ["1:1", "5:6", "9:16"],
-                    description: "Proporção de aspecto",
-                  },
-                  slides: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        headline: {
-                          type: "string",
-                          description: "Título do slide",
-                        },
-                        body: {
-                          type: "string",
-                          description: "Conteúdo do slide",
-                        },
-                        slideNumber: {
-                          type: "integer",
-                          description: "Número do slide (1-5)",
-                        },
-                        isTitleSlide: {
-                          type: "boolean",
-                          description: "Se é o primeiro slide",
-                        },
-                        isCtaSlide: {
-                          type: "boolean",
-                          description: "Se é o último slide",
-                        },
-                      },
-                      required: ["headline", "body", "slideNumber", "isTitleSlide", "isCtaSlide"],
-                      additionalProperties: false,
-                    },
-                    minItems: CAROUSEL_SLIDE_TARGET,
-                    maxItems: CAROUSEL_SLIDE_TARGET,
-                    description: "Slides do carrossel (5 itens)",
-                  },
-                  aspectRatioOptimizations: {
-                    type: "object",
-                    properties: {
-                      "1:1": { $ref: "#/$defs/formatOptimization" },
-                      "5:6": { $ref: "#/$defs/formatOptimization" },
-                      "9:16": { $ref: "#/$defs/formatOptimization" },
-                    },
-                    required: ["1:1", "5:6", "9:16"],
-                    additionalProperties: false,
-                  },
-                  copyAngle: {
-                    type: "object",
-                    properties: {
-                      type: {
-                        type: "string",
-                        enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"],
-                      },
-                      label: { type: "string" },
-                      badge: { type: "string" },
-                      stickerText: { type: "string" },
-                    },
-                    required: ["type", "label", "badge", "stickerText"],
-                    additionalProperties: false,
-                  },
-                },
-                required: [
-                  "headline",
-                  "body",
-                  "hashtags",
-                  "callToAction",
-                  "caption",
-                  "tone",
-                  "imagePrompt",
-                  "backgroundColor",
-                  "textColor",
-                  "accentColor",
-                  "layout",
-                  "aspectRatio",
-                  "slides",
-                  "aspectRatioOptimizations",
-                  "copyAngle",
-                ],
-                additionalProperties: false,
-              }
-            : {
-                type: "object",
-                properties: {
-                  headline: {
-                    type: "string",
-                    description: "Título chamativo do post",
-                  },
-                  body: {
-                    type: "string",
-                    description: "Corpo principal do post",
-                  },
-                  hashtags: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Hashtags relevantes",
-                  },
-                  callToAction: {
-                    type: "string",
-                    description: "Call to action final",
-                  },
-                  caption: {
-                    type: "string",
-                    description: "Legenda inicial do post. Será refinada posteriormente.",
-                  },
-                  tone: { type: "string", description: "Tom do post" },
-                  imagePrompt: {
-                    type: "string",
-                    description: "Prompt em inglês para gerar imagem de fundo do post. Deve ser visual, artístico e relevante ao conteúdo.",
-                  },
-                  backgroundColor: {
-                    type: "string",
-                    description: "Cor de fundo hex",
-                  },
-                  textColor: {
-                    type: "string",
-                    description: "Cor do texto hex",
-                  },
-                  accentColor: {
-                    type: "string",
-                    description: "Cor de destaque hex",
-                  },
-                  layout: {
-                    type: "string",
-                    enum: ["centered", "left-aligned", "split", "minimal"],
-                    description: "Layout sugerido",
-                  },
-                  aspectRatio: {
-                    type: "string",
-                    enum: ["1:1", "5:6", "9:16"],
-                    description: "Proporção de aspecto: 1:1 quadrado, 5:6 retrato, 9:16 story/reels — varie entre as variações para oferecer diversidade",
-                  },
-                  template: {
-                    type: "string",
-                    enum: ["simple", "feature-grid", "numbered-list", "step-by-step"],
-                    description: "Template de conteúdo estruturado. Use 'simple' para mensagens únicas, outros para conteúdo rico.",
-                  },
-                  sections: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        icon: {
-                          type: "string",
-                          description: "Nome de ícone lucide (ex: Users, Star, Zap, Heart, Globe)",
-                        },
-                        label: {
-                          type: "string",
-                          maxLength: 24,
-                          description: "Título curto da seção, máximo 24 caracteres",
-                        },
-                        description: {
-                          type: "string",
-                          maxLength: 36,
-                          description: "Texto de suporte opcional, máximo 36 caracteres",
-                        },
-                        number: {
-                          type: "integer",
-                          description: "Número para listas numeradas",
-                        },
-                      },
-                      required: ["icon", "label", "description", "number"],
-                      additionalProperties: false,
-                    },
-                    maxItems: 3,
-                    description: "Use [] para template simple. Para templates estruturados, gere exatamente 3 itens curtos.",
-                  },
-                  aspectRatioOptimizations: {
-                    type: "object",
-                    properties: {
-                      "1:1": { $ref: "#/$defs/formatOptimization" },
-                      "5:6": { $ref: "#/$defs/formatOptimization" },
-                      "9:16": { $ref: "#/$defs/formatOptimization" },
-                    },
-                    required: ["1:1", "5:6", "9:16"],
-                    additionalProperties: false,
-                  },
-                  copyAngle: {
-                    type: "object",
-                    properties: {
-                      type: {
-                        type: "string",
-                        enum: ["dor", "beneficio", "objecao", "autoridade", "escassez", "storytelling", "mito_vs_verdade"],
-                      },
-                      label: { type: "string" },
-                      badge: { type: "string" },
-                      stickerText: { type: "string" },
-                    },
-                    required: ["type", "label", "badge", "stickerText"],
-                    additionalProperties: false,
-                  },
-                },
-                required: [
-                  "headline",
-                  "body",
-                  "hashtags",
-                  "callToAction",
-                  "caption",
-                  "tone",
-                  "imagePrompt",
-                  "backgroundColor",
-                  "textColor",
-                  "accentColor",
-                  "layout",
-                  "aspectRatio",
-                  "template",
-                  "sections",
-                  "aspectRatioOptimizations",
-                  "copyAngle",
-                ],
-                additionalProperties: false,
-              };
-
-          const slotResponses = await Promise.all(
-            generationPlan.strategies.selected.map(async (strategy, index) => {
-              const slotPrompt = `${userPrompt}
-
-TAREFA DESTE AGENTE:
-- Gere somente a variacao ${index + 1} de 3.
-- Execute exclusivamente este contrato estrategico:
-${JSON.stringify(strategy, null, 2)}
-- Nao misture os outros angulos.
-- Retorne um array "variations" com exatamente 1 item.`;
-              const generateSlot = async (attempt: number) => {
-                const userContent =
-                  input.inputType === "image" && (input.imageUrl || input.content)
-                    ? [
-                        {
-                          type: "text" as const,
-                          text:
-                            attempt === 1
-                              ? slotPrompt
-                              : `${slotPrompt}
-
-A tentativa anterior retornou um item ausente ou incompleto.
-Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategico.`,
-                        },
-                        {
-                          type: "image_url" as const,
-                          image_url: { url: input.imageUrl || input.content, detail: "high" as const },
-                        },
-                      ]
-                    : attempt === 1
-                      ? slotPrompt
-                      : `${slotPrompt}
-
-A tentativa anterior retornou um item ausente ou incompleto.
-Preencha todos os campos obrigatorios do schema sem alterar o contrato estrategico.`;
-                const response = await invokeLLM({
-                  traceLabel: attempt === 1 ? `post_generation_${index + 1}` : `post_generation_${index + 1}_retry`,
-                  taskRoute: isCarousel ? "carousel_generation" : "static_generation",
-                  model: input.model as any,
-                  maxCompletionTokens:
-                    attempt === 1
-                      ? isCarousel ? 4096 : 3072
-                      : isCarousel ? 3072 : 2048,
-                  messages: [
-                    {
-                      role: "system",
-                      content: slotSystemPrompt,
-                    },
-                    {
-                      role: "user",
-                      content: userContent,
-                    },
-                  ],
-                  response_format: {
-                    type: "json_schema",
-                    json_schema: {
-                      name: `post_variation_${index + 1}`,
-                      strict: true,
-                      schema: {
-                        type: "object",
-                        properties: {
-                          variations: {
-                            type: "array",
-                            minItems: 1,
-                            maxItems: 1,
-                            items: variationSchema,
-                          },
-                        },
-                        required: ["variations"],
-                        $defs: layoutDefs,
-                        additionalProperties: false,
-                      },
-                    },
-                  },
-                });
-                const content = response.choices[0]?.message?.content;
-                const contentStr =
-                  typeof content === "string"
-                    ? content
-                    : Array.isArray(content)
-                      ? content
-                          .filter(c => "text" in c)
-                          .map(c => (c as any).text)
-                          .join("\n")
-                      : "{}";
-                return safeJsonParse<{ variations: any[] }>(contentStr, {
-                  variations: [],
-                }).variations[0];
-              };
-
-              let first: any = null;
-              try {
-                first = await generateSlot(1);
-              } catch (error) {
-                recordGenerationEvent({
-                  stage: `post_generation_${index + 1}`,
-                  status: "rejected",
-                  detail: "Slot generation failed fast; requesting one targeted retry.",
-                  data: error instanceof Error ? error.message : String(error),
-                });
-              }
-              const firstIsComplete = Boolean(
-                first?.headline?.trim() &&
-                  first?.body?.trim() &&
-                  first?.caption?.trim() &&
-                  first?.callToAction?.trim() &&
-                  first?.imagePrompt?.trim() &&
-                  first?.copyAngle?.type &&
-                  (input.postMode === "carousel" || hasValidStaticSections(first)) &&
-                  (input.postMode === "carousel" || hasCoherentStaticItemCount(first)) &&
-                  (input.postMode !== "carousel" || first?.slides?.length === CAROUSEL_SLIDE_TARGET)
-              );
-              if (firstIsComplete) return first;
-
-              recordGenerationEvent({
-                stage: `post_generation_${index + 1}`,
-                status: "rejected",
-                detail: "Slot incomplete; requesting one targeted retry.",
-                data: first,
-              });
-              try {
-                return await generateSlot(2);
-              } catch (error) {
-                recordGenerationEvent({
-                  stage: `post_generation_${index + 1}`,
-                  status: "failed",
-                  detail: "Targeted retry failed; slot will be omitted.",
-                  data: error instanceof Error ? error.message : String(error),
-                });
-                return null;
-              }
-            })
-          );
-          let variations = slotResponses
-            .filter(Boolean)
-            .slice(0, POST_VARIATION_TARGET)
-            .map((variation) => applyDeterministicCopyGuards(variation));
-          recordGenerationEvent({
-            stage: "post_generation",
-            status: variations.length === POST_VARIATION_TARGET ? "completed" : "rejected",
-            detail: `Primary generation returned ${variations.length} variation(s).`,
-            data: variations,
-          });
-
-          // --------------------------------------------------------------------------------
-          // BRAND SOUL GUARDIAN — deterministic WCAG + palette enforcement
-          // (Substitui o antigo `brand_visual_qa` baseado em LLM, que estava
-          // falhando repetidamente: 3 aborts + Gemini 400 schema-too-complex.)
-          // --------------------------------------------------------------------------------
-          if (siteIntelligence && brandDnaContext.length > 0) {
+          // Fase D — modo "execution" usa o intent router (3 ângulos ortogonais
+          // story/authority/objection) como fonte de estratégias, substituindo
+          // o planContentStrategies padrão. O contexto enriquecido (BrandKit +
+          // Persona + context budget) alimenta o router. O resto do pipeline
+          // (slots, composition, snapshot, QA, captions) é idêntico.
+          if (input.creationMode === "execution" && normalizedExecutionBrief) {
             try {
-              console.log("[Brand Guardian] Deterministically enforcing brand palette + WCAG contrast...");
-              const beforeCount = variations.length;
-              variations = enforceBrandVisualGuardian(
-                variations,
-                siteIntelligence,
-                { enforcePalette: true, backgroundSnapTolerance: 40 },
-              ) as typeof variations;
-              console.log(
-                "[Brand Guardian] Enforced %d variation(s) against brand palette.",
-                variations.length,
-              );
-              recordGenerationEvent({
-                stage: "brand_visual_qa",
-                status: variations.length === beforeCount ? "completed" : "rejected",
-                detail: "Deterministic brand visual guardian applied palette + WCAG corrections.",
-                data: variations,
-              });
-            } catch (guardianErr) {
-              console.warn("[Brand Guardian] Failing gracefully. Returning raw variations.", guardianErr);
-            }
-          }
-
-          if (!normalizedExecutionBrief && variationsNeedDiversification(variations)) {
-            try {
-              console.warn("[Variation Guard] Similar variations detected. Requesting diversified rewrite...");
-              const diversificationPrompt = `Você recebeu 3 variações de post que ficaram parecidas demais.
-Reescreva o array para entregar EXATAMENTE 3 variações nitidamente diferentes entre si.
-
-REGRAS OBRIGATÓRIAS:
-- Preserve o mesmo tema central e as regras de marca já aplicadas.
-- Não repita headline, body, CTA, hashtags, copyAngle, nem a mesma combinação de layout + paleta.
-- Garanta pelo menos 2 layouts diferentes no conjunto final.
-- Garanta ângulos de copy diferentes e facilmente distinguíveis.
-- ${isCarousel ? "Se for carrossel, preserve exatamente 5 slides por variação, com narrativa completa e `slides` nunca vazio." : "Mantenha o formato estático atual."}
-- Mantenha o JSON no mesmo schema exato.
-
-Variações atuais:
-${JSON.stringify(variations, null, 2)}
-
-Responda APENAS com JSON válido.`;
-
-              const diversificationResponse = await invokeLLM({
-                traceLabel: "lexical_diversification",
-                taskRoute: isCarousel ? "carousel_generation" : "static_generation",
-                model: input.model as any,
-                maxCompletionTokens: 4096,
-                messages: [
-                  { role: "system", content: systemPrompt },
-                  { role: "user", content: diversificationPrompt },
-                ],
-                response_format: {
-                  type: "json_schema",
-                  json_schema: {
-                    name: "post_variations_diversified",
-                    strict: true,
-                    schema: {
-                      type: "object",
-                      properties: {
-                        variations: {
-                          type: "array",
-                          minItems: POST_VARIATION_TARGET,
-                          maxItems: POST_VARIATION_TARGET,
-                          items: variationSchema,
-                        },
-                      },
-                      required: ["variations"],
-                      $defs: layoutDefs,
-                      additionalProperties: false,
-                    },
-                  },
-                },
-              });
-
-              const diversifiedContent = diversificationResponse.choices[0]?.message?.content;
-              const diversifiedContentStr =
-                typeof diversifiedContent === "string"
-                  ? diversifiedContent
-                  : Array.isArray(diversifiedContent)
-                    ? diversifiedContent
-                        .filter(c => "text" in c)
-                        .map(c => (c as any).text)
-                        .join("\n")
-                    : "{}";
-              const diversifiedParsed = safeJsonParse<{ variations: any[] }>(diversifiedContentStr, { variations: [] });
-              const diversifiedVariations = (diversifiedParsed.variations || []).slice(0, 3);
-
-              if (diversifiedVariations.length > 0 && !variationsNeedDiversification(diversifiedVariations)) {
-                if (diversifiedVariations.length === POST_VARIATION_TARGET) {
-                  variations = diversifiedVariations;
-                }
-                console.log("[Variation Guard] Diversified variations accepted.");
-                recordGenerationEvent({
-                  stage: "diversification",
-                  status: diversifiedVariations.length === POST_VARIATION_TARGET ? "completed" : "rejected",
-                  detail: `Diversification returned ${diversifiedVariations.length} variation(s).`,
-                  data: diversifiedVariations,
-                });
-              } else {
-                console.warn("[Variation Guard] Diversification attempt still too similar. Keeping original output.");
-              }
-            } catch (diversificationErr) {
-              console.warn("[Variation Guard] Diversification retry failed. Keeping original output.", diversificationErr);
-            }
-          }
-
-          const recentPosts = await recentPostsPromise;
-          const initialOriginality = await assessSemanticOriginality({
-            candidates: variations as import("@shared/postspark").PostVariation[],
-            siteIntelligence,
-            recentPosts,
-          });
-
-          const evaluationPipeline = await evaluateAndReviseCandidates({
-            candidates: variations,
-            strategies: generationPlan.strategies.selected,
-            siteIntelligence,
-            platform: input.platform,
-            originalityScores: initialOriginality.assessments.map(assessment => assessment.score),
-            revise: async (candidate, evaluation, index) => {
-              const revisionResponse = await invokeLLM({
-                traceLabel: `quality_revision_${index + 1}`,
-                taskRoute: "quality_revision",
-                model: input.model as any,
-                maxCompletionTokens: isCarousel ? 3072 : 2048,
-                messages: [
-                  {
-                    role: "system",
-                    content: `Voce e um revisor cirurgico do PostSpark.
-Revise exatamente UMA variacao rejeitada, preservando a estrategia, o layout e a estrutura.
-Corrija apenas os problemas apontados na avaliacao.
-Nao reescreva do zero, nao misture estrategias, nao invente fatos e responda somente JSON valido.
-COERENCIA DA LEGENDA: se houver slides ou secoes, a caption deve refletir o mesmo numero de topicos. Se os slides apresentam 5 dicas, a legenda nao deve dizer "3 dicas".
-COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode prometer 5, 7 ou 10 itens quando o visual tem exatamente 3 secoes. Reformule sem numero ou prometa 3.`,
-                  },
-                  {
-                    role: "user",
-                    content: `Indice: ${index + 1}
-
-Contrato estrategico:
-${JSON.stringify(generationPlan.strategies.selected[index], null, 2)}
-
-Avaliacao:
-${JSON.stringify(evaluation, null, 2)}
-
-Variacao:
-${JSON.stringify(candidate, null, 2)}
-
-Retorne um objeto com "variations" contendo exatamente 1 variacao corrigida.`,
-                  },
-                ],
-                response_format: {
-                  type: "json_schema",
-                  json_schema: {
-                    name: `post_variation_revised_${index + 1}`,
-                    strict: true,
-                    schema: {
-                      type: "object",
-                      properties: {
-                        variations: {
-                          type: "array",
-                          minItems: 1,
-                          maxItems: 1,
-                          items: variationSchema,
-                        },
-                      },
-                      required: ["variations"],
-                      $defs: layoutDefs,
-                      additionalProperties: false,
-                    },
-                  },
-                },
-              });
-              const revisedContent = revisionResponse.choices[0]?.message?.content;
-              const revisedText = typeof revisedContent === "string" ? revisedContent : "{}";
-              return safeJsonParse<{ variations: any[] }>(revisedText, {
-                variations: [],
-              }).variations[0] ?? null;
-            },
-          });
-          variations = evaluationPipeline.candidates.map((variation) =>
-            applyDeterministicCopyGuards(variation),
-          );
-
-          // ─── Caption Synthesis Pass ────────────────────────────────────────
-          // Gera legendas coerentes com o conteúdo visual FINAL (slides/seções)
-          // em um passo dedicado, posterior a toda a pipeline de geração/revisão.
-          // Isto garante que a legenda NUNCA contradiga ou invente conteúdo
-          // diferente do que aparece nos slides ou seções do post visual.
-          recordGenerationEvent({
-            stage: "caption_synthesis",
-            status: "started",
-            detail: "Synthesizing captions from final visual content.",
-          });
-          try {
-            const synthesized = await synthesizeCaptionsForVariations(
-              variations,
-              {
+              const briefing = await loadGenerationContext({
+                userUuid: ctx.user.id,
+                inputType: input.inputType,
+                content: input.content,
                 platform: input.platform,
-                tone: effectiveTone,
-                strategies: generationPlan.strategies.selected,
-                isCarousel,
-              },
-            );
-            variations = synthesized.map((variation) =>
-              applyDeterministicCopyGuards(variation),
-            );
-            recordGenerationEvent({
-              stage: "caption_synthesis",
-              status: "completed",
-              detail: "Captions synthesized from final visual content.",
-            });
-          } catch (synthesisError) {
-            recordGenerationEvent({
-              stage: "caption_synthesis",
-              status: "fallback",
-              detail: "Caption synthesis failed; original captions preserved.",
-              data: synthesisError instanceof Error ? synthesisError.message : String(synthesisError),
-            });
-          }
-          const originality =
-            evaluationPipeline.revisionCount > 0
-              ? await assessSemanticOriginality({
-                  candidates: variations as import("@shared/postspark").PostVariation[],
-                  siteIntelligence,
-                  recentPosts,
-                })
-              : initialOriginality;
-
-          // Build DesignTokens from Site Intelligence result if available
-          const chameleonDesignTokens = siteIntelligence ? siteIntelligenceToDesignTokens(siteIntelligence) : undefined;
-
-          // Generate unique IDs and return — enrich with Site Intelligence data
-          const generatedVariations = variations.map((v: any, i: number) => {
-            const normalizedSlides = isCarousel ? normalizeCarouselSlides(v) : undefined;
-            const baseVar: import("@shared/postspark").PostVariation = {
-              id: `var-${Date.now()}-${i}`,
-              ...v,
-              caption: v.caption || "",
-              platform: input.platform,
-              hashtags: v.hashtags || [],
-              postMode: input.postMode,
-              slides: normalizedSlides,
-              // Site Intelligence enrichments
-              ...(chameleonDesignTokens ? { designTokens: chameleonDesignTokens } : {}),
-              generationMeta: {
+                postMode: input.postMode,
                 creationMode: input.creationMode,
-                fidelity: normalizedExecutionBrief ? "high" : "medium",
-                interventionLevel: normalizedExecutionBrief?.interventionLevel,
-                siteIntelligenceId: siteIntelligence?.id,
-                strategyId: generationPlan.strategies.selected[i]?.id,
-                revisionCount: evaluationPipeline.revisionCount,
-                revisionApplied: evaluationPipeline.revisedIndexes.includes(i),
-                revisionFailed: evaluationPipeline.revisionFailedIndexes.includes(i),
-                evaluation: evaluationPipeline.evaluations[i],
-                originality: originality.assessments[i],
-              },
-            } as any;
-
-            return composeVariation(baseVar, chameleonDesignTokens || {} as any);
-          });
-          const finalValidation = validateVariationSet(generatedVariations, input.postMode);
-          recordGenerationEvent({
-            stage: "final_validation",
-            status: finalValidation.valid ? "completed" : "rejected",
-            detail: finalValidation.valid ? "Exactly three complete and distinct variations approved." : finalValidation.errors.join("; "),
-            data: finalValidation,
-          });
-          const shadowResult = await runGenerationShadowGraph({
-            variations: generatedVariations,
-            postMode: input.postMode,
-          });
-          if (shadowResult) {
-            if (shadowResult.status === "failed") {
-              recordGenerationEvent({
-                stage: "shadow_graph_failed",
-                status: "failed",
-                detail: "Shadow graph execution failed with error.",
-                data: {
-                  validationErrors: shadowResult.validationErrors,
-                },
+                executionBrief: normalizedExecutionBrief,
+                siteIntelligenceId: input.siteIntelligenceId,
               });
-            } else if (
-              shadowResult.validationErrors.length > 0 ||
-              shadowResult.copyValidationErrors.length > 0 ||
-              shadowResult.sectionsValidationErrors.length > 0 ||
-              shadowResult.visualFitErrors.length > 0
-            ) {
+              const routing = await routeHighTicketIntent(briefing);
+              const intentStrategies = routing.angles.map(angleToStrategy);
+              // Substitui as estratégias selecionadas pelas do intent router.
+              generationPlan.strategies.selected = intentStrategies;
               recordGenerationEvent({
-                stage: "shadow_graph_divergence",
-                status: "rejected",
-                detail: "Shadow graph detected validation divergence from legacy output.",
-                data: {
-                  validationErrors: shadowResult.validationErrors,
-                  copyValidationErrors: shadowResult.copyValidationErrors,
-                  sectionsValidationErrors: shadowResult.sectionsValidationErrors,
-                  visualFitErrors: shadowResult.visualFitErrors,
-                  copyGuardsApplied: shadowResult.copyGuardsApplied,
-                  copyGuardsChanges: shadowResult.copyGuardsChanges,
-                },
+                stage: "intent_router",
+                status: routing.fallbackUsed ? "fallback" : "completed",
+                detail: `Intent router produced ${intentStrategies.length} orthogonal angles.`,
+                data: { intent: routing.intent, fallbackUsed: routing.fallbackUsed },
+              });
+            } catch (error) {
+              recordGenerationEvent({
+                stage: "intent_router",
+                status: "fallback",
+                detail: `Intent router failed, using planContentStrategies: ${error instanceof Error ? error.message : String(error)}`,
               });
             }
           }
-          await runGenerationPipeline({
-            variations: generatedVariations,
-            postMode: input.postMode,
-          });
-          try {
-            assertVariationSet(generatedVariations, input.postMode);
-          } catch (error) {
+
+          const outcome = await generatePostVariations(
+            {
+              userUuid: ctx.user.id,
+              request: {
+                inputType: input.inputType,
+                content: input.content,
+                platform: input.platform,
+                imageUrl: input.imageUrl,
+                tone: input.tone,
+                postMode: input.postMode,
+                model: input.model,
+                creationMode: input.creationMode,
+              },
+              siteIntelligence,
+              executionBrief: normalizedExecutionBrief,
+              plan: generationPlan,
+              aiLlmJudgeEnabled: ENV.aiLlmJudgeEnabled,
+              // Cobre chamada principal + reparo (60 s cada em OPENROUTER_TASK_POLICY)
+              // com folga para embeddings, juízes e persistência.
+              deadlineMs: Date.now() + 150_000,
+            },
+            {
+              generate: (params) => invokeLLM(params),
+              clock: () => Date.now(),
+              assessOriginality: assessSemanticOriginality,
+              // Reaproveita a busca já disparada no início do handler.
+              loadRecentPosts: () => recentPostsPromise,
+              trace: {
+                id: generationTrace.id,
+                recordEvent: (event) => recordGenerationEvent(event),
+              },
+            },
+          );
+
+          if (outcome.status === "approved") {
+            const revisionCount = Math.max(
+              0,
+              ...outcome.snapshots.map(
+                (snapshot) => snapshot.generationMeta?.revisionCount ?? 0,
+              ),
+            );
+            await persistCandidateFingerprints({
+              userUuid: ctx.user.id,
+              generationRunId: generationTrace.id,
+              candidates: outcome.snapshots,
+              embeddings: outcome.originality.embeddings,
+              assessments: outcome.originality.assessments,
+            });
+            await finishGenerationTrace({
+              trace: generationTrace,
+              status: "completed",
+              strategies: outcome.plan,
+              evaluations: outcome.evaluations,
+              revisionCount,
+              strategyFallbackUsed: outcome.plan.strategies.fallbackUsed,
+              originalityFallbackUsed: outcome.originality.fallbackUsed,
+              output: outcome.snapshots,
+            });
+            await appendOperationalLog("POST_GENERATION_COMPLETED", {
+              generationRunId: generationTrace.id,
+              userUuid: ctx.user.id,
+              durationMs: Date.now() - generationTrace.startedAt,
+              inputType: input.inputType,
+              platform: input.platform,
+              postMode: input.postMode,
+              creationMode: input.creationMode,
+              requestedModel: input.model ?? "llama",
+              effectiveModels: Array.from(
+                new Set(generationTrace.calls.map((call) => call.effectiveModel)),
+              ),
+              siteIntelligenceId: siteIntelligence?.id,
+              variationCount: outcome.snapshots.length,
+              revisionCount,
+              strategyFallbackUsed: outcome.plan.strategies.fallbackUsed,
+              originalityFallbackUsed: outcome.originality.fallbackUsed,
+              generativeCalls: outcome.metrics.generativeCalls,
+              repairCalls: outcome.metrics.repairCalls,
+              llmCalls: generationTrace.calls.map((call) => ({
+                label: call.label,
+                provider: call.provider,
+                effectiveModel: call.effectiveModel,
+                attempt: call.attempt,
+                fallbackFrom: call.fallbackFrom,
+                promptHash: call.promptHash,
+                promptTokens: call.promptTokens,
+                completionTokens: call.completionTokens,
+                totalTokens: call.totalTokens,
+                latencyMs: call.latencyMs,
+                estimatedCostUsd: call.estimatedCostUsd,
+                error: call.error,
+              })),
+              outputSummary: outcome.snapshots.map(summarizeGeneratedVariation),
+            });
+            // Fase C — commit da reserva: débito definitivo apenas após a
+            // aprovação final e a persistência. Idempotente.
+            // CR-005: `false` é falha OPERACIONAL TERMINAL — a reserva não
+            // virou débito, mas o run precisa terminar com estado explícito
+            // (refund + trace failed + log), nunca como "aprovado sem cobrar".
+            const committed = await commitSparkReservation(reservation.reservationId, generationTrace.id);
+            if (!committed) {
+              throw new Error(
+                `commitSparkReservation(${reservation.reservationId}) retornou false — reserva não confirmada; run terminado como falha terminal (refund aplicado no catch).`,
+              );
+            }
+            return {
+              variations: outcome.snapshots,
+              generationRunId: generationTrace.id,
+              ...(debugEnabled
+                ? {
+                    debug: buildGenerationDebugTrace({
+                      trace: generationTrace,
+                      strategies: outcome.plan,
+                      evaluations: outcome.evaluations,
+                      output: outcome.snapshots,
+                    }),
+                  }
+                : {}),
+            };
+          }
+
+          // rejected / failed — o catch abaixo é dono único do refund, do
+          // encerramento do trace e do log. A distinção entre rejeição de
+          // qualidade e falha operacional é preservada até a borda.
+          if (outcome.status === "rejected") {
+            const issuesText = outcome.issues.map((issue) => issue.detail).join("; ");
             throw new TRPCError({
               code: "BAD_GATEWAY",
               message: "A IA não conseguiu produzir três variações válidas e distintas. Tente novamente.",
-              cause: error,
+              cause: new Error(issuesText),
             });
           }
-          generationTrace.siteIntelligenceId = siteIntelligence?.id;
-          await persistCandidateFingerprints({
-            userUuid: ctx.user.id,
-            generationRunId: generationTrace.id,
-            candidates: generatedVariations,
-            embeddings: originality.embeddings,
-            assessments: originality.assessments,
+          throw new TRPCError({
+            code: outcome.error.kind === "deadline" ? "GATEWAY_TIMEOUT" : "INTERNAL_SERVER_ERROR",
+            message: "Falha operacional durante a geração. Tente novamente.",
+            cause: new Error(outcome.error.message),
           });
-          await finishGenerationTrace({
-            trace: generationTrace,
-            status: "completed",
-            strategies: generationPlan.strategies,
-            evaluations: evaluationPipeline.evaluations,
-            revisionCount: evaluationPipeline.revisionCount,
-            strategyFallbackUsed: generationPlan.strategies.fallbackUsed,
-            originalityFallbackUsed: originality.fallbackUsed,
-            output: generatedVariations,
-          });
-          await appendOperationalLog("POST_GENERATION_COMPLETED", {
-            generationRunId: generationTrace.id,
-            userUuid: ctx.user.id,
-            durationMs: Date.now() - generationTrace.startedAt,
-            inputType: input.inputType,
-            platform: input.platform,
-            postMode: input.postMode,
-            creationMode: input.creationMode,
-            requestedModel: input.model ?? "llama",
-            effectiveModels: Array.from(
-              new Set(generationTrace.calls.map((call) => call.effectiveModel)),
-            ),
-            siteIntelligenceId: siteIntelligence?.id,
-            variationCount: generatedVariations.length,
-            revisionCount: evaluationPipeline.revisionCount,
-            strategyFallbackUsed: generationPlan.strategies.fallbackUsed,
-            originalityFallbackUsed: originality.fallbackUsed,
-            finalValidation,
-            llmCalls: generationTrace.calls.map((call) => ({
-              label: call.label,
-              provider: call.provider,
-              effectiveModel: call.effectiveModel,
-              attempt: call.attempt,
-              fallbackFrom: call.fallbackFrom,
-              promptHash: call.promptHash,
-              promptTokens: call.promptTokens,
-              completionTokens: call.completionTokens,
-              totalTokens: call.totalTokens,
-              latencyMs: call.latencyMs,
-              estimatedCostUsd: call.estimatedCostUsd,
-              error: call.error,
-            })),
-            outputSummary: generatedVariations.map(summarizeGeneratedVariation),
-          });
-          return {
-            variations: generatedVariations,
-            generationRunId: generationTrace.id,
-            ...(debugEnabled
-              ? {
-                  debug: buildGenerationDebugTrace({
-                    trace: generationTrace,
-                    strategies: generationPlan.strategies,
-                    evaluations: evaluationPipeline.evaluations,
-                    output: generatedVariations,
-                  }),
-                }
-              : {}),
-          };
         } catch (error) {
+          // Fase C — refund cobre qualquer falha terminal: LLM, schema, fit,
+          // persistência, timeout e exceções não tipadas. A reserva apenas
+          // bloqueava saldo; refund muda status sem precisar devolver débito.
+          // CR-005: se o refund também falhar (`false`), o run NUNCA fica em
+          // silêncio — registra SPARK_REFUND_FAILED e encerra o trace como
+          // falha com detalhe observável.
+          const refunded = await refundSparkReservation(
+            reservation.reservationId,
+            error instanceof Error ? error.message : "Generation failed",
+          );
+          const refundNote = refunded
+            ? ""
+            : ` [SPARK_REFUND_FAILED: refundSparkReservation(${reservation.reservationId}) retornou false — reserva pode ter ficado pendente; ação manual necessária]`;
+          if (!refunded) {
+            await appendOperationalLog("SPARK_REFUND_FAILED", {
+              reservationId: reservation.reservationId,
+              generationRunId: generationTrace.id,
+              userUuid: ctx.user.id,
+              originalError: error instanceof Error ? error.message : "Generation failed",
+            });
+          }
           await finishGenerationTrace({
             trace: generationTrace,
             status: "failed",
-            error: error instanceof Error ? error.message : "Generation failed",
+            error: `${error instanceof Error ? error.message : "Generation failed"}${refundNote}`,
           });
           await appendOperationalLog("POST_GENERATION_FAILED", {
             generationRunId: generationTrace.id,

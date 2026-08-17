@@ -110,12 +110,12 @@ export function DraggableBlock({
     const isDragging = interaction.phase === "dragging" || interaction.phase === "pressing";
     const isResizing = interaction.phase === "resizing";
     const isAbsolute = Boolean(layoutPos.freePosition);
-    const reservedFlowFootprint = flowFootprint && (isDragging || isAbsolute) ? flowFootprint : null;
+    const reservedFlowFootprint = flowFootprint && (!isAbsolute || isDragging)
+        ? flowFootprint
+        : null;
 
     useLayoutEffect(() => {
         if (isAbsolute) return;
-        // Keep the flow placeholder ready before the first real drag, but do not
-        // freeze a zero-sized measurement from DOM/test environments before layout.
         if (flowFootprint) return;
         const element = blockRef.current;
         if (!element) return;
@@ -126,10 +126,10 @@ export function DraggableBlock({
         const measuredHeight = Math.min(element.offsetHeight, Math.max(1, contentHeight));
         if (measuredWidth <= 0 || measuredHeight <= 0) return;
         setFlowFootprint({ width: measuredWidth, height: measuredHeight });
-    }, [flowFootprint, isAbsolute, isDragging]);
+    }, [flowFootprint, isAbsolute]);
 
     const hasExplicitWidth = layoutPos.width != null;
-    const defaultWidthForMode = isDraggable && defaultWidth === "100%" ? "fit-content" : defaultWidth;
+    const defaultWidthForMode = isDraggable && defaultWidth === "100%" ? "100%" : defaultWidth;
     const widthStyle = isResizing && interaction.draft
         ? `${interaction.draft.rect.width}px`
         : hasExplicitWidth
@@ -150,10 +150,24 @@ export function DraggableBlock({
             ? resolveLayoutStyle(layoutPos, padding)
             : { position: "relative", transform: flowDraftTransform };
 
+    const measureFootprint = () => {
+        if (flowFootprint) return;
+        const element = blockRef.current;
+        if (!element) return;
+        const content = contentRef.current;
+        const contentWidth = content?.scrollWidth || element.offsetWidth;
+        const contentHeight = content?.scrollHeight || element.offsetHeight;
+        const measuredWidth = Math.min(element.offsetWidth, Math.max(1, contentWidth));
+        const measuredHeight = Math.min(element.offsetHeight, Math.max(1, contentHeight));
+        if (measuredWidth <= 0 || measuredHeight <= 0) return;
+        setFlowFootprint({ width: measuredWidth, height: measuredHeight });
+    };
+
     const pointerHandlers = {
         ...interaction.bind,
         onPointerDown: (event: React.PointerEvent<HTMLElement>) => {
             if (!isDraggable || !blockRef.current) return;
+            if (!layoutPos.freePosition) measureFootprint();
             interaction.bind.onPointerDown(event);
         },
     };

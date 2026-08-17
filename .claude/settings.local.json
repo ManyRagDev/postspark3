@@ -150,7 +150,13 @@
       "Bash(echo \"C:\\\\Users\\\\emanu\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\\\python.exe\")",
       "Bash(echo \".\")",
       "Bash(cat)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(grep -hoE \"\\(describe|it|test\\)\\\\\\(['\\\\\"\\\\`][^'\\\\\"\\\\`]+\" server/imageGenerateBackground.test.ts)",
+      "Bash(sed -E \"s/^\\(describe|it|test\\)\\\\\\(['\\\\\"\\\\`]//\")",
+      "Bash(grep -hoE \"\\(describe|it\\)\\\\\\(['\\\\\"\\\\`][^'\\\\\"\\\\`]+\" postspark-next/packages/renderer/test/render.test.ts)",
+      "Bash(sed -E \"s/^\\(describe|it\\)\\\\\\(['\\\\\"\\\\`]//\")",
+      "Bash(git add *)",
+      "Bash(timeout 2)"
     ]
   },
   "enabledMcpjsonServers": [

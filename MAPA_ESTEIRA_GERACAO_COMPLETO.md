@@ -718,7 +718,7 @@ VARIATION FINAL
 | `server/ai/generationTrace.ts` | Trace de debugging da execução completa |
 | `server/siteIntelligence.ts` | Análise completa de site (negócio + editorial) |
 | `server/brandDNA.ts` | Extração multi-página de identidade visual |
-| `server/chameleonVision.ts` | Análise visual direta (screenshot → CSS tokens) |
+| ~~`server/chameleonVision.ts`~~ | ~~Análise visual direta (screenshot → CSS tokens)~~ — **removido em 2026-07-13 (Fase B.1, órfão)** |
 | `server/_core/llm.ts` | Interface unificada para Groq, OpenRouter, Gemini |
 | `server/billing.ts` | Debitamento de Sparks + Stripe integration |
 

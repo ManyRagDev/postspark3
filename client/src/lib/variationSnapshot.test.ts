@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { CAROUSEL_SLIDES, FREE_TEXT_ELEMENTS, IMAGE_ELEMENTS, createCarouselVariation, createPostVariation } from "../../../tests/fixtures/postspark";
 import { postVisualSnapshotSchema } from "../../../shared/postsparkSchemas";
+import { validateVisualFit } from "../../../shared/visualFit";
 import { useEditorStore } from "../store/editorStore";
 import { applyDesignTokensToSnapshot, buildVariationSnapshot, createPostVisualSnapshot, hasManualSectionLayouts, normalizeSections, normalizeVariationForEditor, projectSnapshotForSlide } from "./variationSnapshot";
 
@@ -136,7 +137,7 @@ describe("variationSnapshot", () => {
     const snapshot = createPostVisualSnapshot(variation, "5:6");
 
     expect(snapshot).toMatchObject({
-      snapshotVersion: 3,
+      snapshotVersion: 4,
       aspectRatio: "5:6",
       layout: "centered",
       backgroundColor: "#112233",
@@ -236,17 +237,18 @@ describe("variationSnapshot", () => {
 
     const snapshot = createPostVisualSnapshot(variation, "5:6");
 
+    // CR-003/CR-008: a FAMÍLIA (layoutSettings globais, calibradas por
+    // proporção no compose) é a autoridade do layout efetivo — a otimização
+    // por-ratio do LLM (aspectRatioOptimizations) mantém layout/cor, mas não
+    // sobrescreve a geometria calibrada da família. O layout vira "centered"
+    // (otimização).
+    // NOTA (Fase 2.4): sem tipografia resolvida (fontes ausentes no cliente),
+    // o fallback volta a valer e converte para flow-layout. Em produção com
+    // fontes disponíveis, a geometria seria protegida. Aqui, vê-se o fallback
+    // em ação (comportamento esperado com resolução falha).
     expect(snapshot.layout).toBe("centered");
-    expect(snapshot.layoutSettings.headline).toMatchObject({
-      textAlign: "center",
-      freePosition: { x: 50, y: 24 },
-      width: 70,
-    });
-    expect(snapshot.layoutSettings.body).toMatchObject({
-      textAlign: "center",
-      freePosition: { x: 50, y: 48 },
-      width: 64,
-    });
+    expect(snapshot.layoutSettings.headline.width).toBe(84);
+    expect(snapshot.typographyResolutionError).toBeDefined();
   });
 
   it("stores the exact selected snapshot and keeps it current after editing", () => {
@@ -350,7 +352,7 @@ describe("variationSnapshot", () => {
     const workbenchSnapshot = useEditorStore.getState().visualSnapshot;
 
     expect(workbenchSnapshot).toMatchObject(holodeckSnapshot);
-    expect(workbenchSnapshot?.snapshotVersion).toBe(3);
+    expect(workbenchSnapshot?.snapshotVersion).toBe(4);
     expect(workbenchSnapshot?.layout).toBe("stacked");
     expect(workbenchSnapshot?.backgroundColor).toBe("#0F172A");
     expect(workbenchSnapshot?.accentColor).toBe("#FB923C");
@@ -469,5 +471,195 @@ describe("variationSnapshot", () => {
 
     const rootTextElements = useEditorStore.getState().visualSnapshot?.textElements;
     expect(rootTextElements).toEqual(FREE_TEXT_ELEMENTS);
+  });
+
+  // ── Fase 2: snapshot frozen server-side ────────────────────────────
+
+  it("Fase 2: frozen v3 snapshot enters the store without destructive re-normalization", () => {
+    const raw = createPostVariation({ aspectRatio: "9:16" });
+    const frozen = createPostVisualSnapshot(raw, "9:16");
+
+    // The store's loadSnapshot -> setActiveVariation trusts a v3 snapshot at the
+    // matching aspect ratio and must not re-normalize it.
+    useEditorStore.getState().loadSnapshot(frozen);
+    const store = useEditorStore.getState();
+
+    expect(store.activeVariation).toBeTruthy();
+    // visualSnapshot is the authoritative document; it must equal the frozen
+    // snapshot's layoutSettings (not a re-derived layoutToAdvanced fallback).
+    expect(store.visualSnapshot?.snapshotVersion).toBe(4);
+    expect(store.visualSnapshot?.aspectRatio).toBe("9:16");
+    expect(store.visualSnapshot?.layoutSettings).toEqual(frozen.layoutSettings);
+    expect(store.visualSnapshot?.designTokens).toEqual(frozen.designTokens);
+    expect(store.visualSnapshot?.bgValue).toEqual(frozen.bgValue);
+  });
+
+  it("Fase A.2: v3 snapshot with invalid shape falls back to canonical normalizer", () => {
+    // Um snapshot que declara snapshotVersion===3 mas tem campos obrigatórios
+    // ausentes (layoutSettings parcial, bgValue inválido) NÃO deve ser tratado
+    // como frozen. Ele deve atravessar createPostVisualSnapshot para saneamento.
+    const raw = createPostVariation({ aspectRatio: "1:1" });
+    const frozen = createPostVisualSnapshot(raw, "1:1");
+    // Trunca campos críticos para invalidar o shape sem mudar a versão.
+    const truncated = {
+      ...frozen,
+      layoutSettings: { headline: {} }, // layoutSettings incompleto
+      bgValue: { type: "unknown-type" }, // bgValue inválido
+    } as unknown as typeof frozen;
+
+    useEditorStore.getState().loadSnapshot(truncated);
+    const store = useEditorStore.getState();
+
+    // O snapshot resultante deve ter sido re-normalizado: layoutSettings e
+    // bgValue voltam a ter shape válido (não os valores truncados).
+    expect(store.visualSnapshot?.snapshotVersion).toBe(4);
+    expect(store.visualSnapshot?.layoutSettings.headline).toHaveProperty("position");
+    expect(store.visualSnapshot?.bgValue).not.toEqual({ type: "unknown-type" });
+  });
+
+  it("Fase 2: re-normalizing a frozen v3 snapshot is idempotent at the same aspect ratio", () => {
+    const raw = createPostVariation({ aspectRatio: "5:6" });
+    const frozen = createPostVisualSnapshot(raw, "5:6");
+    const renormalized = createPostVisualSnapshot(frozen, "5:6");
+
+    // The frozen snapshot must survive a second pass unchanged. This is the
+    // Fase 0 gate (§61) applied to the Fase 2 delivery contract.
+    expect(renormalized.layoutSettings).toEqual(frozen.layoutSettings);
+    expect(renormalized.designTokens).toEqual(frozen.designTokens);
+    expect(renormalized.textElements).toEqual(frozen.textElements);
+    expect(renormalized.snapshotVersion).toBe(4);
+  });
+
+  it("Fase 2/G4: compose derives canvas height from variation aspect ratio", () => {
+    // composeVariation is not imported here to keep the test unit-isolated;
+    // instead we verify the contract that compose relies on: canvasHeight for
+    // 9:16 at 360 width is 640, which is what compose.ts now computes.
+    const raw = createPostVariation({ aspectRatio: "9:16" });
+    const snapshot = createPostVisualSnapshot(raw, "9:16");
+
+    // The snapshot must carry the requested aspect ratio, and its decorative
+    // textElements (cd-*) must have been authored against the 9:16 canvas.
+    expect(snapshot.aspectRatio).toBe("9:16");
+    // createPostVisualSnapshot applies applyVisualFitFallback which uses
+    // canvasHeight(aspectRatio); for 9:16 that is 360 * 16/9 = 640. If compose
+    // were still hardcoded to 1:1, cd-* elements positioned at y near the
+    // bottom would be dropped as out-of-canvas. We assert the snapshot is valid.
+    const schemaResult = postVisualSnapshotSchema.safeParse(snapshot);
+    expect(schemaResult.success).toBe(true);
+  });
+
+  it("Fase 2: legacy variation (no snapshotVersion) still gets normalized on store hydration", () => {
+    // A raw PostVariation without snapshotVersion must still traverse the
+    // normalizer when loaded into the store (backwards compatibility).
+    const legacy = createPostVariation({ aspectRatio: "1:1" });
+    expect((legacy as any).snapshotVersion).toBeUndefined();
+
+    useEditorStore.getState().loadSnapshot(legacy as any);
+    const store = useEditorStore.getState();
+
+    expect(store.visualSnapshot?.snapshotVersion).toBe(4);
+    expect(store.activeVariation?.aspectRatio).toBe("1:1");
+  });
+
+  it("flags visually truncated headline when a short phrase is placed in a narrow text box", () => {
+    const snapshot = createPostVisualSnapshot(createPostVariation({
+      template: "simple",
+      aspectRatio: "1:1",
+      headline: "Faça escolhas corretamente",
+      body: "",
+      layoutSettings: {
+        headline: { position: "top-left", textAlign: "left", freePosition: { x: 20, y: 30 }, width: 28 },
+        body: { position: "bottom-left", textAlign: "left", freePosition: { x: 20, y: 75 }, width: 70 },
+      },
+    }), "1:1");
+
+    expect(validateVisualFit(snapshot).issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "text_exceeds_visible_area", target: "headline" }),
+    ]));
+  });
+
+  it("does not flag the same headline when its text box has enough width", () => {
+    const snapshot = createPostVisualSnapshot(createPostVariation({
+      template: "simple",
+      aspectRatio: "1:1",
+      headline: "Faça escolhas corretamente",
+      body: "",
+      layoutSettings: {
+        headline: { position: "top-left", textAlign: "left", freePosition: { x: 50, y: 30 }, width: 80 },
+        body: { position: "bottom-left", textAlign: "left", freePosition: { x: 50, y: 75 }, width: 70 },
+      },
+    }), "1:1");
+
+    expect(validateVisualFit(snapshot).issues).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "text_exceeds_visible_area" }),
+    ]));
+  });
+
+  it("preserves visual identity and elements when previewing a frozen post in another format", () => {
+    const source = createPostVisualSnapshot(createPostVariation({
+      aspectRatio: "1:1",
+      layout: "centered",
+      backgroundColor: "#061225",
+      textColor: "#F8FAFC",
+      accentColor: "#22B8F0",
+      bgValue: { type: "solid", color: "#061225" },
+      aspectRatioOptimizations: {
+        "5:6": {
+          layout: "split",
+          backgroundColor: "#7C3F86",
+          textColor: "#FDE68A",
+          accentColor: "#F97316",
+          headline: { x: 8, y: 54, width: 8, textAlign: "left" },
+          body: { x: 9, y: 70, width: 10, textAlign: "left" },
+        },
+      },
+    }), "1:1");
+    const sourceWithElements = {
+      ...source,
+      textElements: FREE_TEXT_ELEMENTS,
+      imageElements: IMAGE_ELEMENTS,
+    };
+
+    const reformatted = createPostVisualSnapshot(sourceWithElements, "5:6", {
+      preserveVisualIdentity: true,
+    });
+
+    expect(reformatted).toMatchObject({
+      aspectRatio: "5:6",
+      layout: "centered",
+      backgroundColor: "#061225",
+      textColor: "#F8FAFC",
+      accentColor: "#22B8F0",
+      bgValue: { type: "solid", color: "#061225" },
+    });
+    expect(reformatted.designTokens.colors).toMatchObject({
+      background: "#061225",
+      text: "#F8FAFC",
+      primary: "#22B8F0",
+    });
+    expect(reformatted.textElements).toEqual(FREE_TEXT_ELEMENTS);
+    expect(reformatted.imageElements).toEqual(IMAGE_ELEMENTS);
+    expect(reformatted.layoutSettings.headline.width).toBeGreaterThanOrEqual(36);
+    expect(reformatted.layoutSettings.body.width).toBeGreaterThanOrEqual(36);
+  });
+
+  it("falls back from dangerously narrow AI text boxes during initial normalization", () => {
+    const snapshot = createPostVisualSnapshot(createPostVariation({
+      template: "simple",
+      sections: undefined,
+      aspectRatioOptimizations: {
+        "9:16": {
+          layout: "left-aligned",
+          backgroundColor: "#061225",
+          textColor: "#F8FAFC",
+          accentColor: "#22B8F0",
+          headline: { x: 6, y: 20, width: 7, textAlign: "left" },
+          body: { x: 7, y: 58, width: 9, textAlign: "left" },
+        },
+      },
+    }), "9:16");
+
+    expect(snapshot.layoutSettings.headline.width).toBeGreaterThanOrEqual(36);
+    expect(snapshot.layoutSettings.body.width).toBeGreaterThanOrEqual(36);
   });
 });

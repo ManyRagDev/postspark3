@@ -113,6 +113,8 @@ temp/
 
 novaStackCaptura.md
 docs/*
+!docs/reforma/
+!docs/reforma/**
 !docs/AUDITORIA_IMPLEMENTACAO.md
 !docs/AI_OPERATIONS.md
 !docs/DESIGN_SYSTEM.md
@@ -123,3 +125,13 @@ docs/canva/*
 !docs/canva/PLANO_REFORMA_MOTOR_WORKBENCH.md
 !docs/canva/PLANO_RECUPERACAO_DEFINITIVA_WORKBENCH.md
 .agent/skills/awesome-skills/
+
+# harness: ancora de dados reais (fora do git)
+harness/corpus.real.json
+harness-report*.json
+
+# SPEC-004: relatórios derivados do verificador de runtime
+verify-output/
+
+# SPEC-006: artefatos de verificação E2E
+artifacts/

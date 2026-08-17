@@ -2,17 +2,57 @@ import { CreativeFamily } from "./types";
 import { isDark, darken, lighten, mix } from "./color";
 import { splitHeadline } from "./utils";
 import { TextElement } from "../postspark";
+import { aspectOf, centeredStack, flX, posterBottom, sectionGrid, stack } from "./layoutArchetypes";
 
 /**
- * `freePosition.x` é o CENTRO do bloco (contrato do renderer/drag: `translate(-50%, -50%)`).
- * As famílias raciocinam a partir da margem esquerda, então convertemos aqui:
- * centro = margem esquerda + largura/2. Assim um bloco de `width: 84` com margem 8
- * ocupa 8%..92% e centro 50%, reproduzindo exatamente o design pretendido.
+ * CR-003 — Calibração de encaixe por proporção.
+ *
+ * Os blocos de headline/body têm altura EXPLÍCITA por formato para que o
+ * TEXTO QUEBRADO no piso de legibilidade caiba na caixa declarada — o
+ * resolvedor nunca corta; se a caixa for pequena demais, a resolução falha
+ * estruturalmente e o orçamento de 5% do harness (palavras irrecuperáveis)
+ * vira falso vermelho. Valores derivados do corpus do harness (pior caso por
+ * família/fonte/largura) com margem de segurança.
  */
-const flX = (leftPercent: number, widthPercent: number): number => leftPercent + widthPercent / 2;
+const HEADLINE_HEIGHT_PCT: Record<string, Record<string, number>> = {
+  // 4 linhas no piso (fontes compactas, largura ~84%)
+  compact: { "1:1": 33, "5:6": 28, "9:16": 19 },
+  // 5 linhas no piso (fontes display largas / larguras menores)
+  display: { "1:1": 41, "5:6": 34, "9:16": 23 },
+  // 6 linhas no piso (mono/estreitas)
+  mono: { "1:1": 49, "5:6": 41, "9:16": 28 },
+};
+const BODY_HEIGHT_PCT: Record<string, Record<string, number>> = {
+  standard: { "1:1": 24, "5:6": 20, "9:16": 14 },
+};
+// Folga REAL acima de MIN_TEXT_GAP (shared/visualFit.ts = 4), mesma razão do
+// default de `stack()` em layoutArchetypes.ts. Usado tanto entre headline/body
+// quanto entre headline/sectionLayouts (versus, mosaic-grid).
+const GAP_PCT = 6;
+/**
+ * Centro vertical do headline ancorado no topo (versus, mosaic-grid), por
+ * proporção — precisa deixar o TOPO da caixa declarada (yCenter -
+ * HEADLINE_HEIGHT_PCT.display[ar]/2) dentro da safe area
+ * (safeAreaMarginsPercent, layoutArchetypes.ts: top 5% em 1:1/5:6, 6% em
+ * 9:16). Ex.: 1:1 tem height=41 → topo = yCenter - 20.5; precisa yCenter >= 25.5.
+ */
+const HEADLINE_TOP_ANCHOR: Record<string, number> = { "1:1": 26, "5:6": 23, "9:16": 20 };
+/** Margem inferior da âncora de rodapé (≥ safe area; 9:16 usa a zona de UI). */
+const BOTTOM_MARGIN_PCT: Record<string, number> = { "1:1": 6, "5:6": 6, "9:16": 13 };
+
+/**
+ * Overrides parciais aceitos por `createTextElement`: `styles` é
+ * deep-partial (só os campos que a família quer sobrescrever), diferente de
+ * `Partial<TextElement>` que exigiria o objeto `styles` completo. Isso
+ * elimina o `as any` que cada chamada com `styles` parcial precisava antes
+ * (SPEC-002, docs/reforma/SPEC-002 passo 3).
+ */
+type TextElementOverrides = Partial<Omit<TextElement, "styles">> & {
+  styles?: Partial<TextElement["styles"]>;
+};
 
 /** Helper to create a base TextElement with default styles */
-function createTextElement(id: string, text: string, x: number, y: number, width: number, overrides?: Partial<TextElement>): TextElement {
+function createTextElement(id: string, text: string, x: number, y: number, width: number, overrides?: TextElementOverrides): TextElement {
   const baseStyles = {
     fontSize: "16px",
     fontFamily: "Inter",
@@ -47,11 +87,25 @@ export const FAMILIES: CreativeFamily[] = [
     fit: { maxHeadlineChars: 70 },
     carousel: "title-emphasis",
     compose: (ctx) => {
-      const { variation, tokens, pxX, pxY, rand } = ctx;
+      const { variation, tokens, pxX, pxY } = ctx;
       const { background, secondary } = tokens.colors;
       
       const stickerText = variation.creativeDirection?.hiddenOrnaments?.stickerText || "EDITORIAL";
       const hasImage = !!variation.imageUrl || !!variation.bgValue?.url;
+      const ar = aspectOf(ctx.aspectRatio);
+
+      // CR-003: caixa do rodapé dimensionada para o pior headline do corpus
+      // (4 linhas no piso) com a âncora respeitando a safe area por formato.
+      const posterSlots = stack({
+        xCenterPercent: flX(8, 84),
+        headlineWidthPercent: 84,
+        headlineHeightPercent: HEADLINE_HEIGHT_PCT.compact[ar],
+        bodyHeightPercent: BODY_HEIGHT_PCT.standard[ar],
+        gapPercent: GAP_PCT,
+        topPercent: 100 - BOTTOM_MARGIN_PCT[ar] - (HEADLINE_HEIGHT_PCT.compact[ar] + GAP_PCT + BODY_HEIGHT_PCT.standard[ar]),
+        textAlign: "left",
+        position: "bottom-left",
+      });
 
       return {
         layout: "left-aligned",
@@ -59,7 +113,8 @@ export const FAMILIES: CreativeFamily[] = [
         headlineFontFamily: "Playfair Display",
         bodyFontFamily: "Inter",
         layoutSettings: {
-          headline: { position: "bottom-left", textAlign: "left", freePosition: { x: flX(8, 84), y: 62 + rand() * 6 }, width: 84 },
+          headline: posterSlots.headline,
+          body: posterSlots.body,
           badge: { position: "top-left", textAlign: "left", width: 12 },
           accentBar: { position: "top-left", textAlign: "left", freePosition: { x: flX(8, 12), y: 56 }, width: 12 },
         },
@@ -67,7 +122,7 @@ export const FAMILIES: CreativeFamily[] = [
         cardMode: "full-bleed",
         textElements: [
           createTextElement("cd-kicker", stickerText.toUpperCase(), pxX(8), pxY(8), pxX(84), {
-            styles: { fontSize: "11px", fontFamily: "Space Mono", color: secondary, fontWeight: "600" } as any
+            styles: { fontSize: "11px", fontFamily: "Space Mono", color: secondary, fontWeight: "600" }
           })
         ],
         bgOverlay: hasImage ? { color: darken(background, 20), opacity: 0.45 } : undefined
@@ -86,7 +141,16 @@ export const FAMILIES: CreativeFamily[] = [
     compose: (ctx) => {
       const { variation, rand, pxX, pxY } = ctx;
       const stickerText = variation.creativeDirection?.hiddenOrnaments?.stickerText || "NOVO";
+      const ar = aspectOf(ctx.aspectRatio);
       
+      const chromaticSlots = centeredStack({
+        headlineWidthPercent: 84,
+        headlineHeightPercent: HEADLINE_HEIGHT_PCT.compact[ar],
+        bodyHeightPercent: BODY_HEIGHT_PCT.standard[ar],
+        textAlign: "center",
+        position: "center",
+      });
+
       return {
         layout: "centered",
         headlineFontFamily: "Anton",
@@ -95,15 +159,15 @@ export const FAMILIES: CreativeFamily[] = [
         structure: { borderRadius: "0px" },
         layoutSettings: {
           padding: 32,
-          headline: { position: "center", textAlign: "center", width: 84 },
-          body: { position: "center", textAlign: "center", width: 84 },
+          headline: chromaticSlots.headline,
+          body: chromaticSlots.body!,
         },
         ornaments: { badge: "hide", sticker: "keep", accentBar: "hide" },
         cardMode: "full-bleed",
         textElements: [
           createTextElement("cd-sticker-rot", stickerText.toUpperCase(), pxX(70), pxY(15), pxX(25), {
             rotation: -6 + rand() * 12,
-            styles: { fontSize: "14px", fontFamily: "Anton", color: ctx.tokens.colors.primary, textAlign: "center" } as any
+            styles: { fontSize: "14px", fontFamily: "Anton", color: ctx.tokens.colors.primary, textAlign: "center" }
           })
         ]
       };
@@ -122,10 +186,27 @@ export const FAMILIES: CreativeFamily[] = [
       const { tokens, rand } = ctx;
       const { background, primary } = tokens.colors;
       const borderCol = isDark(background) ? "#ffffff" : "#000000";
+      const splitImagePosition = rand() < 0.5 ? "top" : "bottom";
+      const ar = aspectOf(ctx.aspectRatio);
+
+      // Imagem ocupa a metade vertical indicada por `splitImagePosition`; o
+      // headline centra na metade oposta (yCenter 28 quando a imagem é a
+      // metade de baixo, 72 quando a imagem é a de cima). CR-003: caixa
+      // dimensionada para 5 linhas no piso (fonte display larga).
+      const brutalSlots = centeredStack({
+        // 88, não 90: centrado, sobra (100-88)/2=6% de cada lado — cabe na
+        // safe area mais apertada (9:16, margem lateral 6%, safeAreaMarginsPercent
+        // em layoutArchetypes.ts). 90 cabia em 1:1/5:6 (margem 5%) mas estourava em 9:16.
+        headlineWidthPercent: 88,
+        headlineHeightPercent: HEADLINE_HEIGHT_PCT.display[ar],
+        textAlign: "center",
+        position: "center",
+        yCenterPercent: splitImagePosition === "top" ? 72 : 28,
+      });
 
       return {
         layout: "split",
-        splitImagePosition: rand() < 0.5 ? "top" : "bottom",
+        splitImagePosition,
         headlineFontFamily: "Archivo Black",
         typography: { textTransform: "uppercase" },
         structure: {
@@ -135,13 +216,13 @@ export const FAMILIES: CreativeFamily[] = [
         },
         // We simulate the background color on the headline block via structure if possible,
         // or we just rely on standard layout. The spec says `layoutSettings.headline.backgroundColor: primary`
-        // Note: AdvancedLayoutSettings doesn't have backgroundColor in LayoutPosition in the provided schema, 
+        // Note: AdvancedLayoutSettings doesn't have backgroundColor in LayoutPosition in the provided schema,
         // we'll set what we can.
         layoutSettings: {
-          headline: { position: "center", textAlign: "center", width: 90 },
+          headline: brutalSlots.headline,
           badge: { position: "top-left", textAlign: "left", width: 12 },
         },
-        ornaments: { badge: "keep", sticker: "keep", accentBar: "hide" },
+        ornaments: { badge: "keep", sticker: "keep", accentBar: "hide", body: "hide" },
         cardMode: "card"
       };
     }
@@ -165,27 +246,42 @@ export const FAMILIES: CreativeFamily[] = [
       const off1y = 1 + rand() * 1.5;
       const off2x = -(1 + rand() * 1.5);
       const off2y = -(1 + rand() * 1.5);
+      const ar = aspectOf(ctx.aspectRatio);
 
       // In a real implementation we would know the exact position of the headline to duplicate it, 
       // but here we just place the glitches around a fixed center where we assume the headline is.
       // We'll place them near the center.
+      const glitchSlots = centeredStack({
+        xCenterPercent: flX(10, 80),
+        headlineWidthPercent: 80,
+        headlineHeightPercent: HEADLINE_HEIGHT_PCT.mono[ar],
+        bodyHeightPercent: BODY_HEIGHT_PCT.standard[ar],
+        textAlign: "center",
+        position: "center",
+        yCenterPercent: 45,
+      });
+
       return {
         headlineFontFamily: "Space Mono",
         layoutSettings: {
-          headline: { position: "center", textAlign: "center", freePosition: { x: flX(10, 80), y: 45 }, width: 80 }
+          headline: glitchSlots.headline,
+          body: glitchSlots.body!
         },
         ornaments: { badge: "hide", sticker: "hide", accentBar: "hide" },
         cardMode: "full-bleed",
-        bgOverlay: { color: darken(background, 8), opacity: 1 },
+        // CR-003: overlay SUBDOMINANTE (8% de escurecimento é quase invisível) —
+        // com opacidade dominante, o fundo efetivo do texto mudaria e derrubaria
+        // o contraste do texto em paletas claras.
+        bgOverlay: { color: darken(background, 8), opacity: 0.4 },
         textElements: [
           createTextElement("cd-glitch-1", variation.headline, pxX(10 + off1x), pxY(45 + off1y), pxX(80), {
-            styles: { fontSize: "32px", fontFamily: "Space Mono", color: primary, opacity: "0.65", fontWeight: "700" } as any
+            styles: { fontSize: "32px", fontFamily: "Space Mono", color: primary, opacity: "0.65", fontWeight: "700" }
           }),
           createTextElement("cd-glitch-2", variation.headline, pxX(10 + off2x), pxY(45 + off2y), pxX(80), {
-            styles: { fontSize: "32px", fontFamily: "Space Mono", color: secondary, opacity: "0.65", fontWeight: "700" } as any
+            styles: { fontSize: "32px", fontFamily: "Space Mono", color: secondary, opacity: "0.65", fontWeight: "700" }
           }),
           createTextElement("cd-scanline-tag", `//${badgeText.toUpperCase()}`, pxX(10), pxY(90), pxX(80), {
-            styles: { fontSize: "12px", fontFamily: "Space Mono", color: secondary, opacity: "0.8" } as any
+            styles: { fontSize: "12px", fontFamily: "Space Mono", color: secondary, opacity: "0.8" }
           })
         ]
       };
@@ -203,13 +299,24 @@ export const FAMILIES: CreativeFamily[] = [
     compose: (ctx) => {
       const { tokens } = ctx;
       const { background, primary } = tokens.colors;
+      const ar = aspectOf(ctx.aspectRatio);
+
+      const glassSlots = centeredStack({
+        headlineWidthPercent: 78,
+        headlineHeightPercent: HEADLINE_HEIGHT_PCT.display[ar],
+        bodyHeightPercent: BODY_HEIGHT_PCT.standard[ar],
+        textAlign: "center",
+        position: "center",
+      });
 
       return {
         layout: "centered",
         bgOverlay: { color: lighten(background, 12), opacity: 0.25 },
         imageSettings: { blur: 2, brightness: 1.05 },
         layoutSettings: {
-          card: { position: "center", textAlign: "center", width: 78 }
+          card: { position: "center", textAlign: "center", width: 78 },
+          headline: glassSlots.headline,
+          body: glassSlots.body!,
         },
         structure: {
           border: `1px solid ${primary}40`,
@@ -250,19 +357,31 @@ export const FAMILIES: CreativeFamily[] = [
         textElements.push(
           createTextElement(`cd-kin-${i}`, segText, pxX(10), pxY(18 + i * 16), pxX(80), {
             rotation: rot,
-            styles: { fontSize: realSize, fontFamily: "Anton", color: col, textTransform: "uppercase", lineHeight: "1" } as any
+            styles: { fontSize: realSize, fontFamily: "Anton", color: col, textTransform: "uppercase", lineHeight: "1" }
           })
         );
       }
       
-      // The native headline is positioned as the last segment
-      const lastY = 18 + (total - 1) * 16;
-      
+      // The native headline is positioned as the last segment — CR-003: o
+      // SLOT declarado precisa acomodar o texto inteiro no piso; a caixa
+      // declarada fica centralizada e os segmentos decorativos mantêm o
+      // desenho original.
+      const ar = aspectOf(ctx.aspectRatio);
+      const kineticSlots = centeredStack({
+        xCenterPercent: flX(10, 80),
+        headlineWidthPercent: 80,
+        headlineHeightPercent: HEADLINE_HEIGHT_PCT.display[ar],
+        bodyHeightPercent: BODY_HEIGHT_PCT.standard[ar],
+        position: "center",
+        yCenterPercent: 45,
+      });
+
       return {
         headlineFontFamily: "Anton",
         typography: { textTransform: "uppercase" },
         layoutSettings: {
-          headline: { position: "top-left", textAlign: "left", freePosition: { x: flX(10, 80), y: lastY }, width: 80 }
+          headline: kineticSlots.headline,
+          body: kineticSlots.body!
         },
         ornaments: { badge: "hide", sticker: "keep", accentBar: "hide" },
         cardMode: "full-bleed",
@@ -286,18 +405,28 @@ export const FAMILIES: CreativeFamily[] = [
       const content = `${variation.headline} ${variation.body}`;
       const match = content.match(/\d+([.,]\d+)?%?/);
       const stat = match ? match[0] : "100%";
+      const ar = aspectOf(ctx.aspectRatio);
       
+      const dataPunchSlots = stack({
+        xCenterPercent: flX(8, 84),
+        headlineWidthPercent: 84,
+        headlineHeightPercent: HEADLINE_HEIGHT_PCT.display[ar],
+        topPercent: 49,
+        textAlign: "left",
+        position: "top-left",
+      });
+
       return {
         headlineFontSize: 0.8,
         layoutSettings: {
-          headline: { position: "top-left", textAlign: "left", freePosition: { x: flX(8, 84), y: 58 }, width: 84 },
+          headline: dataPunchSlots.headline,
           accentBar: { position: "top-left", textAlign: "left", freePosition: { x: flX(8, 12), y: 50 }, width: 12 },
         },
-        ornaments: { badge: "keep", sticker: "hide", accentBar: "keep" },
+        ornaments: { badge: "keep", sticker: "hide", accentBar: "keep", body: "hide" },
         cardMode: "full-bleed",
         textElements: [
           createTextElement("cd-stat", stat, pxX(8), pxY(22), pxX(84), {
-            styles: { fontSize: "32px", fontWeight: "800", color: tokens.colors.primary, fontFamily: "Inter", lineHeight: "1" } as any
+            styles: { fontSize: "32px", fontWeight: "800", color: tokens.colors.primary, fontFamily: "Inter", lineHeight: "1" }
           })
         ]
       };
@@ -313,15 +442,35 @@ export const FAMILIES: CreativeFamily[] = [
     fit: { needsSections: true },
     carousel: "uniform",
     compose: (ctx) => {
-      const { tokens } = ctx;
-      // We rely on sectionLayouts rendering logic in the renderer.
+      // CR-003: contrato mensurável — a família agora DECLARA o slot de
+      // headline (topo do canvas, tamanho do pior caso do corpus) para que o
+      // harness e o resolvedor canônico consigam provar encaixe. O template
+      // continua `feature-grid`; as seções também têm geometria explícita
+      // (sectionGrid, abaixo do headline) para que validateVisualFit consiga
+      // provar não-colisão entre headline e a grade.
+      const ar = aspectOf(ctx.aspectRatio);
+      const versusSlots = centeredStack({
+        headlineWidthPercent: 84,
+        headlineHeightPercent: HEADLINE_HEIGHT_PCT.display[ar],
+        position: "top-left",
+        yCenterPercent: HEADLINE_TOP_ANCHOR[ar],
+      });
+      const sectionsTop = versusSlots.headline.freePosition!.y + versusSlots.headline.height! / 2 + GAP_PCT;
+      const sections = sectionGrid({
+        topPercent: sectionsTop,
+        rowHeightPercent: BODY_HEIGHT_PCT.standard[ar],
+      });
+
       return {
         template: "feature-grid",
         typography: { textTransform: "uppercase" },
-        ornaments: { badge: "keep", sticker: "hide", accentBar: "hide" },
+        ornaments: { badge: "keep", sticker: "hide", accentBar: "hide", body: "hide" },
         cardMode: "card",
-        // sectionLayouts logic is not strictly typed to hold backgroundColor in LayoutPosition in the public interface,
-        // but we can set the structure if needed. The blueprint relies on `injectContent` and `sectionLayouts`.
+        layoutSettings: {
+          headline: versusSlots.headline,
+          sectionLayouts: sections,
+        },
+        layout: "left-aligned",
       };
     }
   },
@@ -337,25 +486,34 @@ export const FAMILIES: CreativeFamily[] = [
     compose: (ctx) => {
       const { variation, tokens, pxX, pxY } = ctx;
       const attribution = variation.creativeDirection?.hiddenOrnaments?.badge || "AUTORIDADE";
+      const ar = aspectOf(ctx.aspectRatio);
       
+      const quoteSlots = centeredStack({
+        headlineWidthPercent: 70,
+        headlineHeightPercent: HEADLINE_HEIGHT_PCT.display[ar],
+        bodyHeightPercent: BODY_HEIGHT_PCT.standard[ar],
+        textAlign: "center",
+        position: "center",
+      });
+
       return {
         headlineFontFamily: "Lora",
         headlineFontSize: 1.3,
         layoutSettings: {
-          headline: { position: "center", textAlign: "center", width: 70 },
-          body: { position: "center", textAlign: "center", width: 70 }
+          headline: quoteSlots.headline,
+          body: quoteSlots.body!
         },
         ornaments: { badge: "hide", sticker: "hide", accentBar: "hide" },
         cardMode: "full-bleed",
         textElements: [
           createTextElement("cd-quote-open", '"', pxX(6), pxY(6), pxX(15), {
-            styles: { fontSize: "40px", color: tokens.colors.primary, opacity: "0.35", fontFamily: "Lora", lineHeight: "1" } as any
+            styles: { fontSize: "40px", color: tokens.colors.primary, opacity: "0.35", fontFamily: "Lora", lineHeight: "1" }
           }),
           createTextElement("cd-quote-close", '"', pxX(82), pxY(70), pxX(15), {
-            styles: { fontSize: "40px", color: tokens.colors.primary, opacity: "0.35", fontFamily: "Lora", lineHeight: "1" } as any
+            styles: { fontSize: "40px", color: tokens.colors.primary, opacity: "0.35", fontFamily: "Lora", lineHeight: "1" }
           }),
           createTextElement("cd-attribution", attribution.toUpperCase(), pxX(10), pxY(86), pxX(80), {
-            styles: { fontSize: "13px", color: tokens.colors.secondary, fontFamily: "Inter", textAlign: "center", fontWeight: "500" } as any
+            styles: { fontSize: "13px", color: tokens.colors.secondary, fontFamily: "Inter", textAlign: "center", fontWeight: "500" }
           })
         ]
       };
@@ -371,6 +529,15 @@ export const FAMILIES: CreativeFamily[] = [
     fit: { maxHeadlineChars: 50 },
     carousel: "uniform",
     compose: (ctx) => {
+      const ar = aspectOf(ctx.aspectRatio);
+      const minimalSlots = centeredStack({
+        headlineWidthPercent: 80,
+        headlineHeightPercent: HEADLINE_HEIGHT_PCT.display[ar],
+        bodyHeightPercent: BODY_HEIGHT_PCT.standard[ar],
+        textAlign: "center",
+        position: "center",
+      });
+
       return {
         layout: "centered",
         headlineFontSize: 0.9,
@@ -378,8 +545,8 @@ export const FAMILIES: CreativeFamily[] = [
         layoutSettings: {
           padding: 48,
           accentBar: { position: "top-center", textAlign: "center", width: 8 },
-          headline: { position: "center", textAlign: "center", width: 80 },
-          body: { position: "center", textAlign: "center", width: 80 }
+          headline: minimalSlots.headline,
+          body: minimalSlots.body!
         },
         ornaments: { badge: "keep", sticker: "hide", accentBar: "keep" },
         cardMode: "full-bleed"
@@ -396,11 +563,32 @@ export const FAMILIES: CreativeFamily[] = [
     fit: { needsSections: true },
     carousel: "uniform",
     compose: (ctx) => {
+      // CR-003: mesmo contrato mensurável de "versus" — headline explícito
+      // no topo, seções também com geometria explícita (sectionGrid) abaixo
+      // dele em feature-grid, para provar não-colisão.
+      const ar = aspectOf(ctx.aspectRatio);
+      const mosaicSlots = centeredStack({
+        headlineWidthPercent: 84,
+        headlineHeightPercent: HEADLINE_HEIGHT_PCT.display[ar],
+        position: "top-left",
+        yCenterPercent: HEADLINE_TOP_ANCHOR[ar],
+      });
+      const sectionsTop = mosaicSlots.headline.freePosition!.y + mosaicSlots.headline.height! / 2 + GAP_PCT;
+      const sections = sectionGrid({
+        topPercent: sectionsTop,
+        rowHeightPercent: BODY_HEIGHT_PCT.standard[ar],
+      });
+
       return {
         template: "feature-grid",
         decorations: "playful",
-        ornaments: { badge: "keep", sticker: "keep", accentBar: "hide" },
-        cardMode: "card"
+        ornaments: { badge: "keep", sticker: "keep", accentBar: "hide", body: "hide" },
+        cardMode: "card",
+        layoutSettings: {
+          headline: mosaicSlots.headline,
+          sectionLayouts: sections,
+        },
+        layout: "left-aligned",
       };
     }
   },
@@ -416,15 +604,34 @@ export const FAMILIES: CreativeFamily[] = [
     compose: (ctx) => {
       const { tokens } = ctx;
       const { primary } = tokens.colors;
+      const ar = aspectOf(ctx.aspectRatio);
       
       const referenceBg = mix(primary, "#000000", 0.55);
       const headlineCol = isDark(referenceBg) ? "#ffffff" : "#111111";
+      const duotoneSlots = posterBottom({
+        headlineWidthPercent: 84,
+        headlineHeightPercent: HEADLINE_HEIGHT_PCT.display[ar],
+        bodyHeightPercent: BODY_HEIGHT_PCT.standard[ar],
+        gapPercent: GAP_PCT,
+        bottomMarginPercent: BOTTOM_MARGIN_PCT[ar],
+        textAlign: "left",
+        position: "bottom-left",
+      });
 
       return {
         imageSettings: { saturation: 0.1, contrast: 1.15, blendMode: "multiply" },
-        bgOverlay: { color: primary, opacity: 0.55 },
+        // CR-003: o wash duotone é ESCURO por construção (`primary⊕preto`),
+        // com opacidade alta — o fundo efetivo do texto independe da paleta
+        // base (clara ou escura) e o texto branco sempre atinge AA. Um wash
+        // de 55% de cor brilhante vira tom médio e quebra o contraste.
+        bgOverlay: { color: referenceBg, opacity: 0.85 },
         headlineColor: headlineCol,
         bodyColor: headlineCol,
+        textColor: headlineCol,
+        layoutSettings: {
+          headline: duotoneSlots.headline,
+          body: duotoneSlots.body!,
+        },
         ornaments: { badge: "hide", sticker: "keep", accentBar: "keep" },
         cardMode: "full-bleed"
       };

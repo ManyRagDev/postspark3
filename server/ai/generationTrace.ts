@@ -184,7 +184,10 @@ export async function finishGenerationTrace(input: {
       strategySnapshot: ENV.aiTraceStoreContent ? input.strategies as any : undefined,
       evaluationSnapshot: input.evaluations as any,
       outputSnapshot: ENV.aiTraceStoreContent ? input.output as any : undefined,
-      events: trace.events as any,
+      events: trace.events,
+      // SPEC-004: contrato v2 — eventos do orquestrador canônico (SPEC-003),
+      // incluindo `repair`, `generation_metrics` e stages de validação.
+      eventsVersion: 2,
       revisionCount: input.revisionCount ?? 0,
       candidateCount: Array.isArray(input.output)
         ? input.output.length

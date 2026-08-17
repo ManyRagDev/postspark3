@@ -16,7 +16,6 @@ import OrganicBackground from "../../OrganicBackground";
 import { useEditorStore } from "@/store/editorStore";
 import { useMobileEditorUI } from "@/store/mobileEditorUI";
 import { useIsMobile } from "@/hooks/useMobile";
-import { FloatingImageMenu } from "./FloatingImageMenu";
 import { useAutoPilotDesign } from "./useAutoPilotDesign";
 import { CanvasLoadingOverlay } from "./CanvasLoadingOverlay";
 import { CarouselMobileArrows, CarouselScopeControl, CarouselSlideNavigator, MagnetControl } from "./CanvasControls";
@@ -61,7 +60,6 @@ export default function CanvasWorkspace({
     const toggleSlideSelection = useEditorStore((s) => s.toggleSlideSelection);
     const layoutTarget = useEditorStore((s) => s.layoutTarget);
     const setLayoutTarget = useEditorStore((s) => s.setLayoutTarget);
-    const addImageElement = useEditorStore((s) => s.addImageElement);
     const updateSlide = useEditorStore((s) => s.updateSlide);
     const removeImageElement = useEditorStore((s) => s.removeImageElement);
     const autoPilotDesign = useAutoPilotDesign(canvasRef);
@@ -190,31 +188,6 @@ export default function CanvasWorkspace({
                         onToggleSlideSelection={toggleSlideSelection}
                     />
                 )}
-                <FloatingImageMenu
-                    onUpload={(file) => {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        const url = ev.target?.result as string;
-                        // Posição inicial: centro do card (baseado em 360px de largura)
-                        const cardWidth = 360;
-                        const cardHeight = aspectRatio === '9:16' ? 640 : aspectRatio === '5:6' ? 432 : 360;
-                        const newElement = {
-                            id: `img-${Date.now()}`,
-                            url,
-                            x: cardWidth / 2 - 60,  // centro horizontal menos metade da largura (px)
-                            y: cardHeight / 2 - 60,  // centro vertical menos metade da altura (px)
-                            width: 120,
-                            height: 'auto' as const,
-                            rotation: 0,
-                            source: 'upload' as const,
-                        };
-                        addImageElement(newElement);
-                        setLayoutTarget(`imageElement:${newElement.id}`);
-                    };
-                    reader.readAsDataURL(file);
-                }}
-                accentColor={accentColor}
-                />
             </div>
 
             {/* Container do card com scaling responsivo pra grandeza visual */}

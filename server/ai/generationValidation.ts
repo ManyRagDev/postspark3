@@ -8,6 +8,7 @@ import {
   hasValidStaticSections,
 } from "@shared/validation";
 import { variationsNeedDiversification } from "./variationDiversity";
+import { visualDiversityIssues } from "@shared/creative";
 
 export const POST_VARIATION_TARGET = 3;
 export const CAROUSEL_SLIDE_TARGET = 5;
@@ -71,15 +72,7 @@ export function validateVariationSet(
     errors.push("variations are not sufficiently distinct");
   }
 
-  return { valid: errors.length === 0, errors };
-}
+  errors.push(...visualDiversityIssues(variations));
 
-export function assertVariationSet(
-  variations: Partial<PostVariation>[],
-  postMode: "static" | "carousel",
-): void {
-  const validation = validateVariationSet(variations, postMode);
-  if (!validation.valid) {
-    throw new Error(`Invalid variation set: ${validation.errors.join("; ")}`);
-  }
+  return { valid: errors.length === 0, errors };
 }
