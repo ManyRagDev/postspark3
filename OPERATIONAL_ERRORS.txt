@@ -149304,3 +149304,2290 @@ outputSummary: [
   }
 ]
 
+[2026-08-19T18:43:33.718Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 23
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 3
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-08-19T18:43:33.737Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-08-19T18:43:33.734Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 21
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: a12d764fdd900a43937fda461bd1ce1a70c31db97cdbb3bbb3e74a3171e53232
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-08-19T18:43:33.736Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 17
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e3e237613fef0e6b05b9c305e0e97e2c7d0a603bb6110e2e30dae1fe30b6282a
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-08-19T18:43:33.742Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-08-19T18:43:33.738Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 2
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 23
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-08-19T18:43:33.737Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-08-19T18:43:33.742Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-08-19T18:43:33.745Z] AI_PROVIDER_NON_200
+provider: groq
+model: openai/gpt-oss-120b
+statusCode: 400
+statusText: Bad Request
+retryAfter: null
+body: unsupported response_format
+
+[2026-08-19T18:43:33.747Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 2
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 17
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 524c5856ec56f83f26627a92d95724bf3ba2626da2bf0954a254aba787beca25
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-08-19T18:43:33.745Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: undefined
+error: groq API failed: 400 Bad Request - unsupported response_format
+
+[2026-08-19T18:43:33.749Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 14
+structuredFailureType: schema_mismatch
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: Structured output validation failed: $.answer: campo obrigatorio ausente; $.wrong: propriedade extra
+
+[2026-08-19T18:43:33.752Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: length
+nativeFinishReason: max_tokens
+contentLength: 14
+structuredFailureType: truncated
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: Structured output validation failed: $: JSON invalido
+
+[2026-08-19T18:43:33.755Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: empty_content
+repairedOutput: undefined
+promptHash: 2ef6635b58b25e83ab8cffc15213323464ca509e8893ba57aa9461075adcd0c5
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: Structured output empty_content; skipping repair
+
+[2026-08-19T18:43:33.753Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: truncated
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 2
+estimatedCostUsd: 0
+responseId: undefined
+error: Structured output truncated; skipping repair
+
+[2026-08-19T18:43:33.754Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: content_strategy
+taskRoute: content_strategy
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: {
+  temperature: 0.35,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 2048,
+  max_completion_tokens: undefined
+}
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 0
+structuredFailureType: empty_content
+repairedOutput: undefined
+promptHash: 2ef6635b58b25e83ab8cffc15213323464ca509e8893ba57aa9461075adcd0c5
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: Structured output validation failed: $: JSON invalido
+
+[2026-08-19T18:43:33.743Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: static_generation
+taskRoute: static_generation
+provider: google
+effectiveModel: gemini-2.5-flash
+attempt: 1
+fallbackFrom: openai/gpt-5-mini
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: undefined, top_p: undefined, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 19
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 8908a9323d1a294967d0c6fb23442001678f47758708408c7a59f78763721b0b
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0.0000155
+responseId: response-gemini-2.5-flash
+error: undefined
+
+[2026-08-19T18:43:33.759Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: 0.55, top_p: 0.9, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 1
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed: 503 Unavailable - overloaded
+
+[2026-08-19T18:43:33.757Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: openrouter
+effectiveModel: openai/gpt-5-mini
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: 0.55, top_p: 0.9, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 19
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 1
+estimatedCostUsd: 0.0000131875
+responseId: response-openai/gpt-5-mini
+error: undefined
+
+[2026-08-19T18:43:33.750Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: microcopy
+taskRoute: microcopy
+provider: groq
+effectiveModel: openai/gpt-oss-120b
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: false
+structuredOutputMode: native_schema
+payloadOptions: { temperature: 0.45, top_p: 0.9, reasoning: undefined, reasoning_effort: 'low', max_tokens: undefined, max_completion_tokens: 2048 }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 21
+structuredFailureType: undefined
+repairedOutput: true
+promptHash: 6cc782e28ca76616b88f81254ffa279bcf599a15523ba515a3b89f703c1469f8
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0
+responseId: response-openai/gpt-oss-120b
+error: undefined
+
+[2026-08-19T18:43:33.759Z] AI_PROVIDER_200
+traceLabel: llm
+requestedModel: vision_analysis
+taskRoute: vision_analysis
+provider: google
+effectiveModel: gemini-2.5-flash
+attempt: 1
+fallbackFrom: openai/gpt-5-mini
+translatedSchema: false
+structuredOutputMode: undefined
+payloadOptions: { temperature: undefined, top_p: undefined, reasoning: undefined, reasoning_effort: undefined, max_tokens: 2048, max_completion_tokens: undefined }
+reasoningTokens: 0
+finishReason: stop
+nativeFinishReason: undefined
+contentLength: 26
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d5675ec1953eb188a381ae6560ca1e19f9e8de78fe67fede456520738d675026
+promptTokens: 10
+completionTokens: 5
+totalTokens: 15
+latencyMs: 0
+estimatedCostUsd: 0.0000155
+responseId: response-gemini-2.5-flash
+error: undefined
+
+[2026-08-19T18:43:33.758Z] AI_PROVIDER_NON_200
+provider: openrouter
+model: openai/gpt-5-mini
+statusCode: 503
+statusText: Unavailable
+retryAfter: null
+body: overloaded
+
+[2026-08-19T18:43:38.471Z] POST_GENERATION_STARTED
+generationRunId: 9149feda-9ffc-4d3a-be2e-bfe222a25521
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:43:38.688Z] POST_GENERATION_COMPLETED
+generationRunId: 9149feda-9ffc-4d3a-be2e-bfe222a25521
+userUuid: 1
+durationMs: 217
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+generativeCalls: 1
+repairCalls: 0
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1787165018527-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'quote-authority',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [ 'cafe', 'artesanal', 'premium' ],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 85, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1787165018527-1',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'brutal-split',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'Bora tomar um café?',
+    body: undefined,
+    caption: 'Bora tomar um café?. Aquele café que faz seu dia melhor Vem provar!',
+    callToAction: 'Vem provar!',
+    hashtags: [ 'cafe', 'bomdia' ],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: 'Cafe', stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 82, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1787165018527-2',
+    layout: 'minimal',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'kinetic-type',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy' ],
+    headline: 'CAFÉ ARTESANAL',
+    body: 'Cada gole é uma experiência única',
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [ 'cafeartesanal', 'experiencia' ],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: undefined, stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 81, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-08-19T18:43:38.704Z] POST_GENERATION_STARTED
+generationRunId: 7e13d250-7126-498f-922f-4572535b9c76
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:43:38.713Z] POST_GENERATION_FAILED
+generationRunId: 7e13d250-7126-498f-922f-4572535b9c76
+userUuid: 1
+durationMs: 9
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+llmCalls: []
+error: TRPCError: Falha operacional durante a geração. Tente novamente.
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\server\routers.ts:656:17
+    at resolveMiddleware (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:221:17)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at procedure (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:281:18)
+    at file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/tracked-Blz8XOf1.mjs:298:13
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\server\post.test.ts:208:5
+    at file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+
+[2026-08-19T18:43:38.720Z] POST_GENERATION_STARTED
+generationRunId: 5a96f44b-5ed4-4db8-b699-170c2f6ad608
+userUuid: 1
+inputType: text
+platform: linkedin
+postMode: static
+creationMode: execution
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: true
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:43:38.767Z] POST_GENERATION_COMPLETED
+generationRunId: 5a96f44b-5ed4-4db8-b699-170c2f6ad608
+userUuid: 1
+durationMs: 46
+inputType: text
+platform: linkedin
+postMode: static
+creationMode: execution
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+generativeCalls: 1
+repairCalls: 0
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1787165018731-0',
+    layout: 'centered',
+    platform: 'linkedin',
+    postMode: 'static',
+    familyId: 'minimal-air',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [ 'cafe', 'artesanal', 'premium' ],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: 'Premium', stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'execution',
+      fidelity: 'high',
+      interventionLevel: 'light_optimize',
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 85, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1787165018731-1',
+    layout: 'split',
+    platform: 'linkedin',
+    postMode: 'static',
+    familyId: 'brutal-split',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'Bora tomar um café?',
+    body: undefined,
+    caption: 'Bora tomar um café?. Aquele café que faz seu dia melhor Vem provar!',
+    callToAction: 'Vem provar!',
+    hashtags: [ 'cafe', 'bomdia' ],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: 'Cafe', stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'execution',
+      fidelity: 'high',
+      interventionLevel: 'light_optimize',
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 82, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1787165018731-2',
+    layout: 'minimal',
+    platform: 'linkedin',
+    postMode: 'static',
+    familyId: 'glitch-signal',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'CAFÉ ARTESANAL',
+    body: 'Cada gole é uma experiência única',
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [ 'cafeartesanal', 'experiencia' ],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'execution',
+      fidelity: 'high',
+      interventionLevel: 'light_optimize',
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 81, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-08-19T18:43:38.772Z] POST_GENERATION_STARTED
+generationRunId: 5c6a13b1-5f27-46fc-b1c0-b21e4170f44a
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: execution
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 11800
+contentPreview: Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referênc...[truncated]
+hasImageUrl: false
+hasExecutionBrief: true
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:43:38.817Z] POST_GENERATION_COMPLETED
+generationRunId: 5c6a13b1-5f27-46fc-b1c0-b21e4170f44a
+userUuid: 1
+durationMs: 45
+inputType: text
+platform: instagram
+postMode: static
+creationMode: execution
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 3
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+generativeCalls: 2
+repairCalls: 1
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1787165018789-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'quote-authority',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'execution',
+      fidelity: 'high',
+      interventionLevel: 'visual_only',
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 3,
+      evaluation: { accepted: false, overallScore: 83, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1787165018789-1',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'brutal-split',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'Bora tomar um café?',
+    body: undefined,
+    caption: 'Bora tomar um café?. Aquele café que faz seu dia melhor Vem provar!',
+    callToAction: 'Vem provar!',
+    hashtags: [],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: 'Cafe', stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'execution',
+      fidelity: 'high',
+      interventionLevel: 'visual_only',
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 3,
+      evaluation: { accepted: false, overallScore: 80, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1787165018789-2',
+    layout: 'minimal',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'kinetic-type',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy' ],
+    headline: 'CAFÉ ARTESANAL',
+    body: 'Cada gole é uma experiência única',
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: undefined, stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'execution',
+      fidelity: 'high',
+      interventionLevel: 'visual_only',
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 3,
+      evaluation: { accepted: false, overallScore: 79, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-08-19T18:43:38.834Z] POST_GENERATION_STARTED
+generationRunId: 60f2b86f-5fdd-4e8f-abb6-9b9e36945356
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:43:38.874Z] POST_GENERATION_COMPLETED
+generationRunId: 60f2b86f-5fdd-4e8f-abb6-9b9e36945356
+userUuid: 1
+durationMs: 40
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+generativeCalls: 1
+repairCalls: 0
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1787165018844-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'quote-authority',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [ 'cafe', 'artesanal', 'premium' ],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 85, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1787165018845-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'kinetic-type',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy' ],
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Bora tomar um café?. Aquele café que faz seu dia melhor Vem provar!',
+    callToAction: 'Vem provar!',
+    hashtags: [ 'cafe', 'bomdia' ],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: undefined, stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 82, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1787165018845-2',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'brutal-split',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'CAFÉ ARTESANAL',
+    body: undefined,
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [ 'cafeartesanal', 'experiencia' ],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: 'Artesanal', stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 81, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-08-19T18:43:39.205Z] POST_GENERATION_FAILED
+generationRunId: 60f2b86f-5fdd-4e8f-abb6-9b9e36945356
+userUuid: 1
+durationMs: 371
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+llmCalls: []
+error: Error: commitSparkReservation(res-1) retornou false — reserva não confirmada; run terminado como falha terminal (refund aplicado no catch).
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\server\routers.ts:625:21
+    at resolveMiddleware (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:221:17)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at procedure (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:281:18)
+    at file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/tracked-Blz8XOf1.mjs:298:13
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\server\post.test.ts:290:5
+    at file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+
+[2026-08-19T18:43:39.318Z] POST_GENERATION_STARTED
+generationRunId: 59c977df-5d4d-4f87-a2c1-feb9a666d593
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:43:39.354Z] SPARK_REFUND_FAILED
+reservationId: res-1
+generationRunId: 59c977df-5d4d-4f87-a2c1-feb9a666d593
+userUuid: 1
+originalError: Falha operacional durante a geração. Tente novamente.
+
+[2026-08-19T18:43:39.372Z] POST_GENERATION_FAILED
+generationRunId: 59c977df-5d4d-4f87-a2c1-feb9a666d593
+userUuid: 1
+durationMs: 54
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+llmCalls: []
+error: TRPCError: Falha operacional durante a geração. Tente novamente.
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\server\routers.ts:656:17
+    at resolveMiddleware (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:221:17)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at procedure (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:281:18)
+    at file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/tracked-Blz8XOf1.mjs:298:13
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\server\post.test.ts:309:5
+    at file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+
+[2026-08-19T18:43:39.498Z] POST_GENERATION_STARTED
+generationRunId: 99cc9ac5-6bec-45c6-9c59-040c8f61a0dd
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: carousel
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 40
+
+[2026-08-19T18:43:39.836Z] POST_GENERATION_COMPLETED
+generationRunId: 99cc9ac5-6bec-45c6-9c59-040c8f61a0dd
+userUuid: 1
+durationMs: 338
+inputType: text
+platform: instagram
+postMode: carousel
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+generativeCalls: 2
+repairCalls: 1
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1787165019747-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'carousel',
+    familyId: 'quote-authority',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [ 'cafe', 'artesanal', 'premium' ],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [
+      { index: 0, headline: 'Café Premium', body: 'Descubra o melhor café artesanal da cidade', slideNumber: 1, isTitleSlide: true, isCtaSlide: false },
+      { index: 1, headline: 'O problema', body: 'Descubra o melhor café artesanal da cidade', slideNumber: 2, isTitleSlide: false, isCtaSlide: false },
+      { index: 2, headline: 'O que muda', body: 'Descubra o melhor café artesanal da cidade', slideNumber: 3, isTitleSlide: false, isCtaSlide: false },
+      { index: 3, headline: 'Na prática', body: 'Veja como aplicar isso no dia a dia.', slideNumber: 4, isTitleSlide: false, isCtaSlide: false },
+      { index: 4, headline: 'Peça agora!', body: 'Peça agora!', slideNumber: 5, isTitleSlide: false, isCtaSlide: true }
+    ],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 85, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1787165019747-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'carousel',
+    familyId: 'kinetic-type',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy' ],
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Bora tomar um café?. Aquele café que faz seu dia melhor Vem provar!',
+    callToAction: 'Vem provar!',
+    hashtags: [ 'cafe', 'bomdia' ],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: undefined, stickerText: 'Prove' },
+    sections: [],
+    slides: [
+      { index: 0, headline: 'Bora tomar um café?', body: 'Aquele café que faz seu dia melhor', slideNumber: 1, isTitleSlide: true, isCtaSlide: false },
+      { index: 1, headline: 'O problema', body: 'Aquele café que faz seu dia melhor', slideNumber: 2, isTitleSlide: false, isCtaSlide: false },
+      { index: 2, headline: 'O que muda', body: 'Aquele café que faz seu dia melhor', slideNumber: 3, isTitleSlide: false, isCtaSlide: false },
+      { index: 3, headline: 'Na prática', body: 'Veja como aplicar isso no dia a dia.', slideNumber: 4, isTitleSlide: false, isCtaSlide: false },
+      { index: 4, headline: 'Vem provar!', body: 'Vem provar!', slideNumber: 5, isTitleSlide: false, isCtaSlide: true }
+    ],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 82, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1787165019747-2',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'carousel',
+    familyId: 'brutal-split',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'CAFÉ...[truncated 1470 chars]
+
+[2026-08-19T18:43:40.053Z] POST_GENERATION_STARTED
+generationRunId: 7a96541f-df0e-44c7-bbe1-94681f3b99de
+userUuid: 1
+inputType: image
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 31
+contentPreview: Foto de uma cafeteria artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:43:42.387Z] POST_GENERATION_COMPLETED
+generationRunId: 7a96541f-df0e-44c7-bbe1-94681f3b99de
+userUuid: 1
+durationMs: 2334
+inputType: image
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 2
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+generativeCalls: 2
+repairCalls: 1
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1787165020241-0',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'editorial-poster',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: 'Premium', stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 2,
+      evaluation: { accepted: false, overallScore: 83, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1787165020241-1',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'chromatic-block',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy' ],
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Bora tomar um café?. Aquele café que faz seu dia melhor Vem provar!',
+    callToAction: 'Vem provar!',
+    hashtags: [],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: undefined, stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 2,
+      evaluation: { accepted: false, overallScore: 80, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1787165020241-2',
+    layout: 'minimal',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'glitch-signal',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'CAFÉ ARTESANAL',
+    body: 'Cada gole é uma experiência única',
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [ 'cafeartesanal', 'experiencia' ],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 2,
+      evaluation: { accepted: true, overallScore: 80, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-08-19T18:48:35.463Z] POST_GENERATION_STARTED
+generationRunId: ab179059-f36a-4b4f-b20a-7d6da9e474f1
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:48:35.694Z] POST_GENERATION_COMPLETED
+generationRunId: ab179059-f36a-4b4f-b20a-7d6da9e474f1
+userUuid: 1
+durationMs: 232
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+generativeCalls: 1
+repairCalls: 0
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1787165315577-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'minimal-air',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [ 'cafe', 'artesanal', 'premium' ],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: 'Premium', stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 85, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1787165315577-1',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'brutal-split',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'Bora tomar um café?',
+    body: undefined,
+    caption: 'Bora tomar um café?. Aquele café que faz seu dia melhor Vem provar!',
+    callToAction: 'Vem provar!',
+    hashtags: [ 'cafe', 'bomdia' ],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: 'Cafe', stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 82, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1787165315577-2',
+    layout: 'minimal',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'glitch-signal',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'CAFÉ ARTESANAL',
+    body: 'Cada gole é uma experiência única',
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [ 'cafeartesanal', 'experiencia' ],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 81, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-08-19T18:48:35.750Z] POST_GENERATION_STARTED
+generationRunId: c0a28e7f-cf33-4b53-9fb2-949a025c62ce
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:48:35.762Z] POST_GENERATION_FAILED
+generationRunId: c0a28e7f-cf33-4b53-9fb2-949a025c62ce
+userUuid: 1
+durationMs: 12
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+llmCalls: []
+error: TRPCError: Falha operacional durante a geração. Tente novamente.
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\server\routers.ts:656:17
+    at resolveMiddleware (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:221:17)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at procedure (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:281:18)
+    at file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/tracked-Blz8XOf1.mjs:298:13
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\server\post.test.ts:208:5
+    at file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+
+[2026-08-19T18:48:35.771Z] POST_GENERATION_STARTED
+generationRunId: e9ff8f74-67d5-4fdc-8d85-83183370f9a4
+userUuid: 1
+inputType: text
+platform: linkedin
+postMode: static
+creationMode: execution
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: true
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:48:35.969Z] POST_GENERATION_COMPLETED
+generationRunId: e9ff8f74-67d5-4fdc-8d85-83183370f9a4
+userUuid: 1
+durationMs: 198
+inputType: text
+platform: linkedin
+postMode: static
+creationMode: execution
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+generativeCalls: 1
+repairCalls: 0
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1787165315819-0',
+    layout: 'centered',
+    platform: 'linkedin',
+    postMode: 'static',
+    familyId: 'quote-authority',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [ 'cafe', 'artesanal', 'premium' ],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'execution',
+      fidelity: 'high',
+      interventionLevel: 'light_optimize',
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 85, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1787165315819-1',
+    layout: 'left-aligned',
+    platform: 'linkedin',
+    postMode: 'static',
+    familyId: 'kinetic-type',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy' ],
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Bora tomar um café?. Aquele café que faz seu dia melhor Vem provar!',
+    callToAction: 'Vem provar!',
+    hashtags: [ 'cafe', 'bomdia' ],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: undefined, stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'execution',
+      fidelity: 'high',
+      interventionLevel: 'light_optimize',
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 82, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1787165315819-2',
+    layout: 'split',
+    platform: 'linkedin',
+    postMode: 'static',
+    familyId: 'brutal-split',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'CAFÉ ARTESANAL',
+    body: undefined,
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [ 'cafeartesanal', 'experiencia' ],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: 'Artesanal', stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'execution',
+      fidelity: 'high',
+      interventionLevel: 'light_optimize',
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 81, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-08-19T18:48:36.020Z] POST_GENERATION_STARTED
+generationRunId: 1ac95b2c-dd55-4f8b-8209-f2ec00537d1a
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: execution
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 11800
+contentPreview: Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referência para compressão de contexto.Conteúdo extenso de referênc...[truncated]
+hasImageUrl: false
+hasExecutionBrief: true
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:48:36.108Z] POST_GENERATION_COMPLETED
+generationRunId: 1ac95b2c-dd55-4f8b-8209-f2ec00537d1a
+userUuid: 1
+durationMs: 87
+inputType: text
+platform: instagram
+postMode: static
+creationMode: execution
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 3
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+generativeCalls: 2
+repairCalls: 1
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1787165316080-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'quote-authority',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'execution',
+      fidelity: 'high',
+      interventionLevel: 'visual_only',
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 3,
+      evaluation: { accepted: false, overallScore: 83, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1787165316080-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'glitch-signal',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Bora tomar um café?. Aquele café que faz seu dia melhor Vem provar!',
+    callToAction: 'Vem provar!',
+    hashtags: [],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'execution',
+      fidelity: 'high',
+      interventionLevel: 'visual_only',
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 3,
+      evaluation: { accepted: false, overallScore: 80, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1787165316080-2',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'brutal-split',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'CAFÉ ARTESANAL',
+    body: undefined,
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: 'Artesanal', stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'execution',
+      fidelity: 'high',
+      interventionLevel: 'visual_only',
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 3,
+      evaluation: { accepted: false, overallScore: 79, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-08-19T18:48:36.326Z] POST_GENERATION_STARTED
+generationRunId: f2853e00-d884-495a-b9d2-86f055a917f1
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:48:36.386Z] POST_GENERATION_COMPLETED
+generationRunId: f2853e00-d884-495a-b9d2-86f055a917f1
+userUuid: 1
+durationMs: 60
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+generativeCalls: 1
+repairCalls: 0
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1787165316365-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'quote-authority',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [ 'cafe', 'artesanal', 'premium' ],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 85, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1787165316365-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'glitch-signal',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Bora tomar um café?. Aquele café que faz seu dia melhor Vem provar!',
+    callToAction: 'Vem provar!',
+    hashtags: [ 'cafe', 'bomdia' ],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 82, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1787165316365-2',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'brutal-split',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'CAFÉ ARTESANAL',
+    body: undefined,
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [ 'cafeartesanal', 'experiencia' ],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: 'Artesanal', stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 81, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
+[2026-08-19T18:48:36.419Z] POST_GENERATION_FAILED
+generationRunId: f2853e00-d884-495a-b9d2-86f055a917f1
+userUuid: 1
+durationMs: 93
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+llmCalls: []
+error: Error: commitSparkReservation(res-1) retornou false — reserva não confirmada; run terminado como falha terminal (refund aplicado no catch).
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\server\routers.ts:625:21
+    at resolveMiddleware (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:221:17)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at procedure (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:281:18)
+    at file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/tracked-Blz8XOf1.mjs:298:13
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\server\post.test.ts:290:5
+    at file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+
+[2026-08-19T18:48:36.432Z] POST_GENERATION_STARTED
+generationRunId: 278df085-5361-4925-ade9-ee7da13b5a4e
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:48:36.481Z] SPARK_REFUND_FAILED
+reservationId: res-1
+generationRunId: 278df085-5361-4925-ade9-ee7da13b5a4e
+userUuid: 1
+originalError: Falha operacional durante a geração. Tente novamente.
+
+[2026-08-19T18:48:36.571Z] POST_GENERATION_FAILED
+generationRunId: 278df085-5361-4925-ade9-ee7da13b5a4e
+userUuid: 1
+durationMs: 139
+inputType: text
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+llmCalls: []
+error: TRPCError: Falha operacional durante a geração. Tente novamente.
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\server\routers.ts:656:17
+    at resolveMiddleware (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:221:17)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at callRecursive (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:256:18)
+    at procedure (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/initTRPC-CB9uBez5.mjs:281:18)
+    at file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@trpc+server@11.6.0_typescript@5.9.3/node_modules/@trpc/server/dist/tracked-Blz8XOf1.mjs:298:13
+    at C:\Users\emanu\Documents\Projetos\PostSpark 3\server\post.test.ts:309:5
+    at file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///C:/Users/emanu/Documents/Projetos/PostSpark%203/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+
+[2026-08-19T18:48:36.656Z] POST_GENERATION_STARTED
+generationRunId: f38382b1-561a-4c35-a996-858a4f605e6d
+userUuid: 1
+inputType: text
+platform: instagram
+postMode: carousel
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 26
+contentPreview: Promoção de café artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 40
+
+[2026-08-19T18:48:36.766Z] POST_GENERATION_COMPLETED
+generationRunId: f38382b1-561a-4c35-a996-858a4f605e6d
+userUuid: 1
+durationMs: 110
+inputType: text
+platform: instagram
+postMode: carousel
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 0
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+generativeCalls: 2
+repairCalls: 1
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1787165316747-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'carousel',
+    familyId: 'minimal-air',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [ 'cafe', 'artesanal', 'premium' ],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: 'Premium', stickerText: undefined },
+    sections: [],
+    slides: [
+      { index: 0, headline: 'Café Premium', body: 'Descubra o melhor café artesanal da cidade', slideNumber: 1, isTitleSlide: true, isCtaSlide: false },
+      { index: 1, headline: 'O problema', body: 'Descubra o melhor café artesanal da cidade', slideNumber: 2, isTitleSlide: false, isCtaSlide: false },
+      { index: 2, headline: 'O que muda', body: 'Descubra o melhor café artesanal da cidade', slideNumber: 3, isTitleSlide: false, isCtaSlide: false },
+      { index: 3, headline: 'Na prática', body: 'Veja como aplicar isso no dia a dia.', slideNumber: 4, isTitleSlide: false, isCtaSlide: false },
+      { index: 4, headline: 'Peça agora!', body: 'Peça agora!', slideNumber: 5, isTitleSlide: false, isCtaSlide: true }
+    ],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 85, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1787165316748-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'carousel',
+    familyId: 'glitch-signal',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Bora tomar um café?. Aquele café que faz seu dia melhor Vem provar!',
+    callToAction: 'Vem provar!',
+    hashtags: [ 'cafe', 'bomdia' ],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [
+      { index: 0, headline: 'Bora tomar um café?', body: 'Aquele café que faz seu dia melhor', slideNumber: 1, isTitleSlide: true, isCtaSlide: false },
+      { index: 1, headline: 'O problema', body: 'Aquele café que faz seu dia melhor', slideNumber: 2, isTitleSlide: false, isCtaSlide: false },
+      { index: 2, headline: 'O que muda', body: 'Aquele café que faz seu dia melhor', slideNumber: 3, isTitleSlide: false, isCtaSlide: false },
+      { index: 3, headline: 'Na prática', body: 'Veja como aplicar isso no dia a dia.', slideNumber: 4, isTitleSlide: false, isCtaSlide: false },
+      { index: 4, headline: 'Vem provar!', body: 'Vem provar!', slideNumber: 5, isTitleSlide: false, isCtaSlide: true }
+    ],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 0,
+      evaluation: { accepted: true, overallScore: 82, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1787165316748-2',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'carousel',
+    familyId: 'brutal-split',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'CAFÉ ARTESANAL',
+    body: undefined,
+    caption: 'Experiências ...[truncated 1409 chars]
+
+[2026-08-19T18:48:36.870Z] POST_GENERATION_STARTED
+generationRunId: 3b58e722-4957-4a1b-b9fd-d459dcc20a42
+userUuid: 1
+inputType: image
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+siteIntelligenceId: undefined
+contentLength: 31
+contentPreview: Foto de uma cafeteria artesanal
+hasImageUrl: false
+hasExecutionBrief: false
+debugEnabled: false
+sparkCost: 10
+
+[2026-08-19T18:48:36.984Z] POST_GENERATION_COMPLETED
+generationRunId: 3b58e722-4957-4a1b-b9fd-d459dcc20a42
+userUuid: 1
+durationMs: 114
+inputType: image
+platform: instagram
+postMode: static
+creationMode: ideation
+requestedModel: llama
+effectiveModels: []
+siteIntelligenceId: undefined
+variationCount: 3
+revisionCount: 2
+strategyFallbackUsed: true
+originalityFallbackUsed: true
+generativeCalls: 2
+repairCalls: 1
+llmCalls: []
+outputSummary: [
+  {
+    index: 0,
+    id: 'var-1787165316902-0',
+    layout: 'centered',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'quote-authority',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy', 'text_element_overlaps_copy', 'text_element_overlaps_copy' ],
+    headline: 'Café Premium',
+    body: 'Descubra o melhor café artesanal da cidade',
+    caption: 'Descubra nosso café premium ☕ O melhor da cidade!',
+    callToAction: 'Peça agora!',
+    hashtags: [],
+    colors: { backgroundColor: '#1a1a2e', textColor: '#ffffff', accentColor: '#FF5F1F' },
+    copyAngle: { type: 'autoridade', label: 'Especialista', badge: undefined, stickerText: undefined },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-1',
+      revisionCount: 2,
+      evaluation: { accepted: false, overallScore: 83, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 1,
+    id: 'var-1787165316902-1',
+    layout: 'left-aligned',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'kinetic-type',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [ 'text_element_overlaps_copy' ],
+    headline: 'Bora tomar um café?',
+    body: 'Aquele café que faz seu dia melhor',
+    caption: 'Bora tomar um café?. Aquele café que faz seu dia melhor Vem provar!',
+    callToAction: 'Vem provar!',
+    hashtags: [],
+    colors: { backgroundColor: '#0f3460', textColor: '#ffffff', accentColor: '#06B6D4' },
+    copyAngle: { type: 'beneficio', label: 'Momento', badge: undefined, stickerText: 'Prove' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-2',
+      revisionCount: 2,
+      evaluation: { accepted: false, overallScore: 80, reasons: undefined },
+      originality: { score: 83, verdict: undefined, reason: undefined }
+    }
+  },
+  {
+    index: 2,
+    id: 'var-1787165316902-2',
+    layout: 'split',
+    platform: 'instagram',
+    postMode: 'static',
+    familyId: 'brutal-split',
+    typographyResolved: true,
+    typographyResolutionError: undefined,
+    visualFitIssues: [],
+    headline: 'CAFÉ ARTESANAL',
+    body: undefined,
+    caption: 'Experiências que transformam seu paladar ✨',
+    callToAction: 'Descubra!',
+    hashtags: [ 'cafeartesanal', 'experiencia' ],
+    colors: { backgroundColor: '#2d132c', textColor: '#ffffff', accentColor: '#EC4899' },
+    copyAngle: { type: 'storytelling', label: 'Experiencia', badge: 'Artesanal', stickerText: 'Unico' },
+    sections: [],
+    slides: [],
+    generationMeta: {
+      creationMode: 'ideation',
+      fidelity: 'medium',
+      interventionLevel: undefined,
+      siteIntelligenceId: undefined,
+      strategyId: 'strategy-3',
+      revisionCount: 2,
+      evaluation: { accepted: true, overallScore: 80, reasons: undefined },
+      originality: { score: 80, verdict: undefined, reason: undefined }
+    }
+  }
+]
+
