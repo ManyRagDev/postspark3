@@ -138,7 +138,7 @@ function PublicLandingRoute() {
     }
   }, []);
 
-  if (loading || isAuthenticated) return null;
+  if (isAuthenticated) return null;
   return <TheVoid2Page />;
 }
 

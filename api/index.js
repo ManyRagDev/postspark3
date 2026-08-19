@@ -796,7 +796,6 @@ var adminProcedure = t.procedure.use(
 
 // server/verifyRuntime.ts
 init_env();
-import pgParser from "@pgsql/parser";
 import { createClient as createClient3 } from "@supabase/supabase-js";
 import { createHash as createHash2 } from "node:crypto";
 import * as fs from "node:fs";
@@ -862,8 +861,13 @@ function manifestHash(manifest = RUNTIME_MANIFEST) {
 }
 
 // server/verifyRuntime.ts
-var parserModule = pgParser;
-var Parser = parserModule.Parser ?? pgParser;
+async function createPostgresParser() {
+  const mod = await import("@pgsql/parser");
+  const pgParser = mod.default || mod;
+  const parserModule = pgParser;
+  const ParserClass = parserModule.Parser ?? pgParser;
+  return new ParserClass();
+}
 var DRIZZLE_DIR = path.resolve(process.cwd(), "drizzle");
 var REPORT_DIR = path.resolve(process.cwd(), "verify-output");
 var HISTORICAL_INVALID_MIGRATIONS = /* @__PURE__ */ new Set(["0012_add_generation_events.sql"]);
@@ -883,7 +887,7 @@ function listMigrationFiles() {
 }
 async function validateMigrations() {
   const files = listMigrationFiles();
-  const parser = new Parser();
+  const parser = await createPostgresParser();
   const results = [];
   for (const file of files) {
     const sql = fs.readFileSync(path.join(DRIZZLE_DIR, file), "utf8").replace(/^\uFEFF/, "");

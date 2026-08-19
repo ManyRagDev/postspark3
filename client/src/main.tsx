@@ -14,7 +14,14 @@ import { setTypographyMeasurer } from "@shared/typography/measurer";
 // renderer voltaria silenciosamente ao autofit legado.
 setTypographyMeasurer(browserMeasurer);
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 /**
  * Quando a API retorna UNAUTHORIZED, não redirecionamos para lugar nenhum.

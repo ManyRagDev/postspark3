@@ -17,7 +17,6 @@
  * - `npm run verify:runtime -- --health` → apenas resumo (usado pelo health)
  */
 
-import pgParser from "@pgsql/parser";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
@@ -25,14 +24,18 @@ import * as path from "node:path";
 import { ENV } from "./_core/env";
 import { RUNTIME_MANIFEST, manifestHash, type RuntimeRequirement } from "./runtimeManifest";
 
-// Interop do pacote WASM: no vitest o default é o namespace (com `.Parser`);
-// no tsx (ESM) o default é a própria classe. Resolve os dois casos.
 interface PostgresParser {
   parse(sql: string): Promise<unknown>;
 }
-const parserModule = pgParser as unknown as { Parser?: new () => PostgresParser };
-const Parser: new () => PostgresParser =
-  parserModule.Parser ?? (pgParser as unknown as new () => PostgresParser);
+
+async function createPostgresParser(): Promise<PostgresParser> {
+  const mod = await import("@pgsql/parser");
+  const pgParser = mod.default || mod;
+  const parserModule = pgParser as unknown as { Parser?: new () => PostgresParser };
+  const ParserClass: new () => PostgresParser =
+    parserModule.Parser ?? (pgParser as unknown as new () => PostgresParser);
+  return new ParserClass();
+}
 
 export type ProbeStatus = "present" | "absent" | "incompatible" | "not_verifiable";
 
@@ -110,7 +113,7 @@ export function listMigrationFiles(): string[] {
 
 export async function validateMigrations(): Promise<MigrationValidation[]> {
   const files = listMigrationFiles();
-  const parser = new Parser();
+  const parser = await createPostgresParser();
   const results: MigrationValidation[] = [];
 
   for (const file of files) {
