@@ -57,7 +57,7 @@ export default function ProofSection() {
         callToAction: "",
         tone: "professional",
         platform: "instagram" as const,
-        imagePrompt: card.imagePrompt,
+        imagePrompt: card.imagePrompt || "",
         imageUrl: card.backgroundImageUrl || "",
         backgroundColor: card.palette.background,
         textColor: card.palette.text,
