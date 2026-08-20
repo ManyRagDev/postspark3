@@ -459,17 +459,15 @@ function GoogleLogo({ className = "h-4 w-4 shrink-0" }: { className?: string }) 
 }
 
 // -------------------------------------------------------------
-// Componente do Painel de Autenticação (Login / Cadastro)
+// Componente do Painel de Autenticação (Modal no Desktop / Bottom Sheet no Mobile)
 // -------------------------------------------------------------
 interface AuthModalProps {
-  authProgress: MotionValue<number>;
   isOpen: boolean;
   isMobile: boolean;
-  onOpen: () => void;
   onClose: () => void;
 }
 
-function AuthModal({ authProgress, isOpen, isMobile, onOpen, onClose }: AuthModalProps) {
+function AuthModal({ isOpen, isMobile, onClose }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -477,75 +475,6 @@ function AuthModal({ authProgress, isOpen, isMobile, onOpen, onClose }: AuthModa
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Transformações reativas contínuas vinculadas ao gesto de toque/scroll
-  const backdropOpacity = useTransform(authProgress, [0, 1], [0, 0.65]);
-  const modalY = useTransform(authProgress, (p) => {
-    if (isMobile) {
-      // No mobile sobe suavemente de baixo da tela (100% até 0%)
-      return `${(1 - p) * 100}%`;
-    }
-    // No desktop desliza de 60px para 0px
-    return `${(1 - p) * 60}px`;
-  });
-  const modalScale = useTransform(authProgress, [0, 1], [0.92, 1]);
-  const modalOpacity = useTransform(authProgress, [0, 0.12, 1], [0, 0.35, 1]);
-  const pointerEvents = useTransform(authProgress, (p) => (p > 0.2 ? "auto" : "none"));
-
-  // Permite arrastar o modal para baixo a partir do cabeçalho ou handle
-  const isModalDraggingRef = useRef(false);
-  const modalDragStartYRef = useRef(0);
-  const modalDragStartProgRef = useRef(1);
-  const modalLastYRef = useRef(0);
-  const modalLastTimeRef = useRef(0);
-  const modalVelocityYRef = useRef(0);
-
-  const handleModalPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Não inicia drag se o clique for dentro de inputs ou botões clicáveis
-    const target = e.target as HTMLElement;
-    if (target.closest("input, button, a")) return;
-
-    isModalDraggingRef.current = true;
-    modalDragStartYRef.current = e.clientY;
-    modalDragStartProgRef.current = authProgress.get();
-    modalLastYRef.current = e.clientY;
-    modalLastTimeRef.current = performance.now();
-    modalVelocityYRef.current = 0;
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-
-  const handleModalPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isModalDraggingRef.current) return;
-    const deltaY = e.clientY - modalDragStartYRef.current;
-    const now = performance.now();
-    const dt = now - modalLastTimeRef.current;
-    if (dt > 8) {
-      modalVelocityYRef.current = (e.clientY - modalLastYRef.current) / dt;
-      modalLastYRef.current = e.clientY;
-      modalLastTimeRef.current = now;
-    }
-
-    const dragDistance = isMobile ? 240 : 280;
-    const nextProg = clamp(modalDragStartProgRef.current - deltaY / dragDistance, 0, 1);
-    authProgress.set(nextProg);
-  };
-
-  const handleModalPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isModalDraggingRef.current) return;
-    isModalDraggingRef.current = false;
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-
-    const currentProg = authProgress.get();
-    const velocity = modalVelocityYRef.current;
-
-    if (currentProg < 0.65 || velocity > 0.3) {
-      onClose();
-    } else {
-      onOpen();
-    }
-  };
 
   const handleEmailAuth = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -610,180 +539,195 @@ function AuthModal({ authProgress, isOpen, isMobile, onOpen, onClose }: AuthModa
   };
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 overflow-hidden select-none"
-      style={{ pointerEvents }}
-    >
-      {/* Backdrop escurecido suave sincronizado em tempo real */}
-      <motion.div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-        style={{ opacity: backdropOpacity }}
-        onClick={onClose}
-      />
-
-      {/* Card do Modal de Autenticação com arraste e interpolação contínua */}
-      <motion.div
-        className="relative z-10 w-full max-w-md my-auto touch-pan-y"
-        style={{
-          y: modalY,
-          scale: modalScale,
-          opacity: modalOpacity,
-        }}
-        onPointerDown={handleModalPointerDown}
-        onPointerMove={handleModalPointerMove}
-        onPointerUp={handleModalPointerUp}
-        onPointerCancel={handleModalPointerUp}
-      >
-        <div
-          className="relative overflow-hidden rounded-[2rem] border p-6 md:p-8 shadow-2xl backdrop-blur-2xl"
-          style={{
-            background: "linear-gradient(180deg, rgba(16, 20, 32, 0.94) 0%, rgba(9, 11, 18, 0.98) 100%)",
-            borderColor: "rgba(255, 255, 255, 0.14)",
-            boxShadow:
-              "0 28px 80px rgba(0,0,0,0.75), 0 0 50px rgba(0, 245, 255, 0.06), inset 0 1px 0 rgba(255,255,255,0.12)",
-          }}
-        >
-          {/* Barra indicadora de arraste / Handle no topo (Mobile) */}
-          <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/25 md:hidden" />
-
-          {/* Botão de Fechar / Voltar aos cards */}
-          <button
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden select-none">
+          {/* Backdrop escurecido suave com blur que fecha ao clicar fora */}
+          <motion.div
+            key="auth-backdrop"
+            className="fixed inset-0 bg-black/65 backdrop-blur-md"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
             onClick={onClose}
-            type="button"
-            className="absolute left-5 top-5 flex items-center justify-center rounded-full border border-white/10 bg-white/5 p-2 text-white/60 transition-all hover:bg-white/10 hover:text-white active:scale-95"
-            aria-label="Voltar aos cards"
+          />
+
+          {/* Painel: Bottom Sheet no Mobile, Modal Centralizado no Desktop */}
+          <motion.div
+            key="auth-panel"
+            className={
+              isMobile
+                ? "relative z-10 w-full max-h-[90vh] overflow-y-auto rounded-t-[2.25rem] border-t border-white/15 p-6 pb-8 shadow-2xl backdrop-blur-2xl"
+                : "relative z-10 w-full max-w-md my-auto rounded-[2rem] border border-white/14 p-8 shadow-2xl backdrop-blur-2xl"
+            }
+            style={{
+              background: isMobile
+                ? "linear-gradient(180deg, rgba(16, 20, 32, 0.96) 0%, rgba(8, 10, 16, 0.99) 100%)"
+                : "linear-gradient(180deg, rgba(16, 20, 32, 0.92) 0%, rgba(9, 11, 18, 0.98) 100%)",
+              boxShadow:
+                "0 28px 80px rgba(0,0,0,0.8), 0 0 50px rgba(0, 245, 255, 0.06), inset 0 1px 0 rgba(255,255,255,0.12)",
+            }}
+            initial={isMobile ? { y: "100%" } : { opacity: 0, y: 28, scale: 0.94 }}
+            animate={isMobile ? { y: "0%" } : { opacity: 1, y: 0, scale: 1 }}
+            exit={isMobile ? { y: "100%" } : { opacity: 0, y: 20, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 320, damping: 30 }}
+            drag={isMobile ? "y" : false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            onDragEnd={(_, info) => {
+              if (isMobile && (info.offset.y > 90 || info.velocity.y > 250)) {
+                onClose();
+              }
+            }}
           >
-            <ChevronDown size={18} />
-          </button>
-
-          {/* Cabeçalho do modal */}
-          <div className="mb-5 text-center pt-1">
-            <div className="text-[11px] uppercase tracking-[0.32em] text-white/40 font-medium">
-              {mode === "login" ? "Acesso à Plataforma" : "Nova Conta"}
-            </div>
-            <h2 className="mt-2 text-2xl font-bold text-white tracking-tight">
-              {mode === "login" ? "Entre no PostSpark" : "Crie sua conta"}
-            </h2>
-            <p className="mt-1.5 text-xs md:text-sm text-white/60">
-              Capture a alma do seu conteúdo e crie posts de alto impacto.
-            </p>
-          </div>
-
-          {/* Botão do Google OAuth com Logo Oficial */}
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={loading || googleLoading || !isSupabaseConfigured}
-            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/6 py-3 px-4 text-sm font-medium text-white transition-all hover:bg-white/10 active:scale-[0.99] disabled:opacity-50"
-          >
-            {googleLoading ? (
-              <Loader2 size={18} className="animate-spin text-white" />
-            ) : (
-              <GoogleLogo className="h-4 w-4 shrink-0" />
-            )}
-            <span>{googleLoading ? "Conectando ao Google..." : "Continuar com Google"}</span>
-          </button>
-
-          {/* Separador */}
-          <div className="my-4 flex items-center gap-3">
-            <div className="h-px flex-1 bg-white/10" />
-            <span className="text-[10px] uppercase tracking-[0.24em] text-white/35">ou com e-mail</span>
-            <div className="h-px flex-1 bg-white/10" />
-          </div>
-
-          {/* Formulário de E-mail / Senha */}
-          <form onSubmit={handleEmailAuth} className="space-y-3.5">
-            <div className="relative">
-              <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setError(null);
-                }}
-                required
-                placeholder="seu@email.com"
-                className="w-full rounded-2xl border border-white/12 bg-white/5 py-3 pl-10 pr-4 text-sm text-white placeholder-white/35 outline-none transition-all focus:border-[oklch(0.7_0.22_40)] focus:bg-white/8"
+            {/* Barra indicadora de arraste / Handle no topo (Mobile) */}
+            {isMobile && (
+              <div
+                onClick={onClose}
+                className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/30 cursor-pointer active:bg-white/50"
               />
-            </div>
-
-            <div className="relative">
-              <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setError(null);
-                }}
-                required
-                minLength={6}
-                placeholder={mode === "register" ? "Mínimo 6 caracteres" : "Sua senha"}
-                className="w-full rounded-2xl border border-white/12 bg-white/5 py-3 pl-10 pr-11 text-sm text-white placeholder-white/35 outline-none transition-all focus:border-[oklch(0.7_0.22_40)] focus:bg-white/8"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-200"
-              >
-                {error}
-              </motion.div>
             )}
 
-            {!isSupabaseConfigured && (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-200">
-                Login indisponível até configurar as variáveis do Supabase.
-              </div>
-            )}
-
+            {/* Botão de Fechar / Voltar aos cards */}
             <button
-              type="submit"
-              disabled={loading || googleLoading || !isSupabaseConfigured}
-              className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl py-3 text-sm font-semibold text-black transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-50"
-              style={{
-                background: "linear-gradient(135deg, oklch(0.75 0.22 45), oklch(0.65 0.2 25))",
-                boxShadow: "0 0 24px oklch(0.7 0.22 40 / 35%)",
-              }}
+              onClick={onClose}
+              type="button"
+              className="absolute left-5 top-5 flex items-center justify-center rounded-full border border-white/10 bg-white/5 p-2 text-white/60 transition-all hover:bg-white/10 hover:text-white active:scale-95"
+              aria-label="Voltar aos cards"
             >
-              {loading ? (
-                <Loader2 size={17} className="animate-spin" />
-              ) : (
-                <>
-                  <span>{mode === "login" ? "Entrar no PostSpark" : "Criar conta grátis"}</span>
-                  <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
-                </>
-              )}
+              <ChevronDown size={18} />
             </button>
-          </form>
 
-          {/* Alternância Login / Cadastro */}
-          <div className="mt-4 text-center text-xs text-white/55">
-            {mode === "login" ? "Ainda não tem conta? " : "Já possui conta? "}
+            {/* Cabeçalho do modal */}
+            <div className="mb-5 text-center pt-1">
+              <div className="text-[11px] uppercase tracking-[0.32em] text-white/40 font-medium">
+                {mode === "login" ? "Acesso à Plataforma" : "Nova Conta"}
+              </div>
+              <h2 className="mt-2 text-2xl font-bold text-white tracking-tight">
+                {mode === "login" ? "Entre no PostSpark" : "Crie sua conta"}
+              </h2>
+              <p className="mt-1.5 text-xs md:text-sm text-white/60">
+                Capture a alma do seu conteúdo e crie posts de alto impacto.
+              </p>
+            </div>
+
+            {/* Botão do Google OAuth com Logo Oficial */}
             <button
               type="button"
-              onClick={() => {
-                setMode((v) => (v === "login" ? "register" : "login"));
-                setError(null);
-              }}
-              className="font-semibold text-[oklch(0.75_0.22_45)] hover:underline"
+              onClick={handleGoogle}
+              disabled={loading || googleLoading || !isSupabaseConfigured}
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/6 py-3 px-4 text-sm font-medium text-white transition-all hover:bg-white/10 active:scale-[0.99] disabled:opacity-50"
             >
-              {mode === "login" ? "Criar conta grátis" : "Fazer login"}
+              {googleLoading ? (
+                <Loader2 size={18} className="animate-spin text-white" />
+              ) : (
+                <GoogleLogo className="h-4 w-4 shrink-0" />
+              )}
+              <span>{googleLoading ? "Conectando ao Google..." : "Continuar com Google"}</span>
             </button>
-          </div>
+
+            {/* Separador */}
+            <div className="my-4 flex items-center gap-3">
+              <div className="h-px flex-1 bg-white/10" />
+              <span className="text-[10px] uppercase tracking-[0.24em] text-white/35">ou com e-mail</span>
+              <div className="h-px flex-1 bg-white/10" />
+            </div>
+
+            {/* Formulário de E-mail / Senha */}
+            <form onSubmit={handleEmailAuth} className="space-y-3.5">
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError(null);
+                  }}
+                  required
+                  placeholder="seu@email.com"
+                  className="w-full rounded-2xl border border-white/12 bg-white/5 py-3 pl-10 pr-4 text-sm text-white placeholder-white/35 outline-none transition-all focus:border-[oklch(0.7_0.22_40)] focus:bg-white/8"
+                />
+              </div>
+
+              <div className="relative">
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError(null);
+                  }}
+                  required
+                  minLength={6}
+                  placeholder={mode === "register" ? "Mínimo 6 caracteres" : "Sua senha"}
+                  className="w-full rounded-2xl border border-white/12 bg-white/5 py-3 pl-10 pr-11 text-sm text-white placeholder-white/35 outline-none transition-all focus:border-[oklch(0.7_0.22_40)] focus:bg-white/8"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-200"
+                >
+                  {error}
+                </motion.div>
+              )}
+
+              {!isSupabaseConfigured && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-200">
+                  Login indisponível até configurar as variáveis do Supabase.
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || googleLoading || !isSupabaseConfigured}
+                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl py-3 text-sm font-semibold text-black transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-50"
+                style={{
+                  background: "linear-gradient(135deg, oklch(0.75 0.22 45), oklch(0.65 0.2 25))",
+                  boxShadow: "0 0 24px oklch(0.7 0.22 40 / 35%)",
+                }}
+              >
+                {loading ? (
+                  <Loader2 size={17} className="animate-spin" />
+                ) : (
+                  <>
+                    <span>{mode === "login" ? "Entrar no PostSpark" : "Criar conta grátis"}</span>
+                    <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Alternância Login / Cadastro */}
+            <div className="mt-4 text-center text-xs text-white/55">
+              {mode === "login" ? "Ainda não tem conta? " : "Já possui conta? "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode((v) => (v === "login" ? "register" : "login"));
+                  setError(null);
+                }}
+                className="font-semibold text-[oklch(0.75_0.22_45)] hover:underline"
+              >
+                {mode === "login" ? "Criar conta grátis" : "Fazer login"}
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
-    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -798,32 +742,13 @@ export default function TheVoid2() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   const carouselPosition = useMotionValue(4);
-  const authProgress = useMotionValue(0);
-
-  // Animações contínuas coordenadas pelo authProgress
-  const headerY = useTransform(authProgress, [0, 1], [0, -18]);
-  const headerOpacity = useTransform(authProgress, [0, 1], [1, 0.35]);
-
-  const cardsY = useTransform(authProgress, [0, 1], [0, isMobile ? -90 : -130]);
-  const cardsScale = useTransform(authProgress, [0, 1], [1, 0.92]);
-  const cardsOpacity = useTransform(authProgress, [0, 1], [1, 0.16]);
-  const cardsBlur = useTransform(authProgress, (p) => `blur(${(p * 7).toFixed(1)}px)`);
-
-  const bottomActionY = useTransform(authProgress, [0, 0.5], [0, 30]);
-  const bottomActionOpacity = useTransform(authProgress, [0, 0.4], [1, 0]);
-  const bottomActionPointerEvents = useTransform(authProgress, (p) => (p < 0.2 ? "auto" : "none"));
 
   const isDraggingRef = useRef(false);
-  const dragLockedAxisRef = useRef<"x" | "y" | null>(null);
   const dragStartXRef = useRef(0);
-  const dragStartYRef = useRef(0);
   const dragStartIndexRef = useRef(4);
-  const dragStartProgressRef = useRef(0);
   const dragLastTimeRef = useRef(0);
   const dragLastXRef = useRef(0);
-  const dragLastYRef = useRef(0);
   const dragVelocityXRef = useRef(0);
-  const dragVelocityYRef = useRef(0);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -839,23 +764,11 @@ export default function TheVoid2() {
 
   const openAuthModal = useCallback(() => {
     setIsAuthOpen(true);
-    animate(authProgress, 1, {
-      type: "spring",
-      stiffness: 280,
-      damping: 28,
-      mass: 0.8,
-    });
-  }, [authProgress]);
+  }, []);
 
   const closeAuthModal = useCallback(() => {
     setIsAuthOpen(false);
-    animate(authProgress, 0, {
-      type: "spring",
-      stiffness: 280,
-      damping: 28,
-      mass: 0.8,
-    });
-  }, [authProgress]);
+  }, []);
 
   const goToIndex = useCallback(
     (targetIndex: number) => {
@@ -897,92 +810,40 @@ export default function TheVoid2() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [closeAuthModal, goNext, goPrevious, isAuthOpen, openAuthModal]);
 
-  // Scroll com a rodinha do mouse ou trackpad
-  useEffect(() => {
-    let scrollTimeout: NodeJS.Timeout;
-    const handleWheel = (event: WheelEvent) => {
-      // Ignora pequenos scrolls acidentais
-      if (Math.abs(event.deltaY) < 25) return;
-
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        if (event.deltaY > 30 && !isAuthOpen) {
-          openAuthModal();
-        } else if (event.deltaY < -30 && isAuthOpen) {
-          closeAuthModal();
-        }
-      }, 40);
-    };
-
-    window.addEventListener("wheel", handleWheel, { passive: true });
-    return () => {
-      window.removeEventListener("wheel", handleWheel);
-      clearTimeout(scrollTimeout);
-    };
-  }, [closeAuthModal, isAuthOpen, openAuthModal]);
-
+  // Arraste 100% focado no eixo horizontal (sem concorrência de eixo vertical)
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (isAuthOpen) return;
     isDraggingRef.current = true;
-    dragLockedAxisRef.current = null;
     dragStartXRef.current = event.clientX;
-    dragStartYRef.current = event.clientY;
     dragLastXRef.current = event.clientX;
-    dragLastYRef.current = event.clientY;
     dragLastTimeRef.current = performance.now();
     dragStartIndexRef.current = carouselPosition.get();
-    dragStartProgressRef.current = authProgress.get();
     dragVelocityXRef.current = 0;
-    dragVelocityYRef.current = 0;
 
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current) return;
+    if (!isDraggingRef.current || isAuthOpen) return;
 
     const deltaX = event.clientX - dragStartXRef.current;
-    const deltaY = event.clientY - dragStartYRef.current;
-
     const now = performance.now();
     const dt = now - dragLastTimeRef.current;
     if (dt > 8) {
       dragVelocityXRef.current = (event.clientX - dragLastXRef.current) / dt;
-      dragVelocityYRef.current = (event.clientY - dragLastYRef.current) / dt;
       dragLastXRef.current = event.clientX;
-      dragLastYRef.current = event.clientY;
       dragLastTimeRef.current = now;
     }
 
-    // Identificação do eixo predominante do gesto
-    if (!dragLockedAxisRef.current) {
-      if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) {
-        dragLockedAxisRef.current = Math.abs(deltaY) > Math.abs(deltaX) ? "y" : "x";
-      }
-    }
+    const cardStep = isMobile ? 190 : 250;
+    const indexDelta = -deltaX / cardStep;
+    const nextPos = clamp(
+      dragStartIndexRef.current + indexDelta,
+      -0.3,
+      showcaseCards.length - 0.7
+    );
 
-    if (dragLockedAxisRef.current === "x") {
-      // Arraste horizontal nos cards
-      const cardStep = isMobile ? 190 : 250;
-      const indexDelta = -deltaX / cardStep;
-      const nextPos = clamp(
-        dragStartIndexRef.current + indexDelta,
-        -0.3,
-        showcaseCards.length - 0.7
-      );
-      carouselPosition.set(nextPos);
-    } else if (dragLockedAxisRef.current === "y") {
-      // Arraste vertical contínuo no modal de login (indo e voltando com o toque)
-      const verticalDragDistance = isMobile ? 220 : 260;
-      if (dragStartProgressRef.current < 0.5) {
-        // Puxando para cima para abrir
-        const nextProgress = clamp(dragStartProgressRef.current - deltaY / verticalDragDistance, 0, 1);
-        authProgress.set(nextProgress);
-      } else {
-        // Puxando para baixo para fechar
-        const nextProgress = clamp(dragStartProgressRef.current - deltaY / verticalDragDistance, 0, 1);
-        authProgress.set(nextProgress);
-      }
-    }
+    carouselPosition.set(nextPos);
   };
 
   const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -993,40 +854,18 @@ export default function TheVoid2() {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
-    if (dragLockedAxisRef.current === "y") {
-      const currentProg = authProgress.get();
-      const velocityY = dragVelocityYRef.current;
+    const currentPos = carouselPosition.get();
+    const velocityX = dragVelocityXRef.current;
 
-      if (dragStartProgressRef.current < 0.5) {
-        // Tentativa de abertura
-        if (currentProg > 0.3 || velocityY < -0.25) {
-          openAuthModal();
-        } else {
-          closeAuthModal();
-        }
+    let targetIndex = Math.round(currentPos);
+    if (Math.abs(velocityX) > 0.35) {
+      if (velocityX < 0) {
+        targetIndex = Math.ceil(currentPos);
       } else {
-        // Tentativa de fechamento
-        if (currentProg < 0.7 || velocityY > 0.25) {
-          closeAuthModal();
-        } else {
-          openAuthModal();
-        }
+        targetIndex = Math.floor(currentPos);
       }
-    } else {
-      // Snap do carrossel
-      const currentPos = carouselPosition.get();
-      const velocityX = dragVelocityXRef.current;
-
-      let targetIndex = Math.round(currentPos);
-      if (Math.abs(velocityX) > 0.35) {
-        if (velocityX < 0) {
-          targetIndex = Math.ceil(currentPos);
-        } else {
-          targetIndex = Math.floor(currentPos);
-        }
-      }
-      goToIndex(targetIndex);
     }
+    goToIndex(targetIndex);
   };
 
   return (
@@ -1052,19 +891,20 @@ export default function TheVoid2() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_50%)]" />
       </div>
 
-      <div className="relative z-10 flex h-full min-h-[100dvh] flex-col justify-between px-4 pb-6 pt-6 md:px-8 md:pb-8 md:pt-10">
+      <div className="relative z-10 flex h-full min-h-[100dvh] flex-col justify-between px-4 pb-6 pt-5 md:px-8 md:pb-8 md:pt-10">
         {/* Cabeçalho */}
         <motion.div
-          className="mx-auto flex w-full max-w-5xl flex-col items-center gap-2.5 text-center"
-          style={{
-            y: headerY,
-            opacity: headerOpacity,
+          className="mx-auto flex w-full max-w-5xl flex-col items-center gap-2 text-center"
+          animate={{
+            y: isAuthOpen ? -14 : 0,
+            opacity: isAuthOpen ? 0.35 : 1,
           }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
         >
-          <SparkLogo size={isMobile ? 64 : 88} />
+          <SparkLogo size={isMobile ? 54 : 88} />
           <div className="space-y-1">
             <h1
-              className="text-3xl font-bold tracking-tight md:text-5xl"
+              className="text-2xl font-bold tracking-tight md:text-5xl"
               style={{
                 fontFamily: "var(--font-display)",
                 textShadow: "0 4px 24px rgba(0,0,0,0.7)",
@@ -1079,15 +919,16 @@ export default function TheVoid2() {
           </div>
         </motion.div>
 
-        {/* Palco 3D dos Cards */}
+        {/* Palco 3D dos Cards com foco total em deslize suave horizontal */}
         <motion.div
-          className="relative mx-auto flex w-full max-w-6xl flex-1 items-center justify-center"
-          style={{
-            y: cardsY,
-            scale: cardsScale,
-            opacity: cardsOpacity,
-            filter: cardsBlur,
+          className="relative mx-auto flex w-full max-w-6xl flex-1 items-center justify-center my-auto"
+          animate={{
+            y: isAuthOpen ? (isMobile ? -60 : -110) : 0,
+            scale: isAuthOpen ? 0.93 : 1,
+            opacity: isAuthOpen ? 0.2 : 1,
+            filter: isAuthOpen ? "blur(6px)" : "blur(0px)",
           }}
+          transition={{ type: "spring", stiffness: 260, damping: 28 }}
         >
           {/* Botão Anterior (Desktop) */}
           <button
@@ -1100,9 +941,9 @@ export default function TheVoid2() {
             <ChevronLeft className="h-6 w-6" />
           </button>
 
-          {/* Área de Toque e Gesto do Palco */}
+          {/* Área de Toque dos Cards */}
           <div
-            className="relative flex h-[460px] md:h-[530px] w-full items-center justify-center touch-pan-y cursor-grab active:cursor-grabbing"
+            className="relative flex h-[440px] md:h-[530px] w-full items-center justify-center touch-pan-x cursor-grab active:cursor-grabbing"
             style={{ perspective: "1100px", transformStyle: "preserve-3d" }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
@@ -1157,42 +998,50 @@ export default function TheVoid2() {
           ))}
         </div>
 
-        {/* Barra de Ação Inferior: "Clique / Deslize para iniciar" */}
-        <motion.div
-          className="relative z-30 flex flex-col items-center justify-center pt-1"
-          style={{
-            y: bottomActionY,
-            opacity: bottomActionOpacity,
-            pointerEvents: bottomActionPointerEvents,
-          }}
-        >
-          <motion.button
-            key="trigger-button"
-            type="button"
-            onClick={openAuthModal}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            className="group flex flex-col items-center gap-1.5 rounded-full border border-white/15 bg-white/6 px-6 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.4)] backdrop-blur-xl transition-colors hover:border-[oklch(0.7_0.22_40)]/60 hover:bg-white/10"
-          >
-            <motion.div
-              animate={{ y: [0, -4, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <ChevronUp size={20} className="text-[oklch(0.75_0.22_45)]" />
-            </motion.div>
-            <span className="text-xs md:text-sm font-semibold tracking-wide text-white/90 group-hover:text-white">
-              {isMobile ? "Deslize para iniciar" : "Clique para iniciar"}
-            </span>
-          </motion.button>
-        </motion.div>
+        {/* Barra de Ação Inferior: CTA Direto de Alta Conversão */}
+        <div className="relative z-30 flex flex-col items-center justify-center gap-2 pt-1 pb-1">
+          <AnimatePresence mode="wait">
+            {!isAuthOpen && (
+              <motion.div
+                key="cta-container"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 14 }}
+                className="flex flex-col items-center gap-2 w-full max-w-xs md:max-w-md"
+              >
+                <button
+                  type="button"
+                  onClick={openAuthModal}
+                  className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl py-3.5 px-6 text-sm md:text-base font-bold text-black shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]"
+                  style={{
+                    background: "linear-gradient(135deg, oklch(0.78 0.22 48), oklch(0.65 0.2 28))",
+                    boxShadow: "0 0 32px oklch(0.7 0.22 40 / 40%), 0 8px 24px rgba(0,0,0,0.5)",
+                  }}
+                >
+                  <span>Criar meu primeiro post</span>
+                  <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                </button>
+
+                <div className="flex items-center gap-2 text-xs text-white/50">
+                  <span>Já tem uma conta?</span>
+                  <button
+                    type="button"
+                    onClick={openAuthModal}
+                    className="font-semibold text-white/85 hover:text-white underline underline-offset-2"
+                  >
+                    Entrar
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      {/* Modal de Autenticação Contínuo */}
+      {/* Modal / Bottom Sheet de Autenticação */}
       <AuthModal
-        authProgress={authProgress}
         isOpen={isAuthOpen}
         isMobile={isMobile}
-        onOpen={openAuthModal}
         onClose={closeAuthModal}
       />
     </div>
