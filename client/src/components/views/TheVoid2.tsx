@@ -256,7 +256,7 @@ function ShowcaseCardView({
   isAuthOpen,
   onSelect,
 }: ShowcaseCardViewProps) {
-  const cardSpacing = isMobile ? 210 : 270;
+  const cardSpacing = isMobile ? 180 : 270;
   const offset = useTransform(carouselPosition, (pos) => index - pos);
 
   const x = useTransform(offset, (off) => {
@@ -266,28 +266,28 @@ function ShowcaseCardView({
   });
 
   const rotateY = useTransform(offset, (off) => {
-    return clamp(off * -24, -42, 42);
+    return clamp(off * -22, -40, 40);
   });
 
   const scale = useTransform(offset, (off) => {
     const absOff = Math.abs(off);
-    return clamp(1 - absOff * (isMobile ? 0.13 : 0.11), 0.68, 1);
+    return clamp(1 - absOff * (isMobile ? 0.12 : 0.11), 0.72, 1);
   });
 
   const z = useTransform(offset, (off) => {
     const absOff = Math.abs(off);
-    return -absOff * (isMobile ? 70 : 110);
+    return -absOff * (isMobile ? 60 : 110);
   });
 
   const opacity = useTransform(offset, (off) => {
     const absOff = Math.abs(off);
-    if (absOff > 3.2) return 0;
-    return clamp(1 - absOff * (isMobile ? 0.28 : 0.24), 0.1, 1);
+    if (absOff > 2.8) return 0;
+    return clamp(1 - absOff * (isMobile ? 0.28 : 0.24), 0.15, 1);
   });
 
   const zIndex = useTransform(offset, (off) => {
     const absOff = Math.abs(off);
-    return Math.round(50 - absOff * 10);
+    return Math.round(40 - absOff * 10);
   });
 
   const filter = useTransform(offset, (off) => {
@@ -313,7 +313,7 @@ function ShowcaseCardView({
 
   return (
     <motion.div
-      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none cursor-pointer outline-none"
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none cursor-pointer outline-none touch-manipulation"
       style={{
         x,
         y: 0,
@@ -345,8 +345,8 @@ function ShowcaseCardView({
       }}
     >
       <motion.div
-        className={`relative overflow-hidden rounded-[26px] md:rounded-[28px] text-left shadow-2xl transition-shadow duration-300 ${
-          isMobile ? "h-[420px] w-[280px]" : "h-[480px] w-[320px]"
+        className={`relative overflow-hidden rounded-[24px] md:rounded-[28px] text-left shadow-2xl transition-shadow duration-300 ${
+          isMobile ? "h-[370px] w-[260px]" : "h-[480px] w-[320px]"
         }`}
         style={{
           background: post.palette.background,
@@ -375,7 +375,7 @@ function ShowcaseCardView({
         />
 
         <div
-          className={`absolute inset-0 flex flex-col p-6 md:p-7 ${getTextBlockClasses(post)}`}
+          className={`absolute inset-0 flex flex-col p-5 md:p-7 ${getTextBlockClasses(post)}`}
         >
           {post.layoutType === "editorial" && (
             <div
@@ -388,14 +388,14 @@ function ShowcaseCardView({
 
           <div>
             <span
-              className="mb-2.5 block text-[11px] font-bold uppercase tracking-[0.32em]"
+              className="mb-2 block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.32em]"
               style={{ color: post.palette.accent, fontFamily: post.fontFamily }}
             >
               {post.category}
             </span>
             {post.layoutType !== "editorial" && (
               <div
-                className="mb-1.5 text-[10px] uppercase tracking-[0.24em]"
+                className="mb-1 text-[9px] md:text-[10px] uppercase tracking-[0.24em]"
                 style={{ color: `${post.palette.text}85`, fontFamily: post.fontFamily }}
               >
                 {post.title}
@@ -415,8 +415,8 @@ function ShowcaseCardView({
               {post.headline}
             </h2>
             <p
-              className={`mt-2.5 max-w-[24ch] text-xs md:text-sm font-light leading-relaxed ${
-                post.layoutType === "minimal" ? "text-[12px] md:text-[13px]" : ""
+              className={`mt-2 max-w-[24ch] text-xs md:text-sm font-light leading-relaxed ${
+                post.layoutType === "minimal" ? "text-[11px] md:text-[13px]" : ""
               }`}
               style={{
                 color: `${post.palette.text}BF`,
@@ -541,7 +541,7 @@ function AuthModal({ isOpen, isMobile, onClose }: AuthModalProps) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden select-none">
+        <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden select-none">
           {/* Backdrop escurecido suave com blur que fecha ao clicar fora */}
           <motion.div
             key="auth-backdrop"
@@ -558,8 +558,8 @@ function AuthModal({ isOpen, isMobile, onClose }: AuthModalProps) {
             key="auth-panel"
             className={
               isMobile
-                ? "relative z-10 w-full max-h-[90vh] overflow-y-auto rounded-t-[2.25rem] border-t border-white/15 p-6 pb-8 shadow-2xl backdrop-blur-2xl"
-                : "relative z-10 w-full max-w-md my-auto rounded-[2rem] border border-white/14 p-8 shadow-2xl backdrop-blur-2xl"
+                ? "relative z-[110] w-full max-h-[90vh] overflow-y-auto rounded-t-[2.25rem] border-t border-white/15 p-6 pb-8 shadow-2xl backdrop-blur-2xl"
+                : "relative z-[110] w-full max-w-md my-auto rounded-[2rem] border border-white/14 p-8 shadow-2xl backdrop-blur-2xl"
             }
             style={{
               background: isMobile
@@ -593,7 +593,7 @@ function AuthModal({ isOpen, isMobile, onClose }: AuthModalProps) {
             <button
               onClick={onClose}
               type="button"
-              className="absolute left-5 top-5 flex items-center justify-center rounded-full border border-white/10 bg-white/5 p-2 text-white/60 transition-all hover:bg-white/10 hover:text-white active:scale-95"
+              className="absolute left-5 top-5 flex items-center justify-center rounded-full border border-white/10 bg-white/5 p-2 text-white/60 transition-all hover:bg-white/10 hover:text-white active:scale-95 cursor-pointer touch-manipulation"
               aria-label="Voltar aos cards"
             >
               <ChevronDown size={18} />
@@ -617,7 +617,7 @@ function AuthModal({ isOpen, isMobile, onClose }: AuthModalProps) {
               type="button"
               onClick={handleGoogle}
               disabled={loading || googleLoading || !isSupabaseConfigured}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/6 py-3 px-4 text-sm font-medium text-white transition-all hover:bg-white/10 active:scale-[0.99] disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/6 py-3 px-4 text-sm font-medium text-white transition-all hover:bg-white/10 active:scale-[0.99] disabled:opacity-50 cursor-pointer touch-manipulation"
             >
               {googleLoading ? (
                 <Loader2 size={18} className="animate-spin text-white" />
@@ -693,7 +693,7 @@ function AuthModal({ isOpen, isMobile, onClose }: AuthModalProps) {
               <button
                 type="submit"
                 disabled={loading || googleLoading || !isSupabaseConfigured}
-                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl py-3 text-sm font-semibold text-black transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-50"
+                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl py-3 text-sm font-semibold text-black transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-50 cursor-pointer touch-manipulation"
                 style={{
                   background: "linear-gradient(135deg, oklch(0.75 0.22 45), oklch(0.65 0.2 25))",
                   boxShadow: "0 0 24px oklch(0.7 0.22 40 / 35%)",
@@ -719,7 +719,7 @@ function AuthModal({ isOpen, isMobile, onClose }: AuthModalProps) {
                   setMode((v) => (v === "login" ? "register" : "login"));
                   setError(null);
                 }}
-                className="font-semibold text-[oklch(0.75_0.22_45)] hover:underline"
+                className="font-semibold text-[oklch(0.75_0.22_45)] hover:underline cursor-pointer touch-manipulation"
               >
                 {mode === "login" ? "Criar conta grátis" : "Fazer login"}
               </button>
@@ -745,10 +745,8 @@ export default function TheVoid2() {
 
   const isDraggingRef = useRef(false);
   const dragStartXRef = useRef(0);
+  const dragStartTimeRef = useRef(0);
   const dragStartIndexRef = useRef(4);
-  const dragLastTimeRef = useRef(0);
-  const dragLastXRef = useRef(0);
-  const dragVelocityXRef = useRef(0);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -776,9 +774,9 @@ export default function TheVoid2() {
       setCurrentIndex(clamped);
       animate(carouselPosition, clamped, {
         type: "spring",
-        stiffness: 260,
-        damping: 28,
-        mass: 0.8,
+        stiffness: 300,
+        damping: 30,
+        mass: 0.7,
       });
     },
     [carouselPosition]
@@ -810,15 +808,13 @@ export default function TheVoid2() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [closeAuthModal, goNext, goPrevious, isAuthOpen, openAuthModal]);
 
-  // Arraste 100% focado no eixo horizontal (sem concorrência de eixo vertical)
+  // Arraste com física suave 1:1 sem trancos (1 card por swipe previsível)
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (isAuthOpen) return;
     isDraggingRef.current = true;
     dragStartXRef.current = event.clientX;
-    dragLastXRef.current = event.clientX;
-    dragLastTimeRef.current = performance.now();
-    dragStartIndexRef.current = carouselPosition.get();
-    dragVelocityXRef.current = 0;
+    dragStartTimeRef.current = performance.now();
+    dragStartIndexRef.current = currentIndex;
 
     event.currentTarget.setPointerCapture(event.pointerId);
   };
@@ -827,20 +823,14 @@ export default function TheVoid2() {
     if (!isDraggingRef.current || isAuthOpen) return;
 
     const deltaX = event.clientX - dragStartXRef.current;
-    const now = performance.now();
-    const dt = now - dragLastTimeRef.current;
-    if (dt > 8) {
-      dragVelocityXRef.current = (event.clientX - dragLastXRef.current) / dt;
-      dragLastXRef.current = event.clientX;
-      dragLastTimeRef.current = now;
-    }
+    const dragStep = isMobile ? 240 : 300;
+    const indexDelta = -deltaX / dragStep;
 
-    const cardStep = isMobile ? 190 : 250;
-    const indexDelta = -deltaX / cardStep;
+    // Move proporcionalmente ao dedo com limite suave de 1 card
     const nextPos = clamp(
       dragStartIndexRef.current + indexDelta,
-      -0.3,
-      showcaseCards.length - 0.7
+      dragStartIndexRef.current - 1.2,
+      dragStartIndexRef.current + 1.2
     );
 
     carouselPosition.set(nextPos);
@@ -854,17 +844,21 @@ export default function TheVoid2() {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
-    const currentPos = carouselPosition.get();
-    const velocityX = dragVelocityXRef.current;
+    const deltaX = event.clientX - dragStartXRef.current;
+    const dt = Math.max(performance.now() - dragStartTimeRef.current, 1);
+    const velocityX = deltaX / dt;
 
-    let targetIndex = Math.round(currentPos);
-    if (Math.abs(velocityX) > 0.35) {
-      if (velocityX < 0) {
-        targetIndex = Math.ceil(currentPos);
-      } else {
-        targetIndex = Math.floor(currentPos);
-      }
+    let targetIndex = dragStartIndexRef.current;
+
+    // Regra limpa e previsível: arrastou > 35px ou flick rápido -> muda 1 card
+    if (deltaX < -35 || velocityX < -0.28) {
+      targetIndex = dragStartIndexRef.current + 1;
+    } else if (deltaX > 35 || velocityX > 0.28) {
+      targetIndex = dragStartIndexRef.current - 1;
+    } else {
+      targetIndex = dragStartIndexRef.current;
     }
+
     goToIndex(targetIndex);
   };
 
@@ -891,18 +885,18 @@ export default function TheVoid2() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_50%)]" />
       </div>
 
-      <div className="relative z-10 flex h-full min-h-[100dvh] flex-col justify-between px-4 pb-6 pt-5 md:px-8 md:pb-8 md:pt-10">
+      <div className="relative z-10 flex h-full min-h-[100dvh] flex-col justify-between px-4 pb-6 pt-4 md:px-8 md:pb-8 md:pt-10">
         {/* Cabeçalho */}
         <motion.div
-          className="mx-auto flex w-full max-w-5xl flex-col items-center gap-2 text-center"
+          className="mx-auto flex w-full max-w-5xl flex-col items-center gap-1.5 md:gap-2 text-center shrink-0"
           animate={{
             y: isAuthOpen ? -14 : 0,
             opacity: isAuthOpen ? 0.35 : 1,
           }}
           transition={{ duration: 0.35, ease: "easeOut" }}
         >
-          <SparkLogo size={isMobile ? 54 : 88} />
-          <div className="space-y-1">
+          <SparkLogo size={isMobile ? 48 : 88} />
+          <div className="space-y-0.5">
             <h1
               className="text-2xl font-bold tracking-tight md:text-5xl"
               style={{
@@ -913,7 +907,7 @@ export default function TheVoid2() {
               <span className="text-foreground">Post</span>
               <span style={{ color: "oklch(0.7 0.22 40)" }}>Spark</span>
             </h1>
-            <p className="text-xs font-light text-white/60 md:text-sm">
+            <p className="text-[11px] font-light text-white/60 md:text-sm">
               Capture a alma do seu negócio. Crie posts magnéticos com IA.
             </p>
           </div>
@@ -921,9 +915,9 @@ export default function TheVoid2() {
 
         {/* Palco 3D dos Cards com foco total em deslize suave horizontal */}
         <motion.div
-          className="relative mx-auto flex w-full max-w-6xl flex-1 items-center justify-center my-auto"
+          className="relative mx-auto flex w-full max-w-6xl flex-1 items-center justify-center my-auto min-h-0"
           animate={{
-            y: isAuthOpen ? (isMobile ? -60 : -110) : 0,
+            y: isAuthOpen ? (isMobile ? -40 : -100) : 0,
             scale: isAuthOpen ? 0.93 : 1,
             opacity: isAuthOpen ? 0.2 : 1,
             filter: isAuthOpen ? "blur(6px)" : "blur(0px)",
@@ -936,14 +930,14 @@ export default function TheVoid2() {
             onClick={goPrevious}
             disabled={currentIndex === 0 || isAuthOpen}
             aria-label="Card anterior"
-            className="absolute left-2 md:left-8 z-40 hidden md:flex items-center justify-center rounded-full border border-white/12 bg-black/40 backdrop-blur-md p-3.5 text-white/70 shadow-2xl transition-all duration-200 hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-0"
+            className="absolute left-2 md:left-8 z-40 hidden md:flex items-center justify-center rounded-full border border-white/12 bg-black/40 backdrop-blur-md p-3.5 text-white/70 shadow-2xl transition-all duration-200 hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-0 cursor-pointer"
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
 
           {/* Área de Toque dos Cards */}
           <div
-            className="relative flex h-[440px] md:h-[530px] w-full items-center justify-center touch-pan-x cursor-grab active:cursor-grabbing"
+            className="relative flex h-[380px] md:h-[500px] w-full items-center justify-center touch-pan-x cursor-grab active:cursor-grabbing"
             style={{ perspective: "1100px", transformStyle: "preserve-3d" }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
@@ -975,21 +969,21 @@ export default function TheVoid2() {
             onClick={goNext}
             disabled={currentIndex === showcaseCards.length - 1 || isAuthOpen}
             aria-label="Próximo card"
-            className="absolute right-2 md:right-8 z-40 hidden md:flex items-center justify-center rounded-full border border-white/12 bg-black/40 backdrop-blur-md p-3.5 text-white/70 shadow-2xl transition-all duration-200 hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-0"
+            className="absolute right-2 md:right-8 z-40 hidden md:flex items-center justify-center rounded-full border border-white/12 bg-black/40 backdrop-blur-md p-3.5 text-white/70 shadow-2xl transition-all duration-200 hover:scale-110 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-0 cursor-pointer"
           >
             <ChevronRight className="h-6 w-6" />
           </button>
         </motion.div>
 
         {/* Indicadores de Paginação */}
-        <div className="flex justify-center items-center gap-1.5 pb-2">
+        <div className="flex justify-center items-center gap-1.5 pb-2 shrink-0">
           {showcaseCards.map((_, i) => (
             <button
               key={i}
               type="button"
               onClick={() => goToIndex(i)}
               aria-label={`Ir para slide ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
+              className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                 i === currentIndex
                   ? "w-6 bg-[oklch(0.7_0.22_40)] shadow-[0_0_8px_oklch(0.7_0.22_40)]"
                   : "w-1.5 bg-white/20 hover:bg-white/40"
@@ -998,8 +992,8 @@ export default function TheVoid2() {
           ))}
         </div>
 
-        {/* Barra de Ação Inferior: CTA Direto de Alta Conversão */}
-        <div className="relative z-30 flex flex-col items-center justify-center gap-2 pt-1 pb-1">
+        {/* Barra de Ação Inferior: CTA Direto com Prioridade z-50 e Área de Toque Garantida */}
+        <div className="relative z-50 flex flex-col items-center justify-center gap-2 pt-1 pb-1 shrink-0 pointer-events-auto">
           <AnimatePresence mode="wait">
             {!isAuthOpen && (
               <motion.div
@@ -1007,12 +1001,15 @@ export default function TheVoid2() {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 14 }}
-                className="flex flex-col items-center gap-2 w-full max-w-xs md:max-w-md"
+                className="flex flex-col items-center gap-2 w-full max-w-xs md:max-w-md pointer-events-auto"
               >
                 <button
                   type="button"
-                  onClick={openAuthModal}
-                  className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl py-3.5 px-6 text-sm md:text-base font-bold text-black shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:brightness-110 active:scale-[0.98]"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openAuthModal();
+                  }}
+                  className="group relative z-50 flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl py-3.5 px-6 text-sm md:text-base font-bold text-black shadow-2xl transition-all duration-200 active:scale-[0.97] cursor-pointer touch-manipulation"
                   style={{
                     background: "linear-gradient(135deg, oklch(0.78 0.22 48), oklch(0.65 0.2 28))",
                     boxShadow: "0 0 32px oklch(0.7 0.22 40 / 40%), 0 8px 24px rgba(0,0,0,0.5)",
@@ -1026,8 +1023,11 @@ export default function TheVoid2() {
                   <span>Já tem uma conta?</span>
                   <button
                     type="button"
-                    onClick={openAuthModal}
-                    className="font-semibold text-white/85 hover:text-white underline underline-offset-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openAuthModal();
+                    }}
+                    className="font-semibold text-white/90 hover:text-white underline underline-offset-4 py-1 px-2 cursor-pointer touch-manipulation active:opacity-70"
                   >
                     Entrar
                   </button>
