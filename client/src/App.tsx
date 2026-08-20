@@ -224,9 +224,9 @@ function AppInner() {
       <Router />
       {isAuthenticated && !isTheVoid2Route ? <UserTopMenu /> : null}
       {/* AuthGate: aparece apenas para usuários não autenticados */}
-      {/* Consentimento LGPD e Cookies */}
-      <ConsentModal />
-      <CookieBanner />
+      {/* Consentimento LGPD e Cookies - apenas fora da landing imersiva */}
+      {!isTheVoid2Route && <ConsentModal />}
+      {!isTheVoid2Route && <CookieBanner />}
     </>
   );
 }

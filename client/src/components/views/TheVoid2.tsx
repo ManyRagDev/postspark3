@@ -301,11 +301,11 @@ function AuthModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden select-none">
+        <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden select-none pointer-events-auto">
           {/* Backdrop escurecido com blur */}
           <motion.div
             key="auth-backdrop"
-            className="fixed inset-0 bg-black/70 backdrop-blur-md"
+            className="fixed inset-0 bg-black/75 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -318,8 +318,8 @@ function AuthModal({
             key="auth-panel"
             className={
               isMobile
-                ? "relative z-10 w-full max-h-[90vh] overflow-y-auto rounded-t-[2.25rem] border-t border-white/15 p-6 pb-8 shadow-2xl backdrop-blur-2xl"
-                : "relative z-10 w-full max-w-md my-auto rounded-[2rem] border border-white/15 p-8 shadow-2xl backdrop-blur-2xl"
+                ? "relative z-10 w-full max-h-[90vh] overflow-y-auto rounded-t-[2.25rem] border-t border-white/15 p-6 pb-8 shadow-2xl backdrop-blur-2xl pointer-events-auto"
+                : "relative z-10 w-full max-w-md my-auto rounded-[2rem] border border-white/15 p-8 shadow-2xl backdrop-blur-2xl pointer-events-auto"
             }
             style={{
               background: "linear-gradient(180deg, rgba(18, 22, 34, 0.98) 0%, rgba(8, 10, 16, 0.99) 100%)",
@@ -650,7 +650,7 @@ export default function TheVoid2() {
       </main>
 
       {/* 3. ACTION FOOTER (Base - 100% Isolado e Clicável) */}
-      <footer className="relative z-20 flex flex-col items-center justify-center gap-3 pb-6 md:pb-8 pt-2 px-4 shrink-0">
+      <footer className="relative z-30 flex flex-col items-center justify-center gap-3 pb-6 md:pb-8 pt-2 px-4 shrink-0 pointer-events-auto select-none">
         {/* Paginação por Dots */}
         <div className="flex items-center gap-1.5 pb-1">
           {showcaseCards.map((_, i) => (
@@ -669,11 +669,21 @@ export default function TheVoid2() {
         </div>
 
         {/* Botão de Ação Primário */}
-        <div className="flex flex-col items-center gap-2 w-full max-w-xs md:max-w-sm">
+        <div className="flex flex-col items-center gap-2 w-full max-w-xs md:max-w-sm pointer-events-auto">
           <button
             type="button"
-            onClick={openAuthModal}
-            className="group flex w-full items-center justify-center gap-2.5 rounded-2xl py-3.5 px-6 text-sm md:text-base font-bold text-black shadow-2xl transition-all duration-200 hover:scale-[1.02] hover:brightness-110 active:scale-[0.98] cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              openAuthModal();
+            }}
+            onTouchEnd={(e) => {
+              e.stopPropagation();
+              openAuthModal();
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
+            className="group flex w-full items-center justify-center gap-2.5 rounded-2xl py-3.5 px-6 text-sm md:text-base font-bold text-black shadow-2xl transition-all duration-200 hover:scale-[1.02] hover:brightness-110 active:scale-[0.98] cursor-pointer touch-manipulation pointer-events-auto"
             style={{
               background: "linear-gradient(135deg, oklch(0.78 0.22 48), oklch(0.65 0.2 28))",
               boxShadow: "0 0 32px oklch(0.7 0.22 40 / 40%), 0 8px 24px rgba(0,0,0,0.5)",
@@ -683,12 +693,22 @@ export default function TheVoid2() {
             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
           </button>
 
-          <div className="flex items-center gap-2 text-xs text-white/55">
+          <div className="flex items-center gap-2 text-xs text-white/55 pointer-events-auto">
             <span>Já tem uma conta?</span>
             <button
               type="button"
-              onClick={openAuthModal}
-              className="font-semibold text-white/90 hover:text-white underline underline-offset-4 py-0.5 px-1 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                openAuthModal();
+              }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                openAuthModal();
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+              }}
+              className="font-semibold text-white/90 hover:text-white underline underline-offset-4 py-0.5 px-1 cursor-pointer touch-manipulation pointer-events-auto"
             >
               Entrar
             </button>
