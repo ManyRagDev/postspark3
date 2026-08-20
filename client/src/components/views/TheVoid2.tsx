@@ -256,8 +256,10 @@ function ShowcaseCardView({
   isAuthOpen,
   onSelect,
 }: ShowcaseCardViewProps) {
-  const cardSpacing = isMobile ? 180 : 270;
+  const cardSpacing = isMobile ? 190 : 270;
   const offset = useTransform(carouselPosition, (pos) => index - pos);
+
+  const isVisible = useTransform(offset, (off) => Math.abs(off) <= 2.4);
 
   const x = useTransform(offset, (off) => {
     const absOff = Math.abs(off);
@@ -266,28 +268,28 @@ function ShowcaseCardView({
   });
 
   const rotateY = useTransform(offset, (off) => {
-    return clamp(off * -22, -40, 40);
+    return clamp(off * -22, -38, 38);
   });
 
   const scale = useTransform(offset, (off) => {
     const absOff = Math.abs(off);
-    return clamp(1 - absOff * (isMobile ? 0.12 : 0.11), 0.72, 1);
+    return clamp(1 - absOff * (isMobile ? 0.12 : 0.11), 0.74, 1);
   });
 
   const z = useTransform(offset, (off) => {
     const absOff = Math.abs(off);
-    return -absOff * (isMobile ? 60 : 110);
+    return -absOff * (isMobile ? 50 : 100);
   });
 
   const opacity = useTransform(offset, (off) => {
     const absOff = Math.abs(off);
-    if (absOff > 2.8) return 0;
-    return clamp(1 - absOff * (isMobile ? 0.28 : 0.24), 0.15, 1);
+    if (absOff > 2.2) return 0;
+    return clamp(1 - absOff * (isMobile ? 0.32 : 0.24), 0, 1);
   });
 
   const zIndex = useTransform(offset, (off) => {
     const absOff = Math.abs(off);
-    return Math.round(40 - absOff * 10);
+    return Math.round(30 - absOff * 10);
   });
 
   const filter = useTransform(offset, (off) => {
@@ -303,17 +305,23 @@ function ShowcaseCardView({
   const springHoverY = useSpring(hoverRotateY, { stiffness: 180, damping: 20 });
 
   const [isCenter, setIsCenter] = useState(() => Math.abs(offset.get()) < 0.35);
+  const [visibleInDom, setVisibleInDom] = useState(() => Math.abs(offset.get()) <= 2.4);
 
   useEffect(() => {
     return offset.on("change", (val) => {
-      const nextIsCenter = Math.abs(val) < 0.35;
-      setIsCenter(nextIsCenter);
+      const abs = Math.abs(val);
+      setIsCenter(abs < 0.35);
+      setVisibleInDom(abs <= 2.4);
     });
   }, [offset]);
 
+  if (!visibleInDom) {
+    return null;
+  }
+
   return (
     <motion.div
-      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none cursor-pointer outline-none touch-manipulation"
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none cursor-pointer outline-none pointer-events-auto"
       style={{
         x,
         y: 0,
@@ -324,7 +332,9 @@ function ShowcaseCardView({
         zIndex,
         filter,
         transformStyle: "preserve-3d",
-        pointerEvents: isAuthOpen ? "none" : "auto",
+        touchAction: "none",
+        WebkitUserSelect: "none",
+        userSelect: "none",
       }}
       onClick={() => {
         if (!isAuthOpen) onSelect(index);
@@ -345,8 +355,9 @@ function ShowcaseCardView({
       }}
     >
       <motion.div
-        className={`relative overflow-hidden rounded-[24px] md:rounded-[28px] text-left shadow-2xl transition-shadow duration-300 ${
-          isMobile ? "h-[370px] w-[260px]" : "h-[480px] w-[320px]"
+        draggable={false}
+        className={`relative overflow-hidden rounded-[22px] md:rounded-[28px] text-left shadow-2xl transition-shadow duration-300 pointer-events-none select-none ${
+          isMobile ? "h-[350px] w-[250px]" : "h-[480px] w-[320px]"
         }`}
         style={{
           background: post.palette.background,
@@ -354,8 +365,8 @@ function ShowcaseCardView({
             ? `1.5px solid ${post.palette.accent}77`
             : "1px solid rgba(255,255,255,0.08)",
           boxShadow: isCenter
-            ? `0 0 38px ${post.palette.accent}20, 0 24px 60px rgba(0,0,0,0.55)`
-            : "0 18px 45px rgba(0,0,0,0.4)",
+            ? `0 0 36px ${post.palette.accent}20, 0 20px 50px rgba(0,0,0,0.55)`
+            : "0 14px 40px rgba(0,0,0,0.4)",
           rotateX: springHoverX,
           rotateY: springHoverY,
           transformStyle: "preserve-3d",
@@ -365,7 +376,7 @@ function ShowcaseCardView({
         {renderDecorations(post)}
 
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 pointer-events-none"
           style={{
             background:
               post.layoutType === "minimal"
@@ -375,7 +386,7 @@ function ShowcaseCardView({
         />
 
         <div
-          className={`absolute inset-0 flex flex-col p-5 md:p-7 ${getTextBlockClasses(post)}`}
+          className={`absolute inset-0 flex flex-col p-5 md:p-7 pointer-events-none ${getTextBlockClasses(post)}`}
         >
           {post.layoutType === "editorial" && (
             <div
@@ -746,7 +757,7 @@ export default function TheVoid2() {
   const isDraggingRef = useRef(false);
   const dragStartXRef = useRef(0);
   const dragStartTimeRef = useRef(0);
-  const dragStartIndexRef = useRef(4);
+  const dragStartPosRef = useRef(4);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -774,9 +785,9 @@ export default function TheVoid2() {
       setCurrentIndex(clamped);
       animate(carouselPosition, clamped, {
         type: "spring",
-        stiffness: 300,
-        damping: 30,
-        mass: 0.7,
+        stiffness: 320,
+        damping: 32,
+        mass: 0.6,
       });
     },
     [carouselPosition]
@@ -808,29 +819,33 @@ export default function TheVoid2() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [closeAuthModal, goNext, goPrevious, isAuthOpen, openAuthModal]);
 
-  // Arraste com física suave 1:1 sem trancos (1 card por swipe previsível)
+  // Arraste com física suave 1:1 sem trancos (bidirecional em tempo real)
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (isAuthOpen) return;
     isDraggingRef.current = true;
     dragStartXRef.current = event.clientX;
     dragStartTimeRef.current = performance.now();
-    dragStartIndexRef.current = currentIndex;
+    dragStartPosRef.current = carouselPosition.get();
 
-    event.currentTarget.setPointerCapture(event.pointerId);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Ignora erro se ponteiro já foi liberado
+    }
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!isDraggingRef.current || isAuthOpen) return;
 
     const deltaX = event.clientX - dragStartXRef.current;
-    const dragStep = isMobile ? 240 : 300;
+    const dragStep = isMobile ? 220 : 280;
     const indexDelta = -deltaX / dragStep;
 
-    // Move proporcionalmente ao dedo com limite suave de 1 card
+    // Desloca em tempo real de onde o carrossel estava posicionado
     const nextPos = clamp(
-      dragStartIndexRef.current + indexDelta,
-      dragStartIndexRef.current - 1.2,
-      dragStartIndexRef.current + 1.2
+      dragStartPosRef.current + indexDelta,
+      0,
+      showcaseCards.length - 1
     );
 
     carouselPosition.set(nextPos);
@@ -840,23 +855,26 @@ export default function TheVoid2() {
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
 
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
+    try {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    } catch {
+      // Ignora erro
     }
 
     const deltaX = event.clientX - dragStartXRef.current;
     const dt = Math.max(performance.now() - dragStartTimeRef.current, 1);
     const velocityX = deltaX / dt;
+    const currentPos = carouselPosition.get();
 
-    let targetIndex = dragStartIndexRef.current;
+    let targetIndex = Math.round(currentPos);
 
-    // Regra limpa e previsível: arrastou > 35px ou flick rápido -> muda 1 card
-    if (deltaX < -35 || velocityX < -0.28) {
-      targetIndex = dragStartIndexRef.current + 1;
-    } else if (deltaX > 35 || velocityX > 0.28) {
-      targetIndex = dragStartIndexRef.current - 1;
-    } else {
-      targetIndex = dragStartIndexRef.current;
+    // Se houve swipe significativo para esquerda ou direita, avança ou recua
+    if (deltaX < -30 || velocityX < -0.25) {
+      targetIndex = Math.min(showcaseCards.length - 1, Math.floor(dragStartPosRef.current) + 1);
+    } else if (deltaX > 30 || velocityX > 0.25) {
+      targetIndex = Math.max(0, Math.ceil(dragStartPosRef.current) - 1);
     }
 
     goToIndex(targetIndex);
@@ -867,6 +885,9 @@ export default function TheVoid2() {
       className="relative h-[100dvh] min-h-screen w-full overflow-hidden text-white selection:bg-[#00f5ff] selection:text-black"
       style={{
         background: "radial-gradient(ellipse at 50% 15%, #0e121d 0%, #050608 70%, #030405 100%)",
+        touchAction: "none",
+        WebkitUserSelect: "none",
+        userSelect: "none",
       }}
     >
       {/* Partículas e Glows de Fundo */}
@@ -895,7 +916,7 @@ export default function TheVoid2() {
           }}
           transition={{ duration: 0.35, ease: "easeOut" }}
         >
-          <SparkLogo size={isMobile ? 48 : 88} />
+          <SparkLogo size={isMobile ? 44 : 84} />
           <div className="space-y-0.5">
             <h1
               className="text-2xl font-bold tracking-tight md:text-5xl"
@@ -915,7 +936,7 @@ export default function TheVoid2() {
 
         {/* Palco 3D dos Cards com foco total em deslize suave horizontal */}
         <motion.div
-          className="relative mx-auto flex w-full max-w-6xl flex-1 items-center justify-center my-auto min-h-0"
+          className="relative mx-auto flex w-full max-w-6xl flex-1 items-center justify-center my-auto min-h-0 overflow-visible"
           animate={{
             y: isAuthOpen ? (isMobile ? -40 : -100) : 0,
             scale: isAuthOpen ? 0.93 : 1,
@@ -935,10 +956,15 @@ export default function TheVoid2() {
             <ChevronLeft className="h-6 w-6" />
           </button>
 
-          {/* Área de Toque dos Cards */}
+          {/* Área de Toque dos Cards com touch-action: none explícito */}
           <div
-            className="relative flex h-[380px] md:h-[500px] w-full items-center justify-center touch-pan-x cursor-grab active:cursor-grabbing"
-            style={{ perspective: "1100px", transformStyle: "preserve-3d" }}
+            className="relative flex h-[360px] md:h-[500px] w-full items-center justify-center cursor-grab active:cursor-grabbing select-none"
+            style={{
+              perspective: "1100px",
+              transformStyle: "preserve-3d",
+              touchAction: "none",
+              WebkitUserSelect: "none",
+            }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -976,7 +1002,7 @@ export default function TheVoid2() {
         </motion.div>
 
         {/* Indicadores de Paginação */}
-        <div className="flex justify-center items-center gap-1.5 pb-2 shrink-0">
+        <div className="flex justify-center items-center gap-1.5 pb-2 shrink-0 select-none">
           {showcaseCards.map((_, i) => (
             <button
               key={i}
@@ -992,8 +1018,8 @@ export default function TheVoid2() {
           ))}
         </div>
 
-        {/* Barra de Ação Inferior: CTA Direto com Prioridade z-50 e Área de Toque Garantida */}
-        <div className="relative z-50 flex flex-col items-center justify-center gap-2 pt-1 pb-1 shrink-0 pointer-events-auto">
+        {/* Barra de Ação Inferior: CTA Direto com Prioridade z-50 e Área de Toque Isolada */}
+        <div className="relative z-50 flex flex-col items-center justify-center gap-2 pt-1 pb-1 shrink-0 pointer-events-auto select-none">
           <AnimatePresence mode="wait">
             {!isAuthOpen && (
               <motion.div
@@ -1006,6 +1032,10 @@ export default function TheVoid2() {
                 <button
                   type="button"
                   onClick={(e) => {
+                    e.stopPropagation();
+                    openAuthModal();
+                  }}
+                  onTouchEnd={(e) => {
                     e.stopPropagation();
                     openAuthModal();
                   }}
@@ -1024,6 +1054,10 @@ export default function TheVoid2() {
                   <button
                     type="button"
                     onClick={(e) => {
+                      e.stopPropagation();
+                      openAuthModal();
+                    }}
+                    onTouchEnd={(e) => {
                       e.stopPropagation();
                       openAuthModal();
                     }}
