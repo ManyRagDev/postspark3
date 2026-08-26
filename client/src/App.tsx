@@ -17,6 +17,7 @@ import { LandingPage } from "./pages/Landing";
 import { LandingPage as LandingPage2 } from "./pages/Landing2";
 import Landing3 from "./pages/landing3/Landing3";
 import Landing4 from "./pages/Landing4";
+import PreviewHomePage from "./pages/PreviewHome/PreviewHomePage";
 import UserTopMenu from "./components/UserTopMenu";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -184,6 +185,7 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={PublicLandingRoute} />
+      <Route path={"/preview-home"} component={PreviewHomePage} />
       <Route path={"/landing"} component={LandingPage} />
       <Route path={"/landing2"} component={LandingPage2} />
       <Route path={"/landing3"} component={Landing3} />
@@ -217,7 +219,12 @@ function Router() {
 function AppInner() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
-  const isTheVoid2Route = location === "/" || location === "/thevoid2" || location === "/landing3" || location === "/crie-posts-incriveis";
+  const isTheVoid2Route =
+    location === "/" ||
+    location === "/thevoid2" ||
+    location === "/preview-home" ||
+    location === "/landing3" ||
+    location === "/crie-posts-incriveis";
 
   return (
     <>
