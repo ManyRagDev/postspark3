@@ -35,7 +35,7 @@ export const ENV = {
   aiSiteIntelligenceEnabled: envFlag("AI_SITE_INTELLIGENCE_ENABLED", true),
   // AI_CONTENT_STRATEGY_ENABLED removida na SPEC-005: planejamento de
   // estratégia é determinístico (ver contentStrategy.ts).
-  aiLlmJudgeEnabled: envFlag("AI_LLM_JUDGE_ENABLED", true),
+  aiLlmJudgeEnabled: envFlag("AI_LLM_JUDGE_ENABLED", false),
   aiSemanticEmbeddingsEnabled: envFlag("AI_SEMANTIC_EMBEDDINGS_ENABLED", true),
   aiTraceStoreContent: envFlag("AI_TRACE_STORE_CONTENT", false),
   // SPEC-003: flags e chamadas de shadow graph / pipeline experimental

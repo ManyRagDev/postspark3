@@ -18,6 +18,9 @@ import { LandingPage as LandingPage2 } from "./pages/Landing2";
 import Landing3 from "./pages/landing3/Landing3";
 import Landing4 from "./pages/Landing4";
 import PreviewHomePage from "./pages/PreviewHome/PreviewHomePage";
+import StudioHomePage from "./pages/StudioHome/StudioHomePage";
+import CanvasLabPage from "./pages/CanvasLab/CanvasLabPage";
+import StudioAppPage from "./pages/StudioApp/StudioAppPage";
 import UserTopMenu from "./components/UserTopMenu";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -185,12 +188,15 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={PublicLandingRoute} />
+      <Route path={"/studio-home"} component={StudioHomePage} />
+      <Route path={"/canvas-lab"} component={() => <CanvasLabPage />} />
       <Route path={"/preview-home"} component={PreviewHomePage} />
       <Route path={"/landing"} component={LandingPage} />
       <Route path={"/landing2"} component={LandingPage2} />
       <Route path={"/landing3"} component={Landing3} />
       <Route path={"/crie-posts-incriveis"} component={Landing4} />
-      <Route path={"/thevoid"} component={() => <ProtectedRoute component={Home} />} />
+      <Route path={"/thevoid"} component={() => <ProtectedRoute component={StudioAppPage} />} />
+      <Route path={"/studio"} component={() => <ProtectedRoute component={StudioAppPage} />} />
       <Route path={"/thevoid2"} component={LegacyTheVoid2Route} />
       <Route path={"/pricing"} component={Pricing} />
       <Route path={"/billing"} component={() => <ProtectedRoute component={Billing} />} />
@@ -221,6 +227,9 @@ function AppInner() {
   const [location] = useLocation();
   const isTheVoid2Route =
     location === "/" ||
+    location === "/studio-home" ||
+    location === "/studio" ||
+    location === "/canvas-lab" ||
     location === "/thevoid2" ||
     location === "/preview-home" ||
     location === "/landing3" ||
@@ -244,7 +253,7 @@ function App() {
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster
-            position="top-center"
+            position="bottom-right"
             toastOptions={{
               style: {
                 background: "oklch(0.13 0.025 280)",

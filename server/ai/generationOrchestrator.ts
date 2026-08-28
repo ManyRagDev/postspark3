@@ -200,6 +200,34 @@ interface MutableMetrics extends Omit<GenerationMetrics, "startedAt" | "finished
   finishedAt?: number;
 }
 
+
+/**
+ * Remove qualquer resquício ou frase robótica de assistente virtual
+ * que possa vazar no final ou início da legenda gerada por LLMs.
+ */
+export function cleanAIFillerFromCaption(caption: string): string {
+  if (!caption) return "";
+  let text = caption;
+
+  const aiPhrases = [
+    /(\n*|\s*)(espero que (essas dicas|este conteúdo|este post|isso) (te |lhe )?ajude.*)/gi,
+    /(\n*|\s*)(se precisar de mais (dicas|informações|ajuda|conteúdo|estratégias).*)/gi,
+    /(\n*|\s*)(estou (sempre )?aqui para (ajudar|o que precisar|tirar dúvidas).*)/gi,
+    /(\n*|\s*)(qualquer dúvida(,| )*(estou à disposição|conte comigo|deixe nos comentários|é só chamar).*)/gi,
+    /(\n*|\s*)(se tiver (alguma )?dúvida(,| )*(estou à disposição|deixe abaixo|me chame).*)/gi,
+    /(\n*|\s*)(vamos juntos nessa jornada.*)/gi,
+    /(\n*|\s*)(não se esqueça de salvar e me dizer o que achou.*)/gi,
+    /^(aqui está (uma|a|o) (estratégia|post|legenda|conteúdo|opção).*:\s*)/gi,
+    /^(neste post (vamos|eu vou|você vai) (ver|aprender|descobrir).*:\s*)/gi,
+  ];
+
+  for (const pattern of aiPhrases) {
+    text = text.replace(pattern, "");
+  }
+
+  return text.trim();
+}
+
 // ─── Métricas ────────────────────────────────────────────────────────────────
 
 function createMetrics(deadlineMs: number | null, now: number): MutableMetrics {
@@ -331,19 +359,42 @@ MODO DE EXECUÇÃO ATIVADO:
     : "";
 
   const copyRules = `
-REGRAS DE COPY — SIGA COM RIGOR:
-- Headline: máximo 60 caracteres. Seja direto e impactante. Sem ponto final.
-- Body: máximo 2 frases curtas. Máximo 100 caracteres no total. Sem rodeios.
-- Caption/Legenda: forneça a legenda FINAL completa (3-6 frases), coerente com o conteúdo visual real do post (slides ou seções): se o post tem 5 slides ou 3 itens, a legenda deve referenciar esse MESMO número de itens, sem inventar tópicos.
-- Para post ESTATICO, pense como poster/editorial, nao como artigo. Uma ideia principal + poucos apoios legiveis.
-- Nao use headline cortado, reticencias ou promessa incompleta. Proibido terminar headline com "...", ":", ou numero solto.
-- NUNCA coloque hashtags ou emojis dentro do headline ou body.
-- Hashtags: máximo 4, somente no campo separado "hashtags".
-- CallToAction: máximo 40 caracteres. Verbo de ação. Ex: "Saiba mais", "Experimente agora".
-- copyAngle: Para cada variação, forneça um objeto com o Propósito e Ganchos do post com type (dor, beneficio, objecao, autoridade, escassez, storytelling, mito_vs_verdade) e label (nome da abordagem). NÃO invente selos, adesivos ou palavras decorativas — o visual é decidido pelo sistema.
-- As 3 variações DEVEM ser claramente distinguíveis entre si. Não repita headline, body, copyAngle, CTA, hashtags ou a mesma combinação de layout + paleta.
-- Faça cada variação abrir por uma ideia diferente: 1) institucional/autoridade, 2) conversa/engajamento, 3) criativa ou provocativa.
-- Seja conciso. Corte qualquer palavra desnecessária. Menos é mais.
+CATÁLOGO DOS 8 ARQUÉTIPOS VISUAIS DISPONÍVEIS (SELEÇÃO INTELIGENTE):
+Para cada uma das 3 variações geradas, selecione no campo "familyId" o arquétipo que melhor traduza a psicologia e nicho do post.
+⚠️ REGRA OBRIGATÓRIA: As 3 variações DEVEM usar 3 "familyId" TOTALMENTE DIFERENTES entre si (nunca repita a mesma família no mesmo conjunto de 3).
+
+1. "editorial-poster" ➔ Luxo, consultoria, moda, gastronomia, finanças. (Serifas elegantes, Playfair Display, aspas decorativas).
+2. "glass-veil" ➔ Inovação, SaaS, tecnologia, modernidade. (Cartão translúcido flutuante de vidro fosco com borda iluminada).
+3. "chromatic-block" ➔ Impacto direto, marketing de resposta rápida, varejo, notícias urgentes. (Sticker angular rotacionado, Anton massiva).
+4. "brutal-split" ➔ Alto contraste, educação, comparações 'antes/depois', hacks de produtividade. (Divisão 50/50 em duas cores puras com selo central).
+5. "stroke-impact" ➔ Lifestyle, fitness, música, moda streetwear, eventos. (Títulos com palavras vazadas em contorno stroke outline).
+6. "cyber-glitch" ➔ Cripto, inteligência artificial, desenvolvimento, segurança, futuro. (Miras táticas +, scanlines, estética terminal).
+7. "cinematic-depth" ➔ Narrativas profundas, cinema, cultura, storytelling denso. (Tipografia monumental condensada em camadas).
+8. "duotone-wash" ➔ Criatividade, design, psicologia, autoridade suave. (Gradiente diagonal a 135° com composição limpa).
+
+DIRETRIZES DE COPYWRITING AUTORAL DE ALTO PADRÃO (ZERO VÍCIOS DE IA):
+
+1. PERSONA E VOZ:
+   - Escreva SEMPRE na voz do CRIADOR / FUNDADOR / MARCA DE ALTO VALOR falando diretamente com seu cliente ideal.
+   - O tom deve ser deliberado, autoral, assertivo e sofisticado.
+
+2. PROIBIÇÕES ABSOLUTAS (VÍCIOS DE CHATBOT / IA):
+   - 🚫 PROIBIDO tom de assistente virtual ("Se precisar de mais dicas estou aqui", "Espero que ajude", "Se tiver dúvidas estou à disposição", "Conte comigo", "Aqui estão algumas dicas").
+   - 🚫 PROIBIDO clichês batidos ("No mundo acelerado de hoje", "Em tempos de constante mudança", "Você sabia?", "Fica a dica", "Arrasta pro lado").
+   - 🚫 PROIBIDO preâmbulos conversacionais ("Neste post eu vou te mostrar", "Hoje eu trouxe uma reflexão"). Vá direto ao ponto!
+
+3. REGRAS POR CAMPO:
+   - Headline: máximo 60 caracteres. Título forte, conciso e magnético. Sem ponto final. Sem reticências soltas.
+   - Body: máximo 2 frases curtas (máx 100 caracteres). Complementa o headline com precisão.
+   - Caption/Legenda: Legenda completa pronta para publicação no Instagram/LinkedIn com formatação e respiros reais:
+     • Gancho de abertura provocativo que expande o título;
+     • Conflito / Causa raiz da dor do público;
+     • 2 ou 3 tópicos estratégicos com quebras de linha duplas;
+     • CTA natural e maduro (ex: "Qual é o posicionamento que a sua marca quer consolidar?", "Salve este post para consultar no seu próximo planejamento estratégico.").
+   - NUNCA coloque hashtags ou emojis dentro do headline ou body.
+   - Hashtags: máximo 4, somente no campo separado "hashtags".
+   - CallToAction: máximo 40 caracteres com verbo de ação direto.
+   - As 3 variações DEVEM explorar 3 ângulos psicológicos distintos (ex: 1. Pergunta/Quebra de padrão, 2. Diagnóstico/Choque, 3. Princípio de Autoridade).
 
 PRINCÍPIOS DE DESIGN VISUAL E MIMETISMO:
 
@@ -854,7 +905,7 @@ function buildComposition(input: {
     const baseVar = {
       id: `var-${input.clock()}-${index}`,
       ...variation,
-      caption: variation.caption || "",
+      caption: cleanAIFillerFromCaption(variation.caption || ""),
       // Ornamentos nascem VAZIOS e o render já é silencioso com string vazia
       // (`renderTopBar`/`renderBottomBar` em PostCardV2). O usuário preenche
       // manualmente no Workbench quando quiser um selo.

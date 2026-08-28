@@ -130,8 +130,13 @@ docs/canva/*
 harness/corpus.real.json
 harness-report*.json
 
-# SPEC-004: relatórios derivados do verificador de runtime
+# SPEC-004: relatï¿½rios derivados do verificador de runtime
 verify-output/
 
-# SPEC-006: artefatos de verificação E2E
+# SPEC-006: artefatos de verificaï¿½ï¿½o E2E
 artifacts/
+
+legacy/
+OPERATIONAL_ERRORS.txt
+.agents/
+dist-server/

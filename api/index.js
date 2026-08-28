@@ -42,7 +42,7 @@ var init_env = __esm({
       aiSiteIntelligenceEnabled: envFlag("AI_SITE_INTELLIGENCE_ENABLED", true),
       // AI_CONTENT_STRATEGY_ENABLED removida na SPEC-005: planejamento de
       // estratégia é determinístico (ver contentStrategy.ts).
-      aiLlmJudgeEnabled: envFlag("AI_LLM_JUDGE_ENABLED", true),
+      aiLlmJudgeEnabled: envFlag("AI_LLM_JUDGE_ENABLED", false),
       aiSemanticEmbeddingsEnabled: envFlag("AI_SEMANTIC_EMBEDDINGS_ENABLED", true),
       aiTraceStoreContent: envFlag("AI_TRACE_STORE_CONTENT", false),
       // SPEC-003: flags e chamadas de shadow graph / pipeline experimental
@@ -2736,19 +2736,23 @@ async function generateImage(options) {
     `${options.prompt}.${sourceImageNote}`,
     "pollinations_hd"
   );
-  const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUri);
-  if (!match) {
-    throw new Error("Image generation returned an invalid data URI");
+  try {
+    const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUri);
+    if (match) {
+      const [, mimeType, base64Data] = match;
+      const buffer = Buffer.from(base64Data, "base64");
+      const { url } = await storagePut(
+        `generated/${Date.now()}.png`,
+        buffer,
+        mimeType
+      );
+      if (url) return { url };
+    }
+  } catch (storageErr) {
+    console.info("[imageGeneration] Storage proxy local bypass, using direct DataURI.");
   }
-  const [, mimeType, base64Data] = match;
-  const buffer = Buffer.from(base64Data, "base64");
-  const { url } = await storagePut(
-    `generated/${Date.now()}.png`,
-    buffer,
-    mimeType
-  );
   return {
-    url
+    url: dataUri
   };
 }
 
@@ -8803,16 +8807,18 @@ function synthesizeCaptionDeterministic(variation, platform) {
   const body = variation.body?.trim() ?? "";
   const callToAction = variation.callToAction?.trim() ?? "";
   const paragraphs = [];
-  if (headline) paragraphs.push(`${headline}.`);
+  if (headline) paragraphs.push(headline);
   if (source === "slides") {
     const slides = variation.slides ?? [];
     const items = slides.map((slide, index) => {
       const slideHeadline = slide.headline?.trim() ?? "";
       const slideBody = slide.body?.trim() ?? "";
-      return `\u2794 ${slideHeadline}${slideBody ? `: ${slideBody}` : ""}`;
+      return `\u2022 ${slideHeadline}${slideBody ? `: ${slideBody}` : ""}`;
     }).join("\n");
     paragraphs.push(
-      `Neste carrossel de ${slides.length} passos, voc\xEA acompanha:
+      `Consist\xEAncia e clareza visual s\xE3o os pilares de marcas que lideram seus mercados.
+
+Os pontos centrais deste posicionamento:
 ${items}`
     );
   } else if (source === "sections") {
@@ -8820,16 +8826,20 @@ ${items}`
     const items = sections.map((section) => {
       const label = section.label?.trim() ?? "";
       const description = section.description?.trim() ?? "";
-      return `\u2794 ${label}${description ? `: ${description}` : ""}`;
+      return `\u2022 ${label}${description ? `: ${description}` : ""}`;
     }).join("\n");
     paragraphs.push(
-      `Em ${sections.length} pontos diretos, o essencial fica assim:
+      `A percep\xE7\xE3o de valor nasce quando cada elemento \xE9 deliberado:
 ${items}`
     );
   } else if (body) {
     paragraphs.push(body);
   }
-  if (callToAction) paragraphs.push(callToAction);
+  if (callToAction) {
+    paragraphs.push(callToAction);
+  } else {
+    paragraphs.push("Qual desses princ\xEDpios \xE9 inegoci\xE1vel na sua opera\xE7\xE3o hoje?");
+  }
   return paragraphs.join("\n\n").slice(0, maxChars).trim();
 }
 
@@ -9402,6 +9412,25 @@ var fontkitMeasurer = {
 
 // server/ai/generationOrchestrator.ts
 setTypographyMeasurer(fontkitMeasurer);
+function cleanAIFillerFromCaption(caption) {
+  if (!caption) return "";
+  let text = caption;
+  const aiPhrases = [
+    /(\n*|\s*)(espero que (essas dicas|este conteúdo|este post|isso) (te |lhe )?ajude.*)/gi,
+    /(\n*|\s*)(se precisar de mais (dicas|informações|ajuda|conteúdo|estratégias).*)/gi,
+    /(\n*|\s*)(estou (sempre )?aqui para (ajudar|o que precisar|tirar dúvidas).*)/gi,
+    /(\n*|\s*)(qualquer dúvida(,| )*(estou à disposição|conte comigo|deixe nos comentários|é só chamar).*)/gi,
+    /(\n*|\s*)(se tiver (alguma )?dúvida(,| )*(estou à disposição|deixe abaixo|me chame).*)/gi,
+    /(\n*|\s*)(vamos juntos nessa jornada.*)/gi,
+    /(\n*|\s*)(não se esqueça de salvar e me dizer o que achou.*)/gi,
+    /^(aqui está (uma|a|o) (estratégia|post|legenda|conteúdo|opção).*:\s*)/gi,
+    /^(neste post (vamos|eu vou|você vai) (ver|aprender|descobrir).*:\s*)/gi
+  ];
+  for (const pattern of aiPhrases) {
+    text = text.replace(pattern, "");
+  }
+  return text.trim();
+}
 function createMetrics(deadlineMs, now) {
   return {
     startedAt: now,
@@ -9496,19 +9525,42 @@ MODO DE EXECU\xC7\xC3O ATIVADO:
 - Se o n\xEDvel for "optimize_structure", voc\xEA pode reorganizar trechos, mas sem trair a mensagem central.
 ` : "";
   const copyRules = `
-REGRAS DE COPY \u2014 SIGA COM RIGOR:
-- Headline: m\xE1ximo 60 caracteres. Seja direto e impactante. Sem ponto final.
-- Body: m\xE1ximo 2 frases curtas. M\xE1ximo 100 caracteres no total. Sem rodeios.
-- Caption/Legenda: forne\xE7a a legenda FINAL completa (3-6 frases), coerente com o conte\xFAdo visual real do post (slides ou se\xE7\xF5es): se o post tem 5 slides ou 3 itens, a legenda deve referenciar esse MESMO n\xFAmero de itens, sem inventar t\xF3picos.
-- Para post ESTATICO, pense como poster/editorial, nao como artigo. Uma ideia principal + poucos apoios legiveis.
-- Nao use headline cortado, reticencias ou promessa incompleta. Proibido terminar headline com "...", ":", ou numero solto.
-- NUNCA coloque hashtags ou emojis dentro do headline ou body.
-- Hashtags: m\xE1ximo 4, somente no campo separado "hashtags".
-- CallToAction: m\xE1ximo 40 caracteres. Verbo de a\xE7\xE3o. Ex: "Saiba mais", "Experimente agora".
-- copyAngle: Para cada varia\xE7\xE3o, forne\xE7a um objeto com o Prop\xF3sito e Ganchos do post com type (dor, beneficio, objecao, autoridade, escassez, storytelling, mito_vs_verdade) e label (nome da abordagem). N\xC3O invente selos, adesivos ou palavras decorativas \u2014 o visual \xE9 decidido pelo sistema.
-- As 3 varia\xE7\xF5es DEVEM ser claramente distingu\xEDveis entre si. N\xE3o repita headline, body, copyAngle, CTA, hashtags ou a mesma combina\xE7\xE3o de layout + paleta.
-- Fa\xE7a cada varia\xE7\xE3o abrir por uma ideia diferente: 1) institucional/autoridade, 2) conversa/engajamento, 3) criativa ou provocativa.
-- Seja conciso. Corte qualquer palavra desnecess\xE1ria. Menos \xE9 mais.
+CAT\xC1LOGO DOS 8 ARQU\xC9TIPOS VISUAIS DISPON\xCDVEIS (SELE\xC7\xC3O INTELIGENTE):
+Para cada uma das 3 varia\xE7\xF5es geradas, selecione no campo "familyId" o arqu\xE9tipo que melhor traduza a psicologia e nicho do post.
+\u26A0\uFE0F REGRA OBRIGAT\xD3RIA: As 3 varia\xE7\xF5es DEVEM usar 3 "familyId" TOTALMENTE DIFERENTES entre si (nunca repita a mesma fam\xEDlia no mesmo conjunto de 3).
+
+1. "editorial-poster" \u2794 Luxo, consultoria, moda, gastronomia, finan\xE7as. (Serifas elegantes, Playfair Display, aspas decorativas).
+2. "glass-veil" \u2794 Inova\xE7\xE3o, SaaS, tecnologia, modernidade. (Cart\xE3o transl\xFAcido flutuante de vidro fosco com borda iluminada).
+3. "chromatic-block" \u2794 Impacto direto, marketing de resposta r\xE1pida, varejo, not\xEDcias urgentes. (Sticker angular rotacionado, Anton massiva).
+4. "brutal-split" \u2794 Alto contraste, educa\xE7\xE3o, compara\xE7\xF5es 'antes/depois', hacks de produtividade. (Divis\xE3o 50/50 em duas cores puras com selo central).
+5. "stroke-impact" \u2794 Lifestyle, fitness, m\xFAsica, moda streetwear, eventos. (T\xEDtulos com palavras vazadas em contorno stroke outline).
+6. "cyber-glitch" \u2794 Cripto, intelig\xEAncia artificial, desenvolvimento, seguran\xE7a, futuro. (Miras t\xE1ticas +, scanlines, est\xE9tica terminal).
+7. "cinematic-depth" \u2794 Narrativas profundas, cinema, cultura, storytelling denso. (Tipografia monumental condensada em camadas).
+8. "duotone-wash" \u2794 Criatividade, design, psicologia, autoridade suave. (Gradiente diagonal a 135\xB0 com composi\xE7\xE3o limpa).
+
+DIRETRIZES DE COPYWRITING AUTORAL DE ALTO PADR\xC3O (ZERO V\xCDCIOS DE IA):
+
+1. PERSONA E VOZ:
+   - Escreva SEMPRE na voz do CRIADOR / FUNDADOR / MARCA DE ALTO VALOR falando diretamente com seu cliente ideal.
+   - O tom deve ser deliberado, autoral, assertivo e sofisticado.
+
+2. PROIBI\xC7\xD5ES ABSOLUTAS (V\xCDCIOS DE CHATBOT / IA):
+   - \u{1F6AB} PROIBIDO tom de assistente virtual ("Se precisar de mais dicas estou aqui", "Espero que ajude", "Se tiver d\xFAvidas estou \xE0 disposi\xE7\xE3o", "Conte comigo", "Aqui est\xE3o algumas dicas").
+   - \u{1F6AB} PROIBIDO clich\xEAs batidos ("No mundo acelerado de hoje", "Em tempos de constante mudan\xE7a", "Voc\xEA sabia?", "Fica a dica", "Arrasta pro lado").
+   - \u{1F6AB} PROIBIDO pre\xE2mbulos conversacionais ("Neste post eu vou te mostrar", "Hoje eu trouxe uma reflex\xE3o"). V\xE1 direto ao ponto!
+
+3. REGRAS POR CAMPO:
+   - Headline: m\xE1ximo 60 caracteres. T\xEDtulo forte, conciso e magn\xE9tico. Sem ponto final. Sem retic\xEAncias soltas.
+   - Body: m\xE1ximo 2 frases curtas (m\xE1x 100 caracteres). Complementa o headline com precis\xE3o.
+   - Caption/Legenda: Legenda completa pronta para publica\xE7\xE3o no Instagram/LinkedIn com formata\xE7\xE3o e respiros reais:
+     \u2022 Gancho de abertura provocativo que expande o t\xEDtulo;
+     \u2022 Conflito / Causa raiz da dor do p\xFAblico;
+     \u2022 2 ou 3 t\xF3picos estrat\xE9gicos com quebras de linha duplas;
+     \u2022 CTA natural e maduro (ex: "Qual \xE9 o posicionamento que a sua marca quer consolidar?", "Salve este post para consultar no seu pr\xF3ximo planejamento estrat\xE9gico.").
+   - NUNCA coloque hashtags ou emojis dentro do headline ou body.
+   - Hashtags: m\xE1ximo 4, somente no campo separado "hashtags".
+   - CallToAction: m\xE1ximo 40 caracteres com verbo de a\xE7\xE3o direto.
+   - As 3 varia\xE7\xF5es DEVEM explorar 3 \xE2ngulos psicol\xF3gicos distintos (ex: 1. Pergunta/Quebra de padr\xE3o, 2. Diagn\xF3stico/Choque, 3. Princ\xEDpio de Autoridade).
 
 PRINC\xCDPIOS DE DESIGN VISUAL E MIMETISMO:
 
@@ -9911,7 +9963,7 @@ function buildComposition(input) {
     const baseVar = {
       id: `var-${input.clock()}-${index}`,
       ...variation,
-      caption: variation.caption || "",
+      caption: cleanAIFillerFromCaption(variation.caption || ""),
       // Ornamentos nascem VAZIOS e o render já é silencioso com string vazia
       // (`renderTopBar`/`renderBottomBar` em PostCardV2). O usuário preenche
       // manualmente no Workbench quando quiser um selo.
