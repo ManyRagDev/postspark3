@@ -1,3 +1,4 @@
+import CanvasMobileDrawer from "./components/CanvasMobileDrawer";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { CanvasPostStage, type CanvasPostStageRef } from "./components/CanvasPostStage";
@@ -165,50 +166,29 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
 
       {/* 2. Área Central */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Barra Lateral (Desktop: fixa à esquerda | Mobile: Drawer deslizante) */}
-        <div className={`fixed inset-y-0 left-0 z-40 transition-transform duration-300 md:static md:translate-x-0 ${
-          isMobileDrawerOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0"
-        }`}>
-          <div className="relative h-full">
-            <CanvasSidebar post={post} onUpdatePost={handleUpdatePost} />
-            {/* Botão Fechar no Mobile */}
-            <button
-              type="button"
-              onClick={() => setIsMobileDrawerOpen(false)}
-              className="md:hidden absolute top-3 right-3 p-1.5 rounded-lg bg-white/10 text-white/70 hover:text-white z-30"
-            >
-              ✕
-            </button>
-          </div>
+        {/* Desktop: Barra Lateral Fixa à Esquerda (Intocada) */}
+        <div className="hidden md:flex h-full">
+          <CanvasSidebar post={post} onUpdatePost={handleUpdatePost} />
         </div>
 
-        {/* Backdrop para fechar o drawer no Mobile */}
-        {isMobileDrawerOpen && (
-          <div
-            onClick={() => setIsMobileDrawerOpen(false)}
-            className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30"
-          />
-        )}
-
-        {/* Palco da Prancheta */}
-        <main className="flex-1 bg-[#040508] relative overflow-auto flex items-center justify-center p-4 sm:p-8 custom-scrollbar">
+        {/* Palco da Prancheta (Mobile & Desktop) */}
+        <main className="flex-1 bg-[#040508] relative overflow-auto flex items-center justify-center p-2 sm:p-8 pb-20 md:pb-8 custom-scrollbar">
           <CanvasPostStage
             ref={stageRef}
             post={post}
             zoom={zoom}
             onUpdateElementPosition={handleUpdateElementPosition}
           />
-
-          {/* Botão Flutuante de Edição para Celular */}
-          <button
-            type="button"
-            onClick={() => setIsMobileDrawerOpen(true)}
-            className="md:hidden fixed bottom-6 right-6 z-20 flex items-center gap-2 px-5 py-3 rounded-full bg-[oklch(0.78_0.22_48)] text-black font-semibold shadow-xl cursor-pointer active:scale-95 transition-transform"
-          >
-            <span>🎨</span>
-            <span>Editar Post</span>
-          </button>
         </main>
+
+        {/* Mobile: Bottom Sheet Drawer Deslizante Nativo */}
+        <CanvasMobileDrawer
+          post={post}
+          onUpdatePost={handleUpdatePost}
+          onExportPng={handleExportPng}
+          onExportZip={handleExportZip}
+          isExportingZip={isExportingZip}
+        />
       </div>
 
       {/* 3. Fita Inferior de Carrossel */}

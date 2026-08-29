@@ -178,11 +178,25 @@ export default function StudioCreateView({ onSubmit, isLoading }: StudioCreateVi
         )}
       </AnimatePresence>
 
-      {/* Sugestões Rápidas */}
+      {/* Sugestões Rápidas (Desktop: flex-wrap | Mobile: Fita Horizontal Deslizável) */}
       {!isLoading && (
-        <div className="w-full space-y-3">
+        <div className="w-full space-y-2.5">
           <div className="text-xs text-white/40 font-mono">Ideias para começar</div>
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          {/* Mobile: Fita Horizontal Deslizável */}
+          <div className="md:hidden flex items-center gap-2 overflow-x-auto pb-2 px-1 custom-scrollbar w-full">
+            {QUICK_IDEAS.map((idea) => (
+              <button
+                key={idea}
+                type="button"
+                onClick={() => setPrompt(idea)}
+                className="shrink-0 text-xs px-3.5 py-2 rounded-full bg-white/6 border border-white/10 text-white/80 active:scale-95 active:bg-white/15 transition-all text-left whitespace-nowrap shadow-sm"
+              >
+                ✦ {idea}
+              </button>
+            ))}
+          </div>
+          {/* Desktop: Flex-wrap original */}
+          <div className="hidden md:flex flex-wrap items-center justify-center gap-2">
             {QUICK_IDEAS.map((idea) => (
               <button
                 key={idea}

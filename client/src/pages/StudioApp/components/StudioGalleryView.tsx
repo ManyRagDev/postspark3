@@ -1,3 +1,4 @@
+import StudioMobileFlashcards from "./StudioMobileFlashcards";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Layers, RefreshCw, Smartphone, Square } from "lucide-react";
 import type { AspectRatioType, CanvasPostModel } from "@/pages/CanvasLab/components/types";
@@ -27,7 +28,20 @@ export default function StudioGalleryView({
     (aspectRatio === "9:16" ? 640 : aspectRatio === "5:6" ? 432 : 360) * cardScale;
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden select-none">
+    <>
+      {/* ─── EXPERIÊNCIA MOBILE (FLASHCARDS 3D EMPILHADOS) ─── */}
+      <div className="md:hidden flex-1 flex flex-col h-full w-full">
+        <StudioMobileFlashcards
+          variations={variations}
+          onSelectVariation={onSelectVariation}
+          onBackToCreate={onBackToCreate}
+          onGenerateMore={onGenerateMore}
+          isGeneratingMore={isGeneratingMore}
+        />
+      </div>
+
+      {/* ─── EXPERIÊNCIA DESKTOP (GRADE 3 COLUNAS ORIGINAL INTACTA) ─── */}
+      <div className="hidden md:flex flex-1 flex flex-col h-full overflow-hidden select-none">
       {/* Barra Superior da Galeria */}
       <header className="h-14 border-b border-white/10 bg-black/60 backdrop-blur-xl px-6 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-3">
@@ -144,5 +158,6 @@ export default function StudioGalleryView({
         )}
       </main>
     </div>
+    </>
   );
 }
