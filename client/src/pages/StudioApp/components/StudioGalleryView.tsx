@@ -122,10 +122,10 @@ export default function StudioGalleryView({
 
                 {/* Prancheta em Canvas 2D com Proporção 1:1 rigorosa */}
                 <div
-                  className="flex items-center justify-center my-2 transition-all duration-200"
+                  className="flex items-center justify-center my-2 transition-all duration-200 pointer-events-none select-none"
                   style={{ width: stageWidth, height: stageHeight }}
                 >
-                  <CanvasPostStage post={cleanItem} zoom={cardScale} />
+                  <CanvasPostStage post={cleanItem} zoom={cardScale} isReadOnly={true} />
                 </div>
 
                 {/* Botão de Ação: Personalizar Post */}

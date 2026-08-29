@@ -14,6 +14,7 @@ interface CanvasPostStageProps {
   zoom: number;
   onUpdateElementPosition?: (elementKey: "headlinePos" | "subtextPos" | "badgePos" | "barPos" | "logoPos", pos: ElementPosition) => void;
   onSelectElement?: (elementId: string | null) => void;
+  isReadOnly?: boolean;
 }
 
 // Cálculo de crop proporcional (object-fit: cover)
@@ -54,7 +55,8 @@ function getCoverCrop(
 }
 
 export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStageProps>(
-  ({ post, zoom, onUpdateElementPosition, onSelectElement }, ref) => {
+  ({ post, zoom, onUpdateElementPosition, onSelectElement, isReadOnly = false }, ref) => {
+    const isInteractive = !isReadOnly && Boolean(onUpdateElementPosition);
     const stageRef = useRef<any>(null);
     const transformerRef = useRef<any>(null);
 
@@ -365,7 +367,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
               }
             }}
           >
-            <Layer>
+            <Layer listening={isInteractive}>
               {/* ─── 0. GRADE GUIA 5x5 DE ALINHAMENTO MAGNÉTICO (GPU-Accelerated) ─── */}
               {post.isSnapEnabled !== false && (
                 <>
@@ -534,7 +536,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   x={badgePos.x}
                   y={badgePos.y}
                   rotation={-4}
-                  draggable
+                  draggable={isInteractive}
                   onClick={() => handleSelect("badge")}
                   onDragMove={(e) => handleDragMove(e, "badgePos")}
                   onDragEnd={(e) => handleDragEnd(e, "badgePos")}
@@ -568,7 +570,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   ref={badgeRef}
                   x={badgePos.x}
                   y={badgePos.y}
-                  draggable
+                  draggable={isInteractive}
                   onClick={() => handleSelect("badge")}
                   onDragMove={(e) => handleDragMove(e, "badgePos")}
                   onDragEnd={(e) => handleDragEnd(e, "badgePos")}
@@ -582,7 +584,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   ref={badgeRef}
                   x={badgePos.x}
                   y={badgePos.y}
-                  draggable
+                  draggable={isInteractive}
                   onClick={() => handleSelect("badge")}
                   onDragMove={(e) => handleDragMove(e, "badgePos")}
                   onDragEnd={(e) => handleDragEnd(e, "badgePos")}
@@ -596,7 +598,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   ref={badgeRef}
                   x={badgePos.x}
                   y={badgePos.y}
-                  draggable
+                  draggable={isInteractive}
                   onClick={() => handleSelect("badge")}
                   onDragMove={(e) => handleDragMove(e, "badgePos")}
                   onDragEnd={(e) => handleDragEnd(e, "badgePos")}
@@ -633,7 +635,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   y={logoPos.y}
                   width={46}
                   height={24}
-                  draggable
+                  draggable={isInteractive}
                   onClick={() => handleSelect("logo")}
                   onDragMove={(e) => handleDragMove(e, "logoPos")}
                   onDragEnd={(e) => handleDragEnd(e, "logoPos")}
@@ -654,7 +656,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 align={defaultAlign}
                 lineHeight={isBrutalBlock ? 1.1 : 1.25}
                 letterSpacing={isBrutalBlock ? 0.5 : isEditorial ? -0.2 : -0.4}
-                draggable
+                draggable={isInteractive}
                 onClick={() => handleSelect("headline")}
                 onDragMove={(e) => handleDragMove(e, "headlinePos")}
                 onDragEnd={(e) => handleDragEnd(e, "headlinePos")}
@@ -673,7 +675,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 opacity={isBrutalSplit ? 0.95 : 0.8}
                 align={defaultAlign}
                 lineHeight={1.45}
-                draggable
+                draggable={isInteractive}
                 onClick={() => handleSelect("subtext")}
                 onDragMove={(e) => handleDragMove(e, "subtextPos")}
                 onDragEnd={(e) => handleDragEnd(e, "subtextPos")}
@@ -689,7 +691,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   height={isEditorial ? 2 : 3}
                   cornerRadius={2}
                   fill={post.palette.accent}
-                  draggable
+                  draggable={isInteractive}
                   onClick={() => handleSelect("bar")}
                   onDragMove={(e) => handleDragMove(e, "barPos")}
                   onDragEnd={(e) => handleDragEnd(e, "barPos")}
@@ -697,8 +699,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
               )}
 
               {/* ─── 8. TRANSFORMER PARA O ELEMENTO SELECIONADO ─── */}
-              <Transformer
-                ref={transformerRef}
+              {isInteractive && (
+                <Transformer
+                  ref={transformerRef}
                 rotateEnabled={true}
                 borderStroke="#38bdf8"
                 borderStrokeWidth={1.5}
@@ -706,7 +709,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 anchorFill="#ffffff"
                 anchorSize={7}
                 anchorCornerRadius={2}
-              />
+                />
+              )}
 
               {/* ─── 9. LINHAS GUIAS MAGNÉTICAS DE SNAP ─── */}
               {snapLines.x !== undefined && (

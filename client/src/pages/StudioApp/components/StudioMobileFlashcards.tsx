@@ -135,10 +135,10 @@ export default function StudioMobileFlashcards({
               >
                 {/* Prancheta Konva Auto-Fit */}
                 <div
-                  className="flex items-center justify-center rounded-2xl overflow-hidden shadow-inner"
+                  className="flex items-center justify-center rounded-2xl overflow-hidden shadow-inner pointer-events-none select-none"
                   style={{ width: stageWidth, height: stageHeight }}
                 >
-                  <CanvasPostStage post={cleanItem} zoom={cardScale} />
+                  <CanvasPostStage post={cleanItem} zoom={cardScale} isReadOnly={true} />
                 </div>
               </motion.div>
             );
