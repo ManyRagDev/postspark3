@@ -333,6 +333,32 @@ export default function StudioAppPage() {
               onPostModeChange={(mode) => setLastMode(mode)}
             />
           </div>
+
+          {/* Sugestões Rápidas de Prompt para Clicar */}
+          {!isLoading && (
+            <div className="w-full max-w-2xl mt-5 px-2 space-y-2">
+              <div className="text-[11px] uppercase tracking-wider text-white/40 font-mono">
+                Ideias para começar
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {[
+                  "3 sinais de que sua marca parece amadora",
+                  "Por que marcas de luxo não competem por preço",
+                  "O erro fatal que destrói o engajamento",
+                  "Como precificar com autoridade",
+                ].map((idea) => (
+                  <button
+                    key={idea}
+                    type="button"
+                    onClick={() => handleCreateSubmit(idea, lastMode)}
+                    className="text-xs px-3.5 py-1.5 rounded-full bg-white/6 border border-white/10 text-white/75 hover:bg-white/15 hover:text-white hover:border-white/25 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95 text-left"
+                  >
+                    ✦ {idea}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
