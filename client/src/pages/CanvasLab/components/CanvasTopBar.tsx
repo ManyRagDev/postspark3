@@ -154,8 +154,8 @@ export default function CanvasTopBar({
         )}
       </div>
 
-      {/* ─── LADO DIREITO (DESKTOP: BOTÕES COMPLETOS | MOBILE: RESPIRO PARA AVATAR) ─── */}
-      <div className="flex items-center gap-2 md:mr-28 shrink-0">
+      {/* ─── LADO DIREITO (DESKTOP: BOTÕES COMPLETOS) ─── */}
+      <div className="flex items-center gap-2 md:gap-3 shrink-0">
         {/* Zoom (Apenas Desktop) */}
         <div className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/8 text-xs text-white/60">
           <button
@@ -210,9 +210,6 @@ export default function CanvasTopBar({
           <ArrowDownToLine size={14} className="text-black" />
           <span>Exportar 4K</span>
         </button>
-
-        {/* Espaçador de segurança para o avatar do usuário no Mobile */}
-        <div className="w-10 md:hidden" />
       </div>
     </header>
   );

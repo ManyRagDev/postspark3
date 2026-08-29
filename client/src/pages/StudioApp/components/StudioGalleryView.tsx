@@ -60,7 +60,7 @@ export default function StudioGalleryView({
         </div>
 
         {/* Seletor de Formato */}
-        <div className="flex items-center bg-white/6 p-1 rounded-xl border border-white/10 mr-24 sm:mr-32">
+        <div className="flex items-center bg-white/6 p-1 rounded-xl border border-white/10">
           {[
             { id: "1:1", label: "1:1 Feed", icon: Square },
             { id: "5:6", label: "5:6 Retrato", icon: Layers },

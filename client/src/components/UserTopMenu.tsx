@@ -166,7 +166,7 @@ export default function UserTopMenu({ variant = "floating" }: UserTopMenuProps) 
 
   return (
     <>
-      <div className={isInline ? "relative" : "fixed top-4 right-4 z-[80]"}>
+      <div className={isInline ? "relative" : "fixed top-[68px] right-4 md:right-6 z-[80]"}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             {trigger}
