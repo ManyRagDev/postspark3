@@ -51,25 +51,24 @@ export default function StudioMobileFlashcards({
           <span>Novo Tema</span>
         </button>
 
-        {/* Seletor de Formato Flutuante (1:1 / 5:6 / 9:16) */}
-        <div className="flex items-center bg-white/6 p-1 rounded-xl border border-white/10">
+        {/* Seletor de Formato Claro (1:1 / 5:6 / 9:16) */}
+        <div className="flex items-center bg-white/8 p-0.5 rounded-xl border border-white/12">
           {[
-            { id: "1:1", icon: Square },
-            { id: "5:6", icon: Layers },
-            { id: "9:16", icon: Smartphone },
+            { id: "1:1", label: "1:1" },
+            { id: "5:6", label: "5:6" },
+            { id: "9:16", label: "9:16" },
           ].map((item) => {
-            const Icon = item.icon;
             const isSelected = aspectRatio === item.id;
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => setAspectRatio(item.id as AspectRatioType)}
-                className={`p-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
                   isSelected ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
                 }`}
               >
-                <Icon size={13} />
+                {item.label}
               </button>
             );
           })}
