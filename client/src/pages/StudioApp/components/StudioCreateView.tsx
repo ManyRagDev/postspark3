@@ -180,19 +180,17 @@ export default function StudioCreateView({ onSubmit, isLoading }: StudioCreateVi
 
       {/* Sugestões Rápidas */}
       {!isLoading && (
-        <div className="w-full">
-          <span className="text-xs uppercase font-semibold tracking-wider text-white/40 mb-3 block">
-            Ou escolha um tema de impacto:
-          </span>
+        <div className="w-full space-y-3">
+          <div className="text-xs text-white/40 font-mono">Ideias para começar</div>
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {QUICK_IDEAS.map((idea, idx) => (
+            {QUICK_IDEAS.map((idea) => (
               <button
-                key={idx}
+                key={idea}
                 type="button"
                 onClick={() => setPrompt(idea)}
-                className="text-xs bg-white/4 hover:bg-white/8 text-white/70 hover:text-white px-3.5 py-1.5 rounded-full border border-white/8 transition-all cursor-pointer"
+                className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-all cursor-pointer text-left"
               >
-                {idea}
+                ✦ {idea}
               </button>
             ))}
           </div>

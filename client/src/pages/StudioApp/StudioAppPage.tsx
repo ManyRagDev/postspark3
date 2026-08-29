@@ -302,64 +302,7 @@ export default function StudioAppPage() {
   return (
     <div className="min-h-screen w-full bg-[#07090E] text-white flex flex-col overflow-hidden font-sans">
       {stage === "create" && (
-        <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 max-w-4xl mx-auto w-full text-center relative select-none z-10 my-auto">
-          <OrganicBackground accentColor="#E5A93C" intensity={0.18} />
-          <SparkParticles count={14} variant="subtle" />
-
-          {/* Badge Mágico */}
-          <div className="inline-flex items-center gap-2 bg-white/6 px-4 py-1.5 rounded-full border border-white/10 text-xs font-mono text-white/90 mb-5 backdrop-blur-md shadow-lg">
-            <span className="text-[oklch(0.78_0.22_48)] text-sm">✦</span>
-            <span>Estúdio de Criação com IA</span>
-          </div>
-
-          {/* Título Monumental Mágico */}
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mb-3 sm:mb-4 leading-tight">
-            O que você quer <br className="hidden sm:inline" />
-            <span className="bg-gradient-to-r from-white via-white/90 to-white/60 bg-clip-text text-transparent">
-              manifestar hoje?
-            </span>
-          </h1>
-
-          <p className="text-xs sm:text-sm md:text-base text-white/60 mb-6 sm:mb-8 max-w-lg px-2">
-            A centelha que transforma ideias, URLs e visões em posts de alto padrão para suas redes.
-          </p>
-
-          {/* SmartInput Mágico com Glow Vibrante */}
-          <div className="w-full max-w-2xl px-2">
-            <SmartInput
-              onSubmit={(val, type) => handleCreateSubmit(val, lastMode)}
-              isLoading={isLoading}
-              postMode={lastMode}
-              onPostModeChange={(mode) => setLastMode(mode)}
-            />
-          </div>
-
-          {/* Sugestões Rápidas de Prompt para Clicar */}
-          {!isLoading && (
-            <div className="w-full max-w-2xl mt-5 px-2 space-y-2">
-              <div className="text-[11px] uppercase tracking-wider text-white/40 font-mono">
-                Ideias para começar
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                {[
-                  "3 sinais de que sua marca parece amadora",
-                  "Por que marcas de luxo não competem por preço",
-                  "O erro fatal que destrói o engajamento",
-                  "Como precificar com autoridade",
-                ].map((idea) => (
-                  <button
-                    key={idea}
-                    type="button"
-                    onClick={() => handleCreateSubmit(idea, lastMode)}
-                    className="text-xs px-3.5 py-1.5 rounded-full bg-white/6 border border-white/10 text-white/75 hover:bg-white/15 hover:text-white hover:border-white/25 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95 text-left"
-                  >
-                    ✦ {idea}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <StudioCreateView onSubmit={handleCreateSubmit} isLoading={isLoading} />
       )}
 
       {stage === "gallery" && (
