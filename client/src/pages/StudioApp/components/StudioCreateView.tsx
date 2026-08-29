@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Layers, Loader2, Sparkles, Type } from "lucide-react";
+import { ArrowRight, Layers, Link2, Loader2, Sparkles, Type } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import OrganicBackground from "@/components/OrganicBackground";
+import SparkParticles from "@/components/SparkParticles";
 
 interface StudioCreateViewProps {
   onSubmit: (prompt: string, mode: "static" | "carousel") => void;
@@ -15,15 +17,19 @@ const QUICK_IDEAS = [
 ];
 
 const PROGRESS_STAGES = [
-  { text: "Analisando intenção e tom de voz da marca...", percent: 25 },
-  { text: "Escrevendo copies e ganchos estratégicos...", percent: 60 },
-  { text: "Calibrando tipografia e direções de arte...", percent: 90 },
+  { text: "Sintetizando intenção e psicologia da mensagem...", percent: 30 },
+  { text: "Escrevendo copywriting autoral e ganchos...", percent: 65 },
+  { text: "Calibrando direções de arte e tipografia...", percent: 90 },
 ];
+
+const URL_REGEX = /^(https?:\/\/|www\.)[^\s]+\.[^\s]{2,}/i;
 
 export default function StudioCreateView({ onSubmit, isLoading }: StudioCreateViewProps) {
   const [prompt, setPrompt] = useState("");
   const [postMode, setPostMode] = useState<"static" | "carousel">("static");
   const [stageIndex, setStageIndex] = useState(0);
+
+  const isUrl = URL_REGEX.test(prompt.trim());
 
   useEffect(() => {
     if (!isLoading) {
@@ -32,7 +38,7 @@ export default function StudioCreateView({ onSubmit, isLoading }: StudioCreateVi
     }
     const interval = setInterval(() => {
       setStageIndex((prev) => (prev < PROGRESS_STAGES.length - 1 ? prev + 1 : prev));
-    }, 1200);
+    }, 1100);
     return () => clearInterval(interval);
   }, [isLoading]);
 
@@ -43,41 +49,39 @@ export default function StudioCreateView({ onSubmit, isLoading }: StudioCreateVi
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-3xl mx-auto w-full text-center relative select-none">
-      {/* Background Glow */}
-      <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none opacity-20"
-        style={{ background: "radial-gradient(circle, #E5A93C 0%, #FF4D00 60%, transparent 80%)" }}
-      />
+    <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 max-w-3xl mx-auto w-full text-center relative select-none z-10 my-auto">
+      {/* ─── 1. ATMOSFERA MÁGICA DE FUNDO ─── */}
+      <OrganicBackground accentColor="#E5A93C" intensity={0.16} />
+      <SparkParticles count={14} variant="subtle" />
 
-      {/* Badge */}
+      {/* ─── 2. HERO BADGE ILUMINADO ─── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="inline-flex items-center gap-2 bg-white/6 px-3.5 py-1.5 rounded-full border border-white/10 text-xs font-mono text-white/80 mb-6 backdrop-blur-md"
+        className="inline-flex items-center gap-2 bg-white/6 px-4 py-1.5 rounded-full border border-white/10 text-xs font-mono text-white/90 mb-5 backdrop-blur-md shadow-lg"
       >
-        <Sparkles size={13} className="text-[oklch(0.78_0.22_48)]" />
-        <span>Estúdio de Criação com IA</span>
+        <Sparkles size={13} className="text-[oklch(0.78_0.22_48)] animate-pulse" />
+        <span>Estúdio de Criação • IA Manifest</span>
       </motion.div>
 
-      {/* Título Principal */}
+      {/* ─── 3. TÍTULO MONUMENTAL COM GRADIENTE DE LUZ ─── */}
       <motion.h1
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-3xl sm:text-5xl font-bold tracking-tight text-white mb-4 leading-tight"
+        className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white mb-3 sm:mb-4 leading-tight"
       >
-        O que você quer criar <br className="hidden sm:inline" />
-        <span className="bg-gradient-to-r from-white via-white/90 to-white/50 bg-clip-text text-transparent">
-          para a sua marca hoje?
+        O que você quer <br className="hidden sm:inline" />
+        <span className="bg-gradient-to-r from-white via-white/90 to-white/60 bg-clip-text text-transparent">
+          manifestar hoje?
         </span>
       </motion.h1>
 
-      <p className="text-sm sm:text-base text-white/60 mb-8 max-w-xl">
-        Digite um tema ou cole uma ideia. Nossa IA vai orquestrar a copy e as direções de arte oficiais.
+      <p className="text-xs sm:text-sm md:text-base text-white/60 mb-6 sm:mb-8 max-w-lg px-2 leading-relaxed">
+        A centelha que transforma ideias, URLs e visões em posts e carrosséis de alto padrão para suas redes.
       </p>
 
-      {/* Seletor de Modo */}
-      <div className="flex items-center gap-2 bg-white/6 p-1.5 rounded-2xl border border-white/10 mb-6">
+      {/* ─── 4. SELETOR DE FORMATO (ESTÁTICO / CARROSSEL) ─── */}
+      <div className="flex items-center gap-2 bg-white/6 p-1.5 rounded-2xl border border-white/10 mb-6 backdrop-blur-md shadow-md">
         <button
           type="button"
           onClick={() => setPostMode("static")}
@@ -104,15 +108,28 @@ export default function StudioCreateView({ onSubmit, isLoading }: StudioCreateVi
         </button>
       </div>
 
-      {/* Caixa de Entrada */}
-      <form onSubmit={handleSubmit} className="w-full relative z-10 mb-8">
-        <div className="relative rounded-2xl p-1 bg-gradient-to-b from-white/15 to-white/5 border border-white/15 shadow-2xl backdrop-blur-xl transition-all focus-within:border-[oklch(0.78_0.22_48)]">
+      {/* ─── 5. CAIXA DE TEXTO BRILHANTE (THEVOID GLOW HYBRID) ─── */}
+      <form onSubmit={handleSubmit} className="w-full relative z-10 mb-6">
+        <div
+          className="relative rounded-2xl p-1.5 backdrop-blur-2xl transition-all duration-300 border focus-within:border-[oklch(0.78_0.22_48)]"
+          style={{
+            background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
+            borderColor: isUrl ? "rgba(56, 189, 248, 0.4)" : "rgba(255, 255, 255, 0.12)",
+            boxShadow: isUrl
+              ? "0 0 35px rgba(56, 189, 248, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
+              : "0 0 35px rgba(229, 169, 60, 0.16), 0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+          }}
+        >
           <textarea
             rows={3}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Ex: 3 sinais de que sua marca parece amadora e como resolver isso..."
-            className="w-full bg-transparent p-4 text-sm text-white placeholder-white/30 outline-none resize-none"
+            placeholder={
+              postMode === "carousel"
+                ? "Ex: 4 passos práticos para estruturar uma oferta de consultoria premium..."
+                : "Ex: 3 sinais de que sua marca parece amadora e como resolver isso com design..."
+            }
+            className="w-full bg-transparent p-3 sm:p-4 text-sm sm:text-base text-white placeholder-white/30 outline-none resize-none"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -121,18 +138,31 @@ export default function StudioCreateView({ onSubmit, isLoading }: StudioCreateVi
             }}
           />
 
-          <div className="flex items-center justify-between px-3 pb-2 pt-1 border-t border-white/8">
-            <div className="flex items-center gap-2 text-xs text-white/40">
-              <span className="text-[11px] font-mono">Pressione Enter ↵</span>
+          <div className="flex items-center justify-between px-3 pb-2 pt-1.5 border-t border-white/8">
+            {/* Detecção Inteligente de Modo */}
+            <div className="flex items-center gap-2">
+              {isUrl ? (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-500/15 border border-sky-500/30 text-sky-300 text-[11px] font-mono">
+                  <Link2 size={12} />
+                  <span>Modo Extração de URL</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-white/50 text-[11px] font-mono">
+                  <Sparkles size={11} className="text-[oklch(0.78_0.22_48)]" />
+                  <span>Modo Criativo</span>
+                </div>
+              )}
+              <span className="hidden sm:inline text-[11px] text-white/30 font-mono">↵ Enter</span>
             </div>
 
+            {/* Botão de Ação com Gradiente Vibrante */}
             <button
               type="submit"
               disabled={!prompt.trim() || isLoading}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-black shadow-lg transition-all hover:scale-105 hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-black shadow-lg transition-all hover:scale-105 hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 cursor-pointer"
               style={{
                 background: "linear-gradient(135deg, oklch(0.78 0.22 48), oklch(0.65 0.2 28))",
-                boxShadow: "0 0 24px oklch(0.7 0.22 40 / 40%)",
+                boxShadow: "0 0 24px oklch(0.7 0.22 40 / 45%)",
               }}
             >
               {isLoading ? (
@@ -142,7 +172,7 @@ export default function StudioCreateView({ onSubmit, isLoading }: StudioCreateVi
                 </>
               ) : (
                 <>
-                  <span>Gerar Variações</span>
+                  <span>Manifestar Posts</span>
                   <ArrowRight size={14} />
                 </>
               )}
@@ -151,7 +181,7 @@ export default function StudioCreateView({ onSubmit, isLoading }: StudioCreateVi
         </div>
       </form>
 
-      {/* Barra de Progresso com Etapas Dinâmicas */}
+      {/* ─── 6. DOCK DE PROGRESSO EM TEMPO REAL ─── */}
       <AnimatePresence>
         {isLoading && (
           <motion.div
@@ -178,21 +208,21 @@ export default function StudioCreateView({ onSubmit, isLoading }: StudioCreateVi
         )}
       </AnimatePresence>
 
-      {/* Sugestões Rápidas */}
+      {/* ─── 7. SUGESTÕES E INSPIRAÇÕES RÁPIDAS ─── */}
       {!isLoading && (
-        <div className="w-full">
-          <span className="text-xs uppercase font-semibold tracking-wider text-white/40 mb-3 block">
-            Ou escolha um tema de impacto:
-          </span>
+        <div className="w-full space-y-2.5">
+          <div className="text-[11px] uppercase tracking-wider text-white/40 font-mono">
+            Ideias para começar
+          </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {QUICK_IDEAS.map((idea, idx) => (
+            {QUICK_IDEAS.map((idea) => (
               <button
-                key={idx}
+                key={idea}
                 type="button"
                 onClick={() => setPrompt(idea)}
-                className="text-xs bg-white/4 hover:bg-white/8 text-white/70 hover:text-white px-3.5 py-1.5 rounded-full border border-white/8 transition-all cursor-pointer"
+                className="text-xs px-3.5 py-1.5 rounded-full bg-white/4 border border-white/8 text-white/70 hover:bg-white/10 hover:text-white hover:border-white/20 transition-all cursor-pointer text-left"
               >
-                {idea}
+                ✦ {idea}
               </button>
             ))}
           </div>
