@@ -21,6 +21,9 @@ import PreviewHomePage from "./pages/PreviewHome/PreviewHomePage";
 import StudioHomePage from "./pages/StudioHome/StudioHomePage";
 import CanvasLabPage from "./pages/CanvasLab/CanvasLabPage";
 import StudioAppPage from "./pages/StudioApp/StudioAppPage";
+import StudioAppCleanPage from "./pages/StudioApp/StudioAppCleanPage";
+import StudioAppV2Page from "./pages/StudioApp/StudioAppV2Page";
+import StudioAppV2BPage from "./pages/StudioApp/StudioAppV2BPage";
 import UserTopMenu from "./components/UserTopMenu";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -196,7 +199,12 @@ function Router() {
       <Route path={"/landing3"} component={Landing3} />
       <Route path={"/crie-posts-incriveis"} component={Landing4} />
       <Route path={"/thevoid"} component={() => <ProtectedRoute component={StudioAppPage} />} />
+      <Route path={"/thevoid-clean"} component={() => <ProtectedRoute component={StudioAppCleanPage} />} />
       <Route path={"/studio"} component={() => <ProtectedRoute component={StudioAppPage} />} />
+      {/* Avaliação paralela: nova tela de criação (StudioCreateViewV2) */}
+      <Route path={"/studio-v2"} component={() => <ProtectedRoute component={StudioAppV2Page} />} />
+      {/* Segunda iteração: campo "página em branco" + prateleira honesta */}
+      <Route path={"/studio-v2b"} component={() => <ProtectedRoute component={StudioAppV2BPage} />} />
       <Route path={"/thevoid2"} component={LegacyTheVoid2Route} />
       <Route path={"/pricing"} component={Pricing} />
       <Route path={"/billing"} component={() => <ProtectedRoute component={Billing} />} />
@@ -229,6 +237,8 @@ function AppInner() {
     location === "/" ||
     location === "/studio-home" ||
     location === "/studio" ||
+    location === "/studio-v2" ||
+    location === "/studio-v2b" ||
     location === "/canvas-lab" ||
     location === "/thevoid2" ||
     location === "/preview-home" ||

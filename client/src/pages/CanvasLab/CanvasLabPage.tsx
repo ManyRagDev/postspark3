@@ -1,5 +1,6 @@
 import CanvasMobileDrawer from "./components/CanvasMobileDrawer";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { CanvasPostStage, type CanvasPostStageRef } from "./components/CanvasPostStage";
 import CanvasTopBar from "./components/CanvasTopBar";
@@ -20,6 +21,50 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
   const [isExportingZip, setIsExportingZip] = useState(false);
   const stageRef = useRef<CanvasPostStageRef>(null);
 
+  // Monitoramento dinâmico da resolução da tela para responsividade matemática
+  const [windowDimensions, setWindowDimensions] = useState({
+    width: typeof window !== "undefined" ? window.innerWidth : 390,
+    height: typeof window !== "undefined" ? window.innerHeight : 844,
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const isMobile = windowDimensions.width < 768;
+  const baseWidth = 360;
+  const baseHeight = post.aspectRatio === "9:16" ? 640 : post.aspectRatio === "5:6" ? 432 : 360;
+
+  // Escala adaptativa calculada matematicamente pelo tamanho real da tela
+  const mobileAdaptiveScale = useMemo(() => {
+    if (!isMobile) return 1;
+
+    const topBarHeight = 56;
+    const padding = 16;
+    const availableWidth = windowDimensions.width - padding * 2;
+
+    if (isMobileDrawerOpen) {
+      // Drawer aberto ocupa ~58% da tela. A área superior livre é ~42vh menos a barra superior.
+      const upperAreaHeight = Math.max(140, windowDimensions.height * 0.40 - topBarHeight - padding);
+      const scaleX = availableWidth / baseWidth;
+      const scaleY = upperAreaHeight / baseHeight;
+      return Math.min(scaleX, scaleY, 0.92);
+    } else {
+      // Drawer fechado: quase a tela inteira disponível acima da barra inferior
+      const closedAreaHeight = Math.max(200, windowDimensions.height - topBarHeight - 110 - padding);
+      const scaleX = availableWidth / baseWidth;
+      const scaleY = closedAreaHeight / baseHeight;
+      return Math.min(scaleX, scaleY, 0.98);
+    }
+  }, [isMobile, isMobileDrawerOpen, windowDimensions.width, windowDimensions.height, baseWidth, baseHeight]);
+
   const handleUpdatePost = (patch: Partial<CanvasPostModel>) => {
     setPost((prev) => ({ ...prev, ...patch }));
   };
@@ -31,7 +76,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
   const handleToggleSnap = () => {
     setPost((prev) => {
       const next = prev.isSnapEnabled === false ? true : false;
-            return { ...prev, isSnapEnabled: next };
+      return { ...prev, isSnapEnabled: next };
     });
   };
 
@@ -110,7 +155,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
       slides: [...prev.slides, newSlide],
       currentSlideIndex: prev.slides.length,
     }));
-      };
+  };
 
   const handleDuplicateSlide = (index: number) => {
     const target = post.slides[index];
@@ -127,7 +172,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
       slides: nextSlides,
       currentSlideIndex: index + 1,
     }));
-      };
+  };
 
   const handleDeleteSlide = (index: number) => {
     if (post.slides.length <= 1) {
@@ -140,7 +185,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
       slides: nextSlides,
       currentSlideIndex: Math.min(prev.currentSlideIndex, nextSlides.length - 1),
     }));
-      };
+  };
 
   return (
     <div className="h-screen w-full bg-[#07090E] text-white flex flex-col overflow-hidden select-none font-sans">
@@ -171,14 +216,42 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
           <CanvasSidebar post={post} onUpdatePost={handleUpdatePost} />
         </div>
 
-        {/* Palco da Prancheta (Mobile & Desktop) */}
-        <main className="flex-1 bg-[#040508] relative overflow-auto flex items-center justify-center p-2 sm:p-8 pb-20 md:pb-8 custom-scrollbar">
-          <CanvasPostStage
-            ref={stageRef}
-            post={post}
-            zoom={zoom}
-            onUpdateElementPosition={handleUpdateElementPosition}
-          />
+        {/* Palco da Prancheta com Viewport Adaptativo (Mobile & Desktop) */}
+        <main
+          onClick={() => {
+            if (isMobileDrawerOpen) setIsMobileDrawerOpen(false);
+          }}
+          className="flex-1 bg-[#040508] relative overflow-hidden flex items-center justify-center p-2 sm:p-8 pb-20 md:pb-8 custom-scrollbar"
+        >
+          <motion.div
+            className="flex items-center justify-center cursor-pointer md:cursor-default"
+            animate={
+              isMobile
+                ? {
+                    scale: mobileAdaptiveScale * zoom,
+                    y: isMobileDrawerOpen
+                      ? -Math.round(windowDimensions.height * 0.23)
+                      : 0,
+                  }
+                : {
+                    scale: zoom,
+                    y: 0,
+                  }
+            }
+            transition={{
+              type: "spring",
+              stiffness: 280,
+              damping: 26,
+              mass: 0.8,
+            }}
+          >
+            <CanvasPostStage
+              ref={stageRef}
+              post={post}
+              zoom={1}
+              onUpdateElementPosition={handleUpdateElementPosition}
+            />
+          </motion.div>
         </main>
 
         {/* Mobile: Bottom Sheet Drawer Deslizante Nativo */}
@@ -188,6 +261,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
           onExportPng={handleExportPng}
           onExportZip={handleExportZip}
           isExportingZip={isExportingZip}
+          isOpen={isMobileDrawerOpen}
+          onToggleOpen={setIsMobileDrawerOpen}
         />
       </div>
 

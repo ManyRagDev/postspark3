@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import StudioCreateView from "./components/StudioCreateView";
+import StudioCreateViewV2 from "./components/v2/StudioCreateViewV2";
 import StudioGalleryView from "./components/StudioGalleryView";
 import CanvasLabPage from "@/pages/CanvasLab/CanvasLabPage";
 import { INITIAL_POST, ensureDistinctFamilies, type CanvasPostModel } from "@/pages/CanvasLab/components/types";
@@ -13,9 +13,13 @@ import {
 
 type ScreenStage = "create" | "gallery" | "editor";
 
-
-
-export default function StudioAppPage() {
+/**
+ * Rota experimental `/studio-v2` — mesma máquina de estados do fluxo Studio
+ * (create → gallery → editor), mas com a nova tela de criação
+ * (StudioCreateViewV2). Compartilha mapeamento e fallbacks com StudioAppPage
+ * via `./lib/studioGeneration`.
+ */
+export default function StudioAppV2Page() {
   const [stage, setStage] = useState<ScreenStage>("create");
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
@@ -30,7 +34,6 @@ export default function StudioAppPage() {
     setIsLoading(true);
     setLastPrompt(promptText);
     setLastMode(mode);
-    toast.info("A IA está sintetizando copies e direções de arte oficiais...");
 
     try {
       const isUrl = promptText.startsWith("http://") || promptText.startsWith("https://");
@@ -52,8 +55,7 @@ export default function StudioAppPage() {
         throw new Error("Nenhuma variação gerada.");
       }
     } catch (err: any) {
-      console.warn("[StudioApp] Fallback acionado:", err);
-      // Fallback rico com 3 ângulos de copy genuinamente diferentes
+      console.warn("[StudioAppV2] Fallback acionado:", err);
       setGeneratedVariations(buildInitialFallbackVariations(promptText));
       setStage("gallery");
       toast.success("Direções de arte geradas!");
@@ -62,13 +64,11 @@ export default function StudioAppPage() {
     }
   };
 
-  // Gerar mais 3 variações com IA e novas famílias oficiais
   const handleGenerateMore = async () => {
     setIsGeneratingMore(true);
     toast.info("A IA está criando 3 novos ângulos criativos...");
 
     try {
-      // Chama a IA solicitando novas variações baseadas no tema
       const isUrl = lastPrompt.startsWith("http://") || lastPrompt.startsWith("https://");
       const result = await generateMutation.mutateAsync({
         inputType: isUrl ? "url" : "text",
@@ -87,8 +87,7 @@ export default function StudioAppPage() {
         throw new Error("Sem resposta da IA");
       }
     } catch (err: any) {
-      console.warn("[StudioApp] Fallback inteligente de novas variações acionado:", err);
-      // Fallback inteligente com 3 famílias complementares e 3 novos ganchos criativos
+      console.warn("[StudioAppV2] Fallback inteligente de novas variações acionado:", err);
       setGeneratedVariations((prev) => [...prev, ...buildExtraFallbackVariations(lastPrompt)]);
       toast.success("3 novas direções de arte adicionadas à galeria!");
     } finally {
@@ -102,9 +101,9 @@ export default function StudioAppPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#07090E] text-white flex flex-col overflow-hidden font-sans">
+    <div className="min-h-screen w-full bg-[#0B0A08] text-white flex flex-col overflow-hidden font-sans">
       {stage === "create" && (
-        <StudioCreateView onSubmit={handleCreateSubmit} isLoading={isLoading} />
+        <StudioCreateViewV2 onSubmit={handleCreateSubmit} isLoading={isLoading} />
       )}
 
       {stage === "gallery" && (

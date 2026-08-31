@@ -10,6 +10,8 @@ interface StudioGalleryViewProps {
   onBackToCreate: () => void;
   onGenerateMore?: () => void;
   isGeneratingMore?: boolean;
+  /** Família declarada como gosto na tela de criação (marca "SEU GOSTO"). */
+  declaredFamilyId?: string | null;
 }
 
 export default function StudioGalleryView({
@@ -18,6 +20,7 @@ export default function StudioGalleryView({
   onBackToCreate,
   onGenerateMore,
   isGeneratingMore = false,
+  declaredFamilyId,
 }: StudioGalleryViewProps) {
   const [aspectRatio, setAspectRatio] = useState<AspectRatioType>("1:1");
 
@@ -37,6 +40,7 @@ export default function StudioGalleryView({
           onBackToCreate={onBackToCreate}
           onGenerateMore={onGenerateMore}
           isGeneratingMore={isGeneratingMore}
+          declaredFamilyId={declaredFamilyId}
         />
       </div>
 
@@ -116,7 +120,11 @@ export default function StudioGalleryView({
                     </span>
                   </div>
                   <span className="text-[10px] font-mono text-white/40 uppercase">
-                    Opção 0{idx + 1}
+                    {item.familyId === declaredFamilyId ? (
+                      <span className="text-[oklch(0.78_0.22_48)]">✓ Seu gosto · Opção 0{idx + 1}</span>
+                    ) : (
+                      <>Opção 0{idx + 1}</>
+                    )}
                   </span>
                 </div>
 

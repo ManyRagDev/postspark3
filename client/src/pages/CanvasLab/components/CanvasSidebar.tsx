@@ -391,16 +391,16 @@ export default function CanvasSidebar({ post, onUpdatePost }: CanvasSidebarProps
                             key={fam.id}
                             type="button"
                             onClick={() => {
-                              const legText = resolveLegibleTextColor(fam.defaultPalette.background, post.palette.text);
+                              const legText = resolveLegibleTextColor(post.palette.background, post.palette.text);
                               onUpdatePost({
                                 familyId: fam.id,
                                 familyName: fam.name,
                                 fontFamily: fam.defaultFont,
                                 palette: {
-                                  background: fam.defaultPalette.background,
+                                  background: post.palette.background,
                                   text: legText,
-                                  accent: fam.defaultPalette.accent,
-                                  surface: fam.defaultPalette.surface,
+                                  accent: post.palette.accent,
+                                  surface: post.palette.surface || fam.defaultPalette.surface,
                                 },
                               });
                             }}

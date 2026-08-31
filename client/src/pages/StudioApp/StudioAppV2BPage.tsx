@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import StudioCreateView from "./components/StudioCreateView";
+import StudioCreateViewV2B from "./components/v2/StudioCreateViewV2B";
 import StudioGalleryView from "./components/StudioGalleryView";
 import CanvasLabPage from "@/pages/CanvasLab/CanvasLabPage";
 import { INITIAL_POST, ensureDistinctFamilies, type CanvasPostModel } from "@/pages/CanvasLab/components/types";
@@ -9,13 +9,19 @@ import {
   variationToCanvasModel,
   buildInitialFallbackVariations,
   buildExtraFallbackVariations,
+  buildTasteInstruction,
 } from "./lib/studioGeneration";
 
 type ScreenStage = "create" | "gallery" | "editor";
 
-
-
-export default function StudioAppPage() {
+/**
+ * Rota experimental `/studio-v2b` — mesma máquina de estados do fluxo Studio,
+ * com a tela de criação regularizada (StudioCreateViewV2B) e a "direção de
+ * gosto": a família declarada na prateleira viaja como instrução dentro do
+ * `content` do `post.generate` (apenas para input de texto — em URL, a
+ * identidade extraída do site prevalece). O motor não é alterado.
+ */
+export default function StudioAppV2BPage() {
   const [stage, setStage] = useState<ScreenStage>("create");
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
@@ -23,6 +29,7 @@ export default function StudioAppPage() {
   const [lastMode, setLastMode] = useState<"static" | "carousel">("static");
   const [generatedVariations, setGeneratedVariations] = useState<CanvasPostModel[]>([]);
   const [selectedPost, setSelectedPost] = useState<CanvasPostModel>(INITIAL_POST);
+  const [declaredFamilyId, setDeclaredFamilyId] = useState<string | null>(null);
 
   const generateMutation = trpc.post.generate.useMutation();
 
@@ -30,13 +37,16 @@ export default function StudioAppPage() {
     setIsLoading(true);
     setLastPrompt(promptText);
     setLastMode(mode);
-    toast.info("A IA está sintetizando copies e direções de arte oficiais...");
 
     try {
       const isUrl = promptText.startsWith("http://") || promptText.startsWith("https://");
+      // A instrução de gosto só é injetada em texto livre: em URL, o `content`
+      // é usado pelo backend como endereço a raspar — nunca contaminar.
+      const tasteInstruction =
+        !isUrl && declaredFamilyId ? buildTasteInstruction(declaredFamilyId) : "";
       const result = await generateMutation.mutateAsync({
         inputType: isUrl ? "url" : "text",
-        content: promptText,
+        content: `${promptText}${tasteInstruction}`,
         platform: "instagram",
         postMode: mode,
         model: "llama",
@@ -45,6 +55,14 @@ export default function StudioAppPage() {
       if (result?.variations && result.variations.length > 0) {
         const distinctVars = ensureDistinctFamilies(result.variations as any[]);
         const mapped = distinctVars.map((v: any, i: number) => variationToCanvasModel(v, i, promptText));
+
+        if (declaredFamilyId && !isUrl) {
+          const tasteMatched = mapped.some((v) => v.familyId === declaredFamilyId);
+          if (!tasteMatched) {
+            toast.info("A IA explorou outras direções; seu gosto foi considerado, mas não prevaleceu.");
+          }
+        }
+
         setGeneratedVariations(mapped);
         setStage("gallery");
         toast.success(`${mapped.length} direções de arte criadas com IA!`);
@@ -52,9 +70,8 @@ export default function StudioAppPage() {
         throw new Error("Nenhuma variação gerada.");
       }
     } catch (err: any) {
-      console.warn("[StudioApp] Fallback acionado:", err);
-      // Fallback rico com 3 ângulos de copy genuinamente diferentes
-      setGeneratedVariations(buildInitialFallbackVariations(promptText));
+      console.warn("[StudioAppV2B] Fallback acionado:", err);
+      setGeneratedVariations(buildInitialFallbackVariations(promptText, declaredFamilyId ?? undefined));
       setStage("gallery");
       toast.success("Direções de arte geradas!");
     } finally {
@@ -62,13 +79,11 @@ export default function StudioAppPage() {
     }
   };
 
-  // Gerar mais 3 variações com IA e novas famílias oficiais
   const handleGenerateMore = async () => {
     setIsGeneratingMore(true);
     toast.info("A IA está criando 3 novos ângulos criativos...");
 
     try {
-      // Chama a IA solicitando novas variações baseadas no tema
       const isUrl = lastPrompt.startsWith("http://") || lastPrompt.startsWith("https://");
       const result = await generateMutation.mutateAsync({
         inputType: isUrl ? "url" : "text",
@@ -87,8 +102,7 @@ export default function StudioAppPage() {
         throw new Error("Sem resposta da IA");
       }
     } catch (err: any) {
-      console.warn("[StudioApp] Fallback inteligente de novas variações acionado:", err);
-      // Fallback inteligente com 3 famílias complementares e 3 novos ganchos criativos
+      console.warn("[StudioAppV2B] Fallback inteligente de novas variações acionado:", err);
       setGeneratedVariations((prev) => [...prev, ...buildExtraFallbackVariations(lastPrompt)]);
       toast.success("3 novas direções de arte adicionadas à galeria!");
     } finally {
@@ -102,18 +116,27 @@ export default function StudioAppPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#07090E] text-white flex flex-col overflow-hidden font-sans">
+    <div className="min-h-screen w-full bg-[#0B0A08] text-white flex flex-col overflow-hidden font-sans">
       {stage === "create" && (
-        <StudioCreateView onSubmit={handleCreateSubmit} isLoading={isLoading} />
+        <StudioCreateViewV2B
+          onSubmit={handleCreateSubmit}
+          isLoading={isLoading}
+          declaredFamilyId={declaredFamilyId}
+          onDeclareFamily={setDeclaredFamilyId}
+        />
       )}
 
       {stage === "gallery" && (
         <StudioGalleryView
           variations={generatedVariations}
           onSelectVariation={handleSelectVariation}
-          onBackToCreate={() => setStage("create")}
+          onBackToCreate={() => {
+            setStage("create");
+            setDeclaredFamilyId(null);
+          }}
           onGenerateMore={handleGenerateMore}
           isGeneratingMore={isGeneratingMore}
+          declaredFamilyId={declaredFamilyId}
         />
       )}
 

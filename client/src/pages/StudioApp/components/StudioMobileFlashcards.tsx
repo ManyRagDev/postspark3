@@ -10,6 +10,8 @@ interface StudioMobileFlashcardsProps {
   onBackToCreate: () => void;
   onGenerateMore?: () => void;
   isGeneratingMore?: boolean;
+  /** Família declarada como gosto na tela de criação (marca "SEU GOSTO"). */
+  declaredFamilyId?: string | null;
 }
 
 export default function StudioMobileFlashcards({
@@ -18,6 +20,7 @@ export default function StudioMobileFlashcards({
   onBackToCreate,
   onGenerateMore,
   isGeneratingMore = false,
+  declaredFamilyId,
 }: StudioMobileFlashcardsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [aspectRatio, setAspectRatio] = useState<AspectRatioType>("1:1");
@@ -91,6 +94,11 @@ export default function StudioMobileFlashcards({
           <span className="text-xs font-bold uppercase tracking-wider text-white">
             {currentPost.familyName}
           </span>
+          {currentPost.familyId === declaredFamilyId ? (
+            <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-black bg-[oklch(0.78_0.22_48)] px-1.5 py-0.5 rounded-full">
+              ✓ Seu gosto
+            </span>
+          ) : null}
         </div>
 
         {/* Palco dos Cards 3D com Arraste Tátil (Framer Motion) */}

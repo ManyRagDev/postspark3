@@ -1,8 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Edit3, Palette, ImageIcon, Sparkles, X, ChevronUp, ChevronDown, Check, ArrowDownToLine } from "lucide-react";
+import {
+  Edit3,
+  Palette,
+  Image as ImageIcon,
+  Sparkles,
+  ChevronUp,
+  ChevronDown,
+  ArrowDownToLine,
+  Wand2,
+  Upload,
+  Trash2,
+  Sliders,
+  Loader2,
+  Layers,
+} from "lucide-react";
+import { toast } from "sonner";
 import type { CanvasPostModel, VisualFamilyId } from "@/pages/CanvasLab/components/types";
 import { OFFICIAL_FAMILIES_META, resolveLegibleTextColor } from "@/pages/CanvasLab/components/types";
+import { trpc } from "@/lib/trpc";
+import BackgroundsDrawer from "./BackgroundsDrawer";
 
 interface CanvasMobileDrawerProps {
   post: CanvasPostModel;
@@ -10,6 +27,8 @@ interface CanvasMobileDrawerProps {
   onExportPng: () => void;
   onExportZip: () => void;
   isExportingZip?: boolean;
+  isOpen?: boolean;
+  onToggleOpen?: (open: boolean) => void;
 }
 
 type MobileTab = "text" | "style" | "media" | "brand";
@@ -20,11 +39,49 @@ export default function CanvasMobileDrawer({
   onExportPng,
   onExportZip,
   isExportingZip = false,
+  isOpen: controlledIsOpen,
+  onToggleOpen,
 }: CanvasMobileDrawerProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isControlled = controlledIsOpen !== undefined;
+  const isOpen = isControlled ? controlledIsOpen : internalIsOpen;
+
+  const setIsOpen = (value: boolean | ((prev: boolean) => boolean)) => {
+    const nextVal = typeof value === "function" ? value(isOpen) : value;
+    if (isControlled && onToggleOpen) {
+      onToggleOpen(nextVal);
+    } else {
+      setInternalIsOpen(nextVal);
+    }
+  };
   const [activeTab, setActiveTab] = useState<MobileTab>("text");
 
+  // Estado da Mídia / Background
+  const [aiPrompt, setAiPrompt] = useState(post.imagePrompt || "");
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [applyToAllSlides, setApplyToAllSlides] = useState(false);
+  const [isTexturesDrawerOpen, setIsTexturesDrawerOpen] = useState(false);
+  const [manifestData, setManifestData] = useState<any>(null);
+
+  const generateImageMutation = trpc.post.generateImage.useMutation();
+
+  // Carrega o manifest de backgrounds
+  useEffect(() => {
+    fetch("/images/backgrounds/manifest.json")
+      .then((res) => res.json())
+      .then((data) => setManifestData(data))
+      .catch((err) => console.warn("Erro ao carregar manifest:", err));
+  }, []);
+
+  // Sincroniza prompt de IA
+  useEffect(() => {
+    if (post.imagePrompt) {
+      setAiPrompt(post.imagePrompt);
+    }
+  }, [post.imagePrompt]);
+
   const currentSlide = post.slides[post.currentSlideIndex] || post.slides[0];
+  const activeBg = currentSlide?.bgImage || post.bgImage;
 
   const handleUpdateSlide = (field: "headline" | "subtext" | "step", value: string) => {
     const nextSlides = [...post.slides];
@@ -47,10 +104,11 @@ export default function CanvasMobileDrawer({
     const meta = OFFICIAL_FAMILIES_META[familyId];
     if (!meta) return;
 
-    const resolvedText = resolveLegibleTextColor(meta.defaultPalette.background);
+    const resolvedText = resolveLegibleTextColor(post.palette.background, post.palette.text);
     const resolvedPalette = {
-      ...meta.defaultPalette,
+      ...post.palette,
       text: resolvedText,
+      surface: post.palette.surface || meta.defaultPalette.surface,
     };
 
     onUpdatePost({
@@ -61,216 +119,454 @@ export default function CanvasMobileDrawer({
     });
   };
 
+  const handleApplyBackground = (url?: string) => {
+    if (applyToAllSlides && post.slides.length > 0) {
+      const updated = post.slides.map((s) => ({ ...s, bgImage: url }));
+      onUpdatePost({ slides: updated, bgImage: url });
+    } else if (currentSlide) {
+      const updated = [...post.slides];
+      updated[post.currentSlideIndex] = { ...currentSlide, bgImage: url };
+      onUpdatePost({ slides: updated, bgImage: url });
+    } else {
+      onUpdatePost({ bgImage: url });
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const url = event.target?.result as string;
+      handleApplyBackground(url);
+      toast.success("Foto aplicada com sucesso!");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleGenerateAiImage = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error("Digite uma descrição para a imagem.");
+      return;
+    }
+    setIsGeneratingAi(true);
+    toast.info("A IA está gerando sua imagem em alta resolução...");
+
+    try {
+      const res = await generateImageMutation.mutateAsync({ prompt: aiPrompt.trim() });
+      if (res?.imageUrl) {
+        handleApplyBackground(res.imageUrl);
+        toast.success("Foto exclusiva gerada com sucesso pela IA!");
+      } else {
+        throw new Error("Nenhuma imagem retornada.");
+      }
+    } catch (err: any) {
+      console.error("[CanvasMobileDrawer] Erro ao gerar imagem IA:", err);
+      toast.error(err?.message || "Não foi possível gerar a foto agora.");
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
   return (
-    <div className="md:hidden fixed inset-x-0 bottom-0 z-40 select-none flex flex-col justify-end pointer-events-none">
-      {/* Backdrop quando aberto */}
-      {isOpen && (
-        <div
-          onClick={() => setIsOpen(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 pointer-events-auto"
-        />
-      )}
+    <>
+      {/* Gaveta Oficial de Texturas (Modal tela cheia no mobile) */}
+      <BackgroundsDrawer
+        isOpen={isTexturesDrawerOpen}
+        onClose={() => setIsTexturesDrawerOpen(false)}
+        post={post}
+        onApplyBackground={handleApplyBackground}
+        manifestData={manifestData}
+        applyToAllSlides={applyToAllSlides}
+        onToggleApplyToAll={setApplyToAllSlides}
+      />
 
-      {/* Container da Gaveta */}
-      <motion.div
-        className="w-full bg-[#0a0d16] border-t border-white/15 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.8)] pointer-events-auto flex flex-col overflow-hidden z-40"
-        initial={false}
-        animate={{ height: isOpen ? "55vh" : "auto" }}
-        transition={{ type: "spring", stiffness: 350, damping: 30 }}
-      >
-        {/* Handle / Puxador Superior */}
-        <div
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-full py-2 flex flex-col items-center justify-center cursor-pointer bg-white/4 border-b border-white/8 active:bg-white/8"
-        >
-          <div className="w-10 h-1 rounded-full bg-white/25 mb-1" />
-          <div className="flex items-center justify-between w-full px-4 text-xs font-semibold text-white/80">
-            <span className="flex items-center gap-1.5">
-              <span className="text-[oklch(0.78_0.22_48)]">✦</span>
-              <span>{isOpen ? "Painel de Edição" : "Toque para Editar Post"}</span>
-            </span>
-            {isOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          </div>
-        </div>
-
-        {/* Barra de 4 Abas Táteis */}
-        <div className="grid grid-cols-4 p-1.5 gap-1 bg-black/40 border-b border-white/10 shrink-0">
-          {[
-            { id: "text", label: "Texto", icon: Edit3 },
-            { id: "style", label: "Estilo", icon: Palette },
-            { id: "media", label: "Mídia", icon: ImageIcon },
-            { id: "brand", label: "Marca", icon: Sparkles },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isSelected = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  setActiveTab(tab.id as MobileTab);
-                  if (!isOpen) setIsOpen(true);
-                }}
-                className={`flex flex-col items-center justify-center py-2 rounded-xl text-[11px] font-semibold transition-all ${
-                  isSelected
-                    ? "bg-white/15 text-white shadow-sm"
-                    : "text-white/40 hover:text-white"
-                }`}
-              >
-                <Icon size={15} className={isSelected ? "text-[oklch(0.78_0.22_48)]" : ""} />
-                <span className="mt-0.5">{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Conteúdo da Aba (Apenas quando aberta) */}
+      <div className="md:hidden fixed inset-x-0 bottom-0 z-40 select-none flex flex-col justify-end pointer-events-none">
+        {/* Backdrop Transparente (Sem embaçar o post) */}
         {isOpen && (
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-            {/* ─── ABA TEXTO ─── */}
-            {activeTab === "text" && (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-white/50 uppercase">Título (Headline)</label>
-                  <textarea
-                    rows={2}
-                    value={currentSlide?.headline || ""}
-                    onChange={(e) => handleUpdateSlide("headline", e.target.value)}
-                    className="w-full bg-white/6 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-[oklch(0.78_0.22_48)] resize-none"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-white/50 uppercase">Subtexto</label>
-                  <textarea
-                    rows={2}
-                    value={currentSlide?.subtext || ""}
-                    onChange={(e) => handleUpdateSlide("subtext", e.target.value)}
-                    className="w-full bg-white/6 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-[oklch(0.78_0.22_48)] resize-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-mono text-white/50 uppercase">Badge Superior</label>
-                    <input
-                      type="text"
-                      value={post.badgeText || ""}
-                      onChange={(e) => handleUpdateBadge(e.target.value)}
-                      className="w-full bg-white/6 border border-white/10 rounded-xl p-2 text-xs text-white outline-none"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-mono text-white/50 uppercase">Etapa / Slide</label>
-                    <input
-                      type="text"
-                      value={currentSlide?.step || ""}
-                      onChange={(e) => handleUpdateSlide("step", e.target.value)}
-                      className="w-full bg-white/6 border border-white/10 rounded-xl p-2 text-xs text-white outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ─── ABA ESTILO (14 FAMÍLIAS VISUAIS) ─── */}
-            {activeTab === "style" && (
-              <div className="space-y-3">
-                <div className="text-[11px] font-mono text-white/50 uppercase">
-                  14 Famílias Visuais Oficiais
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(OFFICIAL_FAMILIES_META).map(([id, meta]) => {
-                    const isSelected = post.familyId === id;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => handleSelectFamily(id as VisualFamilyId)}
-                        className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all ${
-                          isSelected
-                            ? "bg-[oklch(0.78_0.22_48)]/15 border-[oklch(0.78_0.22_48)] text-white shadow-md"
-                            : "bg-white/4 border-white/8 text-white/60 hover:text-white"
-                        }`}
-                      >
-                        <span
-                          className="w-3 h-3 rounded-full shrink-0"
-                          style={{ backgroundColor: meta.defaultPalette.accent }}
-                        />
-                        <div className="truncate">
-                          <div className="text-xs font-bold truncate">{meta.name}</div>
-                          <div className="text-[9px] text-white/40 truncate">{meta.category}</div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* ─── ABA MÍDIA / FUNDO ─── */}
-            {activeTab === "media" && (
-              <div className="space-y-3 text-center py-4">
-                <div className="text-xs text-white/70">Texturas e fundos cinematográficos</div>
-                <button
-                  type="button"
-                  onClick={() => onUpdatePost({ bgImage: undefined })}
-                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-white border border-white/10"
-                >
-                  Remover Foto de Fundo
-                </button>
-              </div>
-            )}
-
-            {/* ─── ABA MARCA ─── */}
-            {activeTab === "brand" && (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-white/50 uppercase">Posição da Logo</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {["top-left", "top-right", "bottom-center"].map((pos) => (
-                      <button
-                        key={pos}
-                        type="button"
-                        onClick={() => onUpdatePost({ logoPosition: pos as any })}
-                        className={`p-2 rounded-xl border text-xs font-semibold ${
-                          post.logoPosition === pos
-                            ? "bg-white text-black"
-                            : "bg-white/4 border-white/8 text-white/60"
-                        }`}
-                      >
-                        {pos === "top-left" ? "Top Esq." : pos === "top-right" ? "Top Dir." : "Base"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <div
+            onClick={() => setIsOpen(false)}
+            className="fixed inset-0 z-30 pointer-events-auto bg-transparent"
+          />
         )}
 
-        {/* Botão de Exportação Fixo no Rodapé */}
-        <div className="p-3 border-t border-white/10 bg-black/80 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onExportPng}
-            className="flex-1 py-3 rounded-2xl bg-white text-black font-bold text-xs shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform"
+        {/* Container da Gaveta */}
+        <motion.div
+          className="w-full bg-[#0a0d16] border-t border-white/15 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.8)] pointer-events-auto flex flex-col overflow-hidden z-40"
+          initial={false}
+          animate={{ height: isOpen ? "62vh" : "auto" }}
+          transition={{ type: "spring", stiffness: 350, damping: 30 }}
+        >
+          {/* Handle / Puxador Superior */}
+          <div
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-full py-2 flex flex-col items-center justify-center cursor-pointer bg-white/4 border-b border-white/8 active:bg-white/8"
           >
-            <ArrowDownToLine size={14} />
-            <span>Baixar Imagem (HD)</span>
-          </button>
-          {post.slides.length > 1 && (
+            <div className="w-10 h-1 rounded-full bg-white/25 mb-1" />
+            <div className="flex items-center justify-between w-full px-4 text-xs font-semibold text-white/80">
+              <span className="flex items-center gap-1.5">
+                <span className="text-[oklch(0.78_0.22_48)]">✦</span>
+                <span>{isOpen ? "Painel de Edição" : "Toque para Editar Post"}</span>
+              </span>
+              {isOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            </div>
+          </div>
+
+          {/* Barra de 4 Abas Táteis */}
+          <div className="grid grid-cols-4 p-1.5 gap-1 bg-black/40 border-b border-white/10 shrink-0">
+            {[
+              { id: "text", label: "Texto", icon: Edit3 },
+              { id: "style", label: "Estilo", icon: Palette },
+              { id: "media", label: "Mídia", icon: ImageIcon },
+              { id: "brand", label: "Marca", icon: Sparkles },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isSelected = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab.id as MobileTab);
+                    if (!isOpen) setIsOpen(true);
+                  }}
+                  className={`flex flex-col items-center justify-center py-2 rounded-xl text-[11px] font-semibold transition-all ${
+                    isSelected
+                      ? "bg-white/15 text-white shadow-sm"
+                      : "text-white/40 hover:text-white"
+                  }`}
+                >
+                  <Icon size={15} className={isSelected ? "text-[oklch(0.78_0.22_48)]" : ""} />
+                  <span className="mt-0.5">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Conteúdo da Aba (Apenas quando aberta) */}
+          {isOpen && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+              {/* ─── ABA 1: TEXTO ─── */}
+              {activeTab === "text" && (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-mono text-white/50 uppercase">Título (Headline)</label>
+                    <textarea
+                      rows={2}
+                      value={currentSlide?.headline || ""}
+                      onChange={(e) => handleUpdateSlide("headline", e.target.value)}
+                      className="w-full bg-white/6 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-[oklch(0.78_0.22_48)] resize-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-mono text-white/50 uppercase">Subtexto</label>
+                    <textarea
+                      rows={2}
+                      value={currentSlide?.subtext || ""}
+                      onChange={(e) => handleUpdateSlide("subtext", e.target.value)}
+                      className="w-full bg-white/6 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-[oklch(0.78_0.22_48)] resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-mono text-white/50 uppercase">Badge Superior</label>
+                      <input
+                        type="text"
+                        value={post.badgeText || ""}
+                        onChange={(e) => handleUpdateBadge(e.target.value)}
+                        className="w-full bg-white/6 border border-white/10 rounded-xl p-2 text-xs text-white outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-mono text-white/50 uppercase">Etapa / Slide</label>
+                      <input
+                        type="text"
+                        value={currentSlide?.step || ""}
+                        onChange={(e) => handleUpdateSlide("step", e.target.value)}
+                        className="w-full bg-white/6 border border-white/10 rounded-xl p-2 text-xs text-white outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── ABA 2: ESTILO (14 FAMÍLIAS & CORES) ─── */}
+              {activeTab === "style" && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-mono text-white/50 uppercase">
+                      14 Famílias Visuais Oficiais
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {Object.entries(OFFICIAL_FAMILIES_META).map(([id, meta]) => {
+                        const isSelected = post.familyId === id;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => handleSelectFamily(id as VisualFamilyId)}
+                            className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all ${
+                              isSelected
+                                ? "bg-[oklch(0.78_0.22_48)]/15 border-[oklch(0.78_0.22_48)] text-white shadow-md"
+                                : "bg-white/4 border-white/8 text-white/60 hover:text-white"
+                            }`}
+                          >
+                            <span
+                              className="w-3 h-3 rounded-full shrink-0"
+                              style={{ backgroundColor: meta.defaultPalette.accent }}
+                            />
+                            <div className="truncate">
+                              <div className="text-xs font-bold truncate">{meta.name}</div>
+                              <div className="text-[9px] text-white/40 truncate">{meta.category}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Cores da Paleta */}
+                  <div className="pt-2 border-t border-white/8 space-y-2">
+                    <div className="text-[11px] font-mono text-white/50 uppercase">Cores da Paleta</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <span className="text-[10px] text-white/50 block mb-1">Fundo</span>
+                        <input
+                          type="color"
+                          value={post.palette.background}
+                          onChange={(e) => {
+                            const newBg = e.target.value;
+                            const newText = resolveLegibleTextColor(newBg, post.palette.text);
+                            onUpdatePost({ palette: { ...post.palette, background: newBg, text: newText } });
+                          }}
+                          className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/15"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-white/50 block mb-1">Destaque</span>
+                        <input
+                          type="color"
+                          value={post.palette.accent}
+                          onChange={(e) =>
+                            onUpdatePost({ palette: { ...post.palette, accent: e.target.value } })
+                          }
+                          className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/15"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-white/50 block mb-1">Texto</span>
+                        <input
+                          type="color"
+                          value={post.palette.text}
+                          onChange={(e) =>
+                            onUpdatePost({ palette: { ...post.palette, text: e.target.value } })
+                          }
+                          className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/15"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── ABA 3: MÍDIA & PLANO DE FUNDO (COMPLETO) ─── */}
+              {activeTab === "media" && (
+                <div className="space-y-4">
+                  {/* Status do Fundo Ativo */}
+                  {activeBg && (
+                    <div className="flex items-center justify-between p-3 rounded-2xl bg-white/6 border border-white/12">
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src={activeBg}
+                          alt="Fundo Ativo"
+                          className="w-10 h-10 rounded-xl object-cover border border-white/15"
+                        />
+                        <div>
+                          <span className="text-xs font-bold text-white block">Foto Ativa</span>
+                          <span className="text-[10px] text-white/50">Fundo cinematográfico aplicado</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyBackground(undefined)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold hover:bg-rose-500/30 active:scale-95"
+                      >
+                        <Trash2 size={12} />
+                        <span>Remover</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Toggle para aplicar a todos os slides se for carrossel */}
+                  {post.slides.length > 1 && (
+                    <label className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10 cursor-pointer">
+                      <span className="text-xs font-semibold text-white/80">Aplicar em todos os slides</span>
+                      <input
+                        type="checkbox"
+                        checked={applyToAllSlides}
+                        onChange={(e) => setApplyToAllSlides(e.target.checked)}
+                        className="w-4 h-4 accent-[oklch(0.78_0.22_48)] cursor-pointer"
+                      />
+                    </label>
+                  )}
+
+                  {/* 1. Biblioteca Oficial de 110+ Texturas */}
+                  <button
+                    type="button"
+                    onClick={() => setIsTexturesDrawerOpen(true)}
+                    className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/8 border border-white/12 flex items-center justify-between transition-all active:scale-[0.99] cursor-pointer shadow-sm group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/8 border border-white/10 flex items-center justify-center text-white/80 group-hover:scale-105 transition-transform">
+                        <ImageIcon size={20} className="text-[oklch(0.78_0.22_48)]" />
+                      </div>
+                      <div className="text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white">Explorar 110+ Texturas</span>
+                          <span className="text-[9px] font-mono bg-[oklch(0.78_0.22_48)]/15 text-[oklch(0.78_0.22_48)] px-1.5 py-0.5 rounded font-bold">
+                            Catálogo
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-white/50">Luxo, Minimal, Concreto, Dark, Tech...</span>
+                      </div>
+                    </div>
+                    <span className="text-xs text-[oklch(0.78_0.22_48)] font-bold">➔</span>
+                  </button>
+
+                  {/* 2. Gerador de Imagem com IA */}
+                  <div className="p-3.5 rounded-2xl bg-white/4 border border-white/10 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+                        <Wand2 size={14} className="text-[oklch(0.78_0.22_48)]" />
+                        <span>Gerar Foto com IA</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-white/40">OpenRouter & Polli HD</span>
+                    </div>
+                    <textarea
+                      rows={2}
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="Descreva o fundo fotográfico desejado..."
+                      className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)] resize-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGenerateAiImage}
+                      disabled={isGeneratingAi}
+                      className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-black flex items-center justify-center gap-2 shadow-md cursor-pointer active:scale-95 transition-all"
+                      style={{
+                        background: "linear-gradient(135deg, oklch(0.78 0.22 48), oklch(0.65 0.2 28))",
+                      }}
+                    >
+                      {isGeneratingAi ? (
+                        <>
+                          <Loader2 size={13} className="animate-spin" />
+                          <span>Sintetizando Foto...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={13} />
+                          <span>Gerar Imagem com IA</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* 3. Upload da Galeria do Celular */}
+                  <label className="flex items-center justify-between p-3 rounded-2xl bg-white/4 hover:bg-white/7 border border-white/10 cursor-pointer active:scale-[0.99] transition-all">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-white/8 flex items-center justify-center">
+                        <Upload size={14} className="text-white/70" />
+                      </div>
+                      <span className="text-xs font-semibold text-white/90">Escolher da Galeria do Celular</span>
+                    </div>
+                    <span className="text-xs text-white/50">Upload</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {/* 4. Slider de Opacidade do Overlay / Scrim */}
+                  {activeBg && (
+                    <div className="p-3 rounded-2xl bg-white/4 border border-white/10 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-semibold text-white/80">
+                        <div className="flex items-center gap-1.5">
+                          <Sliders size={13} />
+                          <span>Escurecer Fundo (Contraste)</span>
+                        </div>
+                        <span className="font-mono text-xs text-[oklch(0.78_0.22_48)]">
+                          {Math.round((post.overlayOpacity ?? 0.55) * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={post.overlayOpacity ?? 0.55}
+                        onChange={(e) => onUpdatePost({ overlayOpacity: parseFloat(e.target.value) })}
+                        className="w-full accent-[oklch(0.78_0.22_48)] cursor-pointer"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ─── ABA 4: MARCA ─── */}
+              {activeTab === "brand" && (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-mono text-white/50 uppercase">Posição da Logo</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {["top-left", "top-right", "bottom-center"].map((pos) => (
+                        <button
+                          key={pos}
+                          type="button"
+                          onClick={() => onUpdatePost({ logoPosition: pos as any })}
+                          className={`p-2 rounded-xl border text-xs font-semibold ${
+                            post.logoPosition === pos
+                              ? "bg-white text-black"
+                              : "bg-white/4 border-white/8 text-white/60"
+                          }`}
+                        >
+                          {pos === "top-left" ? "Top Esq." : pos === "top-right" ? "Top Dir." : "Base"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Botão de Exportação Fixo no Rodapé */}
+          <div className="p-3 border-t border-white/10 bg-black/80 flex items-center gap-2">
             <button
               type="button"
-              onClick={onExportZip}
-              disabled={isExportingZip}
-              className="py-3 px-4 rounded-2xl bg-white/10 text-white font-bold text-xs border border-white/10 flex items-center justify-center gap-1 active:scale-95"
+              onClick={onExportPng}
+              className="flex-1 py-3 rounded-2xl bg-white text-black font-bold text-xs shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
-              <span>ZIP</span>
+              <ArrowDownToLine size={14} />
+              <span>Baixar Imagem (HD)</span>
             </button>
-          )}
-        </div>
-      </motion.div>
-    </div>
+            {post.slides.length > 1 && (
+              <button
+                type="button"
+                onClick={onExportZip}
+                disabled={isExportingZip}
+                className="py-3 px-4 rounded-2xl bg-white/10 text-white font-bold text-xs border border-white/10 flex items-center justify-center gap-1 active:scale-95"
+              >
+                <span>ZIP</span>
+              </button>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </>
   );
 }

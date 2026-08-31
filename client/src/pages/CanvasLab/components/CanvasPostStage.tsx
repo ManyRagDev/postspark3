@@ -256,63 +256,72 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         )
       : undefined;
 
-    const handleDragMove = (e: any, elementKey: "headlinePos" | "subtextPos" | "badgePos" | "barPos" | "logoPos") => {
-      const node = e.target;
-      const isSnap = post.isSnapEnabled !== false && !isAltPressed;
-
-      if (!isSnap) {
-        setSnapLines({});
-        return;
-      }
-
-      const box = node.getClientRect();
-      const nodeX = node.x();
-      const nodeY = node.y();
-
-      const centerX = nodeX + box.width / 2;
-      const centerY = nodeY + box.height / 2;
-
-      const tolerance = 8;
-      let snappedX: number | undefined;
-      let snappedY: number | undefined;
-
-      // Grade 5x5 (20%, 40%, 50%, 60%, 80%) + Margens (24px)
-      const gridX = [24, baseWidth * 0.2, baseWidth * 0.4, baseWidth * 0.5, baseWidth * 0.6, baseWidth * 0.8, baseWidth - 24];
-      const gridY = [24, baseHeight * 0.2, baseHeight * 0.4, baseHeight * 0.5, baseHeight * 0.6, baseHeight * 0.8, baseHeight - 24];
-
-      for (const gx of gridX) {
-        if (Math.abs(centerX - gx) <= tolerance) {
-          node.x(gx - box.width / 2);
-          snappedX = gx;
-          break;
-        } else if (Math.abs(nodeX - gx) <= tolerance) {
-          node.x(gx);
-          snappedX = gx;
-          break;
-        } else if (Math.abs(nodeX + box.width - gx) <= tolerance) {
-          node.x(gx - box.width);
-          snappedX = gx;
-          break;
+    // ─── MAGNET SNAP CALCULATION VIA DRAGBOUNDFUNC (Konva Canonical) ───
+    const createSnapBoundFunc = (elemWidth: number, elemHeight: number) => {
+      return (pos: { x: number; y: number }) => {
+        const isSnap = post.isSnapEnabled !== false && !isAltPressed;
+        if (!isSnap) {
+          setSnapLines({});
+          return pos;
         }
-      }
 
-      for (const gy of gridY) {
-        if (Math.abs(centerY - gy) <= tolerance) {
-          node.y(gy - box.height / 2);
-          snappedY = gy;
-          break;
-        } else if (Math.abs(nodeY - gy) <= tolerance) {
-          node.y(gy);
-          snappedY = gy;
-          break;
-        } else if (Math.abs(nodeY + box.height - gy) <= tolerance) {
-          node.y(gy - box.height);
-          snappedY = gy;
-          break;
+        const tolerance = 12;
+        let resX = pos.x;
+        let resY = pos.y;
+        let guideX: number | undefined;
+        let guideY: number | undefined;
+
+        const leftX = pos.x;
+        const centerX = pos.x + elemWidth / 2;
+        const rightX = pos.x + elemWidth;
+
+        const topY = pos.y;
+        const centerY = pos.y + elemHeight / 2;
+        const bottomY = pos.y + elemHeight;
+
+        // Grade 5x5 (20%, 40%, 50%, 60%, 80%) + Margens (24px)
+        const gridX = [24, baseWidth * 0.2, baseWidth * 0.4, baseWidth * 0.5, baseWidth * 0.6, baseWidth * 0.8, baseWidth - 24];
+        const gridY = [24, baseHeight * 0.2, baseHeight * 0.4, baseHeight * 0.5, baseHeight * 0.6, baseHeight * 0.8, baseHeight - 24];
+
+        for (const gx of gridX) {
+          if (Math.abs(leftX - gx) <= tolerance) {
+            resX = gx;
+            guideX = gx;
+            break;
+          } else if (Math.abs(centerX - gx) <= tolerance) {
+            resX = gx - elemWidth / 2;
+            guideX = gx;
+            break;
+          } else if (Math.abs(rightX - gx) <= tolerance) {
+            resX = gx - elemWidth;
+            guideX = gx;
+            break;
+          }
         }
-      }
 
-      setSnapLines({ x: snappedX, y: snappedY });
+        for (const gy of gridY) {
+          if (Math.abs(topY - gy) <= tolerance) {
+            resY = gy;
+            guideY = gy;
+            break;
+          } else if (Math.abs(centerY - gy) <= tolerance) {
+            resY = gy - elemHeight / 2;
+            guideY = gy;
+            break;
+          } else if (Math.abs(bottomY - gy) <= tolerance) {
+            resY = gy - elemHeight;
+            guideY = gy;
+            break;
+          }
+        }
+
+        setSnapLines({ x: guideX, y: guideY });
+        return { x: resX, y: resY };
+      };
+    };
+
+    const handleDragMove = () => {
+      // Keep snap visual lines active during drag
     };
 
     const handleDragEnd = (e: any, elementKey: "headlinePos" | "subtextPos" | "badgePos" | "barPos" | "logoPos") => {
@@ -396,14 +405,11 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
 
               {/* ─── 1. FUNDOS ESPECÍFICOS DE CADA FAMÍLIA ─── */}
               {isBrutalSplit ? (
-                // 1.A) BRUTAL SPLIT (@design.deb): 2 BLOCOS CROMÁTICOS COM SELO CENTRAL
+                // 1.A) BRUTAL SPLIT (@design.deb): 2 BLOCOS CROMÁTICOS LIMPOS SEM SELO
                 <>
                   <Rect x={0} y={0} width={baseWidth} height={baseHeight * 0.5} fill={post.palette.background || "#171717"} />
                   <Rect x={0} y={baseHeight * 0.5} width={baseWidth} height={baseHeight * 0.5} fill={post.palette.accent || "#21F1A8"} />
                   <Line points={[0, baseHeight * 0.5, baseWidth, baseHeight * 0.5]} stroke="#000000" strokeWidth={2} opacity={0.4} />
-                  {/* Selo Circular de Interseção Central */}
-                  <Circle x={baseWidth / 2} y={baseHeight * 0.5} radius={28} fill="#0C0C0D" stroke="rgba(255,255,255,0.18)" strokeWidth={1.5} shadowColor="#000" shadowBlur={12} />
-                  <Text text="★ SPLIT" x={baseWidth / 2 - 20} y={baseHeight * 0.5 - 5} fontSize={9} fontFamily="Space Mono, monospace" fontStyle="bold" fill={post.palette.accent || "#21F1A8"} listening={false} />
                 </>
               ) : isDuotone ? (
                 // 1.B) DUOTONE WASH: GRADIENTE LINEAR DIAGONAL RICO A 135°
@@ -537,8 +543,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   y={badgePos.y}
                   rotation={-4}
                   draggable={isInteractive}
+                  dragBoundFunc={isInteractive ? createSnapBoundFunc(95, 26) : undefined}
                   onClick={() => handleSelect("badge")}
-                  onDragMove={(e) => handleDragMove(e, "badgePos")}
+                  onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "badgePos")}
                 >
                   <Rect
@@ -571,8 +578,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   x={badgePos.x}
                   y={badgePos.y}
                   draggable={isInteractive}
+                  dragBoundFunc={isInteractive ? createSnapBoundFunc(activeStep.length * 7 + 16, 22) : undefined}
                   onClick={() => handleSelect("badge")}
-                  onDragMove={(e) => handleDragMove(e, "badgePos")}
+                  onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "badgePos")}
                 >
                   <Rect x={0} y={0} width={activeStep.length * 7 + 16} height={22} fill="#FFFFFF" stroke="#000000" strokeWidth={1.5} />
@@ -585,8 +593,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   x={badgePos.x}
                   y={badgePos.y}
                   draggable={isInteractive}
+                  dragBoundFunc={isInteractive ? createSnapBoundFunc(activeStep.length * 7 + 22, 22) : undefined}
                   onClick={() => handleSelect("badge")}
-                  onDragMove={(e) => handleDragMove(e, "badgePos")}
+                  onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "badgePos")}
                 >
                   <Rect x={0} y={0} width={activeStep.length * 7 + 22} height={22} fill="rgba(0, 240, 255, 0.08)" stroke="#00F0FF" strokeWidth={1} cornerRadius={2} />
@@ -599,8 +608,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   x={badgePos.x}
                   y={badgePos.y}
                   draggable={isInteractive}
+                  dragBoundFunc={isInteractive ? createSnapBoundFunc(activeStep.length * 7 + 18, 22) : undefined}
                   onClick={() => handleSelect("badge")}
-                  onDragMove={(e) => handleDragMove(e, "badgePos")}
+                  onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "badgePos")}
                 >
                   <Rect
@@ -636,8 +646,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   width={46}
                   height={24}
                   draggable={isInteractive}
+                  dragBoundFunc={isInteractive ? createSnapBoundFunc(46, 24) : undefined}
                   onClick={() => handleSelect("logo")}
-                  onDragMove={(e) => handleDragMove(e, "logoPos")}
+                  onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "logoPos")}
                 />
               )}
@@ -657,8 +668,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 lineHeight={isBrutalBlock ? 1.1 : 1.25}
                 letterSpacing={isBrutalBlock ? 0.5 : isEditorial ? -0.2 : -0.4}
                 draggable={isInteractive}
+                dragBoundFunc={isInteractive ? createSnapBoundFunc(contentWidth, headlineFontSize * 1.5) : undefined}
                 onClick={() => handleSelect("headline")}
-                onDragMove={(e) => handleDragMove(e, "headlinePos")}
+                onDragMove={handleDragMove}
                 onDragEnd={(e) => handleDragEnd(e, "headlinePos")}
               />
 
@@ -676,8 +688,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 align={defaultAlign}
                 lineHeight={1.45}
                 draggable={isInteractive}
+                dragBoundFunc={isInteractive ? createSnapBoundFunc(contentWidth, subtextFontSize * 1.8) : undefined}
                 onClick={() => handleSelect("subtext")}
-                onDragMove={(e) => handleDragMove(e, "subtextPos")}
+                onDragMove={handleDragMove}
                 onDragEnd={(e) => handleDragEnd(e, "subtextPos")}
               />
 
@@ -692,8 +705,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   cornerRadius={2}
                   fill={post.palette.accent}
                   draggable={isInteractive}
+                  dragBoundFunc={isInteractive ? createSnapBoundFunc(isEditorial ? 48 : 36, 4) : undefined}
                   onClick={() => handleSelect("bar")}
-                  onDragMove={(e) => handleDragMove(e, "barPos")}
+                  onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "barPos")}
                 />
               )}
