@@ -9,7 +9,7 @@ O **PostSpark 3** é uma aplicação full stack de alta performance para geraç�
 2. **Orquestração Generativa Única**: O modelo gera em 2 a 4 segundos o copywriting autoral (sem clichês de IA), a estrutura de slides e a seleção semântica das direções de arte oficiais.
 3. **Guardrail Determinístico de Diversidade**: O algoritmo `ensureDistinctFamilies` valida as famílias visuais em < 0.1ms em memória, garantindo 100% de distinção visual entre as opções do HoloDeck.
 4. **Proteção Automática de Contraste WCAG**: O motor `resolveLegibleTextColor` calcula dinamicamente a luminância do fundo e garante que textos sejam sempre 100% nítidos e legíveis em qualquer cor de fundo.
-5. **Edição Visual Interativa (Studio & CanvasLab)**: Prancheta gráfica alimentada por Konva 2D (`react-konva`) com drag-and-drop, ímã magnético com guias inteligentes, suporte a carrosséis multi-slides, upload de logo, tipografia com Google Fonts e gaveta flutuante com mais de 110 texturas HD.
+5. **Edição Visual Interativa (Studio & CanvasLab)**: Prancheta gráfica alimentada por Konva 2D (`react-konva`) com drag-and-drop, ímã magnético com guias inteligentes, suporte a carrosséis multi-slides, upload de logo, tipografia com Google Fonts, Viewport Adaptativo mobile com física de mola e Catálogo de Texturas HD em Modo Estúdio com Dial Orbital e lente de preview em tempo real.
 6. **Persistência & Exportação**: Renderização e download em alta fidelidade PNG/JPEG e persistência transacional com Supabase e controle de Sparks/Billing por Stripe.
 
 ---

@@ -20,6 +20,7 @@ import type { CanvasPostModel, VisualFamilyId } from "@/pages/CanvasLab/componen
 import { OFFICIAL_FAMILIES_META, resolveLegibleTextColor } from "@/pages/CanvasLab/components/types";
 import { trpc } from "@/lib/trpc";
 import BackgroundsDrawer from "./BackgroundsDrawer";
+import RadialTextureSelector from "./RadialTextureSelector";
 
 interface CanvasMobileDrawerProps {
   post: CanvasPostModel;
@@ -61,6 +62,7 @@ export default function CanvasMobileDrawer({
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [applyToAllSlides, setApplyToAllSlides] = useState(false);
   const [isTexturesDrawerOpen, setIsTexturesDrawerOpen] = useState(false);
+  const [isTextureStudioOpen, setIsTextureStudioOpen] = useState(false);
   const [manifestData, setManifestData] = useState<any>(null);
 
   const generateImageMutation = trpc.post.generateImage.useMutation();
@@ -371,7 +373,7 @@ export default function CanvasMobileDrawer({
                 </div>
               )}
 
-              {/* ─── ABA 3: MÍDIA & PLANO DE FUNDO (COMPLETO) ─── */}
+              {/* ─── ABA 3: MÍDIA & PLANO DE FUNDO ─── */}
               {activeTab === "media" && (
                 <div className="space-y-4">
                   {/* Status do Fundo Ativo */}
@@ -385,13 +387,13 @@ export default function CanvasMobileDrawer({
                         />
                         <div>
                           <span className="text-xs font-bold text-white block">Foto Ativa</span>
-                          <span className="text-[10px] text-white/50">Fundo cinematográfico aplicado</span>
+                          <span className="text-[10px] text-white/50">Fundo aplicado</span>
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleApplyBackground(undefined)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold hover:bg-rose-500/30 active:scale-95"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold hover:bg-rose-500/30 active:scale-95 cursor-pointer"
                       >
                         <Trash2 size={12} />
                         <span>Remover</span>
@@ -399,10 +401,57 @@ export default function CanvasMobileDrawer({
                     </div>
                   )}
 
+                  {/* 1. Botão para Abrir o Modo Estúdio de Texturas */}
+                  <button
+                    type="button"
+                    onClick={() => setIsTextureStudioOpen(true)}
+                    className="w-full p-4 rounded-2xl bg-white/5 hover:bg-white/8 border border-white/15 flex items-center justify-between active:scale-[0.99] transition-all cursor-pointer shadow-lg group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[oklch(0.78_0.22_48)]/15 border border-[oklch(0.78_0.22_48)]/30 flex items-center justify-center text-[oklch(0.78_0.22_48)] group-hover:scale-110 transition-transform">
+                        <Sparkles size={20} />
+                      </div>
+                      <div className="text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white">Catálogo de Texturas HD</span>
+                          <span className="text-[9px] font-mono bg-[oklch(0.78_0.22_48)]/20 text-[oklch(0.78_0.22_48)] px-1.5 py-0.5 rounded font-bold">
+                            110+ Assets
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-white/50">Luxo, Impacto, Criativo, Linho, Concreto...</span>
+                      </div>
+                    </div>
+                    <span className="text-xs text-[oklch(0.78_0.22_48)] font-bold">➔</span>
+                  </button>
+
+                  {/* 2. Slider de Opacidade do Overlay / Scrim (Quando Fundo Ativo) */}
+                  {activeBg && (
+                    <div className="p-3 rounded-2xl bg-white/4 border border-white/10 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-semibold text-white/80">
+                        <div className="flex items-center gap-1.5">
+                          <Sliders size={13} />
+                          <span>Escurecer Fundo (Contraste)</span>
+                        </div>
+                        <span className="font-mono text-xs text-[oklch(0.78_0.22_48)] font-bold">
+                          {Math.round((post.overlayOpacity ?? 0.55) * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={post.overlayOpacity ?? 0.55}
+                        onChange={(e) => onUpdatePost({ overlayOpacity: parseFloat(e.target.value) })}
+                        className="w-full accent-[oklch(0.78_0.22_48)] cursor-pointer"
+                      />
+                    </div>
+                  )}
+
                   {/* Toggle para aplicar a todos os slides se for carrossel */}
                   {post.slides.length > 1 && (
                     <label className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10 cursor-pointer">
-                      <span className="text-xs font-semibold text-white/80">Aplicar em todos os slides</span>
+                      <span className="text-xs font-semibold text-white/80">Aplicar textura em todos os slides</span>
                       <input
                         type="checkbox"
                         checked={applyToAllSlides}
@@ -412,30 +461,7 @@ export default function CanvasMobileDrawer({
                     </label>
                   )}
 
-                  {/* 1. Biblioteca Oficial de 110+ Texturas */}
-                  <button
-                    type="button"
-                    onClick={() => setIsTexturesDrawerOpen(true)}
-                    className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/8 border border-white/12 flex items-center justify-between transition-all active:scale-[0.99] cursor-pointer shadow-sm group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/8 border border-white/10 flex items-center justify-center text-white/80 group-hover:scale-105 transition-transform">
-                        <ImageIcon size={20} className="text-[oklch(0.78_0.22_48)]" />
-                      </div>
-                      <div className="text-left">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-white">Explorar 110+ Texturas</span>
-                          <span className="text-[9px] font-mono bg-[oklch(0.78_0.22_48)]/15 text-[oklch(0.78_0.22_48)] px-1.5 py-0.5 rounded font-bold">
-                            Catálogo
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-white/50">Luxo, Minimal, Concreto, Dark, Tech...</span>
-                      </div>
-                    </div>
-                    <span className="text-xs text-[oklch(0.78_0.22_48)] font-bold">➔</span>
-                  </button>
-
-                  {/* 2. Gerador de Imagem com IA */}
+                  {/* 3. Gerador de Imagem com IA */}
                   <div className="p-3.5 rounded-2xl bg-white/4 border border-white/10 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-white">
@@ -474,7 +500,7 @@ export default function CanvasMobileDrawer({
                     </button>
                   </div>
 
-                  {/* 3. Upload da Galeria do Celular */}
+                  {/* 4. Upload da Galeria do Celular */}
                   <label className="flex items-center justify-between p-3 rounded-2xl bg-white/4 hover:bg-white/7 border border-white/10 cursor-pointer active:scale-[0.99] transition-all">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-lg bg-white/8 flex items-center justify-center">
@@ -490,30 +516,6 @@ export default function CanvasMobileDrawer({
                       className="hidden"
                     />
                   </label>
-
-                  {/* 4. Slider de Opacidade do Overlay / Scrim */}
-                  {activeBg && (
-                    <div className="p-3 rounded-2xl bg-white/4 border border-white/10 space-y-2">
-                      <div className="flex items-center justify-between text-xs font-semibold text-white/80">
-                        <div className="flex items-center gap-1.5">
-                          <Sliders size={13} />
-                          <span>Escurecer Fundo (Contraste)</span>
-                        </div>
-                        <span className="font-mono text-xs text-[oklch(0.78_0.22_48)]">
-                          {Math.round((post.overlayOpacity ?? 0.55) * 100)}%
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        value={post.overlayOpacity ?? 0.55}
-                        onChange={(e) => onUpdatePost({ overlayOpacity: parseFloat(e.target.value) })}
-                        className="w-full accent-[oklch(0.78_0.22_48)] cursor-pointer"
-                      />
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -565,7 +567,16 @@ export default function CanvasMobileDrawer({
               </button>
             )}
           </div>
-        </motion.div>
+          {/* Modo Estúdio Imersivo de Texturas */}
+        <RadialTextureSelector
+          isOpen={isTextureStudioOpen}
+          onClose={() => setIsTextureStudioOpen(false)}
+          post={post}
+          onApplyBackground={handleApplyBackground}
+          manifestData={manifestData}
+          applyToAllSlides={applyToAllSlides}
+        />
+      </motion.div>
       </div>
     </>
   );
