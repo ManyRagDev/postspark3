@@ -21,7 +21,7 @@ export const MONO: CSSProperties = {
 
 export const URL_REGEX = /^(https?:\/\/)[^\s]+\.[^\s]{2,}/i;
 
-export const SPECIMEN_FONTS = ["Playfair Display", "Anton", "Space Mono", "Bebas Neue", "Cinzel"];
+export const SPECIMEN_FONTS = ["Playfair Display", "Anton", "Space Mono", "Bebas Neue", "Cinzel", "Syne"];
 
 export function StudioMasthead() {
   const sessionNo = (() => {
@@ -133,16 +133,16 @@ export function buildSpecimens(): Specimen[] {
       prompt: "3 sinais de que sua marca parece amadora",
       familyLabel: "Minimalismo Brutal",
       art: (
-        <div className="absolute inset-0 flex flex-col justify-between p-2.5" style={{ background: "#D92E1E" }}>
+        <div className="absolute inset-0 flex flex-col justify-between p-2" style={{ background: "#D92E1E" }}>
           <div
-            className="self-end px-1.5 py-0.5 text-[7px] font-bold leading-none"
+            className="self-end px-1 py-0.5 text-[6.5px] font-bold leading-none"
             style={{ background: "#FFD600", color: "#0B0A08", transform: "rotate(-4deg)" }}
           >
             ERRO COMUM
           </div>
           <div
             className="uppercase"
-            style={{ fontFamily: "'Anton', sans-serif", color: "#FFFFFF", fontSize: 17, lineHeight: 1.05 }}
+            style={{ fontFamily: "'Anton', sans-serif", color: "#FFFFFF", fontSize: 13.5, lineHeight: 1.05 }}
           >
             3 sinais de marca amadora
           </div>
@@ -154,8 +154,8 @@ export function buildSpecimens(): Specimen[] {
       prompt: "Por que marcas de luxo não competem por preço",
       familyLabel: "Editorial de Luxo",
       art: (
-        <div className="absolute inset-0 flex flex-col p-2.5" style={{ background: "#120D0A" }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", color: "#E5A93C", fontSize: 30, lineHeight: 0.55, opacity: 0.55 }}>
+        <div className="absolute inset-0 flex flex-col p-2" style={{ background: "#120D0A" }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", color: "#E5A93C", fontSize: 22, lineHeight: 0.55, opacity: 0.55 }}>
             &ldquo;
           </div>
           <div className="mt-auto">
@@ -164,41 +164,51 @@ export function buildSpecimens(): Specimen[] {
                 fontFamily: "'Playfair Display', serif",
                 fontStyle: "italic",
                 color: "#F8F4EE",
-                fontSize: 12.5,
-                lineHeight: 1.3,
+                fontSize: 10.5,
+                lineHeight: 1.25,
               }}
             >
               Marcas de luxo não competem por preço
             </div>
-            <div className="mt-2 h-px w-8" style={{ background: "#E5A93C" }} />
+            <div className="mt-1.5 h-px w-6" style={{ background: "#E5A93C" }} />
           </div>
         </div>
       ),
     },
     {
-      id: "cyber-glitch",
-      prompt: "O erro fatal que destrói o engajamento no Instagram",
-      familyLabel: "Cyber & Glitch",
+      id: "brutal-split",
+      prompt: "O abismo entre marcas caras e marcas desejadas",
+      familyLabel: "Brutal Split",
       art: (
-        <div className="absolute inset-0 p-2.5" style={{ background: "#040812" }}>
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0,240,255,0.05) 2px, rgba(0,240,255,0.05) 3px)",
-            }}
-          />
-          <div style={{ ...MONO, color: "#00F0FF", fontSize: 7, letterSpacing: "0.12em" }}>sys://diagnóstico</div>
-          <div
-            className="mt-2"
-            style={{ fontFamily: "'Space Mono', monospace", color: "#E0F7FA", fontSize: 10.5, lineHeight: 1.45 }}
-          >
-            [erro_fatal]
-            <br />
-            no engajamento
+        <div className="absolute inset-0 flex flex-col overflow-hidden">
+          <div className="h-1/2 p-1.5 flex flex-col justify-center" style={{ background: "#0F172A" }}>
+            <span className="text-[6px] font-mono text-cyan-400 font-bold uppercase tracking-wider">Metade 01</span>
+            <span className="text-[9.5px] font-black uppercase text-white leading-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
+              Preço Caro
+            </span>
           </div>
-          <div className="absolute bottom-2 left-2.5" style={{ ...MONO, color: "rgba(0,240,255,0.5)", fontSize: 7 }}>
-            + &nbsp;+ &nbsp;+
+          <div className="h-1/2 p-1.5 flex flex-col justify-center" style={{ background: "#E11D48" }}>
+            <span className="text-[6px] font-mono text-rose-200 font-bold uppercase tracking-wider">Metade 02</span>
+            <span className="text-[9.5px] font-black uppercase text-white leading-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
+              Desejo Real
+            </span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "glass-veil",
+      prompt: "Como criar uma presença digital cinematográfica",
+      familyLabel: "Glass Veil",
+      art: (
+        <div className="absolute inset-0 p-1.5 flex flex-col justify-center items-center" style={{ background: "radial-gradient(circle at center, #1E1B4B 0%, #08071A 100%)" }}>
+          <div className="w-full p-1.5 rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm text-center shadow-lg">
+            <span className="text-[6px] font-mono uppercase bg-white/15 text-white/90 px-1 py-0.5 rounded-full inline-block mb-0.5">
+              ✨ Luxo Fosco
+            </span>
+            <div className="text-[9px] font-bold text-white leading-tight">
+              Presença Cinematográfica
+            </div>
           </div>
         </div>
       ),
@@ -209,21 +219,21 @@ export function buildSpecimens(): Specimen[] {
       familyLabel: "Citação de Autoridade",
       art: (
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center"
+          className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center"
           style={{ background: "#0F172A" }}
         >
           <div
             style={{
               fontFamily: "'Cinzel', serif",
               color: "#F8FAFC",
-              fontSize: 11.5,
-              lineHeight: 1.45,
-              letterSpacing: "0.05em",
+              fontSize: 10,
+              lineHeight: 1.35,
+              letterSpacing: "0.03em",
             }}
           >
             Preço é o que se paga. Valor é o que se leva.
           </div>
-          <div className="mt-2.5" style={{ width: 16, height: 1, background: "#38BDF8" }} />
+          <div className="mt-2" style={{ width: 14, height: 1, background: "#38BDF8" }} />
         </div>
       ),
     },
@@ -232,8 +242,8 @@ export function buildSpecimens(): Specimen[] {
       prompt: "O dado que prova o valor da consistência visual",
       familyLabel: "Data Punch",
       art: (
-        <div className="absolute inset-0 flex flex-col justify-between p-2.5" style={{ background: "#0D1117" }}>
-          <div style={{ ...MONO, color: "rgba(255,255,255,0.4)", fontSize: 7, letterSpacing: "0.12em" }}>
+        <div className="absolute inset-0 flex flex-col justify-between p-2" style={{ background: "#0D1117" }}>
+          <div style={{ ...MONO, color: "rgba(255,255,255,0.4)", fontSize: 6.5, letterSpacing: "0.1em" }}>
             métrica // retenção
           </div>
           <div>
@@ -242,44 +252,16 @@ export function buildSpecimens(): Specimen[] {
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 700,
                 color: "#58A6FF",
-                fontSize: 32,
+                fontSize: 26,
                 lineHeight: 1,
                 letterSpacing: "-0.03em",
               }}
             >
               87%
             </div>
-            <div className="mt-1.5" style={{ color: "rgba(255,255,255,0.7)", fontSize: 8.5, lineHeight: 1.35 }}>
-              abandonam marcas visualmente inconsistentes
+            <div className="mt-1" style={{ color: "rgba(255,255,255,0.7)", fontSize: 7.5, lineHeight: 1.25 }}>
+              abandonam marcas sem padrão
             </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "stroke-impact",
-      prompt: "Pare de parecer amadora: o padrão visual das marcas premium",
-      familyLabel: "Stroke Impact",
-      art: (
-        <div className="absolute inset-0 flex flex-col justify-center p-2.5" style={{ background: "#0A0A0C" }}>
-          <div
-            className="uppercase"
-            style={{
-              fontFamily: "'Bebas Neue', sans-serif",
-              fontSize: 23,
-              lineHeight: 0.95,
-              color: "transparent",
-              WebkitTextStrokeWidth: "1.2px",
-              WebkitTextStrokeColor: "#FFFFFF",
-            }}
-          >
-            Pare de
-          </div>
-          <div
-            className="uppercase"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 23, lineHeight: 0.95, color: "#FF4D30" }}
-          >
-            parecer amadora
           </div>
         </div>
       ),
@@ -294,6 +276,7 @@ export function SpecimenCard({
   withDisclaimer,
   widthClass,
   selected,
+  onHover,
 }: {
   specimen: Specimen;
   index: number;
@@ -301,41 +284,44 @@ export function SpecimenCard({
   withDisclaimer?: boolean;
   widthClass?: string;
   selected?: boolean;
+  onHover?: (index: number | null) => void;
 }) {
   return (
     <motion.button
       type="button"
       onClick={() => onPick(specimen.prompt)}
+      onMouseEnter={() => onHover?.(index)}
+      onMouseLeave={() => onHover?.(null)}
       aria-pressed={selected}
-      className={`${widthClass ?? "w-[118px]"} shrink-0 snap-start text-left active:scale-[0.97] transition-transform duration-150`}
+      className={`${widthClass ?? "w-[102px] md:w-auto md:flex-1"} shrink-0 md:shrink snap-start text-left active:scale-[0.97] transition-transform duration-150 cursor-pointer block`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: 0.08 * index, ease: "easeOut" }}
       aria-label={`Usar ideia: ${specimen.prompt}`}
     >
       <div
-        className="relative aspect-[4/5] w-full overflow-hidden rounded-sm transition-all duration-200"
+        className="relative aspect-[4/5] w-full overflow-hidden rounded-md transition-all duration-200 shadow-md"
         style={{
           border: selected ? `1.5px solid ${STUDIO.accent}` : `1px solid ${STUDIO.hairline}`,
-          boxShadow: selected ? "0 0 16px oklch(0.7 0.22 40 / 20%)" : "none",
+          boxShadow: selected ? "0 0 16px oklch(0.7 0.22 40 / 25%)" : "none",
         }}
       >
         {specimen.art}
       </div>
       <div
-        className="mt-1.5"
+        className="mt-1.5 truncate"
         style={{
           ...MONO,
           color: selected ? STUDIO.accent : STUDIO.ink40,
-          fontSize: 8.5,
-          letterSpacing: "0.12em",
+          fontSize: 8,
+          letterSpacing: "0.1em",
         }}
       >
-        {selected ? `✓ Gosto — ${specimen.familyLabel}` : specimen.familyLabel}
+        {selected ? `✓ ${specimen.familyLabel}` : specimen.familyLabel}
       </div>
       {withDisclaimer && !selected ? (
-        <div className="mt-0.5" style={{ ...MONO, color: STUDIO.ink25, fontSize: 8, letterSpacing: "0.14em" }}>
-          copy editável · gosto opcional
+        <div className="mt-0.5 truncate" style={{ ...MONO, color: STUDIO.ink25, fontSize: 7.5, letterSpacing: "0.1em" }}>
+          copy editável
         </div>
       ) : null}
     </motion.button>
@@ -350,12 +336,27 @@ const PRODUCTION_LOG = [
 
 export function ProductionOverlay({ prompt }: { prompt: string }) {
   const [stageIndex, setStageIndex] = useState(0);
+  const [progress, setProgress] = useState(12);
 
+  // Alterna as mensagens de status
   useEffect(() => {
     const interval = window.setInterval(() => {
       setStageIndex((prev) => (prev < PRODUCTION_LOG.length - 1 ? prev + 1 : prev));
-    }, 1400);
+    }, 1100);
     return () => window.clearInterval(interval);
+  }, []);
+
+  // Barra de corrida progressiva fluida (0% -> 96%)
+  useEffect(() => {
+    const startTime = Date.now();
+    const duration = 2600; // 2.6 segundos
+    const timer = window.setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min(96, Math.round((elapsed / duration) * 96));
+      setProgress(Math.max(12, pct));
+      if (pct >= 96) window.clearInterval(timer);
+    }, 40);
+    return () => window.clearInterval(timer);
   }, []);
 
   const cropMark = "absolute h-5 w-5 border-[rgba(242,237,228,0.4)]";
@@ -389,28 +390,43 @@ export function ProductionOverlay({ prompt }: { prompt: string }) {
         </div>
 
         <p
-          className="mt-5 line-clamp-4 max-w-[26ch]"
+          className="mt-5 line-clamp-3 max-w-[28ch]"
           style={{
             fontFamily: "'Playfair Display', serif",
             fontStyle: "italic",
             color: STUDIO.ink,
-            fontSize: "1.7rem",
-            lineHeight: 1.22,
+            fontSize: "1.65rem",
+            lineHeight: 1.25,
           }}
         >
           {prompt}
         </p>
 
-        <div className="relative mt-9 h-px w-44 overflow-hidden" style={{ background: STUDIO.hairline }}>
-          <motion.div
-            className="absolute top-0 h-px w-16"
-            style={{ background: STUDIO.accent }}
-            animate={{ x: [-64, 176] }}
-            transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
-          />
+        {/* Barra de corrida com trilha e preenchimento fluido */}
+        <div className="mt-8 w-64 max-w-full">
+          <div className="flex justify-between items-center mb-1.5 px-0.5">
+            <span style={{ ...MONO, color: STUDIO.ink40, fontSize: 8.5, letterSpacing: "0.14em" }}>
+              Progresso
+            </span>
+            <span style={{ ...MONO, color: STUDIO.accent, fontSize: 9, fontWeight: 700 }}>
+              {progress}%
+            </span>
+          </div>
+          <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/10 border border-white/10">
+            <motion.div
+              className="absolute top-0 bottom-0 left-0 rounded-full"
+              style={{
+                width: `${progress}%`,
+                background: "linear-gradient(90deg, oklch(0.7 0.22 40), oklch(0.8 0.24 60))",
+                boxShadow: "0 0 12px oklch(0.7 0.22 40 / 60%)",
+              }}
+              transition={{ ease: "easeOut", duration: 0.1 }}
+            />
+          </div>
         </div>
 
-        <div className="mt-9 space-y-1.5">
+        {/* Microetapas sincronizadas */}
+        <div className="mt-6 space-y-1.5">
           {PRODUCTION_LOG.slice(0, stageIndex + 1).map((line) => (
             <motion.p
               key={line}

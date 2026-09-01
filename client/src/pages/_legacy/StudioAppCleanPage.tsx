@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import StudioCreateViewClean from "./components/StudioCreateViewClean";
-import StudioGalleryView from "./components/StudioGalleryView";
+import StudioCreateViewClean from "@/pages/StudioApp/components/StudioCreateViewClean";
+import StudioGalleryView from "@/pages/StudioApp/components/StudioGalleryView";
 import CanvasLabPage from "@/pages/CanvasLab/CanvasLabPage";
 import {
   INITIAL_POST,

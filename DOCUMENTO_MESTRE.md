@@ -26,13 +26,13 @@ O **PostSpark 3** é uma aplicação full stack de alta performance para geraç�
 | **Persistência** | Supabase (`@supabase/supabase-js`), PostgreSQL | Autenticação, banco relacional e storage |
 | **Billing & Planos**| Stripe Webhooks & SDK | Assinaturas Pro/Agency e recarga de Sparks |
 
-### Rotas do fluxo Studio (criação → galeria → editor)
+### Rotas Oficiais Consolidadas do PostSpark
 
-- `/studio` e `/thevoid` (protegidas): fluxo atual — `StudioAppPage` → `StudioCreateView` → `StudioGalleryView` → `CanvasLabPage`.
-- `/studio-v2` (protegida, **experimental**): mesma máquina de estados com a primeira iteração da tela de criação `StudioCreateViewV2` (editorial/cinematográfica, mobile-first, espécimes das famílias oficiais na entrada, loading sem percentual fake).
-- `/studio-v2b` (protegida, **experimental**): mesma máquina de estados com a tela de criação regularizada `StudioCreateViewV2B` — no-scroll absoluto, campo de escrita como "folha tonal" (contraste de superfície, sem outline de formulário; o envio é um botão inline DENTRO da folha e o micro-label sob o campo alterna entre "Criar direções de arte" e "Criar com este gosto"; o atalho Enter submete mas não é anunciado), prateleira honesta com **direção de gosto**: tocar num espécime traz a copy e declara a família visual como gosto (header lê "Deixa com o estúdio" ↔ "Gosto — {família}"). A família declarada viaja como **instrução de texto dentro do `content`** do `post.generate` (`buildTasteInstruction`), apenas para input de texto — em URL a identidade extraída do site prevalece. O motor não foi alterado. Na galeria, a variação da família declarada recebe a marcação "SEU GOSTO" (desktop e flashcards mobile); se a IA não usar a família, toast honesto. O fallback local (`buildInitialFallbackVariations`) também remapeia a primeira variação para a família declarada.
-- Subcomponentes idênticos entre as duas iterações estão em `client/src/pages/StudioApp/components/v2/shared.tsx`; mudanças ali afetam as duas rotas simultaneamente.
-- O mapeamento IA → `CanvasPostModel` e os fallbacks de geração estão centralizados em `client/src/pages/StudioApp/lib/studioGeneration.ts` e são compartilhados pelas três páginas.
+- **`/` (pública)**: Página inicial oficial para usuários não autenticados (`StudioHomePage`) com palco autônomo e degustação interativa das 6 famílias oficiais em tempo real. Se o usuário estiver logado, redireciona automaticamente para `/thevoid`.
+- **`/criar` e `/p` (públicas / slug curto de tráfego)**: Página oficial de alta conversão para anúncios e tráfego pago (`PreviewHomePage`), destacando o motor de Brand DNA por URL, carrosséis narrativos estruturados e o Estúdio de Texturas Táteis com editor nativo Konva 2D. (Aliases de compatibilidade: `/preview-home`, `/crie-posts-incriveis`).
+- **`/thevoid` e `/studio` (protegidas / oficial logado)**: Estúdio de criação oficial logado alimentado por `StudioAppV2BPage` (`StudioCreateViewV2B` → `StudioGalleryView` → `CanvasLabPage`) com folha de escrita nobre, logo oficial PostSpark (símbolo $152\text{px}$, texto com "Spark" em `#FF5C00`), prateleira colapsável com Lente de Zoom Óptico 2x e barra de corrida no loading.
+- **`/canvas-lab` (protegida)**: Editor gráfico de prancheta direta (Konva 2D, dial tátil de texturas e exportação em 4K).
+- **`client/src/pages/_legacy/`**: Diretório que arquiva páginas históricas e versões anteriores (`TheVoid2Page`, `Landing`, `Landing2`, `landing3`, `Landing4`, `StudioAppPage`, `StudioAppCleanPage`, `StudioAppV2Page`). Rotas legadas possuem redirecionamentos automáticos em `App.tsx`.
 
 ---
 

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { useAuth } from '../../_core/hooks/useAuth';
-import SparkLogo from '../../components/SparkLogo';
-import { analytics } from '../../lib/analytics';
+import { useAuth } from '@/_core/hooks/useAuth';
+import SparkLogo from '@/components/SparkLogo';
+import { analytics } from '@/lib/analytics';
 import HeroDemo from './HeroDemo';
 
 // Lazy load das seções abaixo da dobra

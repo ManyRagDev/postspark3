@@ -5,24 +5,15 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
 import Pricing from "./pages/Pricing";
 import Billing from "./pages/Billing";
 import History from "./pages/History";
 import SavedPosts from "./pages/SavedPosts";
 import Admin from "./pages/Admin";
 import FamilyCatalog from "./pages/FamilyCatalog";
-import TheVoid2Page from "./pages/TheVoid2Page";
-import { LandingPage } from "./pages/Landing";
-import { LandingPage as LandingPage2 } from "./pages/Landing2";
-import Landing3 from "./pages/landing3/Landing3";
-import Landing4 from "./pages/Landing4";
 import PreviewHomePage from "./pages/PreviewHome/PreviewHomePage";
 import StudioHomePage from "./pages/StudioHome/StudioHomePage";
 import CanvasLabPage from "./pages/CanvasLab/CanvasLabPage";
-import StudioAppPage from "./pages/StudioApp/StudioAppPage";
-import StudioAppCleanPage from "./pages/StudioApp/StudioAppCleanPage";
-import StudioAppV2Page from "./pages/StudioApp/StudioAppV2Page";
 import StudioAppV2BPage from "./pages/StudioApp/StudioAppV2BPage";
 import UserTopMenu from "./components/UserTopMenu";
 import Privacy from "./pages/Privacy";
@@ -110,18 +101,11 @@ function GoogleAuthCallback() {
   );
 }
 
-function RootEntry() {
-  const { loading, isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    if (loading) return;
-    setLocation(isAuthenticated ? "/thevoid" : "/thevoid2");
-  }, [isAuthenticated, loading, setLocation]);
-
-  return null;
-}
-
+/**
+ * Rota Inicial Pública (Não Logados):
+ * Exibe StudioHomePage como vitrine oficial do PostSpark.
+ * Se autenticado, redireciona para o estúdio oficial (/thevoid).
+ */
 function PublicLandingRoute() {
   const { loading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -146,15 +130,15 @@ function PublicLandingRoute() {
   }, []);
 
   if (isAuthenticated) return null;
-  return <TheVoid2Page />;
+  return <StudioHomePage />;
 }
 
-function LegacyTheVoid2Route() {
+function RedirectToRoute({ to }: { to: string }) {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    setLocation("/");
-  }, [setLocation]);
+    setLocation(to);
+  }, [setLocation, to]);
 
   return null;
 }
@@ -190,22 +174,31 @@ function AdminRoute({ component: Component }: { component: ComponentType }) {
 function Router() {
   return (
     <Switch>
+      {/* 1. Página Inicial Oficial para Não Logados */}
       <Route path={"/"} component={PublicLandingRoute} />
-      <Route path={"/studio-home"} component={StudioHomePage} />
-      <Route path={"/canvas-lab"} component={() => <CanvasLabPage />} />
+      <Route path={"/studio-home"} component={PublicLandingRoute} />
+
+      {/* 2. Página Oficial de Alta Conversão para Tráfego / Anúncios */}
+      <Route path={"/criar"} component={PreviewHomePage} />
+      <Route path={"/p"} component={PreviewHomePage} />
       <Route path={"/preview-home"} component={PreviewHomePage} />
-      <Route path={"/landing"} component={LandingPage} />
-      <Route path={"/landing2"} component={LandingPage2} />
-      <Route path={"/landing3"} component={Landing3} />
-      <Route path={"/crie-posts-incriveis"} component={Landing4} />
-      <Route path={"/thevoid"} component={() => <ProtectedRoute component={StudioAppPage} />} />
-      <Route path={"/thevoid-clean"} component={() => <ProtectedRoute component={StudioAppCleanPage} />} />
-      <Route path={"/studio"} component={() => <ProtectedRoute component={StudioAppPage} />} />
-      {/* Avaliação paralela: nova tela de criação (StudioCreateViewV2) */}
-      <Route path={"/studio-v2"} component={() => <ProtectedRoute component={StudioAppV2Page} />} />
-      {/* Segunda iteração: campo "página em branco" + prateleira honesta */}
+      <Route path={"/crie-posts-incriveis"} component={PreviewHomePage} />
+
+      {/* 3. Estúdio Oficial Logado (/thevoid, /studio, /studio-v2b) */}
+      <Route path={"/thevoid"} component={() => <ProtectedRoute component={StudioAppV2BPage} />} />
+      <Route path={"/studio"} component={() => <ProtectedRoute component={StudioAppV2BPage} />} />
       <Route path={"/studio-v2b"} component={() => <ProtectedRoute component={StudioAppV2BPage} />} />
-      <Route path={"/thevoid2"} component={LegacyTheVoid2Route} />
+      <Route path={"/canvas-lab"} component={() => <CanvasLabPage />} />
+
+      {/* 4. Redirecionamentos de Rotas Legadas */}
+      <Route path={"/thevoid2"} component={() => <RedirectToRoute to="/" />} />
+      <Route path={"/thevoid-clean"} component={() => <RedirectToRoute to="/thevoid" />} />
+      <Route path={"/studio-v2"} component={() => <RedirectToRoute to="/thevoid" />} />
+      <Route path={"/landing"} component={() => <RedirectToRoute to="/criar" />} />
+      <Route path={"/landing2"} component={() => <RedirectToRoute to="/criar" />} />
+      <Route path={"/landing3"} component={() => <RedirectToRoute to="/criar" />} />
+
+      {/* 5. Páginas do Sistema & Billing */}
       <Route path={"/pricing"} component={Pricing} />
       <Route path={"/billing"} component={() => <ProtectedRoute component={Billing} />} />
       <Route path={"/history"} component={() => <ProtectedRoute component={History} />} />
@@ -217,7 +210,6 @@ function Router() {
       <Route path={"/billing/success"} component={PostCheckoutSuccess} />
       <Route path={"/billing/topup-success"} component={TopupSuccess} />
       <Route path={"/admin"} component={() => <AdminRoute component={Admin} />} />
-      {/* Ferramenta interna de avaliação do catálogo criativo */}
       <Route path={"/familias"} component={FamilyCatalog} />
       <Route path={"/auth/google-callback"} component={GoogleAuthCallback} />
       <Route path={"/404"} component={NotFound} />
@@ -233,26 +225,25 @@ function Router() {
 function AppInner() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
-  const isTheVoid2Route =
+  const isImmersiveRoute =
     location === "/" ||
     location === "/studio-home" ||
     location === "/studio" ||
-    location === "/studio-v2" ||
+    location === "/thevoid" ||
     location === "/studio-v2b" ||
     location === "/canvas-lab" ||
-    location === "/thevoid2" ||
+    location === "/criar" ||
+    location === "/p" ||
     location === "/preview-home" ||
-    location === "/landing3" ||
     location === "/crie-posts-incriveis";
 
   return (
     <>
       <Router />
-      {isAuthenticated && !isTheVoid2Route ? <UserTopMenu /> : null}
-      {/* AuthGate: aparece apenas para usuários não autenticados */}
+      {isAuthenticated && !isImmersiveRoute ? <UserTopMenu /> : null}
       {/* Consentimento LGPD e Cookies - apenas fora da landing imersiva */}
-      {!isTheVoid2Route && <ConsentModal />}
-      {!isTheVoid2Route && <CookieBanner />}
+      {!isImmersiveRoute && <ConsentModal />}
+      {!isImmersiveRoute && <CookieBanner />}
     </>
   );
 }
@@ -284,4 +275,3 @@ function App() {
 }
 
 export default App;
-

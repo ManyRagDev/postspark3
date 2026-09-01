@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Globe, Link2, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, Globe, Sparkles, Wand2 } from "lucide-react";
 
 interface StudioInputBarProps {
   displayText: string;
@@ -19,20 +19,20 @@ export default function StudioInputBar({
       {/* Barra de Input Simulada com Efeito Typewriter */}
       <div
         onClick={onTriggerAction}
-        className="group relative flex items-center rounded-2xl border border-white/15 bg-white/6 backdrop-blur-2xl p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.65)] transition-all cursor-pointer hover:border-white/30"
+        className="group relative flex items-center rounded-2xl border border-white/15 bg-white/6 backdrop-blur-2xl p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.65)] transition-all cursor-pointer hover:border-[#FF5C00]/40"
       >
         <div className="pl-3.5 pr-2 text-white/50 flex items-center shrink-0">
           {promptType === "url" ? (
             <Globe size={18} className="text-[#00f5ff]" />
           ) : (
-            <Wand2 size={18} className="text-[oklch(0.78_0.22_48)]" />
+            <Wand2 size={18} className="text-[#FF5C00]" />
           )}
         </div>
 
         {/* Texto Sendo Digitado com Cursor Piscando */}
         <div className="w-full py-2.5 text-xs sm:text-sm text-white font-mono tracking-tight flex items-center truncate">
           <span className="truncate">{displayText}</span>
-          <span className="inline-block w-1.5 h-4 bg-[oklch(0.78_0.22_48)] ml-1 animate-pulse" />
+          <span className="inline-block w-1.5 h-4 bg-[#FF5C00] ml-1 animate-pulse" />
         </div>
 
         {/* Botão de Disparo com Pulso */}
@@ -44,15 +44,15 @@ export default function StudioInputBar({
               : {}
           }
           transition={{ duration: 0.5 }}
-          className="group flex items-center gap-2 rounded-xl py-2 px-4 text-xs sm:text-sm font-bold text-black shadow-md transition-all shrink-0 cursor-pointer"
+          className="group flex items-center gap-2 rounded-xl py-2 px-4 text-xs sm:text-sm font-bold text-white shadow-md transition-all shrink-0 cursor-pointer"
           style={{
-            background: "linear-gradient(135deg, oklch(0.78 0.22 48), oklch(0.65 0.2 28))",
+            background: "linear-gradient(135deg, #FF5C00, #E04800)",
             boxShadow: isTriggering
-              ? "0 0 28px oklch(0.78 0.22 48 / 90%)"
-              : "0 0 16px oklch(0.78 0.22 48 / 30%)",
+              ? "0 0 28px rgba(255, 92, 0, 0.9)"
+              : "0 0 16px rgba(255, 92, 0, 0.35)",
           }}
         >
-          <Sparkles size={14} className="text-black fill-black" />
+          <Sparkles size={14} className="text-white fill-white" />
           <span>{isTriggering ? "Sintetizando..." : "Criar Post"}</span>
           <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
         </motion.button>
@@ -64,8 +64,8 @@ export default function StudioInputBar({
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
           <span>Demonstração ao vivo em tempo real</span>
         </span>
-        <span className="hover:text-white/70 transition-colors cursor-pointer" onClick={onTriggerAction}>
-          Clique para testar com seu próprio conteúdo →
+        <span className="hover:text-white/80 text-white/60 transition-colors cursor-pointer" onClick={onTriggerAction}>
+          Digite sua ideia ou cole seu site →
         </span>
       </div>
     </div>

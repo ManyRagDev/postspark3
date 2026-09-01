@@ -8,27 +8,28 @@ interface StudioNavProps {
 export default function StudioNav({ onOpenAuth }: StudioNavProps) {
   return (
     <header className="relative z-30 flex items-center justify-between px-6 py-4 md:px-12 w-full max-w-7xl mx-auto">
-      {/* Brand */}
+      {/* Brand Oficial PostSpark */}
       <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-        <SparkLogo size={36} />
-        <span className="text-xl md:text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
+        <SparkLogo size={38} />
+        <span className="text-xl md:text-2xl font-black tracking-tight select-none" style={{ fontFamily: "var(--font-display)" }}>
           <span className="text-white">Post</span>
-          <span style={{ color: "oklch(0.75 0.22 45)" }}>Spark</span>
+          <span className="text-[#FF5C00]">Spark</span>
         </span>
       </div>
 
       {/* Ação Única */}
-      <div className="flex items-center">
+      <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onOpenAuth}
-          className="group relative flex items-center gap-2 rounded-xl py-2 px-4 text-xs sm:text-sm font-bold text-black shadow-lg transition-all hover:scale-105 hover:brightness-110 active:scale-95 cursor-pointer"
+          className="group relative flex items-center gap-2 rounded-xl py-2 px-4.5 text-xs sm:text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:brightness-110 active:scale-95 cursor-pointer"
           style={{
-            background: "linear-gradient(135deg, oklch(0.78 0.22 48), oklch(0.65 0.2 28))",
-            boxShadow: "0 0 20px oklch(0.7 0.22 40 / 30%)",
+            background: "linear-gradient(135deg, #FF5C00, #E04800)",
+            boxShadow: "0 0 20px rgba(255, 92, 0, 0.35)",
           }}
         >
-          <span>Entrar</span>
+          <Sparkles size={14} className="text-white fill-white" />
+          <span>Entrar no App</span>
           <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>
