@@ -1,21 +1,29 @@
 import { useState, useEffect } from "react";
-import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop } from "lucide-react";
 import { toast } from "sonner";
 import { OFFICIAL_FAMILIES_META, resolveLegibleTextColor, type CanvasPostModel, type TextAlignType, type VisualFamilyId } from "./types";
 import { FONT_CATALOG } from "@/lib/fonts";
 import { trpc } from "@/lib/trpc";
 import BackgroundsDrawer from "./BackgroundsDrawer";
+import { downloadImageFile } from "@/lib/downloadHelper";
 
 interface CanvasSidebarProps {
   post: CanvasPostModel;
   onUpdatePost: (patch: Partial<CanvasPostModel>) => void;
+  isEditingBackground?: boolean;
+  onToggleBackgroundEdit?: () => void;
 }
 
 type TabType = "content" | "style" | "media" | "brand";
 
 const ALL_FAMILIES_LIST = Object.values(OFFICIAL_FAMILIES_META);
 
-export default function CanvasSidebar({ post, onUpdatePost }: CanvasSidebarProps) {
+export default function CanvasSidebar({
+  post,
+  onUpdatePost,
+  isEditingBackground = false,
+  onToggleBackgroundEdit,
+}: CanvasSidebarProps) {
   const [activeTab, setActiveTab] = useState<TabType>("content");
   const [copiedCaption, setCopiedCaption] = useState(false);
   const [aiImagePrompt, setAiImagePrompt] = useState(post.imagePrompt || "");
@@ -143,7 +151,16 @@ export default function CanvasSidebar({ post, onUpdatePost }: CanvasSidebarProps
       const res = await generateImageMutation.mutateAsync({ prompt: aiImagePrompt.trim() });
       if (res?.imageUrl) {
         handleApplyBackground(res.imageUrl);
-        toast.success("Foto exclusiva gerada com sucesso pela IA!");
+        toast.success("Foto exclusiva gerada com sucesso pela IA!", {
+          action: {
+            label: "Baixar Foto",
+            onClick: () =>
+              downloadImageFile(
+                res.imageUrl,
+                `postspark-ia-slide-${post.currentSlideIndex + 1}-${Date.now()}.png`
+              ),
+          },
+        });
       } else {
         throw new Error("Nenhuma imagem retornada pelo motor de IA.");
       }
@@ -486,6 +503,67 @@ export default function CanvasSidebar({ post, onUpdatePost }: CanvasSidebarProps
                   className="w-4 h-4 accent-[oklch(0.78_0.22_48)]"
                 />
               </label>
+            )}
+
+            {/* CARD DO PLANO DE FUNDO ATIVO (AJUSTE ESTILO CANVA + DOWNLOAD) */}
+            {Boolean(post.slides[post.currentSlideIndex]?.bgImage || post.bgImage) && (
+              <div className="p-3.5 rounded-xl border border-white/12 bg-white/4 space-y-3 shadow-md">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-wider text-white/70 font-bold flex items-center gap-1.5">
+                    <ImageIcon size={13} className="text-[oklch(0.78_0.22_48)]" />
+                    <span>Fundo do Slide</span>
+                  </span>
+                  <span className="text-[10px] text-white/40 font-mono">
+                    Slide {post.currentSlideIndex + 1} de {post.slides.length}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/15 shrink-0 bg-black/40 relative shadow-inner">
+                    <img
+                      src={post.slides[post.currentSlideIndex]?.bgImage || post.bgImage}
+                      alt="Fundo atual"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    {/* Botão para ativar modo de edição do fundo estilo Canva */}
+                    <button
+                      type="button"
+                      onClick={onToggleBackgroundEdit}
+                      className={`w-full py-2 px-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                        isEditingBackground
+                          ? "bg-[oklch(0.78_0.22_48)] text-black border-[oklch(0.78_0.22_48)] shadow-md"
+                          : "bg-white/8 hover:bg-white/14 text-white border-white/15"
+                      }`}
+                    >
+                      <Crop size={13} />
+                      <span>{isEditingBackground ? "✓ Concluir Ajuste" : "Ajustar Enquadramento"}</span>
+                    </button>
+
+                    {/* Botão de download direto da foto em alta resolução */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const targetUrl = post.slides[post.currentSlideIndex]?.bgImage || post.bgImage;
+                        if (!targetUrl) return;
+                        toast.info("Iniciando download da imagem...");
+                        await downloadImageFile(
+                          targetUrl,
+                          `postspark-fundo-slide-${post.currentSlideIndex + 1}-${Date.now()}.png`
+                        );
+                        toast.success("Download da imagem concluído!");
+                      }}
+                      className="w-full py-1.5 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      title="Baixar imagem original de alta resolução gerada ou aplicada"
+                    >
+                      <Download size={12} className="text-[oklch(0.78_0.22_48)]" />
+                      <span>Baixar Foto (Alta Res)</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* 1. GERADOR DE IMAGENS POR IA (COM PROMPT PRÉ-PREENCHIDO PELA IA) */}

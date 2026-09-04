@@ -1,0 +1,696 @@
+/* ==========================================================================
+   Inspiracao Showcase Styles — Isolado e Totalmente Seguro
+   ========================================================================== */
+
+.showcase-root {
+  --showcase-card-w: clamp(280px, 23vw, 350px);
+  --showcase-card-h: clamp(360px, 47vh, 430px);
+  --showcase-card-spacing: 330px;
+
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background-color: oklch(0.04 0.06 280);
+  color: #f4efe6;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+}
+
+/* ---------- vinheta do vazio cósmico (TheVoid) ---------- */
+.showcase-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 95% at 50% 50%, transparent 40%, rgba(5, 5, 12, 0.85) 100%);
+  z-index: 2;
+}
+
+/* ---------- headline hero hierarquizada ---------- */
+.showcase-hero-copy {
+  position: fixed;
+  top: clamp(62px, 8vh, 86px);
+  left: 0;
+  right: 0;
+  z-index: 25;
+  text-align: center;
+  padding: 0 24px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.showcase-h1 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(38px, 4.5vw, 56px);
+  color: #FFFFFF;
+  letter-spacing: -0.025em;
+  margin: 0;
+  line-height: 1.12;
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.8), 0 0 40px rgba(255, 255, 255, 0.15);
+}
+
+.showcase-h1 .w {
+  display: inline-block;
+  color: #FFFFFF;
+  opacity: 0;
+  animation: showcaseWordIn .9s cubic-bezier(.16, .84, .28, 1) forwards;
+  animation-delay: calc(.25s + var(--i) * .09s);
+}
+
+.showcase-dot {
+  display: inline-block;
+  color: #FF5C00;
+  filter: drop-shadow(0 0 14px rgba(255, 92, 0, 0.8));
+  margin-left: 0.02em;
+  opacity: 0;
+  animation: showcaseWordIn .9s cubic-bezier(.16, .84, .28, 1) forwards;
+  animation-delay: 0.52s;
+}
+
+.showcase-sub {
+  margin-top: 16px;
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: clamp(14px, 1.25vw, 16px);
+  font-weight: 400;
+  color: rgba(240, 235, 225, 0.68);
+  letter-spacing: 0.012em;
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  animation: showcaseFadeUp .9s cubic-bezier(.16, .84, .28, 1) .72s forwards;
+  max-width: 580px;
+  line-height: 1.5;
+}
+
+/* ---------- cápsula do prompt no desktop (integrada na hierarquia do hero) ---------- */
+.showcase-desktop-prompt-capsule {
+  margin-top: clamp(24px, 3vh, 32px);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(14, 11, 20, 0.82);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 7px 20px;
+  max-width: min(88vw, 660px);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  pointer-events: auto;
+  opacity: 0;
+  animation: showcaseFadeIn .8s ease .8s forwards;
+  transition: border-color .3s ease, box-shadow .3s ease;
+}
+
+.showcase-desktop-prompt-capsule.typing {
+  border-color: rgba(255, 92, 0, 0.5);
+  box-shadow: 0 0 28px rgba(255, 92, 0, 0.22), 0 10px 32px rgba(0, 0, 0, 0.55);
+}
+
+.showcase-prompt-prefix {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #FF5C00;
+  letter-spacing: .08em;
+  text-transform: lowercase;
+  flex: none;
+}
+
+.showcase-prompt-quote-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: #faf6ee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.showcase-desktop-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 12px;
+  background: #FF5C00;
+  border-radius: 99px;
+  margin-left: 3px;
+  vertical-align: -1px;
+  animation: showcaseBlink 0.8s ease-in-out infinite;
+}
+
+@keyframes showcaseBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ---------- palco desktop (coverflow) ---------- */
+.showcase-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  perspective: 900px;
+  perspective-origin: 50% 45%;
+  cursor: grab;
+  touch-action: none;
+  opacity: 0;
+  animation: showcaseFadeIn 1.2s ease .4s forwards;
+}
+
+.showcase-stage.dragging {
+  cursor: grabbing;
+}
+
+/* Card Fiel ao thevoid e inspiracao.html */
+.showcase-card {
+  position: absolute;
+  left: 50%;
+  top: 56.5%;
+  width: var(--showcase-card-w);
+  height: var(--showcase-card-h);
+  margin-left: calc(var(--showcase-card-w) / -2);
+  margin-top: calc(var(--showcase-card-h) / -2);
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  will-change: transform, opacity;
+  user-select: none;
+}
+
+.showcase-card .shade {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #06060c;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Elementos Internos do Card (Fidelidade ao inspiracao.html) */
+.showcase-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  color: rgba(244, 239, 230, .75);
+  position: relative;
+  z-index: 2;
+}
+
+.showcase-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.showcase-sticker {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  color: #000;
+}
+
+.showcase-card-mid {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 1.4vh, 13px);
+  position: relative;
+  z-index: 2;
+  margin: auto 0;
+}
+
+.showcase-avatar {
+  width: clamp(68px, 10vh, 88px);
+  height: clamp(68px, 10vh, 88px);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: clamp(30px, 4.5vh, 42px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  border: 1px solid rgba(255, 255, 255, .1);
+}
+
+.showcase-name {
+  font-size: clamp(18px, 2.2vh, 23px);
+  font-weight: 700;
+  letter-spacing: .01em;
+  color: #f8f4ea;
+  line-height: 1.2;
+  max-width: 90%;
+}
+
+.showcase-author {
+  font-size: 11.5px;
+  color: rgba(244, 239, 230, .6);
+  text-transform: uppercase;
+  letter-spacing: .15em;
+  margin-top: -4px;
+}
+
+.showcase-desc {
+  font-size: clamp(11.5px, 1.4vh, 13px);
+  line-height: 1.45;
+  color: rgba(244, 239, 230, .78);
+  max-width: 270px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.showcase-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: rgba(244, 239, 230, .65);
+  position: relative;
+  z-index: 2;
+  padding-top: 4px;
+}
+
+.showcase-card-bottom b {
+  color: rgba(244, 239, 230, .95);
+  font-weight: 600;
+  letter-spacing: .05em;
+}
+
+.showcase-accent-bar {
+  height: 3px;
+  width: 28px;
+  border-radius: 99px;
+}
+
+/* ---------- dica de navegação (hint) ---------- */
+.showcase-hint {
+  position: fixed;
+  right: 30px;
+  bottom: 26px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: rgba(250, 246, 238, .85);
+  background: rgba(24, 18, 13, .65);
+  backdrop-filter: blur(10px);
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  transition: opacity .6s ease, transform .6s ease;
+  opacity: 0;
+  animation: showcaseFadeIn .9s ease 1.35s forwards;
+}
+
+.showcase-hint.off {
+  opacity: 0 !important;
+  pointer-events: none;
+  transform: translateY(8px);
+}
+
+.showcase-wheel {
+  width: 15px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(250, 246, 238, .85);
+  position: relative;
+}
+
+.showcase-wheel::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  width: 2.5px;
+  height: 5px;
+  border-radius: 2px;
+  background: rgba(250, 246, 238, .9);
+  transform: translateX(-50%);
+  animation: showcaseRoll 1.4s ease-in-out infinite;
+}
+
+/* ---------- dock inferior ---------- */
+.showcase-dock {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  gap: 12px;
+  opacity: 0;
+  animation: showcaseFadeIn .9s ease 1s forwards;
+}
+
+.showcase-pill {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 30px;
+  border-radius: 999px;
+  background: rgba(24, 18, 13, .8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, .1);
+  color: #f4efe6;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.showcase-pill:hover {
+  transform: translateY(-2px);
+  background: rgba(38, 28, 20, .92);
+  border-color: rgba(255, 255, 255, .2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+}
+
+.showcase-pill-primary {
+  background: linear-gradient(135deg, #FF6B2B 0%, #FF5C00 50%, #E04800 100%);
+  border: 1px solid rgba(255, 210, 175, 0.45);
+  box-shadow: 0 8px 30px rgba(255, 92, 0, 0.42), 0 0 50px rgba(255, 92, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.45);
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 13px 36px;
+  font-size: 14px;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.showcase-pill-primary:hover {
+  transform: translateY(-2px) scale(1.03);
+  background: linear-gradient(135deg, #FF7B3B 0%, #FF660D 50%, #EB5208 100%);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 12px 38px rgba(255, 92, 0, 0.58), 0 0 65px rgba(255, 92, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.65);
+}
+
+.showcase-pill-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ==========================================================================
+   MOBILE — Stories com Prompt Typewriter & Síntese
+   ========================================================================== */
+.showcase-mobile-demo {
+  display: none;
+}
+
+.showcase-prompt-capsule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(22, 16, 12, .82);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  padding: 10px 18px;
+  max-width: 90vw;
+  width: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  transition: border-color .3s ease, box-shadow .3s ease;
+}
+
+.showcase-prompt-capsule.synthesizing {
+  border-color: rgba(255, 92, 0, .7);
+  box-shadow: 0 0 26px rgba(255, 92, 0, .45);
+}
+
+.showcase-spark {
+  color: #f2b264;
+  font-size: 15px;
+  flex: none;
+  transition: transform .3s ease;
+}
+
+.showcase-spark.pulsing {
+  animation: showcaseSparkPulse .7s ease infinite alternate;
+  color: #FF5C00;
+}
+
+.showcase-prompt-text {
+  font-size: 13px;
+  color: rgba(248, 244, 234, .95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.showcase-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  background: #f2b264;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: showcaseBlink 1s infinite;
+}
+
+/* Card 4:5 Mobile */
+.showcase-m-card {
+  position: relative;
+  height: min(52svh, calc(72vw * 1.25));
+  aspect-ratio: 4 / 5;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 30px 70px rgba(10, 6, 3, .6), 0 4px 18px rgba(10, 6, 3, .4);
+  user-select: none;
+  touch-action: manipulation;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, .1);
+}
+
+/* Barras de progresso estilo stories */
+.showcase-segments {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 30;
+  display: flex;
+  gap: 4px;
+}
+
+.showcase-seg {
+  flex: 1;
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .28);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.showcase-seg::after {
+  content: "";
+  position: absolute;
+  inset: -12px -4px;
+}
+
+.showcase-seg i {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: #f6efe3;
+  border-radius: inherit;
+  display: block;
+}
+
+.showcase-slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(.96);
+  transition: opacity .5s ease, transform .55s cubic-bezier(.16, .84, .28, 1);
+  pointer-events: none;
+}
+
+.showcase-slide.active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.showcase-gen-tag {
+  font-size: 12px;
+  letter-spacing: .05em;
+  color: rgba(248, 244, 234, .75);
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* ==========================================================================
+   Keyframes das Animações
+   ========================================================================== */
+@keyframes showcaseFadeIn {
+  to { opacity: 1; }
+}
+
+@keyframes showcaseFadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes showcaseWordIn {
+  from { opacity: 0; transform: translateY(26px); filter: blur(10px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+
+@keyframes showcaseRoll {
+  0% { transform: translate(-50%, 0); opacity: 1; }
+  70% { transform: translate(-50%, 8px); opacity: 0; }
+  100% { transform: translate(-50%, 0); opacity: 0; }
+}
+
+@keyframes showcaseSparkPulse {
+  from { transform: scale(1) rotate(0deg); }
+  to { transform: scale(1.3) rotate(20deg); }
+}
+
+@keyframes showcaseBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ==========================================================================
+   Responsividade: Telas Baixas e Notebooks (Evita sobreposição vertical)
+   ========================================================================== */
+@media (max-height: 820px) and (min-width: 901px) {
+  .showcase-root {
+    --showcase-card-w: clamp(260px, 20vw, 310px);
+    --showcase-card-h: clamp(330px, 44vh, 380px);
+    --showcase-card-spacing: 280px;
+  }
+
+  .showcase-hero-copy {
+    top: 65px;
+  }
+
+  .showcase-h1 {
+    font-size: clamp(24px, 3.8vw, 42px);
+  }
+
+  .showcase-stage {
+    perspective-origin: 50% 48%;
+  }
+
+  .showcase-dock {
+    bottom: 18px;
+  }
+}
+
+@media (max-height: 680px) and (min-width: 901px) {
+  .showcase-root {
+    --showcase-card-w: 240px;
+    --showcase-card-h: 300px;
+    --showcase-card-spacing: 220px;
+  }
+
+  .showcase-hero-copy {
+    top: 55px;
+  }
+
+  .showcase-sub {
+    display: none;
+  }
+
+  .showcase-h1 {
+    font-size: 26px;
+  }
+
+  .showcase-stage {
+    perspective-origin: 50% 50%;
+  }
+}
+
+/* ==========================================================================
+   Breakpoint Mobile (<= 900px)
+   ========================================================================== */
+@media (max-width: 900px) {
+  .showcase-root {
+    --showcase-card-w: 260px;
+    --showcase-card-h: 340px;
+  }
+
+  .showcase-hero-copy {
+    top: 8vh;
+    z-index: 30;
+  }
+
+  .showcase-h1 {
+    text-shadow: 0 2px 24px rgba(60, 40, 15, .45);
+  }
+
+  .showcase-stage {
+    display: none;
+  }
+
+  .showcase-hint {
+    display: none;
+  }
+
+  .showcase-mobile-demo {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    padding: 0 18px calc(88px + env(safe-area-inset-bottom));
+    opacity: 0;
+    animation: showcaseFadeIn 1s ease .5s forwards;
+  }
+
+  .showcase-pill {
+    padding: 12px 24px;
+    font-size: 13.5px;
+  }
+}
+
+@media (max-width: 900px) and (max-height: 520px) {
+  .showcase-sub {
+    display: none;
+  }
+
+  .showcase-hero-copy {
+    top: 4vh;
+  }
+
+  .showcase-h1 {
+    font-size: clamp(22px, 6vw, 30px);
+  }
+
+  .showcase-m-card {
+    height: min(48svh, calc(62vw * 1.25));
+  }
+
+  .showcase-mobile-demo {
+    gap: 8px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+}

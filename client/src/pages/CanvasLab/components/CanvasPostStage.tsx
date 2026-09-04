@@ -1,6 +1,6 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Stage, Layer, Rect, Text, Group, Image as KonvaImage, Transformer, Line, Circle } from "react-konva";
-import type { CanvasPostModel, ElementPosition } from "./types";
+import type { BgImageTransform, CanvasPostModel, ElementPosition } from "./types";
 import { useDynamicFont } from "@/hooks/useDynamicFont";
 import JSZip from "jszip";
 
@@ -15,6 +15,9 @@ interface CanvasPostStageProps {
   onUpdateElementPosition?: (elementKey: "headlinePos" | "subtextPos" | "badgePos" | "barPos" | "logoPos", pos: ElementPosition) => void;
   onSelectElement?: (elementId: string | null) => void;
   isReadOnly?: boolean;
+  isEditingBackground?: boolean;
+  onUpdateBgTransform?: (transform: BgImageTransform) => void;
+  onEnterBackgroundEdit?: () => void;
 }
 
 // Cálculo de crop proporcional (object-fit: cover)
@@ -55,16 +58,30 @@ function getCoverCrop(
 }
 
 export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStageProps>(
-  ({ post, zoom, onUpdateElementPosition, onSelectElement, isReadOnly = false }, ref) => {
+  (
+    {
+      post,
+      zoom,
+      onUpdateElementPosition,
+      onSelectElement,
+      isReadOnly = false,
+      isEditingBackground = false,
+      onUpdateBgTransform,
+      onEnterBackgroundEdit,
+    },
+    ref
+  ) => {
     const isInteractive = !isReadOnly && Boolean(onUpdateElementPosition);
     const stageRef = useRef<any>(null);
     const transformerRef = useRef<any>(null);
+    const bgTransformerRef = useRef<any>(null);
 
     const headlineRef = useRef<any>(null);
     const subtextRef = useRef<any>(null);
     const badgeRef = useRef<any>(null);
     const barRef = useRef<any>(null);
     const logoRef = useRef<any>(null);
+    const bgImageRef = useRef<any>(null);
 
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [snapLines, setSnapLines] = useState<{ x?: number; y?: number }>({});
@@ -96,6 +113,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
 
     const currentSlide = post.slides[post.currentSlideIndex] || post.slides[0];
     const activeBg = currentSlide?.bgImage || post.bgImage;
+    const bgTransform = currentSlide?.bgTransform || post.bgTransform;
 
     useEffect(() => {
       if (!activeBg) {
@@ -119,7 +137,13 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       img.onload = () => setLogoImgElement(img);
     }, [post.logoUrl]);
 
+    // Vincula o Transformer normal aos elementos de texto/marca quando não estiver em modo de fundo
     useEffect(() => {
+      if (isEditingBackground) {
+        transformerRef.current?.nodes([]);
+        transformerRef.current?.getLayer()?.batchDraw();
+        return;
+      }
       if (!transformerRef.current) return;
       let targetNode = null;
       if (selectedId === "headline") targetNode = headlineRef.current;
@@ -135,12 +159,27 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         transformerRef.current.nodes([]);
         transformerRef.current.getLayer()?.batchDraw();
       }
-    }, [selectedId]);
+    }, [selectedId, isEditingBackground]);
+
+    // Vincula o Transformer exclusivo ao Plano de Fundo quando isEditingBackground === true (Estilo Canva)
+    useEffect(() => {
+      if (!bgTransformerRef.current) return;
+      if (isEditingBackground && bgImageRef.current) {
+        bgTransformerRef.current.nodes([bgImageRef.current]);
+        bgTransformerRef.current.getLayer()?.batchDraw();
+      } else {
+        bgTransformerRef.current.nodes([]);
+        bgTransformerRef.current.getLayer()?.batchDraw();
+      }
+    }, [isEditingBackground, bgImgElement]);
 
     useImperativeHandle(ref, () => ({
       exportPng4K: () => {
         if (!stageRef.current) return "";
         setSelectedId(null);
+        transformerRef.current?.nodes([]);
+        bgTransformerRef.current?.nodes([]);
+        stageRef.current.getLayers().forEach((l: any) => l.batchDraw());
         return stageRef.current.toDataURL({
           pixelRatio: 4,
           mimeType: "image/png",
@@ -151,6 +190,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         if (!stageRef.current) return new Blob();
 
         setSelectedId(null);
+        transformerRef.current?.nodes([]);
+        bgTransformerRef.current?.nodes([]);
+        stageRef.current.getLayers().forEach((l: any) => l.batchDraw());
 
         for (let i = 0; i < post.slides.length; i++) {
           if (onProgress) onProgress(i + 1, post.slides.length);
@@ -436,16 +478,48 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 <Rect x={0} y={0} width={baseWidth} height={baseHeight} fill={post.palette.background} />
               )}
 
-              {/* IMAGEM DE FUNDO (SE HOUVER) */}
+              {/* IMAGEM DE FUNDO COM SUPORTE A EDIÇÃO ESTILO CANVA */}
               {bgImgElement && (
                 <KonvaImage
+                  ref={bgImageRef}
                   image={bgImgElement}
-                  x={0}
-                  y={0}
+                  x={bgTransform?.x ?? 0}
+                  y={bgTransform?.y ?? 0}
+                  scaleX={bgTransform?.scaleX ?? 1}
+                  scaleY={bgTransform?.scaleY ?? 1}
+                  rotation={bgTransform?.rotation ?? 0}
                   width={baseWidth}
                   height={baseHeight}
                   crop={bgCrop}
-                  opacity={0.8}
+                  opacity={isEditingBackground ? 0.95 : 0.8}
+                  draggable={isInteractive && isEditingBackground}
+                  onDblClick={() => {
+                    if (!isEditingBackground && onEnterBackgroundEdit) {
+                      onEnterBackgroundEdit();
+                    }
+                  }}
+                  onDragEnd={(e) => {
+                    if (!onUpdateBgTransform) return;
+                    onUpdateBgTransform({
+                      x: Math.round(e.target.x()),
+                      y: Math.round(e.target.y()),
+                      scaleX: Number(e.target.scaleX().toFixed(3)),
+                      scaleY: Number(e.target.scaleY().toFixed(3)),
+                      rotation: Math.round(e.target.rotation()),
+                    });
+                  }}
+                  onTransformEnd={() => {
+                    if (!onUpdateBgTransform) return;
+                    const node = bgImageRef.current;
+                    if (!node) return;
+                    onUpdateBgTransform({
+                      x: Math.round(node.x()),
+                      y: Math.round(node.y()),
+                      scaleX: Number(node.scaleX().toFixed(3)),
+                      scaleY: Number(node.scaleY().toFixed(3)),
+                      rotation: Math.round(node.rotation()),
+                    });
+                  }}
                 />
               )}
 
@@ -466,11 +540,18 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     1,
                     post.palette.background,
                   ]}
-                  opacity={post.overlayOpacity}
+                  opacity={isEditingBackground ? 0.2 : post.overlayOpacity}
+                  listening={false}
                 />
               )}
 
-              {/* ─── 2. DETALHES GRÁFICOS ÚNICOS DE CADA FAMÍLIA ─── */}
+              {/* ─── PRIMEIRO PLANO (TEXTOS E ELEMENTOS GRÁFICOS) ─── */}
+              {/* Quando isEditingBackground === true (Estilo Canva), o primeiro plano atenua e não captura cliques */}
+              <Group
+                listening={!isEditingBackground && isInteractive}
+                opacity={isEditingBackground ? 0.35 : 1}
+              >
+                {/* ─── 2. DETALHES GRÁFICOS ÚNICOS DE CADA FAMÍLIA ─── */}
 
               {/* 2.A) EDITORIAL: Aspas Gigantes no Fundo + Divisória Fina */}
               {isEditorial && (
@@ -711,18 +792,39 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   onDragEnd={(e) => handleDragEnd(e, "barPos")}
                 />
               )}
+              </Group>
 
-              {/* ─── 8. TRANSFORMER PARA O ELEMENTO SELECIONADO ─── */}
-              {isInteractive && (
+              {/* ─── 8. TRANSFORMER PARA ELEMENTOS DE TEXTO/MARCA ─── */}
+              {isInteractive && !isEditingBackground && (
                 <Transformer
                   ref={transformerRef}
-                rotateEnabled={true}
-                borderStroke="#38bdf8"
-                borderStrokeWidth={1.5}
-                anchorStroke="#38bdf8"
-                anchorFill="#ffffff"
-                anchorSize={7}
-                anchorCornerRadius={2}
+                  rotateEnabled={true}
+                  borderStroke="#38bdf8"
+                  borderStrokeWidth={1.5}
+                  anchorStroke="#38bdf8"
+                  anchorFill="#ffffff"
+                  anchorSize={7}
+                  anchorCornerRadius={2}
+                />
+              )}
+
+              {/* ─── 8.B TRANSFORMER DEDICADO DO PLANO DE FUNDO (ESTILO CANVA) ─── */}
+              {isInteractive && isEditingBackground && (
+                <Transformer
+                  ref={bgTransformerRef}
+                  rotateEnabled={false}
+                  keepRatio={true}
+                  enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right"]}
+                  borderStroke="#FF5C00"
+                  borderStrokeWidth={2}
+                  anchorStroke="#FF5C00"
+                  anchorFill="#ffffff"
+                  anchorSize={9}
+                  anchorCornerRadius={2}
+                  boundBoxFunc={(oldBox, newBox) => {
+                    if (newBox.width < 80 || newBox.height < 80) return oldBox;
+                    return newBox;
+                  }}
                 />
               )}
 

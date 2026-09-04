@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, ChevronLeft, ChevronRight, Globe, Layers, RefreshCw, Sparkles, Wand2, Zap } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Globe, Layers, RefreshCw, Sparkles, Wand2, Zap } from "lucide-react";
 import { useState } from "react";
 
 export type DemoScenario = {
@@ -28,50 +28,78 @@ export type DemoScenario = {
       accent: string;
       surface?: string;
     };
-    slides?: Array<{ headline: string; subtext: string; step: string }>;
+    slides?: Array<{ headline: string; subtext: string; step: string; bgImage?: string }>;
   };
 };
 
 export const DEMO_SCENARIOS: DemoScenario[] = [
   {
     id: "url-brand",
-    tabLabel: "Site / URL (Brand DNA)",
+    tabLabel: "E-commerce & Moda (URL)",
     icon: Globe,
-    rawInput: "https://nuvemshop.com.br",
+    rawInput: "https://loja-aurora.com.br",
     inputType: "url",
     extractedDna: {
-      brandName: "Nuvemshop",
-      colors: ["#2B3595", "#00D68F", "#11142D"],
-      archetype: "Plataforma de E-commerce Líder",
-      vibe: "Tecnologia, Escala & Confiabilidade",
+      brandName: "Aurora Alfaiataria",
+      colors: ["#120D0A", "#E5A93C", "#F8F4EE"],
+      archetype: "Alta Costura & Design Autoral",
+      vibe: "Elegância, Discrição & Alto Ticket",
     },
     generatedPost: {
-      category: "E-COMMERCE & ESCALA",
-      badge: "BRAND DNA // V3",
-      headline: "Seu e-commerce não precisa parecer um catálogo genérico.",
-      subtext: "Marcas memoráveis constroem experiências visuais que geram recorrência e desejo imediato.",
+      category: "ALTO VALOR & LUXO",
+      badge: "EDITORIAL // CAPA",
+      headline: "Marcas de luxo não competem por preço.",
+      subtext: "A percepção de prestígio nasce quando cada palavra e detalhe visual parecem intencionais.",
       layout: "editorial",
       fontFamily: '"Playfair Display", Georgia, serif',
-      bgImage: "https://images.unsplash.com/photo-1556742049-0a67c5574f73?auto=format&fit=crop&w=800&q=80",
+      bgImage: "/showcase/backgrounds/bg-editorial.jpg",
       palette: {
-        background: "#0E1022",
-        text: "#FFFFFF",
-        accent: "#00E59B",
-        surface: "#1A1F3D",
+        background: "#120D0A",
+        text: "#F8F4EE",
+        accent: "#E5A93C",
+        surface: "#221914",
+      },
+    },
+  },
+  {
+    id: "authority-editorial",
+    tabLabel: "Consultoria High-Ticket (Ideia)",
+    icon: Sparkles,
+    rawInput: "Quem cobra 10x mais não vende tempo de consultoria. Vende certeza de decisão.",
+    inputType: "text",
+    extractedDna: {
+      brandName: "Mentoria & Advisory Executivo",
+      colors: ["#0B0D14", "#38BDF8", "#F8FAFC"],
+      archetype: "Autoridade Soberana",
+      vibe: "Precisão Cirúrgica & Rigor Intelectual",
+    },
+    generatedPost: {
+      category: "POSICIONAMENTO DE MARCA",
+      badge: "DECISÃO // HIGH-END",
+      headline: "Quem cobra 10x mais não vende tempo. Vende certeza.",
+      subtext: "Clientes de elite não contratam execução operacional. Contratam quem absorve o risco.",
+      layout: "editorial",
+      fontFamily: '"Cinzel", "Playfair Display", serif',
+      bgImage: "/showcase/backgrounds/bg-quote.jpg",
+      palette: {
+        background: "#080A10",
+        text: "#F1F5F9",
+        accent: "#38BDF8",
+        surface: "#121826",
       },
     },
   },
   {
     id: "carousel-framework",
-    tabLabel: "Carrossel Multi-Slide",
+    tabLabel: "Carrossel Multi-Slide (Framework)",
     icon: Layers,
-    rawInput: "3 erros silenciosos que estão matando a conversão do seu produto digital",
+    rawInput: "3 erros silenciosos que estão matando a conversão do seu infoproduto",
     inputType: "carousel",
     extractedDna: {
-      brandName: "Infoproduto High-Ticket",
-      colors: ["#FF4D00", "#FFFFFF", "#0A0A0C"],
-      archetype: "Framework de Vendas & Retenção",
-      vibe: "Urgência, Precisão & Autoridade",
+      brandName: "Framework de Conversão",
+      colors: ["#09090C", "#FF5C00", "#FFFFFF"],
+      archetype: "Retenção & Escala Digital",
+      vibe: "Urgência, Clareza & Tração",
     },
     generatedPost: {
       category: "CONVERSÃO & CRO",
@@ -80,11 +108,11 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
       subtext: "O que acontece nos primeiros 4 segundos da sua oferta determina 80% do faturamento.",
       layout: "carousel",
       fontFamily: '"Archivo Black", sans-serif',
-      bgImage: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=800&q=80",
+      bgImage: "/showcase/backgrounds/bg-split-desejo.jpg",
       palette: {
-        background: "#0B0B0E",
+        background: "#09090C",
         text: "#FFFFFF",
-        accent: "#FF4D00",
+        accent: "#FF5C00",
         surface: "#181820",
       },
       slides: [
@@ -92,70 +120,45 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
           step: "SLIDE 01 // O GANCHO",
           headline: "3 gargalos visuais que fazem seus clientes hesitarem.",
           subtext: "O que acontece nos primeiros 4 segundos determina se o visitante compra ou fecha a aba.",
+          bgImage: "/showcase/backgrounds/bg-split-desejo.jpg",
         },
         {
           step: "SLIDE 02 // O DIAGNÓSTICO",
           headline: "1. Falta de hierarquia: quando tudo grita, nada é ouvido.",
           subtext: "Sem contraste deliberado entre título e benefício, a leitura se torna cansativa.",
+          bgImage: "/showcase/backgrounds/bg-data.jpg",
         },
         {
           step: "SLIDE 03 // A VIRADA",
           headline: "2. Estética genérica não sustenta preço de elite.",
           subtext: "Design deliberado é o multiplicador invisível que ancora alto valor percebido.",
+          bgImage: "/showcase/backgrounds/bg-glass.jpg",
         },
       ],
-    },
-  },
-  {
-    id: "authority-editorial",
-    tabLabel: "Capa de Revista / Luxo",
-    icon: Sparkles,
-    rawInput: "Quem cobra caro não vende tempo. Vende decisão.",
-    inputType: "text",
-    extractedDna: {
-      brandName: "Mentoria & Consultoria Elite",
-      colors: ["#D4AF37", "#F7EFE8", "#120D0A"],
-      archetype: "Posicionamento High-End",
-      vibe: "Elegância, Silêncio & Prestígio",
-    },
-    generatedPost: {
-      category: "POSICIONAMENTO DE MARCA",
-      badge: "EDITORIAL // CAPA",
-      headline: "Quem cobra 10x mais não vende tempo. Vende certeza.",
-      subtext: "A percepção de raridade nasce quando cada palavra e detalhe visual parecem intencionais.",
-      layout: "editorial",
-      fontFamily: '"Playfair Display", Georgia, serif',
-      bgImage: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80",
-      palette: {
-        background: "#100B08",
-        text: "#F8F3EC",
-        accent: "#E2AA3E",
-        surface: "#201610",
-      },
     },
   },
   {
     id: "brutal-hook",
     tabLabel: "Gancho Viral (Neobrutal)",
     icon: Zap,
-    rawInput: "Pare de postar dicas soltas. Crie narrativas que vendem.",
+    rawInput: "3 sinais claros de que sua marca ainda parece amadora no feed",
     inputType: "text",
     extractedDna: {
-      brandName: "Estratégia de Conteúdo",
-      colors: ["#D9381E", "#FFD600", "#000000"],
-      archetype: "Quebra de Padrão & Retenção",
-      vibe: "Direto, Agressivo & Memorável",
+      brandName: "Estratégia de Posicionamento",
+      colors: ["#D92E1E", "#FFD600", "#FFFFFF"],
+      archetype: "Quebra de Padrão Agressiva",
+      vibe: "Impacto Imediato & Retenção Brutal",
     },
     generatedPost: {
-      category: "RETENÇÃO // HOOK",
+      category: "HOOK // POSICIONAMENTO",
       badge: "QUEBRA DE PADRÃO",
-      headline: "DICAS SOLTAS GERAM CURTIDAS VAZIAS. NARRATIVAS GERAM CLIENTES.",
-      subtext: "O feed recompensa quem organiza a atenção do mercado com posicionamento duro.",
+      headline: "3 sinais de que sua marca ainda parece amadora.",
+      subtext: "Design improvisado é o imposto invisível que você paga toda vez que um cliente pede desconto.",
       layout: "split",
-      fontFamily: '"Anton", sans-serif',
-      bgImage: "",
+      fontFamily: '"Anton", "Impact", sans-serif',
+      bgImage: "/showcase/backgrounds/bg-chromatic.jpg",
       palette: {
-        background: "#D9381E",
+        background: "#D92E1E",
         text: "#FFFFFF",
         accent: "#FFD600",
         surface: "#A3200C",
@@ -165,10 +168,10 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
 ];
 
 interface LiveHeroDemoProps {
-  onOpenAuth: () => void;
+  onAction: () => void;
 }
 
-export default function LiveHeroDemo({ onOpenAuth }: LiveHeroDemoProps) {
+export default function LiveHeroDemo({ onAction }: LiveHeroDemoProps) {
   const [selectedScenario, setSelectedScenario] = useState<DemoScenario>(DEMO_SCENARIOS[0]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -180,7 +183,7 @@ export default function LiveHeroDemo({ onOpenAuth }: LiveHeroDemoProps) {
     setTimeout(() => {
       setSelectedScenario(scenario);
       setIsGenerating(false);
-    }, 450);
+    }, 400);
   };
 
   const isCarousel = selectedScenario.generatedPost.layout === "carousel" && !!selectedScenario.generatedPost.slides;
@@ -188,48 +191,68 @@ export default function LiveHeroDemo({ onOpenAuth }: LiveHeroDemoProps) {
     ? selectedScenario.generatedPost.slides[currentSlide]
     : null;
 
-  return (
-    <section className="relative pt-28 pb-20 md:pt-36 md:pb-28 px-4 md:px-8 max-w-7xl mx-auto text-center overflow-hidden">
-      {/* Glow de fundo */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-[oklch(0.7_0.22_40)]/12 blur-[140px] pointer-events-none rounded-full" />
-      <div className="absolute top-1/3 left-1/4 w-[400px] h-[300px] bg-[#00f5ff]/10 blur-[130px] pointer-events-none rounded-full" />
+  const currentBgImage = isCarousel && activeSlideData?.bgImage
+    ? activeSlideData.bgImage
+    : selectedScenario.generatedPost.bgImage;
 
-      {/* Pill Badge */}
-      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/12 bg-white/6 backdrop-blur-md mb-6 text-xs font-semibold tracking-wider uppercase text-white/90">
-        <Sparkles size={13} style={{ color: "oklch(0.78 0.22 48)" }} />
-        <span>Direção Criativa & Inteligência Visual</span>
+  const isBrutal = selectedScenario.id === "brutal-hook";
+
+  return (
+    <section id="transformacao" className="relative pt-28 pb-20 md:pt-36 md:pb-28 px-4 md:px-8 max-w-7xl mx-auto text-center overflow-hidden">
+      {/* Glow focal de fundo */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[380px] bg-[#FF5C00]/[0.08] blur-[150px] pointer-events-none rounded-full" />
+      <div className="absolute top-1/3 left-1/4 w-[450px] h-[320px] bg-[#7c3aed]/[0.06] blur-[140px] pointer-events-none rounded-full" />
+
+      {/* Kicker sutil de estúdio */}
+      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/[0.08] bg-white/[0.03] backdrop-blur-md mb-5 text-[11px] font-medium tracking-[0.2em] uppercase text-white/70">
+        <Sparkles size={12} className="text-[#FF5C00]" />
+        <span>Estúdio de Criação & Direção de Arte</span>
       </div>
 
-      {/* Headline Principal */}
-      <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-[1.08]" style={{ fontFamily: "var(--font-display)" }}>
+      {/* Headline Principal com Tipografia Volumétrica */}
+      <h1
+        className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-[-0.03em] text-white max-w-4xl mx-auto leading-[1.06]"
+        style={{
+          fontFamily: "var(--font-display, 'Space Grotesk', sans-serif)",
+          textShadow: "0 2px 24px rgba(0,0,0,0.85), 0 0 50px rgba(255,255,255,0.05)",
+        }}
+      >
         Transforme qualquer ideia ou URL em{" "}
-        <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(135deg, #ffffff 30%, oklch(0.78 0.22 48) 100%)" }}>
-          posts editoriais de elite.
+        <span className="text-[#FFFFFF]">posts editoriais</span>{" "}
+        <span
+          className="inline-block"
+          style={{
+            background: "linear-gradient(135deg, #FF7A3D 0%, #FF5C00 60%, #E04800 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
+        >
+          de elite<span className="text-[#FF5C00] font-sans">.</span>
         </span>
       </h1>
 
-      {/* Subheadline */}
-      <p className="mt-5 text-sm sm:text-base md:text-lg text-white/70 max-w-2xl mx-auto font-light leading-relaxed">
-        O PostSpark extrai o Brand DNA da sua marca, escreve copies magnéticas e diagramar posts de alta conversão em segundos.
+      {/* Subheadline com tom aveludado */}
+      <p className="mt-5 text-sm sm:text-base md:text-[17px] text-[rgba(240,235,225,0.72)] max-w-2xl mx-auto font-light leading-relaxed">
+        O PostSpark extrai o Brand DNA da sua marca, escreve copies magnéticas e diagrama posts e carrosséis com acabamento cinematográfico em segundos.
       </p>
 
       {/* ---------------- LIVE INTERACTIVE DEMO SANDBOX ---------------- */}
-      <div className="mt-12 max-w-5xl mx-auto rounded-[2rem] border border-white/15 bg-black/60 backdrop-blur-2xl p-4 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.85)] text-left relative z-20">
+      <div className="mt-12 max-w-5xl mx-auto rounded-[2.2rem] border border-white/[0.09] bg-[oklch(0.06_0.04_280/70%)] backdrop-blur-2xl p-5 sm:p-8 md:p-10 shadow-[0_30px_100px_rgba(0,0,0,0.8)] text-left relative z-20">
         {/* Topo do Sandbox: Seletor de Insumos */}
-        <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col gap-4 mb-8">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <span className="text-[11px] uppercase tracking-[0.26em] font-semibold text-white/50 flex items-center gap-1.5">
-              <Wand2 size={13} className="text-[oklch(0.78_0.22_48)]" />
-              Experimente um insumo abaixo e veja a mágica:
+            <span className="text-[11px] uppercase tracking-[0.24em] font-medium text-white/50 flex items-center gap-1.5">
+              <Wand2 size={13} className="text-[#FF5C00]" />
+              Escolha uma direção criativa abaixo e veja o resultado:
             </span>
 
-            <span className="text-xs text-white/40 font-mono hidden sm:inline-block">
-              Motor v3 // Zero Template de Canva
+            <span className="text-[11px] text-[#FF5C00]/80 font-mono tracking-wider">
+              ✦ Motor Canônico // Sem Templates
             </span>
           </div>
 
-          {/* Abas / Pílulas de Seleção */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {/* Abas / Pílulas de Seleção Elegantes */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {DEMO_SCENARIOS.map((scenario) => {
               const Icon = scenario.icon;
               const isSelected = scenario.id === selectedScenario.id;
@@ -238,13 +261,13 @@ export default function LiveHeroDemo({ onOpenAuth }: LiveHeroDemoProps) {
                   key={scenario.id}
                   type="button"
                   onClick={() => handleSelectScenario(scenario)}
-                  className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-white/12 border-[oklch(0.75_0.22_45)] text-white shadow-lg"
-                      : "bg-white/4 border-white/8 text-white/60 hover:bg-white/8 hover:text-white"
+                      ? "bg-white/[0.08] border-[#FF5C00]/60 text-white shadow-[0_0_20px_rgba(255,92,0,0.2)]"
+                      : "bg-white/[0.02] border-white/[0.06] text-white/60 hover:bg-white/[0.05] hover:text-white"
                   }`}
                 >
-                  <Icon size={14} className={isSelected ? "text-[oklch(0.78_0.22_48)]" : "text-white/40"} />
+                  <Icon size={14} className={isSelected ? "text-[#FF5C00]" : "text-white/40"} />
                   <span className="truncate">{scenario.tabLabel}</span>
                 </button>
               );
@@ -253,31 +276,33 @@ export default function LiveHeroDemo({ onOpenAuth }: LiveHeroDemoProps) {
         </div>
 
         {/* Palco da Transformação (Insumo ➔ Brand DNA ➔ Post Gerado) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Lado Esquerdo (5 Colunas): Painel de Insumo & Brand DNA Extraído */}
           <div className="lg:col-span-5 space-y-4">
-            {/* Caixa de Entrada */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-2">
-              <div className="text-[10px] uppercase tracking-[0.24em] text-white/40 font-semibold flex items-center justify-between">
+            {/* Folha Tonal de Insumo */}
+            <div className="rounded-2xl border border-white/[0.08] bg-black/40 p-4 space-y-2.5">
+              <div className="text-[10px] uppercase tracking-[0.24em] text-white/45 font-semibold flex items-center justify-between">
                 <span>Insumo Recebido</span>
-                <span className="text-[oklch(0.78_0.22_48)] font-mono">Pronto</span>
+                <span className="text-[#FF5C00] font-mono text-[9px] uppercase tracking-widest bg-[#FF5C00]/10 px-2 py-0.5 rounded-full border border-[#FF5C00]/20">
+                  {selectedScenario.inputType === "url" ? "URL do Site" : "Ideia / Copy"}
+                </span>
               </div>
-              <div className="p-3 rounded-xl bg-black/50 border border-white/8 text-xs font-mono text-white/90 break-words">
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs font-mono text-white/90 break-words leading-relaxed">
                 {selectedScenario.rawInput}
               </div>
             </div>
 
             {/* Caixa de Brand DNA */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
-              <div className="text-[10px] uppercase tracking-[0.24em] text-white/40 font-semibold flex items-center gap-1.5">
-                <Sparkles size={12} className="text-[oklch(0.78_0.22_48)]" />
+            <div className="rounded-2xl border border-white/[0.08] bg-black/40 p-4 space-y-3.5">
+              <div className="text-[10px] uppercase tracking-[0.24em] text-white/45 font-semibold flex items-center gap-1.5">
+                <Sparkles size={12} className="text-[#FF5C00]" />
                 Brand DNA & Direção Extraída
               </div>
 
-              <div className="space-y-2 text-xs">
+              <div className="space-y-2.5 text-xs">
                 <div className="flex items-center justify-between text-white/70">
                   <span className="text-white/40">Marca:</span>
-                  <span className="font-semibold text-white">{selectedScenario.extractedDna.brandName}</span>
+                  <span className="font-semibold text-white tracking-wide">{selectedScenario.extractedDna.brandName}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-white/70">
@@ -291,12 +316,17 @@ export default function LiveHeroDemo({ onOpenAuth }: LiveHeroDemoProps) {
                     {selectedScenario.extractedDna.colors.map((c, i) => (
                       <span
                         key={i}
-                        className="w-3.5 h-3.5 rounded-full border border-white/20"
+                        className="w-4 h-4 rounded-full border border-white/20 shadow-sm"
                         style={{ backgroundColor: c }}
                         title={c}
                       />
                     ))}
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between text-white/70 pt-0.5">
+                  <span className="text-white/40">Atmosfera:</span>
+                  <span className="text-xs text-[#FF5C00]/90 font-medium">{selectedScenario.extractedDna.vibe}</span>
                 </div>
               </div>
             </div>
@@ -304,21 +334,21 @@ export default function LiveHeroDemo({ onOpenAuth }: LiveHeroDemoProps) {
             {/* Botão de Ação do Sandbox */}
             <button
               type="button"
-              onClick={onOpenAuth}
-              className="w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-xs md:text-sm font-bold text-black shadow-lg transition-all hover:scale-[1.02] hover:brightness-110 active:scale-[0.98] cursor-pointer"
+              onClick={onAction}
+              className="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 px-4 text-xs md:text-sm font-bold text-white shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               style={{
-                background: "linear-gradient(135deg, oklch(0.78 0.22 48), oklch(0.65 0.2 28))",
-                boxShadow: "0 0 24px oklch(0.7 0.22 40 / 30%)",
+                background: "linear-gradient(135deg, #FF6B2B 0%, #FF5C00 50%, #E04800 100%)",
+                boxShadow: "0 0 24px rgba(255, 92, 0, 0.4)",
               }}
             >
-              <span>Gerar posts com meu conteúdo</span>
+              <span>Gerar posts com este Brand DNA</span>
               <ArrowRight size={15} />
             </button>
           </div>
 
           {/* Lado Direito (7 Colunas): O Post de Elite Renderizado em Tempo Real */}
           <div className="lg:col-span-7 flex flex-col items-center justify-center">
-            <div className="relative w-full max-w-[340px] sm:max-w-[380px] aspect-[4/5] rounded-[24px] overflow-hidden border shadow-2xl transition-all duration-300">
+            <div className="relative w-full max-w-[340px] sm:max-w-[390px] aspect-[4/5] rounded-[24px] overflow-hidden border border-white/[0.12] shadow-[0_24px_60px_rgba(0,0,0,0.85)] transition-all duration-300">
               <AnimatePresence mode="wait">
                 {isGenerating ? (
                   <motion.div
@@ -326,38 +356,40 @@ export default function LiveHeroDemo({ onOpenAuth }: LiveHeroDemoProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center gap-3 p-6 text-center"
+                    className="absolute inset-0 bg-black/95 flex flex-col items-center justify-center gap-3 p-6 text-center"
                   >
-                    <RefreshCw size={28} className="animate-spin text-[oklch(0.78_0.22_48)]" />
+                    <RefreshCw size={28} className="animate-spin text-[#FF5C00]" />
                     <span className="text-xs font-mono uppercase tracking-[0.24em] text-white/70">
                       Sintetizando Copy & Direção Visual...
                     </span>
                   </motion.div>
                 ) : (
                   <motion.div
-                    key={selectedScenario.id + (activeSlideData ? activeSlideData.step : "")}
+                    key={selectedScenario.id + (activeSlideData ? activeSlideData.step : "") + currentBgImage}
                     initial={{ opacity: 0, scale: 0.96 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.96 }}
                     transition={{ duration: 0.35 }}
-                    className="relative w-full h-full p-6 flex flex-col justify-between select-none"
+                    className="relative w-full h-full p-8 flex flex-col justify-between select-none overflow-hidden"
                     style={{
                       backgroundColor: selectedScenario.generatedPost.palette.background,
                       color: selectedScenario.generatedPost.palette.text,
-                      borderColor: `${selectedScenario.generatedPost.palette.accent}55`,
                     }}
                   >
-                    {/* Imagem de Fundo (se houver) */}
-                    {selectedScenario.generatedPost.bgImage && (
+                    {/* Imagem de Fundo Canônica */}
+                    {currentBgImage && (
                       <>
                         <div
-                          className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-luminosity"
-                          style={{ backgroundImage: `url(${selectedScenario.generatedPost.bgImage})` }}
+                          className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 ease-out"
+                          style={{ backgroundImage: `url(${currentBgImage})` }}
                         />
+                        {/* Overlay Gradiente de Proteção Calibrado */}
                         <div
                           className="absolute inset-0"
                           style={{
-                            background: `linear-gradient(180deg, ${selectedScenario.generatedPost.palette.background}44 0%, ${selectedScenario.generatedPost.palette.background}F4 80%)`,
+                            background: isBrutal
+                              ? "linear-gradient(180deg, rgba(217, 46, 30, 0.45) 0%, rgba(184, 36, 21, 0.65) 50%, rgba(15, 6, 5, 0.94) 100%)"
+                              : `linear-gradient(180deg, ${selectedScenario.generatedPost.palette.background}88 0%, ${selectedScenario.generatedPost.palette.background}33 30%, ${selectedScenario.generatedPost.palette.background}F4 82%)`,
                           }}
                         />
                       </>
@@ -366,7 +398,7 @@ export default function LiveHeroDemo({ onOpenAuth }: LiveHeroDemoProps) {
                     {/* Topo do Post */}
                     <div className="relative z-10 flex items-center justify-between">
                       <span
-                        className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-[0.24em]"
+                        className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-[0.22em] backdrop-blur-md"
                         style={{
                           backgroundColor: `${selectedScenario.generatedPost.palette.accent}22`,
                           color: selectedScenario.generatedPost.palette.accent,
@@ -381,25 +413,28 @@ export default function LiveHeroDemo({ onOpenAuth }: LiveHeroDemoProps) {
                       </span>
                     </div>
 
-                    {/* Conteúdo Central/Inferior */}
+                    {/* Conteúdo Inferior Nobre */}
                     <div className="relative z-10 space-y-3">
-                      <div className="text-[10px] uppercase tracking-[0.3em] font-medium text-white/50">
+                      <div className="text-[10px] uppercase tracking-[0.28em] font-medium text-white/60">
                         {selectedScenario.generatedPost.category}
                       </div>
 
                       <h2
-                        className="text-xl sm:text-2xl font-bold leading-tight"
-                        style={{ fontFamily: selectedScenario.generatedPost.fontFamily }}
+                        className="text-xl sm:text-2xl md:text-[26px] font-bold leading-[1.18] tracking-tight"
+                        style={{
+                          fontFamily: selectedScenario.generatedPost.fontFamily,
+                          textShadow: "0 2px 14px rgba(0,0,0,0.9)",
+                        }}
                       >
                         {activeSlideData ? activeSlideData.headline : selectedScenario.generatedPost.headline}
                       </h2>
 
-                      <p className="text-xs sm:text-sm font-light text-white/70 leading-relaxed">
+                      <p className="text-xs sm:text-sm font-light text-white/75 leading-relaxed">
                         {activeSlideData ? activeSlideData.subtext : selectedScenario.generatedPost.subtext}
                       </p>
 
                       <div
-                        className="h-1 w-12 rounded-full mt-2"
+                        className="h-[3px] w-12 rounded-full mt-2"
                         style={{ backgroundColor: selectedScenario.generatedPost.palette.accent }}
                       />
                     </div>
@@ -415,7 +450,7 @@ export default function LiveHeroDemo({ onOpenAuth }: LiveHeroDemoProps) {
                   type="button"
                   onClick={() => setCurrentSlide((p) => Math.max(0, p - 1))}
                   disabled={currentSlide === 0}
-                  className="p-2 rounded-full border border-white/10 bg-white/5 text-white disabled:opacity-30 cursor-pointer hover:bg-white/10"
+                  className="p-2 rounded-full border border-white/10 bg-white/5 text-white disabled:opacity-30 cursor-pointer hover:bg-white/10 transition-colors"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -428,7 +463,7 @@ export default function LiveHeroDemo({ onOpenAuth }: LiveHeroDemoProps) {
                   type="button"
                   onClick={() => setCurrentSlide((p) => Math.min(selectedScenario.generatedPost.slides!.length - 1, p + 1))}
                   disabled={currentSlide === selectedScenario.generatedPost.slides.length - 1}
-                  className="p-2 rounded-full border border-white/10 bg-white/5 text-white disabled:opacity-30 cursor-pointer hover:bg-white/10"
+                  className="p-2 rounded-full border border-white/10 bg-white/5 text-white disabled:opacity-30 cursor-pointer hover:bg-white/10 transition-colors"
                 >
                   <ChevronRight size={16} />
                 </button>

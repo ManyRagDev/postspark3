@@ -140,3 +140,10 @@ legacy/
 OPERATIONAL_ERRORS.txt
 .agents/
 dist-server/
+# Harness de exportação headless (input temporário do driver externo)
+client/public/harness-input/
+
+client/harness-export.html
+client/harness-export/
+harness-export/
+inspiracao.html

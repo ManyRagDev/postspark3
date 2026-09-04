@@ -1,12 +1,19 @@
 import CanvasMobileDrawer from "./components/CanvasMobileDrawer";
 import { useRef, useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { RotateCcw, Check, Crop } from "lucide-react";
 import { toast } from "sonner";
 import { CanvasPostStage, type CanvasPostStageRef } from "./components/CanvasPostStage";
 import CanvasTopBar from "./components/CanvasTopBar";
 import CanvasSidebar from "./components/CanvasSidebar";
 import CarouselFilmstrip from "./components/CarouselFilmstrip";
-import { INITIAL_POST, type AspectRatioType, type CanvasPostModel, type ElementPosition } from "./components/types";
+import {
+  INITIAL_POST,
+  type AspectRatioType,
+  type CanvasPostModel,
+  type ElementPosition,
+  type BgImageTransform,
+} from "./components/types";
 
 interface CanvasLabPageProps {
   initialPost?: CanvasPostModel;
@@ -16,6 +23,7 @@ interface CanvasLabPageProps {
 
 export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLabPageProps = {}) {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isEditingBackground, setIsEditingBackground] = useState(false);
   const [post, setPost] = useState<CanvasPostModel>(initialPost || INITIAL_POST);
   const [zoom, setZoom] = useState(1);
   const [isExportingZip, setIsExportingZip] = useState(false);
@@ -102,6 +110,50 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
       };
     });
   };
+
+  // Salva enquadramento (posição e escala) do plano de fundo
+  const handleUpdateBgTransform = (transform: BgImageTransform) => {
+    setPost((prev) => {
+      const curIdx = prev.currentSlideIndex;
+      const currentSlide = prev.slides[curIdx];
+      if (!currentSlide) return { ...prev, bgTransform: transform };
+
+      const updatedSlides = [...prev.slides];
+      updatedSlides[curIdx] = {
+        ...currentSlide,
+        bgTransform: transform,
+      };
+
+      return {
+        ...prev,
+        bgTransform: transform,
+        slides: updatedSlides,
+      };
+    });
+  };
+
+  const handleResetBgTransform = () => {
+    handleUpdateBgTransform({
+      x: 0,
+      y: 0,
+      scaleX: 1,
+      scaleY: 1,
+      rotation: 0,
+    });
+    toast.info("Enquadramento do fundo resetado para o padrão.");
+  };
+
+  // Teclado: Escape ou Enter concluem o modo de edição do fundo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isEditingBackground && (e.key === "Escape" || e.key === "Enter")) {
+        setIsEditingBackground(false);
+        toast.success("Enquadramento do fundo concluído!");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isEditingBackground]);
 
   const handleExportPng = () => {
     if (!stageRef.current) return;
@@ -213,7 +265,12 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
       <div className="flex-1 flex overflow-hidden relative">
         {/* Desktop: Barra Lateral Fixa à Esquerda (Intocada) */}
         <div className="hidden md:flex h-full">
-          <CanvasSidebar post={post} onUpdatePost={handleUpdatePost} />
+          <CanvasSidebar
+            post={post}
+            onUpdatePost={handleUpdatePost}
+            isEditingBackground={isEditingBackground}
+            onToggleBackgroundEdit={() => setIsEditingBackground((v) => !v)}
+          />
         </div>
 
         {/* Palco da Prancheta com Viewport Adaptativo (Mobile & Desktop) */}
@@ -223,6 +280,51 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
           }}
           className="flex-1 bg-[#040508] relative overflow-hidden flex items-center justify-center p-2 sm:p-8 pb-20 md:pb-8 custom-scrollbar"
         >
+          {/* BARRA FLUTUANTE DE MODO DE EDIÇÃO DO FUNDO (ESTILO CANVA) */}
+          <AnimatePresence>
+            {isEditingBackground && (
+              <motion.div
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-[#10141D]/95 backdrop-blur-2xl border border-[oklch(0.78_0.22_48)]/50 shadow-[0_20px_50px_rgba(0,0,0,0.8)] px-4 py-2.5 rounded-full flex items-center gap-3 text-xs"
+              >
+                <div className="flex items-center gap-2 text-white/90">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[oklch(0.78_0.22_48)] animate-pulse" />
+                  <span className="font-bold text-white">Editando Enquadramento do Fundo</span>
+                  <span className="text-white/40 hidden lg:inline">
+                    | Arraste para reposicionar ou use os controladores para redimensionar
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 pl-3 border-l border-white/12">
+                  <button
+                    type="button"
+                    onClick={handleResetBgTransform}
+                    className="px-2.5 py-1 rounded-lg bg-white/6 hover:bg-white/12 text-white/70 hover:text-white transition-all text-[11px] flex items-center gap-1.5 cursor-pointer font-medium"
+                    title="Resetar para o enquadramento padrão"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Resetar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingBackground(false);
+                      toast.success("Enquadramento do fundo salvo!");
+                    }}
+                    className="px-3.5 py-1 rounded-lg bg-[oklch(0.78_0.22_48)] hover:brightness-110 text-black font-bold transition-all text-[11px] flex items-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    <Check size={13} strokeWidth={3} />
+                    <span>Concluir</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <motion.div
             className="flex items-center justify-center cursor-pointer md:cursor-default"
             animate={
@@ -250,6 +352,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
               post={post}
               zoom={1}
               onUpdateElementPosition={handleUpdateElementPosition}
+              isEditingBackground={isEditingBackground}
+              onUpdateBgTransform={handleUpdateBgTransform}
+              onEnterBackgroundEdit={() => setIsEditingBackground(true)}
             />
           </motion.div>
         </main>

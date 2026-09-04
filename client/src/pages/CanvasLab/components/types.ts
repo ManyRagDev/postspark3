@@ -224,12 +224,21 @@ export interface ElementPosition {
   y: number;
 }
 
+export interface BgImageTransform {
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+  rotation?: number;
+}
+
 export interface CarouselSlideItem {
   id: string;
   step: string;
   headline: string;
   subtext: string;
   bgImage?: string;
+  bgTransform?: BgImageTransform;
   imagePrompt?: string;
   headlinePos?: ElementPosition;
   subtextPos?: ElementPosition;
@@ -253,6 +262,7 @@ export interface CanvasPostModel {
   fontFamily: string;
   customFontUrl?: string;
   bgImage?: string;
+  bgTransform?: BgImageTransform;
   overlayOpacity: number;
   logoUrl?: string;
   logoPosition: LogoPositionType;

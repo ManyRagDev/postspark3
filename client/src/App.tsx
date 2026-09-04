@@ -12,8 +12,6 @@ import SavedPosts from "./pages/SavedPosts";
 import Admin from "./pages/Admin";
 import FamilyCatalog from "./pages/FamilyCatalog";
 import PreviewHomePage from "./pages/PreviewHome/PreviewHomePage";
-import StudioHomePage from "./pages/StudioHome/StudioHomePage";
-import CanvasLabPage from "./pages/CanvasLab/CanvasLabPage";
 import StudioAppV2BPage from "./pages/StudioApp/StudioAppV2BPage";
 import UserTopMenu from "./components/UserTopMenu";
 import Privacy from "./pages/Privacy";
@@ -23,7 +21,10 @@ import PrivacySettings from "./pages/PrivacySettings";
 import ConsentModal from "./components/ConsentModal";
 import CookieBanner from "./components/CookieBanner";
 import { useAuth } from "./_core/hooks/useAuth";
-import { useEffect, type ComponentType } from "react";
+import { useEffect, lazy, Suspense, type ComponentType } from "react";
+
+// Lazy loading da vitrine de inspiração com isolamento total de bundle
+const InspiracaoShowcasePage = lazy(() => import("./pages/InspiracaoShowcase/InspiracaoShowcasePage"));
 
 function PostCheckoutSuccess() {
   setTimeout(() => { window.location.href = "/"; }, 3000);
@@ -39,7 +40,7 @@ function PostCheckoutSuccess() {
 }
 
 function TopupSuccess() {
-  setTimeout(() => { window.location.href = "/"; }, 3000);
+  setTimeout(() => { window.location.href = "/thevoid"; }, 3000);
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "oklch(0.04 0.06 280)" }}>
       <div className="text-center">
@@ -53,8 +54,6 @@ function TopupSuccess() {
 
 /**
  * Callback do Google OAuth via Supabase.
- * O Supabase redireciona para /auth/google-callback#access_token=...
- * Capturamos o token do hash e trocamos pela sessão PostSpark.
  */
 function GoogleAuthCallback() {
   useEffect(() => {
@@ -111,8 +110,9 @@ function PublicLandingRoute() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (loading || !isAuthenticated) return;
-    setLocation("/thevoid");
+    if (!loading && isAuthenticated) {
+      setLocation("/thevoid");
+    }
   }, [isAuthenticated, loading, setLocation]);
 
   // Show auth error toast from query params (e.g. Google OAuth 403)
@@ -129,8 +129,26 @@ function PublicLandingRoute() {
     }
   }, []);
 
-  if (isAuthenticated) return null;
-  return <StudioHomePage />;
+  if (loading) {
+    return null;
+  }
+
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#080706] text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="text-2xl animate-spin text-[#FF5C00]">✦</div>
+          <p className="text-xs font-mono text-white/50 tracking-wider uppercase">Entrando no estúdio...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0d0b09]" />}>
+      <InspiracaoShowcasePage />
+    </Suspense>
+  );
 }
 
 function RedirectToRoute({ to }: { to: string }) {
@@ -148,11 +166,23 @@ function ProtectedRoute({ component: Component }: { component: ComponentType }) 
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (loading || isAuthenticated) return;
-    setLocation("/");
+    if (!loading && !isAuthenticated) {
+      setLocation("/");
+    }
   }, [isAuthenticated, loading, setLocation]);
 
-  if (loading || !isAuthenticated) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#080706] text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="text-2xl animate-spin text-[#FF5C00]">✦</div>
+          <p className="text-xs font-mono text-white/50 tracking-wider uppercase">Carregando estúdio...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) return null;
   return <Component />;
 }
 
@@ -171,45 +201,75 @@ function AdminRoute({ component: Component }: { component: ComponentType }) {
   return <Component />;
 }
 
+/* Componentes de rota estáveis para evitar recriação de nós virtuais */
+function TheVoidRoute() {
+  return <ProtectedRoute component={StudioAppV2BPage} />;
+}
+function BillingRoute() {
+  return <ProtectedRoute component={Billing} />;
+}
+function HistoryRoute() {
+  return <ProtectedRoute component={History} />;
+}
+function SavedPostsRoute() {
+  return <ProtectedRoute component={SavedPosts} />;
+}
+function PrivacySettingsRoute() {
+  return <ProtectedRoute component={PrivacySettings} />;
+}
+function AdminPageRoute() {
+  return <AdminRoute component={Admin} />;
+}
+
 function Router() {
   return (
     <Switch>
-      {/* 1. Página Inicial Oficial para Não Logados */}
+      {/* 1. Página Inicial Oficial para Não Logados (Showcase Interativo) */}
       <Route path={"/"} component={PublicLandingRoute} />
-      <Route path={"/studio-home"} component={PublicLandingRoute} />
 
-      {/* 2. Página Oficial de Alta Conversão para Tráfego / Anúncios */}
+      {/* 2. Landing Page Oficial de Anúncios / Tráfego */}
       <Route path={"/criar"} component={PreviewHomePage} />
-      <Route path={"/p"} component={PreviewHomePage} />
-      <Route path={"/preview-home"} component={PreviewHomePage} />
-      <Route path={"/crie-posts-incriveis"} component={PreviewHomePage} />
 
-      {/* 3. Estúdio Oficial Logado (/thevoid, /studio, /studio-v2b) */}
-      <Route path={"/thevoid"} component={() => <ProtectedRoute component={StudioAppV2BPage} />} />
-      <Route path={"/studio"} component={() => <ProtectedRoute component={StudioAppV2BPage} />} />
-      <Route path={"/studio-v2b"} component={() => <ProtectedRoute component={StudioAppV2BPage} />} />
-      <Route path={"/canvas-lab"} component={() => <CanvasLabPage />} />
+      {/* 3. Estúdio Oficial Logado (/thevoid) */}
+      <Route path={"/thevoid"} component={TheVoidRoute} />
+      <Route path={"/studio"} component={TheVoidRoute} />
+      <Route path={"/studio-v2b"} component={TheVoidRoute} />
 
-      {/* 4. Redirecionamentos de Rotas Legadas */}
-      <Route path={"/thevoid2"} component={() => <RedirectToRoute to="/" />} />
-      <Route path={"/thevoid-clean"} component={() => <RedirectToRoute to="/thevoid" />} />
-      <Route path={"/studio-v2"} component={() => <RedirectToRoute to="/thevoid" />} />
+      {/* 4. Redirecionamentos Canônicos de Rotas Experimentais e Legadas */}
+      {/* 4.1 Experimentos de Landing Page ➔ /criar */}
+      <Route path={"/criar-new"} component={() => <RedirectToRoute to="/criar" />} />
+      <Route path={"/p"} component={() => <RedirectToRoute to="/criar" />} />
+      <Route path={"/preview-home"} component={() => <RedirectToRoute to="/criar" />} />
+      <Route path={"/crie-posts-incriveis"} component={() => <RedirectToRoute to="/criar" />} />
       <Route path={"/landing"} component={() => <RedirectToRoute to="/criar" />} />
       <Route path={"/landing2"} component={() => <RedirectToRoute to="/criar" />} />
       <Route path={"/landing3"} component={() => <RedirectToRoute to="/criar" />} />
 
+      {/* 4.2 Experimentos 3D / Showcases Anteriores ➔ / */}
+      <Route path={"/stage-3d"} component={() => <RedirectToRoute to="/" />} />
+      <Route path={"/3d-home"} component={() => <RedirectToRoute to="/" />} />
+      <Route path={"/studio-home"} component={() => <RedirectToRoute to="/" />} />
+      <Route path={"/inspiracao"} component={() => <RedirectToRoute to="/" />} />
+      <Route path={"/showcase-stage"} component={() => <RedirectToRoute to="/" />} />
+      <Route path={"/thevoid2"} component={() => <RedirectToRoute to="/" />} />
+
+      {/* 4.3 Experimentos de Estúdio ➔ /thevoid */}
+      <Route path={"/canvas-lab"} component={() => <RedirectToRoute to="/thevoid" />} />
+      <Route path={"/thevoid-clean"} component={() => <RedirectToRoute to="/thevoid" />} />
+      <Route path={"/studio-v2"} component={() => <RedirectToRoute to="/thevoid" />} />
+
       {/* 5. Páginas do Sistema & Billing */}
       <Route path={"/pricing"} component={Pricing} />
-      <Route path={"/billing"} component={() => <ProtectedRoute component={Billing} />} />
-      <Route path={"/history"} component={() => <ProtectedRoute component={History} />} />
-      <Route path={"/saved-posts"} component={() => <ProtectedRoute component={SavedPosts} />} />
+      <Route path={"/billing"} component={BillingRoute} />
+      <Route path={"/history"} component={HistoryRoute} />
+      <Route path={"/saved-posts"} component={SavedPostsRoute} />
       <Route path={"/privacy"} component={Privacy} />
       <Route path={"/terms"} component={Terms} />
       <Route path={"/cookies"} component={Cookies} />
-      <Route path={"/privacy-settings"} component={() => <ProtectedRoute component={PrivacySettings} />} />
+      <Route path={"/privacy-settings"} component={PrivacySettingsRoute} />
       <Route path={"/billing/success"} component={PostCheckoutSuccess} />
       <Route path={"/billing/topup-success"} component={TopupSuccess} />
-      <Route path={"/admin"} component={() => <AdminRoute component={Admin} />} />
+      <Route path={"/admin"} component={AdminPageRoute} />
       <Route path={"/familias"} component={FamilyCatalog} />
       <Route path={"/auth/google-callback"} component={GoogleAuthCallback} />
       <Route path={"/404"} component={NotFound} />
@@ -227,15 +287,10 @@ function AppInner() {
   const [location] = useLocation();
   const isImmersiveRoute =
     location === "/" ||
-    location === "/studio-home" ||
-    location === "/studio" ||
     location === "/thevoid" ||
+    location === "/studio" ||
     location === "/studio-v2b" ||
-    location === "/canvas-lab" ||
-    location === "/criar" ||
-    location === "/p" ||
-    location === "/preview-home" ||
-    location === "/crie-posts-incriveis";
+    location === "/criar";
 
   return (
     <>
