@@ -11,8 +11,10 @@
  *  - quando a escolha manual fica ilegível, um selo "contraste baixo" é exibido.
  */
 
+import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
-import type { CanvasPostModel } from "./types";
+import type { CanvasPostModel, TextLegibilityEffect } from "./types";
+import { TEXT_EFFECTS_META } from "./types";
 import { getContrastWarnings } from "../lib/contrast";
 
 interface TypographyColorControlsProps {
@@ -38,6 +40,25 @@ export default function TypographyColorControls({ post, onUpdatePost, compact = 
   const warnings = getContrastWarnings(post);
   const headlineColor = post.palette.headlineColor ?? post.palette.text;
   const subtextColor = post.palette.subtextColor ?? post.palette.text;
+
+  const [effectTarget, setEffectTarget] = useState<"both" | "headline" | "subtext">("both");
+
+  const currentEffect =
+    effectTarget === "both"
+      ? (post.headlineEffect === post.subtextEffect ? post.headlineEffect || "none" : null)
+      : effectTarget === "headline"
+      ? post.headlineEffect || "none"
+      : post.subtextEffect || "none";
+
+  const handleSelectEffect = (effectId: TextLegibilityEffect) => {
+    if (effectTarget === "both") {
+      onUpdatePost({ headlineEffect: effectId, subtextEffect: effectId });
+    } else if (effectTarget === "headline") {
+      onUpdatePost({ headlineEffect: effectId });
+    } else {
+      onUpdatePost({ subtextEffect: effectId });
+    }
+  };
 
   const setHeadlineColor = (v: string) =>
     onUpdatePost({ palette: { ...post.palette, headlineColor: v }, manualHeadlineColor: true });
@@ -138,6 +159,109 @@ export default function TypographyColorControls({ post, onUpdatePost, compact = 
             {Math.round((post.subtextSizeScale ?? 1) * 100)}%
           </span>
         </div>
+      </div>
+
+      {/* ── Efeitos de Legibilidade (10 Estilos Oficiais) ── */}
+      <div className="pt-3 border-t border-white/8 space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold block">
+            Fundo e Efeito das Letras
+          </label>
+          <span className="text-[9px] font-mono text-white/40">
+            {post.headlineEffect === post.subtextEffect
+              ? TEXT_EFFECTS_META[post.headlineEffect || "none"]?.name
+              : `T: ${TEXT_EFFECTS_META[post.headlineEffect || "none"]?.name} • C: ${TEXT_EFFECTS_META[post.subtextEffect || "none"]?.name}`}
+          </span>
+        </div>
+
+        {/* Seletor de Alvo: Ambos | Título | Corpo */}
+        <div className="flex items-center p-0.5 rounded-lg bg-white/5 border border-white/10 text-[10px]">
+          <button
+            type="button"
+            onClick={() => setEffectTarget("both")}
+            className={`flex-1 py-1 px-2 rounded-md font-medium transition-all text-center cursor-pointer ${
+              effectTarget === "both"
+                ? "bg-[oklch(0.78_0.22_48)] text-white shadow-sm"
+                : "text-white/60 hover:text-white"
+            }`}
+          >
+            Ambos
+          </button>
+          <button
+            type="button"
+            onClick={() => setEffectTarget("headline")}
+            className={`flex-1 py-1 px-2 rounded-md font-medium transition-all text-center cursor-pointer ${
+              effectTarget === "headline"
+                ? "bg-[oklch(0.78_0.22_48)] text-white shadow-sm"
+                : "text-white/60 hover:text-white"
+            }`}
+          >
+            Título
+          </button>
+          <button
+            type="button"
+            onClick={() => setEffectTarget("subtext")}
+            className={`flex-1 py-1 px-2 rounded-md font-medium transition-all text-center cursor-pointer ${
+              effectTarget === "subtext"
+                ? "bg-[oklch(0.78_0.22_48)] text-white shadow-sm"
+                : "text-white/60 hover:text-white"
+            }`}
+          >
+            Corpo
+          </button>
+        </div>
+
+        {/* Lista de Efeitos */}
+        {compact ? (
+          /* Mobile Drawer: Carrossel Horizontal Deslizante com Chips */
+          <div className="flex gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none scroll-smooth">
+            {Object.values(TEXT_EFFECTS_META).map((eff) => {
+              const isSelected = currentEffect === eff.id;
+              return (
+                <button
+                  key={eff.id}
+                  type="button"
+                  onClick={() => handleSelectEffect(eff.id)}
+                  title={eff.description}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs shrink-0 border transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-[oklch(0.78_0.22_48)]/20 border-[oklch(0.78_0.22_48)] text-white font-bold shadow-[0_0_12px_rgba(255,92,0,0.25)]"
+                      : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <span className="text-sm leading-none">{eff.icon}</span>
+                  <span>{eff.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          /* Desktop Sidebar: Grade de Botões com Ícone e Categoria */
+          <div className="grid grid-cols-2 gap-1.5">
+            {Object.values(TEXT_EFFECTS_META).map((eff) => {
+              const isSelected = currentEffect === eff.id;
+              return (
+                <button
+                  key={eff.id}
+                  type="button"
+                  onClick={() => handleSelectEffect(eff.id)}
+                  title={eff.description}
+                  className={`flex items-center gap-2 p-2 rounded-xl text-left border transition-all cursor-pointer text-xs ${
+                    isSelected
+                      ? "bg-[oklch(0.78_0.22_48)]/15 border-[oklch(0.78_0.22_48)] text-white font-bold shadow-sm"
+                      : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <span className="text-base leading-none">{eff.icon}</span>
+                  <div className="truncate">
+                    <div className="truncate font-medium">{eff.name}</div>
+                    <div className="text-[9px] text-white/40 truncate">{eff.category}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

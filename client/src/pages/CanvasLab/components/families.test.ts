@@ -5,8 +5,10 @@ import {
   isDarkColor,
   OFFICIAL_FAMILIES_META,
   ALL_OFFICIAL_FAMILY_IDS,
+  TEXT_EFFECTS_META,
   type VisualFamilyId,
 } from "./types";
+import { normalizeCanvasModel } from "../lib/saveAdapter";
 
 describe("Visual Families & Contrast Safeguard (CR-008)", () => {
   it("contém exatamente 14 famílias visuais oficiais catalogadas", () => {
@@ -65,5 +67,45 @@ describe("Visual Families & Contrast Safeguard (CR-008)", () => {
     expect(familyIds[0]).toBe("glass-veil");
     expect(ALL_OFFICIAL_FAMILY_IDS).toContain(familyIds[1]);
     expect(ALL_OFFICIAL_FAMILY_IDS).toContain(familyIds[2]);
+  });
+
+  it("TEXT_EFFECTS_META: cataloga exatamente os 10 estilos oficiais de legibilidade", () => {
+    const effectIds = Object.keys(TEXT_EFFECTS_META);
+    expect(effectIds.length).toBe(10);
+    expect(effectIds).toContain("none");
+    expect(effectIds).toContain("shadow");
+    expect(effectIds).toContain("outline");
+    expect(effectIds).toContain("box-card");
+    expect(effectIds).toContain("box-pill");
+    expect(effectIds).toContain("box-glass");
+    expect(effectIds).toContain("box-accent");
+    expect(effectIds).toContain("box-brutal");
+    expect(effectIds).toContain("scrim");
+    expect(effectIds).toContain("strip-line");
+
+    effectIds.forEach((id) => {
+      const eff = TEXT_EFFECTS_META[id as keyof typeof TEXT_EFFECTS_META];
+      expect(eff.id).toBe(id);
+      expect(eff.name.length).toBeGreaterThan(0);
+      expect(eff.icon.length).toBeGreaterThan(0);
+      expect(eff.description.length).toBeGreaterThan(0);
+    });
+  });
+
+  it("normalizeCanvasModel: sanitiza e preserva headlineEffect e subtextEffect", () => {
+    const normalized = normalizeCanvasModel({
+      headlineEffect: "box-accent",
+      subtextEffect: "shadow",
+    });
+    expect(normalized.headlineEffect).toBe("box-accent");
+    expect(normalized.subtextEffect).toBe("shadow");
+
+    // Fallback defensivo para valores inválidos
+    const withInvalid = normalizeCanvasModel({
+      headlineEffect: "invalid-effect" as any,
+      subtextEffect: undefined,
+    });
+    expect(withInvalid.headlineEffect).toBe("none");
+    expect(withInvalid.subtextEffect).toBe("none");
   });
 });

@@ -63,6 +63,11 @@ Regras mandatórias do editor oficial:
 3. **Estilos pré-definidos nunca alteram cores**: `applyFamilyPreset` (`lib/familyPreset.ts`) aplica família alterando APENAS tipografia/composição; `background` e `accent` são preservados; `surface` só entra como fallback. Usar este helper (nunca reimplementar a lógica nos componentes).
 4. **Motor anti-sobreposição**: `CanvasPostStage` reduz a fonte do título em até 3 passos (0.88×) quando a pilha título/corpo colide com a linha de corte do split (50%) ou a margem inferior; o subtítulo do split fica no mínimo na linha de corte (nunca o preto hardcoded legado).
 5. **Persistência**: salvamento via `post.save`/`post.update` com o modelo completo na coluna `canvas_model` (drizzle/0016) — reabertura com fidelidade total via `savedPostToCanvasModel`.
+6. **Efeitos de Legibilidade Tipográfica (10 Estilos Oficiais)**: Para fotos e fundos com textura ou detalhes ricos (onde o cálculo de cor sólida é insuficiente para garantir leitura), o editor disponibiliza 10 estilos de realce aplicáveis livremente ao Título, Corpo ou Ambos (`headlineEffect`, `subtextEffect`):
+   - *Básicos*: `none` (Normal), `shadow` (Sombra suave projetada com blur 12), `outline` (Contorno/stroke nítido com `fillAfterStrokeEnabled`).
+   - *Caixas & Formas*: `box-card` (Cartão com cantos arredondados e preenchimento suave), `box-pill` (Pílula cápsula 999px), `box-glass` (Vidro fosco glassmorphism translúcido), `box-accent` (Caixa na cor primária da marca com texto contrastante automático), `box-brutal` (Tarja neobrutal com cantos vivos e sombra preta sólida de 3px).
+   - *Atmosféricos & Dinâmicos*: `scrim` (Gradiente/vinheta suave sem bordas geométricas duras), `strip-line` (Tarjas ajustadas por linha de texto estilo Stories).
+   - *Renderização Konva*: Título e corpo operam encapsulados em `<Group>` para arrasto atômico (a caixa e o texto movem-se juntos no drag & drop e snap); persistido na coluna `canvas_model` no Supabase e renderizado em 4K.
 
 ---
 

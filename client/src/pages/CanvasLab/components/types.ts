@@ -266,6 +266,99 @@ export interface CarouselSlideItem {
   logoPos?: ElementPosition;
 }
 
+export type TextLegibilityEffect =
+  | "none"
+  | "shadow"
+  | "outline"
+  | "box-card"
+  | "box-pill"
+  | "box-glass"
+  | "box-accent"
+  | "box-brutal"
+  | "scrim"
+  | "strip-line";
+
+export interface TextEffectMeta {
+  id: TextLegibilityEffect;
+  name: string;
+  category: "Básicos" | "Caixas & Formas" | "Especiais";
+  icon: string;
+  description: string;
+}
+
+export const TEXT_EFFECTS_META: Record<TextLegibilityEffect, TextEffectMeta> = {
+  none: {
+    id: "none",
+    name: "Normal",
+    category: "Básicos",
+    icon: "🚫",
+    description: "Texto padrão sem efeitos adicionais",
+  },
+  shadow: {
+    id: "shadow",
+    name: "Sombra",
+    category: "Básicos",
+    icon: "🌫️",
+    description: "Sombra projetada suave e profunda",
+  },
+  outline: {
+    id: "outline",
+    name: "Contorno",
+    category: "Básicos",
+    icon: "🔲",
+    description: "Borda externa nítida de alto contraste",
+  },
+  "box-card": {
+    id: "box-card",
+    name: "Cartão",
+    category: "Caixas & Formas",
+    icon: "💳",
+    description: "Fundo retangular suave com cantos arredondados",
+  },
+  "box-pill": {
+    id: "box-pill",
+    name: "Pílula",
+    category: "Caixas & Formas",
+    icon: "💊",
+    description: "Cápsula totalmente arredondada estilo destaque",
+  },
+  "box-glass": {
+    id: "box-glass",
+    name: "Vidro",
+    category: "Caixas & Formas",
+    icon: "✨",
+    description: "Efeito glassmorphism translúcido com borda suave",
+  },
+  "box-accent": {
+    id: "box-accent",
+    name: "Cor da Marca",
+    category: "Caixas & Formas",
+    icon: "⚡",
+    description: "Caixa preenchida com a cor primária da marca",
+  },
+  "box-brutal": {
+    id: "box-brutal",
+    name: "Neobrutal",
+    category: "Caixas & Formas",
+    icon: "⬛",
+    description: "Tarja com cantos retos e sombra preta sólida",
+  },
+  scrim: {
+    id: "scrim",
+    name: "Vinheta",
+    category: "Especiais",
+    icon: "🌅",
+    description: "Gradiente difuso suave sem bordas duras",
+  },
+  "strip-line": {
+    id: "strip-line",
+    name: "Marca-Texto",
+    category: "Especiais",
+    icon: "🖍️",
+    description: "Tarjas escalonadas ajustadas por linha de texto",
+  },
+};
+
 export interface CanvasPostModel {
   id: string;
   familyId: VisualFamilyId;
@@ -294,6 +387,10 @@ export interface CanvasPostModel {
   manualHeadlineColor?: boolean;
   /** Usuário escolheu cor do corpo manualmente — o guardião de contraste preserva. */
   manualSubtextColor?: boolean;
+  /** Efeito visual de legibilidade para o título (fundo, sombra, contorno). */
+  headlineEffect?: TextLegibilityEffect;
+  /** Efeito visual de legibilidade para o corpo (fundo, sombra, contorno). */
+  subtextEffect?: TextLegibilityEffect;
   palette: CanvasPostPalette;
   slides: CarouselSlideItem[];
   currentSlideIndex: number;
@@ -315,6 +412,8 @@ export const INITIAL_POST: CanvasPostModel = {
   overlayOpacity: 0.55,
   logoPosition: "top-right",
   isSnapEnabled: true,
+  headlineEffect: "none",
+  subtextEffect: "none",
   palette: {
     background: "#120D0A",
     text: "#F8F4EE",

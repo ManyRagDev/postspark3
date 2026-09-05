@@ -1,7 +1,7 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Stage, Layer, Rect, Text, Group, Image as KonvaImage, Transformer, Line, Circle } from "react-konva";
-import type { BgImageTransform, CanvasPostModel, ElementPosition, LogoPositionType } from "./types";
-import { resolveLegibleTextColor } from "./types";
+import type { BgImageTransform, CanvasPostModel, ElementPosition, LogoPositionType, TextLegibilityEffect } from "./types";
+import { isDarkColor, resolveLegibleTextColor } from "./types";
 import { useDynamicFont } from "@/hooks/useDynamicFont";
 import JSZip from "jszip";
 
@@ -56,6 +56,235 @@ function getCoverCrop(
     width: Math.round(cropWidth),
     height: Math.round(cropHeight),
   };
+}
+
+// ─── EFEITOS DE LEGIBILIDADE TIPOGRÁFICA (10 ESTILOS OFICIAIS) ───
+function estimateTextLines(text: string, fontSize: number, containerWidth: number): Array<{ text: string; width: number }> {
+  if (!text) return [];
+  const avgCharWidth = fontSize * 0.52;
+  const maxCharsPerLine = Math.max(8, Math.floor(containerWidth / avgCharWidth));
+  const words = text.split(" ");
+  const lines: Array<{ text: string; width: number }> = [];
+  let currentWords: string[] = [];
+
+  for (const word of words) {
+    const candidate = [...currentWords, word].join(" ");
+    if (candidate.length <= maxCharsPerLine) {
+      currentWords.push(word);
+    } else {
+      if (currentWords.length > 0) {
+        const lineText = currentWords.join(" ");
+        lines.push({ text: lineText, width: lineText.length * avgCharWidth });
+      }
+      currentWords = [word];
+    }
+  }
+  if (currentWords.length > 0) {
+    const lineText = currentWords.join(" ");
+    lines.push({ text: lineText, width: lineText.length * avgCharWidth });
+  }
+  return lines;
+}
+
+interface RenderBackgroundEffectProps {
+  effect: TextLegibilityEffect;
+  contentWidth: number;
+  textHeight: number;
+  isDarkText: boolean;
+  accentColor: string;
+  lines?: Array<{ text: string; width: number }>;
+  lineHeightPx?: number;
+  align?: "left" | "center" | "right";
+}
+
+function renderBackgroundEffect({
+  effect,
+  contentWidth,
+  textHeight,
+  isDarkText,
+  accentColor,
+  lines,
+  lineHeightPx = 28,
+  align = "left",
+}: RenderBackgroundEffectProps) {
+  if (!effect || effect === "none" || effect === "shadow" || effect === "outline") {
+    return null;
+  }
+
+  if (effect === "box-card") {
+    return (
+      <Rect
+        x={-12}
+        y={-6}
+        width={contentWidth + 24}
+        height={textHeight + 12}
+        cornerRadius={10}
+        fill={isDarkText ? "rgba(255, 255, 255, 0.88)" : "rgba(12, 12, 16, 0.82)"}
+        stroke={isDarkText ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.15)"}
+        strokeWidth={1}
+        shadowColor="rgba(0, 0, 0, 0.3)"
+        shadowBlur={10}
+        shadowOffsetY={4}
+        listening={false}
+      />
+    );
+  }
+
+  if (effect === "box-pill") {
+    return (
+      <Rect
+        x={-16}
+        y={-8}
+        width={contentWidth + 32}
+        height={textHeight + 16}
+        cornerRadius={999}
+        fill={isDarkText ? "rgba(255, 255, 255, 0.92)" : "rgba(12, 12, 16, 0.88)"}
+        stroke={isDarkText ? "rgba(0, 0, 0, 0.1)" : "rgba(255, 255, 255, 0.2)"}
+        strokeWidth={1}
+        shadowColor="rgba(0, 0, 0, 0.25)"
+        shadowBlur={8}
+        shadowOffsetY={3}
+        listening={false}
+      />
+    );
+  }
+
+  if (effect === "box-glass") {
+    return (
+      <Rect
+        x={-14}
+        y={-8}
+        width={contentWidth + 28}
+        height={textHeight + 16}
+        cornerRadius={14}
+        fill={isDarkText ? "rgba(255, 255, 255, 0.22)" : "rgba(0, 0, 0, 0.38)"}
+        stroke={isDarkText ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.3)"}
+        strokeWidth={1.2}
+        shadowColor="rgba(0, 0, 0, 0.45)"
+        shadowBlur={16}
+        shadowOffsetY={6}
+        listening={false}
+      />
+    );
+  }
+
+  if (effect === "box-accent") {
+    return (
+      <Rect
+        x={-12}
+        y={-6}
+        width={contentWidth + 24}
+        height={textHeight + 12}
+        cornerRadius={8}
+        fill={accentColor}
+        shadowColor="rgba(0, 0, 0, 0.35)"
+        shadowBlur={8}
+        shadowOffsetY={3}
+        listening={false}
+      />
+    );
+  }
+
+  if (effect === "box-brutal") {
+    return (
+      <Rect
+        x={-10}
+        y={-6}
+        width={contentWidth + 20}
+        height={textHeight + 12}
+        cornerRadius={0}
+        fill={isDarkText ? "#FFFFFF" : "#000000"}
+        stroke={isDarkText ? "#000000" : "#FFFFFF"}
+        strokeWidth={2}
+        shadowColor={isDarkText ? "#000000" : "#FFFFFF"}
+        shadowBlur={0}
+        shadowOffsetX={3}
+        shadowOffsetY={3}
+        shadowOpacity={1}
+        listening={false}
+      />
+    );
+  }
+
+  if (effect === "scrim") {
+    return (
+      <Rect
+        x={-24}
+        y={-16}
+        width={contentWidth + 48}
+        height={textHeight + 32}
+        cornerRadius={16}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{ x: 0, y: textHeight + 32 }}
+        fillLinearGradientColorStops={
+          isDarkText
+            ? [0, "rgba(255, 255, 255, 0.92)", 0.65, "rgba(255, 255, 255, 0.7)", 1, "rgba(255, 255, 255, 0)"]
+            : [0, "rgba(0, 0, 0, 0.88)", 0.65, "rgba(0, 0, 0, 0.65)", 1, "rgba(0, 0, 0, 0)"]
+        }
+        listening={false}
+      />
+    );
+  }
+
+  if (effect === "strip-line") {
+    const stripLines = lines && lines.length > 0
+      ? lines
+      : [{ text: "", width: contentWidth }];
+
+    return (
+      <Group listening={false}>
+        {stripLines.map((line, idx) => {
+          const lineWidth = Math.min(contentWidth, Math.max(30, line.width || contentWidth));
+          let lineX = -6;
+          if (align === "center") {
+            lineX = (contentWidth - lineWidth) / 2 - 6;
+          } else if (align === "right") {
+            lineX = contentWidth - lineWidth - 6;
+          }
+          const lineY = idx * lineHeightPx - 2;
+
+          return (
+            <Rect
+              key={`strip-${idx}`}
+              x={lineX}
+              y={lineY}
+              width={lineWidth + 12}
+              height={lineHeightPx}
+              cornerRadius={4}
+              fill={isDarkText ? "rgba(255, 255, 255, 0.9)" : "rgba(12, 12, 16, 0.85)"}
+              stroke={isDarkText ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.12)"}
+              strokeWidth={1}
+              shadowColor="rgba(0, 0, 0, 0.2)"
+              shadowBlur={6}
+              shadowOffsetY={2}
+            />
+          );
+        })}
+      </Group>
+    );
+  }
+
+  return null;
+}
+
+function getTextEffectProps(effect: TextLegibilityEffect, isDarkText: boolean, isHeadline: boolean) {
+  if (effect === "shadow") {
+    return {
+      shadowColor: isDarkText ? "rgba(255, 255, 255, 0.85)" : "rgba(0, 0, 0, 0.95)",
+      shadowBlur: 12,
+      shadowOffsetX: 0,
+      shadowOffsetY: isDarkText ? 0 : 3,
+      shadowOpacity: 0.9,
+    };
+  }
+  if (effect === "outline") {
+    return {
+      stroke: isDarkText ? "#FFFFFF" : "#000000",
+      strokeWidth: isHeadline ? 3 : 2,
+      fillAfterStrokeEnabled: true,
+    };
+  }
+  return {};
 }
 
 export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStageProps>(
@@ -273,12 +502,35 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     // ─── CORES COM CONTRASTE GARANTIDO POR METADE (item 1) ───
     // O guardião (lib/contrast.ts) já resolve e persiste no modelo; aqui só
     // consumimos, com fallback legado para modelos sem overrides.
-    const headlineColor = post.palette.headlineColor || post.palette.text;
-    const subtextColor =
+    const rawHeadlineColor = post.palette.headlineColor || post.palette.text;
+    const rawSubtextColor =
       post.palette.subtextColor ||
       (isBrutalSplit
         ? resolveLegibleTextColor(post.palette.accent, post.palette.text)
         : post.palette.text);
+
+    const headlineEffect: TextLegibilityEffect = post.headlineEffect || "none";
+    const subtextEffect: TextLegibilityEffect = post.subtextEffect || "none";
+
+    const isDarkHeadline = isDarkColor(rawHeadlineColor);
+    const isDarkSubtext = isDarkColor(rawSubtextColor);
+
+    const headlineColor =
+      headlineEffect === "box-accent"
+        ? resolveLegibleTextColor(post.palette.accent, rawHeadlineColor)
+        : headlineEffect === "box-brutal"
+        ? (isDarkHeadline ? "#000000" : "#FFFFFF")
+        : rawHeadlineColor;
+
+    const subtextColor =
+      subtextEffect === "box-accent"
+        ? resolveLegibleTextColor(post.palette.accent, rawSubtextColor)
+        : subtextEffect === "box-brutal"
+        ? (isDarkSubtext ? "#000000" : "#FFFFFF")
+        : rawSubtextColor;
+
+    const headlineLines = estimateTextLines(activeHeadline, headlineFontSize, contentWidth);
+    const subtextLines = estimateTextLines(activeSubtext, subtextFontSize, contentWidth);
 
     // Posições Padrão Customizadas por Família
     let defaultHeadlineY = 0;
@@ -789,46 +1041,78 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 />
               )}
 
-              {/* ─── 5. TÍTULO PRINCIPAL INDIVIDUAL ─── */}
-              <Text
+              {/* ─── 5. TÍTULO PRINCIPAL INDIVIDUAL (COM SUPORTE A EFEITOS DE LEGIBILIDADE) ─── */}
+              <Group
                 ref={headlineRef}
-                text={activeHeadline}
                 x={headlinePos.x}
                 y={headlinePos.y}
-                width={contentWidth}
-                fontSize={headlineFontSize}
-                fontFamily={post.fontFamily}
-                fontStyle="bold"
-                fill={headlineColor}
-                align={defaultAlign}
-                lineHeight={isBrutalBlock ? 1.1 : 1.25}
-                letterSpacing={isBrutalBlock ? 0.5 : isEditorial ? -0.2 : -0.4}
                 draggable={isInteractive}
-                dragBoundFunc={isInteractive ? createSnapBoundFunc(contentWidth, headlineFontSize * 1.5) : undefined}
+                dragBoundFunc={isInteractive ? createSnapBoundFunc(contentWidth, headlineHeight) : undefined}
                 onClick={() => handleSelect("headline")}
                 onDragMove={handleDragMove}
                 onDragEnd={(e) => handleDragEnd(e, "headlinePos")}
-              />
+              >
+                {renderBackgroundEffect({
+                  effect: headlineEffect,
+                  contentWidth,
+                  textHeight: headlineHeight,
+                  isDarkText: isDarkHeadline,
+                  accentColor: post.palette.accent,
+                  lines: headlineLines,
+                  lineHeightPx: headlineFontSize * (isBrutalBlock ? 1.1 : 1.25),
+                  align: defaultAlign,
+                })}
+                <Text
+                  text={activeHeadline}
+                  x={0}
+                  y={0}
+                  width={contentWidth}
+                  fontSize={headlineFontSize}
+                  fontFamily={post.fontFamily}
+                  fontStyle="bold"
+                  fill={headlineColor}
+                  align={defaultAlign}
+                  lineHeight={isBrutalBlock ? 1.1 : 1.25}
+                  letterSpacing={isBrutalBlock ? 0.5 : isEditorial ? -0.2 : -0.4}
+                  {...getTextEffectProps(headlineEffect, isDarkHeadline, true)}
+                />
+              </Group>
 
-              {/* ─── 6. SUBTÍTULO / CORPO INDIVIDUAL ─── */}
-              <Text
+              {/* ─── 6. SUBTÍTULO / CORPO INDIVIDUAL (COM SUPORTE A EFEITOS DE LEGIBILIDADE) ─── */}
+              <Group
                 ref={subtextRef}
-                text={activeSubtext}
                 x={subtextPos.x}
                 y={subtextPos.y}
-                width={contentWidth}
-                fontSize={subtextFontSize}
-                fontFamily={isCyber ? "Space Mono, monospace" : "Inter, sans-serif"}
-                fill={subtextColor}
-                opacity={isBrutalSplit ? 0.95 : 0.8}
-                align={defaultAlign}
-                lineHeight={1.45}
                 draggable={isInteractive}
-                dragBoundFunc={isInteractive ? createSnapBoundFunc(contentWidth, subtextFontSize * 1.8) : undefined}
+                dragBoundFunc={isInteractive ? createSnapBoundFunc(contentWidth, subtextHeight) : undefined}
                 onClick={() => handleSelect("subtext")}
                 onDragMove={handleDragMove}
                 onDragEnd={(e) => handleDragEnd(e, "subtextPos")}
-              />
+              >
+                {renderBackgroundEffect({
+                  effect: subtextEffect,
+                  contentWidth,
+                  textHeight: subtextHeight,
+                  isDarkText: isDarkSubtext,
+                  accentColor: post.palette.accent,
+                  lines: subtextLines,
+                  lineHeightPx: subtextFontSize * 1.45,
+                  align: defaultAlign,
+                })}
+                <Text
+                  text={activeSubtext}
+                  x={0}
+                  y={0}
+                  width={contentWidth}
+                  fontSize={subtextFontSize}
+                  fontFamily={isCyber ? "Space Mono, monospace" : "Inter, sans-serif"}
+                  fill={subtextColor}
+                  opacity={isBrutalSplit ? 0.95 : 0.85}
+                  align={defaultAlign}
+                  lineHeight={1.45}
+                  {...getTextEffectProps(subtextEffect, isDarkSubtext, false)}
+                />
+              </Group>
 
               {/* ─── 7. BARRA DECORATIVA DE ACENTO (OCULTA NO BRUTALISMO/CYBER) ─── */}
               {!isBrutalBlock && !isCyber && (

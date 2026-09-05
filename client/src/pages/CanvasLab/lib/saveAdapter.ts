@@ -7,7 +7,16 @@
  * com fidelidade total.
  */
 
-import { OFFICIAL_FAMILIES_META, type CanvasPostModel, type AspectRatioType, type TextAlignType, type LogoPositionType, type VisualFamilyId } from "../components/types";
+import {
+  OFFICIAL_FAMILIES_META,
+  type CanvasPostModel,
+  type AspectRatioType,
+  type TextAlignType,
+  type LogoPositionType,
+  type VisualFamilyId,
+  type TextLegibilityEffect,
+  TEXT_EFFECTS_META,
+} from "../components/types";
 
 export type SaveInputType = "text" | "url" | "image";
 
@@ -104,6 +113,13 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
     ? raw.logoPosition
     : "top-right") as LogoPositionType;
 
+  const headlineEffect = (raw.headlineEffect && raw.headlineEffect in TEXT_EFFECTS_META
+    ? raw.headlineEffect
+    : "none") as TextLegibilityEffect;
+  const subtextEffect = (raw.subtextEffect && raw.subtextEffect in TEXT_EFFECTS_META
+    ? raw.subtextEffect
+    : "none") as TextLegibilityEffect;
+
   return {
     id: raw.id || `saved-${Date.now()}`,
     familyId,
@@ -128,6 +144,8 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
     subtextSizeScale: raw.subtextSizeScale,
     manualHeadlineColor: raw.manualHeadlineColor,
     manualSubtextColor: raw.manualSubtextColor,
+    headlineEffect,
+    subtextEffect,
     palette: {
       background: raw.palette?.background || "#120D0A",
       text: raw.palette?.text || "#F8F4EE",
