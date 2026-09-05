@@ -147,3 +147,7 @@ client/harness-export.html
 client/harness-export/
 harness-export/
 inspiracao.html
+
+# Auditoria e transcricoes locais de chats
+chat_kimi_GLM.json
+

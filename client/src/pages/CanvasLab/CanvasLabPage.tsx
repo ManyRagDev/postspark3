@@ -7,6 +7,7 @@ import { CanvasPostStage, type CanvasPostStageRef } from "./components/CanvasPos
 import CanvasTopBar from "./components/CanvasTopBar";
 import CanvasSidebar from "./components/CanvasSidebar";
 import CarouselFilmstrip from "./components/CarouselFilmstrip";
+import { ConfirmDialog, SaveChoiceDialog, readSavePreference, writeSavePreference } from "./components/CanvasLabDialogs";
 import {
   INITIAL_POST,
   type AspectRatioType,
@@ -14,19 +15,29 @@ import {
   type ElementPosition,
   type BgImageTransform,
 } from "./components/types";
+import { applyContrastGuard, patchTouchesContrast } from "./lib/contrast";
 
 interface CanvasLabPageProps {
   initialPost?: CanvasPostModel;
   onBackToGallery?: () => void;
+  /** Item 6: recomeçar do zero — limpa a sessão e volta à tela de criação. */
+  onRestart?: () => void;
+  /** Item 7: persiste o post ("new" = INSERT, "update" = UPDATE do salvo). */
+  onSave?: (post: CanvasPostModel, mode: "new" | "update") => Promise<boolean>;
+  /** Existe um post salvo vinculado à sessão (habilita "Atualizar"). */
+  hasSavedPost?: boolean;
+  isSaving?: boolean;
   [key: string]: any;
 }
 
-export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLabPageProps = {}) {
+export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart, onSave, hasSavedPost = false, isSaving = false }: CanvasLabPageProps = {}) {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isEditingBackground, setIsEditingBackground] = useState(false);
   const [post, setPost] = useState<CanvasPostModel>(initialPost || INITIAL_POST);
   const [zoom, setZoom] = useState(1);
   const [isExportingZip, setIsExportingZip] = useState(false);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [isRestartConfirmOpen, setIsRestartConfirmOpen] = useState(false);
   const stageRef = useRef<CanvasPostStageRef>(null);
 
   // Monitoramento dinâmico da resolução da tela para responsividade matemática
@@ -74,7 +85,13 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
   }, [isMobile, isMobileDrawerOpen, windowDimensions.width, windowDimensions.height, baseWidth, baseHeight]);
 
   const handleUpdatePost = (patch: Partial<CanvasPostModel>) => {
-    setPost((prev) => ({ ...prev, ...patch }));
+    setPost((prev) => {
+      const next = { ...prev, ...patch };
+      // Guardião de contraste (regra mandatória): toda mudança de fundo,
+      // acento, família ou limpeza de cor manual re-resolve as cores de
+      // texto — fundo escuro ⇄ texto claro, e vice-versa, por metade no split.
+      return patchTouchesContrast(prev, patch) ? applyContrastGuard(next) : next;
+    });
   };
 
   const handleAspectRatioChange = (ratio: AspectRatioType) => {
@@ -141,6 +158,36 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
       rotation: 0,
     });
     toast.info("Enquadramento do fundo resetado para o padrão.");
+  };
+
+  // ─── Item 7: fluxo de salvamento com decisão memorizável ───
+  const handleSaveClick = () => {
+    if (!onSave) {
+      toast.error("Salvamento indisponível nesta tela.");
+      return;
+    }
+    const pref = readSavePreference();
+    if (pref === "new") {
+      void onSave(post, "new");
+      return;
+    }
+    if (pref === "update" && hasSavedPost) {
+      void onSave(post, "update");
+      return;
+    }
+    setIsSaveDialogOpen(true);
+  };
+
+  const handleSaveNew = (remember: boolean) => {
+    if (remember) writeSavePreference("new");
+    setIsSaveDialogOpen(false);
+    void onSave?.(post, "new");
+  };
+
+  const handleSaveUpdate = (remember: boolean) => {
+    if (remember) writeSavePreference("update");
+    setIsSaveDialogOpen(false);
+    void onSave?.(post, "update");
   };
 
   // Teclado: Escape ou Enter concluem o modo de edição do fundo
@@ -259,6 +306,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
         currentSlide={post.currentSlideIndex}
         onPrevSlide={() => setPost((p) => ({ ...p, currentSlideIndex: Math.max(0, p.currentSlideIndex - 1) }))}
         onNextSlide={() => setPost((p) => ({ ...p, currentSlideIndex: Math.min(p.slides.length - 1, p.currentSlideIndex + 1) }))}
+        onRestart={onRestart ? () => setIsRestartConfirmOpen(true) : undefined}
+        onSave={onSave ? handleSaveClick : undefined}
+        isSaving={isSaving}
       />
 
       {/* 2. Área Central */}
@@ -379,6 +429,27 @@ export default function CanvasLabPage({ initialPost, onBackToGallery }: CanvasLa
         onAddSlide={handleAddSlide}
         onDuplicateSlide={handleDuplicateSlide}
         onRemoveSlide={handleDeleteSlide}
+      />
+
+      {/* ── Diálogos: Salvar (item 7) e Recomeçar (item 6) ── */}
+      <SaveChoiceDialog
+        open={isSaveDialogOpen}
+        hasSavedPost={hasSavedPost}
+        isSaving={isSaving}
+        onCancel={() => setIsSaveDialogOpen(false)}
+        onSaveNew={handleSaveNew}
+        onUpdate={handleSaveUpdate}
+      />
+      <ConfirmDialog
+        open={isRestartConfirmOpen}
+        title="Recomeçar do zero?"
+        description="Este post atual será descartado e você voltará à tela de criação para gerar novas direções de arte."
+        confirmLabel="Recomeçar"
+        onConfirm={() => {
+          setIsRestartConfirmOpen(false);
+          onRestart?.();
+        }}
+        onCancel={() => setIsRestartConfirmOpen(false)}
       />
     </div>
   );

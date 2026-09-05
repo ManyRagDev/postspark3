@@ -138,7 +138,8 @@ async function createPost(post) {
     bg_value: post.bgValue ?? null,
     bg_overlay: post.bgOverlay ?? null,
     copy_angle: post.copyAngle ?? null,
-    variation_snapshot: post.variationSnapshot ?? null
+    variation_snapshot: post.variationSnapshot ?? null,
+    canvas_model: post.canvasModel ?? null
   };
   const { data, error } = await db.from("posts").insert(payload).select("id").single();
   if (error || !data) {
@@ -177,7 +178,8 @@ async function updatePost(postId, userUuid, data) {
     bg_value: data.bgValue,
     bg_overlay: data.bgOverlay,
     copy_angle: data.copyAngle,
-    variation_snapshot: data.variationSnapshot
+    variation_snapshot: data.variationSnapshot,
+    canvas_model: data.canvasModel
   });
   if (Object.keys(payload).length === 0) {
     return;
@@ -835,6 +837,7 @@ var RUNTIME_MANIFEST = {
     { kind: "column", schema: "postspark", table: "posts", name: "bg_value", critical: false, consumers: ["db.ts:615"] },
     { kind: "column", schema: "postspark", table: "posts", name: "bg_overlay", critical: false, consumers: ["db.ts:616"] },
     { kind: "column", schema: "postspark", table: "posts", name: "copy_angle", critical: false, consumers: ["db.ts:617"] },
+    { kind: "column", schema: "postspark", table: "posts", name: "canvas_model", critical: false, consumers: ["db.ts (createPost/updatePost)", "drizzle/0016_add_canvas_model_to_posts.sql"], note: "reabertura com fidelidade do editor CanvasLab (PostSpark Studio)" },
     { kind: "column", schema: "postspark", table: "generation_runs", name: "events", critical: true, consumers: ["db.ts:866", "generationTrace.ts:188"], note: "runtime persiste eventos de gera\xE7\xE3o" },
     { kind: "column", schema: "postspark", table: "generation_runs", name: "events_version", critical: true, consumers: ["db.ts:849", "generationTrace.ts:188"] },
     { kind: "column", schema: "postspark", table: "profiles", name: "id", critical: true, consumers: ["billing.ts:102"] },
@@ -11596,7 +11599,9 @@ Conteudo: ${scrapeResult.content}`;
         bgValue: backgroundValueSchema.optional(),
         bgOverlay: bgOverlaySettingsSchema.optional(),
         copyAngle: copyAngleSchema.optional(),
-        variationSnapshot: postVisualSnapshotSchema.optional()
+        variationSnapshot: postVisualSnapshotSchema.optional(),
+        /** Modelo completo do editor CanvasLab (PostSpark Studio). */
+        canvasModel: z5.any().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       try {
@@ -11641,7 +11646,9 @@ Conteudo: ${scrapeResult.content}`;
         bgValue: backgroundValueSchema.optional(),
         bgOverlay: bgOverlaySettingsSchema.optional(),
         copyAngle: copyAngleSchema.optional(),
-        variationSnapshot: postVisualSnapshotSchema.optional()
+        variationSnapshot: postVisualSnapshotSchema.optional(),
+        /** Modelo completo do editor CanvasLab (PostSpark Studio). */
+        canvasModel: z5.any().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const validatedSnapshot = input.variationSnapshot ? postVisualSnapshotSchema.parse(input.variationSnapshot) : void 0;

@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import type { VisualFamilyId } from "@/pages/CanvasLab/components/types";
+import LoadingTutorial from "./LoadingTutorial";
 
 export const STUDIO = {
   bg: "#0B0A08",
@@ -438,6 +439,11 @@ export function ProductionOverlay({ prompt }: { prompt: string }) {
               {line}
             </motion.p>
           ))}
+        </div>
+
+        {/* Mini-tutorial visual durante a espera (item 11) */}
+        <div className="mt-7 w-full max-w-[340px]">
+          <LoadingTutorial />
         </div>
       </div>
 

@@ -232,6 +232,25 @@ export interface BgImageTransform {
   rotation?: number;
 }
 
+/** Legenda oficial dos formatos (ex.: "1:1 Feed", "9:16 Stories"). */
+export const ASPECT_RATIO_CAPTIONS: Record<AspectRatioType, { short: string; caption: string }> = {
+  "1:1": { short: "1:1", caption: "Feed" },
+  "5:6": { short: "5:6", caption: "Feed" },
+  "9:16": { short: "9:16", caption: "Stories" },
+};
+
+/** Paleta do post com overrides de cor por elemento (Título/Corpo). */
+export interface CanvasPostPalette {
+  background: string;
+  text: string;
+  accent: string;
+  surface?: string;
+  /** Cor manual do título; quando ausente, usa `text`. */
+  headlineColor?: string;
+  /** Cor manual do corpo; no brutal-split resolve contra a metade `accent`. */
+  subtextColor?: string;
+}
+
 export interface CarouselSlideItem {
   id: string;
   step: string;
@@ -267,12 +286,15 @@ export interface CanvasPostModel {
   logoUrl?: string;
   logoPosition: LogoPositionType;
   isSnapEnabled?: boolean;
-  palette: {
-    background: string;
-    text: string;
-    accent: string;
-    surface?: string;
-  };
+  /** Multiplicador de tamanho do título (default 1 — 0.6 a 1.6). */
+  headlineSizeScale?: number;
+  /** Multiplicador de tamanho do corpo (default 1 — 0.6 a 1.6). */
+  subtextSizeScale?: number;
+  /** Usuário escolheu cor do título manualmente — o guardião de contraste preserva. */
+  manualHeadlineColor?: boolean;
+  /** Usuário escolheu cor do corpo manualmente — o guardião de contraste preserva. */
+  manualSubtextColor?: boolean;
+  palette: CanvasPostPalette;
   slides: CarouselSlideItem[];
   currentSlideIndex: number;
 }

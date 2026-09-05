@@ -779,6 +779,8 @@ export const appRouter = router({
           bgOverlay: bgOverlaySettingsSchema.optional(),
           copyAngle: copyAngleSchema.optional(),
           variationSnapshot: postVisualSnapshotSchema.optional(),
+          /** Modelo completo do editor CanvasLab (PostSpark Studio). */
+          canvasModel: z.any().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -829,6 +831,8 @@ export const appRouter = router({
           bgOverlay: bgOverlaySettingsSchema.optional(),
           copyAngle: copyAngleSchema.optional(),
           variationSnapshot: postVisualSnapshotSchema.optional(),
+          /** Modelo completo do editor CanvasLab (PostSpark Studio). */
+          canvasModel: z.any().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {

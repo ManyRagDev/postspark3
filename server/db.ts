@@ -44,6 +44,7 @@ export type PostRecord = {
   bg_overlay: JsonValue | null;
   copy_angle: CopyAngleValue | null;
   variation_snapshot: JsonValue | null;
+  canvas_model: JsonValue | null;
   exported: boolean | null;
   createdAt: string;
   updatedAt: string;
@@ -75,6 +76,8 @@ export type CreatePostInput = {
   bgOverlay?: JsonValue;
   copyAngle?: CopyAngleValue;
   variationSnapshot?: JsonValue;
+  /** Modelo completo do editor CanvasLab (PostSpark Studio) — reabertura com fidelidade. */
+  canvasModel?: JsonValue;
 };
 
 export type UpdatePostInput = Partial<Omit<CreatePostInput, "userUuid">> & {
@@ -341,6 +344,7 @@ export async function createPost(post: CreatePostInput): Promise<number> {
     bg_overlay: post.bgOverlay ?? null,
     copy_angle: post.copyAngle ?? null,
     variation_snapshot: post.variationSnapshot ?? null,
+    canvas_model: post.canvasModel ?? null,
   };
 
   const { data, error } = await db
@@ -402,6 +406,7 @@ export async function updatePost(
     bg_overlay: data.bgOverlay,
     copy_angle: data.copyAngle,
     variation_snapshot: data.variationSnapshot,
+    canvas_model: data.canvasModel,
   });
 
   if (Object.keys(payload).length === 0) {

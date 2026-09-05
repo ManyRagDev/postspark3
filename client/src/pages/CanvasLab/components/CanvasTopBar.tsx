@@ -1,5 +1,6 @@
-import { ArrowDownToLine, ArrowLeft, ChevronLeft, ChevronRight, FileArchive, Layers, Magnet, Smartphone, Square, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, FileArchive, Layers, Loader2, Magnet, RotateCcw, Smartphone, Square, ZoomIn, ZoomOut } from "lucide-react";
 import type { AspectRatioType } from "./types";
+import { ASPECT_RATIO_CAPTIONS } from "./types";
 
 interface CanvasTopBarProps {
   aspectRatio: AspectRatioType;
@@ -18,6 +19,11 @@ interface CanvasTopBarProps {
   currentSlide?: number;
   onPrevSlide?: () => void;
   onNextSlide?: () => void;
+  /** Item 6: recomeçar do zero (com confirmação controlada pelo pai). */
+  onRestart?: () => void;
+  /** Item 7: abrir o fluxo de salvamento. */
+  onSave?: () => void;
+  isSaving?: boolean;
 }
 
 export default function CanvasTopBar({
@@ -37,6 +43,9 @@ export default function CanvasTopBar({
   currentSlide = 0,
   onPrevSlide,
   onNextSlide,
+  onRestart,
+  onSave,
+  isSaving = false,
 }: CanvasTopBarProps) {
   return (
     <header className="h-14 border-b border-white/10 bg-black/70 backdrop-blur-xl px-3 md:px-6 flex items-center justify-between z-30 shrink-0 select-none">
@@ -53,6 +62,17 @@ export default function CanvasTopBar({
             <span className="hidden md:inline font-medium">Galeria</span>
           </button>
         )}
+        {onRestart && (
+          <button
+            type="button"
+            onClick={onRestart}
+            className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:gap-1.5 text-xs text-white/70 hover:text-white bg-white/6 hover:bg-white/12 md:px-3 md:py-1.5 rounded-xl border border-white/10 transition-all cursor-pointer active:scale-95"
+            title="Recomeçar do zero (novas direções de arte)"
+          >
+            <RotateCcw size={14} />
+            <span className="hidden md:inline font-medium">Recomeçar</span>
+          </button>
+        )}
         <div className="hidden sm:flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-xs font-bold uppercase tracking-widest text-white">PostSpark Studio</span>
@@ -61,20 +81,18 @@ export default function CanvasTopBar({
 
       {/* ─── CENTRO: SELETOR DE PROPORÇÃO CLARO & CONTROLES ─── */}
       <div className="flex items-center gap-2 md:gap-3">
-        {/* Seletor de Formato Desktop (com Ícones e Labels) */}
+        {/* Seletor de Formato Desktop (com Ícones e Labels — item 8) */}
         <div className="hidden md:flex items-center bg-white/6 p-1 rounded-xl border border-white/10">
-          {[
-            { id: "1:1", label: "1:1 Feed", icon: Square },
-            { id: "5:6", label: "5:6 Retrato", icon: Layers },
-            { id: "9:16", label: "9:16 Stories", icon: Smartphone },
-          ].map((item) => {
-            const Icon = item.icon;
-            const isSelected = aspectRatio === item.id;
+          {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map((id) => {
+            const cap = ASPECT_RATIO_CAPTIONS[id];
+            const Icon = id === "9:16" ? Smartphone : id === "5:6" ? Layers : Square;
+            const isSelected = aspectRatio === id;
             return (
               <button
-                key={item.id}
+                key={id}
                 type="button"
-                onClick={() => onAspectRatioChange(item.id as AspectRatioType)}
+                onClick={() => onAspectRatioChange(id)}
+                aria-label={`Formato ${cap.short} ${cap.caption}`}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   isSelected
                     ? "bg-white text-black shadow-sm"
@@ -82,32 +100,31 @@ export default function CanvasTopBar({
                 }`}
               >
                 <Icon size={13} />
-                <span>{item.label}</span>
+                <span>{cap.short} {cap.caption}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Seletor de Formato Mobile (Identificação Clara em Texto: 1:1 | 5:6 | 9:16) */}
+        {/* Seletor de Formato Mobile (ratio + legenda, item 8) */}
         <div className="md:hidden flex items-center bg-white/8 p-0.5 rounded-xl border border-white/12">
-          {[
-            { id: "1:1", label: "1:1" },
-            { id: "5:6", label: "5:6" },
-            { id: "9:16", label: "9:16" },
-          ].map((item) => {
-            const isSelected = aspectRatio === item.id;
+          {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map((id) => {
+            const cap = ASPECT_RATIO_CAPTIONS[id];
+            const isSelected = aspectRatio === id;
             return (
               <button
-                key={item.id}
+                key={id}
                 type="button"
-                onClick={() => onAspectRatioChange(item.id as AspectRatioType)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
-                  isSelected
-                    ? "bg-white text-black shadow-sm"
-                    : "text-white/50 hover:text-white"
+                onClick={() => onAspectRatioChange(id)}
+                aria-label={`Formato ${cap.short} ${cap.caption}`}
+                className={`flex flex-col items-center px-2.5 py-1 rounded-lg transition-all ${
+                  isSelected ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
                 }`}
               >
-                {item.label}
+                <span className="text-xs font-mono font-bold leading-none">{cap.short}</span>
+                <span className="text-[7.5px] font-semibold uppercase tracking-wider mt-0.5 opacity-80">
+                  {cap.caption}
+                </span>
               </button>
             );
           })}
@@ -156,6 +173,24 @@ export default function CanvasTopBar({
 
       {/* ─── LADO DIREITO (DESKTOP: BOTÕES COMPLETOS) ─── */}
       <div className="flex items-center gap-2 md:gap-3 shrink-0">
+        {/* Salvar no banco (item 7) */}
+        {onSave && (
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={isSaving}
+            className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:gap-1.5 text-xs font-bold text-white bg-white/8 hover:bg-white/14 border border-white/12 md:px-3 md:py-2 rounded-xl transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+            title="Salvar este post na sua biblioteca"
+          >
+            {isSaving ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <BookmarkCheck size={14} />
+            )}
+            <span className="hidden md:inline">{isSaving ? "Salvando..." : "Salvar"}</span>
+          </button>
+        )}
+
         {/* Zoom (Apenas Desktop) */}
         <div className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/8 text-xs text-white/60">
           <button

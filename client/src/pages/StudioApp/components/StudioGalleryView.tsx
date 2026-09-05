@@ -2,6 +2,7 @@ import StudioMobileFlashcards from "./StudioMobileFlashcards";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Layers, RefreshCw, Smartphone, Square } from "lucide-react";
 import type { AspectRatioType, CanvasPostModel } from "@/pages/CanvasLab/components/types";
+import { ASPECT_RATIO_CAPTIONS } from "@/pages/CanvasLab/components/types";
 import { CanvasPostStage } from "@/pages/CanvasLab/components/CanvasPostStage";
 
 interface StudioGalleryViewProps {
@@ -63,20 +64,18 @@ export default function StudioGalleryView({
           </span>
         </div>
 
-        {/* Seletor de Formato */}
+        {/* Seletor de Formato (legendas oficiais — item 8) */}
         <div className="flex items-center bg-white/6 p-1 rounded-xl border border-white/10">
-          {[
-            { id: "1:1", label: "1:1 Feed", icon: Square },
-            { id: "5:6", label: "5:6 Retrato", icon: Layers },
-            { id: "9:16", label: "9:16 Stories", icon: Smartphone },
-          ].map((item) => {
-            const Icon = item.icon;
-            const isSelected = aspectRatio === item.id;
+          {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map((id) => {
+            const cap = ASPECT_RATIO_CAPTIONS[id];
+            const Icon = id === "9:16" ? Smartphone : id === "5:6" ? Layers : Square;
+            const isSelected = aspectRatio === id;
             return (
               <button
-                key={item.id}
+                key={id}
                 type="button"
-                onClick={() => setAspectRatio(item.id as AspectRatioType)}
+                onClick={() => setAspectRatio(id)}
+                aria-label={`Formato ${cap.short} ${cap.caption}`}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   isSelected
                     ? "bg-white text-black shadow-sm"
@@ -84,7 +83,7 @@ export default function StudioGalleryView({
                 }`}
               >
                 <Icon size={13} />
-                <span className="hidden sm:inline-block">{item.label}</span>
+                <span className="hidden sm:inline-block">{cap.short} {cap.caption}</span>
               </button>
             );
           })}
@@ -106,7 +105,14 @@ export default function StudioGalleryView({
             return (
               <div
                 key={item.id || idx}
-                className="group relative flex flex-col items-center bg-white/3 hover:bg-white/6 border border-white/10 hover:border-[oklch(0.78_0.22_48)] rounded-3xl p-5 transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
+                role="button"
+                tabIndex={0}
+                aria-label={`Editar direção ${idx + 1}: ${item.familyName}`}
+                onClick={() => onSelectVariation(cleanItem)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") onSelectVariation(cleanItem);
+                }}
+                className="group relative flex flex-col items-center bg-white/3 hover:bg-white/6 border border-white/10 hover:border-[oklch(0.78_0.22_48)] rounded-3xl p-5 transition-all duration-300 shadow-2xl hover:shadow-[0_20px_60px_rgba(0,0,0,0.8)] cursor-pointer"
               >
                 {/* Header do Card */}
                 <div className="w-full flex items-center justify-between mb-3 px-1">
@@ -136,15 +142,21 @@ export default function StudioGalleryView({
                   <CanvasPostStage post={cleanItem} zoom={cardScale} isReadOnly={true} />
                 </div>
 
-                {/* Botão de Ação: Personalizar Post */}
+                {/* Botão de Ação: Personalizar Post (mantido para a11y — o card inteiro também clica) */}
                 <button
                   type="button"
-                  onClick={() => onSelectVariation(cleanItem)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectVariation(cleanItem);
+                  }}
                   className="w-full mt-4 py-2.5 px-4 rounded-xl text-xs font-bold text-black bg-white hover:bg-[oklch(0.78_0.22_48)] transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer group-hover:scale-[1.02]"
                 >
                   <span>Personalizar Post</span>
                   <ArrowRight size={14} />
                 </button>
+                <span className="mt-1.5 text-[9px] font-mono uppercase tracking-wider text-white/30">
+                  clique no card para editar
+                </span>
               </div>
             );
           })}

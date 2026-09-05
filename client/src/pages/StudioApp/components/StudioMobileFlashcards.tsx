@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight, Layers, RefreshCw, Smartphone, Sparkles, Square } from "lucide-react";
 import type { AspectRatioType, CanvasPostModel } from "@/pages/CanvasLab/components/types";
+import { ASPECT_RATIO_CAPTIONS } from "@/pages/CanvasLab/components/types";
 import { CanvasPostStage } from "@/pages/CanvasLab/components/CanvasPostStage";
 
 interface StudioMobileFlashcardsProps {
@@ -24,6 +25,8 @@ export default function StudioMobileFlashcards({
 }: StudioMobileFlashcardsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [aspectRatio, setAspectRatio] = useState<AspectRatioType>("1:1");
+  /** Guarda o estado de drag para não selecionar quando o usuário só navega. */
+  const isDraggingCard = useRef(false);
 
   const total = variations.length;
   const currentPost = variations[currentIndex] || variations[0];
@@ -54,24 +57,25 @@ export default function StudioMobileFlashcards({
           <span>Novo Tema</span>
         </button>
 
-        {/* Seletor de Formato Claro (1:1 / 5:6 / 9:16) */}
+        {/* Seletor de Formato Claro (ratio + legenda — item 8) */}
         <div className="flex items-center bg-white/8 p-0.5 rounded-xl border border-white/12">
-          {[
-            { id: "1:1", label: "1:1" },
-            { id: "5:6", label: "5:6" },
-            { id: "9:16", label: "9:16" },
-          ].map((item) => {
-            const isSelected = aspectRatio === item.id;
+          {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map((id) => {
+            const cap = ASPECT_RATIO_CAPTIONS[id];
+            const isSelected = aspectRatio === id;
             return (
               <button
-                key={item.id}
+                key={id}
                 type="button"
-                onClick={() => setAspectRatio(item.id as AspectRatioType)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
+                onClick={() => setAspectRatio(id)}
+                aria-label={`Formato ${cap.short} ${cap.caption}`}
+                className={`flex flex-col items-center px-2 py-1 rounded-lg transition-all ${
                   isSelected ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
                 }`}
               >
-                {item.label}
+                <span className="text-[11px] font-mono font-bold leading-none">{cap.short}</span>
+                <span className="text-[7px] font-semibold uppercase tracking-wider mt-0.5 opacity-80">
+                  {cap.caption}
+                </span>
               </button>
             );
           })}
@@ -133,12 +137,20 @@ export default function StudioMobileFlashcards({
                 drag={isCenter ? "x" : false}
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.3}
+                onDragStart={() => {
+                  isDraggingCard.current = true;
+                }}
                 onDragEnd={(_, info) => {
+                  isDraggingCard.current = false;
                   if (info.offset.x < -50 || info.velocity.x < -200) {
                     handleNext();
                   } else if (info.offset.x > 50 || info.velocity.x > 200) {
                     handlePrev();
                   }
+                }}
+                // Item 10: toque no card central seleciona para edição.
+                onTap={() => {
+                  if (isCenter && !isDraggingCard.current) onSelectVariation(cleanItem);
                 }}
               >
                 {/* Prancheta Konva Auto-Fit */}
@@ -185,6 +197,11 @@ export default function StudioMobileFlashcards({
             <ChevronRight size={16} />
           </button>
         </div>
+
+        {/* Dica de seleção (item 10) */}
+        <p className="text-[10px] font-mono uppercase tracking-wider text-white/40 mt-2 mb-1">
+          toque no card para editar
+        </p>
       </main>
 
       {/* ─── 3. BARRA DE AÇÃO INFERIOR FIXA (THUMB ZONE) ─── */}

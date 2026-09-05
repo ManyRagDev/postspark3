@@ -2,10 +2,10 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Bookmark, Sparkles } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
-import { useEditorStore } from "@/store/editorStore";
 import { createPostVisualSnapshot } from "@/lib/variationSnapshot";
 import type { PostVariation, PostVisualSnapshot, PostMode, Platform, CarouselSlide, AspectRatio } from "@shared/postspark";
 import { layoutToAdvanced } from "@/lib/layoutToAdvanced";
+import { savedPostToCanvasModel } from "@/pages/CanvasLab/lib/saveAdapter";
 import PostRenderer from "@/components/PostRenderer";
 
 function formatDate(value: string | null | undefined) {
@@ -66,21 +66,22 @@ export default function SavedPosts() {
   const { data: posts, isLoading } = trpc.post.list.useQuery();
 
   const openSavedPost = (post: any) => {
-    const editorStore = useEditorStore.getState();
-    const normalizedVariation = savedPostToVariation(post);
-
-    editorStore.reset();
-    editorStore.loadSnapshot(normalizedVariation);
+    // Item 7: reabre o post no editor oficial CanvasLab (rota /thevoid).
+    // O modelo completo (canvas_model ou reconstrução heurística) viaja pelo
+    // sessionStorage e é lido pelo StudioAppV2BPage no mount.
+    const model = savedPostToCanvasModel(post);
 
     sessionStorage.setItem(
-      "postspark.open_saved_post",
+      "postspark.open_canvas_post",
       JSON.stringify({
-        type: post.inputType || "text",
-        content: post.inputContent || "",
+        postId: post.id,
+        inputType: post.inputType || "text",
+        inputContent: post.inputContent || "",
+        model,
       })
     );
 
-    setLocation("/");
+    setLocation("/thevoid");
   };
 
   return (

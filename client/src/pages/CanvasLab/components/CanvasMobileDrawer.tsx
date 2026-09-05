@@ -17,7 +17,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { CanvasPostModel, VisualFamilyId } from "@/pages/CanvasLab/components/types";
-import { OFFICIAL_FAMILIES_META, resolveLegibleTextColor } from "@/pages/CanvasLab/components/types";
+import { OFFICIAL_FAMILIES_META } from "@/pages/CanvasLab/components/types";
+import { applyFamilyPreset } from "../lib/familyPreset";
+import TypographyColorControls from "./TypographyColorControls";
+import TipCallout from "./TipCallout";
+import { useStudioTipsStore } from "@/store/studioTipsStore";
+import { Lightbulb } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import BackgroundsDrawer from "./BackgroundsDrawer";
 import RadialTextureSelector from "./RadialTextureSelector";
@@ -56,6 +61,8 @@ export default function CanvasMobileDrawer({
     }
   };
   const [activeTab, setActiveTab] = useState<MobileTab>("text");
+  const showTips = useStudioTipsStore((s) => s.showTips);
+  const setShowTips = useStudioTipsStore((s) => s.setShowTips);
 
   // Estado da Mídia / Background
   const [aiPrompt, setAiPrompt] = useState(post.imagePrompt || "");
@@ -103,22 +110,9 @@ export default function CanvasMobileDrawer({
   };
 
   const handleSelectFamily = (familyId: VisualFamilyId) => {
-    const meta = OFFICIAL_FAMILIES_META[familyId];
-    if (!meta) return;
-
-    const resolvedText = resolveLegibleTextColor(post.palette.background, post.palette.text);
-    const resolvedPalette = {
-      ...post.palette,
-      text: resolvedText,
-      surface: post.palette.surface || meta.defaultPalette.surface,
-    };
-
-    onUpdatePost({
-      familyId,
-      familyName: meta.name,
-      palette: resolvedPalette,
-      fontFamily: meta.defaultFont,
-    });
+    // Preset único de família: muda apenas tipografia/composição — as cores do
+    // usuário são preservadas e o guardião de contraste re-resolve o texto.
+    onUpdatePost(applyFamilyPreset(post, familyId));
   };
 
   const handleApplyBackground = (url?: string) => {
@@ -220,7 +214,7 @@ export default function CanvasMobileDrawer({
               { id: "text", label: "Texto", icon: Edit3 },
               { id: "style", label: "Estilo", icon: Palette },
               { id: "media", label: "Mídia", icon: ImageIcon },
-              { id: "brand", label: "Marca", icon: Sparkles },
+              { id: "brand", label: "Logo", icon: Sparkles },
             ].map((tab) => {
               const Icon = tab.icon;
               const isSelected = activeTab === tab.id;
@@ -251,6 +245,10 @@ export default function CanvasMobileDrawer({
               {/* ─── ABA 1: TEXTO ─── */}
               {activeTab === "text" && (
                 <div className="space-y-3">
+                  <TipCallout id="tip-mtext-tab" title="Conteúdo do post" compact>
+                    Título, subtexto, cores por elemento e tamanho da fonte. O badge e a etapa aparecem como tags do slide.
+                  </TipCallout>
+
                   <div className="space-y-1">
                     <label className="text-[11px] font-mono text-white/50 uppercase">Título (Headline)</label>
                     <textarea
@@ -291,12 +289,21 @@ export default function CanvasMobileDrawer({
                       />
                     </div>
                   </div>
+
+                  {/* ── Cores e tamanho da tipografia (guardião de contraste integrado) ── */}
+                  <div className="pt-3 border-t border-white/8">
+                    <TypographyColorControls post={post} onUpdatePost={onUpdatePost} compact />
+                  </div>
                 </div>
               )}
 
               {/* ─── ABA 2: ESTILO (14 FAMÍLIAS & CORES) ─── */}
               {activeTab === "style" && (
                 <div className="space-y-4">
+                  <TipCallout id="tip-mstyle-tab" title="Estilos mudam a forma, nunca as cores" compact>
+                    Trocar de direção de arte altera fontes e composição — suas cores escolhidas continuam as mesmas.
+                  </TipCallout>
+
                   <div className="space-y-2">
                     <div className="text-[11px] font-mono text-white/50 uppercase">
                       14 Famílias Visuais Oficiais
@@ -338,11 +345,9 @@ export default function CanvasMobileDrawer({
                         <input
                           type="color"
                           value={post.palette.background}
-                          onChange={(e) => {
-                            const newBg = e.target.value;
-                            const newText = resolveLegibleTextColor(newBg, post.palette.text);
-                            onUpdatePost({ palette: { ...post.palette, background: newBg, text: newText } });
-                          }}
+                          onChange={(e) =>
+                            onUpdatePost({ palette: { ...post.palette, background: e.target.value } })
+                          }
                           className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/15"
                         />
                       </div>
@@ -363,7 +368,16 @@ export default function CanvasMobileDrawer({
                           type="color"
                           value={post.palette.text}
                           onChange={(e) =>
-                            onUpdatePost({ palette: { ...post.palette, text: e.target.value } })
+                            onUpdatePost({
+                              palette: {
+                                ...post.palette,
+                                text: e.target.value,
+                                headlineColor: undefined,
+                                subtextColor: undefined,
+                              },
+                              manualHeadlineColor: true,
+                              manualSubtextColor: true,
+                            })
                           }
                           className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/15"
                         />
@@ -376,6 +390,10 @@ export default function CanvasMobileDrawer({
               {/* ─── ABA 3: MÍDIA & PLANO DE FUNDO ─── */}
               {activeTab === "media" && (
                 <div className="space-y-4">
+                  <TipCallout id="tip-mmedia-tab" title="Fundos por IA, texturas ou fotos" compact>
+                    Gere fundo com IA, abra o catálogo de texturas ou envie da galeria do celular.
+                  </TipCallout>
+
                   {/* Status do Fundo Ativo */}
                   {activeBg && (
                     <div className="flex items-center justify-between p-3 rounded-2xl bg-white/6 border border-white/12">
@@ -519,24 +537,70 @@ export default function CanvasMobileDrawer({
                 </div>
               )}
 
-              {/* ─── ABA 4: MARCA ─── */}
+              {/* ─── ABA 4: LOGO ─── */}
               {activeTab === "brand" && (
                 <div className="space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-mono text-white/50 uppercase">Posição da Logo</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {["top-left", "top-right", "bottom-center"].map((pos) => (
+                  <TipCallout id="tip-mbrand-tab" title="Logo e tag do post" compact>
+                    Envie o logo em PNG transparente e arraste-o no palco para posicionar.
+                  </TipCallout>
+
+                  {/* Upload do logo (paridade com o desktop) */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-mono text-white/50 uppercase">Logo da Marca (PNG Transparente)</label>
+                    <label className="flex items-center justify-center gap-2 w-full border border-dashed border-white/20 bg-white/3 hover:bg-white/6 rounded-xl p-3 text-xs text-white/70 cursor-pointer transition-all">
+                      <Upload size={14} />
+                      <span>Upload do Logo...</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            onUpdatePost({ logoUrl: event.target?.result as string });
+                            toast.success("Logo aplicado! Arraste no palco para posicionar.");
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                    {post.logoUrl && (
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/10 text-xs">
+                        <span className="text-white/60">Logo Ativo</span>
                         <button
-                          key={pos}
                           type="button"
-                          onClick={() => onUpdatePost({ logoPosition: pos as any })}
-                          className={`p-2 rounded-xl border text-xs font-semibold ${
-                            post.logoPosition === pos
-                              ? "bg-white text-black"
-                              : "bg-white/4 border-white/8 text-white/60"
+                          onClick={() => onUpdatePost({ logoUrl: undefined })}
+                          className="text-red-400 hover:underline cursor-pointer"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Posição inicial do logo (4 posições válidas; o drag no palco prevalece) */}
+                  <div className="space-y-1 pt-2 border-t border-white/8">
+                    <label className="text-[11px] font-mono text-white/50 uppercase">Posição do Logo</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { id: "top-left", label: "Sup. Esq." },
+                        { id: "top-right", label: "Sup. Dir." },
+                        { id: "bottom-left", label: "Inf. Esq." },
+                        { id: "bottom-right", label: "Inf. Dir." },
+                      ] as const).map((pos) => (
+                        <button
+                          key={pos.id}
+                          type="button"
+                          onClick={() => onUpdatePost({ logoPosition: pos.id })}
+                          className={`p-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                            post.logoPosition === pos.id
+                              ? "bg-white text-black border-white"
+                              : "bg-white/4 border-white/8 text-white/60 hover:text-white"
                           }`}
                         >
-                          {pos === "top-left" ? "Top Esq." : pos === "top-right" ? "Top Dir." : "Base"}
+                          {pos.label}
                         </button>
                       ))}
                     </div>
@@ -544,6 +608,22 @@ export default function CanvasMobileDrawer({
                 </div>
               )}
             </div>
+          )}
+
+          {/* Checkbox global "Mostrar dicas" (item 9) */}
+          {isOpen && (
+            <label className="flex items-center justify-between px-4 py-2 border-t border-white/10 bg-black/50 cursor-pointer select-none shrink-0">
+              <span className="text-[11px] font-semibold text-white/60 flex items-center gap-1.5">
+                <Lightbulb size={12} className="text-[oklch(0.78_0.22_48)]" />
+                Mostrar dicas
+              </span>
+              <input
+                type="checkbox"
+                checked={showTips}
+                onChange={(e) => setShowTips(e.target.checked)}
+                className="w-4 h-4 accent-[oklch(0.78_0.22_48)] cursor-pointer"
+              />
+            </label>
           )}
 
           {/* Botão de Exportação Fixo no Rodapé */}

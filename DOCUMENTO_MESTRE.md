@@ -1,7 +1,7 @@
 # DOCUMENTO_MESTRE — PostSpark 3
 
 > **Status do Documento:** Documento-Mestre Canônico e Fonte Primária da Verdade (Single Source of Truth).  
-> **Revisão:** 2026-09-02 — Atualização Integral de Arquitetura, Mecanismos, Contratos, Rotas e Decisões Históricas (ADR).  
+> **Revisão:** 2026-09-05 — Reforma do Editor Oficial (CanvasLab), Guardião de Contraste, Salvamento v2, Sistema de Dicas e Correções de Usabilidade (11 itens).  
 > **Regra Mandatória (AGENTS.md):** Todo agente ou desenvolvedor deve consultar este documento antes de alterações e atualizá-lo sempre que houver mudanças arquiteturais, estruturais, de contratos ou de rotas.
 
 ---
@@ -22,7 +22,7 @@ O sistema combina inteligência semântica de marca (**Brand DNA**), diagramaç�
 - **NÃO é um wrapper genérico de ChatGPT**: não expõe telas de chat nem formulários de prompt cru; a geração é guiada por teses de copywriting, arquétipos visuais e regras de direção de arte.
 - **NÃO usa filas assíncronas, cron jobs ou workers dedicados**: todo o fluxo de geração e edição opera de forma síncrona e determinística.
 - **NÃO usa Drizzle ORM em runtime**: `drizzle/` existe apenas como histórico declarativo de migrações SQL. Em runtime, todas as operações de banco utilizam o cliente oficial `@supabase/supabase-js` em `server/db.ts`.
-- **NÃO possui múltiplos normalizadores visuais**: há apenas uma fonte da verdade após a geração (`PostVisualSnapshot`).
+- **NÃO possui múltiplos normalizadores visuais**: há apenas uma fonte da verdade após a geração (`PostVisualSnapshot` no fluxo legado; `CanvasPostModel` no editor oficial — ver §3).
 
 ---
 
@@ -44,16 +44,25 @@ O sistema combina inteligência semântica de marca (**Brand DNA**), diagramaç�
 
 ---
 
-## 3. A Invariante Obrigatória: Fonte Única da Verdade (`PostVisualSnapshot`)
+## 3. Fonte Única da Verdade: `PostVisualSnapshot` (legado) e `CanvasPostModel` (editor oficial)
 
-Após o procedimento `post.generate`, cada variação de post (`PostVariation`) atravessa obrigatoriamente uma única vez o normalizador canônico em `client/src/lib/variationSnapshot.ts` (e `shared/variationSnapshot.ts`) e torna-se um **`PostVisualSnapshot`**.
+### 3.1 Fluxo legado (`PostVisualSnapshot`) — INATIVO EM ROTA
+Após o procedimento `post.generate` (fluxo legado Home/HoloDeck/WorkbenchV2, hoje **sem rota montada**), cada variação atravessa o normalizador canônico em `client/src/lib/variationSnapshot.ts` e torna-se um **`PostVisualSnapshot`**. Regras:
+1. **Consumo Unificado**: HoloDeck, Workbench, exportação, salvamento, histórico e banco de dados consomem o **mesmo** snapshot.
+2. **Proibição de Recálculos Locais**: Renderers **não podem** remover `designTokens`, recalcular prioridades de cor, inventar layouts arbitrários ou reconstruir fundos.
+3. **Zustand como Guardião**: `visualSnapshot` é documento autoritativo; edições atualizam-no atomicamente.
+4. **Isolamento de Carrossel**: overrides de slides residem exclusivamente em `slides[].editorState`.
+5. **Versionamento**: alterações estruturais exigem incremento de `snapshotVersion` + migração via `client/src/lib/snapshotMigration.ts`.
 
-### Regras Mandatórias de Contrato:
-1. **Consumo Unificado**: HoloDeck, Workbench, exportação, salvamento, histórico e banco de dados consomem o **mesmo** `PostVisualSnapshot`.
-2. **Proibição de Recálculos Locais**: Renderers (`PostRenderer`, `PostCardV2`, Canvas Konva) **não podem** remover `designTokens`, recalcular prioridades de cor, inventar layouts arbitrários ou reconstruir fundos.
-3. **Zustand como Guardião**: O Zustand mantém `visualSnapshot` como documento autoritativo. Qualquer edição manual no Workbench atualiza o `visualSnapshot` atomicamente antes da renderização seguinte.
-4. **Isolamento de Carrossel**: Overrides específicos de slides residem exclusivamente em `slides[].editorState`; o slide em edição ativa nunca vaza para os campos-base do documento.
-5. **Versionamento de Contrato**: O campo `snapshotVersion` controla a compatibilidade. Qualquer alteração estrutural no contrato exige incremento de versão e suporte a versões anteriores via `client/src/lib/snapshotMigration.ts`.
+### 3.2 Editor oficial CanvasLab (`CanvasPostModel`) — ATIVO
+⚠️ **Decisão do dono (2026-09-05):** o fluxo **Home → HoloDeck → WorkbenchV2 é legado órfão** (não há rota montando `Home.tsx`). O editor oficial é o **CanvasLab** (`client/src/pages/CanvasLab/`), motor Konva (`CanvasPostStage.tsx`), acessado em `/thevoid` → `StudioAppV2BPage` (`create → gallery → editor`). O termo "workbench" é histórico; "HoloDeck" corresponde hoje a `StudioGalleryView` (desktop) / `StudioMobileFlashcards` (mobile).
+
+Regras mandatórias do editor oficial:
+1. **`CanvasPostModel` é o documento autoritativo** do editor (`client/src/pages/CanvasLab/components/types.ts`). Toda mutação passa pelo funil `CanvasLabPage.handleUpdatePost`.
+2. **Guardião de Contraste (`lib/contrast.ts`)**: regra mandatória de usabilidade — fundo escuro ⇄ texto claro e vice-versa, **incluindo as metades do brutal-split** (título contra `background`, corpo contra `accent`). Executa em mudança de fundo, acento ou família (`patchTouchesContrast`). Escolhas manuais do usuário (flags `manualHeadlineColor`/`manualSubtextColor`) são preservadas e apenas sinalizadas com selo "contraste baixo".
+3. **Estilos pré-definidos nunca alteram cores**: `applyFamilyPreset` (`lib/familyPreset.ts`) aplica família alterando APENAS tipografia/composição; `background` e `accent` são preservados; `surface` só entra como fallback. Usar este helper (nunca reimplementar a lógica nos componentes).
+4. **Motor anti-sobreposição**: `CanvasPostStage` reduz a fonte do título em até 3 passos (0.88×) quando a pilha título/corpo colide com a linha de corte do split (50%) ou a margem inferior; o subtítulo do split fica no mínimo na linha de corte (nunca o preto hardcoded legado).
+5. **Persistência**: salvamento via `post.save`/`post.update` com o modelo completo na coluna `canvas_model` (drizzle/0016) — reabertura com fidelidade total via `savedPostToCanvasModel`.
 
 ---
 
@@ -148,26 +157,39 @@ Todas as artes do PostSpark seguem rigorosamente as definições geométricas e 
 
 ---
 
-## 7. Workbench de Criação & Estúdio de Texturas
+## 7. Estúdio de Edição Oficial: CanvasLab (PostSpark Studio)
 
-O editor visual do PostSpark (`CanvasLabPage` / `WorkbenchV2`) foi construído sobre o motor **Konva 2D**, garantindo performance de prancheta gráfica com aceleração por hardware.
+O editor visual oficial do PostSpark (`CanvasLabPage`, rota `/thevoid`) foi construído sobre o motor **Konva 2D** (`CanvasPostStage.tsx`), substituindo o motor legado DOM + html2canvas (WorkbenchV2 — órfão, sem rota).
 
-### Recursos da Prancheta:
-- **Projeção Vinculante (`ResolvedTextBlock`)**: As métricas de fonte calculadas no backend via `fontkit` coincidem perfeitamente com a renderização em tela (`shared/typography/equivalence.ts`), eliminando quebras de linha indesejadas.
-- **Acabamento com Texturas Táteis de Luxo**: O **Estúdio de Texturas** conta com 6 materiais nobres integrados:
-  - *Linho Fino*: editorial, moda e sofisticação;
-  - *Couro Envelhecido*: acabamento rústico e brutal;
-  - *Concreto Bruto*: arquitetura, robustez e impacto visual;
-  - *Mármore Negro*: prestígio, high-ticket e luxo;
-  - *Metal Oxidado*: textura industrial e presença marcante;
-  - *Fibra de Carbono*: alta tecnologia, performance e precisão.
-- **Dial Orbital Polar**: Seletor tátil circular para alternar texturas com preview instantâneo na prancheta.
-- **Modo de Edição de Plano de Fundo (Estilo Canva)**: Modo contextual ativado sob demanda via barra lateral ou duplo-clique no fundo, conectando alças dedicadas do Konva `Transformer` ao fundo, permitindo reposicionamento e escala livres com atenuação das camadas de texto, barra flutuante de controle (`✓ Concluir` / `↺ Resetar`) e atalhos (`Esc` / `Enter`).
-- **Download Direto de Imagens (Posse dos Assets)**: Botão de ação rápida na aba de Mídia e notificação pós-geração que permite ao usuário baixar imediatamente a imagem original de fundo em alta resolução gerada com seus créditos de IA ou aplicada ao slide.
-- **Exportação Multiformato e 4K**:
-  - Formatos nativos: **1:1 Feed**, **5:6 Retrato** e **9:16 Stories**;
-  - Renderização direta em PNG e WebP em resolução 4K Ultra-HD;
-  - Suporte a exportação completa de carrosséis em arquivo compactado `.zip` via `jszip`.
+### Estrutura e Fluxo:
+- **Máquina de estados** (`StudioAppV2BPage`): `create` (StudioCreateViewV2B) → `gallery` (StudioGalleryView desktop / StudioMobileFlashcards mobile — "HoloDeck" histórico) → `editor` (CanvasLabPage).
+- **Galeria**: clique/toque no card seleciona a direção e abre o editor (além do botão "Personalizar Post").
+- **Editor CanvasLab**: `CanvasTopBar` (Galeria, **Recomeçar**, formatos, Ímã, paginação de carrossel, zoom, **Salvar**, ZIP, Exportar 4K), `CanvasSidebar` (desktop) / `CanvasMobileDrawer` (mobile) com abas **Texto · Estilo · Mídia · Logo**, `CanvasPostStage` (prancheta Konva com snap magnético, transformadores e edição de fundo estilo Canva via duplo clique) e `CarouselFilmstrip`.
+
+### Abas do editor (desktop e mobile em paridade):
+- **Texto**: título/subtítulo/etapa/badge, alinhamento, **cores por elemento** (Título/Corpo, com selo de contraste baixo e botão Limpar), **multiplicadores de tamanho** (`headlineSizeScale`/`subtextSizeScale`, 60–160%) e legenda estratégica do Instagram.
+- **Estilo**: 14 famílias visuais (via `applyFamilyPreset` — nunca altera cores), tipografia/upload de fonte/Google Fonts e paleta cromática (fundo/destaque/texto).
+- **Mídia**: geração de fundo por IA, biblioteca de texturas (110+ assets), upload local, download direto da imagem, ajuste de enquadramento estilo Canva e overlay.
+- **Logo**: upload de logo (PNG transparente, paridade desktop/mobile), posição inicial em 4 quadrantes (`logoPosition`, arraste no palco prevalece) e badge/tag.
+
+### Sistema de Dicas (item 9):
+- `useStudioTipsStore` (zustand persist) com checkbox global **"Mostrar dicas"** (rodapé da sidebar/drawer) e dicas contextuais dispensáveis (`TipCallout`) por aba.
+
+### Salvamento e biblioteca (item 7):
+- Botão **Salvar** (top bar) → diálogo **"Salvar como novo" × "Atualizar o post salvo"** com checkbox **"Memorizar esta decisão"** (`localStorage postspark.savePreference`).
+- Payload construído por `canvasModelToSavePayload`/`canvasModelToUpdatePayload` (`lib/saveAdapter.ts`); modelo completo persistido em `posts.canvas_model`.
+- Toast pós-save com ação **"Ver salvos"** → `/saved-posts`; **"Abrir"** em `/saved-posts` reconstrói o modelo (`savedPostToCanvasModel`) e entra direto no editor via sessionStorage `postspark.open_canvas_post` → `/thevoid`.
+
+### Exportação Multiformato e 4K:
+- Formatos nativos com legendas oficiais (**1:1 Feed**, **5:6 Feed**, **9:16 Stories** — mapa único `ASPECT_RATIO_CAPTIONS` em `types.ts`);
+- Renderização direta em PNG 4K (`exportPng4K`) e carrossel completo em `.zip` 4K (`exportZip4K`).
+
+### Tutorial no loading (item 11):
+- `ProductionOverlay` exibe, junto ao % e às microetapas, o mini-tutorial ilustrado `LoadingTutorial` (4 passos SVG inline, rotação 3.5s, swipe no mobile, respeita `prefers-reduced-motion`).
+
+### Legado preservado (referência histórica):
+- O **Estúdio de Texturas** (6 materiais nobres) e o **Dial Orbital Polar** seguem disponíveis via `RadialTextureSelector`/`BackgroundsDrawer` dentro do CanvasLab.
+- `Home.tsx`, `HoloDeck.tsx`, `WorkbenchV2/` e `CanvasLab` experimental redirecionado: **legado órfão** — não rotear sem decisão explícita do dono.
 
 ---
 
@@ -213,9 +235,11 @@ O PostSpark adota um modelo híbrido de assinaturas com saldo de créditos consu
 
 | Rota | Acesso | Componente de Página | Finalidade Principal |
 | :--- | :--- | :--- | :--- |
+| Rota | Acesso | Componente de Página | Finalidade Principal |
+| :--- | :--- | :--- | :--- |
 | **`/`** | Pública | [`InspiracaoShowcasePage`](file:///client/src/pages/InspiracaoShowcase/InspiracaoShowcasePage.tsx) | **Home Oficial de Não Logados (Definitiva)**: Vitrine imersiva definitiva com palco 3D coverflow no desktop (matemática pura nativa sem GSAP), stories dinâmicos no mobile, typewriter reverso com acionamento por card e fundo cósmico TheVoid com 6 posts canônicos. Redireciona imediatamente para `/thevoid` assim que autenticado. |
 | **`/criar`** | Pública | [`PreviewHomePage`](file:///client/src/pages/PreviewHome/PreviewHomePage.tsx) | **Landing Page Oficial de Tráfego / Anúncios (Dark Studio Editorial)**: Página de alta conversão para tráfego pago reformulada no padrão TheVoid (`oklch(0.04 0.06 280)`). Apresenta Hero com Live Sandbox tonal e backgrounds artísticos canônicos, Atelier de Brand DNA por URL (sem clichês de Mac dots), Galeria dos 6 espécimes canônicos em proporções 1:1, 4:5 e 9:16, e Estúdio de Texturas táteis interativo. Todos os CTAs e links de ação da página redirecionam diretamente para a rota `/` (Showcase de Insumo e Captura), maximizando conversão e retenção sem barreiras mecânicas de modal. |
-| **`/thevoid`**, **`/studio`** | Protegida | [`StudioAppV2BPage`](file:///client/src/pages/StudioApp/StudioAppV2BPage.tsx) | **Estúdio Oficial Logado**: Criação com folha tonal, prateleira colapsável, Lente de Zoom 2x e transição para a Galeria e Editor. (*Alias: `/studio-v2b`*). |
+| **`/thevoid`**, **`/studio`** | Protegida | [`StudioAppV2BPage`](file:///client/src/pages/StudioApp/StudioAppV2BPage.tsx) | **Estúdio Oficial Logado**: máquina `create → gallery → editor` (StudioCreateViewV2B → StudioGalleryView/StudioMobileFlashcards → **CanvasLabPage**, o editor oficial Konva). Também lê `sessionStorage("postspark.open_canvas_post")` para reabrir posts salvos com fidelidade total. (*Alias: `/studio-v2b`*). |
 | **`/pricing`** | Pública | `Pricing.tsx` | Tabela oficial de planos Pro, Agency e pacotes de recarga de Sparks. |
 | **`/billing`** | Protegida | `Billing.tsx` | Painel de gestão de assinatura, histórico de faturas e saldo de Sparks. |
 | **`/history`** | Protegida | `History.tsx` | Histórico cronológico de gerações realizadas pelo usuário. |
@@ -232,7 +256,7 @@ O PostSpark adota um modelo híbrido de assinaturas com saldo de créditos consu
 
 As operações em runtime ocorrem diretamente via cliente Supabase sobre as seguintes tabelas no PostgreSQL:
 
-- **`posts`**: armazena os posts gerados e editados, contendo `id`, `user_uuid`, `platform`, `headline`, `body`, `slides` (JSON), `layoutSettings` (JSON), `imageSettings` (JSON), `variation_snapshot` (JSON canônico) e status de exportação.
+- **`posts`**: armazena os posts gerados e editados, contendo `id`, `user_uuid`, `platform`, `headline`, `body`, `slides` (JSON), `layoutSettings` (JSON), `imageSettings` (JSON), `variation_snapshot` (JSON canônico do fluxo legado), **`canvas_model` (JSON — modelo completo do editor oficial CanvasLab, drizzle/0016)** e status de exportação.
 - **`generation_runs`**: registro de telemetria de IA contendo tokens de prompt/conclusão, latência em milissegundos, modelos utilizados na cascata, custos em USD e eventos de depuração. Contém a coluna `graph_state` mantida exclusivamente para replay e auditoria histórica de execuções passadas.
 - **`site_intelligence`**: cache de identidades de marca extraídas de sites, contendo URL normalizada, fingerprint de conteúdo e o snapshot estruturado do Brand DNA.
 - **`background_assets`**: registro de imagens geradas por IA ou carregadas pelo usuário, armazenadas como DataURI ou no bucket de storage.
@@ -282,6 +306,24 @@ Durante os testes de carga e validação da **Reforma SPEC-003 / SPEC-005**, for
 
 ---
 
+## 13.1 ADR — Correções de Usabilidade do Estúdio (2026-09-05)
+
+Onze correções derivadas de testes de usabilidade na edição de posts já criados, todas concentradas no fluxo oficial CanvasLab:
+
+1. **Guardião de Contraste** (`lib/contrast.ts`): fundo escuro ⇄ texto claro sempre, por metade no split; modo "corrigir + permitir re-override" com selo de contraste baixo; funil único em `CanvasLabPage.handleUpdatePost`.
+2. **Cores e tamanhos de texto na edição**: aba Texto (desktop/mobile) com cores por elemento e sliders 60–160% (`TypographyColorControls`).
+3. **Estilos não alteram cores**: `applyFamilyPreset` único para desktop e mobile.
+4. **Anti-sobreposição**: split com linha de corte 50% unificada (cor e texto), subtítulo âncora abaixo do título, auto-shrink de fonte (3 passos).
+5. **Aba "Logo"** (antes "Marca"): upload no mobile, 4 posições válidas, `logoPosition` ligado ao estágio.
+6. **Botão Recomeçar** com confirmação → limpa sessão e volta à criação.
+7. **Salvar + Salvos**: diálogo novo/atualizar memorizável, coluna `canvas_model` (migration 0016, aplicada), reabertura `/saved-posts` → `/thevoid` → editor (fluxo antigo via Home estava quebrado — Home é órfão).
+8. **Legendas de formato**: `ASPECT_RATIO_CAPTIONS` (1:1 Feed, 5:6 Feed, 9:16 Stories) em todos os seletores.
+9. **Sistema de dicas**: `useStudioTipsStore` + `TipCallout` por aba + checkbox "Mostrar dicas".
+10. **Clique/toque no card da galeria** abre o editor (guardado contra drag no mobile).
+11. **Tutorial ilustrado no loading** (`LoadingTutorial` dentro do `ProductionOverlay`).
+
+---
+
 ## 14. Comandos de Validação e Deploy
 
 Toda alteração de código deve ser verificada pelo seguinte protocolo antes do deploy:
@@ -290,7 +332,7 @@ Toda alteração de código deve ser verificada pelo seguinte protocolo antes do
 # 1. Verificação Estrita de Tipagem TypeScript (0 erros obrigatórios)
 pnpm check
 
-# 2. Execução da Bateria Completa de Testes Automatizados (665 testes)
+# 2. Execução da Bateria Completa de Testes Automatizados (676 testes)
 pnpm test
 
 # 3. Compilação de Produção (Vite para frontend + esbuild para api/index.js)

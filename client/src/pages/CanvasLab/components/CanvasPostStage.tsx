@@ -1,6 +1,7 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Stage, Layer, Rect, Text, Group, Image as KonvaImage, Transformer, Line, Circle } from "react-konva";
-import type { BgImageTransform, CanvasPostModel, ElementPosition } from "./types";
+import type { BgImageTransform, CanvasPostModel, ElementPosition, LogoPositionType } from "./types";
+import { resolveLegibleTextColor } from "./types";
 import { useDynamicFont } from "@/hooks/useDynamicFont";
 import JSZip from "jszip";
 
@@ -224,14 +225,60 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const isDuotone = fam === "duotone-wash";
 
     const contentWidth = baseWidth - (isGlass ? 56 : 48);
-    const headlineFontSize = isBrutalBlock || isStrokeImpact ? 32 : isCinematic ? 34 : isBrutalSplit ? 28 : isCyber ? 18 : isEditorial ? 23 : 21;
-    const subtextFontSize = isBrutalBlock ? 11 : isCyber ? 11 : 12;
 
-    const headlineLines = Math.ceil((activeHeadline.length * (headlineFontSize * 0.55)) / contentWidth);
-    const headlineHeight = headlineLines * (headlineFontSize * 1.25);
-    const subtextLines = Math.ceil((activeSubtext.length * 6.5) / contentWidth);
-    const subtextHeight = subtextLines * 16;
+    // ─── TAMANHOS BASE POR FAMÍLIA × ESCALA DO USUÁRIO (item 2) ───
+    const headlineBaseSize = isBrutalBlock || isStrokeImpact ? 32 : isCinematic ? 34 : isBrutalSplit ? 28 : isCyber ? 18 : isEditorial ? 23 : 21;
+    const subtextBaseSize = isBrutalBlock ? 11 : isCyber ? 11 : 12;
+    const effHeadlineSizeBase = headlineBaseSize * (post.headlineSizeScale ?? 1);
+    const effSubtextSize = subtextBaseSize * (post.subtextSizeScale ?? 1);
+
+    // ─── MOTOR ANTI-SOBREPOSIÇÃO (item 4) ───
+    // Medidas derivadas do tamanho efetivo; em títulos longos a fonte do
+    // título é reduzida em até 3 passos (0.88×) antes de permitir qualquer
+    // invasão entre título/corpo, linha de corte do split ou margem inferior.
+    const SPLIT_LINE_RATIO = 0.5;
+    const MIN_TEXT_GAP = 8;
+    const splitLineY = baseHeight * SPLIT_LINE_RATIO;
+    const layoutBottomMargin = post.aspectRatio === "9:16" ? 64 : 32;
+
+    const headlineHeightFor = (size: number) =>
+      Math.ceil((activeHeadline.length * (size * 0.55)) / contentWidth) * (size * 1.25);
+    const subtextHeightFor = (size: number) =>
+      Math.ceil((activeSubtext.length * 6.5) / contentWidth) * size * (16 / 12);
+
+    const fitsWithSizes = (hSize: number, sSize: number): boolean => {
+      const hHeight = headlineHeightFor(hSize);
+      const sHeight = subtextHeightFor(sSize);
+      if (isBrutalSplit) {
+        // Título inteiro precisa caber na metade de cima (badge termina em ~45)
+        return 45 + hHeight + MIN_TEXT_GAP <= splitLineY;
+      }
+      const stack = hHeight + sHeight + 20;
+      const topLimit = isBrutalBlock ? 60 : isGlass ? 80 : isDuotone ? 70 : 80;
+      const bottomLimit = isBrutalBlock ? 24 : isGlass ? 32 : isDuotone ? 24 : layoutBottomMargin;
+      return topLimit + stack <= baseHeight - bottomLimit;
+    };
+
+    let effHeadlineSize = effHeadlineSizeBase;
+    for (let attempt = 0; attempt < 3 && !fitsWithSizes(effHeadlineSize, effSubtextSize); attempt++) {
+      effHeadlineSize *= 0.88;
+    }
+
+    const headlineFontSize = effHeadlineSize;
+    const subtextFontSize = effSubtextSize;
+    const headlineHeight = headlineHeightFor(effHeadlineSize);
+    const subtextHeight = subtextHeightFor(effSubtextSize);
     const totalStackHeight = headlineHeight + subtextHeight + 20;
+
+    // ─── CORES COM CONTRASTE GARANTIDO POR METADE (item 1) ───
+    // O guardião (lib/contrast.ts) já resolve e persiste no modelo; aqui só
+    // consumimos, com fallback legado para modelos sem overrides.
+    const headlineColor = post.palette.headlineColor || post.palette.text;
+    const subtextColor =
+      post.palette.subtextColor ||
+      (isBrutalSplit
+        ? resolveLegibleTextColor(post.palette.accent, post.palette.text)
+        : post.palette.text);
 
     // Posições Padrão Customizadas por Família
     let defaultHeadlineY = 0;
@@ -249,10 +296,11 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       defaultBadgeY = 22;
       defaultBarY = defaultSubtextY + subtextHeight + 16;
     } else if (isBrutalSplit) {
-      // Split: Título na metade escura de cima, Subtítulo na base de cor vibrante
-      const splitY = baseHeight * 0.56;
-      defaultHeadlineY = Math.max(45, (splitY - headlineHeight) / 2 + 10);
-      defaultSubtextY = splitY + 24;
+      // Split: Título na metade escura de cima, Subtítulo na base de cor vibrante.
+      // A linha de corte de COR e a âncora de TEXTO usam a MESMA linha (50%):
+      // o subtítulo nunca sobreporá o título — fica no mínimo na linha de corte.
+      defaultHeadlineY = Math.max(45, (splitLineY - headlineHeight) / 2 + 10);
+      defaultSubtextY = Math.max(splitLineY + 16, defaultHeadlineY + headlineHeight + MIN_TEXT_GAP);
       defaultBadgeX = 24;
       defaultBadgeY = 18;
       defaultBarY = baseHeight - 20;
@@ -272,8 +320,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       defaultBarY = defaultSubtextY + subtextHeight + 16;
     } else {
       // Editorial / Cyber
-      const bottomMargin = post.aspectRatio === "9:16" ? 64 : 32;
-      defaultHeadlineY = Math.max(80, baseHeight - bottomMargin - totalStackHeight);
+      defaultHeadlineY = Math.max(80, baseHeight - layoutBottomMargin - totalStackHeight);
       defaultSubtextY = defaultHeadlineY + headlineHeight + 10;
       defaultBadgeX = 24;
       defaultBadgeY = 24;
@@ -287,7 +334,15 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       x: defaultAlign === "center" ? (baseWidth - 42) / 2 : defaultAlign === "right" ? baseWidth - 24 - 42 : 24,
       y: defaultBarY,
     };
-    const logoPos = currentSlide?.logoPos || { x: baseWidth - 70, y: 20 };
+    // ─── LOGO: posição inicial derivada de logoPosition (4 posições válidas);
+    // o drag do usuário (logoPos por slide) sempre prevalece sobre o default ───
+    const defaultLogoPositions: Record<LogoPositionType, ElementPosition> = {
+      "top-left": { x: 16, y: 16 },
+      "top-right": { x: baseWidth - 62, y: 16 },
+      "bottom-left": { x: 16, y: baseHeight - 40 },
+      "bottom-right": { x: baseWidth - 62, y: baseHeight - 40 },
+    };
+    const logoPos = currentSlide?.logoPos || defaultLogoPositions[post.logoPosition || "top-right"];
 
     const bgCrop = bgImgElement
       ? getCoverCrop(
@@ -744,7 +799,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 fontSize={headlineFontSize}
                 fontFamily={post.fontFamily}
                 fontStyle="bold"
-                fill={post.palette.text}
+                fill={headlineColor}
                 align={defaultAlign}
                 lineHeight={isBrutalBlock ? 1.1 : 1.25}
                 letterSpacing={isBrutalBlock ? 0.5 : isEditorial ? -0.2 : -0.4}
@@ -764,7 +819,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 width={contentWidth}
                 fontSize={subtextFontSize}
                 fontFamily={isCyber ? "Space Mono, monospace" : "Inter, sans-serif"}
-                fill={isBrutalSplit ? "#000000" : post.palette.text}
+                fill={subtextColor}
                 opacity={isBrutalSplit ? 0.95 : 0.8}
                 align={defaultAlign}
                 lineHeight={1.45}

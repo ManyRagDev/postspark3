@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
-import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, Lightbulb, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop } from "lucide-react";
 import { toast } from "sonner";
-import { OFFICIAL_FAMILIES_META, resolveLegibleTextColor, type CanvasPostModel, type TextAlignType, type VisualFamilyId } from "./types";
+import { OFFICIAL_FAMILIES_META, type CanvasPostModel, type TextAlignType, type VisualFamilyId } from "./types";
+import { applyFamilyPreset } from "../lib/familyPreset";
+import TypographyColorControls from "./TypographyColorControls";
+import TipCallout from "./TipCallout";
+import { useStudioTipsStore } from "@/store/studioTipsStore";
 import { FONT_CATALOG } from "@/lib/fonts";
 import { trpc } from "@/lib/trpc";
 import BackgroundsDrawer from "./BackgroundsDrawer";
@@ -26,6 +30,8 @@ export default function CanvasSidebar({
 }: CanvasSidebarProps) {
   const [activeTab, setActiveTab] = useState<TabType>("content");
   const [copiedCaption, setCopiedCaption] = useState(false);
+  const showTips = useStudioTipsStore((s) => s.showTips);
+  const setShowTips = useStudioTipsStore((s) => s.setShowTips);
   const [aiImagePrompt, setAiImagePrompt] = useState(post.imagePrompt || "");
   const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
   const [applyToAllSlides, setApplyToAllSlides] = useState(false);
@@ -186,7 +192,7 @@ export default function CanvasSidebar({
           { id: "content", label: "Texto", icon: Edit3 },
           { id: "style", label: "Estilo", icon: Palette },
           { id: "media", label: "Mídia", icon: ImageIcon },
-          { id: "brand", label: "Marca", icon: Sparkles },
+          { id: "brand", label: "Logo", icon: Sparkles },
         ].map((tab) => {
           const Icon = tab.icon;
           const isSelected = activeTab === tab.id;
@@ -213,6 +219,11 @@ export default function CanvasSidebar({
         {/* ─── ABA 1: CONTEÚDO ─── */}
         {activeTab === "content" && (
           <div className="space-y-4">
+            {/* Dica contextual (item 9) */}
+            <TipCallout id="tip-content-tab" title="Tudo sobre o conteúdo do post">
+              Edite título, subtítulo e alinhamento; defina cores e tamanho da fonte por elemento; e prepare a legenda estratégica do Instagram.
+            </TipCallout>
+
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
@@ -287,6 +298,11 @@ export default function CanvasSidebar({
               />
             </div>
 
+            {/* ── Cores e tamanho da tipografia (guardião de contraste integrado) ── */}
+            <div className="pt-3 border-t border-white/8">
+              <TypographyColorControls post={post} onUpdatePost={onUpdatePost} />
+            </div>
+
             <div className="space-y-1.5 pt-3 border-t border-white/8">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
@@ -315,6 +331,11 @@ export default function CanvasSidebar({
         {/* ─── ABA 2: ESTILO & FONTES ─── */}
         {activeTab === "style" && (
           <div className="space-y-4">
+            {/* Dica contextual (item 9) */}
+            <TipCallout id="tip-style-tab" title="Estilos mudam a forma, nunca as cores">
+              Trocar de direção de arte altera fontes, tamanhos e composição — o fundo, o destaque e as cores de texto que você escolheu continuam os mesmos.
+            </TipCallout>
+
             <div className="space-y-1.5">
               <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
                 Tipografia do Post
@@ -407,20 +428,7 @@ export default function CanvasSidebar({
                           <button
                             key={fam.id}
                             type="button"
-                            onClick={() => {
-                              const legText = resolveLegibleTextColor(post.palette.background, post.palette.text);
-                              onUpdatePost({
-                                familyId: fam.id,
-                                familyName: fam.name,
-                                fontFamily: fam.defaultFont,
-                                palette: {
-                                  background: post.palette.background,
-                                  text: legText,
-                                  accent: post.palette.accent,
-                                  surface: post.palette.surface || fam.defaultPalette.surface,
-                                },
-                              });
-                            }}
+                            onClick={() => onUpdatePost(applyFamilyPreset(post, fam.id))}
                             className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition-all cursor-pointer text-left ${
                               isSelected
                                 ? "bg-white/15 border-[oklch(0.78_0.22_48)] text-white shadow-md font-semibold"
@@ -454,11 +462,9 @@ export default function CanvasSidebar({
                   <input
                     type="color"
                     value={post.palette.background}
-                    onChange={(e) => {
-                      const newBg = e.target.value;
-                      const newText = resolveLegibleTextColor(newBg, post.palette.text);
-                      onUpdatePost({ palette: { ...post.palette, background: newBg, text: newText } });
-                    }}
+                    onChange={(e) =>
+                      onUpdatePost({ palette: { ...post.palette, background: e.target.value } })
+                    }
                     className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/15"
                   />
                 </div>
@@ -479,7 +485,16 @@ export default function CanvasSidebar({
                     type="color"
                     value={post.palette.text}
                     onChange={(e) =>
-                      onUpdatePost({ palette: { ...post.palette, text: e.target.value } })
+                      onUpdatePost({
+                        palette: {
+                          ...post.palette,
+                          text: e.target.value,
+                          headlineColor: undefined,
+                          subtextColor: undefined,
+                        },
+                        manualHeadlineColor: true,
+                        manualSubtextColor: true,
+                      })
                     }
                     className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/15"
                   />
@@ -492,6 +507,11 @@ export default function CanvasSidebar({
         {/* ─── ABA 3: MÍDIA & FUNDOS PRÉ-DEFINIDOS ─── */}
         {activeTab === "media" && (
           <div className="space-y-4">
+            {/* Dica contextual (item 9) */}
+            <TipCallout id="tip-media-tab" title="Fundos por IA, texturas ou suas fotos">
+              Gere um fundo com IA, explore 110+ texturas da biblioteca ou envie uma foto. Para enquadrar, dê duplo clique no fundo do palco.
+            </TipCallout>
+
             {/* Chave: Aplicar a todos os slides do carrossel */}
             {post.slides.length > 1 && (
               <label className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10 cursor-pointer">
@@ -662,9 +682,14 @@ export default function CanvasSidebar({
           </div>
         )}
 
-        {/* ─── ABA 4: MARCA ─── */}
+        {/* ─── ABA 4: LOGO ─── */}
         {activeTab === "brand" && (
           <div className="space-y-4">
+            {/* Dica contextual (item 9) */}
+            <TipCallout id="tip-brand-tab" title="Seu logo e a tag do post">
+              Envie o logo em PNG transparente e arraste-o no palco para posicionar. O badge abaixo aparece como tag no topo do post.
+            </TipCallout>
+
             <div className="space-y-2">
               <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
                 Logo da Marca (PNG Transparente)
@@ -703,6 +728,20 @@ export default function CanvasSidebar({
           </div>
         )}
       </div>
+
+      {/* Rodapé: checkbox global "Mostrar dicas" (item 9) */}
+      <label className="flex items-center justify-between px-4 py-2.5 border-t border-white/10 bg-black/40 cursor-pointer select-none shrink-0">
+        <span className="text-[11px] font-semibold text-white/60 flex items-center gap-1.5">
+          <Lightbulb size={12} className="text-[oklch(0.78_0.22_48)]" />
+          Mostrar dicas
+        </span>
+        <input
+          type="checkbox"
+          checked={showTips}
+          onChange={(e) => setShowTips(e.target.checked)}
+          className="w-4 h-4 accent-[oklch(0.78_0.22_48)] cursor-pointer"
+        />
+      </label>
       <BackgroundsDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
