@@ -11,13 +11,18 @@
  * `prefers-reduced-motion` desativa o autoplay.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MONO, STUDIO } from "./shared";
 
-const INK = STUDIO.ink;
-const ACCENT = STUDIO.accent;
+const INK = "#F2EDE4";
+const ACCENT = "oklch(0.7 0.22 40)";
 const FADED = "rgba(242,237,228,0.35)";
+
+const MONO: CSSProperties = {
+  fontFamily: "'Space Mono', monospace",
+  textTransform: "uppercase",
+  letterSpacing: "0.18em",
+};
 
 interface TutorialStep {
   title: string;
