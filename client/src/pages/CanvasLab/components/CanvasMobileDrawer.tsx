@@ -14,9 +14,14 @@ import {
   Sliders,
   Loader2,
   Layers,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  RotateCcw,
+  Type,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { CanvasPostModel, VisualFamilyId } from "@/pages/CanvasLab/components/types";
+import type { CanvasPostModel, VisualFamilyId, TextAlignType } from "@/pages/CanvasLab/components/types";
 import { OFFICIAL_FAMILIES_META } from "@/pages/CanvasLab/components/types";
 import { applyFamilyPreset } from "../lib/familyPreset";
 import TypographyColorControls from "./TypographyColorControls";
@@ -24,6 +29,7 @@ import TipCallout from "./TipCallout";
 import { useStudioTipsStore } from "@/store/studioTipsStore";
 import { Lightbulb } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { FONT_CATALOG } from "@/lib/fonts";
 import BackgroundsDrawer from "./BackgroundsDrawer";
 import RadialTextureSelector from "./RadialTextureSelector";
 
@@ -107,6 +113,20 @@ export default function CanvasMobileDrawer({
 
   const handleUpdateBadge = (value: string) => {
     onUpdatePost({ badgeText: value });
+  };
+
+  const hasManualTextPosition = Boolean(currentSlide?.headlinePos || currentSlide?.subtextPos);
+  const handleResetTextPositions = () => {
+    if (currentSlide) {
+      const updatedSlides = [...post.slides];
+      updatedSlides[post.currentSlideIndex] = {
+        ...currentSlide,
+        headlinePos: undefined,
+        subtextPos: undefined,
+      };
+      onUpdatePost({ slides: updatedSlides });
+      toast.success("Posições do texto redefinidas para o layout padrão!");
+    }
   };
 
   const handleSelectFamily = (familyId: VisualFamilyId) => {
@@ -246,11 +266,35 @@ export default function CanvasMobileDrawer({
               {activeTab === "text" && (
                 <div className="space-y-3">
                   <TipCallout id="tip-mtext-tab" title="Conteúdo do post" compact>
-                    Título, subtexto, cores por elemento e tamanho da fonte. O badge e a etapa aparecem como tags do slide.
+                    Título, subtexto, alinhamentos, fontes e cores por elemento com contraste garantido.
                   </TipCallout>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-mono text-white/50 uppercase">Título (Headline)</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-mono text-white/50 uppercase">Título (Headline)</label>
+                      <div className="flex items-center bg-white/5 p-0.5 rounded-lg border border-white/8 gap-0.5">
+                        {[
+                          { id: "left", icon: AlignLeft },
+                          { id: "center", icon: AlignCenter },
+                          { id: "right", icon: AlignRight },
+                        ].map((item) => {
+                          const Icon = item.icon;
+                          const isSel = (post.headlineAlign || "left") === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => onUpdatePost({ headlineAlign: item.id as TextAlignType })}
+                              className={`p-1 rounded text-xs transition-all cursor-pointer ${
+                                isSel ? "bg-white/20 text-white" : "text-white/40 hover:text-white"
+                              }`}
+                            >
+                              <Icon size={12} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <textarea
                       rows={2}
                       value={currentSlide?.headline || ""}
@@ -260,7 +304,31 @@ export default function CanvasMobileDrawer({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-mono text-white/50 uppercase">Subtexto</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-mono text-white/50 uppercase">Subtexto</label>
+                      <div className="flex items-center bg-white/5 p-0.5 rounded-lg border border-white/8 gap-0.5">
+                        {[
+                          { id: "left", icon: AlignLeft },
+                          { id: "center", icon: AlignCenter },
+                          { id: "right", icon: AlignRight },
+                        ].map((item) => {
+                          const Icon = item.icon;
+                          const isSel = (post.bodyAlign || "left") === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => onUpdatePost({ bodyAlign: item.id as TextAlignType })}
+                              className={`p-1 rounded text-xs transition-all cursor-pointer ${
+                                isSel ? "bg-white/20 text-white" : "text-white/40 hover:text-white"
+                              }`}
+                            >
+                              <Icon size={12} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <textarea
                       rows={2}
                       value={currentSlide?.subtext || ""}
@@ -288,6 +356,51 @@ export default function CanvasMobileDrawer({
                         className="w-full bg-white/6 border border-white/10 rounded-xl p-2 text-xs text-white outline-none"
                       />
                     </div>
+                  </div>
+
+                  {hasManualTextPosition && (
+                    <button
+                      type="button"
+                      onClick={handleResetTextPositions}
+                      className="w-full py-1.5 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <RotateCcw size={11} className="text-[oklch(0.78_0.22_48)]" />
+                      <span>Redefinir Posição Livre do Texto</span>
+                    </button>
+                  )}
+
+                  {/* Tipografia do Post */}
+                  <div className="space-y-1 pt-2 border-t border-white/8">
+                    <label className="text-[11px] font-mono text-white/50 uppercase flex items-center gap-1">
+                      <Type size={11} />
+                      <span>Tipografia do Post</span>
+                    </label>
+                    <select
+                      value={post.fontFamily}
+                      onChange={(e) => onUpdatePost({ fontFamily: e.target.value })}
+                      className="w-full rounded-xl border border-white/10 bg-[#12141A] p-2 text-xs text-white outline-none cursor-pointer"
+                    >
+                      <optgroup label="Serifadas (Elegância & Luxo)">
+                        {FONT_CATALOG.serif.map((f) => (
+                          <option key={f.name} value={f.name}>{f.label}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Sans-Serif (Modernas & Clean)">
+                        {FONT_CATALOG.sansSerif.map((f) => (
+                          <option key={f.name} value={f.name}>{f.label}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Display (Impacto & Brutalismo)">
+                        {FONT_CATALOG.display.map((f) => (
+                          <option key={f.name} value={f.name}>{f.label}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Monoespaçadas (Cyber & Tech)">
+                        {FONT_CATALOG.mono.map((f) => (
+                          <option key={f.name} value={f.name}>{f.label}</option>
+                        ))}
+                      </optgroup>
+                    </select>
                   </div>
 
                   {/* ── Cores e tamanho da tipografia (guardião de contraste integrado) ── */}
@@ -338,8 +451,8 @@ export default function CanvasMobileDrawer({
 
                   {/* Cores da Paleta */}
                   <div className="pt-2 border-t border-white/8 space-y-2">
-                    <div className="text-[11px] font-mono text-white/50 uppercase">Cores da Paleta</div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="text-[11px] font-mono text-white/50 uppercase">Cores da Paleta Base</div>
+                    <div className="grid grid-cols-2 gap-2">
                       <div>
                         <span className="text-[10px] text-white/50 block mb-1">Fundo</span>
                         <input
@@ -358,26 +471,6 @@ export default function CanvasMobileDrawer({
                           value={post.palette.accent}
                           onChange={(e) =>
                             onUpdatePost({ palette: { ...post.palette, accent: e.target.value } })
-                          }
-                          className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/15"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-white/50 block mb-1">Texto</span>
-                        <input
-                          type="color"
-                          value={post.palette.text}
-                          onChange={(e) =>
-                            onUpdatePost({
-                              palette: {
-                                ...post.palette,
-                                text: e.target.value,
-                                headlineColor: undefined,
-                                subtextColor: undefined,
-                              },
-                              manualHeadlineColor: true,
-                              manualSubtextColor: true,
-                            })
                           }
                           className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/15"
                         />

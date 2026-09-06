@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Layers, RefreshCw, Smartphone, Square } from "lu
 import type { AspectRatioType, CanvasPostModel } from "@/pages/CanvasLab/components/types";
 import { ASPECT_RATIO_CAPTIONS } from "@/pages/CanvasLab/components/types";
 import { CanvasPostStage } from "@/pages/CanvasLab/components/CanvasPostStage";
+import UserTopMenu from "@/components/UserTopMenu";
 
 interface StudioGalleryViewProps {
   variations: CanvasPostModel[];
@@ -64,29 +65,34 @@ export default function StudioGalleryView({
           </span>
         </div>
 
-        {/* Seletor de Formato (legendas oficiais — item 8) */}
-        <div className="flex items-center bg-white/6 p-1 rounded-xl border border-white/10">
-          {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map((id) => {
-            const cap = ASPECT_RATIO_CAPTIONS[id];
-            const Icon = id === "9:16" ? Smartphone : id === "5:6" ? Layers : Square;
-            const isSelected = aspectRatio === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setAspectRatio(id)}
-                aria-label={`Formato ${cap.short} ${cap.caption}`}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  isSelected
-                    ? "bg-white text-black shadow-sm"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <Icon size={13} />
-                <span className="hidden sm:inline-block">{cap.short} {cap.caption}</span>
-              </button>
-            );
-          })}
+        <div className="flex items-center gap-3">
+          {/* Seletor de Formato (legendas oficiais — item 8) */}
+          <div className="flex items-center bg-white/6 p-1 rounded-xl border border-white/10">
+            {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map((id) => {
+              const cap = ASPECT_RATIO_CAPTIONS[id];
+              const Icon = id === "9:16" ? Smartphone : id === "5:6" ? Layers : Square;
+              const isSelected = aspectRatio === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setAspectRatio(id)}
+                  aria-label={`Formato ${cap.short} ${cap.caption}`}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-white text-black shadow-sm"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Icon size={13} />
+                  <span className="hidden sm:inline-block">{cap.short} {cap.caption}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="h-5 w-[1px] bg-white/12 hidden sm:block" />
+          <UserTopMenu variant="inline" />
         </div>
       </header>
 

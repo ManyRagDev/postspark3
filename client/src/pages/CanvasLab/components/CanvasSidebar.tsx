@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, Lightbulb, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, Lightbulb, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { OFFICIAL_FAMILIES_META, type CanvasPostModel, type TextAlignType, type VisualFamilyId } from "./types";
 import { applyFamilyPreset } from "../lib/familyPreset";
@@ -79,6 +79,28 @@ export default function CanvasSidebar({
       onUpdatePost({ slides: updatedSlides, subtext: text });
     } else {
       onUpdatePost({ subtext: text });
+    }
+  };
+
+  const handleUpdateStep = (text: string) => {
+    if (currentSlide) {
+      const updatedSlides = [...post.slides];
+      updatedSlides[post.currentSlideIndex] = { ...currentSlide, step: text };
+      onUpdatePost({ slides: updatedSlides });
+    }
+  };
+
+  const hasManualTextPosition = Boolean(currentSlide?.headlinePos || currentSlide?.subtextPos);
+  const handleResetTextPositions = () => {
+    if (currentSlide) {
+      const updatedSlides = [...post.slides];
+      updatedSlides[post.currentSlideIndex] = {
+        ...currentSlide,
+        headlinePos: undefined,
+        subtextPos: undefined,
+      };
+      onUpdatePost({ slides: updatedSlides });
+      toast.success("Posições do texto redefinidas para o layout padrão!");
     }
   };
 
@@ -298,6 +320,122 @@ export default function CanvasSidebar({
               />
             </div>
 
+            {/* Badge / Tag e Etapa / Slide */}
+            <div className="pt-3 border-t border-white/8 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold block truncate">
+                    Badge / Tag
+                  </label>
+                  <input
+                    type="text"
+                    value={post.badgeText}
+                    onChange={(e) => onUpdatePost({ badgeText: e.target.value })}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)]"
+                    placeholder="Ex: EDITORIAL"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold block truncate">
+                    Etapa / Slide
+                  </label>
+                  <input
+                    type="text"
+                    value={currentSlide?.step || ""}
+                    onChange={(e) => handleUpdateStep(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)]"
+                    placeholder="Ex: 01 // CAPA"
+                  />
+                </div>
+              </div>
+
+              {hasManualTextPosition && (
+                <button
+                  type="button"
+                  onClick={handleResetTextPositions}
+                  className="w-full py-1.5 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <RotateCcw size={11} className="text-[oklch(0.78_0.22_48)]" />
+                  <span>Redefinir Posição Livre do Texto</span>
+                </button>
+              )}
+            </div>
+
+            {/* ── Tipografia do Post & Fontes ── */}
+            <div className="pt-3 border-t border-white/8 space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
+                  Tipografia do Post
+                </label>
+                <select
+                  value={post.fontFamily}
+                  onChange={(e) => onUpdatePost({ fontFamily: e.target.value })}
+                  className="w-full rounded-xl border border-white/10 bg-[#12141A] p-2.5 text-xs text-white outline-none cursor-pointer"
+                >
+                  {uploadedFontName && (
+                    <optgroup label="Fontes Próprias (Upload)">
+                      <option value={uploadedFontName}>{uploadedFontName}</option>
+                    </optgroup>
+                  )}
+                  <optgroup label="Serifadas (Elegância & Luxo)">
+                    {FONT_CATALOG.serif.map((f) => (
+                      <option key={f.name} value={f.name}>{f.label}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Sans-Serif (Modernas & Clean)">
+                    {FONT_CATALOG.sansSerif.map((f) => (
+                      <option key={f.name} value={f.name}>{f.label}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Display (Impacto & Brutalismo)">
+                    {FONT_CATALOG.display.map((f) => (
+                      <option key={f.name} value={f.name}>{f.label}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Monoespaçadas (Cyber & Tech)">
+                    {FONT_CATALOG.mono.map((f) => (
+                      <option key={f.name} value={f.name}>{f.label}</option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase tracking-wider text-white/50 font-semibold flex items-center gap-1">
+                  <Type size={11} />
+                  <span>Upload de Fonte (.ttf, .otf, .woff2)</span>
+                </label>
+                <label className="w-full border border-dashed border-white/20 bg-white/3 hover:bg-white/6 rounded-xl p-2.5 flex items-center justify-center gap-2 text-xs text-white/70 cursor-pointer transition-all">
+                  <Upload size={13} />
+                  <span>Importar Arquivo de Fonte...</span>
+                  <input type="file" accept=".ttf,.otf,.woff,.woff2" onChange={handleFontFileUpload} className="hidden" />
+                </label>
+              </div>
+
+              <div className="space-y-1.5 p-2.5 rounded-xl bg-white/3 border border-white/8">
+                <label className="text-[10px] uppercase tracking-wider text-white/50 font-semibold flex items-center gap-1">
+                  <Link size={11} />
+                  <span>Importar do Google Fonts</span>
+                </label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={customFontInput}
+                    onChange={(e) => setCustomFontInput(e.target.value)}
+                    placeholder="https://fonts.googleapis.com/css2?family=..."
+                    className="flex-1 rounded-lg border border-white/10 bg-black/40 p-2 text-[11px] text-white outline-none focus:border-[oklch(0.78_0.22_48)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCustomFont}
+                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white cursor-pointer"
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* ── Cores e tamanho da tipografia (guardião de contraste integrado) ── */}
             <div className="pt-3 border-t border-white/8">
               <TypographyColorControls post={post} onUpdatePost={onUpdatePost} />
@@ -328,87 +466,15 @@ export default function CanvasSidebar({
           </div>
         )}
 
-        {/* ─── ABA 2: ESTILO & FONTES ─── */}
+        {/* ─── ABA 2: ESTILO (DIREÇÕES DE ARTE & PALETA) ─── */}
         {activeTab === "style" && (
           <div className="space-y-4">
-            {/* Dica contextual (item 9) */}
-            <TipCallout id="tip-style-tab" title="Estilos mudam a forma, nunca as cores">
-              Trocar de direção de arte altera fontes, tamanhos e composição — o fundo, o destaque e as cores de texto que você escolheu continuam os mesmos.
+            {/* Dica contextual */}
+            <TipCallout id="tip-style-tab" title="Direções de arte e paleta">
+              Trocar de direção de arte altera fontes e composição visual — suas cores de fundo e destaque selecionadas continuam preservadas.
             </TipCallout>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
-                Tipografia do Post
-              </label>
-              <select
-                value={post.fontFamily}
-                onChange={(e) => onUpdatePost({ fontFamily: e.target.value })}
-                className="w-full rounded-xl border border-white/10 bg-[#12141A] p-2.5 text-xs text-white outline-none cursor-pointer"
-              >
-                {uploadedFontName && (
-                  <optgroup label="Fontes Próprias (Upload)">
-                    <option value={uploadedFontName}>{uploadedFontName}</option>
-                  </optgroup>
-                )}
-                <optgroup label="Serifadas (Elegância & Luxo)">
-                  {FONT_CATALOG.serif.map((f) => (
-                    <option key={f.name} value={f.name}>{f.label}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Sans-Serif (Modernas & Clean)">
-                  {FONT_CATALOG.sansSerif.map((f) => (
-                    <option key={f.name} value={f.name}>{f.label}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Display (Impacto & Brutalismo)">
-                  {FONT_CATALOG.display.map((f) => (
-                    <option key={f.name} value={f.name}>{f.label}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Monoespaçadas (Cyber & Tech)">
-                  {FONT_CATALOG.mono.map((f) => (
-                    <option key={f.name} value={f.name}>{f.label}</option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] uppercase tracking-wider text-white/50 font-semibold flex items-center gap-1">
-                <Type size={11} />
-                <span>Upload de Fonte (.ttf, .otf, .woff2)</span>
-              </label>
-              <label className="w-full border border-dashed border-white/20 bg-white/3 hover:bg-white/6 rounded-xl p-2.5 flex items-center justify-center gap-2 text-xs text-white/70 cursor-pointer transition-all">
-                <Upload size={13} />
-                <span>Importar Arquivo de Fonte...</span>
-                <input type="file" accept=".ttf,.otf,.woff,.woff2" onChange={handleFontFileUpload} className="hidden" />
-              </label>
-            </div>
-
-            <div className="space-y-1.5 p-2.5 rounded-xl bg-white/3 border border-white/8">
-              <label className="text-[10px] uppercase tracking-wider text-white/50 font-semibold flex items-center gap-1">
-                <Link size={11} />
-                <span>Importar do Google Fonts</span>
-              </label>
-              <div className="flex gap-1.5">
-                <input
-                  type="text"
-                  value={customFontInput}
-                  onChange={(e) => setCustomFontInput(e.target.value)}
-                  placeholder="https://fonts.googleapis.com/css2?family=..."
-                  className="flex-1 rounded-lg border border-white/10 bg-black/40 p-2 text-[11px] text-white outline-none focus:border-[oklch(0.78_0.22_48)]"
-                />
-                <button
-                  type="button"
-                  onClick={handleApplyCustomFont}
-                  className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white cursor-pointer"
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2 border-t border-white/8">
+            <div className="space-y-3">
               <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold flex items-center justify-between">
                 <span>Direções de Arte Oficiais</span>
                 <span className="text-[10px] font-mono text-white/40">14 Estilos</span>
@@ -454,9 +520,9 @@ export default function CanvasSidebar({
 
             <div className="space-y-3 pt-3 border-t border-white/8">
               <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
-                Paleta Cromática
+                Paleta Cromática Base
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <span className="text-[10px] text-white/40 block mb-1">Fundo</span>
                   <input
@@ -475,26 +541,6 @@ export default function CanvasSidebar({
                     value={post.palette.accent}
                     onChange={(e) =>
                       onUpdatePost({ palette: { ...post.palette, accent: e.target.value } })
-                    }
-                    className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/15"
-                  />
-                </div>
-                <div>
-                  <span className="text-[10px] text-white/40 block mb-1">Texto</span>
-                  <input
-                    type="color"
-                    value={post.palette.text}
-                    onChange={(e) =>
-                      onUpdatePost({
-                        palette: {
-                          ...post.palette,
-                          text: e.target.value,
-                          headlineColor: undefined,
-                          subtextColor: undefined,
-                        },
-                        manualHeadlineColor: true,
-                        manualSubtextColor: true,
-                      })
                     }
                     className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/15"
                   />
@@ -685,9 +731,8 @@ export default function CanvasSidebar({
         {/* ─── ABA 4: LOGO ─── */}
         {activeTab === "brand" && (
           <div className="space-y-4">
-            {/* Dica contextual (item 9) */}
-            <TipCallout id="tip-brand-tab" title="Seu logo e a tag do post">
-              Envie o logo em PNG transparente e arraste-o no palco para posicionar. O badge abaixo aparece como tag no topo do post.
+            <TipCallout id="tip-brand-tab" title="Logo da sua marca">
+              Envie o logo em PNG transparente e selecione o quadrante ou arraste livremente no palco para posicionar.
             </TipCallout>
 
             <div className="space-y-2">
@@ -713,17 +758,32 @@ export default function CanvasSidebar({
               )}
             </div>
 
+            {/* Posição do Logo (4 Quadrantes Oficiais) */}
             <div className="space-y-1.5 pt-3 border-t border-white/8">
               <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
-                Badge / Tag de Categoria
+                Posição do Logo
               </label>
-              <input
-                type="text"
-                value={post.badgeText}
-                onChange={(e) => onUpdatePost({ badgeText: e.target.value })}
-                className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)]"
-                placeholder="Ex: EDITORIAL // CAPA"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { id: "top-left", label: "Sup. Esq." },
+                  { id: "top-right", label: "Sup. Dir." },
+                  { id: "bottom-left", label: "Inf. Esq." },
+                  { id: "bottom-right", label: "Inf. Dir." },
+                ] as const).map((pos) => (
+                  <button
+                    key={pos.id}
+                    type="button"
+                    onClick={() => onUpdatePost({ logoPosition: pos.id })}
+                    className={`p-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                      post.logoPosition === pos.id
+                        ? "bg-white text-black border-white shadow-sm"
+                        : "bg-white/4 border-white/8 text-white/60 hover:text-white"
+                    }`}
+                  >
+                    {pos.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}

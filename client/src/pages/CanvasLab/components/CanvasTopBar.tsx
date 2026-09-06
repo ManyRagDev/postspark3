@@ -1,6 +1,7 @@
 import { ArrowDownToLine, ArrowLeft, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, FileArchive, Layers, Loader2, Magnet, RotateCcw, Smartphone, Square, ZoomIn, ZoomOut } from "lucide-react";
 import type { AspectRatioType } from "./types";
 import { ASPECT_RATIO_CAPTIONS } from "./types";
+import UserTopMenu from "@/components/UserTopMenu";
 
 interface CanvasTopBarProps {
   aspectRatio: AspectRatioType;
@@ -245,6 +246,10 @@ export default function CanvasTopBar({
           <ArrowDownToLine size={14} className="text-black" />
           <span>Exportar 4K</span>
         </button>
+
+        {/* Menu do Usuário (Sparks, Perfil, Salvos, Configurações) */}
+        <div className="h-5 w-[1px] bg-white/12 hidden sm:block mx-1" />
+        <UserTopMenu variant="inline" />
       </div>
     </header>
   );

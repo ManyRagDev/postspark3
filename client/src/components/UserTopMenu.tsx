@@ -127,19 +127,25 @@ export default function UserTopMenu({ variant = "floating" }: UserTopMenuProps) 
 
   const trigger = isInline ? (
     <button
-      aria-label="Conta"
-      className="flex items-center justify-center w-8 h-8 rounded-full border transition-all active:scale-95"
+      aria-label="Conta do Usuário"
+      className="flex items-center gap-2 px-2 py-1 md:px-2.5 md:py-1 rounded-full border transition-all active:scale-95 cursor-pointer hover:bg-white/10"
       style={{
-        background: "oklch(0.16 0.03 280 / 90%)",
-        borderColor: "oklch(0.7 0.22 40 / 28%)",
+        background: "rgba(255, 255, 255, 0.06)",
+        borderColor: "rgba(255, 255, 255, 0.12)",
         color: "oklch(0.92 0.01 280)",
       }}
     >
-      <span className="text-[11px] font-bold">{initials}</span>
+      <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-white/10 border border-white/15">
+        {initials}
+      </div>
+      <span className="hidden sm:inline text-xs font-semibold text-white/90">
+        {(billing?.sparks ?? 0).toLocaleString("pt-BR")} ✦
+      </span>
+      <ChevronDown size={12} className="opacity-60" />
     </button>
   ) : (
     <button
-      className="flex items-center gap-2.5 px-3 py-2 rounded-full border transition-all hover:scale-[1.02]"
+      className="flex items-center gap-2.5 px-3 py-2 rounded-full border transition-all hover:scale-[1.02] cursor-pointer"
       style={{
         background: "oklch(0.12 0.03 280 / 84%)",
         borderColor: "oklch(0.7 0.22 40 / 22%)",
@@ -166,7 +172,7 @@ export default function UserTopMenu({ variant = "floating" }: UserTopMenuProps) 
 
   return (
     <>
-      <div className={isInline ? "relative" : "fixed top-[68px] right-4 md:right-6 z-[80]"}>
+      <div className={isInline ? "relative shrink-0" : "fixed top-3.5 right-4 md:right-6 z-[80]"}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             {trigger}

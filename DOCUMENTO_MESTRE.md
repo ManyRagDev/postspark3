@@ -67,7 +67,24 @@ Regras mandatórias do editor oficial:
    - *Básicos*: `none` (Normal), `shadow` (Sombra suave projetada com blur 12), `outline` (Contorno/stroke nítido com `fillAfterStrokeEnabled`).
    - *Caixas & Formas*: `box-card` (Cartão com cantos arredondados e preenchimento suave), `box-pill` (Pílula cápsula 999px), `box-glass` (Vidro fosco glassmorphism translúcido), `box-accent` (Caixa na cor primária da marca com texto contrastante automático), `box-brutal` (Tarja neobrutal com cantos vivos e sombra preta sólida de 3px).
    - *Atmosféricos & Dinâmicos*: `scrim` (Gradiente/vinheta suave sem bordas geométricas duras), `strip-line` (Tarjas ajustadas por linha de texto estilo Stories).
-   - *Renderização Konva*: Título e corpo operam encapsulados em `<Group>` para arrasto atômico (a caixa e o texto movem-se juntos no drag & drop e snap); persistido na coluna `canvas_model` no Supabase e renderizado em 4K.
+7. **Edição Direta On-Canvas (Inline Editor Konva + HTML Overlay)**:
+   - Duplo clique no Desktop ou duplo toque no Mobile diretamente sobre o Título, Subtítulo ou Badge abre imediatamente uma caixa `<textarea>` HTML espelhada sobre a prancheta.
+   - O elemento HTML sobrepõe-se no container relativo da prancheta herdando o mesmo sistema de coordenadas e a escala CSS exata (`zoom`), clonando família tipográfica, tamanho, peso, altura de linha, espaçamento entre letras, cor e alinhamento do Konva com 0px de deslocamento.
+   - Durante a edição, o texto vetorial do Konva adota opacidade 0 para eliminar duplicação visual (ghosting), enquanto o efeito de legibilidade de fundo (`box-card`, `box-pill`, `box-glass`, etc.) permanece visível atrás do texto digitado.
+   - Apresenta barra flutuante de ações com botões táteis `[ ✓ Concluir ]` e `[ ✕ Cancelar ]`, além de atalhos (`Ctrl+Enter` / `Enter` para concluir, `Esc` para cancelar, e salvamento automático ao clicar fora).
+   - O salvamento propaga-se via `onUpdateText` atualizando o slide ativo e os campos-base do `CanvasPostModel`.
+
+8. **Progresso Realista de Geração (`ProductionOverlay`)**:
+   - Eliminação do temporizador linear artificial de 2,6s que congelava em 96%.
+   - Implementação de curva assintótica suave multi-fase baseada no tempo real (`elapsedSeconds`): 0s-3s (12%→32%), 3s-8s (32%→62%), 8s-16s (62%→84%), 16s-28s (84%→94%) e 28s+ (desaceleração contínua até 98% sem nunca congelar).
+   - Esteira de 6 mensagens de status contextualizadas sincronizadas com a geração real de copies, arquétipos e síntese visual, preservando o tutorial rotativo (`LoadingTutorial`) e os chips de sugestão.
+
+9. **Menu do Usuário e Saldo de Sparks Persistente (`UserTopMenu`)**:
+   - O menu de conta, saldo de Sparks em tempo real (`billing.getProfile`), plano, perfil, posts salvos (`/saved-posts`), histórico (`/history`) e logout é persistente e acessível em todas as telas da aplicação.
+   - Na tela de criação do Studio (`StudioCreateViewV2B`), fica ancorado no canto superior direito (`fixed top-3.5 right-4 md:right-6`).
+   - Na galeria de direções (`StudioGalleryView` e `StudioMobileFlashcards`), é embutido diretamente no header superior ao lado do seletor de formatos.
+   - No editor do CanvasLab (`CanvasTopBar`), é embutido no canto direito da barra de ferramentas ao lado do botão de exportação 4K.
+   - Em todas as demais páginas do sistema (`/saved-posts`, `/history`, `/billing`, `/pricing`, etc.), o menu flutuante global permanece permanentemente ativo e ancorado no topo (`top-3.5 right-4 md:right-6`).
 
 ---
 
@@ -326,6 +343,58 @@ Onze correções derivadas de testes de usabilidade na edição de posts já cri
 9. **Sistema de dicas**: `useStudioTipsStore` + `TipCallout` por aba + checkbox "Mostrar dicas".
 10. **Clique/toque no card da galeria** abre o editor (guardado contra drag no mobile).
 11. **Tutorial ilustrado no loading** (`LoadingTutorial` dentro do `ProductionOverlay`).
+
+---
+
+## 13.2 ADR — Unificação do Motor Konva.js e Interações no CanvasLab (2026-09-05)
+
+Consolidação definitiva do motor gráfico e ciclo de eventos no CanvasLab:
+
+1. **Eliminação do "Segundo Motor" Heurístico:**
+   - Heurísticas ad-hoc anteriores (`charCount * 0.55 * fontSize / width` e `avgCharWidth = fontSize * 0.52`) calculavam estimativas incorretas de quebras de linha em fontes condensadas (como *Anton*, *Impact*, *Bebas Neue*). O texto cabia em 1 linha no Konva, mas a fórmula achava que precisava de 2 linhas, desenhando uma segunda tarja vazia fantasma (`strip-line`) e dobrando a altura do `box-card` e do `Transformer`.
+   - Substituição pelo módulo canônico `getKonvaTextMetrics` (`client/src/pages/CanvasLab/components/textMetrics.ts`), que instancia um nó `Konva.Text` de medição com Canvas 2D nativo. Todas as quebras de linha (`textArr`), alturas (`height()`) e limites do `Transformer` passam a compartilhar 100% da mesma medição.
+2. **Correção do Sequestro de Duplo-Clique pelo Transformer:**
+   - O componente `<Transformer>` do Konva se posiciona no topo da camada ao selecionar um texto, engolindo cliques duplos.
+   - Adicionados handlers de `onDblClick` e `onDblTap` diretamente no `<Transformer>`, delegando a abertura do editor inline ao elemento selecionado (`selectedId`). Handlers também adicionados aos nós `<Text>` para edição direta.
+3. **Desseleção Confiável no Stage (Click Outside):**
+   - Substituída a verificação frágil `e.target === stageRef.current` por um listener canônico que utiliza o helper de hierarquia `isDescendantOf`. Cliques em retângulos de cor de fundo, gradientes, imagens ou áreas neutras do palco disparam a desseleção (`setSelectedId(null)`) e salvam edições abertas (`handleCommitText()`). Formas de fundo foram identificadas com `name="canvas-bg"`.
+4. **Skills Especializadas Registradas em `.agent/skills/`:**
+   - `.agent/skills/konva-canvas-architecture/SKILL.md`: padrão canônico de medição tipográfica do Konva, pass-through de duplo clique no Transformer e desseleção no Stage.
+   - `.agent/skills/image-pipeline-resilience/SKILL.md`: cadeia de fallback resiliente (OpenRouter → Pollinations → Unsplash), validação de assinatura binária e manipulação no Canvas estilo Canva (`getCoverCrop`, `bgTransform`).
+   - `.agent/skills/contrast-color-guardian/SKILL.md`: regras WCAG 2.1, contraste assimétrico no Brutal Split e políticas de cores e badges de baixo contraste.
+   - `.agent/skills/post-visual-snapshot/SKILL.md`: a invariante mandatória da fonte única da verdade dos posts (`variationSnapshot.ts`), versionamento e isolamento de slides sem cross-talk.
+   - `.agent/skills/canvas-export-4k/SKILL.md`: renderização offscreen em resolução 4K Ultra-HD (`pixelRatio: 4`), empacotamento assíncrono em ZIP via `JSZip` e preloading de fontes dinâmicas.
+
+---
+
+## 13.3 ADR — Reorganização e Segregação Estrita de Responsabilidades no CanvasLab (2026-09-05)
+
+Revisão estrutural de separação de responsabilidades nas abas de controle do CanvasLab (`CanvasSidebar.tsx` e `CanvasMobileDrawer.tsx`):
+
+1. **Aba "Texto" (Exclusividade Tipográfica e Conteúdo):**
+   - **Textos e Alinhamentos:** Título e Subtítulo com controles táteis de alinhamento (`left`, `center`, `right`) no desktop e mobile.
+   - **Metadados Textuais:** Badge / Tag de categoria (`post.badgeText`) movido da aba "Logo" para cá; campo de Etapa / Slide (`currentSlide.step`) para carrosséis.
+   - **Posicionamento de Texto:** Botão "Redefinir Posição Livre do Texto" para restaurar o layout padronizado da família quando o usuário tiver arrastado livremente o título ou subtítulo no palco Konva.
+   - **Tipografia e Fontes:** Catálogo de fontes categorizado (`FONT_CATALOG`: Serifadas, Sans-Serif, Display, Monoespaçadas), upload de fontes locais (.ttf, .otf, .woff2) e importação via URL do Google Fonts — todos migrados da aba "Estilo" para cá.
+   - **Cores, Tamanhos e Efeitos:** `TypographyColorControls` com cores por elemento, guardião de contraste WCAG, badges de alerta de contraste, sliders de escala (0.6x a 1.6x) e 10 efeitos visuais de legibilidade.
+   - **Legenda Estratégica:** Textarea da legenda para redes sociais com quebras de linha e botão de cópia com 1 clique.
+
+2. **Aba "Estilo" (Direção de Arte e Paleta Base):**
+   - **14 Famílias Visuais Oficiais:** Seleção de direção de arte agrupada em Tendências & Instagram, Editorial & Clássico e Métricas & Conversão.
+   - **Paleta Cromática Base:** Cores globais restritas a **Fundo** (`palette.background`) e **Destaque** (`palette.accent`). O seletor genérico de "Texto" foi removido daqui para evitar concorrência e sobrescrita com os controles específicos de título/subtexto da aba Texto.
+
+3. **Aba "Mídia" (Fundo, Fotos e Texturas):**
+   - Card do slide ativo com mini-preview, botão de enquadramento estilo Canva e download em alta resolução da imagem original.
+   - Gerador de imagens com IA (OpenRouter/Pollinations HD).
+   - Biblioteca de 110+ texturas oficiais.
+   - Upload de foto local / galeria do celular.
+   - Botão para fundo sólido sem foto.
+   - Slider de escurecimento (Overlay / Scrim).
+   - Chave para aplicar fundo a todos os slides em carrossel.
+
+4. **Aba "Logo" (Identidade e Marca):**
+   - Upload do logo em PNG transparente com visualização e botão de remoção.
+   - Seletor de posicionamento em 4 quadrantes (`top-left`, `top-right`, `bottom-left`, `bottom-right`) com 100% de paridade entre Desktop e Mobile.
 
 ---
 

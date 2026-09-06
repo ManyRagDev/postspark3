@@ -4,6 +4,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, Layers, RefreshCw, Smartphone, S
 import type { AspectRatioType, CanvasPostModel } from "@/pages/CanvasLab/components/types";
 import { ASPECT_RATIO_CAPTIONS } from "@/pages/CanvasLab/components/types";
 import { CanvasPostStage } from "@/pages/CanvasLab/components/CanvasPostStage";
+import UserTopMenu from "@/components/UserTopMenu";
 
 interface StudioMobileFlashcardsProps {
   variations: CanvasPostModel[];
@@ -81,9 +82,12 @@ export default function StudioMobileFlashcards({
           })}
         </div>
 
-        {/* Paginação Compacta */}
-        <div className="text-xs font-mono font-bold text-white/80 bg-white/6 px-2.5 py-1 rounded-full border border-white/10">
-          {currentIndex + 1} / {total}
+        {/* Paginação Compacta e Menu do Usuário */}
+        <div className="flex items-center gap-1.5">
+          <div className="text-xs font-mono font-bold text-white/80 bg-white/6 px-2 py-1 rounded-full border border-white/10">
+            {currentIndex + 1} / {total}
+          </div>
+          <UserTopMenu variant="inline" />
         </div>
       </header>
 

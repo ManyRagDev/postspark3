@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Loader2, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { loadFontByName } from "@/lib/fonts";
 import SparkLogo from "@/components/SparkLogo";
+import UserTopMenu from "@/components/UserTopMenu";
 import {
   STUDIO,
   MONO,
@@ -90,6 +91,9 @@ export default function StudioCreateViewV2B({
           }
         }
       `}</style>
+
+      {/* MENU DO USUÁRIO NO CANTO SUPERIOR DIREITO (SPARKS, SALVOS, PERFIL) */}
+      <UserTopMenu />
 
       {/* ÁREA PRINCIPAL CENTRALIZADA VERTICALMENTE */}
       <main className="min-h-0 flex-1 flex flex-col justify-center px-4 py-4 md:px-8 md:py-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

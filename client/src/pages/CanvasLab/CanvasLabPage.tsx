@@ -160,6 +160,31 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     toast.info("Enquadramento do fundo resetado para o padrão.");
   };
 
+  // Edição direta no canvas (duplo clique / duplo toque)
+  const handleUpdateText = (field: "headline" | "subtext" | "badgeText", value: string) => {
+    setPost((prev) => {
+      const curIdx = prev.currentSlideIndex;
+      const currentSlide = prev.slides[curIdx];
+      const updatedSlides = [...prev.slides];
+
+      if (currentSlide) {
+        if (field === "headline") {
+          updatedSlides[curIdx] = { ...currentSlide, headline: value };
+        } else if (field === "subtext") {
+          updatedSlides[curIdx] = { ...currentSlide, subtext: value };
+        } else if (field === "badgeText") {
+          updatedSlides[curIdx] = { ...currentSlide, step: value };
+        }
+      }
+
+      return {
+        ...prev,
+        [field]: value,
+        slides: updatedSlides,
+      };
+    });
+  };
+
   // ─── Item 7: fluxo de salvamento com decisão memorizável ───
   const handleSaveClick = () => {
     if (!onSave) {
@@ -405,6 +430,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
               isEditingBackground={isEditingBackground}
               onUpdateBgTransform={handleUpdateBgTransform}
               onEnterBackgroundEdit={() => setIsEditingBackground(true)}
+              onUpdateText={handleUpdateText}
             />
           </motion.div>
         </main>

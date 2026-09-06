@@ -329,36 +329,53 @@ export function SpecimenCard({
   );
 }
 
-const PRODUCTION_LOG = [
-  "Analisando intenção e tom de voz",
-  "Escrevendo copies e ganchos estratégicos",
-  "Calibrando tipografia e direções de arte",
+const PRODUCTION_STAGES = [
+  { atSec: 0, text: "Analisando intenção e tom de voz" },
+  { atSec: 2.5, text: "Estruturando ganchos e copywriting estratégico" },
+  { atSec: 6.0, text: "Mapeando arquétipos visuais e paletas da marca" },
+  { atSec: 10.5, text: "Sintetizando direção de arte e imagem de fundo" },
+  { atSec: 16.0, text: "Calibrando tipografia e contraste inteligente" },
+  { atSec: 23.0, text: "Finalizando composições em alta fidelidade" },
 ];
 
+export function calculateRealisticProgress(elapsedSeconds: number): number {
+  const s = Math.max(0, elapsedSeconds);
+  if (s <= 3) {
+    // 0s -> 3s: 12% -> 32% (rápido feedback tátil inicial)
+    return Math.round(12 + (s / 3) * 20);
+  }
+  if (s <= 8) {
+    // 3s -> 8s: 32% -> 62% (redação das variações e ganchos)
+    return Math.round(32 + ((s - 3) / 5) * 30);
+  }
+  if (s <= 16) {
+    // 8s -> 16s: 62% -> 84% (direção de arte e imagem de fundo)
+    return Math.round(62 + ((s - 8) / 8) * 22);
+  }
+  if (s <= 28) {
+    // 16s -> 28s: 84% -> 94% (acabamento e tokens de design)
+    return Math.round(84 + ((s - 16) / 12) * 10);
+  }
+  // 28s+: avança assintoticamente até 98%, ganhando ~1% a cada 3s sem nunca congelar
+  const extra = Math.min(4, Math.floor((s - 28) / 3));
+  return Math.min(98, 94 + extra);
+}
+
 export function ProductionOverlay({ prompt }: { prompt: string }) {
-  const [stageIndex, setStageIndex] = useState(0);
-  const [progress, setProgress] = useState(12);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-  // Alterna as mensagens de status
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setStageIndex((prev) => (prev < PRODUCTION_LOG.length - 1 ? prev + 1 : prev));
-    }, 1100);
-    return () => window.clearInterval(interval);
-  }, []);
-
-  // Barra de corrida progressiva fluida (0% -> 96%)
+  // Temporizador contínuo sem travamento artificial em 96%
   useEffect(() => {
     const startTime = Date.now();
-    const duration = 2600; // 2.6 segundos
     const timer = window.setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const pct = Math.min(96, Math.round((elapsed / duration) * 96));
-      setProgress(Math.max(12, pct));
-      if (pct >= 96) window.clearInterval(timer);
-    }, 40);
+      setElapsedSeconds((Date.now() - startTime) / 1000);
+    }, 100);
     return () => window.clearInterval(timer);
   }, []);
+
+  const progress = calculateRealisticProgress(elapsedSeconds);
+  const visibleStages = PRODUCTION_STAGES.filter((st) => elapsedSeconds >= st.atSec);
+  const recentStages = visibleStages.slice(-3);
 
   const cropMark = "absolute h-5 w-5 border-[rgba(242,237,228,0.4)]";
 
@@ -427,16 +444,16 @@ export function ProductionOverlay({ prompt }: { prompt: string }) {
         </div>
 
         {/* Microetapas sincronizadas */}
-        <div className="mt-6 space-y-1.5">
-          {PRODUCTION_LOG.slice(0, stageIndex + 1).map((line) => (
+        <div className="mt-6 space-y-1.5 min-h-[54px]">
+          {recentStages.map((st) => (
             <motion.p
-              key={line}
+              key={st.text}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
               style={{ ...MONO, color: STUDIO.ink40, fontSize: 9.5, letterSpacing: "0.14em" }}
             >
-              {line}
+              {st.text}
             </motion.p>
           ))}
         </div>
@@ -448,7 +465,7 @@ export function ProductionOverlay({ prompt }: { prompt: string }) {
       </div>
 
       <div className="pb-[calc(env(safe-area-inset-bottom,0px)+28px)] text-center">
-        <span style={{ ...MONO, color: STUDIO.ink25, fontSize: 9 }}>Geração única — 2 a 4 segundos</span>
+        <span style={{ ...MONO, color: STUDIO.ink25, fontSize: 9 }}>Inteligência visual em tempo real • Direção de arte personalizada</span>
       </div>
     </motion.div>
   );

@@ -2,8 +2,10 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } f
 import { Stage, Layer, Rect, Text, Group, Image as KonvaImage, Transformer, Line, Circle } from "react-konva";
 import type { BgImageTransform, CanvasPostModel, ElementPosition, LogoPositionType, TextLegibilityEffect } from "./types";
 import { isDarkColor, resolveLegibleTextColor } from "./types";
+import { getKonvaTextMetrics } from "./textMetrics";
 import { useDynamicFont } from "@/hooks/useDynamicFont";
 import JSZip from "jszip";
+import { Check, X } from "lucide-react";
 
 export interface CanvasPostStageRef {
   exportPng4K: () => string;
@@ -19,6 +21,7 @@ interface CanvasPostStageProps {
   isEditingBackground?: boolean;
   onUpdateBgTransform?: (transform: BgImageTransform) => void;
   onEnterBackgroundEdit?: () => void;
+  onUpdateText?: (field: "headline" | "subtext" | "badgeText", value: string) => void;
 }
 
 // Cálculo de crop proporcional (object-fit: cover)
@@ -58,32 +61,15 @@ function getCoverCrop(
   };
 }
 
-// ─── EFEITOS DE LEGIBILIDADE TIPOGRÁFICA (10 ESTILOS OFICIAIS) ───
-function estimateTextLines(text: string, fontSize: number, containerWidth: number): Array<{ text: string; width: number }> {
-  if (!text) return [];
-  const avgCharWidth = fontSize * 0.52;
-  const maxCharsPerLine = Math.max(8, Math.floor(containerWidth / avgCharWidth));
-  const words = text.split(" ");
-  const lines: Array<{ text: string; width: number }> = [];
-  let currentWords: string[] = [];
-
-  for (const word of words) {
-    const candidate = [...currentWords, word].join(" ");
-    if (candidate.length <= maxCharsPerLine) {
-      currentWords.push(word);
-    } else {
-      if (currentWords.length > 0) {
-        const lineText = currentWords.join(" ");
-        lines.push({ text: lineText, width: lineText.length * avgCharWidth });
-      }
-      currentWords = [word];
-    }
+// ─── HELPER CANÔNICO KONVA: IDENTIFICAÇÃO DE HIERARQUIA DE NÓS ───
+function isDescendantOf(node: any, targetParent: any): boolean {
+  if (!node || !targetParent) return false;
+  let curr = node;
+  while (curr) {
+    if (curr === targetParent) return true;
+    curr = curr.getParent?.();
   }
-  if (currentWords.length > 0) {
-    const lineText = currentWords.join(" ");
-    lines.push({ text: lineText, width: lineText.length * avgCharWidth });
-  }
-  return lines;
+  return false;
 }
 
 interface RenderBackgroundEffectProps {
@@ -257,6 +243,7 @@ function renderBackgroundEffect({
               shadowColor="rgba(0, 0, 0, 0.2)"
               shadowBlur={6}
               shadowOffsetY={2}
+              listening={false}
             />
           );
         })}
@@ -298,6 +285,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       isEditingBackground = false,
       onUpdateBgTransform,
       onEnterBackgroundEdit,
+      onUpdateText,
     },
     ref
   ) => {
@@ -316,6 +304,16 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [snapLines, setSnapLines] = useState<{ x?: number; y?: number }>({});
     const [isAltPressed, setIsAltPressed] = useState(false);
+
+    // Estado da edição direta no canvas (Inline On-Canvas Editor)
+    const [editingTarget, setEditingTarget] = useState<"headline" | "subtext" | "badge" | null>(null);
+    const [editingText, setEditingText] = useState("");
+    const editingTargetRef = useRef(editingTarget);
+    editingTargetRef.current = editingTarget;
+    const editingTextRef = useRef(editingText);
+    editingTextRef.current = editingText;
+    const editorWrapperRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const [bgImgElement, setBgImgElement] = useState<HTMLImageElement | null>(null);
     const [logoImgElement, setLogoImgElement] = useState<HTMLImageElement | null>(null);
@@ -470,14 +468,30 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const splitLineY = baseHeight * SPLIT_LINE_RATIO;
     const layoutBottomMargin = post.aspectRatio === "9:16" ? 64 : 32;
 
-    const headlineHeightFor = (size: number) =>
-      Math.ceil((activeHeadline.length * (size * 0.55)) / contentWidth) * (size * 1.25);
-    const subtextHeightFor = (size: number) =>
-      Math.ceil((activeSubtext.length * 6.5) / contentWidth) * size * (16 / 12);
+    const headlineMetricsFor = (size: number) =>
+      getKonvaTextMetrics({
+        text: activeHeadline,
+        width: contentWidth,
+        fontSize: size,
+        fontFamily: post.fontFamily,
+        fontStyle: "bold",
+        letterSpacing: isBrutalBlock ? 0.5 : isEditorial ? -0.2 : -0.4,
+        lineHeight: isBrutalBlock ? 1.1 : 1.25,
+      });
+
+    const subtextMetricsFor = (size: number) =>
+      getKonvaTextMetrics({
+        text: activeSubtext,
+        width: contentWidth,
+        fontSize: size,
+        fontFamily: isCyber ? "Space Mono, monospace" : "Inter, sans-serif",
+        fontStyle: "normal",
+        lineHeight: 1.45,
+      });
 
     const fitsWithSizes = (hSize: number, sSize: number): boolean => {
-      const hHeight = headlineHeightFor(hSize);
-      const sHeight = subtextHeightFor(sSize);
+      const hHeight = headlineMetricsFor(hSize).height;
+      const sHeight = subtextMetricsFor(sSize).height;
       if (isBrutalSplit) {
         // Título inteiro precisa caber na metade de cima (badge termina em ~45)
         return 45 + hHeight + MIN_TEXT_GAP <= splitLineY;
@@ -495,8 +509,12 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
 
     const headlineFontSize = effHeadlineSize;
     const subtextFontSize = effSubtextSize;
-    const headlineHeight = headlineHeightFor(effHeadlineSize);
-    const subtextHeight = subtextHeightFor(effSubtextSize);
+
+    const headlineMetrics = headlineMetricsFor(headlineFontSize);
+    const subtextMetrics = subtextMetricsFor(subtextFontSize);
+
+    const headlineHeight = headlineMetrics.height;
+    const subtextHeight = subtextMetrics.height;
     const totalStackHeight = headlineHeight + subtextHeight + 20;
 
     // ─── CORES COM CONTRASTE GARANTIDO POR METADE (item 1) ───
@@ -529,8 +547,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         ? (isDarkSubtext ? "#000000" : "#FFFFFF")
         : rawSubtextColor;
 
-    const headlineLines = estimateTextLines(activeHeadline, headlineFontSize, contentWidth);
-    const subtextLines = estimateTextLines(activeSubtext, subtextFontSize, contentWidth);
+    const headlineLines = headlineMetrics.lines;
+    const subtextLines = subtextMetrics.lines;
 
     // Posições Padrão Customizadas por Família
     let defaultHeadlineY = 0;
@@ -688,6 +706,98 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       if (onSelectElement) onSelectElement(id);
     };
 
+    // ─── Ações de Edição Direta no Canvas ───
+    const startEditing = (target: "headline" | "subtext" | "badge") => {
+      if (isReadOnly || isEditingBackground || !onUpdateText) return;
+      setSelectedId(null);
+      if (onSelectElement) onSelectElement(null);
+      transformerRef.current?.nodes([]);
+      transformerRef.current?.getLayer()?.batchDraw();
+      setEditingTarget(target);
+      let initialText = "";
+      if (target === "headline") initialText = activeHeadline;
+      else if (target === "subtext") initialText = activeSubtext;
+      else if (target === "badge") initialText = activeStep;
+      setEditingText(initialText);
+    };
+
+    const handleCommitText = () => {
+      const target = editingTargetRef.current;
+      const val = editingTextRef.current;
+      if (target && onUpdateText) {
+        const fieldKey = target === "badge" ? "badgeText" : target;
+        onUpdateText(fieldKey, val);
+      }
+      setEditingTarget(null);
+    };
+
+    const handleCancelText = () => {
+      setEditingTarget(null);
+    };
+
+    useEffect(() => {
+      if (!editingTarget) return;
+
+      const handlePointerDownOutside = (e: MouseEvent | TouchEvent) => {
+        if (editorWrapperRef.current && !editorWrapperRef.current.contains(e.target as Node)) {
+          handleCommitText();
+        }
+      };
+
+      const timer = window.setTimeout(() => {
+        window.addEventListener("mousedown", handlePointerDownOutside);
+        window.addEventListener("touchstart", handlePointerDownOutside);
+      }, 120);
+
+      return () => {
+        window.clearTimeout(timer);
+        window.removeEventListener("mousedown", handlePointerDownOutside);
+        window.removeEventListener("touchstart", handlePointerDownOutside);
+      };
+    }, [editingTarget]);
+
+    useEffect(() => {
+      if (editingTarget && textareaRef.current) {
+        const el = textareaRef.current;
+        el.focus();
+        el.selectionStart = el.value.length;
+        el.selectionEnd = el.value.length;
+        el.style.height = "auto";
+        el.style.height = `${Math.max(el.scrollHeight, 28)}px`;
+      }
+    }, [editingTarget]);
+
+    const handleStagePointerDown = (e: any) => {
+      // Ignora clique no Transformer ou em suas âncoras
+      const isTransformer =
+        e.target?.getParent?.()?.className === "Transformer" ||
+        e.target?.className === "Transformer";
+      if (isTransformer) return;
+
+      // Se o clique foi em um dos grupos selecionáveis, deixa seus handlers próprios agirem
+      const isHeadline = isDescendantOf(e.target, headlineRef.current);
+      const isSubtext = isDescendantOf(e.target, subtextRef.current);
+      const isBadge = isDescendantOf(e.target, badgeRef.current);
+      const isBar = isDescendantOf(e.target, barRef.current);
+      const isLogo = isDescendantOf(e.target, logoRef.current);
+
+      if (isHeadline || isSubtext || isBadge || isBar || isLogo) {
+        return;
+      }
+
+      // Se estiver no modo de edição de fundo, o clique no fundo é tratado pelo transformer de fundo
+      if (isEditingBackground) {
+        return;
+      }
+
+      // Clique fora (no fundo do canvas, imagem de fundo ou área vazia): desseleciona e conclui edição
+      if (editingTarget) {
+        handleCommitText();
+      }
+      setSelectedId(null);
+      if (onSelectElement) onSelectElement(null);
+    };
+
     const scaledWidth = baseWidth * zoom;
     const scaledHeight = baseHeight * zoom;
 
@@ -718,12 +828,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
             ref={stageRef}
             width={baseWidth}
             height={baseHeight}
-            onMouseDown={(e) => {
-              if (e.target === stageRef.current) {
-                setSelectedId(null);
-                if (onSelectElement) onSelectElement(null);
-              }
-            }}
+            onMouseDown={handleStagePointerDown}
+            onTouchStart={handleStagePointerDown}
           >
             <Layer listening={isInteractive}>
               {/* ─── 0. GRADE GUIA 5x5 DE ALINHAMENTO MAGNÉTICO (GPU-Accelerated) ─── */}
@@ -756,14 +862,15 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
               {isBrutalSplit ? (
                 // 1.A) BRUTAL SPLIT (@design.deb): 2 BLOCOS CROMÁTICOS LIMPOS SEM SELO
                 <>
-                  <Rect x={0} y={0} width={baseWidth} height={baseHeight * 0.5} fill={post.palette.background || "#171717"} />
-                  <Rect x={0} y={baseHeight * 0.5} width={baseWidth} height={baseHeight * 0.5} fill={post.palette.accent || "#21F1A8"} />
-                  <Line points={[0, baseHeight * 0.5, baseWidth, baseHeight * 0.5]} stroke="#000000" strokeWidth={2} opacity={0.4} />
+                  <Rect name="canvas-bg" x={0} y={0} width={baseWidth} height={baseHeight * 0.5} fill={post.palette.background || "#171717"} />
+                  <Rect name="canvas-bg" x={0} y={baseHeight * 0.5} width={baseWidth} height={baseHeight * 0.5} fill={post.palette.accent || "#21F1A8"} />
+                  <Line points={[0, baseHeight * 0.5, baseWidth, baseHeight * 0.5]} stroke="#000000" strokeWidth={2} opacity={0.4} listening={false} />
                 </>
               ) : isDuotone ? (
                 // 1.B) DUOTONE WASH: GRADIENTE LINEAR DIAGONAL RICO A 135°
                 <>
                   <Rect
+                    name="canvas-bg"
                     x={0}
                     y={0}
                     width={baseWidth}
@@ -772,17 +879,17 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     fillLinearGradientEndPoint={{ x: baseWidth, y: baseHeight }}
                     fillLinearGradientColorStops={[0, post.palette.background || "#2A0845", 1, post.palette.accent || "#FF3366"]}
                   />
-                  <Circle x={baseWidth * 0.8} y={baseHeight * 0.2} radius={120} fill={post.palette.accent} opacity={0.25} />
+                  <Circle name="canvas-bg" x={baseWidth * 0.8} y={baseHeight * 0.2} radius={120} fill={post.palette.accent} opacity={0.25} listening={false} />
                 </>
               ) : isCinematic ? (
                 // 1.C) CINEMATIC DEPTH: Fundo escuro com moldura cinematográfica
                 <>
-                  <Rect x={0} y={0} width={baseWidth} height={baseHeight} fill="#08080A" />
-                  <Rect x={12} y={12} width={baseWidth - 24} height={baseHeight - 24} stroke="rgba(255,255,255,0.08)" strokeWidth={1} />
+                  <Rect name="canvas-bg" x={0} y={0} width={baseWidth} height={baseHeight} fill="#08080A" />
+                  <Rect x={12} y={12} width={baseWidth - 24} height={baseHeight - 24} stroke="rgba(255,255,255,0.08)" strokeWidth={1} listening={false} />
                 </>
               ) : (
                 // 1.D) FUNDO SÓLIDO BASE
-                <Rect x={0} y={0} width={baseWidth} height={baseHeight} fill={post.palette.background} />
+                <Rect name="canvas-bg" x={0} y={0} width={baseWidth} height={baseHeight} fill={post.palette.background} />
               )}
 
               {/* IMAGEM DE FUNDO COM SUPORTE A EDIÇÃO ESTILO CANVA */}
@@ -933,6 +1040,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   draggable={isInteractive}
                   dragBoundFunc={isInteractive ? createSnapBoundFunc(95, 26) : undefined}
                   onClick={() => handleSelect("badge")}
+                  onDblClick={() => startEditing("badge")}
+                  onDblTap={() => startEditing("badge")}
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "badgePos")}
                 >
@@ -949,7 +1058,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     shadowOffset={{ x: 2, y: 3 }}
                   />
                   <Text
-                    text="★ DESTAQUE"
+                    text={activeStep ? activeStep.toUpperCase() : "★ DESTAQUE"}
                     x={8}
                     y={7}
                     fontSize={10}
@@ -957,6 +1066,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     fontStyle="bold"
                     fill={post.palette.accent}
                     letterSpacing={1}
+                    opacity={editingTarget === "badge" ? 0 : 1}
+                    onDblClick={() => startEditing("badge")}
+                    onDblTap={() => startEditing("badge")}
                   />
                 </Group>
               ) : isBrutalSplit ? (
@@ -968,11 +1080,13 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   draggable={isInteractive}
                   dragBoundFunc={isInteractive ? createSnapBoundFunc(activeStep.length * 7 + 16, 22) : undefined}
                   onClick={() => handleSelect("badge")}
+                  onDblClick={() => startEditing("badge")}
+                  onDblTap={() => startEditing("badge")}
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "badgePos")}
                 >
                   <Rect x={0} y={0} width={activeStep.length * 7 + 16} height={22} fill="#FFFFFF" stroke="#000000" strokeWidth={1.5} />
-                  <Text text={activeStep.toUpperCase()} x={8} y={6} fontSize={8.5} fontFamily="monospace" fontStyle="bold" fill="#000000" letterSpacing={1} />
+                  <Text text={activeStep.toUpperCase()} x={8} y={6} fontSize={8.5} fontFamily="monospace" fontStyle="bold" fill="#000000" letterSpacing={1} opacity={editingTarget === "badge" ? 0 : 1} onDblClick={() => startEditing("badge")} onDblTap={() => startEditing("badge")} />
                 </Group>
               ) : isCyber ? (
                 // 3.C) CYBER: Badge Terminal Neon
@@ -983,11 +1097,13 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   draggable={isInteractive}
                   dragBoundFunc={isInteractive ? createSnapBoundFunc(activeStep.length * 7 + 22, 22) : undefined}
                   onClick={() => handleSelect("badge")}
+                  onDblClick={() => startEditing("badge")}
+                  onDblTap={() => startEditing("badge")}
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "badgePos")}
                 >
                   <Rect x={0} y={0} width={activeStep.length * 7 + 22} height={22} fill="rgba(0, 240, 255, 0.08)" stroke="#00F0FF" strokeWidth={1} cornerRadius={2} />
-                  <Text text={`[ ${activeStep.toUpperCase()} ]`} x={8} y={6} fontSize={8.5} fontFamily="Space Mono" fontStyle="bold" fill="#00F0FF" letterSpacing={1} />
+                  <Text text={`[ ${activeStep.toUpperCase()} ]`} x={8} y={6} fontSize={8.5} fontFamily="Space Mono" fontStyle="bold" fill="#00F0FF" letterSpacing={1} opacity={editingTarget === "badge" ? 0 : 1} onDblClick={() => startEditing("badge")} onDblTap={() => startEditing("badge")} />
                 </Group>
               ) : (
                 // 3.D) PADRÃO / EDITORIAL / GLASS / DUOTONE: Pílula Refinada
@@ -998,6 +1114,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   draggable={isInteractive}
                   dragBoundFunc={isInteractive ? createSnapBoundFunc(activeStep.length * 7 + 18, 22) : undefined}
                   onClick={() => handleSelect("badge")}
+                  onDblClick={() => startEditing("badge")}
+                  onDblTap={() => startEditing("badge")}
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "badgePos")}
                 >
@@ -1020,6 +1138,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     fontStyle="bold"
                     fill={isGlass ? "#FFFFFF" : post.palette.accent}
                     letterSpacing={1.5}
+                    opacity={editingTarget === "badge" ? 0 : 1}
+                    onDblClick={() => startEditing("badge")}
+                    onDblTap={() => startEditing("badge")}
                   />
                 </Group>
               )}
@@ -1049,6 +1170,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 draggable={isInteractive}
                 dragBoundFunc={isInteractive ? createSnapBoundFunc(contentWidth, headlineHeight) : undefined}
                 onClick={() => handleSelect("headline")}
+                onDblClick={() => startEditing("headline")}
+                onDblTap={() => startEditing("headline")}
                 onDragMove={handleDragMove}
                 onDragEnd={(e) => handleDragEnd(e, "headlinePos")}
               >
@@ -1074,6 +1197,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   align={defaultAlign}
                   lineHeight={isBrutalBlock ? 1.1 : 1.25}
                   letterSpacing={isBrutalBlock ? 0.5 : isEditorial ? -0.2 : -0.4}
+                  opacity={editingTarget === "headline" ? 0 : 1}
+                  onDblClick={() => startEditing("headline")}
+                  onDblTap={() => startEditing("headline")}
                   {...getTextEffectProps(headlineEffect, isDarkHeadline, true)}
                 />
               </Group>
@@ -1086,6 +1212,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 draggable={isInteractive}
                 dragBoundFunc={isInteractive ? createSnapBoundFunc(contentWidth, subtextHeight) : undefined}
                 onClick={() => handleSelect("subtext")}
+                onDblClick={() => startEditing("subtext")}
+                onDblTap={() => startEditing("subtext")}
                 onDragMove={handleDragMove}
                 onDragEnd={(e) => handleDragEnd(e, "subtextPos")}
               >
@@ -1107,9 +1235,11 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   fontSize={subtextFontSize}
                   fontFamily={isCyber ? "Space Mono, monospace" : "Inter, sans-serif"}
                   fill={subtextColor}
-                  opacity={isBrutalSplit ? 0.95 : 0.85}
+                  opacity={editingTarget === "subtext" ? 0 : isBrutalSplit ? 0.95 : 0.85}
                   align={defaultAlign}
                   lineHeight={1.45}
+                  onDblClick={() => startEditing("subtext")}
+                  onDblTap={() => startEditing("subtext")}
                   {...getTextEffectProps(subtextEffect, isDarkSubtext, false)}
                 />
               </Group>
@@ -1144,6 +1274,16 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   anchorFill="#ffffff"
                   anchorSize={7}
                   anchorCornerRadius={2}
+                  onDblClick={() => {
+                    if (selectedId === "headline" || selectedId === "subtext" || selectedId === "badge") {
+                      startEditing(selectedId);
+                    }
+                  }}
+                  onDblTap={() => {
+                    if (selectedId === "headline" || selectedId === "subtext" || selectedId === "badge") {
+                      startEditing(selectedId);
+                    }
+                  }}
                 />
               )}
 
@@ -1186,6 +1326,163 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
               )}
             </Layer>
           </Stage>
+
+          {/* ─── 10. OVERLAY DE EDIÇÃO DIRETA DE TEXTO NO PALCO (CANVAS INLINE EDITOR) ─── */}
+          {editingTarget && (
+            <div
+              ref={editorWrapperRef}
+              className="absolute pointer-events-auto select-text z-40"
+              style={{
+                left:
+                  editingTarget === "headline"
+                    ? headlinePos.x
+                    : editingTarget === "subtext"
+                    ? subtextPos.x
+                    : badgePos.x,
+                top:
+                  editingTarget === "headline"
+                    ? headlinePos.y
+                    : editingTarget === "subtext"
+                    ? subtextPos.y
+                    : badgePos.y,
+                width:
+                  editingTarget === "badge"
+                    ? Math.max(130, activeStep.length * 8 + 36)
+                    : contentWidth,
+                transform: editingTarget === "badge" && isBrutalBlock ? "rotate(-4deg)" : undefined,
+                transformOrigin: "top left",
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              {/* BARRA FLUTUANTE DE AÇÕES (CONCLUIR / CANCELAR) */}
+              <div
+                className="absolute flex items-center gap-1.5 bg-[#0C1017]/95 backdrop-blur-md px-2.5 py-1 rounded-full border border-sky-400/60 shadow-[0_8px_24px_rgba(0,0,0,0.85)] text-white select-none whitespace-nowrap z-50 pointer-events-auto"
+                style={{
+                  top:
+                    (editingTarget === "headline"
+                      ? headlinePos.y
+                      : editingTarget === "subtext"
+                      ? subtextPos.y
+                      : badgePos.y) > 45
+                      ? -36
+                      : (editingTarget === "badge"
+                          ? 28
+                          : (editingTarget === "headline" ? headlineHeight : subtextHeight)) + 8,
+                  left: 0,
+                }}
+              >
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleCommitText();
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-400 hover:bg-sky-300 text-black font-bold text-[11px] cursor-pointer transition-all shadow-sm active:scale-95"
+                  title="Concluir e aplicar no post (Enter)"
+                >
+                  <Check size={12} strokeWidth={3} />
+                  <span>Concluir</span>
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleCancelText();
+                  }}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-[11px] cursor-pointer transition-all active:scale-95"
+                  title="Cancelar edição (Esc)"
+                >
+                  <X size={12} />
+                  <span>Cancelar</span>
+                </button>
+                <span className="text-[9px] text-white/40 pl-1 border-l border-white/15 hidden sm:inline font-sans">
+                  {editingTarget === "badge" ? "Enter salva" : "Ctrl+Enter salva"}
+                </span>
+              </div>
+
+              {/* TEXTAREA COM TIPOGRAFIA RIGOROSAMENTE ESPELHADA */}
+              <textarea
+                ref={textareaRef}
+                value={editingText}
+                onChange={(e) => {
+                  setEditingText(e.target.value);
+                  if (textareaRef.current) {
+                    textareaRef.current.style.height = "auto";
+                    textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 24)}px`;
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleCancelText();
+                  } else if (e.key === "Enter") {
+                    if (editingTarget === "badge" || e.ctrlKey || e.metaKey) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleCommitText();
+                    }
+                  }
+                }}
+                className="w-full bg-transparent resize-none border-0 outline-none p-0 m-0 shadow-none block"
+                style={{
+                  fontFamily:
+                    editingTarget === "headline"
+                      ? post.fontFamily
+                      : editingTarget === "subtext"
+                      ? (isCyber ? "Space Mono, monospace" : "Inter, sans-serif")
+                      : (isBrutalBlock ? "Anton" : isCyber ? "Space Mono" : "monospace"),
+                  fontSize: `${
+                    editingTarget === "headline"
+                      ? headlineFontSize
+                      : editingTarget === "subtext"
+                      ? subtextFontSize
+                      : isBrutalBlock
+                      ? 10
+                      : 8.5
+                  }px`,
+                  fontWeight: editingTarget === "subtext" ? 400 : 700,
+                  fontStyle: editingTarget === "headline" && isEditorial ? "normal" : undefined,
+                  lineHeight:
+                    editingTarget === "headline"
+                      ? (isBrutalBlock ? 1.1 : 1.25)
+                      : editingTarget === "subtext"
+                      ? 1.45
+                      : 1.2,
+                  letterSpacing:
+                    editingTarget === "headline"
+                      ? `${isBrutalBlock ? 0.5 : isEditorial ? -0.2 : -0.4}px`
+                      : editingTarget === "badge"
+                      ? "1.5px"
+                      : "normal",
+                  color:
+                    editingTarget === "headline"
+                      ? headlineColor
+                      : editingTarget === "subtext"
+                      ? subtextColor
+                      : isBrutalBlock
+                      ? post.palette.accent
+                      : isBrutalSplit
+                      ? "#000000"
+                      : isGlass
+                      ? "#FFFFFF"
+                      : post.palette.accent,
+                  textAlign: editingTarget === "badge" ? "left" : defaultAlign,
+                  textTransform: editingTarget === "badge" ? "uppercase" : "none",
+                  outline: "2px dashed rgba(56, 189, 248, 0.9)",
+                  outlineOffset: "3px",
+                  borderRadius: "4px",
+                  caretColor: "#38bdf8",
+                  overflow: "hidden",
+                }}
+                autoFocus
+                rows={editingTarget === "badge" ? 1 : 2}
+              />
+            </div>
+          )}
         </div>
       </div>
     );

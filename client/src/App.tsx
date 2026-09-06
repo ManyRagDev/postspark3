@@ -285,20 +285,23 @@ function Router() {
 function AppInner() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
-  const isImmersiveRoute =
-    location === "/" ||
+
+  // Nas rotas de estúdio (/thevoid, /studio, /studio-v2b), cada etapa (Criação, Galeria e CanvasLab)
+  // renderiza o UserTopMenu de forma nativa e integrada ao seu respectivo layout/header.
+  // Em todas as demais páginas do sistema (/saved-posts, /history, /billing, /pricing, landing logada, etc.),
+  // o UserTopMenu flutuante global permanece permanentemente ativo.
+  const isStudioRoute =
     location === "/thevoid" ||
     location === "/studio" ||
-    location === "/studio-v2b" ||
-    location === "/criar";
+    location === "/studio-v2b";
 
   return (
     <>
       <Router />
-      {isAuthenticated && !isImmersiveRoute ? <UserTopMenu /> : null}
-      {/* Consentimento LGPD e Cookies - apenas fora da landing imersiva */}
-      {!isImmersiveRoute && <ConsentModal />}
-      {!isImmersiveRoute && <CookieBanner />}
+      {isAuthenticated && !isStudioRoute ? <UserTopMenu /> : null}
+      {/* Consentimento LGPD e Cookies - fora das páginas imersivas */}
+      {location !== "/" && location !== "/criar" && <ConsentModal />}
+      {location !== "/" && location !== "/criar" && <CookieBanner />}
     </>
   );
 }
