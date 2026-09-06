@@ -19,9 +19,10 @@ import {
   AlignRight,
   RotateCcw,
   Type,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { CanvasPostModel, VisualFamilyId, TextAlignType } from "@/pages/CanvasLab/components/types";
+import type { CanvasPostModel, VisualFamilyId, TextAlignType, OverlayMode, CanvasCustomText } from "@/pages/CanvasLab/components/types";
 import { OFFICIAL_FAMILIES_META } from "@/pages/CanvasLab/components/types";
 import { applyFamilyPreset } from "../lib/familyPreset";
 import TypographyColorControls from "./TypographyColorControls";
@@ -32,6 +33,7 @@ import { trpc } from "@/lib/trpc";
 import { FONT_CATALOG } from "@/lib/fonts";
 import BackgroundsDrawer from "./BackgroundsDrawer";
 import RadialTextureSelector from "./RadialTextureSelector";
+import FontPickerDropdown from "./FontPickerDropdown";
 
 interface CanvasMobileDrawerProps {
   post: CanvasPostModel;
@@ -41,6 +43,9 @@ interface CanvasMobileDrawerProps {
   isExportingZip?: boolean;
   isOpen?: boolean;
   onToggleOpen?: (open: boolean) => void;
+  onAddExtraText?: () => void;
+  onUpdateExtraText?: (id: string, patch: Partial<CanvasCustomText>) => void;
+  onRemoveExtraText?: (id: string) => void;
 }
 
 type MobileTab = "text" | "style" | "media" | "brand";
@@ -53,6 +58,9 @@ export default function CanvasMobileDrawer({
   isExportingZip = false,
   isOpen: controlledIsOpen,
   onToggleOpen,
+  onAddExtraText,
+  onUpdateExtraText,
+  onRemoveExtraText,
 }: CanvasMobileDrawerProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isControlled = controlledIsOpen !== undefined;
@@ -96,6 +104,7 @@ export default function CanvasMobileDrawer({
   }, [post.imagePrompt]);
 
   const currentSlide = post.slides[post.currentSlideIndex] || post.slides[0];
+  const extraTextsList = currentSlide?.extraTexts || post.extraTexts || [];
   const activeBg = currentSlide?.bgImage || post.bgImage;
 
   const handleUpdateSlide = (field: "headline" | "subtext" | "step", value: string) => {
@@ -269,6 +278,18 @@ export default function CanvasMobileDrawer({
                     Título, subtexto, alinhamentos, fontes e cores por elemento com contraste garantido.
                   </TipCallout>
 
+                  {/* Ação Rápida: Inserir Nova Caixa de Texto */}
+                  {onAddExtraText && (
+                    <button
+                      type="button"
+                      onClick={onAddExtraText}
+                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[oklch(0.78_0.22_48)]/20 to-[oklch(0.78_0.22_48)]/10 hover:from-[oklch(0.78_0.22_48)]/30 hover:to-[oklch(0.78_0.22_48)]/20 border border-[oklch(0.78_0.22_48)]/40 text-[oklch(0.78_0.22_48)] text-xs font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                    >
+                      <Plus size={14} strokeWidth={2.5} />
+                      <span>+ Adicionar Caixa de Texto Livre</span>
+                    </button>
+                  )}
+
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <label className="text-[11px] font-mono text-white/50 uppercase">Título (Headline)</label>
@@ -369,38 +390,111 @@ export default function CanvasMobileDrawer({
                     </button>
                   )}
 
+                  {/* Caixas de Texto Livres / Adicionais */}
+                  <div className="space-y-2 pt-2 border-t border-white/8">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-mono text-white/50 uppercase flex items-center gap-1">
+                        <Type size={11} />
+                        <span>Textos Livres ({extraTextsList.length})</span>
+                      </label>
+                      {onAddExtraText && (
+                        <button
+                          type="button"
+                          onClick={onAddExtraText}
+                          className="flex items-center gap-1 text-[11px] font-medium text-[oklch(0.78_0.22_48)] bg-[oklch(0.78_0.22_48)]/10 px-2 py-0.5 rounded-lg border border-[oklch(0.78_0.22_48)]/30 active:scale-95 transition-all"
+                        >
+                          <Plus size={11} />
+                          <span>Adicionar</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {extraTextsList.length > 0 && (
+                      <div className="space-y-2 max-h-48 overflow-y-auto pr-0.5">
+                        {extraTextsList.map((et, idx) => (
+                          <div
+                            key={et.id}
+                            className="p-2 rounded-xl bg-white/4 border border-white/8 space-y-1.5"
+                          >
+                            <div className="flex items-center justify-between gap-1.5">
+                              <span className="text-[10px] font-mono text-white/40">#{idx + 1}</span>
+                              <input
+                                type="text"
+                                value={et.text}
+                                onChange={(e) => onUpdateExtraText?.(et.id, { text: e.target.value })}
+                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-[oklch(0.78_0.22_48)]"
+                                placeholder="Texto livre..."
+                              />
+                              {onRemoveExtraText && (
+                                <button
+                                  type="button"
+                                  onClick={() => onRemoveExtraText(et.id)}
+                                  className="p-1 rounded-lg text-white/40 hover:text-red-400 active:bg-red-500/20"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between gap-1 text-[10px] pt-1 border-t border-white/5">
+                              {/* Alinhamento */}
+                              <div className="flex items-center gap-0.5 bg-white/5 rounded-md p-0.5 border border-white/8">
+                                {(["left", "center", "right"] as const).map((align) => (
+                                  <button
+                                    key={align}
+                                    type="button"
+                                    onClick={() => onUpdateExtraText?.(et.id, { align })}
+                                    className={`p-1 rounded ${
+                                      (et.align || "left") === align
+                                        ? "bg-[oklch(0.78_0.22_48)] text-black font-semibold"
+                                        : "text-white/60"
+                                    }`}
+                                  >
+                                    {align === "left" && <AlignLeft size={10} />}
+                                    {align === "center" && <AlignCenter size={10} />}
+                                    {align === "right" && <AlignRight size={10} />}
+                                  </button>
+                                ))}
+                              </div>
+
+                              {/* Tamanho */}
+                              <div className="flex items-center gap-1">
+                                <span className="text-white/40">Tam:</span>
+                                <input
+                                  type="range"
+                                  min="14"
+                                  max="64"
+                                  value={et.fontSize || 24}
+                                  onChange={(e) => onUpdateExtraText?.(et.id, { fontSize: Number(e.target.value) })}
+                                  className="w-14 accent-[oklch(0.78_0.22_48)]"
+                                />
+                                <span className="font-mono text-white/60 w-4 text-right">{et.fontSize || 24}</span>
+                              </div>
+
+                              {/* Cor */}
+                              <input
+                                type="color"
+                                value={et.color || "#ffffff"}
+                                onChange={(e) => onUpdateExtraText?.(et.id, { color: e.target.value })}
+                                className="w-5 h-5 rounded border-0 bg-transparent cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Tipografia do Post */}
                   <div className="space-y-1 pt-2 border-t border-white/8">
                     <label className="text-[11px] font-mono text-white/50 uppercase flex items-center gap-1">
                       <Type size={11} />
                       <span>Tipografia do Post</span>
                     </label>
-                    <select
+                    <FontPickerDropdown
                       value={post.fontFamily}
-                      onChange={(e) => onUpdatePost({ fontFamily: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-[#12141A] p-2 text-xs text-white outline-none cursor-pointer"
-                    >
-                      <optgroup label="Serifadas (Elegância & Luxo)">
-                        {FONT_CATALOG.serif.map((f) => (
-                          <option key={f.name} value={f.name}>{f.label}</option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="Sans-Serif (Modernas & Clean)">
-                        {FONT_CATALOG.sansSerif.map((f) => (
-                          <option key={f.name} value={f.name}>{f.label}</option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="Display (Impacto & Brutalismo)">
-                        {FONT_CATALOG.display.map((f) => (
-                          <option key={f.name} value={f.name}>{f.label}</option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="Monoespaçadas (Cyber & Tech)">
-                        {FONT_CATALOG.mono.map((f) => (
-                          <option key={f.name} value={f.name}>{f.label}</option>
-                        ))}
-                      </optgroup>
-                    </select>
+                      onChange={(font) => onUpdatePost({ fontFamily: font })}
+                    />
                   </div>
 
                   {/* ── Cores e tamanho da tipografia (guardião de contraste integrado) ── */}
@@ -535,27 +629,125 @@ export default function CanvasMobileDrawer({
                     <span className="text-xs text-[oklch(0.78_0.22_48)] font-bold">➔</span>
                   </button>
 
-                  {/* 2. Slider de Opacidade do Overlay / Scrim (Quando Fundo Ativo) */}
+                  {/* 2. Controles Completos do Overlay / Scrim (Quando Fundo Ativo) */}
                   {activeBg && (
-                    <div className="p-3 rounded-2xl bg-white/4 border border-white/10 space-y-2">
+                    <div className="p-3.5 rounded-2xl bg-white/4 border border-white/10 space-y-3">
                       <div className="flex items-center justify-between text-xs font-semibold text-white/80">
                         <div className="flex items-center gap-1.5">
                           <Sliders size={13} />
-                          <span>Escurecer Fundo (Contraste)</span>
+                          <span>Camada de Sobreposição (Overlay)</span>
                         </div>
                         <span className="font-mono text-xs text-[oklch(0.78_0.22_48)] font-bold">
                           {Math.round((post.overlayOpacity ?? 0.55) * 100)}%
                         </span>
                       </div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        value={post.overlayOpacity ?? 0.55}
-                        onChange={(e) => onUpdatePost({ overlayOpacity: parseFloat(e.target.value) })}
-                        className="w-full accent-[oklch(0.78_0.22_48)] cursor-pointer"
-                      />
+
+                      {/* Modo de Distribuição / Variações */}
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Estilo</span>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {[
+                            { id: "gradient-bottom", label: "Gradiente ↓", desc: "Suave na base" },
+                            { id: "gradient-top", label: "Gradiente ↑", desc: "Suave no topo" },
+                            { id: "solid", label: "Sólido ■", desc: "Uniforme" },
+                            { id: "radial", label: "Vinheta ◉", desc: "Foco central" },
+                          ].map((m) => {
+                            const active = (post.overlayMode || "gradient-bottom") === m.id;
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => onUpdatePost({ overlayMode: m.id as OverlayMode })}
+                                className={`py-1.5 px-2 rounded-xl text-left text-xs transition-all cursor-pointer border ${
+                                  active
+                                    ? "bg-[oklch(0.78_0.22_48)]/15 border-[oklch(0.78_0.22_48)] text-white font-medium"
+                                    : "bg-white/4 border-white/8 text-white/60 hover:text-white"
+                                }`}
+                              >
+                                <div className="font-semibold text-[11px]">{m.label}</div>
+                                <div className="text-[9px] text-white/40">{m.desc}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Cor da Sobreposição */}
+                      <div className="space-y-1.5 pt-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Cor</span>
+                          {post.overlayColor && (
+                            <button
+                              type="button"
+                              onClick={() => onUpdatePost({ overlayColor: undefined })}
+                              className="text-[10px] text-white/40 hover:text-white/80 underline cursor-pointer"
+                            >
+                              Padrão
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {[
+                            { label: "Preto", color: "#000000" },
+                            { label: "Fundo", color: post.palette.background },
+                            { label: "Destaque", color: post.palette.accent },
+                            { label: "Branco", color: "#FFFFFF" },
+                            { label: "Noite", color: "#0F172A" },
+                          ].map((p, idx) => {
+                            const active = post.overlayColor
+                              ? post.overlayColor.toLowerCase() === p.color.toLowerCase()
+                              : p.label === "Fundo";
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => onUpdatePost({ overlayColor: p.color })}
+                                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] border transition-all cursor-pointer ${
+                                  active
+                                    ? "border-[oklch(0.78_0.22_48)] bg-white/10 text-white font-medium"
+                                    : "border-white/10 bg-white/4 text-white/60 hover:text-white"
+                                }`}
+                              >
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0"
+                                  style={{ backgroundColor: p.color }}
+                                />
+                                <span>{p.label}</span>
+                              </button>
+                            );
+                          })}
+
+                          {/* Picker nativo */}
+                          <label
+                            title="Escolher cor personalizada"
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] border border-white/10 bg-white/4 hover:bg-white/8 text-white/60 hover:text-white cursor-pointer transition-all"
+                          >
+                            <input
+                              type="color"
+                              value={post.overlayColor || post.palette.background || "#000000"}
+                              onChange={(e) => onUpdatePost({ overlayColor: e.target.value })}
+                              className="w-3 h-3 rounded border-0 p-0 cursor-pointer bg-transparent"
+                            />
+                            <span className="text-[10px] font-mono">
+                              {(post.overlayColor || post.palette.background || "#000000").slice(0, 7).toUpperCase()}
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Slider de Opacidade */}
+                      <div className="space-y-1 pt-1">
+                        <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Opacidade</span>
+                        <input
+                          type="range"
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          value={post.overlayOpacity ?? 0.55}
+                          onChange={(e) => onUpdatePost({ overlayOpacity: parseFloat(e.target.value) })}
+                          className="w-full accent-[oklch(0.78_0.22_48)] cursor-pointer"
+                        />
+                      </div>
                     </div>
                   )}
 

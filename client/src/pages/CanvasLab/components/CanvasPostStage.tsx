@@ -1,7 +1,7 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Stage, Layer, Rect, Text, Group, Image as KonvaImage, Transformer, Line, Circle } from "react-konva";
 import type { BgImageTransform, CanvasPostModel, ElementPosition, LogoPositionType, TextLegibilityEffect } from "./types";
-import { isDarkColor, resolveLegibleTextColor } from "./types";
+import { isDarkColor, resolveLegibleTextColor, normalizeHexColor } from "./types";
 import { getKonvaTextMetrics } from "./textMetrics";
 import { useDynamicFont } from "@/hooks/useDynamicFont";
 import JSZip from "jszip";
@@ -17,11 +17,14 @@ interface CanvasPostStageProps {
   zoom: number;
   onUpdateElementPosition?: (elementKey: "headlinePos" | "subtextPos" | "badgePos" | "barPos" | "logoPos", pos: ElementPosition) => void;
   onSelectElement?: (elementId: string | null) => void;
+  selectedElementId?: string | null;
   isReadOnly?: boolean;
   isEditingBackground?: boolean;
   onUpdateBgTransform?: (transform: BgImageTransform) => void;
   onEnterBackgroundEdit?: () => void;
   onUpdateText?: (field: "headline" | "subtext" | "badgeText", value: string) => void;
+  onUpdateExtraTextPosition?: (id: string, pos: ElementPosition) => void;
+  onUpdateExtraTextContent?: (id: string, value: string) => void;
 }
 
 // Cálculo de crop proporcional (object-fit: cover)
@@ -78,6 +81,7 @@ interface RenderBackgroundEffectProps {
   textHeight: number;
   isDarkText: boolean;
   accentColor: string;
+  customColor?: string;
   lines?: Array<{ text: string; width: number }>;
   lineHeightPx?: number;
   align?: "left" | "center" | "right";
@@ -89,6 +93,7 @@ function renderBackgroundEffect({
   textHeight,
   isDarkText,
   accentColor,
+  customColor,
   lines,
   lineHeightPx = 28,
   align = "left",
@@ -105,7 +110,7 @@ function renderBackgroundEffect({
         width={contentWidth + 24}
         height={textHeight + 12}
         cornerRadius={10}
-        fill={isDarkText ? "rgba(255, 255, 255, 0.88)" : "rgba(12, 12, 16, 0.82)"}
+        fill={customColor || (isDarkText ? "rgba(255, 255, 255, 0.88)" : "rgba(12, 12, 16, 0.82)")}
         stroke={isDarkText ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.15)"}
         strokeWidth={1}
         shadowColor="rgba(0, 0, 0, 0.3)"
@@ -124,7 +129,7 @@ function renderBackgroundEffect({
         width={contentWidth + 32}
         height={textHeight + 16}
         cornerRadius={999}
-        fill={isDarkText ? "rgba(255, 255, 255, 0.92)" : "rgba(12, 12, 16, 0.88)"}
+        fill={customColor || (isDarkText ? "rgba(255, 255, 255, 0.92)" : "rgba(12, 12, 16, 0.88)")}
         stroke={isDarkText ? "rgba(0, 0, 0, 0.1)" : "rgba(255, 255, 255, 0.2)"}
         strokeWidth={1}
         shadowColor="rgba(0, 0, 0, 0.25)"
@@ -143,7 +148,7 @@ function renderBackgroundEffect({
         width={contentWidth + 28}
         height={textHeight + 16}
         cornerRadius={14}
-        fill={isDarkText ? "rgba(255, 255, 255, 0.22)" : "rgba(0, 0, 0, 0.38)"}
+        fill={customColor || (isDarkText ? "rgba(255, 255, 255, 0.22)" : "rgba(0, 0, 0, 0.38)")}
         stroke={isDarkText ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.3)"}
         strokeWidth={1.2}
         shadowColor="rgba(0, 0, 0, 0.45)"
@@ -162,7 +167,7 @@ function renderBackgroundEffect({
         width={contentWidth + 24}
         height={textHeight + 12}
         cornerRadius={8}
-        fill={accentColor}
+        fill={customColor || accentColor}
         shadowColor="rgba(0, 0, 0, 0.35)"
         shadowBlur={8}
         shadowOffsetY={3}
@@ -179,7 +184,7 @@ function renderBackgroundEffect({
         width={contentWidth + 20}
         height={textHeight + 12}
         cornerRadius={0}
-        fill={isDarkText ? "#FFFFFF" : "#000000"}
+        fill={customColor || (isDarkText ? "#FFFFFF" : "#000000")}
         stroke={isDarkText ? "#000000" : "#FFFFFF"}
         strokeWidth={2}
         shadowColor={isDarkText ? "#000000" : "#FFFFFF"}
@@ -237,7 +242,7 @@ function renderBackgroundEffect({
               width={lineWidth + 12}
               height={lineHeightPx}
               cornerRadius={4}
-              fill={isDarkText ? "rgba(255, 255, 255, 0.9)" : "rgba(12, 12, 16, 0.85)"}
+              fill={customColor || (isDarkText ? "rgba(255, 255, 255, 0.9)" : "rgba(12, 12, 16, 0.85)")}
               stroke={isDarkText ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.12)"}
               strokeWidth={1}
               shadowColor="rgba(0, 0, 0, 0.2)"
@@ -254,10 +259,15 @@ function renderBackgroundEffect({
   return null;
 }
 
-function getTextEffectProps(effect: TextLegibilityEffect, isDarkText: boolean, isHeadline: boolean) {
+function getTextEffectProps(
+  effect: TextLegibilityEffect,
+  isDarkText: boolean,
+  isHeadline: boolean,
+  customColor?: string,
+) {
   if (effect === "shadow") {
     return {
-      shadowColor: isDarkText ? "rgba(255, 255, 255, 0.85)" : "rgba(0, 0, 0, 0.95)",
+      shadowColor: customColor || (isDarkText ? "rgba(255, 255, 255, 0.85)" : "rgba(0, 0, 0, 0.95)"),
       shadowBlur: 12,
       shadowOffsetX: 0,
       shadowOffsetY: isDarkText ? 0 : 3,
@@ -266,7 +276,7 @@ function getTextEffectProps(effect: TextLegibilityEffect, isDarkText: boolean, i
   }
   if (effect === "outline") {
     return {
-      stroke: isDarkText ? "#FFFFFF" : "#000000",
+      stroke: customColor || (isDarkText ? "#FFFFFF" : "#000000"),
       strokeWidth: isHeadline ? 3 : 2,
       fillAfterStrokeEnabled: true,
     };
@@ -281,11 +291,14 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       zoom,
       onUpdateElementPosition,
       onSelectElement,
+      selectedElementId,
       isReadOnly = false,
       isEditingBackground = false,
       onUpdateBgTransform,
       onEnterBackgroundEdit,
       onUpdateText,
+      onUpdateExtraTextPosition,
+      onUpdateExtraTextContent,
     },
     ref
   ) => {
@@ -300,13 +313,21 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const barRef = useRef<any>(null);
     const logoRef = useRef<any>(null);
     const bgImageRef = useRef<any>(null);
+    const extraTextRefs = useRef<Record<string, any>>({});
 
     const [selectedId, setSelectedId] = useState<string | null>(null);
+
+    useEffect(() => {
+      if (selectedElementId !== undefined) {
+        setSelectedId(selectedElementId);
+      }
+    }, [selectedElementId]);
+
     const [snapLines, setSnapLines] = useState<{ x?: number; y?: number }>({});
     const [isAltPressed, setIsAltPressed] = useState(false);
 
     // Estado da edição direta no canvas (Inline On-Canvas Editor)
-    const [editingTarget, setEditingTarget] = useState<"headline" | "subtext" | "badge" | null>(null);
+    const [editingTarget, setEditingTarget] = useState<string | null>(null);
     const [editingText, setEditingText] = useState("");
     const editingTargetRef = useRef(editingTarget);
     editingTargetRef.current = editingTarget;
@@ -379,6 +400,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       else if (selectedId === "badge") targetNode = badgeRef.current;
       else if (selectedId === "bar") targetNode = barRef.current;
       else if (selectedId === "logo") targetNode = logoRef.current;
+      else if (selectedId && extraTextRefs.current[selectedId]) {
+        targetNode = extraTextRefs.current[selectedId];
+      }
 
       if (targetNode) {
         transformerRef.current.nodes([targetNode]);
@@ -439,6 +463,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const activeHeadline = currentSlide ? currentSlide.headline : post.headline;
     const activeSubtext = currentSlide ? currentSlide.subtext : post.subtext;
     const activeStep = currentSlide ? currentSlide.step : post.badgeText;
+    const activeExtraTexts = currentSlide?.extraTexts || post.extraTexts || [];
 
     // --- CARACTERÍSTICAS DA FAMÍLIA ATIVA ---
     const fam = post.familyId || "editorial-poster";
@@ -707,8 +732,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     };
 
     // ─── Ações de Edição Direta no Canvas ───
-    const startEditing = (target: "headline" | "subtext" | "badge") => {
-      if (isReadOnly || isEditingBackground || !onUpdateText) return;
+    const startEditing = (target: string) => {
+      if (isReadOnly || isEditingBackground) return;
       setSelectedId(null);
       if (onSelectElement) onSelectElement(null);
       transformerRef.current?.nodes([]);
@@ -718,15 +743,25 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       if (target === "headline") initialText = activeHeadline;
       else if (target === "subtext") initialText = activeSubtext;
       else if (target === "badge") initialText = activeStep;
+      else {
+        const found = activeExtraTexts.find((t) => t.id === target);
+        if (found) initialText = found.text;
+      }
       setEditingText(initialText);
     };
 
     const handleCommitText = () => {
       const target = editingTargetRef.current;
       const val = editingTextRef.current;
-      if (target && onUpdateText) {
-        const fieldKey = target === "badge" ? "badgeText" : target;
-        onUpdateText(fieldKey, val);
+      if (target) {
+        if (target === "headline" || target === "subtext" || target === "badge") {
+          if (onUpdateText) {
+            const fieldKey = target === "badge" ? "badgeText" : target;
+            onUpdateText(fieldKey, val);
+          }
+        } else if (onUpdateExtraTextContent) {
+          onUpdateExtraTextContent(target, val);
+        }
       }
       setEditingTarget(null);
     };
@@ -780,8 +815,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       const isBadge = isDescendantOf(e.target, badgeRef.current);
       const isBar = isDescendantOf(e.target, barRef.current);
       const isLogo = isDescendantOf(e.target, logoRef.current);
+      const isExtraText = Object.values(extraTextRefs.current).some((ref) => isDescendantOf(e.target, ref));
 
-      if (isHeadline || isSubtext || isBadge || isBar || isLogo) {
+      if (isHeadline || isSubtext || isBadge || isBar || isLogo || isExtraText) {
         return;
       }
 
@@ -884,7 +920,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
               ) : isCinematic ? (
                 // 1.C) CINEMATIC DEPTH: Fundo escuro com moldura cinematográfica
                 <>
-                  <Rect name="canvas-bg" x={0} y={0} width={baseWidth} height={baseHeight} fill="#08080A" />
+                  <Rect name="canvas-bg" x={0} y={0} width={baseWidth} height={baseHeight} fill={post.palette.background || "#08080A"} />
                   <Rect x={12} y={12} width={baseWidth - 24} height={baseHeight - 24} stroke="rgba(255,255,255,0.08)" strokeWidth={1} listening={false} />
                 </>
               ) : (
@@ -937,27 +973,96 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 />
               )}
 
-              {/* GRADIENTE / SCRIM DE CONTRASTE */}
-              {bgImgElement && (
-                <Rect
-                  x={0}
-                  y={0}
-                  width={baseWidth}
-                  height={baseHeight}
-                  fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-                  fillLinearGradientEndPoint={{ x: 0, y: baseHeight }}
-                  fillLinearGradientColorStops={[
-                    0,
-                    `${post.palette.background}22`,
-                    0.5,
-                    `${post.palette.background}BB`,
-                    1,
-                    post.palette.background,
-                  ]}
-                  opacity={isEditingBackground ? 0.2 : post.overlayOpacity}
-                  listening={false}
-                />
-              )}
+              {/* GRADIENTE / SCRIM / OVERLAY DE CONTRASTE */}
+              {bgImgElement && (() => {
+                const effectiveOverlayColor = normalizeHexColor(post.overlayColor || post.palette.background || "#000000");
+                const mode = post.overlayMode || "gradient-bottom";
+                const opacity = isEditingBackground ? 0.2 : (post.overlayOpacity ?? 0.55);
+
+                if (mode === "solid") {
+                  return (
+                    <Rect
+                      x={0}
+                      y={0}
+                      width={baseWidth}
+                      height={baseHeight}
+                      fill={effectiveOverlayColor}
+                      opacity={opacity}
+                      listening={false}
+                    />
+                  );
+                }
+
+                if (mode === "radial") {
+                  return (
+                    <Rect
+                      x={0}
+                      y={0}
+                      width={baseWidth}
+                      height={baseHeight}
+                      fillRadialGradientStartPoint={{ x: baseWidth / 2, y: baseHeight / 2 }}
+                      fillRadialGradientStartRadius={0}
+                      fillRadialGradientEndPoint={{ x: baseWidth / 2, y: baseHeight / 2 }}
+                      fillRadialGradientEndRadius={Math.max(baseWidth, baseHeight) * 0.72}
+                      fillRadialGradientColorStops={[
+                        0,
+                        `${effectiveOverlayColor}00`,
+                        0.45,
+                        `${effectiveOverlayColor}66`,
+                        1,
+                        effectiveOverlayColor,
+                      ]}
+                      opacity={opacity}
+                      listening={false}
+                    />
+                  );
+                }
+
+                if (mode === "gradient-top") {
+                  return (
+                    <Rect
+                      x={0}
+                      y={0}
+                      width={baseWidth}
+                      height={baseHeight}
+                      fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                      fillLinearGradientEndPoint={{ x: 0, y: baseHeight }}
+                      fillLinearGradientColorStops={[
+                        0,
+                        effectiveOverlayColor,
+                        0.5,
+                        `${effectiveOverlayColor}BB`,
+                        1,
+                        `${effectiveOverlayColor}22`,
+                      ]}
+                      opacity={opacity}
+                      listening={false}
+                    />
+                  );
+                }
+
+                // Padrão: gradient-bottom (suave no topo, denso na base)
+                return (
+                  <Rect
+                    x={0}
+                    y={0}
+                    width={baseWidth}
+                    height={baseHeight}
+                    fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                    fillLinearGradientEndPoint={{ x: 0, y: baseHeight }}
+                    fillLinearGradientColorStops={[
+                      0,
+                      `${effectiveOverlayColor}22`,
+                      0.5,
+                      `${effectiveOverlayColor}BB`,
+                      1,
+                      effectiveOverlayColor,
+                    ]}
+                    opacity={opacity}
+                    listening={false}
+                  />
+                );
+              })()}
 
               {/* ─── PRIMEIRO PLANO (TEXTOS E ELEMENTOS GRÁFICOS) ─── */}
               {/* Quando isEditingBackground === true (Estilo Canva), o primeiro plano atenua e não captura cliques */}
@@ -1181,6 +1286,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   textHeight: headlineHeight,
                   isDarkText: isDarkHeadline,
                   accentColor: post.palette.accent,
+                  customColor: post.headlineEffectColor,
                   lines: headlineLines,
                   lineHeightPx: headlineFontSize * (isBrutalBlock ? 1.1 : 1.25),
                   align: defaultAlign,
@@ -1200,7 +1306,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   opacity={editingTarget === "headline" ? 0 : 1}
                   onDblClick={() => startEditing("headline")}
                   onDblTap={() => startEditing("headline")}
-                  {...getTextEffectProps(headlineEffect, isDarkHeadline, true)}
+                  {...getTextEffectProps(headlineEffect, isDarkHeadline, true, post.headlineEffectColor)}
                 />
               </Group>
 
@@ -1223,6 +1329,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   textHeight: subtextHeight,
                   isDarkText: isDarkSubtext,
                   accentColor: post.palette.accent,
+                  customColor: post.subtextEffectColor,
                   lines: subtextLines,
                   lineHeightPx: subtextFontSize * 1.45,
                   align: defaultAlign,
@@ -1240,7 +1347,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   lineHeight={1.45}
                   onDblClick={() => startEditing("subtext")}
                   onDblTap={() => startEditing("subtext")}
-                  {...getTextEffectProps(subtextEffect, isDarkSubtext, false)}
+                  {...getTextEffectProps(subtextEffect, isDarkSubtext, false, post.subtextEffectColor)}
                 />
               </Group>
 
@@ -1261,6 +1368,111 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   onDragEnd={(e) => handleDragEnd(e, "barPos")}
                 />
               )}
+
+              {/* ─── 7.B) CAIXAS DE TEXTO LIVRES ADICIONAIS ─── */}
+              {activeExtraTexts.map((item) => {
+                const itemX = item.x ?? Math.round(baseWidth * 0.1);
+                const itemY = item.y ?? Math.round(baseHeight * 0.65);
+                const itemSize = (item.fontSize || 16) * (item.sizeScale || 1);
+                const itemColor = item.color || post.palette.text;
+                const itemAlign = item.align || "left";
+                const itemEffect: TextLegibilityEffect = item.effect || "none";
+                const isDarkItem = isDarkColor(itemColor);
+                const itemFont =
+                  item.fontFamily ||
+                  (isCyber
+                    ? "Space Mono, monospace"
+                    : isEditorial
+                    ? "Playfair Display, serif"
+                    : "Inter, sans-serif");
+                const itemWidth = item.width || contentWidth;
+
+                const itemMetrics = getKonvaTextMetrics({
+                  text: item.text,
+                  width: itemWidth,
+                  fontSize: itemSize,
+                  fontFamily: itemFont,
+                  fontStyle:
+                    item.fontWeight === "bold"
+                      ? "bold"
+                      : item.fontStyle === "italic"
+                      ? "italic"
+                      : "normal",
+                  lineHeight: 1.3,
+                });
+
+                return (
+                  <Group
+                    key={item.id}
+                    ref={(el) => {
+                      if (el) extraTextRefs.current[item.id] = el;
+                      else delete extraTextRefs.current[item.id];
+                    }}
+                    x={itemX}
+                    y={itemY}
+                    rotation={item.rotation || 0}
+                    draggable={isInteractive}
+                    dragBoundFunc={
+                      isInteractive
+                        ? createSnapBoundFunc(itemWidth, itemMetrics.height)
+                        : undefined
+                    }
+                    onClick={() => handleSelect(item.id)}
+                    onTap={() => handleSelect(item.id)}
+                    onDblClick={() => startEditing(item.id)}
+                    onDblTap={() => startEditing(item.id)}
+                    onDragMove={handleDragMove}
+                    onDragEnd={(e) => {
+                      setSnapLines({});
+                      if (onUpdateExtraTextPosition) {
+                        onUpdateExtraTextPosition(item.id, {
+                          x: Math.round(e.target.x()),
+                          y: Math.round(e.target.y()),
+                        });
+                      }
+                    }}
+                  >
+                    {renderBackgroundEffect({
+                      effect: itemEffect,
+                      contentWidth: itemWidth,
+                      textHeight: itemMetrics.height,
+                      isDarkText: isDarkItem,
+                      accentColor: post.palette.accent,
+                      customColor: item.effectColor,
+                      lines: itemMetrics.lines,
+                      lineHeightPx: itemSize * 1.3,
+                      align: itemAlign,
+                    })}
+                    <Text
+                      text={item.text}
+                      x={0}
+                      y={0}
+                      width={itemWidth}
+                      fontSize={itemSize}
+                      fontFamily={itemFont}
+                      fontStyle={
+                        item.fontWeight === "bold"
+                          ? "bold"
+                          : item.fontStyle === "italic"
+                          ? "italic"
+                          : "normal"
+                      }
+                      fill={itemColor}
+                      align={itemAlign}
+                      lineHeight={1.3}
+                      opacity={editingTarget === item.id ? 0 : 1}
+                      onDblClick={() => startEditing(item.id)}
+                      onDblTap={() => startEditing(item.id)}
+                      {...getTextEffectProps(
+                        itemEffect,
+                        isDarkItem,
+                        false,
+                        item.effectColor
+                      )}
+                    />
+                  </Group>
+                );
+              })}
               </Group>
 
               {/* ─── 8. TRANSFORMER PARA ELEMENTOS DE TEXTO/MARCA ─── */}
@@ -1328,161 +1540,174 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
           </Stage>
 
           {/* ─── 10. OVERLAY DE EDIÇÃO DIRETA DE TEXTO NO PALCO (CANVAS INLINE EDITOR) ─── */}
-          {editingTarget && (
-            <div
-              ref={editorWrapperRef}
-              className="absolute pointer-events-auto select-text z-40"
-              style={{
-                left:
-                  editingTarget === "headline"
-                    ? headlinePos.x
-                    : editingTarget === "subtext"
-                    ? subtextPos.x
-                    : badgePos.x,
-                top:
-                  editingTarget === "headline"
-                    ? headlinePos.y
-                    : editingTarget === "subtext"
-                    ? subtextPos.y
-                    : badgePos.y,
-                width:
-                  editingTarget === "badge"
-                    ? Math.max(130, activeStep.length * 8 + 36)
-                    : contentWidth,
-                transform: editingTarget === "badge" && isBrutalBlock ? "rotate(-4deg)" : undefined,
-                transformOrigin: "top left",
-              }}
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              {/* BARRA FLUTUANTE DE AÇÕES (CONCLUIR / CANCELAR) */}
-              <div
-                className="absolute flex items-center gap-1.5 bg-[#0C1017]/95 backdrop-blur-md px-2.5 py-1 rounded-full border border-sky-400/60 shadow-[0_8px_24px_rgba(0,0,0,0.85)] text-white select-none whitespace-nowrap z-50 pointer-events-auto"
-                style={{
-                  top:
-                    (editingTarget === "headline"
-                      ? headlinePos.y
-                      : editingTarget === "subtext"
-                      ? subtextPos.y
-                      : badgePos.y) > 45
-                      ? -36
-                      : (editingTarget === "badge"
-                          ? 28
-                          : (editingTarget === "headline" ? headlineHeight : subtextHeight)) + 8,
-                  left: 0,
-                }}
-              >
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleCommitText();
-                  }}
-                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-400 hover:bg-sky-300 text-black font-bold text-[11px] cursor-pointer transition-all shadow-sm active:scale-95"
-                  title="Concluir e aplicar no post (Enter)"
-                >
-                  <Check size={12} strokeWidth={3} />
-                  <span>Concluir</span>
-                </button>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleCancelText();
-                  }}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-[11px] cursor-pointer transition-all active:scale-95"
-                  title="Cancelar edição (Esc)"
-                >
-                  <X size={12} />
-                  <span>Cancelar</span>
-                </button>
-                <span className="text-[9px] text-white/40 pl-1 border-l border-white/15 hidden sm:inline font-sans">
-                  {editingTarget === "badge" ? "Enter salva" : "Ctrl+Enter salva"}
-                </span>
-              </div>
+          {editingTarget && (() => {
+            const isHeadline = editingTarget === "headline";
+            const isSubtext = editingTarget === "subtext";
+            const isBadge = editingTarget === "badge";
+            const extraItem = !isHeadline && !isSubtext && !isBadge
+              ? activeExtraTexts.find((t) => t.id === editingTarget)
+              : null;
 
-              {/* TEXTAREA COM TIPOGRAFIA RIGOROSAMENTE ESPELHADA */}
-              <textarea
-                ref={textareaRef}
-                value={editingText}
-                onChange={(e) => {
-                  setEditingText(e.target.value);
-                  if (textareaRef.current) {
-                    textareaRef.current.style.height = "auto";
-                    textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 24)}px`;
-                  }
+            const targetX = isHeadline
+              ? headlinePos.x
+              : isSubtext
+              ? subtextPos.x
+              : isBadge
+              ? badgePos.x
+              : (extraItem?.x ?? Math.round(baseWidth * 0.1));
+
+            const targetY = isHeadline
+              ? headlinePos.y
+              : isSubtext
+              ? subtextPos.y
+              : isBadge
+              ? badgePos.y
+              : (extraItem?.y ?? Math.round(baseHeight * 0.65));
+
+            const targetWidth = isBadge
+              ? Math.max(130, activeStep.length * 8 + 36)
+              : (extraItem?.width ?? contentWidth);
+
+            const targetHeight = isHeadline
+              ? headlineHeight
+              : isSubtext
+              ? subtextHeight
+              : 28;
+
+            const extraFontSize = extraItem ? (extraItem.fontSize || 16) * (extraItem.sizeScale || 1) : 16;
+            const extraFontFamily = extraItem?.fontFamily || (isCyber ? "Space Mono, monospace" : isEditorial ? "Playfair Display, serif" : "Inter, sans-serif");
+            const extraColor = extraItem?.color || post.palette.text;
+
+            return (
+              <div
+                ref={editorWrapperRef}
+                className="absolute pointer-events-auto select-text z-40"
+                style={{
+                  left: targetX,
+                  top: targetY,
+                  width: targetWidth,
+                  transform: isBadge && isBrutalBlock ? "rotate(-4deg)" : extraItem?.rotation ? `rotate(${extraItem.rotation}deg)` : undefined,
+                  transformOrigin: "top left",
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleCancelText();
-                  } else if (e.key === "Enter") {
-                    if (editingTarget === "badge" || e.ctrlKey || e.metaKey) {
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {/* BARRA FLUTUANTE DE AÇÕES (CONCLUIR / CANCELAR) */}
+                <div
+                  className="absolute flex items-center gap-1.5 bg-[#0C1017]/95 backdrop-blur-md px-2.5 py-1 rounded-full border border-sky-400/60 shadow-[0_8px_24px_rgba(0,0,0,0.85)] text-white select-none whitespace-nowrap z-50 pointer-events-auto"
+                  style={{
+                    top: targetY > 45 ? -36 : targetHeight + 8,
+                    left: 0,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       handleCommitText();
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-400 hover:bg-sky-300 text-black font-bold text-[11px] cursor-pointer transition-all shadow-sm active:scale-95"
+                    title="Concluir e aplicar no post (Enter)"
+                  >
+                    <Check size={12} strokeWidth={3} />
+                    <span>Concluir</span>
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleCancelText();
+                    }}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-[11px] cursor-pointer transition-all active:scale-95"
+                    title="Cancelar edição (Esc)"
+                  >
+                    <X size={12} />
+                    <span>Cancelar</span>
+                  </button>
+                  <span className="text-[9px] text-white/40 pl-1 border-l border-white/15 hidden sm:inline font-sans">
+                    {isBadge ? "Enter salva" : "Ctrl+Enter salva"}
+                  </span>
+                </div>
+
+                {/* TEXTAREA COM TIPOGRAFIA RIGOROSAMENTE ESPELHADA */}
+                <textarea
+                  ref={textareaRef}
+                  value={editingText}
+                  onChange={(e) => {
+                    setEditingText(e.target.value);
+                    if (textareaRef.current) {
+                      textareaRef.current.style.height = "auto";
+                      textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 24)}px`;
                     }
-                  }
-                }}
-                className="w-full bg-transparent resize-none border-0 outline-none p-0 m-0 shadow-none block"
-                style={{
-                  fontFamily:
-                    editingTarget === "headline"
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleCancelText();
+                    } else if (e.key === "Enter") {
+                      if (isBadge || e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleCommitText();
+                      }
+                    }
+                  }}
+                  className="w-full bg-transparent resize-none border-0 outline-none p-0 m-0 shadow-none block"
+                  style={{
+                    fontFamily: isHeadline
                       ? post.fontFamily
-                      : editingTarget === "subtext"
+                      : isSubtext
                       ? (isCyber ? "Space Mono, monospace" : "Inter, sans-serif")
-                      : (isBrutalBlock ? "Anton" : isCyber ? "Space Mono" : "monospace"),
-                  fontSize: `${
-                    editingTarget === "headline"
-                      ? headlineFontSize
-                      : editingTarget === "subtext"
-                      ? subtextFontSize
-                      : isBrutalBlock
-                      ? 10
-                      : 8.5
-                  }px`,
-                  fontWeight: editingTarget === "subtext" ? 400 : 700,
-                  fontStyle: editingTarget === "headline" && isEditorial ? "normal" : undefined,
-                  lineHeight:
-                    editingTarget === "headline"
+                      : isBadge
+                      ? (isBrutalBlock ? "Anton" : isCyber ? "Space Mono" : "monospace")
+                      : extraFontFamily,
+                    fontSize: `${
+                      isHeadline
+                        ? headlineFontSize
+                        : isSubtext
+                        ? subtextFontSize
+                        : isBadge
+                        ? (isBrutalBlock ? 10 : 8.5)
+                        : extraFontSize
+                    }px`,
+                    fontWeight: isSubtext ? 400 : extraItem?.fontWeight === "normal" ? 400 : 700,
+                    fontStyle: (isHeadline && isEditorial) || extraItem?.fontStyle === "italic" ? "italic" : "normal",
+                    lineHeight: isHeadline
                       ? (isBrutalBlock ? 1.1 : 1.25)
-                      : editingTarget === "subtext"
+                      : isSubtext
                       ? 1.45
-                      : 1.2,
-                  letterSpacing:
-                    editingTarget === "headline"
+                      : 1.3,
+                    letterSpacing: isHeadline
                       ? `${isBrutalBlock ? 0.5 : isEditorial ? -0.2 : -0.4}px`
-                      : editingTarget === "badge"
+                      : isBadge
                       ? "1.5px"
                       : "normal",
-                  color:
-                    editingTarget === "headline"
+                    color: isHeadline
                       ? headlineColor
-                      : editingTarget === "subtext"
+                      : isSubtext
                       ? subtextColor
-                      : isBrutalBlock
-                      ? post.palette.accent
-                      : isBrutalSplit
-                      ? "#000000"
-                      : isGlass
-                      ? "#FFFFFF"
-                      : post.palette.accent,
-                  textAlign: editingTarget === "badge" ? "left" : defaultAlign,
-                  textTransform: editingTarget === "badge" ? "uppercase" : "none",
-                  outline: "2px dashed rgba(56, 189, 248, 0.9)",
-                  outlineOffset: "3px",
-                  borderRadius: "4px",
-                  caretColor: "#38bdf8",
-                  overflow: "hidden",
-                }}
-                autoFocus
-                rows={editingTarget === "badge" ? 1 : 2}
-              />
-            </div>
-          )}
+                      : isBadge
+                      ? (isBrutalBlock ? post.palette.accent : isBrutalSplit ? "#000000" : isGlass ? "#FFFFFF" : post.palette.accent)
+                      : extraColor,
+                    textAlign: isHeadline || isSubtext
+                      ? defaultAlign
+                      : (extraItem?.align || "left"),
+                    textTransform: isBadge ? "uppercase" : "none",
+                    outline: "2px dashed rgba(56, 189, 248, 0.9)",
+                    outlineOffset: "3px",
+                    borderRadius: "4px",
+                    caretColor: "#38bdf8",
+                    overflow: "hidden",
+                  }}
+                  autoFocus
+                  rows={isBadge ? 1 : 2}
+                />
+              </div>
+            );
+          })()}
         </div>
       </div>
     );

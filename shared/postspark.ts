@@ -503,6 +503,8 @@ export interface PostVariation {
   imagePrompt: string;
   imageUrl?: string;
   creativeDirection?: CreativeDirection;
+  /** Família criativa/visual canônica (espelhada de creativeDirection.familyId) */
+  familyId?: string;
   backgroundColor: string;
   textColor: string;
   /** Cor independente do título. Se ausente, herda textColor. */

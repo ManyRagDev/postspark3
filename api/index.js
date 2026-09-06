@@ -7449,6 +7449,7 @@ function createPostVisualSnapshot(variation, requestedAspectRatio = variation.as
     ...adjusted,
     snapshotVersion: 4,
     aspectRatio: requestedAspectRatio,
+    familyId: adjusted.familyId ?? adjusted.creativeDirection?.familyId,
     postMode: adjusted.postMode ?? (adjusted.slides?.length ? "carousel" : "static"),
     backgroundColor,
     textColor,
@@ -9541,62 +9542,56 @@ Para cada uma das 3 varia\xE7\xF5es geradas, selecione no campo "familyId" o arq
 7. "cinematic-depth" \u2794 Narrativas profundas, cinema, cultura, storytelling denso. (Tipografia monumental condensada em camadas).
 8. "duotone-wash" \u2794 Criatividade, design, psicologia, autoridade suave. (Gradiente diagonal a 135\xB0 com composi\xE7\xE3o limpa).
 
-DIRETRIZES DE COPYWRITING AUTORAL DE ALTO PADR\xC3O (ZERO V\xCDCIOS DE IA):
+DIRETRIZES DE COPYWRITING SUPER PREMIUM (ZERO V\xCDCIOS DE IA & QUIET AUTHORITY):
 
-1. PERSONA E VOZ:
-   - Escreva SEMPRE na voz do CRIADOR / FUNDADOR / MARCA DE ALTO VALOR falando diretamente com seu cliente ideal.
-   - O tom deve ser deliberado, autoral, assertivo e sofisticado.
+1. PERSONA E POSTURA (ALTA AUTORIDADE SILENCIOSA):
+   - Escreva na voz de um DIRETOR / FUNDADOR / EDITORIALISTA S\xCANIOR que domina profundamente o of\xEDcio e fala de igual para igual com pessoas inteligentes.
+   - O tom \xE9 calmo, anal\xEDtico, afiado e seguro de si. Quem realmente tem autoridade n\xE3o precisa for\xE7ar entusiasmo, n\xE3o usa pontos de exclama\xE7\xE3o (!) e n\xE3o recorre a suspense barato.
 
-2. PROIBI\xC7\xD5ES ABSOLUTAS (V\xCDCIOS DE CHATBOT / IA):
-   - \u{1F6AB} PROIBIDO tom de assistente virtual ("Se precisar de mais dicas estou aqui", "Espero que ajude", "Se tiver d\xFAvidas estou \xE0 disposi\xE7\xE3o", "Conte comigo", "Aqui est\xE3o algumas dicas").
-   - \u{1F6AB} PROIBIDO clich\xEAs batidos ("No mundo acelerado de hoje", "Em tempos de constante mudan\xE7a", "Voc\xEA sabia?", "Fica a dica", "Arrasta pro lado").
-   - \u{1F6AB} PROIBIDO pre\xE2mbulos conversacionais ("Neste post eu vou te mostrar", "Hoje eu trouxe uma reflex\xE3o"). V\xE1 direto ao ponto!
+2. A REGRA DE ORDEM DIRETA (FIM DA ANT\xCDTESE VICIADA):
+   - Declare toda ideia na ordem afirmativa direta: Sujeito \u2794 Verbo \u2794 Predicado/Impacto.
+   - NUNCA estruture frases negando uma premissa para s\xF3 depois fazer uma revela\xE7\xE3o (proibido o padr\xE3o "N\xE3o \xE9 X, \xE9 Y", "O segredo n\xE3o \xE9 o produto, \xE9..."). Declare a verdade positiva imediatamente com solidez.
 
-3. REGRAS POR CAMPO:
-   - Headline: m\xE1ximo 60 caracteres. T\xEDtulo forte, conciso e magn\xE9tico. Sem ponto final. Sem retic\xEAncias soltas.
-   - Body: m\xE1ximo 2 frases curtas (m\xE1x 100 caracteres). Complementa o headline com precis\xE3o.
+3. O TESTE DA SUBSTITUI\xC7\xC3O UNIVERSAL (DENSIDADE FACTUAL OBRIGAT\xD3RIA):
+   - Crit\xE9rio mandat\xF3rio de valida\xE7\xE3o: Se a sua copy puder ser aplicada a outro nicho trocando apenas uma palavra, ela foi reprovada por ser vazia e gen\xE9rica.
+   - O post DEVE conter pelo menos um elemento t\xE1til, sintoma f\xEDsico observ\xE1vel, unidade de medida, erro operacional pr\xE1tico ou crit\xE9rio t\xE9cnico do nicho em quest\xE3o.
+
+4. ELIMINA\xC7\xC3O DE GATILHOS MEME & V\xCDCIOS SINT\xC9TICOS:
+   - \u{1F6AB} PROIBIDO suspense artificial e meta-an\xFAncios ("e isso muda tudo", "aqui vai o pulo do gato", "prepare-se", "o que ningu\xE9m te conta", "spoiler", "pare agora").
+   - \u{1F6AB} PROIBIDO tom de assistente ("Espero ter ajudado", "Se precisar estou aqui", "Comente aqui embaixo").
+   - \u{1F6AB} PROIBIDO pre\xE2mbulos conversacionais ("Neste post eu vou te mostrar", "Hoje eu trouxe uma reflex\xE3o"). V\xE1 direto ao ponto.
+   - \u{1F6AB} PROIBIDO vazar nomes t\xE9cnicos de estrat\xE9gia no texto final (NUNCA escreva "\u2014 obje\xE7\xE3o comum", "[dor]", "gatilho" no headline ou body).
+
+5. AS 3 MATRIZES COGNITIVAS OBRIGAT\xD3RIAS (UMA PARA CADA VARIA\xC7\xC3O):
+   - Varia\xE7\xE3o 1 \u2794 O DIAGN\xD3STICO DO SINTOMA OCULTO:
+     Identifique um h\xE1bito ou detalhe do cotidiano que parece inocente ou comum, mas que na verdade revela um processo ineficiente ou amador. Aponte a causa invis\xEDvel.
+   - Varia\xE7\xE3o 2 \u2794 O CRIT\xC9RIO DE JULGAMENTO T\xC9CNICO:
+     Apresente a r\xE9gua pr\xE1tica de corte ou regra de avalia\xE7\xE3o que veteranos e profissionais s\xEAniores usam nos bastidores para diferenciar o bom do excelente.
+   - Varia\xE7\xE3o 3 \u2794 A RELA\xC7\xC3O CAUSA-EFEITO CONTRAINTUITIVA:
+     Mostre onde o esfor\xE7o comum \xE9 desperdi\xE7ado e qual ajuste espec\xEDfico de fundamentos gera o resultado de longo prazo.
+
+6. REGRAS POR CAMPO:
+   - Headline: m\xE1ximo 65 caracteres. T\xEDtulo conciso, provocativo e magn\xE9tico. Sem ponto final.
+   - Body: 1 a 3 frases densas (m\xE1x 200 caracteres). Complementa o headline com precis\xE3o e densidade de informa\xE7\xE3o.
+     \u2022 Se o post for uma lista ou n\xFAmero (ex: "3 sinais", "3 erros", "3 crit\xE9rios"), entregue os pontos estruturados diretamente no body com marcadores limpos: "1. [Item A]  \u2022  2. [Item B]  \u2022  3. [Item C]".
    - Caption/Legenda: Legenda completa pronta para publica\xE7\xE3o no Instagram/LinkedIn com formata\xE7\xE3o e respiros reais:
-     \u2022 Gancho de abertura provocativo que expande o t\xEDtulo;
-     \u2022 Conflito / Causa raiz da dor do p\xFAblico;
+     \u2022 Gancho de abertura provocativo que expande o t\xEDtulo sem repetir o texto do card;
+     \u2022 Conflito / Causa raiz da dor ou mecanismo em debate;
      \u2022 2 ou 3 t\xF3picos estrat\xE9gicos com quebras de linha duplas;
-     \u2022 CTA natural e maduro (ex: "Qual \xE9 o posicionamento que a sua marca quer consolidar?", "Salve este post para consultar no seu pr\xF3ximo planejamento estrat\xE9gico.").
+     \u2022 CTA maduro e profissional (ex: "Qual \xE9 o padr\xE3o que a sua marca quer consolidar?", "Salve para consultar no pr\xF3ximo alinhamento.").
    - NUNCA coloque hashtags ou emojis dentro do headline ou body.
    - Hashtags: m\xE1ximo 4, somente no campo separado "hashtags".
    - CallToAction: m\xE1ximo 40 caracteres com verbo de a\xE7\xE3o direto.
-   - As 3 varia\xE7\xF5es DEVEM explorar 3 \xE2ngulos psicol\xF3gicos distintos (ex: 1. Pergunta/Quebra de padr\xE3o, 2. Diagn\xF3stico/Choque, 3. Princ\xEDpio de Autoridade).
 
-PRINC\xCDPIOS DE DESIGN VISUAL E MIMETISMO:
-
-1. HIERARQUIA VISUAL (Propor\xE7\xE3o 3:2:1):
-   - O headline deve ser a informa\xE7\xE3o MAIS impactante (peso visual m\xE1ximo).
-   - O body deve complementar, nunca competir com o headline.
-
-2. LAYOUT INTELIGENTE por objetivo do post:
-   - "centered": Inspira\xE7\xE3o, emo\xE7\xE3o, celebra\xE7\xE3o, cita\xE7\xF5es. Melhor em 1:1.
-   - "left-aligned": Educa\xE7\xE3o, listas, tutoriais. Melhor em 5:6 e 9:16.
-   - "split": Promo\xE7\xF5es, impacto. Vers\xE1til.
-   - "minimal": Ultra-limpo, essencial. Para marcas focadas no white-space.
-
-3. PSICOLOGIA E CLONAGEM DE CORES:
-   - SE houver [INSTRU\xC7\xD5ES DE CLONAGEM DE MARCA] no prompt, AS CORES S\xC3O MANDAT\xD3RIAS. Mimetize a "Alma" injetando backgroundColor e textColor apenas baseados na Extra\xE7\xE3o Fornecida.
-   - SE N\xC3O houver extra\xE7\xE3o, use a psicologia cl\xE1ssica: backgroundColor neutro escuro/azul para tom Corporativo, cores quentes para Criativo, etc.
-
-4. CONTRASTE (WCAG 2.1):
-   - SEMPRE garanta contraste alto: fundo escuro \u2192 textColor claro (#FFFFFF). Fundo claro \u2192 textColor escuro (#1A1A1A).
-   - NUNCA use texto cinza m\xE9dio sobre fundo cinza m\xE9dio.
-
-5. TEMPLATES ESTRUTURADOS:
-   - Use 'simple' quando headline e body forem suficientes. N\xE3o invente se\xE7\xF5es apenas para preencher o layout.
-   - Use 'feature-grid', 'numbered-list' ou 'step-by-step' somente quando a mensagem realmente exigir itens distintos.
-   - Todo template estruturado deve ter EXATAMENTE 3 se\xE7\xF5es. Nunca gere 4 ou 5 itens em um \xFAnico post est\xE1tico.
-   - Se o headline promete quantidade de itens, esse numero DEVE ser 3. Ex.: "3 sinais", "3 criterios". Se a ideia tem 5, 7 ou 10 itens, escolha carrossel ou reformule sem numero.
-   - Cada label deve ter no m\xE1ximo 24 caracteres e cada description no m\xE1ximo 36 caracteres.
-   - Resuma cada item em uma \xFAnica ideia. N\xE3o repita no item o que j\xE1 est\xE1 no headline ou body.
-   - Sections sao micro-blocos visuais, nao paragrafos. Prefira substantivos claros e descricoes telegraficas.
+7. HIERARQUIA VISUAL E LAYOUT:
+   - "centered": Para princ\xEDpios de autoridade, cita\xE7\xF5es nobres e teses contraintuitivas.
+   - "left-aligned": Para diagn\xF3sticos, tutoriais e listas condensadas.
+   - Varie o campo "layout" entre as 3 varia\xE7\xF5es para que cada uma ofere\xE7a uma diagrama\xE7\xE3o visual \xFAnica!
+   - Em posts est\xE1ticos normais, use 'simple' em template e passe [] em sections, mantendo o conte\xFAdo rico no headline e body.
 
 Responda APENAS com JSON v\xE1lido.`;
   return `${modeInstruction}
-${executionBrief ? `As ${POST_VARIATION_TARGET} varia\xE7\xF5es devem ser pr\xF3ximas entre si e altamente fi\xE9is ao briefing.` : `Cada varia\xE7\xE3o deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado.`}${input.toneHint}
+${executionBrief ? `As ${POST_VARIATION_TARGET} varia\xE7\xF5es devem ser pr\xF3ximas entre si e altamente fi\xE9is ao briefing.` : `As 3 varia\xE7\xF5es DEVEM seguir as 3 matrizes cognitivas: 1) Diagn\xF3stico do Sintoma Oculto, 2) Crit\xE9rio de Julgamento T\xE9cnico, 3) Causa-Efeito Contraintuitiva.`}${input.toneHint}
 ${input.brandDnaContext}
 ${executionSystemContext}
 ${input.promptContext}

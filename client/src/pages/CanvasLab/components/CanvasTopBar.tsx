@@ -1,4 +1,4 @@
-import { ArrowDownToLine, ArrowLeft, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, FileArchive, Layers, Loader2, Magnet, RotateCcw, Smartphone, Square, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, FileArchive, Layers, Loader2, Magnet, Plus, RotateCcw, Smartphone, Square, ZoomIn, ZoomOut } from "lucide-react";
 import type { AspectRatioType } from "./types";
 import { ASPECT_RATIO_CAPTIONS } from "./types";
 import UserTopMenu from "@/components/UserTopMenu";
@@ -25,6 +25,8 @@ interface CanvasTopBarProps {
   /** Item 7: abrir o fluxo de salvamento. */
   onSave?: () => void;
   isSaving?: boolean;
+  /** Adicionar nova caixa de texto livre */
+  onAddExtraText?: () => void;
 }
 
 export default function CanvasTopBar({
@@ -47,6 +49,7 @@ export default function CanvasTopBar({
   onRestart,
   onSave,
   isSaving = false,
+  onAddExtraText,
 }: CanvasTopBarProps) {
   return (
     <header className="h-14 border-b border-white/10 bg-black/70 backdrop-blur-xl px-3 md:px-6 flex items-center justify-between z-30 shrink-0 select-none">
@@ -130,6 +133,19 @@ export default function CanvasTopBar({
             );
           })}
         </div>
+
+        {/* Botão Adicionar Caixa de Texto Livre */}
+        {onAddExtraText && (
+          <button
+            type="button"
+            onClick={onAddExtraText}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[oklch(0.78_0.22_48)]/40 bg-[oklch(0.78_0.22_48)]/15 hover:bg-[oklch(0.78_0.22_48)]/25 text-[oklch(0.78_0.22_48)] hover:text-white text-xs font-semibold transition-all cursor-pointer active:scale-95 shadow-sm"
+            title="Adicionar nova caixa de texto no canvas"
+          >
+            <Plus size={13} strokeWidth={2.5} />
+            <span className="hidden sm:inline">Texto</span>
+          </button>
+        )}
 
         {/* Botão Ímã (Magnet Snap) */}
         {onToggleSnap && (

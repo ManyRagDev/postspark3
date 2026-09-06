@@ -15,6 +15,7 @@ import {
   type LogoPositionType,
   type VisualFamilyId,
   type TextLegibilityEffect,
+  type OverlayMode,
   TEXT_EFFECTS_META,
 } from "../components/types";
 
@@ -137,6 +138,8 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
     bgImage: raw.bgImage,
     bgTransform: raw.bgTransform,
     overlayOpacity: typeof raw.overlayOpacity === "number" ? raw.overlayOpacity : 0.55,
+    overlayColor: typeof raw.overlayColor === "string" && raw.overlayColor.trim() ? raw.overlayColor.trim() : undefined,
+    overlayMode: (typeof raw.overlayMode === "string" && ["gradient-bottom", "gradient-top", "solid", "radial"].includes(raw.overlayMode) ? raw.overlayMode : "gradient-bottom") as OverlayMode,
     logoUrl: raw.logoUrl,
     logoPosition,
     isSnapEnabled: raw.isSnapEnabled !== false,
@@ -145,7 +148,9 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
     manualHeadlineColor: raw.manualHeadlineColor,
     manualSubtextColor: raw.manualSubtextColor,
     headlineEffect,
+    headlineEffectColor: typeof raw.headlineEffectColor === "string" ? raw.headlineEffectColor : undefined,
     subtextEffect,
+    subtextEffectColor: typeof raw.subtextEffectColor === "string" ? raw.subtextEffectColor : undefined,
     palette: {
       background: raw.palette?.background || "#120D0A",
       text: raw.palette?.text || "#F8F4EE",
@@ -168,6 +173,7 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
           badgePos: s.badgePos,
           barPos: s.barPos,
           logoPos: s.logoPos,
+          extraTexts: Array.isArray(s.extraTexts) ? s.extraTexts : undefined,
         }))
       : [
           {
@@ -175,8 +181,10 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
             step: "SLIDE 01 // CAPA",
             headline: raw.headline ?? "",
             subtext: raw.subtext ?? "",
+            extraTexts: Array.isArray(raw.extraTexts) ? raw.extraTexts : undefined,
           },
         ],
+    extraTexts: Array.isArray(raw.extraTexts) ? raw.extraTexts : undefined,
     currentSlideIndex: Math.min(
       Math.max(0, raw.currentSlideIndex ?? 0),
       Math.max(0, (raw.slides?.length ?? 1) - 1),

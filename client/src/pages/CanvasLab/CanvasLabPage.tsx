@@ -14,6 +14,7 @@ import {
   type CanvasPostModel,
   type ElementPosition,
   type BgImageTransform,
+  type CanvasCustomText,
 } from "./components/types";
 import { applyContrastGuard, patchTouchesContrast } from "./lib/contrast";
 
@@ -38,6 +39,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isRestartConfirmOpen, setIsRestartConfirmOpen] = useState(false);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const stageRef = useRef<CanvasPostStageRef>(null);
 
   // Monitoramento dinâmico da resolução da tela para responsividade matemática
@@ -180,6 +182,147 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       return {
         ...prev,
         [field]: value,
+        slides: updatedSlides,
+      };
+    });
+  };
+
+  // Atualiza posição de caixa de texto extra arrastada no slide ativo
+  const handleUpdateExtraTextPosition = (id: string, pos: ElementPosition) => {
+    setPost((prev) => {
+      const curIdx = prev.currentSlideIndex;
+      const currentSlide = prev.slides[curIdx];
+      const slideExtra = currentSlide?.extraTexts || prev.extraTexts || [];
+      const updatedExtra = slideExtra.map((item) =>
+        item.id === id ? { ...item, x: pos.x, y: pos.y } : item
+      );
+
+      const updatedSlides = [...prev.slides];
+      if (currentSlide) {
+        updatedSlides[curIdx] = {
+          ...currentSlide,
+          extraTexts: updatedExtra,
+        };
+      }
+
+      return {
+        ...prev,
+        extraTexts: updatedExtra,
+        slides: updatedSlides,
+      };
+    });
+  };
+
+  // Edição de texto da caixa extra via duplo clique inline no canvas
+  const handleUpdateExtraTextContent = (id: string, value: string) => {
+    setPost((prev) => {
+      const curIdx = prev.currentSlideIndex;
+      const currentSlide = prev.slides[curIdx];
+      const slideExtra = currentSlide?.extraTexts || prev.extraTexts || [];
+      const updatedExtra = slideExtra.map((item) =>
+        item.id === id ? { ...item, text: value } : item
+      );
+
+      const updatedSlides = [...prev.slides];
+      if (currentSlide) {
+        updatedSlides[curIdx] = {
+          ...currentSlide,
+          extraTexts: updatedExtra,
+        };
+      }
+
+      return {
+        ...prev,
+        extraTexts: updatedExtra,
+        slides: updatedSlides,
+      };
+    });
+  };
+
+  // Adiciona nova caixa de texto livre no slide ativo
+  const handleAddExtraText = () => {
+    const curIdx = post.currentSlideIndex;
+    const currentSlide = post.slides[curIdx];
+    const slideExtra = currentSlide?.extraTexts || post.extraTexts || [];
+    const count = slideExtra.length + 1;
+    const newId = `extra-${Date.now()}-${count}`;
+    const newExtraText: CanvasCustomText = {
+      id: newId,
+      text: "Novo Texto",
+      x: Math.round((baseWidth - 220) / 2),
+      y: Math.min(baseHeight - 80, Math.round(baseHeight * 0.45 + (count - 1) * 35)),
+      width: 220,
+      fontSize: 20,
+      align: "center",
+      color: post.palette.text,
+    };
+    const updatedExtra = [...slideExtra, newExtraText];
+
+    const updatedSlides = [...post.slides];
+    if (currentSlide) {
+      updatedSlides[curIdx] = {
+        ...currentSlide,
+        extraTexts: updatedExtra,
+      };
+    }
+
+    setPost((prev) => ({
+      ...prev,
+      extraTexts: updatedExtra,
+      slides: updatedSlides,
+    }));
+
+    setSelectedElementId(newId);
+    toast.success("Nova caixa de texto adicionada! Dê dois cliques para editar no palco.");
+  };
+
+  // Atualiza propriedades de uma caixa de texto extra (cor, tamanho, texto, alinhamento)
+  const handleUpdateExtraText = (id: string, patch: Partial<CanvasCustomText>) => {
+    setPost((prev) => {
+      const curIdx = prev.currentSlideIndex;
+      const currentSlide = prev.slides[curIdx];
+      const slideExtra = currentSlide?.extraTexts || prev.extraTexts || [];
+      const updatedExtra = slideExtra.map((item) =>
+        item.id === id ? { ...item, ...patch } : item
+      );
+
+      const updatedSlides = [...prev.slides];
+      if (currentSlide) {
+        updatedSlides[curIdx] = {
+          ...currentSlide,
+          extraTexts: updatedExtra,
+        };
+      }
+
+      return {
+        ...prev,
+        extraTexts: updatedExtra,
+        slides: updatedSlides,
+      };
+    });
+  };
+
+  // Remove uma caixa de texto extra
+  const handleRemoveExtraText = (id: string) => {
+    setPost((prev) => {
+      const curIdx = prev.currentSlideIndex;
+      const currentSlide = prev.slides[curIdx];
+      const slideExtra = currentSlide?.extraTexts || prev.extraTexts || [];
+      const updatedExtra = slideExtra.filter((item) => item.id !== id);
+
+      const updatedSlides = [...prev.slides];
+      if (currentSlide) {
+        updatedSlides[curIdx] = {
+          ...currentSlide,
+          extraTexts: updatedExtra,
+        };
+      }
+
+      toast.info("Caixa de texto removida.");
+
+      return {
+        ...prev,
+        extraTexts: updatedExtra,
         slides: updatedSlides,
       };
     });
@@ -334,6 +477,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         onRestart={onRestart ? () => setIsRestartConfirmOpen(true) : undefined}
         onSave={onSave ? handleSaveClick : undefined}
         isSaving={isSaving}
+        onAddExtraText={handleAddExtraText}
       />
 
       {/* 2. Área Central */}
@@ -345,6 +489,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
             onUpdatePost={handleUpdatePost}
             isEditingBackground={isEditingBackground}
             onToggleBackgroundEdit={() => setIsEditingBackground((v) => !v)}
+            onAddExtraText={handleAddExtraText}
+            onUpdateExtraText={handleUpdateExtraText}
+            onRemoveExtraText={handleRemoveExtraText}
           />
         </div>
 
@@ -426,11 +573,15 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
               ref={stageRef}
               post={post}
               zoom={1}
+              selectedElementId={selectedElementId}
+              onSelectElement={setSelectedElementId}
               onUpdateElementPosition={handleUpdateElementPosition}
               isEditingBackground={isEditingBackground}
               onUpdateBgTransform={handleUpdateBgTransform}
               onEnterBackgroundEdit={() => setIsEditingBackground(true)}
               onUpdateText={handleUpdateText}
+              onUpdateExtraTextPosition={handleUpdateExtraTextPosition}
+              onUpdateExtraTextContent={handleUpdateExtraTextContent}
             />
           </motion.div>
         </main>
@@ -444,6 +595,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
           isExportingZip={isExportingZip}
           isOpen={isMobileDrawerOpen}
           onToggleOpen={setIsMobileDrawerOpen}
+          onAddExtraText={handleAddExtraText}
+          onUpdateExtraText={handleUpdateExtraText}
+          onRemoveExtraText={handleRemoveExtraText}
         />
       </div>
 

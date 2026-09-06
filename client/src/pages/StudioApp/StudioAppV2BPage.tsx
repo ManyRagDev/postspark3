@@ -100,7 +100,7 @@ export default function StudioAppV2BPage() {
       });
 
       if (result?.variations && result.variations.length > 0) {
-        const distinctVars = ensureDistinctFamilies(result.variations as any[]);
+        const distinctVars = ensureDistinctFamilies(result.variations as any[], promptText);
         const mapped = distinctVars.map((v: any, i: number) => variationToCanvasModel(v, i, promptText));
 
         if (declaredFamilyId && !isUrl) {
@@ -142,7 +142,8 @@ export default function StudioAppV2BPage() {
 
       if (result?.variations && result.variations.length > 0) {
         const offset = generatedVariations.length;
-        const newMapped = result.variations.map((v, i) => variationToCanvasModel(v, offset + i, lastPrompt));
+        const distinctVars = ensureDistinctFamilies(result.variations as any[], `${lastPrompt}:${offset}`);
+        const newMapped = distinctVars.map((v, i) => variationToCanvasModel(v, offset + i, lastPrompt));
         setGeneratedVariations((prev) => [...prev, ...newMapped]);
         toast.success("3 novas direções de arte criadas com IA!");
       } else {

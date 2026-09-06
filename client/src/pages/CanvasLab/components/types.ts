@@ -58,6 +58,22 @@ export function resolveLegibleTextColor(bg: string, requestedText?: string): str
   return requestedText;
 }
 
+export function normalizeHexColor(color?: string, fallback = "#000000"): string {
+  if (!color) return fallback;
+  const trimmed = color.trim();
+  if (!trimmed.startsWith("#")) return fallback;
+  const hex = trimmed.slice(1);
+  if (/^[0-9A-Fa-f]{3}$/.test(hex)) {
+    return `#${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`.toUpperCase();
+  }
+  if (/^[0-9A-Fa-f]{6}$/.test(hex)) {
+    return `#${hex}`.toUpperCase();
+  }
+  return fallback;
+}
+
+export type OverlayMode = "gradient-bottom" | "gradient-top" | "solid" | "radial";
+
 export const OFFICIAL_FAMILIES_META: Record<VisualFamilyId, FamilyMetadata> = {
   // ─── 1. Tendências & Instagram (Novos Arquétipos) ───
   "stroke-impact": {
@@ -195,19 +211,33 @@ export const OFFICIAL_FAMILIES_META: Record<VisualFamilyId, FamilyMetadata> = {
 export const ALL_OFFICIAL_FAMILY_IDS: VisualFamilyId[] = Object.keys(OFFICIAL_FAMILIES_META) as VisualFamilyId[];
 
 // Guardrail puro de garantia de famílias distintas
-export function ensureDistinctFamilies<T extends { familyId?: string }>(variations: T[]): T[] {
+export function ensureDistinctFamilies<
+  T extends { familyId?: string; creativeDirection?: { familyId?: string } }
+>(variations: T[], seed?: string | number): T[] {
   const used = new Set<string>();
-  const available = [...ALL_OFFICIAL_FAMILY_IDS];
+
+  // Rotação dinâmica do pool de fallback para que falhas ou repetições
+  // nunca resultem sempre nos índices 0, 1 e 2 estáticos
+  const offset = typeof seed === "number"
+    ? Math.abs(seed) % ALL_OFFICIAL_FAMILY_IDS.length
+    : typeof seed === "string"
+    ? Math.abs(seed.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)) % ALL_OFFICIAL_FAMILY_IDS.length
+    : Math.floor(Math.random() * ALL_OFFICIAL_FAMILY_IDS.length);
+
+  const rotatedFamilies = [
+    ...ALL_OFFICIAL_FAMILY_IDS.slice(offset),
+    ...ALL_OFFICIAL_FAMILY_IDS.slice(0, offset),
+  ];
 
   return variations.map((v, index) => {
-    let rawFamily = v.familyId;
+    let rawFamily = v.familyId || v.creativeDirection?.familyId;
     if (rawFamily === "glitch-signal") rawFamily = "cyber-glitch";
 
     let family: VisualFamilyId;
     if (rawFamily && ALL_OFFICIAL_FAMILY_IDS.includes(rawFamily as VisualFamilyId) && !used.has(rawFamily)) {
       family = rawFamily as VisualFamilyId;
     } else {
-      const nextUnused = available.find((f) => !used.has(f)) || ALL_OFFICIAL_FAMILY_IDS[index % ALL_OFFICIAL_FAMILY_IDS.length];
+      const nextUnused = rotatedFamilies.find((f) => !used.has(f)) || ALL_OFFICIAL_FAMILY_IDS[index % ALL_OFFICIAL_FAMILY_IDS.length];
       family = nextUnused;
     }
 
@@ -251,6 +281,24 @@ export interface CanvasPostPalette {
   subtextColor?: string;
 }
 
+export interface CanvasCustomText {
+  id: string;
+  text: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  fontSize?: number;
+  fontFamily?: string;
+  fontWeight?: "normal" | "bold";
+  fontStyle?: "normal" | "italic";
+  color?: string;
+  align?: TextAlignType;
+  effect?: TextLegibilityEffect;
+  effectColor?: string;
+  rotation?: number;
+  sizeScale?: number;
+}
+
 export interface CarouselSlideItem {
   id: string;
   step: string;
@@ -264,6 +312,7 @@ export interface CarouselSlideItem {
   badgePos?: ElementPosition;
   barPos?: ElementPosition;
   logoPos?: ElementPosition;
+  extraTexts?: CanvasCustomText[];
 }
 
 export type TextLegibilityEffect =
@@ -376,6 +425,10 @@ export interface CanvasPostModel {
   bgImage?: string;
   bgTransform?: BgImageTransform;
   overlayOpacity: number;
+  /** Cor personalizada do overlay sobre a imagem de fundo (se undefined, usa background do post ou #000000). */
+  overlayColor?: string;
+  /** Modo ou variação de distribuição do overlay sobre a imagem de fundo. */
+  overlayMode?: OverlayMode;
   logoUrl?: string;
   logoPosition: LogoPositionType;
   isSnapEnabled?: boolean;
@@ -389,11 +442,17 @@ export interface CanvasPostModel {
   manualSubtextColor?: boolean;
   /** Efeito visual de legibilidade para o título (fundo, sombra, contorno). */
   headlineEffect?: TextLegibilityEffect;
+  /** Cor customizada do efeito/sombra do título. */
+  headlineEffectColor?: string;
   /** Efeito visual de legibilidade para o corpo (fundo, sombra, contorno). */
   subtextEffect?: TextLegibilityEffect;
+  /** Cor customizada do efeito/sombra do corpo. */
+  subtextEffectColor?: string;
   palette: CanvasPostPalette;
   slides: CarouselSlideItem[];
   currentSlideIndex: number;
+  /** Caixas de texto livres adicionais adicionadas pelo usuário. */
+  extraTexts?: CanvasCustomText[];
 }
 
 export const INITIAL_POST: CanvasPostModel = {
@@ -410,10 +469,14 @@ export const INITIAL_POST: CanvasPostModel = {
   imagePrompt: "editorial dark luxury texture, elegant gold reflections, minimal upscale workspace background, cinematic lighting",
   fontFamily: "Playfair Display",
   overlayOpacity: 0.55,
+  overlayColor: undefined,
+  overlayMode: "gradient-bottom",
   logoPosition: "top-right",
   isSnapEnabled: true,
   headlineEffect: "none",
+  headlineEffectColor: undefined,
   subtextEffect: "none",
+  subtextEffectColor: undefined,
   palette: {
     background: "#120D0A",
     text: "#F8F4EE",

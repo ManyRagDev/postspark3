@@ -60,6 +60,44 @@ export default function TypographyColorControls({ post, onUpdatePost, compact = 
     }
   };
 
+  const handleSelectEffectColor = (color: string) => {
+    if (effectTarget === "both") {
+      onUpdatePost({ headlineEffectColor: color, subtextEffectColor: color });
+    } else if (effectTarget === "headline") {
+      onUpdatePost({ headlineEffectColor: color });
+    } else {
+      onUpdatePost({ subtextEffectColor: color });
+    }
+  };
+
+  const clearEffectColor = () => {
+    if (effectTarget === "both") {
+      onUpdatePost({ headlineEffectColor: undefined, subtextEffectColor: undefined });
+    } else if (effectTarget === "headline") {
+      onUpdatePost({ headlineEffectColor: undefined });
+    } else {
+      onUpdatePost({ subtextEffectColor: undefined });
+    }
+  };
+
+  const hasActiveEffect =
+    effectTarget === "headline"
+      ? Boolean(post.headlineEffect && post.headlineEffect !== "none")
+      : effectTarget === "subtext"
+      ? Boolean(post.subtextEffect && post.subtextEffect !== "none")
+      : Boolean((post.headlineEffect && post.headlineEffect !== "none") || (post.subtextEffect && post.subtextEffect !== "none"));
+
+  const activeEffectColor =
+    effectTarget === "headline"
+      ? post.headlineEffectColor
+      : effectTarget === "subtext"
+      ? post.subtextEffectColor
+      : post.headlineEffectColor || post.subtextEffectColor;
+
+  const currentEffectColorHex = activeEffectColor && activeEffectColor.startsWith("#")
+    ? activeEffectColor
+    : "#000000";
+
   const setHeadlineColor = (v: string) =>
     onUpdatePost({ palette: { ...post.palette, headlineColor: v }, manualHeadlineColor: true });
   const setSubtextColor = (v: string) =>
@@ -260,6 +298,63 @@ export default function TypographyColorControls({ post, onUpdatePost, compact = 
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* Seletor de Cor da Sombra / Fundo do Efeito */}
+        {hasActiveEffect && (
+          <div className="pt-2.5 mt-2 border-t border-white/8 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] uppercase tracking-wider text-white/60 font-semibold flex items-center gap-1.5">
+                <span>Cor da Sombra / Fundo</span>
+              </label>
+              {(effectTarget === "headline"
+                ? post.headlineEffectColor
+                : effectTarget === "subtext"
+                ? post.subtextEffectColor
+                : post.headlineEffectColor || post.subtextEffectColor) && (
+                <button
+                  type="button"
+                  onClick={clearEffectColor}
+                  className="text-[9px] uppercase tracking-wider text-white/40 hover:text-white transition-colors cursor-pointer"
+                  title="Restaurar cor automática do efeito"
+                >
+                  Padrão
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <input
+                type="color"
+                value={currentEffectColorHex}
+                onChange={(e) => handleSelectEffectColor(e.target.value)}
+                className="w-7 h-7 rounded-lg cursor-pointer bg-transparent border border-white/15 shrink-0"
+                title="Escolher cor personalizada da sombra ou fundo"
+              />
+
+              {/* Presets Rápidos */}
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+                {[
+                  { label: "Preto", value: "#000000" },
+                  { label: "Branco", value: "#FFFFFF" },
+                  { label: "Marca", value: post.palette.accent },
+                  { label: "Grafite", value: "#1A1A1E" },
+                  { label: "Dourado", value: "#D4AF37" },
+                  { label: "Vermelho", value: "#FF4D30" },
+                  { label: "Ciano", value: "#00F0FF" },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => handleSelectEffectColor(preset.value)}
+                    title={`Aplicar cor ${preset.label} (${preset.value})`}
+                    className="w-5 h-5 rounded-full shrink-0 border border-white/20 cursor-pointer hover:scale-110 active:scale-95 transition-transform"
+                    style={{ backgroundColor: preset.value }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -6,6 +6,7 @@ import {
   OFFICIAL_FAMILIES_META,
   ALL_OFFICIAL_FAMILY_IDS,
   TEXT_EFFECTS_META,
+  normalizeHexColor,
   type VisualFamilyId,
 } from "./types";
 import { normalizeCanvasModel } from "../lib/saveAdapter";
@@ -92,20 +93,82 @@ describe("Visual Families & Contrast Safeguard (CR-008)", () => {
     });
   });
 
-  it("normalizeCanvasModel: sanitiza e preserva headlineEffect e subtextEffect", () => {
-    const normalized = normalizeCanvasModel({
-      headlineEffect: "box-accent",
-      subtextEffect: "shadow",
-    });
-    expect(normalized.headlineEffect).toBe("box-accent");
-    expect(normalized.subtextEffect).toBe("shadow");
+  it("ensureDistinctFamilies: lê creativeDirection.familyId quando familyId não está na raiz", () => {
+    const input = [
+      { id: "1", creativeDirection: { familyId: "editorial-poster" } },
+      { id: "2", creativeDirection: { familyId: "quote-authority" } },
+      { id: "3", creativeDirection: { familyId: "minimal-air" } },
+    ];
 
-    // Fallback defensivo para valores inválidos
-    const withInvalid = normalizeCanvasModel({
-      headlineEffect: "invalid-effect" as any,
-      subtextEffect: undefined,
+    const result = ensureDistinctFamilies(input);
+    expect(result.map((r) => r.familyId)).toEqual([
+      "editorial-poster",
+      "quote-authority",
+      "minimal-air",
+    ]);
+  });
+
+  it("ensureDistinctFamilies: mapeia alias glitch-signal para cyber-glitch a partir de creativeDirection", () => {
+    const input = [
+      { id: "1", creativeDirection: { familyId: "glitch-signal" } },
+      { id: "2", creativeDirection: { familyId: "chromatic-block" } },
+      { id: "3", creativeDirection: { familyId: "duotone-wash" } },
+    ];
+
+    const result = ensureDistinctFamilies(input);
+    expect(result[0].familyId).toBe("cyber-glitch");
+  });
+
+  it("ensureDistinctFamilies: rotaciona dinamicamente o fallback com base no seed", () => {
+    const emptyInput = [{}, {}, {}];
+    const resultA = ensureDistinctFamilies(emptyInput, 0);
+    const resultB = ensureDistinctFamilies(emptyInput, 4);
+
+    expect(resultA.map((r) => r.familyId)).not.toEqual(resultB.map((r) => r.familyId));
+    expect(new Set(resultA.map((r) => r.familyId)).size).toBe(3);
+    expect(new Set(resultB.map((r) => r.familyId)).size).toBe(3);
+  });
+
+  it("normalizeCanvasModel: sanitiza e preserva headlineEffectColor e subtextEffectColor", () => {
+    const normalized = normalizeCanvasModel({
+      headlineEffect: "shadow",
+      headlineEffectColor: "#FF0000",
+      subtextEffect: "box-card",
+      subtextEffectColor: "#00FF00",
     });
-    expect(withInvalid.headlineEffect).toBe("none");
-    expect(withInvalid.subtextEffect).toBe("none");
+    expect(normalized.headlineEffectColor).toBe("#FF0000");
+    expect(normalized.subtextEffectColor).toBe("#00FF00");
+
+    const withInvalid = normalizeCanvasModel({
+      headlineEffectColor: 123 as any,
+    });
+    expect(withInvalid.headlineEffectColor).toBeUndefined();
+  });
+
+  it("normalizeHexColor: normaliza 3 dígitos, 6 dígitos e fallbacks", () => {
+    expect(normalizeHexColor("#fff")).toBe("#FFFFFF");
+    expect(normalizeHexColor("#000")).toBe("#000000");
+    expect(normalizeHexColor("#0F172A")).toBe("#0F172A");
+    expect(normalizeHexColor(undefined, "#000000")).toBe("#000000");
+    expect(normalizeHexColor("invalid", "#123456")).toBe("#123456");
+  });
+
+  it("normalizeCanvasModel: preserva e sanitiza overlayColor e overlayMode", () => {
+    const postWithOverlay = normalizeCanvasModel({
+      overlayOpacity: 0.75,
+      overlayColor: "#0F172A",
+      overlayMode: "radial",
+    });
+    expect(postWithOverlay.overlayOpacity).toBe(0.75);
+    expect(postWithOverlay.overlayColor).toBe("#0F172A");
+    expect(postWithOverlay.overlayMode).toBe("radial");
+
+    const postWithDefaults = normalizeCanvasModel({
+      overlayColor: "   ",
+      overlayMode: "modo-inexistente" as any,
+    });
+    expect(postWithDefaults.overlayColor).toBeUndefined();
+    expect(postWithDefaults.overlayMode).toBe("gradient-bottom");
   });
 });
+

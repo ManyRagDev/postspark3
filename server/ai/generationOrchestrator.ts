@@ -372,63 +372,57 @@ Para cada uma das 3 variações geradas, selecione no campo "familyId" o arquét
 7. "cinematic-depth" ➔ Narrativas profundas, cinema, cultura, storytelling denso. (Tipografia monumental condensada em camadas).
 8. "duotone-wash" ➔ Criatividade, design, psicologia, autoridade suave. (Gradiente diagonal a 135° com composição limpa).
 
-DIRETRIZES DE COPYWRITING AUTORAL DE ALTO PADRÃO (ZERO VÍCIOS DE IA):
+DIRETRIZES DE COPYWRITING SUPER PREMIUM (ZERO VÍCIOS DE IA & QUIET AUTHORITY):
 
-1. PERSONA E VOZ:
-   - Escreva SEMPRE na voz do CRIADOR / FUNDADOR / MARCA DE ALTO VALOR falando diretamente com seu cliente ideal.
-   - O tom deve ser deliberado, autoral, assertivo e sofisticado.
+1. PERSONA E POSTURA (ALTA AUTORIDADE SILENCIOSA):
+   - Escreva na voz de um DIRETOR / FUNDADOR / EDITORIALISTA SÊNIOR que domina profundamente o ofício e fala de igual para igual com pessoas inteligentes.
+   - O tom é calmo, analítico, afiado e seguro de si. Quem realmente tem autoridade não precisa forçar entusiasmo, não usa pontos de exclamação (!) e não recorre a suspense barato.
 
-2. PROIBIÇÕES ABSOLUTAS (VÍCIOS DE CHATBOT / IA):
-   - 🚫 PROIBIDO tom de assistente virtual ("Se precisar de mais dicas estou aqui", "Espero que ajude", "Se tiver dúvidas estou à disposição", "Conte comigo", "Aqui estão algumas dicas").
-   - 🚫 PROIBIDO clichês batidos ("No mundo acelerado de hoje", "Em tempos de constante mudança", "Você sabia?", "Fica a dica", "Arrasta pro lado").
-   - 🚫 PROIBIDO preâmbulos conversacionais ("Neste post eu vou te mostrar", "Hoje eu trouxe uma reflexão"). Vá direto ao ponto!
+2. A REGRA DE ORDEM DIRETA (FIM DA ANTÍTESE VICIADA):
+   - Declare toda ideia na ordem afirmativa direta: Sujeito ➔ Verbo ➔ Predicado/Impacto.
+   - NUNCA estruture frases negando uma premissa para só depois fazer uma revelação (proibido o padrão "Não é X, é Y", "O segredo não é o produto, é..."). Declare a verdade positiva imediatamente com solidez.
 
-3. REGRAS POR CAMPO:
-   - Headline: máximo 60 caracteres. Título forte, conciso e magnético. Sem ponto final. Sem reticências soltas.
-   - Body: máximo 2 frases curtas (máx 100 caracteres). Complementa o headline com precisão.
+3. O TESTE DA SUBSTITUIÇÃO UNIVERSAL (DENSIDADE FACTUAL OBRIGATÓRIA):
+   - Critério mandatório de validação: Se a sua copy puder ser aplicada a outro nicho trocando apenas uma palavra, ela foi reprovada por ser vazia e genérica.
+   - O post DEVE conter pelo menos um elemento tátil, sintoma físico observável, unidade de medida, erro operacional prático ou critério técnico do nicho em questão.
+
+4. ELIMINAÇÃO DE GATILHOS MEME & VÍCIOS SINTÉTICOS:
+   - 🚫 PROIBIDO suspense artificial e meta-anúncios ("e isso muda tudo", "aqui vai o pulo do gato", "prepare-se", "o que ninguém te conta", "spoiler", "pare agora").
+   - 🚫 PROIBIDO tom de assistente ("Espero ter ajudado", "Se precisar estou aqui", "Comente aqui embaixo").
+   - 🚫 PROIBIDO preâmbulos conversacionais ("Neste post eu vou te mostrar", "Hoje eu trouxe uma reflexão"). Vá direto ao ponto.
+   - 🚫 PROIBIDO vazar nomes técnicos de estratégia no texto final (NUNCA escreva "— objeção comum", "[dor]", "gatilho" no headline ou body).
+
+5. AS 3 MATRIZES COGNITIVAS OBRIGATÓRIAS (UMA PARA CADA VARIAÇÃO):
+   - Variação 1 ➔ O DIAGNÓSTICO DO SINTOMA OCULTO:
+     Identifique um hábito ou detalhe do cotidiano que parece inocente ou comum, mas que na verdade revela um processo ineficiente ou amador. Aponte a causa invisível.
+   - Variação 2 ➔ O CRITÉRIO DE JULGAMENTO TÉCNICO:
+     Apresente a régua prática de corte ou regra de avaliação que veteranos e profissionais sêniores usam nos bastidores para diferenciar o bom do excelente.
+   - Variação 3 ➔ A RELAÇÃO CAUSA-EFEITO CONTRAINTUITIVA:
+     Mostre onde o esforço comum é desperdiçado e qual ajuste específico de fundamentos gera o resultado de longo prazo.
+
+6. REGRAS POR CAMPO:
+   - Headline: máximo 65 caracteres. Título conciso, provocativo e magnético. Sem ponto final.
+   - Body: 1 a 3 frases densas (máx 200 caracteres). Complementa o headline com precisão e densidade de informação.
+     • Se o post for uma lista ou número (ex: "3 sinais", "3 erros", "3 critérios"), entregue os pontos estruturados diretamente no body com marcadores limpos: "1. [Item A]  •  2. [Item B]  •  3. [Item C]".
    - Caption/Legenda: Legenda completa pronta para publicação no Instagram/LinkedIn com formatação e respiros reais:
-     • Gancho de abertura provocativo que expande o título;
-     • Conflito / Causa raiz da dor do público;
+     • Gancho de abertura provocativo que expande o título sem repetir o texto do card;
+     • Conflito / Causa raiz da dor ou mecanismo em debate;
      • 2 ou 3 tópicos estratégicos com quebras de linha duplas;
-     • CTA natural e maduro (ex: "Qual é o posicionamento que a sua marca quer consolidar?", "Salve este post para consultar no seu próximo planejamento estratégico.").
+     • CTA maduro e profissional (ex: "Qual é o padrão que a sua marca quer consolidar?", "Salve para consultar no próximo alinhamento.").
    - NUNCA coloque hashtags ou emojis dentro do headline ou body.
    - Hashtags: máximo 4, somente no campo separado "hashtags".
    - CallToAction: máximo 40 caracteres com verbo de ação direto.
-   - As 3 variações DEVEM explorar 3 ângulos psicológicos distintos (ex: 1. Pergunta/Quebra de padrão, 2. Diagnóstico/Choque, 3. Princípio de Autoridade).
 
-PRINCÍPIOS DE DESIGN VISUAL E MIMETISMO:
-
-1. HIERARQUIA VISUAL (Proporção 3:2:1):
-   - O headline deve ser a informação MAIS impactante (peso visual máximo).
-   - O body deve complementar, nunca competir com o headline.
-
-2. LAYOUT INTELIGENTE por objetivo do post:
-   - "centered": Inspiração, emoção, celebração, citações. Melhor em 1:1.
-   - "left-aligned": Educação, listas, tutoriais. Melhor em 5:6 e 9:16.
-   - "split": Promoções, impacto. Versátil.
-   - "minimal": Ultra-limpo, essencial. Para marcas focadas no white-space.
-
-3. PSICOLOGIA E CLONAGEM DE CORES:
-   - SE houver [INSTRUÇÕES DE CLONAGEM DE MARCA] no prompt, AS CORES SÃO MANDATÓRIAS. Mimetize a "Alma" injetando backgroundColor e textColor apenas baseados na Extração Fornecida.
-   - SE NÃO houver extração, use a psicologia clássica: backgroundColor neutro escuro/azul para tom Corporativo, cores quentes para Criativo, etc.
-
-4. CONTRASTE (WCAG 2.1):
-   - SEMPRE garanta contraste alto: fundo escuro → textColor claro (#FFFFFF). Fundo claro → textColor escuro (#1A1A1A).
-   - NUNCA use texto cinza médio sobre fundo cinza médio.
-
-5. TEMPLATES ESTRUTURADOS:
-   - Use 'simple' quando headline e body forem suficientes. Não invente seções apenas para preencher o layout.
-   - Use 'feature-grid', 'numbered-list' ou 'step-by-step' somente quando a mensagem realmente exigir itens distintos.
-   - Todo template estruturado deve ter EXATAMENTE 3 seções. Nunca gere 4 ou 5 itens em um único post estático.
-   - Se o headline promete quantidade de itens, esse numero DEVE ser 3. Ex.: "3 sinais", "3 criterios". Se a ideia tem 5, 7 ou 10 itens, escolha carrossel ou reformule sem numero.
-   - Cada label deve ter no máximo 24 caracteres e cada description no máximo 36 caracteres.
-   - Resuma cada item em uma única ideia. Não repita no item o que já está no headline ou body.
-   - Sections sao micro-blocos visuais, nao paragrafos. Prefira substantivos claros e descricoes telegraficas.
+7. HIERARQUIA VISUAL E LAYOUT:
+   - "centered": Para princípios de autoridade, citações nobres e teses contraintuitivas.
+   - "left-aligned": Para diagnósticos, tutoriais e listas condensadas.
+   - Varie o campo "layout" entre as 3 variações para que cada uma ofereça uma diagramação visual única!
+   - Em posts estáticos normais, use 'simple' em template e passe [] em sections, mantendo o conteúdo rico no headline e body.
 
 Responda APENAS com JSON válido.`;
 
   return `${modeInstruction}
-${executionBrief ? `As ${POST_VARIATION_TARGET} variações devem ser próximas entre si e altamente fiéis ao briefing.` : `Cada variação deve ter um tom diferente: 1) Profissional/Corporativo, 2) Casual/Engajador, 3) Criativo/Ousado.`}${input.toneHint}
+${executionBrief ? `As ${POST_VARIATION_TARGET} variações devem ser próximas entre si e altamente fiéis ao briefing.` : `As 3 variações DEVEM seguir as 3 matrizes cognitivas: 1) Diagnóstico do Sintoma Oculto, 2) Critério de Julgamento Técnico, 3) Causa-Efeito Contraintuitiva.`}${input.toneHint}
 ${input.brandDnaContext}
 ${executionSystemContext}
 ${input.promptContext}

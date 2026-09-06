@@ -142,3 +142,32 @@ describe("applyFamilyPreset — estilos pré-definidos nunca alteram cores", () 
     expect(adapted.palette.accent).toBe("#FFD600");
   });
 });
+
+describe("Contrast Guard — cinematic-depth (Pôster de Cinema)", () => {
+  it("normaliza fundo claro para #08080A e garante texto claro de alto contraste", () => {
+    const post = makePost({
+      familyId: "cinematic-depth",
+      palette: { background: "#FFF9FA", text: "#3A362D", headlineColor: "#3A362D", subtextColor: "#4A463D", accent: "#FF4D30" },
+    });
+    const guarded = applyContrastGuard(post);
+    expect(guarded.palette.background).toBe("#08080A");
+    expect(guarded.palette.headlineColor).toBe("#FFFFFF");
+    expect(guarded.palette.subtextColor).toBe("#FFFFFF");
+    expect(guarded.palette.text).toBe("#FFFFFF");
+    const warnings = getContrastWarnings(guarded);
+    expect(warnings.headline).toBe(false);
+    expect(warnings.subtext).toBe(false);
+  });
+
+  it("preserva fundo escuro existente e garante texto claro", () => {
+    const post = makePost({
+      familyId: "cinematic-depth",
+      palette: { background: "#111827", text: "#FFFFFF", accent: "#F59E0B" },
+    });
+    const guarded = applyContrastGuard(post);
+    expect(guarded.palette.background).toBe("#111827");
+    expect(guarded.palette.headlineColor).toBe("#FFFFFF");
+    expect(guarded.palette.subtextColor).toBe("#FFFFFF");
+  });
+});
+

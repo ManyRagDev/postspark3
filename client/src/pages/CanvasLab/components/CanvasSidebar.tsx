@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, Lightbulb, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop, RotateCcw } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, Lightbulb, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop, RotateCcw, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { OFFICIAL_FAMILIES_META, type CanvasPostModel, type TextAlignType, type VisualFamilyId } from "./types";
+import { OFFICIAL_FAMILIES_META, type CanvasPostModel, type TextAlignType, type VisualFamilyId, type OverlayMode, type CanvasCustomText } from "./types";
 import { applyFamilyPreset } from "../lib/familyPreset";
 import TypographyColorControls from "./TypographyColorControls";
 import TipCallout from "./TipCallout";
@@ -10,12 +10,16 @@ import { FONT_CATALOG } from "@/lib/fonts";
 import { trpc } from "@/lib/trpc";
 import BackgroundsDrawer from "./BackgroundsDrawer";
 import { downloadImageFile } from "@/lib/downloadHelper";
+import FontPickerDropdown from "./FontPickerDropdown";
 
 interface CanvasSidebarProps {
   post: CanvasPostModel;
   onUpdatePost: (patch: Partial<CanvasPostModel>) => void;
   isEditingBackground?: boolean;
   onToggleBackgroundEdit?: () => void;
+  onAddExtraText?: () => void;
+  onUpdateExtraText?: (id: string, patch: Partial<CanvasCustomText>) => void;
+  onRemoveExtraText?: (id: string) => void;
 }
 
 type TabType = "content" | "style" | "media" | "brand";
@@ -27,6 +31,9 @@ export default function CanvasSidebar({
   onUpdatePost,
   isEditingBackground = false,
   onToggleBackgroundEdit,
+  onAddExtraText,
+  onUpdateExtraText,
+  onRemoveExtraText,
 }: CanvasSidebarProps) {
   const [activeTab, setActiveTab] = useState<TabType>("content");
   const [copiedCaption, setCopiedCaption] = useState(false);
@@ -61,6 +68,7 @@ export default function CanvasSidebar({
   }, [post.imagePrompt]);
 
   const currentSlide = post.slides[post.currentSlideIndex];
+  const extraTextsList = currentSlide?.extraTexts || post.extraTexts || [];
 
   const handleUpdateHeadline = (text: string) => {
     if (currentSlide) {
@@ -246,6 +254,18 @@ export default function CanvasSidebar({
               Edite título, subtítulo e alinhamento; defina cores e tamanho da fonte por elemento; e prepare a legenda estratégica do Instagram.
             </TipCallout>
 
+            {/* Ação Rápida: Inserir Nova Caixa de Texto */}
+            {onAddExtraText && (
+              <button
+                type="button"
+                onClick={onAddExtraText}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[oklch(0.78_0.22_48)]/20 to-[oklch(0.78_0.22_48)]/10 hover:from-[oklch(0.78_0.22_48)]/30 hover:to-[oklch(0.78_0.22_48)]/20 border border-[oklch(0.78_0.22_48)]/40 hover:border-[oklch(0.78_0.22_48)]/60 text-[oklch(0.78_0.22_48)] hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                <span>+ Adicionar Caixa de Texto Livre</span>
+              </button>
+            )}
+
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
@@ -361,43 +381,120 @@ export default function CanvasSidebar({
               )}
             </div>
 
+            {/* ── Caixas de Texto Livres / Adicionais ── */}
+            <div className="pt-3 border-t border-white/8 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold flex items-center gap-1.5">
+                  <Type size={12} className="text-[oklch(0.78_0.22_48)]" />
+                  <span>Textos Livres ({extraTextsList.length})</span>
+                </label>
+                {onAddExtraText && (
+                  <button
+                    type="button"
+                    onClick={onAddExtraText}
+                    className="flex items-center gap-1 text-[11px] font-medium text-[oklch(0.78_0.22_48)] hover:text-white bg-[oklch(0.78_0.22_48)]/10 hover:bg-[oklch(0.78_0.22_48)]/20 px-2 py-1 rounded-lg border border-[oklch(0.78_0.22_48)]/30 transition-all cursor-pointer"
+                  >
+                    <Plus size={12} />
+                    <span>Adicionar Texto</span>
+                  </button>
+                )}
+              </div>
+
+              {extraTextsList.length === 0 ? (
+                <p className="text-[11px] text-white/40 italic">
+                  Nenhuma caixa de texto livre. Clique em "Adicionar Texto" para criar caixas extras editáveis no canvas.
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {extraTextsList.map((et, idx) => (
+                    <div
+                      key={et.id}
+                      className="p-2 rounded-xl bg-white/3 border border-white/8 space-y-2 hover:border-white/15 transition-all"
+                    >
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="text-[10px] font-mono text-white/40">#{idx + 1}</span>
+                        <input
+                          type="text"
+                          value={et.text}
+                          onChange={(e) => onUpdateExtraText?.(et.id, { text: e.target.value })}
+                          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)]"
+                          placeholder="Digite seu texto..."
+                        />
+                        {onRemoveExtraText && (
+                          <button
+                            type="button"
+                            onClick={() => onRemoveExtraText(et.id)}
+                            title="Remover caixa de texto"
+                            className="p-1 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all cursor-pointer"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/5 text-[11px]">
+                        {/* Alinhamento */}
+                        <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/10">
+                          {(['left', 'center', 'right'] as const).map((align) => (
+                            <button
+                              key={align}
+                              type="button"
+                              onClick={() => onUpdateExtraText?.(et.id, { align })}
+                              className={`p-1 rounded transition-colors ${
+                                (et.align || 'left') === align
+                                  ? 'bg-[oklch(0.78_0.22_48)] text-black font-semibold'
+                                  : 'text-white/60 hover:text-white'
+                              }`}
+                            >
+                              {align === 'left' && <AlignLeft size={11} />}
+                              {align === 'center' && <AlignCenter size={11} />}
+                              {align === 'right' && <AlignRight size={11} />}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Tamanho da Fonte */}
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-white/40">Tam:</span>
+                          <input
+                            type="range"
+                            min="14"
+                            max="72"
+                            value={et.fontSize || 24}
+                            onChange={(e) => onUpdateExtraText?.(et.id, { fontSize: Number(e.target.value) })}
+                            className="w-16 accent-[oklch(0.78_0.22_48)]"
+                          />
+                          <span className="text-[10px] font-mono text-white/60 w-5 text-right">{et.fontSize || 24}</span>
+                        </div>
+
+                        {/* Seletor de Cor */}
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="color"
+                            value={et.color || '#ffffff'}
+                            onChange={(e) => onUpdateExtraText?.(et.id, { color: e.target.value })}
+                            className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent"
+                            title="Cor do texto"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* ── Tipografia do Post & Fontes ── */}
             <div className="pt-3 border-t border-white/8 space-y-3">
               <div className="space-y-1.5">
                 <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
                   Tipografia do Post
                 </label>
-                <select
+                <FontPickerDropdown
                   value={post.fontFamily}
-                  onChange={(e) => onUpdatePost({ fontFamily: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-[#12141A] p-2.5 text-xs text-white outline-none cursor-pointer"
-                >
-                  {uploadedFontName && (
-                    <optgroup label="Fontes Próprias (Upload)">
-                      <option value={uploadedFontName}>{uploadedFontName}</option>
-                    </optgroup>
-                  )}
-                  <optgroup label="Serifadas (Elegância & Luxo)">
-                    {FONT_CATALOG.serif.map((f) => (
-                      <option key={f.name} value={f.name}>{f.label}</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Sans-Serif (Modernas & Clean)">
-                    {FONT_CATALOG.sansSerif.map((f) => (
-                      <option key={f.name} value={f.name}>{f.label}</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Display (Impacto & Brutalismo)">
-                    {FONT_CATALOG.display.map((f) => (
-                      <option key={f.name} value={f.name}>{f.label}</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Monoespaçadas (Cyber & Tech)">
-                    {FONT_CATALOG.mono.map((f) => (
-                      <option key={f.name} value={f.name}>{f.label}</option>
-                    ))}
-                  </optgroup>
-                </select>
+                  onChange={(font) => onUpdatePost({ fontFamily: font })}
+                  uploadedFontName={uploadedFontName}
+                />
               </div>
 
               <div className="space-y-1.5">
@@ -709,21 +806,123 @@ export default function CanvasSidebar({
               Usar Apenas Cor Sólida (Sem Foto)
             </button>
 
-            {/* 5. OPACIDADE DO OVERLAY */}
-            <div className="space-y-2 pt-3 border-t border-white/8">
+            {/* 5. CONTROLES DO OVERLAY / SCRIM */}
+            <div className="space-y-3 pt-3 border-t border-white/8">
               <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-white/50 font-semibold">
-                <span>Escurecimento (Overlay)</span>
-                <span>{Math.round(post.overlayOpacity * 100)}%</span>
+                <span>Camada de Sobreposição (Overlay)</span>
+                <span>{Math.round((post.overlayOpacity ?? 0.55) * 100)}%</span>
               </div>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={post.overlayOpacity}
-                onChange={(e) => onUpdatePost({ overlayOpacity: parseFloat(e.target.value) })}
-                className="w-full accent-[oklch(0.78_0.22_48)]"
-              />
+
+              {/* Modo de Distribuição / Variações */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Estilo do Overlay</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { id: "gradient-bottom", label: "Gradiente ↓", desc: "Suave na base" },
+                    { id: "gradient-top", label: "Gradiente ↑", desc: "Suave no topo" },
+                    { id: "solid", label: "Sólido ■", desc: "Uniforme" },
+                    { id: "radial", label: "Vinheta ◉", desc: "Foco central" },
+                  ].map((m) => {
+                    const active = (post.overlayMode || "gradient-bottom") === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => onUpdatePost({ overlayMode: m.id as OverlayMode })}
+                        className={`py-1.5 px-2.5 rounded-lg text-left text-xs transition-all cursor-pointer border ${
+                          active
+                            ? "bg-[oklch(0.78_0.22_48)]/15 border-[oklch(0.78_0.22_48)] text-white font-medium shadow-sm"
+                            : "bg-white/4 border-white/8 text-white/60 hover:text-white hover:bg-white/8"
+                        }`}
+                      >
+                        <div className="font-semibold text-[11px]">{m.label}</div>
+                        <div className="text-[9px] text-white/40">{m.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Cor do Overlay */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Cor da Sobreposição</span>
+                  {post.overlayColor && (
+                    <button
+                      type="button"
+                      onClick={() => onUpdatePost({ overlayColor: undefined })}
+                      className="text-[10px] text-white/40 hover:text-white/80 underline cursor-pointer"
+                    >
+                      Padrão do Fundo
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[
+                    { label: "Preto", color: "#000000", tip: "Escurecer com alto contraste" },
+                    { label: "Fundo", color: post.palette.background, tip: "Cor original do post" },
+                    { label: "Destaque", color: post.palette.accent, tip: "Cor da marca" },
+                    { label: "Branco", color: "#FFFFFF", tip: "Claro / High-key" },
+                    { label: "Noite", color: "#0F172A", tip: "Grafite azulado" },
+                  ].map((p, idx) => {
+                    const active = post.overlayColor
+                      ? post.overlayColor.toLowerCase() === p.color.toLowerCase()
+                      : p.label === "Fundo";
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        title={`${p.label} (${p.tip})`}
+                        onClick={() => onUpdatePost({ overlayColor: p.color })}
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border transition-all cursor-pointer ${
+                          active
+                            ? "border-[oklch(0.78_0.22_48)] bg-white/10 text-white font-medium shadow-sm"
+                            : "border-white/10 bg-white/4 text-white/60 hover:text-white hover:bg-white/8"
+                        }`}
+                      >
+                        <span
+                          className="w-3 h-3 rounded-full border border-white/20 shrink-0"
+                          style={{ backgroundColor: p.color }}
+                        />
+                        <span>{p.label}</span>
+                      </button>
+                    );
+                  })}
+
+                  {/* Picker nativo */}
+                  <label
+                    title="Escolher cor personalizada"
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] border border-white/10 bg-white/4 hover:bg-white/8 text-white/60 hover:text-white cursor-pointer transition-all"
+                  >
+                    <input
+                      type="color"
+                      value={post.overlayColor || post.palette.background || "#000000"}
+                      onChange={(e) => onUpdatePost({ overlayColor: e.target.value })}
+                      className="w-3.5 h-3.5 rounded border-0 p-0 cursor-pointer bg-transparent"
+                    />
+                    <span className="text-[10px] font-mono">
+                      {(post.overlayColor || post.palette.background || "#000000").slice(0, 7).toUpperCase()}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Slider de Intensidade */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between text-[10px] text-white/40 uppercase tracking-wider font-semibold">
+                  <span>Intensidade / Opacidade</span>
+                  <span className="font-mono text-white/70">{Math.round((post.overlayOpacity ?? 0.55) * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={post.overlayOpacity ?? 0.55}
+                  onChange={(e) => onUpdatePost({ overlayOpacity: parseFloat(e.target.value) })}
+                  className="w-full accent-[oklch(0.78_0.22_48)] cursor-pointer"
+                />
+              </div>
             </div>
           </div>
         )}

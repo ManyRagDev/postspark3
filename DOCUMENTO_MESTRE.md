@@ -86,6 +86,49 @@ Regras mandatórias do editor oficial:
    - No editor do CanvasLab (`CanvasTopBar`), é embutido no canto direito da barra de ferramentas ao lado do botão de exportação 4K.
    - Em todas as demais páginas do sistema (`/saved-posts`, `/history`, `/billing`, `/pricing`, etc.), o menu flutuante global permanece permanentemente ativo e ancorado no topo (`top-3.5 right-4 md:right-6`).
 
+10. **Seletor de Cor da Sombra e Fundo das Letras (`headlineEffectColor`, `subtextEffectColor`)**:
+   - No menu Tipografia & Cores (`TypographyColorControls.tsx`), quando qualquer efeito de legibilidade ativo (sombra, contorno, caixas, tarjas, pílula, etc.) estiver selecionado, é exibida a paleta "Cor da Sombra / Fundo".
+   - Oferece 7 presets rápidos de alta fidelidade (Preto, Branco, Cor de Acento, Grafite, Dourado, Vermelho e Ciano) e seletor nativo hexadecimal HTML5 `<input type="color">`.
+   - Persistido atomicamente no `CanvasPostModel` (`headlineEffectColor`, `subtextEffectColor`) e consumido diretamente pelo renderizador Konva (`CanvasPostStage.tsx`) tanto nos efeitos de fundo (`box-card`, `box-pill`, `box-glass`, `box-accent`, `box-brutal`, `strip-line`) quanto de texto (`shadowColor` na sombra suave e `stroke` no contorno/outline).
+
+11. **Garantia de Contraste na Variação Cinemática (`cinematic-depth`)**:
+   - Resolução do problema crônico de texto escuro sobre fundo escuro na variação central:
+   - `CanvasPostStage` respeita `post.palette.background` dinâmico em vez de forçar `#08080A` hardcoded ignorando a paleta.
+   - `resolveGuardedPalette` (`lib/contrast.ts`) audita a família `cinematic-depth`: se o backend ou o modelo gerou fundo claro, normaliza para `#08080A` cinemático e projeta texto de alto contraste (`#FFFFFF`/`#F3F4F6`), garantindo índice WCAG > 15:1.
+   - O adaptador `variationToCanvasModel` executa `applyContrastGuard` imediatamente na ingestão de cada variação.
+
+12. **Motor de Diversidade Visual das Variações (`ensureDistinctFamilies`)**:
+   - Resolução da repetição das 3 famílias estáticas (*Stroke Impact*, *Pôster de Cinema*, *Brutal Split*):
+   - Alinhamento de contrato: a função agora lê corretamente tanto `variation.familyId` quanto `variation.creativeDirection?.familyId` gerado pelo backend tRPC.
+   - Mapeamento bidirecional de aliases legados (`glitch-signal` ➔ `cyber-glitch`).
+   - Algoritmo de rotação dinâmica com seed hash do prompt: caso haja famílias duplicadas ou indefinidas, os fallbacks são selecionados rotativamente a partir do hash do prompt entre todas as 14 famílias oficiais, eliminando o determinismo estático do array `[0, 1, 2]`.
+
+13. **Variações e Seletor de Cor da Camada de Sobreposição (`overlayColor`, `overlayMode`)**:
+   - Desacoplamento da cor do overlay do `post.palette.background`:
+   - Permite 4 variações/estilos de sobreposição (`overlayMode`):
+     - `gradient-bottom` (padrão editorial: suave no topo, denso na base para destacar textos inferiores);
+     - `gradient-top` (denso no topo, suave na base para títulos no topo);
+     - `solid` (escurecimento/clareamento uniforme em 100% da imagem como filtro ND);
+     - `radial` (vinheta cinematográfica com centro límpido e bordas escuras).
+   - Seletor de cor do overlay (`overlayColor`) com 5 presets de alta conversão (Preto `#000000`, Cor do Post `background`, Cor de Destaque `accent`, Branco `#FFFFFF` e Azul Noite `#0F172A`) e input nativo hexadecimal.
+   - Persistido no `CanvasPostModel`, sanitizado em `saveAdapter.ts` e renderizado diretamente no Konva (`CanvasPostStage.tsx`).
+
+14. **Caixas de Texto Livres Adicionais (`extraTexts` / `CanvasCustomText`)**:
+   - Permite adicionar novas caixas de texto livremente no canvas além dos campos padrão (Headline e Subtexto).
+   - Modelo de dados: `CanvasCustomText` (`id`, `text`, `x`, `y`, `width`, `fontSize`, `fontFamily`, `color`, `align`, `effect`, `rotation`, `sizeScale`).
+   - As caixas extras herdam o mesmo modelo tátil e funcional das caixas nativas: arrasto com guias magnéticas (snap), rotação e redimensionamento via `Transformer` do Konva, e edição inline ao dar duplo clique/toque (com barra flutuante "Concluir / Cancelar" e atalhos de teclado).
+   - Controles integrados no desktop (`CanvasSidebar`) e no mobile (`CanvasMobileDrawer`): adição, exclusão, edição de texto, seleção de alinhamento (`left`, `center`, `right`), controle numérico de tamanho e seletor de cor.
+   - Persistência e normalização com suporte a carrosséis (`slides[].extraTexts` e `post.extraTexts`) em `saveAdapter.ts`.
+
+15. **Seletor Visual de Tipografia com Pré-Visualização Direta (`FontPickerDropdown`)**:
+   - Substituição do `<select>` HTML nativo (que achatava todas as opções na fonte do sistema operacional devido a limitações de tags `<option>`) por um seletor visual moderno com preview real estilo Canva/Figma.
+   - Cada opção do catálogo é renderizada diretamente na sua respectiva família tipográfica (`style={{ fontFamily: font.name }}`), com o nome estilizado e um espécime de caracteres (`Ag 123`).
+   - Pré-carregamento dinâmico em lote (`loadCatalogFonts` em `client/src/lib/fonts.ts`) que injeta os links consolidados do Google Fonts no `<head>`, eliminando atrasos e saltos de renderização (FOUC).
+   - Inclui as fontes padrão oficiais que faltavam no catálogo (`Cinzel` e `Archivo Black`).
+   - Campo de busca instantânea e abas de categorias táteis (*Todas*, *Serifadas*, *Display*, *Sans-Serif*, *Mono*, *Próprias*).
+   - Suporte a fontes próprias carregadas via upload de arquivo ou URL do Google Fonts.
+   - Aplicado uniformemente no painel desktop (`CanvasSidebar.tsx`) e na gaveta móvel (`CanvasMobileDrawer.tsx`).
+
 ---
 
 ## 4. Pipeline Completo de Geração de Posts (`post.generate`)
@@ -117,15 +160,24 @@ Regras mandatórias do editor oficial:
 
 ### Detalhes das Fases do Pipeline:
 1. **Resolução de Insumo**: O usuário pode fornecer texto livre, link de website ou arquivo. Se for URL, o motor ativa a análise de inteligência de site.
-2. **Cascata de LLMs Resiliente (`server/_core/llm.ts`)**:
+2. **Diretrizes de Copywriting Super Premium (Quiet Authority & Zero Vícios Sintéticos de IA)**:
+   - **Regra de Ordem Direta**: Eliminação total da antítese forçada e clichê de IA (*"Não é X, é Y"*, *"o segredo não é o produto, é o processo"*). As ideias são declaradas na ordem direta positiva (Sujeito ➔ Verbo ➔ Impacto).
+   - **Teste da Substituição Universal**: Proibição de copy vazia ou genérica. Toda variação obrigatoriamente inclui detalhes táteis, sintomas do mundo real, erros operacionais práticos, unidades de medida ou critérios técnicos do nicho.
+   - **3 Matrizes Cognitivas Obrigatórias**:
+     - *Variação 1 ➔ O Diagnóstico do Sintoma Oculto*: revela causa-raiz invisível por trás de hábitos ou processos que parecem inocentes.
+     - *Variação 2 ➔ O Critério de Julgamento Técnico*: entrega a régua prática de corte ou regra de avaliação que especialistas seniores usam nos bastidores.
+     - *Variação 3 ➔ A Relação Causa-Efeito Contraintuitiva*: demonstra onde o esforço comum é desperdiçado e qual ajuste de fundamentos gera alavancagem.
+   - **Quiet Authority (Postura de Alta Autoridade)**: Proibição de pontos de exclamação (!), entusiasmo artificial, tom de assistente/chatbot (*"Espero ter ajudado"*, *"conte comigo"*), suspense sintético (*"e isso muda tudo"*, *"o pulo do gato"*) e vazamento de termos de estratégia no texto (`— objeção comum`, `[dor]`).
+   - **Síntese Defensiva de Seções (`studioGeneration.ts`)**: Quando o modelo estruturar listas numeradas em `v.sections`, o gerador sintetiza defensivamente os tópicos dentro de `subtext` (`1. Label: desc • 2. ...`), garantindo que nenhum insight do usuário seja perdido silenciosamente.
+3. **Cascata de LLMs Resiliente (`server/_core/llm.ts`)**:
    - Primário: OpenRouter (`openai/gpt-5-mini`);
    - Fallback 1: Groq;
    - Fallback 2: Gemini Direct;
    - Retries com backoff exponencial para erros transitórios (429, 503).
-3. **BrandVisualGuardian (`server/ai/brandVisualGuardian.ts`)**:
+4. **BrandVisualGuardian (`server/ai/brandVisualGuardian.ts`)**:
    - Pure function síncrona que substitui juízes lentos de IA;
    - Força `backgroundColor` e `accentColor` na paleta da marca e garante contraste mínimo de 4.5:1 (WCAG AA).
-4. **Geração de Imagens (`server/imageGenerateBackground.ts`)**:
+5. **Geração de Imagens (`server/imageGenerateBackground.ts`)**:
    - Serviço primário: OpenRouter (`google/gemini-3.1-flash-image-preview`);
    - Serviço secundário automático: Pollinations.ai em alta definição;
    - Imagens são sempre entregues em formato DataURI validado, impedindo quebras de renderização por bloqueios de CORS ou links mortos.

@@ -421,6 +421,7 @@ export function createPostVisualSnapshot(
     ...adjusted,
     snapshotVersion: 4,
     aspectRatio: requestedAspectRatio,
+    familyId: adjusted.familyId ?? adjusted.creativeDirection?.familyId,
     postMode: adjusted.postMode ?? (adjusted.slides?.length ? "carousel" : "static"),
     backgroundColor,
     textColor,

@@ -8,7 +8,7 @@ Este repositório contém o código principal do PostSpark, uma aplicação full
 - autenticação com Supabase;
 - geração de variações de posts e carrosséis via LLM;
 - extração de identidade visual de sites;
-- edição visual no Workbench;
+- edição visual direta na prancheta interativa do CanvasLab (motor Konva 2D);
 - persistência de posts e assets;
 - billing por plano e saldo de `Sparks`.
 
@@ -73,8 +73,7 @@ Checklist prático para este repositório:
 - autenticação: `client/src/lib/supabaseClient.ts`, `client/src/_core/hooks/useAuth.ts`, `server/_core/sdk.ts`, `server/_core/supabaseAuth.ts`;
 - API: `server/_core/index.ts`, `server/routers.ts`, `server/_core/trpc.ts`;
 - persistência: `server/db.ts`, `drizzle/schema.ts`, `drizzle/*.sql`;
-- billing: `server/billing.ts`, páginas `Pricing` e `Billing`;
-- fluxo principal do produto: `client/src/pages/Home.tsx`, `client/src/components/views/TheVoid.tsx`, `HoloDeck`, `WorkbenchV2`;
+- fluxo principal do produto (ativo): rota `/thevoid` (e `/studio`) montando `client/src/pages/StudioApp/StudioAppV2BPage.tsx` (etapas Criação ➔ Galeria StudioGalleryView/StudioMobileFlashcards ➔ Editor CanvasLab em `client/src/pages/CanvasLab/`); componentes `Home.tsx` e `WorkbenchV2` são legado órfão sem rota montada (ver §3.2 do `DOCUMENTO_MESTRE.md`);
 - contratos compartilhados: `shared/postspark.ts`, `shared/const.ts`, `shared/types.ts`.
 
 ## Quando atualizar o documento-mestre
@@ -104,19 +103,23 @@ Atualize `DOCUMENTO_MESTRE.md` quando houver:
 
 ## Invariante obrigatória: fonte única da verdade dos posts
 
-Após `post.generate`, cada `PostVariation` deve atravessar uma única vez o normalizador canônico em `client/src/lib/variationSnapshot.ts` e tornar-se um `PostVisualSnapshot`.
+O repositório possui dois modelos com escopos e ciclos de vida bem definidos (ver §3 do `DOCUMENTO_MESTRE.md`):
 
-Regras obrigatórias para qualquer manutenção futura:
+### 1. Editor Oficial CanvasLab (`CanvasPostModel` — Ativo)
+O editor oficial ativo no PostSpark Studio (`client/src/pages/CanvasLab/`) adota o **`CanvasPostModel`** (`client/src/pages/CanvasLab/components/types.ts`) como documento autoritativo:
+1. Toda mutação passa pelo funil `CanvasLabPage.handleUpdatePost` e é renderizada deterministicamente pelo motor Konva `CanvasPostStage.tsx`.
+2. As regras de contraste (WCAG) e legibilidade são auditadas por `lib/contrast.ts`.
+3. Estilos pré-definidos nunca alteram cores (`lib/familyPreset.ts`).
+4. Persistência e reabertura com fidelidade total são realizadas na coluna `canvas_model` via `client/src/pages/CanvasLab/lib/saveAdapter.ts`.
 
-1. HoloDeck, Workbench, exportação, salvamento, posts salvos e histórico devem consumir o mesmo `PostVisualSnapshot`.
-2. Renderers não podem remover `designTokens`, recalcular prioridades de cor, inventar layout ou reconstruir background.
-3. O Zustand mantém `visualSnapshot` como documento autoritativo; os demais campos do editor são projeções compatíveis e não podem ser usados diretamente na persistência.
-4. Toda edição do Workbench deve atualizar `visualSnapshot` atomicamente antes da renderização seguinte.
-5. Overrides de carrossel permanecem em `slides[].editorState`; o slide atual nunca pode vazar para os campos-base do documento.
-6. Mudanças em HoloDeck, Workbench, `PostRenderer`, `PostCardV2`, `editorStore`, snapshots ou persistência exigem os testes de contrato e handoff de `variationSnapshot.test.ts`.
-7. Alterações no contrato exigem incremento de `snapshotVersion`, leitura das versões anteriores e atualização simultânea do `DOCUMENTO_MESTRE.md`.
+### 2. Fluxo Legado (`PostVisualSnapshot` — Histórico / Compatibilidade)
+No fluxo legado (`Home.tsx` / `HoloDeck` / `WorkbenchV2`, hoje sem rota montada), cada variação gerada por `post.generate` atravessa o normalizador em `client/src/lib/variationSnapshot.ts` tornando-se um `PostVisualSnapshot`.
+Regras para manutenção no legado:
+1. HoloDeck, Workbench, exportação e histórico legado consomem o mesmo `PostVisualSnapshot`.
+2. O Zustand mantém `visualSnapshot` como documento autoritativo para o legado; os demais campos são projeções compatíveis.
+3. Overrides de carrossel residem em `slides[].editorState`.
+4. Testes de contrato residem em `variationSnapshot.test.ts`. Alterações exigem incremento de `snapshotVersion`.
 
-É proibido criar um segundo normalizador visual ou uma precedência local paralela para cores, tokens, layout, imagem ou overlay.
 
 ## Entregas esperadas em mudanças futuras
 

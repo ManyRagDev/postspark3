@@ -48,7 +48,11 @@ export function resolveGuardedPalette(post: CanvasPostModel): {
   palette: CanvasPostPalette;
   warnings: ContrastWarnings;
 } {
-  const bg = post.palette.background || "#171717";
+  const isCinematic = post.familyId === "cinematic-depth";
+  let bg = post.palette.background || (isCinematic ? "#08080A" : "#171717");
+  if (isCinematic && !isDarkColor(bg)) {
+    bg = "#08080A";
+  }
   const accent = post.palette.accent || "#21F1A8";
   const isSplit = post.familyId === "brutal-split";
 
@@ -69,6 +73,7 @@ export function resolveGuardedPalette(post: CanvasPostModel): {
 
   const palette: CanvasPostPalette = {
     ...post.palette,
+    background: bg,
     text,
     headlineColor,
     subtextColor,

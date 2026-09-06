@@ -1,10 +1,12 @@
 import {
   ensureDistinctFamilies,
   resolveLegibleTextColor,
+  isDarkColor,
   OFFICIAL_FAMILIES_META,
   type AspectRatioType,
   type CanvasPostModel,
 } from "@/pages/CanvasLab/components/types";
+import { applyContrastGuard } from "@/pages/CanvasLab/lib/contrast";
 
 /**
  * Mapeamento e fallbacks do fluxo Studio (create → gallery → editor).
@@ -15,21 +17,51 @@ import {
  */
 
 export function variationToCanvasModel(v: any, index: number, originalPrompt: string): CanvasPostModel {
-  const famMeta = (v.familyId && OFFICIAL_FAMILIES_META[v.familyId as keyof typeof OFFICIAL_FAMILIES_META]) || OFFICIAL_FAMILIES_META["editorial-poster"];
+  const resolvedFamilyId = v.familyId || v.creativeDirection?.familyId;
+  const famMeta = (resolvedFamilyId && OFFICIAL_FAMILIES_META[resolvedFamilyId as keyof typeof OFFICIAL_FAMILIES_META]) || OFFICIAL_FAMILIES_META["editorial-poster"];
   const familyId = famMeta.id;
   const familyName = famMeta.name;
   const defaultFont = famMeta.defaultFont;
   const pal = famMeta.defaultPalette;
 
-  const bg = v.backgroundColor || pal.background;
+  // Se a família for cinematic-depth, o fundo escuro é canônico (#08080A)
+  let bg = v.backgroundColor || pal.background;
+  if (familyId === "cinematic-depth" && !isDarkColor(bg)) {
+    bg = pal.background;
+  }
   const accent = v.accentColor || pal.accent;
   // CR-CONTRAST: Garantia matemática de legibilidade WCAG
   const text = resolveLegibleTextColor(bg, v.textColor);
+  const headlineColor = resolveLegibleTextColor(bg, v.headlineColor || text);
+  const subtextColor = resolveLegibleTextColor(familyId === "brutal-split" ? accent : bg, v.bodyColor || v.subtextColor || text);
 
   const headline = v.headline || "Título do Post";
-  const subtext = v.body || v.subtext || "Conteúdo explicativo e direto.";
+
+  // Se o LLM gerou sections (ex: listas de 3 itens), sintetiza com elegância em vez de perder o conteúdo
+  const synthesizedFromSections =
+    Array.isArray(v.sections) && v.sections.length > 0
+      ? v.sections
+          .map((s: any, idx: number) => {
+            const label = s.label || s.title || "";
+            const desc = s.description || s.body || "";
+            if (label && desc) return `${idx + 1}. ${label}: ${desc}`;
+            return `${idx + 1}. ${label || desc}`;
+          })
+          .filter(Boolean)
+          .join("  •  ")
+      : "";
+
+  const subtext = v.body || v.subtext || synthesizedFromSections || "Conteúdo explicativo e direto.";
   const caption = v.caption || "";
   const imagePrompt = v.imagePrompt || `${originalPrompt}, professional photography, high resolution, minimalist editorial aesthetic`;
+
+  // Respeita o layout proposto pela IA para dar variedade visual às 3 variações
+  const resolvedAlign: "left" | "center" | "right" =
+    v.layout === "centered"
+      ? "center"
+      : v.layout === "right-aligned"
+      ? "right"
+      : "left";
 
   let slides: any[] = [];
   if (v.slides && Array.isArray(v.slides) && v.slides.length > 0) {
@@ -52,13 +84,13 @@ export function variationToCanvasModel(v: any, index: number, originalPrompt: st
     ];
   }
 
-  return {
+  const rawModel: CanvasPostModel = {
     id: `gen-${Date.now()}-${index}`,
     familyId,
     familyName,
     aspectRatio: (v.aspectRatio as AspectRatioType) || "1:1",
-    headlineAlign: "left",
-    bodyAlign: "left",
+    headlineAlign: resolvedAlign,
+    bodyAlign: resolvedAlign,
     badgeText: v.copyAngle?.badge || `${familyName.toUpperCase()} // 0${index + 1}`,
     headline,
     subtext,
@@ -68,15 +100,23 @@ export function variationToCanvasModel(v: any, index: number, originalPrompt: st
     overlayOpacity: 0.55,
     logoPosition: "top-right",
     isSnapEnabled: true,
+    headlineEffect: v.headlineEffect || "none",
+    headlineEffectColor: v.headlineEffectColor,
+    subtextEffect: v.subtextEffect || "none",
+    subtextEffectColor: v.subtextEffectColor,
     palette: {
       background: bg,
       text,
       accent,
       surface: pal.surface,
+      headlineColor,
+      subtextColor,
     },
     slides,
     currentSlideIndex: 0,
   };
+
+  return applyContrastGuard(rawModel);
 }
 
 /**
