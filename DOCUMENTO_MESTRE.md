@@ -55,7 +55,7 @@ Após o procedimento `post.generate` (fluxo legado Home/HoloDeck/WorkbenchV2, ho
 5. **Versionamento**: alterações estruturais exigem incremento de `snapshotVersion` + migração via `client/src/lib/snapshotMigration.ts`.
 
 ### 3.2 Editor oficial CanvasLab (`CanvasPostModel`) — ATIVO
-⚠️ **Decisão do dono (2026-09-05):** o fluxo **Home → HoloDeck → WorkbenchV2 é legado órfão** (não há rota montando `Home.tsx`). O editor oficial é o **CanvasLab** (`client/src/pages/CanvasLab/`), motor Konva (`CanvasPostStage.tsx`), acessado em `/thevoid` → `StudioAppV2BPage` (`create → gallery → editor`). O termo "workbench" é histórico; "HoloDeck" corresponde hoje a `StudioGalleryView` (desktop) / `StudioMobileFlashcards` (mobile).
+⚠️ **Decisão do dono (2026-09-05):** o fluxo **Home → HoloDeck → WorkbenchV2 é legado órfão** (não há rota montando `Home.tsx`). O editor oficial é o **CanvasLab** (`client/src/pages/CanvasLab/`), motor Konva (`CanvasPostStage.tsx`), acessado em `/thevoid` → `StudioAppV2BPage` (`create → gallery → editor`). O termo "workbench" é histórico; "HoloDeck" corresponde hoje a `StudioGalleryView` (desktop) / `StudioMobileFlashcards` (mobile). O guia de referência técnica do motor reside em [`konva.md`](./konva.md) e na skill `.agent/skills/konva-engine-guide/`.
 
 Regras mandatórias do editor oficial:
 1. **`CanvasPostModel` é o documento autoritativo** do editor (`client/src/pages/CanvasLab/components/types.ts`). Toda mutação passa pelo funil `CanvasLabPage.handleUpdatePost`.
@@ -128,6 +128,14 @@ Regras mandatórias do editor oficial:
    - Campo de busca instantânea e abas de categorias táteis (*Todas*, *Serifadas*, *Display*, *Sans-Serif*, *Mono*, *Próprias*).
    - Suporte a fontes próprias carregadas via upload de arquivo ou URL do Google Fonts.
    - Aplicado uniformemente no painel desktop (`CanvasSidebar.tsx`) e na gaveta móvel (`CanvasMobileDrawer.tsx`).
+
+16. **Elementos Opcionais de Marcação (Badge & Indicador de Slide)**:
+   - Resolução de badges vazios/fantasmas e remoção da exibição forçada de "SLIDE 01 // CAPA" em posts estáticos de imagem única.
+   - Em posts estáticos (`slides.length <= 1`), o indicador de etapa é oculto por definição.
+   - Tanto o Badge/Tag Superior (`showBadge`) quanto o Indicador de Slide (`showStep`) passam a ser opcionais no `CanvasPostModel`, inicializados como `false` por padrão em novas gerações e fallbacks.
+   - Controles visuais com checkboxes e campos de texto opcionais adicionados ao desktop (`CanvasSidebar.tsx`) e mobile (`CanvasMobileDrawer.tsx`).
+   - No Konva (`CanvasPostStage.tsx`), o Badge só é desenhado se `post.showBadge && post.badgeText?.trim()` for verdadeiro. Em carrosséis com `showStep: true`, exibe o marcador do slide atual (`currentSlide.step`); se ambos estiverem ativos simultaneamente no carrossel, o Badge principal é renderizado na posição de topo e um chip numérico secundário discreto é desenhado no canto oposto.
+   - A persistência e normalização em `saveAdapter.ts` preservam atomicamente `showBadge` e `showStep`.
 
 ---
 

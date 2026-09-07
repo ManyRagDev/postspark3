@@ -18,6 +18,7 @@ import {
   buildExtraFallbackVariations,
   buildTasteInstruction,
 } from "./lib/studioGeneration";
+import { loadCatalogFonts } from "@/lib/fonts";
 
 type ScreenStage = "create" | "gallery" | "editor";
 
@@ -49,6 +50,11 @@ export default function StudioAppV2BPage() {
   const generateMutation = trpc.post.generate.useMutation();
   const saveMutation = trpc.post.save.useMutation();
   const updateMutation = trpc.post.update.useMutation();
+
+  // Pré-carrega antecipadamente todas as 14 fontes oficiais para evitar FOUC na galeria e editor
+  useEffect(() => {
+    loadCatalogFonts();
+  }, []);
 
   // Item 7: reabertura de post salvo — chega via /saved-posts (sessionStorage).
   useEffect(() => {

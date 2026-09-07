@@ -338,8 +338,22 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
 
     const [bgImgElement, setBgImgElement] = useState<HTMLImageElement | null>(null);
     const [logoImgElement, setLogoImgElement] = useState<HTMLImageElement | null>(null);
-
     useDynamicFont(post.fontFamily, post.customFontUrl);
+
+    // Redesenho reativo quando as fontes web terminam de carregar no navegador
+    useEffect(() => {
+      if (typeof document !== "undefined" && document.fonts) {
+        let isMounted = true;
+        document.fonts.ready.then(() => {
+          if (isMounted && stageRef.current) {
+            stageRef.current.getLayers().forEach((layer: any) => layer.batchDraw());
+          }
+        });
+        return () => {
+          isMounted = false;
+        };
+      }
+    }, [post.fontFamily]);
 
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -462,7 +476,23 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
 
     const activeHeadline = currentSlide ? currentSlide.headline : post.headline;
     const activeSubtext = currentSlide ? currentSlide.subtext : post.subtext;
-    const activeStep = currentSlide ? currentSlide.step : post.badgeText;
+    const isCarousel = Boolean(post.slides && post.slides.length > 1);
+    const isBadgeVisible = Boolean(post.showBadge && post.badgeText?.trim());
+    const isStepVisible = Boolean(isCarousel && post.showStep && currentSlide?.step?.trim());
+
+    // Texto principal do badge superior: se showBadge estiver ativo, prioriza badgeText.
+    // Se não, se for carrossel e showStep estiver ativo, exibe currentSlide.step.
+    const primaryBadgeText = isBadgeVisible
+      ? (post.badgeText || "")
+      : isStepVisible
+      ? (currentSlide?.step || "")
+      : "";
+
+    const hasVisibleBadge = Boolean(primaryBadgeText.trim());
+
+    // Se AMBOS estiverem visíveis no carrossel, o secundário (contador numérico) é exibido como chip discreto
+    const showSecondarySlideChip = isBadgeVisible && isStepVisible;
+    const secondarySlideText = currentSlide?.step || "";
     const activeExtraTexts = currentSlide?.extraTexts || post.extraTexts || [];
 
     // --- CARACTERÍSTICAS DA FAMÍLIA ATIVA ---
@@ -475,11 +505,33 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const isCyber = fam === "cyber-glitch" || (fam as string) === "glitch-signal";
     const isCinematic = fam === "cinematic-depth";
     const isDuotone = fam === "duotone-wash";
+    const isKinetic = fam === "kinetic-type";
+    const isDataPunch = fam === "data-punch";
+    const isQuote = fam === "quote-authority";
+    const isMinimalAir = fam === "minimal-air";
+    const hasBgImage = Boolean(activeBg);
 
     const contentWidth = baseWidth - (isGlass ? 56 : 48);
 
     // ─── TAMANHOS BASE POR FAMÍLIA × ESCALA DO USUÁRIO (item 2) ───
-    const headlineBaseSize = isBrutalBlock || isStrokeImpact ? 32 : isCinematic ? 34 : isBrutalSplit ? 28 : isCyber ? 18 : isEditorial ? 23 : 21;
+    const headlineBaseSize =
+      isBrutalBlock || isStrokeImpact
+        ? 32
+        : isCinematic
+        ? 34
+        : isKinetic
+        ? 30
+        : isBrutalSplit
+        ? 28
+        : isDataPunch
+        ? 28
+        : isQuote
+        ? 26
+        : isCyber
+        ? 18
+        : isEditorial
+        ? 23
+        : 22;
     const subtextBaseSize = isBrutalBlock ? 11 : isCyber ? 11 : 12;
     const effHeadlineSizeBase = headlineBaseSize * (post.headlineSizeScale ?? 1);
     const effSubtextSize = subtextBaseSize * (post.subtextSizeScale ?? 1);
@@ -522,8 +574,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         return 45 + hHeight + MIN_TEXT_GAP <= splitLineY;
       }
       const stack = hHeight + sHeight + 20;
-      const topLimit = isBrutalBlock ? 60 : isGlass ? 80 : isDuotone ? 70 : 80;
-      const bottomLimit = isBrutalBlock ? 24 : isGlass ? 32 : isDuotone ? 24 : layoutBottomMargin;
+      const topLimit = isBrutalBlock ? 60 : isGlass ? 80 : isDuotone ? 70 : isKinetic || isDataPunch ? 48 : 80;
+      const bottomLimit = isBrutalBlock ? 24 : isGlass ? 32 : isDuotone ? 24 : isKinetic || isDataPunch ? 24 : layoutBottomMargin;
       return topLimit + stack <= baseHeight - bottomLimit;
     };
 
@@ -613,8 +665,19 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       defaultHeadlineY = Math.max(70, (baseHeight - totalStackHeight) / 2 + 15);
       defaultSubtextY = defaultHeadlineY + headlineHeight + 12;
       defaultBarY = defaultSubtextY + subtextHeight + 16;
+    } else if (isKinetic || isDataPunch || isQuote || isMinimalAir || !hasBgImage) {
+      // Famílias tipográficas e posts sem foto de fundo: distribuição harmônica e centrada
+      const availableHeight = baseHeight - layoutBottomMargin;
+      defaultHeadlineY = Math.max(
+        hasVisibleBadge ? 54 : 36,
+        Math.round((availableHeight - totalStackHeight) / 2)
+      );
+      defaultSubtextY = defaultHeadlineY + headlineHeight + 12;
+      defaultBadgeX = 24;
+      defaultBadgeY = 22;
+      defaultBarY = defaultSubtextY + subtextHeight + 16;
     } else {
-      // Editorial / Cyber
+      // Pôster Editorial com foto de fundo: texto ancorado na base sobre o degradê escuro
       defaultHeadlineY = Math.max(80, baseHeight - layoutBottomMargin - totalStackHeight);
       defaultSubtextY = defaultHeadlineY + headlineHeight + 10;
       defaultBadgeX = 24;
@@ -742,7 +805,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       let initialText = "";
       if (target === "headline") initialText = activeHeadline;
       else if (target === "subtext") initialText = activeSubtext;
-      else if (target === "badge") initialText = activeStep;
+      else if (target === "badge") initialText = primaryBadgeText;
       else {
         const found = activeExtraTexts.find((t) => t.id === target);
         if (found) initialText = found.text;
@@ -1135,117 +1198,149 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
               )}
 
               {/* ─── 3. BADGES / TAGS INDIVIDUAIS COM ESTILOS PRÓPRIOS ─── */}
-              {isBrutalBlock ? (
-                // 3.A) BRUTALISMO: Sticker Angular Rotacionado no Canto Superior
-                <Group
-                  ref={badgeRef}
-                  x={badgePos.x}
-                  y={badgePos.y}
-                  rotation={-4}
-                  draggable={isInteractive}
-                  dragBoundFunc={isInteractive ? createSnapBoundFunc(95, 26) : undefined}
-                  onClick={() => handleSelect("badge")}
-                  onDblClick={() => startEditing("badge")}
-                  onDblTap={() => startEditing("badge")}
-                  onDragMove={handleDragMove}
-                  onDragEnd={(e) => handleDragEnd(e, "badgePos")}
-                >
-                  <Rect
-                    x={0}
-                    y={0}
-                    width={95}
-                    height={26}
-                    fill="#000000"
-                    stroke={post.palette.accent}
-                    strokeWidth={2}
-                    shadowColor="rgba(0,0,0,0.8)"
-                    shadowBlur={6}
-                    shadowOffset={{ x: 2, y: 3 }}
-                  />
-                  <Text
-                    text={activeStep ? activeStep.toUpperCase() : "★ DESTAQUE"}
-                    x={8}
-                    y={7}
-                    fontSize={10}
-                    fontFamily="Anton"
-                    fontStyle="bold"
-                    fill={post.palette.accent}
-                    letterSpacing={1}
-                    opacity={editingTarget === "badge" ? 0 : 1}
+              {hasVisibleBadge && (
+                isBrutalBlock ? (
+                  // 3.A) BRUTALISMO: Sticker Angular Rotacionado no Canto Superior
+                  <Group
+                    ref={badgeRef}
+                    x={badgePos.x}
+                    y={badgePos.y}
+                    rotation={-4}
+                    draggable={isInteractive}
+                    dragBoundFunc={isInteractive ? createSnapBoundFunc(Math.max(95, primaryBadgeText.length * 8 + 20), 26) : undefined}
+                    onClick={() => handleSelect("badge")}
                     onDblClick={() => startEditing("badge")}
                     onDblTap={() => startEditing("badge")}
-                  />
-                </Group>
-              ) : isBrutalSplit ? (
-                // 3.B) BRUTAL SPLIT: Tag Neobrutalista Quadrada
+                    onDragMove={handleDragMove}
+                    onDragEnd={(e) => handleDragEnd(e, "badgePos")}
+                  >
+                    <Rect
+                      x={0}
+                      y={0}
+                      width={Math.max(95, primaryBadgeText.length * 8 + 20)}
+                      height={26}
+                      fill="#000000"
+                      stroke={post.palette.accent}
+                      strokeWidth={2}
+                      shadowColor="rgba(0,0,0,0.8)"
+                      shadowBlur={6}
+                      shadowOffset={{ x: 2, y: 3 }}
+                    />
+                    <Text
+                      text={primaryBadgeText.toUpperCase()}
+                      x={8}
+                      y={7}
+                      fontSize={10}
+                      fontFamily="Anton"
+                      fontStyle="bold"
+                      fill={post.palette.accent}
+                      letterSpacing={1}
+                      opacity={editingTarget === "badge" ? 0 : 1}
+                      onDblClick={() => startEditing("badge")}
+                      onDblTap={() => startEditing("badge")}
+                    />
+                  </Group>
+                ) : isBrutalSplit ? (
+                  // 3.B) BRUTAL SPLIT: Tag Neobrutalista Quadrada
+                  <Group
+                    ref={badgeRef}
+                    x={badgePos.x}
+                    y={badgePos.y}
+                    draggable={isInteractive}
+                    dragBoundFunc={isInteractive ? createSnapBoundFunc(primaryBadgeText.length * 7 + 16, 22) : undefined}
+                    onClick={() => handleSelect("badge")}
+                    onDblClick={() => startEditing("badge")}
+                    onDblTap={() => startEditing("badge")}
+                    onDragMove={handleDragMove}
+                    onDragEnd={(e) => handleDragEnd(e, "badgePos")}
+                  >
+                    <Rect x={0} y={0} width={primaryBadgeText.length * 7 + 16} height={22} fill="#FFFFFF" stroke="#000000" strokeWidth={1.5} />
+                    <Text text={primaryBadgeText.toUpperCase()} x={8} y={6} fontSize={8.5} fontFamily="monospace" fontStyle="bold" fill="#000000" letterSpacing={1} opacity={editingTarget === "badge" ? 0 : 1} onDblClick={() => startEditing("badge")} onDblTap={() => startEditing("badge")} />
+                  </Group>
+                ) : isCyber ? (
+                  // 3.C) CYBER: Badge Terminal Neon
+                  <Group
+                    ref={badgeRef}
+                    x={badgePos.x}
+                    y={badgePos.y}
+                    draggable={isInteractive}
+                    dragBoundFunc={isInteractive ? createSnapBoundFunc(primaryBadgeText.length * 7 + 22, 22) : undefined}
+                    onClick={() => handleSelect("badge")}
+                    onDblClick={() => startEditing("badge")}
+                    onDblTap={() => startEditing("badge")}
+                    onDragMove={handleDragMove}
+                    onDragEnd={(e) => handleDragEnd(e, "badgePos")}
+                  >
+                    <Rect x={0} y={0} width={primaryBadgeText.length * 7 + 22} height={22} fill="rgba(0, 240, 255, 0.08)" stroke="#00F0FF" strokeWidth={1} cornerRadius={2} />
+                    <Text text={`[ ${primaryBadgeText.toUpperCase()} ]`} x={8} y={6} fontSize={8.5} fontFamily="Space Mono" fontStyle="bold" fill="#00F0FF" letterSpacing={1} opacity={editingTarget === "badge" ? 0 : 1} onDblClick={() => startEditing("badge")} onDblTap={() => startEditing("badge")} />
+                  </Group>
+                ) : (
+                  // 3.D) PADRÃO / EDITORIAL / GLASS / DUOTONE: Pílula Refinada
+                  <Group
+                    ref={badgeRef}
+                    x={badgePos.x}
+                    y={badgePos.y}
+                    draggable={isInteractive}
+                    dragBoundFunc={isInteractive ? createSnapBoundFunc(primaryBadgeText.length * 7 + 18, 22) : undefined}
+                    onClick={() => handleSelect("badge")}
+                    onDblClick={() => startEditing("badge")}
+                    onDblTap={() => startEditing("badge")}
+                    onDragMove={handleDragMove}
+                    onDragEnd={(e) => handleDragEnd(e, "badgePos")}
+                  >
+                    <Rect
+                      x={0}
+                      y={0}
+                      width={primaryBadgeText.length * 7 + 18}
+                      height={22}
+                      cornerRadius={11}
+                      fill={isGlass ? "rgba(255,255,255,0.12)" : `${post.palette.accent}22`}
+                      stroke={isGlass ? "rgba(255,255,255,0.25)" : `${post.palette.accent}66`}
+                      strokeWidth={1}
+                    />
+                    <Text
+                      text={primaryBadgeText.toUpperCase()}
+                      x={9}
+                      y={6}
+                      fontSize={8.5}
+                      fontFamily="monospace"
+                      fontStyle="bold"
+                      fill={isGlass ? "#FFFFFF" : post.palette.accent}
+                      letterSpacing={1.5}
+                      opacity={editingTarget === "badge" ? 0 : 1}
+                      onDblClick={() => startEditing("badge")}
+                      onDblTap={() => startEditing("badge")}
+                    />
+                  </Group>
+                )
+              )}
+
+              {/* ─── 3.E) CHIP SECUNDÁRIO DE PAGINAÇÃO DE CARROSSEL (QUANDO AMBOS ATIVOS) ─── */}
+              {showSecondarySlideChip && (
                 <Group
-                  ref={badgeRef}
-                  x={badgePos.x}
-                  y={badgePos.y}
-                  draggable={isInteractive}
-                  dragBoundFunc={isInteractive ? createSnapBoundFunc(activeStep.length * 7 + 16, 22) : undefined}
-                  onClick={() => handleSelect("badge")}
-                  onDblClick={() => startEditing("badge")}
-                  onDblTap={() => startEditing("badge")}
-                  onDragMove={handleDragMove}
-                  onDragEnd={(e) => handleDragEnd(e, "badgePos")}
-                >
-                  <Rect x={0} y={0} width={activeStep.length * 7 + 16} height={22} fill="#FFFFFF" stroke="#000000" strokeWidth={1.5} />
-                  <Text text={activeStep.toUpperCase()} x={8} y={6} fontSize={8.5} fontFamily="monospace" fontStyle="bold" fill="#000000" letterSpacing={1} opacity={editingTarget === "badge" ? 0 : 1} onDblClick={() => startEditing("badge")} onDblTap={() => startEditing("badge")} />
-                </Group>
-              ) : isCyber ? (
-                // 3.C) CYBER: Badge Terminal Neon
-                <Group
-                  ref={badgeRef}
-                  x={badgePos.x}
-                  y={badgePos.y}
-                  draggable={isInteractive}
-                  dragBoundFunc={isInteractive ? createSnapBoundFunc(activeStep.length * 7 + 22, 22) : undefined}
-                  onClick={() => handleSelect("badge")}
-                  onDblClick={() => startEditing("badge")}
-                  onDblTap={() => startEditing("badge")}
-                  onDragMove={handleDragMove}
-                  onDragEnd={(e) => handleDragEnd(e, "badgePos")}
-                >
-                  <Rect x={0} y={0} width={activeStep.length * 7 + 22} height={22} fill="rgba(0, 240, 255, 0.08)" stroke="#00F0FF" strokeWidth={1} cornerRadius={2} />
-                  <Text text={`[ ${activeStep.toUpperCase()} ]`} x={8} y={6} fontSize={8.5} fontFamily="Space Mono" fontStyle="bold" fill="#00F0FF" letterSpacing={1} opacity={editingTarget === "badge" ? 0 : 1} onDblClick={() => startEditing("badge")} onDblTap={() => startEditing("badge")} />
-                </Group>
-              ) : (
-                // 3.D) PADRÃO / EDITORIAL / GLASS / DUOTONE: Pílula Refinada
-                <Group
-                  ref={badgeRef}
-                  x={badgePos.x}
-                  y={badgePos.y}
-                  draggable={isInteractive}
-                  dragBoundFunc={isInteractive ? createSnapBoundFunc(activeStep.length * 7 + 18, 22) : undefined}
-                  onClick={() => handleSelect("badge")}
-                  onDblClick={() => startEditing("badge")}
-                  onDblTap={() => startEditing("badge")}
-                  onDragMove={handleDragMove}
-                  onDragEnd={(e) => handleDragEnd(e, "badgePos")}
+                  x={Math.max(20, baseWidth - (secondarySlideText.length * 6.5 + 16) - 24)}
+                  y={28}
+                  listening={false}
                 >
                   <Rect
                     x={0}
                     y={0}
-                    width={activeStep.length * 7 + 18}
-                    height={22}
-                    cornerRadius={11}
-                    fill={isGlass ? "rgba(255,255,255,0.12)" : `${post.palette.accent}22`}
-                    stroke={isGlass ? "rgba(255,255,255,0.25)" : `${post.palette.accent}66`}
-                    strokeWidth={1}
+                    width={secondarySlideText.length * 6.5 + 16}
+                    height={20}
+                    cornerRadius={10}
+                    fill="rgba(0, 0, 0, 0.45)"
+                    stroke="rgba(255, 255, 255, 0.18)"
+                    strokeWidth={0.8}
                   />
                   <Text
-                    text={activeStep.toUpperCase()}
-                    x={9}
-                    y={6}
-                    fontSize={8.5}
+                    text={secondarySlideText.toUpperCase()}
+                    x={8}
+                    y={5}
+                    fontSize={8}
                     fontFamily="monospace"
                     fontStyle="bold"
-                    fill={isGlass ? "#FFFFFF" : post.palette.accent}
-                    letterSpacing={1.5}
-                    opacity={editingTarget === "badge" ? 0 : 1}
-                    onDblClick={() => startEditing("badge")}
-                    onDblTap={() => startEditing("badge")}
+                    fill="rgba(255, 255, 255, 0.8)"
+                    letterSpacing={1}
                   />
                 </Group>
               )}
@@ -1565,7 +1660,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
               : (extraItem?.y ?? Math.round(baseHeight * 0.65));
 
             const targetWidth = isBadge
-              ? Math.max(130, activeStep.length * 8 + 36)
+              ? Math.max(130, primaryBadgeText.length * 8 + 36)
               : (extraItem?.width ?? contentWidth);
 
             const targetHeight = isHeadline

@@ -358,25 +358,57 @@ export default function CanvasMobileDrawer({
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-mono text-white/50 uppercase">Badge Superior</label>
-                      <input
-                        type="text"
-                        value={post.badgeText || ""}
-                        onChange={(e) => handleUpdateBadge(e.target.value)}
-                        className="w-full bg-white/6 border border-white/10 rounded-xl p-2 text-xs text-white outline-none"
-                      />
+                  {/* ── Elementos Opcionais de Marcação (Badge & Etapa) ── */}
+                  <div className="pt-3 border-t border-white/8 space-y-3">
+                    {/* Badge / Tag Superior */}
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={post.showBadge || false}
+                          onChange={(e) => onUpdatePost({ showBadge: e.target.checked })}
+                          className="w-3.5 h-3.5 rounded border border-white/20 bg-white/5 accent-[oklch(0.78_0.22_48)] cursor-pointer"
+                        />
+                        <span className="text-[11px] font-semibold text-white/70 hover:text-white uppercase tracking-wider">
+                          Exibir Badge / Tag Superior
+                        </span>
+                      </label>
+                      {post.showBadge && (
+                        <input
+                          type="text"
+                          value={post.badgeText || ""}
+                          onChange={(e) => handleUpdateBadge(e.target.value)}
+                          className="w-full bg-white/6 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)]"
+                          placeholder="Ex: EDITORIAL, DESTAQUE, CASE STUDY..."
+                        />
+                      )}
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-mono text-white/50 uppercase">Etapa / Slide</label>
-                      <input
-                        type="text"
-                        value={currentSlide?.step || ""}
-                        onChange={(e) => handleUpdateSlide("step", e.target.value)}
-                        className="w-full bg-white/6 border border-white/10 rounded-xl p-2 text-xs text-white outline-none"
-                      />
-                    </div>
+
+                    {/* Indicador de Slide / Carrossel (apenas se houver mais de 1 slide) */}
+                    {post.slides.length > 1 && (
+                      <div className="space-y-1.5 pt-2 border-t border-white/5">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={post.showStep || false}
+                            onChange={(e) => onUpdatePost({ showStep: e.target.checked })}
+                            className="w-3.5 h-3.5 rounded border border-white/20 bg-white/5 accent-[oklch(0.78_0.22_48)] cursor-pointer"
+                          />
+                          <span className="text-[11px] font-semibold text-white/70 hover:text-white uppercase tracking-wider">
+                            Exibir Indicador de Slide ({post.currentSlideIndex + 1}/{post.slides.length})
+                          </span>
+                        </label>
+                        {post.showStep && (
+                          <input
+                            type="text"
+                            value={currentSlide?.step || ""}
+                            onChange={(e) => handleUpdateSlide("step", e.target.value)}
+                            className="w-full bg-white/6 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)]"
+                            placeholder="Ex: 01 // CAPA, PASSO 02..."
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {hasManualTextPosition && (

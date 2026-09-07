@@ -175,7 +175,13 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         } else if (field === "subtext") {
           updatedSlides[curIdx] = { ...currentSlide, subtext: value };
         } else if (field === "badgeText") {
-          updatedSlides[curIdx] = { ...currentSlide, step: value };
+          if (!prev.showBadge && prev.showStep) {
+            updatedSlides[curIdx] = { ...currentSlide, step: value };
+            return {
+              ...prev,
+              slides: updatedSlides,
+            };
+          }
         }
       }
 

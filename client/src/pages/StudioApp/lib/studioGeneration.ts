@@ -64,10 +64,10 @@ export function variationToCanvasModel(v: any, index: number, originalPrompt: st
       : "left";
 
   let slides: any[] = [];
-  if (v.slides && Array.isArray(v.slides) && v.slides.length > 0) {
+  if (v.slides && Array.isArray(v.slides) && v.slides.length > 1) {
     slides = v.slides.map((s: any, sIdx: number) => ({
       id: `s-${sIdx + 1}`,
-      step: `SLIDE 0${sIdx + 1} // ${sIdx === 0 ? "O GANCHO" : sIdx === v.slides.length - 1 ? "O CHAMADO" : "CONTEÚDO"}`,
+      step: `0${sIdx + 1} // ${sIdx === 0 ? "O GANCHO" : sIdx === v.slides.length - 1 ? "O CHAMADO" : "CONTEÚDO"}`,
       headline: s.headline || headline,
       subtext: s.body || s.subtext || subtext,
       imagePrompt,
@@ -76,7 +76,7 @@ export function variationToCanvasModel(v: any, index: number, originalPrompt: st
     slides = [
       {
         id: "s-1",
-        step: "SLIDE 01 // CAPA",
+        step: "",
         headline,
         subtext,
         imagePrompt,
@@ -91,7 +91,9 @@ export function variationToCanvasModel(v: any, index: number, originalPrompt: st
     aspectRatio: (v.aspectRatio as AspectRatioType) || "1:1",
     headlineAlign: resolvedAlign,
     bodyAlign: resolvedAlign,
+    showBadge: false,
     badgeText: v.copyAngle?.badge || `${familyName.toUpperCase()} // 0${index + 1}`,
+    showStep: false,
     headline,
     subtext,
     caption,
@@ -142,7 +144,9 @@ export function buildInitialFallbackVariations(promptText: string, declaredFamil
       aspectRatio: "1:1",
       headlineAlign: "left",
       bodyAlign: "left",
+      showBadge: false,
       badgeText: "EDITORIAL // CAPA",
+      showStep: false,
       headline: promptText,
       subtext: "A percepção de autoridade nasce quando cada detalhe visual e palavra parecem deliberados.",
       caption: `${promptText}\n\nMarcas de alto padrão constroem consistência estética e autoridade.\n\n#Branding #DesignEstrategico #Marketing`,
@@ -166,7 +170,9 @@ export function buildInitialFallbackVariations(promptText: string, declaredFamil
       aspectRatio: "1:1",
       headlineAlign: "center",
       bodyAlign: "center",
+      showBadge: false,
       badgeText: "INSIGHT // TECH",
+      showStep: false,
       headline: `Por que ${promptText.toLowerCase().replace(/^(3|4|5|como|o)\s*/i, "")} muda seu jogo?`,
       subtext: "Estruturas modernas e clareza de mensagem para posicionar sua marca no topo.",
       caption: `${promptText}\n\nInovação e autoridade visual.\n\n#Inovacao #Tecnologia #Design`,
@@ -189,7 +195,9 @@ export function buildInitialFallbackVariations(promptText: string, declaredFamil
       aspectRatio: "1:1",
       headlineAlign: "center",
       bodyAlign: "center",
+      showBadge: false,
       badgeText: "DESTAQUE // DIRETO",
+      showStep: false,
       headline: promptText.toUpperCase(),
       subtext: "Impacto visual imediato sem rodeios. A mensagem clara que corta o ruído do feed.",
       caption: `${promptText}\n\nCorte o ruído e posicione sua mensagem com força.\n\n#Posicionamento #Impacto`,
@@ -239,7 +247,9 @@ export function buildExtraFallbackVariations(lastPrompt: string): CanvasPostMode
       aspectRatio: "1:1",
       headlineAlign: "left",
       bodyAlign: "left",
+      showBadge: false,
       badgeText: "CORTE // DIRETO",
+      showStep: false,
       headline: `O que ninguém te conta sobre ${lastPrompt.toLowerCase().replace(/^(3|4|5|como|o)\s*/i, "")}`,
       subtext: "Divisão de contraste absoluto para parar o scroll e fixar sua mensagem.",
       caption: `${lastPrompt}\n\nComunicação direta e alto contraste.\n\n#Branding #Design`,
@@ -250,7 +260,7 @@ export function buildExtraFallbackVariations(lastPrompt: string): CanvasPostMode
       isSnapEnabled: true,
       palette: { background: "#0C0C0D", text: "#FFFFFF", accent: "#FF4D00" },
       currentSlideIndex: 0,
-      slides: [{ id: "s1", step: "SLIDE 01", headline: `O que ninguém te conta sobre ${lastPrompt.toLowerCase()}`, subtext: "Divisão de contraste absoluto." }],
+      slides: [{ id: "s1", step: "", headline: `O que ninguém te conta sobre ${lastPrompt.toLowerCase()}`, subtext: "Divisão de contraste absoluto." }],
     },
     {
       id: `var-${Date.now()}-2`,
@@ -259,7 +269,9 @@ export function buildExtraFallbackVariations(lastPrompt: string): CanvasPostMode
       aspectRatio: "1:1",
       headlineAlign: "left",
       bodyAlign: "left",
+      showBadge: false,
       badgeText: "SYSTEM // TECH",
+      showStep: false,
       headline: `[DIAGNÓSTICO] A falha invisível em ${lastPrompt.toLowerCase().replace(/^(3|4|5|como|o)\s*/i, "")}`,
       subtext: "Estética monospaced e precisão técnica para marcas do futuro.",
       caption: `${lastPrompt}\n\nDesign futurista e precisão técnica.\n\n#Tech #Inovacao`,
@@ -270,7 +282,7 @@ export function buildExtraFallbackVariations(lastPrompt: string): CanvasPostMode
       isSnapEnabled: true,
       palette: { background: "#040812", text: "#E0F7FA", accent: "#00F0FF" },
       currentSlideIndex: 0,
-      slides: [{ id: "s1", step: "SLIDE 01", headline: `[DIAGNÓSTICO] A falha invisível em ${lastPrompt.toLowerCase()}`, subtext: "Estética monospaced e precisão técnica." }],
+      slides: [{ id: "s1", step: "", headline: `[DIAGNÓSTICO] A falha invisível em ${lastPrompt.toLowerCase()}`, subtext: "Estética monospaced e precisão técnica." }],
     },
     {
       id: `var-${Date.now()}-3`,
@@ -279,7 +291,9 @@ export function buildExtraFallbackVariations(lastPrompt: string): CanvasPostMode
       aspectRatio: "1:1",
       headlineAlign: "center",
       bodyAlign: "center",
+      showBadge: false,
       badgeText: "ESTILO // LUXO",
+      showStep: false,
       headline: `O novo padrão visual para quem busca autoridade real`,
       subtext: "Gradientes sofisticados e harmonia tonal para elevar o valor percebido da sua oferta.",
       caption: `${lastPrompt}\n\nHarmonia de cores e elegância.\n\n#Estilo #Design`,
@@ -290,7 +304,7 @@ export function buildExtraFallbackVariations(lastPrompt: string): CanvasPostMode
       isSnapEnabled: true,
       palette: { background: "#2A0845", text: "#FFFFFF", accent: "#FF3366" },
       currentSlideIndex: 0,
-      slides: [{ id: "s1", step: "SLIDE 01", headline: "O novo padrão visual para quem busca autoridade real", subtext: "Gradientes sofisticados e harmonia tonal." }],
+      slides: [{ id: "s1", step: "", headline: "O novo padrão visual para quem busca autoridade real", subtext: "Gradientes sofisticados e harmonia tonal." }],
     },
   ];
 }

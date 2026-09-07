@@ -415,7 +415,11 @@ export interface CanvasPostModel {
   aspectRatio: AspectRatioType;
   headlineAlign: TextAlignType;
   bodyAlign: TextAlignType;
+  /** Exibir elemento de Badge / Tag no topo da arte (default: false). */
+  showBadge?: boolean;
   badgeText: string;
+  /** Exibir indicador de etapa/slide no carrossel (default: false, oculto em post estático). */
+  showStep?: boolean;
   headline: string;
   subtext: string;
   caption: string;
@@ -462,7 +466,9 @@ export const INITIAL_POST: CanvasPostModel = {
   aspectRatio: "1:1",
   headlineAlign: "left",
   bodyAlign: "left",
-  badgeText: "EDITORIAL // CAPA",
+  showBadge: false,
+  badgeText: "",
+  showStep: false,
   headline: "Marcas de alto valor não competem por preço. Elas definem o padrão.",
   subtext: "A percepção de autoridade nasce quando cada palavra e detalhe visual parecem deliberados.",
   caption: "Marcas de alto padrão não disputam a atenção pelo desconto mais agressivo.\n\nElas constroem um ecossistema onde:\n• A estética é impecável;\n• A mensagem tem clareza absoluta;\n• O valor percebido torna o preço secundário.\n\nQual é o padrão que a sua marca está definindo hoje?\n\n#Branding #Posicionamento #DesignEstrategico #Autoridade",
