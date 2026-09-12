@@ -107,3 +107,45 @@ o incidente; elas sao a evidencia para diagnostico.
 - confirmar no painel debug os agentes `site_semantic_analysis`,
   `site_visual_identity` e `post_generation_1..3`;
 - confirmar no banco que prompts e respostas brutas nao foram persistidos.
+
+## Ancoragem de conteudo (Fases 1-5)
+
+Implementado em 2026-09-10. Objetivo: adicionar estrutura verificavel ao prompt
+sem aumentar o numero de regras no system prompt.
+
+### Mudancas de arquitetura
+
+- `SiteIntelligence` ganhou campo `anchors` (facts, proprietaryTerms, objections).
+- Schema `site_business_intelligence` solicita anchors ao LLM; validacao de
+  qualidade decide se persiste (facts >=3, proprietaryTerms >=2, objections >=1).
+- `siteIntelligenceToPrompt` injeta bloco `ANCORAS OBRIGATORIAS` somente quando
+  anchors existem; quando ausente, o prompt funciona como antes.
+- Schema `post_variations` ganhou `anchorUsed` (enum dinamico) e
+  `proprietaryTerms` (array, min1).
+- `checkAnchorUsage` valida ancoragem em codigo; slots sem ancoragem entram em
+  repairTargets.
+- Penalidade de -15 em factuality para slots com anchor issues, garantindo queda
+  abaixo do gate (65) e disparo de reparo.
+- Juiz LLM (`post_evaluation`) agora avalia `aiViceScore` (0-100) e
+  `vicePatterns` (8 padroes). `shouldJudge` filtra candidatos na faixa 70-85.
+- `checkAiVices` detecta vicios e injeta motivo de reparo estruturado.
+- `copyRules` reduzido de ~61 para ~15 linhas; regras migradas para schema,
+  checks e juiz.
+
+### Criterios de aceite
+
+- URL com SI e anchors: `anchorUsed` preenchido em >=90% das variacoes.
+- URL com SI e anchors vazios: sem validacao de ancoragem, warning em
+  `quality.warnings`.
+- Texto puro (sem URL): fluxo inalterado, sem anchors, sem validacao.
+- `aiViceScore` < 70 dispara reparo com descricao dos padroes detectados.
+- `shouldJudge` reduz chamadas ao juiz para candidatos na faixa 70-85.
+
+### Validacao manual adicional
+
+- URL com site rico: confirmar anchors extraidos e ancoragem nas variacoes.
+- URL com site pobre: confirmar warning e ausencia de validacao de ancoragem.
+- Texto puro: confirmar que funciona como antes (sem anchors).
+- Prompt com "nao e X, e Y": confirmar que juiz detecta `antitese_negativa`.
+- Criterio de aceite de latencia: mediana pós-mudanca dentro de
+  [mediana_antes * 0.9, mediana_antes * 1.2].

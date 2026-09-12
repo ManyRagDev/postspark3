@@ -299,6 +299,20 @@ export interface CanvasCustomText {
   sizeScale?: number;
 }
 
+export interface CanvasCustomImage {
+  id: string;
+  url: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation?: number;
+  opacity?: number;
+  cornerRadius?: number;
+}
+
+export type SplitBgPosition = "bottom" | "top" | "full";
+
 export interface CarouselSlideItem {
   id: string;
   step: string;
@@ -313,6 +327,8 @@ export interface CarouselSlideItem {
   barPos?: ElementPosition;
   logoPos?: ElementPosition;
   extraTexts?: CanvasCustomText[];
+  extraImages?: CanvasCustomImage[];
+  splitBgPosition?: SplitBgPosition;
 }
 
 export type TextLegibilityEffect =
@@ -457,6 +473,10 @@ export interface CanvasPostModel {
   currentSlideIndex: number;
   /** Caixas de texto livres adicionais adicionadas pelo usuário. */
   extraTexts?: CanvasCustomText[];
+  /** Imagens livres adicionais adicionadas pelo usuário (fotos, adesivos, etc). */
+  extraImages?: CanvasCustomImage[];
+  /** No estilo brutal-split: metade onde o fundo fotográfico é aplicado ('bottom' | 'top' | 'full'). */
+  splitBgPosition?: SplitBgPosition;
 }
 
 export const INITIAL_POST: CanvasPostModel = {

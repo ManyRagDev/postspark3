@@ -2,6 +2,7 @@
 
 > **Status do Documento:** Documento-Mestre Canônico e Fonte Primária da Verdade (Single Source of Truth).  
 > **Revisão:** 2026-09-05 — Reforma do Editor Oficial (CanvasLab), Guardião de Contraste, Salvamento v2, Sistema de Dicas e Correções de Usabilidade (11 itens).  
+> **Pendência registrada (2026-09-08):** Plano da integração local "PostSpark Bridge" aprovado — [`docs/plano-postspark-bridge.md`](./docs/plano-postspark-bridge.md). Cada fase concluída vira nova seção §13.x neste documento.  
 > **Regra Mandatória (AGENTS.md):** Todo agente ou desenvolvedor deve consultar este documento antes de alterações e atualizá-lo sempre que houver mudanças arquiteturais, estruturais, de contratos ou de rotas.
 
 ---
@@ -61,7 +62,7 @@ Regras mandatórias do editor oficial:
 1. **`CanvasPostModel` é o documento autoritativo** do editor (`client/src/pages/CanvasLab/components/types.ts`). Toda mutação passa pelo funil `CanvasLabPage.handleUpdatePost`.
 2. **Guardião de Contraste (`lib/contrast.ts`)**: regra mandatória de usabilidade — fundo escuro ⇄ texto claro e vice-versa, **incluindo as metades do brutal-split** (título contra `background`, corpo contra `accent`). Executa em mudança de fundo, acento ou família (`patchTouchesContrast`). Escolhas manuais do usuário (flags `manualHeadlineColor`/`manualSubtextColor`) são preservadas e apenas sinalizadas com selo "contraste baixo".
 3. **Estilos pré-definidos nunca alteram cores**: `applyFamilyPreset` (`lib/familyPreset.ts`) aplica família alterando APENAS tipografia/composição; `background` e `accent` são preservados; `surface` só entra como fallback. Usar este helper (nunca reimplementar a lógica nos componentes).
-4. **Motor anti-sobreposição**: `CanvasPostStage` reduz a fonte do título em até 3 passos (0.88×) quando a pilha título/corpo colide com a linha de corte do split (50%) ou a margem inferior; o subtítulo do split fica no mínimo na linha de corte (nunca o preto hardcoded legado).
+4. **Motor anti-sobreposição e estabilidade de layout**: `CanvasPostStage` adota distribuição harmônica e centrada por padrão (preservando a posição estável do texto com ou sem foto/textura de fundo, evitando que o texto salte arbitrariamente para o rodapé ao aplicar uma imagem). Reduz a fonte do título em até 3 passos (0.88×) quando a pilha título/corpo colide com a linha de corte do split (50%) ou a margem inferior; o subtítulo do split fica no mínimo na linha de corte (nunca o preto hardcoded legado). O usuário mantém controle total via drag-and-drop livre a qualquer momento.
 5. **Persistência**: salvamento via `post.save`/`post.update` com o modelo completo na coluna `canvas_model` (drizzle/0016) — reabertura com fidelidade total via `savedPostToCanvasModel`.
 6. **Efeitos de Legibilidade Tipográfica (10 Estilos Oficiais)**: Para fotos e fundos com textura ou detalhes ricos (onde o cálculo de cor sólida é insuficiente para garantir leitura), o editor disponibiliza 10 estilos de realce aplicáveis livremente ao Título, Corpo ou Ambos (`headlineEffect`, `subtextEffect`):
    - *Básicos*: `none` (Normal), `shadow` (Sombra suave projetada com blur 12), `outline` (Contorno/stroke nítido com `fillAfterStrokeEnabled`).
@@ -137,6 +138,37 @@ Regras mandatórias do editor oficial:
    - No Konva (`CanvasPostStage.tsx`), o Badge só é desenhado se `post.showBadge && post.badgeText?.trim()` for verdadeiro. Em carrosséis com `showStep: true`, exibe o marcador do slide atual (`currentSlide.step`); se ambos estiverem ativos simultaneamente no carrossel, o Badge principal é renderizado na posição de topo e um chip numérico secundário discreto é desenhado no canto oposto.
    - A persistência e normalização em `saveAdapter.ts` preservam atomicamente `showBadge` e `showStep`.
 
+17. **Inserção e Redimensionamento Livre de Fotos e Imagens (`extraImages` / `CanvasCustomImage`)**:
+   - Permite aos usuários fazer upload e inserir livremente fotos, imagens e adesivos em qualquer slide do post.
+   - Modelo de dados: `CanvasCustomImage` (`id`, `url`, `x`, `y`, `width`, `height`, `rotation`, `opacity`, `cornerRadius`).
+   - Renderização e Manipulação Konva (`CanvasPostStage.tsx`):
+     - Componente dedicado `CanvasCustomImageNode` com carregamento assíncrono e `img.crossOrigin = "Anonymous"` para prevenir contaminação do canvas (*canvas tainted*) e viabilizar exportações em alta resolução (4K Ultra-HD) sem restrições CORS.
+     - Alocação no layer principal do palco, respeitando o teto de memória e performance gráfica em navegadores mobile (iOS Safari).
+     - Suporte completo a drag-and-drop livre dentro dos limites do post com guias magnéticas (snap).
+     - Suporte a seleção tátil e foco via `Transformer` Konva com redimensionamento proporcional (`keepRatio={true}`) e rotação com snap de 90° (`[0, 90, 180, 270]`).
+     - Respeito estrito ao invariante Konva no `onTransformEnd`: calcula nova largura/altura multiplicando a escala (`width * scaleX`, `height * scaleY`) e imediatamente reseta `node.scaleX(1)` e `node.scaleY(1)` para prevenir distorções acumuladas.
+     - Seleção e desseleção integradas no palco: `handleStagePointerDown` verifica descendência de `extraImageRefs` impedindo cancelamentos indevidos de foco ao clicar sobre a imagem.
+   - Interface e Controles:
+     - Botão de ação rápida `+ Imagem` na barra de ferramentas superior (`CanvasTopBar.tsx`), na barra lateral desktop (`CanvasSidebar.tsx`) e no rodapé móvel (`CanvasMobileDrawer.tsx`).
+     - Listagem gerenciável de imagens por slide com miniaturas, badges de dimensões reais em pixels, sliders de opacidade (10% a 100%), sliders de arredondamento de bordas (`cornerRadius` de 0 a 60px) e botão de exclusão imediata.
+     - Opção adicional na aba Mídia no mobile para inserir fotos adicionais sobrepostas como camada.
+   - Persistência e Retrocompatibilidade:
+     - Preservado no array de cada slide (`slides[].extraImages`) e na raiz do `CanvasPostModel`.
+     - Normalizado e sanitizado em `saveAdapter.ts` (`normalizeCanvasModel`), garantindo reabertura idêntica e sem regressões para posts legados.
+
+18. **Distribuição do Fundo no Brutal Split (`splitBgPosition`)**:
+   - No estilo *Brutal Split*, resolve a limitação em que fotos de fundo cobriam 100% da arte, ofuscando a composição cromática das duas metades sólidas.
+   - Modelo de dados: `splitBgPosition?: "bottom" | "top" | "full"` (com default em `"bottom"`).
+   - Renderização e Recorte no Konva (`CanvasPostStage.tsx`):
+     - Quando `splitBgPosition` for `"bottom"` (padrão editorial/clássico): a imagem e o overlay de contraste são agrupados em `<Group clip={{ x: 0, y: baseHeight * 0.5, width: baseWidth, height: baseHeight * 0.5 }}>`, exibindo a foto exclusivamente na metade inferior com cover crop recalculado para essa área. A metade superior permanece com o bloco sólido puro de alta legibilidade (`palette.background`), permitindo que a Headline se destaque com 100% de contraste.
+     - Quando `splitBgPosition` for `"top"`: o recorte inverte para os 50% superiores (`y: 0`, `height: baseHeight * 0.5`), mantendo a base sólida com `palette.accent`.
+     - Quando `splitBgPosition` for `"full"`: a foto cobre os 100% do post como plano de fundo completo.
+     - A linha divisória preta do split (`Line` a 50%) é renderizada sobre a junção dos fundos, assegurando separação nítida em qualquer modo.
+   - Interface do Usuário:
+     - Seletor tátil de 3 botões na aba Mídia tanto no desktop (`CanvasSidebar.tsx`) quanto no mobile (`CanvasMobileDrawer.tsx`): `[ Metade Inferior (Clássico) ]`, `[ Metade Superior ]` e `[ Fundo Todo ]`.
+   - Persistência:
+     - Normalizado em `saveAdapter.ts` para cada slide e na raiz do `CanvasPostModel`.
+
 ---
 
 ## 4. Pipeline Completo de Geração de Posts (`post.generate`)
@@ -168,15 +200,18 @@ Regras mandatórias do editor oficial:
 
 ### Detalhes das Fases do Pipeline:
 1. **Resolução de Insumo**: O usuário pode fornecer texto livre, link de website ou arquivo. Se for URL, o motor ativa a análise de inteligência de site.
-2. **Diretrizes de Copywriting Super Premium (Quiet Authority & Zero Vícios Sintéticos de IA)**:
+2. **Diretrizes de Copywriting Super Premium (Autoridade Magnética & Manchetes Autorais)**:
+   - **Regra de Ouro do Headline (Manchete de Capa)**: É terminantemente proibido replicar o texto do prompt ou do tópico no headline. O headline atua como a manchete de capa do post (concisa, máx 60 caracteres, sem ponto final, alta curiosidade e impacto visual). Cada variação adota um ângulo e gancho verbal totalmente diferente.
+   - **Desacoplamento de Âncoras e Schema Condicional**: Em inputs de texto livre, os campos `anchorUsed` e `proprietaryTerms` são omitidos do JSON Schema e da lista `required`, evitando alucinações ou rejeições em posts sem website de apoio. Quando o input for uma URL catalogada com âncoras reais, os campos tornam-se estritamente obrigatórios.
    - **Regra de Ordem Direta**: Eliminação total da antítese forçada e clichê de IA (*"Não é X, é Y"*, *"o segredo não é o produto, é o processo"*). As ideias são declaradas na ordem direta positiva (Sujeito ➔ Verbo ➔ Impacto).
    - **Teste da Substituição Universal**: Proibição de copy vazia ou genérica. Toda variação obrigatoriamente inclui detalhes táteis, sintomas do mundo real, erros operacionais práticos, unidades de medida ou critérios técnicos do nicho.
    - **3 Matrizes Cognitivas Obrigatórias**:
-     - *Variação 1 ➔ O Diagnóstico do Sintoma Oculto*: revela causa-raiz invisível por trás de hábitos ou processos que parecem inocentes.
-     - *Variação 2 ➔ O Critério de Julgamento Técnico*: entrega a régua prática de corte ou regra de avaliação que especialistas seniores usam nos bastidores.
+     - *Variação 1 ➔ O Choque de Realidade / Sintoma Oculto*: revela causa-raiz invisível por trás de hábitos ou processos que parecem inocentes.
+     - *Variação 2 ➔ O Critério Técnico / Régua de Decisão*: entrega a régua prática de corte ou regra de avaliação que especialistas seniores usam nos bastidores.
      - *Variação 3 ➔ A Relação Causa-Efeito Contraintuitiva*: demonstra onde o esforço comum é desperdiçado e qual ajuste de fundamentos gera alavancagem.
-   - **Quiet Authority (Postura de Alta Autoridade)**: Proibição de pontos de exclamação (!), entusiasmo artificial, tom de assistente/chatbot (*"Espero ter ajudado"*, *"conte comigo"*), suspense sintético (*"e isso muda tudo"*, *"o pulo do gato"*) e vazamento de termos de estratégia no texto (`— objeção comum`, `[dor]`).
+   - **Autoridade Magnética (Zero Clichês Sintéticos)**: Proibição de pontos de exclamação (!), entusiasmo artificial, tom de assistente/chatbot (*"Espero ter ajudado"*, *"conte comigo"*), suspense sintético (*"e isso muda tudo"*, *"o pulo do gato"*) e vazamento de termos de estratégia no texto (`— objeção comum`, `[dor]`).
    - **Síntese Defensiva de Seções (`studioGeneration.ts`)**: Quando o modelo estruturar listas numeradas em `v.sections`, o gerador sintetiza defensivamente os tópicos dentro de `subtext` (`1. Label: desc • 2. ...`), garantindo que nenhum insight do usuário seja perdido silenciosamente.
+   - **Blindagem do Fallback (`studioGeneration.ts`)**: Em caso de falha de conexão de rede externa, o fallback local formula manchetes dinâmicas por ângulo (*"O Custo Oculto em..."*, *"O Critério de Ouro em..."*, *"A Verdade Contraintuitiva de..."*), prevenindo qualquer repetição crua do prompt.
 3. **Cascata de LLMs Resiliente (`server/_core/llm.ts`)**:
    - Primário: OpenRouter (`openai/gpt-5-mini`);
    - Fallback 1: Groq;
@@ -260,7 +295,8 @@ O editor visual oficial do PostSpark (`CanvasLabPage`, rota `/thevoid`) foi cons
 ### Salvamento e biblioteca (item 7):
 - Botão **Salvar** (top bar) → diálogo **"Salvar como novo" × "Atualizar o post salvo"** com checkbox **"Memorizar esta decisão"** (`localStorage postspark.savePreference`).
 - Payload construído por `canvasModelToSavePayload`/`canvasModelToUpdatePayload` (`lib/saveAdapter.ts`); modelo completo persistido em `posts.canvas_model`.
-- Toast pós-save com ação **"Ver salvos"** → `/saved-posts`; **"Abrir"** em `/saved-posts` reconstrói o modelo (`savedPostToCanvasModel`) e entra direto no editor via sessionStorage `postspark.open_canvas_post` → `/thevoid`.
+- **Guardião de Compressão de Imagens (`server/lib/imageCompress.ts`)**: para impedir inchaço no PostgreSQL (que causava `canceling statement due to statement timeout` ao carregar a biblioteca quando payloads base64 acumulavam dezenas de megabytes), `post.save` e `post.update` comprimem e redimensionam deterministicamente qualquer imagem raw em base64 (>50KB) para JPEG max 600px antes de persistir no banco.
+- Toast pós-save com ação **"Ver salvos"** → `/saved-posts`; cards em `/saved-posts` usam fallback para `canvas_model` (aspectRatio, paleta e fundo) na ausência de `variation_snapshot`. **"Abrir"** em `/saved-posts` reconstrói o modelo (`savedPostToCanvasModel`) e entra direto no editor via sessionStorage `postspark.open_canvas_post` → `/thevoid`. Possui tratamento de erro explícito com botão de tentar novamente em vez de falso "nenhum post salvo".
 
 ### Exportação Multiformato e 4K:
 - Formatos nativos com legendas oficiais (**1:1 Feed**, **5:6 Feed**, **9:16 Stories** — mapa único `ASPECT_RATIO_CAPTIONS` em `types.ts`);
@@ -455,6 +491,34 @@ Revisão estrutural de separação de responsabilidades nas abas de controle do 
 4. **Aba "Logo" (Identidade e Marca):**
    - Upload do logo em PNG transparente com visualização e botão de remoção.
    - Seletor de posicionamento em 4 quadrantes (`top-left`, `top-right`, `bottom-left`, `bottom-right`) com 100% de paridade entre Desktop e Mobile.
+
+---
+
+## 13.4 ADR — Resiliência de Persistência, Sanitização de Imagens Base64 e Resgate de Posts Salvos (2026-09-08)
+
+> **Documentação Completa de Engenharia:** [`docs/mecanismo-resiliencia-persistencia.md`](./docs/mecanismo-resiliencia-persistencia.md)
+
+### 📜 Contexto do Problema:
+Na página de posts salvos (`/saved-posts`), a chamada `trpc.post.list` falhava com o erro do PostgreSQL:
+`57014: canceling statement due to statement timeout` (tempo limite de ~8 a 10 segundos excedido no Supabase).
+Como consequência, a interface React renderizava silenciosamente a mensagem falsa de `"Nenhum post salvo ainda"`, ocultando todos os posts previamente salvos pelo usuário (tanto criações históricas quanto as novas).
+
+### 🔍 Causa-Raiz Diagnosticada:
+1. **Acúmulo de Dados Base64 Raw em JSONB**: 12 posts históricos continham strings base64 brutas de imagens PNG (`data:image/png;base64,...`) embutidas diretamente em colunas JSON (`bg_value`, `variation_snapshot`, `slides[].editorState.bgValue.url`, `imageUrl` e `canvas_model`).
+2. **Payload Gigante no PostgreSQL**: O volume total das 29 linhas ultrapassava **64 Megabytes** no banco (um único post, o #18, acumulava 21.8 MB de base64).
+3. **Estouro de Timeout no PostgREST**: A leitura via `db.from("posts").select("*")` precisava transferir 64MB de tabelas TOAST compactadas, levando mais de 11 segundos e sofrendo aborto pelo timeout de instrução do PostgreSQL.
+
+### 🎯 Soluções Arquiteturais Implementadas:
+1. **Sanitização de Dados no PostgreSQL**:
+   - As 12 linhas com inchaço de dados foram sanitizadas via pipeline com `@napi-rs/canvas`, redimensionando e convertendo as imagens base64 para JPEG otimizado (max 600px).
+   - O volume total do banco foi reduzido em **mais de 50 Megabytes** (o Post #18 caiu de 21.8 MB para 1.4 MB; outros posts caíram de 2-4 MB para ~150-250 KB).
+   - O tempo de resposta da consulta `post.list` caiu de >11s (timeout) para **1.4 segundo** para todas as 29 publicações.
+2. **Guardião de Compressão no Backend (`server/lib/imageCompress.ts`)**:
+   - Criada a rotina pura `compressPostPayload` integrada aos procedimentos `post.save` e `post.update` em `server/routers.ts`.
+   - Toda imagem base64 raw maior que 50 KB enviada para persistência é automaticamente comprimida e redimensionada antes do `insert`/`update` no Supabase, garantindo que o banco nunca mais acumule megabytes em JSONB.
+3. **Resiliência e Fidelidade Visual na Interface (`client/src/pages/SavedPosts.tsx`)**:
+   - **Fallback para `canvas_model`**: O helper `savedPostToVariation` agora inspeciona a coluna `canvas_model` caso `variation_snapshot` não esteja presente, garantindo que posts salvos via CanvasLab renderizem seus cards com a proporção exata (`aspectRatio`), paleta cromática e fundo corretos.
+   - **Tratamento Explícito de Erro**: Adicionado bloco visual de erro com botão "Tentar novamente" (`refetch`), eliminando a confusão de exibir "Nenhum post salvo" em caso de falhas de rede ou timeout.
 
 ---
 

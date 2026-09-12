@@ -1,4 +1,5 @@
-import { ArrowDownToLine, ArrowLeft, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, FileArchive, Layers, Loader2, Magnet, Plus, RotateCcw, Smartphone, Square, ZoomIn, ZoomOut } from "lucide-react";
+import { useRef } from "react";
+import { ArrowDownToLine, ArrowLeft, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, FileArchive, ImagePlus, Layers, Loader2, Magnet, Plus, RotateCcw, Smartphone, Square, ZoomIn, ZoomOut } from "lucide-react";
 import type { AspectRatioType } from "./types";
 import { ASPECT_RATIO_CAPTIONS } from "./types";
 import UserTopMenu from "@/components/UserTopMenu";
@@ -27,6 +28,8 @@ interface CanvasTopBarProps {
   isSaving?: boolean;
   /** Adicionar nova caixa de texto livre */
   onAddExtraText?: () => void;
+  /** Inserir imagem livre no canvas */
+  onAddExtraImage?: (url: string, naturalWidth?: number, naturalHeight?: number) => void;
 }
 
 export default function CanvasTopBar({
@@ -50,7 +53,29 @@ export default function CanvasTopBar({
   onSave,
   isSaving = false,
   onAddExtraText,
+  onAddExtraImage,
 }: CanvasTopBarProps) {
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target?.result as string;
+      if (!dataUrl) return;
+      const img = new Image();
+      img.onload = () => {
+        if (onAddExtraImage) {
+          onAddExtraImage(dataUrl, img.naturalWidth, img.naturalHeight);
+        }
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   return (
     <header className="h-14 border-b border-white/10 bg-black/70 backdrop-blur-xl px-3 md:px-6 flex items-center justify-between z-30 shrink-0 select-none">
       {/* ─── LADO ESQUERDO ─── */}
@@ -145,6 +170,28 @@ export default function CanvasTopBar({
             <Plus size={13} strokeWidth={2.5} />
             <span className="hidden sm:inline">Texto</span>
           </button>
+        )}
+
+        {/* Input Oculto e Botão Adicionar Imagem Livre */}
+        {onAddExtraImage && (
+          <>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageFileChange}
+            />
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-semibold transition-all cursor-pointer active:scale-95 shadow-sm"
+              title="Inserir foto ou imagem na prancheta"
+            >
+              <ImagePlus size={13} strokeWidth={2.2} />
+              <span className="hidden sm:inline">Imagem</span>
+            </button>
+          </>
         )}
 
         {/* Botão Ímã (Magnet Snap) */}

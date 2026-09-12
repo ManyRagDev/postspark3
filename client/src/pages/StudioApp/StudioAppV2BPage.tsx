@@ -126,7 +126,7 @@ export default function StudioAppV2BPage() {
       console.warn("[StudioAppV2B] Fallback acionado:", err);
       setGeneratedVariations(buildInitialFallbackVariations(promptText, declaredFamilyId ?? undefined));
       setStage("gallery");
-      toast.success("Direções de arte geradas!");
+      toast.warning("Instabilidade na conexão com a IA. Exibindo direções editoriais sugeridas.");
     } finally {
       setIsLoading(false);
     }

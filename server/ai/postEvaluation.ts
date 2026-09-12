@@ -298,7 +298,7 @@ function computeCaptionCoherence(candidate: EvaluatedCandidate): number {
   );
 }
 
-function summarize(
+export function summarize(
   dimensions: Dimensions,
   feedback: string[],
 ): GenerationEvaluationSummary {
@@ -350,7 +350,7 @@ async function llmEvaluation(input: {
   candidate: EvaluatedCandidate;
   strategy?: ContentStrategy;
   siteIntelligence?: SiteIntelligence | null;
-}): Promise<{ dimensions: Dimensions; feedback: string[] } | null> {
+}): Promise<{ dimensions: Dimensions; feedback: string[]; aiViceScore: number; vicePatterns: string[] } | null> {
   if (!ENV.aiLlmJudgeEnabled) return null;
 
   try {
@@ -362,7 +362,19 @@ async function llmEvaluation(input: {
           role: "system",
           content: `Voce e um avaliador rigoroso de conteudo social. Avalie somente o que esta no candidato e no contexto.
 Penalize afirmacoes nao sustentadas, tema generico, desalinhamento com objetivo/publico e copy semelhante a cliches.
-Retorne notas 0-100 e ate 4 feedbacks objetivos.`,
+Retorne notas 0-100 e ate 4 feedbacks objetivos.
+
+Avalie tambem "aiViceScore" (0-100, onde 100 = voz humana especifica e 0 = voz generica de LLM) e liste em "vicePatterns" os padroes encontrados, escolhendo da lista do schema.
+
+Detecte:
+- "antitese_negativa": frases que negam uma premissa para revelar outra ("nao e X, e Y").
+- "meta_anuncio": suspense artificial ("prepare-se", "aqui vai o pulo do gato").
+- "tom_assistente": disponibilidade ("estou aqui", "se precisar").
+- "preambulo_conversacional": anuncio do que vai dizer ("neste post vou mostrar").
+- "vazamento_tecnico": nomes de estrategia no texto final ("objecao", "gatilho", "dor").
+- "pergunta_retorica": interrogacoes sem destinatario real.
+- "exclamacao": uso de "!".
+- "frase_vazia": frase que poderia ser trocada para qualquer nicho sem perda.`,
         },
         {
           role: "user",
@@ -421,8 +433,26 @@ ${JSON.stringify(
                 additionalProperties: false,
               },
               feedback: { type: "array", items: { type: "string" } },
+              aiViceScore: { type: "number", minimum: 0, maximum: 100 },
+              vicePatterns: {
+                type: "array",
+                maxItems: 5,
+                items: {
+                  type: "string",
+                  enum: [
+                    "antitese_negativa",
+                    "meta_anuncio",
+                    "tom_assistente",
+                    "preambulo_conversacional",
+                    "vazamento_tecnico",
+                    "pergunta_retorica",
+                    "exclamacao",
+                    "frase_vazia",
+                  ],
+                },
+              },
             },
-            required: ["dimensions", "feedback"],
+            required: ["dimensions", "feedback", "aiViceScore", "vicePatterns"],
             additionalProperties: false,
           },
         },
@@ -433,6 +463,8 @@ ${JSON.stringify(
     const parsed = JSON.parse(text) as {
       dimensions: Dimensions;
       feedback: string[];
+      aiViceScore: number;
+      vicePatterns: string[];
     };
     const dimensionKeys: Array<keyof Dimensions> = [
       "brandAlignment",
@@ -451,7 +483,9 @@ ${JSON.stringify(
       !dimensionKeys.every(
         (key) => typeof parsed.dimensions[key] === "number",
       ) ||
-      !Array.isArray(parsed.feedback)
+      !Array.isArray(parsed.feedback) ||
+      typeof parsed.aiViceScore !== "number" ||
+      !Array.isArray(parsed.vicePatterns)
     ) {
       throw new Error("Judge response did not match evaluation schema");
     }
@@ -471,38 +505,64 @@ export async function evaluateCandidates<T extends EvaluatedCandidate>(input: {
   /** Índices que já falharam na validação estrutural — não vale pagar um juiz. */
   skipJudgeIndexes?: number[];
 }): Promise<GenerationEvaluationSummary[]> {
-  return Promise.all(
-    input.candidates.map(async (candidate, index) => {
-      const deterministic = deterministicEvaluation({
-        candidate,
-        allCandidates: input.candidates,
-        strategy: input.strategies[index],
-        siteIntelligence: input.siteIntelligence,
-        platform: input.platform,
-        originalityScore: input.originalityScores?.[index],
-      });
-      if (input.skipJudgeIndexes?.includes(index)) return deterministic;
-      const judged = await llmEvaluation({
-        candidate,
-        strategy: input.strategies[index],
-        siteIntelligence: input.siteIntelligence,
-      });
-      if (!judged) return deterministic;
-
-      const dimensions = Object.fromEntries(
-        (Object.keys(deterministic.dimensions) as Array<keyof Dimensions>).map(
-          (key) => [
-            key,
-            clampScore(
-              deterministic.dimensions[key] * 0.45 +
-                judged.dimensions[key] * 0.55,
-            ),
-          ],
-        ),
-      ) as unknown as Dimensions;
-      return summarize(dimensions, judged.feedback.slice(0, 4));
+  // Phase 1: deterministic evaluation for all candidates
+  const deterministics = input.candidates.map((candidate, index) =>
+    deterministicEvaluation({
+      candidate,
+      allCandidates: input.candidates,
+      strategy: input.strategies[index],
+      siteIntelligence: input.siteIntelligence,
+      platform: input.platform,
+      originalityScore: input.originalityScores?.[index],
     }),
   );
+
+  // Phase 2: selective judge — only candidates in the 70-85 zone
+  const judgeResults = await Promise.all(
+    input.candidates.map(async (candidate, index) => {
+      const skip =
+        input.skipJudgeIndexes?.includes(index) ||
+        !shouldJudge(deterministics[index]);
+      if (skip) return null;
+      return llmEvaluation({
+        candidate,
+        strategy: input.strategies[index],
+        siteIntelligence: input.siteIntelligence,
+      }).catch(() => null);
+    }),
+  );
+
+  // Phase 3: blend deterministic + judge
+  return deterministics.map((deterministic, index) => {
+    const judged = judgeResults[index];
+    if (!judged) return deterministic;
+
+    const dimensions = Object.fromEntries(
+      (Object.keys(deterministic.dimensions) as Array<keyof Dimensions>).map(
+        (key) => [
+          key,
+          clampScore(
+            deterministic.dimensions[key] * 0.45 +
+              judged.dimensions[key] * 0.55,
+          ),
+        ],
+      ),
+    ) as unknown as Dimensions;
+    const summary = summarize(dimensions, judged.feedback.slice(0, 4));
+    return {
+      ...summary,
+      aiViceScore: judged.aiViceScore,
+      vicePatterns: judged.vicePatterns as GenerationEvaluationSummary["vicePatterns"],
+    };
+  });
+}
+
+/**
+ * Selective judge: only candidates in the 70-85 deterministic zone.
+ * Below 70 already fails deterministically; above 85 the judge adds little.
+ */
+function shouldJudge(det: GenerationEvaluationSummary): boolean {
+  return det.overallScore >= 70 && det.overallScore < 85;
 }
 
 /**

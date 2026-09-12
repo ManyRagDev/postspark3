@@ -84,6 +84,51 @@ function resolveObjective(
   );
 }
 
+interface AngleProfile {
+  angle: ContentStrategy["angle"];
+  label: string;
+  hookTemplate: (topic: string) => string;
+  promise: string;
+}
+
+const CREATIVE_ANGLE_PROFILES: AngleProfile[] = [
+  {
+    angle: "pain",
+    label: "Sintoma Oculto",
+    hookTemplate: (t) => `O detalhe comum que revela um processo ineficiente em ${t}`,
+    promise: "Diagnosticar o hábito invisível e expor a causa raiz da ineficiência.",
+  },
+  {
+    angle: "benefit",
+    label: "Critério Técnico",
+    hookTemplate: (t) => `A régua prática que profissionais seniores usam ao analisar ${t}`,
+    promise: "Apresentar a métrica ou corte que separa o amador do excelente.",
+  },
+  {
+    angle: "objection",
+    label: "Causa Contraintuitiva",
+    hookTemplate: (t) => `Onde o esforço comum é desperdiçado ao lidar com ${t}`,
+    promise: "Demonstrar o ajuste contraintuitivo de fundamentos que gera tração real.",
+  },
+  {
+    angle: "authority",
+    label: "Princípio de Fundamento",
+    hookTemplate: (t) => `A verdade técnica que ninguém gosta de admitir sobre ${t}`,
+    promise: "Estabelecer autoridade sólida através de clareza conceitual e técnica.",
+  },
+  {
+    angle: "how-to",
+    label: "Mecanismo Prático",
+    hookTemplate: (t) => `A anatomia prática e a ordem de execução para ${t}`,
+    promise: "Entregar a sequência direta de passos acionáveis sem superficialidade.",
+  },
+];
+
+function sanitizeTopicSummary(raw: string): string {
+  const cleaned = raw.replace(/[?!.:;]+$/g, "").trim();
+  return cleaned.length > 80 ? cleaned.slice(0, 80).trim() : cleaned;
+}
+
 function buildFallbackCandidates(
   sourceContent: string,
   objective: ContentObjective,
@@ -95,7 +140,7 @@ function buildFallbackCandidates(
   ];
   const fallbackTopic =
     intelligence?.business.valueProposition ||
-    sourceContent.slice(0, 120) ||
+    sanitizeTopicSummary(sourceContent) ||
     "tema principal";
   const uniqueTopics = Array.from(new Set(topics.filter(Boolean)));
   const audiences = intelligence?.business.audiences.length
@@ -103,19 +148,17 @@ function buildFallbackCandidates(
     : ["publico principal"];
   const evidenceIds = intelligence?.evidence.map((item) => item.id) ?? [];
 
-  return Array.from({ length: 5 }, (_, index) => {
+  return CREATIVE_ANGLE_PROFILES.map((profile, index) => {
     const topic = uniqueTopics[index % Math.max(uniqueTopics.length, 1)] || fallbackTopic;
-    const angle = ANGLES[index % ANGLES.length];
     return {
-      title: `${topic} por ${angle}`,
+      title: `${topic} (${profile.label})`,
       topic,
       objective,
       audience: audiences[index % audiences.length],
-      angle,
-      hook: `${topic}: o ponto que merece atencao agora`,
+      angle: profile.angle,
+      hook: profile.hookTemplate(topic),
       promise:
-        intelligence?.business.valueProposition ||
-        "Entregar uma perspectiva util e acionavel.",
+        intelligence?.business.valueProposition || profile.promise,
       evidenceIds: evidenceIds.slice(index % 2, index % 2 + 2),
     };
   });

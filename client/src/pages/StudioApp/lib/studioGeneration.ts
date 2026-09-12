@@ -130,12 +130,31 @@ export function buildTasteInstruction(familyId: string): string {
   return `\n\n[INSTRUÇÃO DE DIREÇÃO DE ARTE — OBRIGATÓRIA]\nO usuário declarou preferência visual pela família "${familyId}".\nUse essa família em EXATAMENTE UMA das 3 variações. As outras duas variações devem usar famílias diferentes entre si e diferentes da família preferida, conforme a regra de diversidade obrigatória.`;
 }
 
+function formatFallbackHeadline(promptText: string, angle: "hidden-cost" | "rule" | "counterintuitive"): string {
+  const clean = promptText
+    .trim()
+    .replace(/[?!.:;]+$/g, "")
+    .replace(/^(como|por que|o que|qual|quais|dicas de|guia de)\s+/i, "");
+  const subject = clean.charAt(0).toUpperCase() + clean.slice(1);
+  if (angle === "hidden-cost") {
+    return `O Custo Oculto em ${subject}`;
+  }
+  if (angle === "rule") {
+    return `O Critério de Ouro em ${subject}`;
+  }
+  return `A Verdade Contraintuitiva de ${subject}`;
+}
+
 /**
  * Fallback rico com 3 ângulos de copy genuinamente diferentes (geração inicial).
  * Quando `declaredFamilyId` é informado, a primeira variação é remapeada para
  * a família declarada — o fallback também honra o gosto do usuário.
  */
 export function buildInitialFallbackVariations(promptText: string, declaredFamilyId?: string): CanvasPostModel[] {
+  const h1 = formatFallbackHeadline(promptText, "hidden-cost");
+  const h2 = formatFallbackHeadline(promptText, "rule");
+  const h3 = formatFallbackHeadline(promptText, "counterintuitive");
+
   const variations: CanvasPostModel[] = [
     {
       id: "var-1",
@@ -147,9 +166,9 @@ export function buildInitialFallbackVariations(promptText: string, declaredFamil
       showBadge: false,
       badgeText: "EDITORIAL // CAPA",
       showStep: false,
-      headline: promptText,
+      headline: h1,
       subtext: "A percepção de autoridade nasce quando cada detalhe visual e palavra parecem deliberados.",
-      caption: `${promptText}\n\nMarcas de alto padrão constroem consistência estética e autoridade.\n\n#Branding #DesignEstrategico #Marketing`,
+      caption: `${h1}\n\nMarcas de alto padrão constroem consistência estética e autoridade.\n\n#Branding #DesignEstrategico #Marketing`,
       imagePrompt: `editorial dark luxury texture, elegant gold reflections, minimal upscale workspace for ${promptText}`,
       fontFamily: "Playfair Display",
       overlayOpacity: 0.55,
@@ -158,7 +177,7 @@ export function buildInitialFallbackVariations(promptText: string, declaredFamil
       palette: { background: "#120D0A", text: "#F8F4EE", accent: "#E5A93C" },
       currentSlideIndex: 0,
       slides: [
-        { id: "s1", step: "SLIDE 01 // CAPA", headline: promptText, subtext: "A percepção de autoridade nasce quando cada detalhe parece deliberado." },
+        { id: "s1", step: "SLIDE 01 // CAPA", headline: h1, subtext: "A percepção de autoridade nasce quando cada detalhe parece deliberado." },
         { id: "s2", step: "SLIDE 02 // O ERRO", headline: "O erro comum é não ter clareza de posicionamento.", subtext: "Quem fala com todo mundo não cria conexão com ninguém." },
         { id: "s3", step: "SLIDE 03 // A SOLUÇÃO", headline: "Defina seu padrão visual e mantenha a consistência.", subtext: "A estética refinada é um multiplicador de valor percebido." },
       ],
@@ -173,9 +192,9 @@ export function buildInitialFallbackVariations(promptText: string, declaredFamil
       showBadge: false,
       badgeText: "INSIGHT // TECH",
       showStep: false,
-      headline: `Por que ${promptText.toLowerCase().replace(/^(3|4|5|como|o)\s*/i, "")} muda seu jogo?`,
+      headline: h2,
       subtext: "Estruturas modernas e clareza de mensagem para posicionar sua marca no topo.",
-      caption: `${promptText}\n\nInovação e autoridade visual.\n\n#Inovacao #Tecnologia #Design`,
+      caption: `${h2}\n\nInovação e autoridade visual com critérios claros de execução.\n\n#Inovacao #Tecnologia #Design`,
       imagePrompt: `modern glass architecture, frosted glass texture, ambient soft violet lighting for ${promptText}`,
       fontFamily: "Plus Jakarta Sans",
       overlayOpacity: 0.6,
@@ -184,7 +203,7 @@ export function buildInitialFallbackVariations(promptText: string, declaredFamil
       palette: { background: "#090D18", text: "#FFFFFF", accent: "#8B5CF6" },
       currentSlideIndex: 0,
       slides: [
-        { id: "s1", step: "SLIDE 01 // CAPA", headline: promptText, subtext: "Estruturas modernas para posicionar sua marca." },
+        { id: "s1", step: "SLIDE 01 // CAPA", headline: h2, subtext: "Estruturas modernas para posicionar sua marca." },
         { id: "s2", step: "SLIDE 02 // VISÃO", headline: "O design comunica antes de qualquer palavra.", subtext: "A primeira impressão dita o valor da sua oferta." },
       ],
     },
@@ -198,9 +217,9 @@ export function buildInitialFallbackVariations(promptText: string, declaredFamil
       showBadge: false,
       badgeText: "DESTAQUE // DIRETO",
       showStep: false,
-      headline: promptText.toUpperCase(),
+      headline: h3,
       subtext: "Impacto visual imediato sem rodeios. A mensagem clara que corta o ruído do feed.",
-      caption: `${promptText}\n\nCorte o ruído e posicione sua mensagem com força.\n\n#Posicionamento #Impacto`,
+      caption: `${h3}\n\nCorte o ruído e posicione sua mensagem com força e clareza.\n\n#Posicionamento #Impacto`,
       imagePrompt: `abstract brutalist architectural concrete, bold minimal geometry for ${promptText}`,
       fontFamily: "Anton",
       overlayOpacity: 0,
@@ -209,7 +228,7 @@ export function buildInitialFallbackVariations(promptText: string, declaredFamil
       palette: { background: "#D92E1E", text: "#FFFFFF", accent: "#FFD600" },
       currentSlideIndex: 0,
       slides: [
-        { id: "s1", step: "SLIDE 01 // IMPACTO", headline: promptText.toUpperCase(), subtext: "Impacto visual imediato sem rodeios." },
+        { id: "s1", step: "SLIDE 01 // IMPACTO", headline: h3, subtext: "Impacto visual imediato sem rodeios." },
         { id: "s2", step: "SLIDE 02 // O PONTO", headline: "SEJA CLARO E DIRETO.", subtext: "Menos elementos, mais força de comunicação." },
       ],
     },

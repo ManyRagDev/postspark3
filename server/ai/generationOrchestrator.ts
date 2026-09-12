@@ -47,6 +47,7 @@ import {
   applyOriginalityToEvaluations,
   deterministicEvaluation,
   evaluateCandidates,
+  summarize,
 } from "./postEvaluation";
 import { validateRevisedCandidate } from "./revisionValidation";
 import type { ContentStrategyPlan } from "./contentStrategy";
@@ -333,6 +334,7 @@ function buildGenerationInstructionCore(input: {
   toneHint: string;
   brandDnaContext: string;
   promptContext: string;
+  hasAnchors?: boolean;
 }): string {
   const { isCarousel, executionBrief } = input;
   const modeInstruction = executionBrief
@@ -359,67 +361,41 @@ MODO DE EXECUÇÃO ATIVADO:
     : "";
 
   const copyRules = `
-CATÁLOGO DOS 8 ARQUÉTIPOS VISUAIS DISPONÍVEIS (SELEÇÃO INTELIGENTE):
-Para cada uma das 3 variações geradas, selecione no campo "familyId" o arquétipo que melhor traduza a psicologia e nicho do post.
-⚠️ REGRA OBRIGATÓRIA: As 3 variações DEVEM usar 3 "familyId" TOTALMENTE DIFERENTES entre si (nunca repita a mesma família no mesmo conjunto de 3).
+8 ARQUÉTIPOS VISUAIS — selecione 3 "familyId" TOTALMENTE DIFERENTES:
+1. "editorial-poster" (luxo, consultoria, autoridade, serifas refinadas)
+2. "glass-veil" (SaaS, inovação, tecnologia, cartão translúcido)
+3. "chromatic-block" (impacto direto, varejo, notícias urgentes, Anton massiva)
+4. "brutal-split" (alto contraste, educação, comparações 50/50 antes/depois)
+5. "stroke-impact" (lifestyle, fitness, eventos, títulos outline vazados)
+6. "cyber-glitch" (cripto, inteligência artificial, código, estética terminal)
+7. "cinematic-depth" (storytelling denso, narrativas profundas, tipografia condensada)
+8. "duotone-wash" (criatividade, design, psicologia, autoridade suave, gradiente a 135°)
 
-1. "editorial-poster" ➔ Luxo, consultoria, moda, gastronomia, finanças. (Serifas elegantes, Playfair Display, aspas decorativas).
-2. "glass-veil" ➔ Inovação, SaaS, tecnologia, modernidade. (Cartão translúcido flutuante de vidro fosco com borda iluminada).
-3. "chromatic-block" ➔ Impacto direto, marketing de resposta rápida, varejo, notícias urgentes. (Sticker angular rotacionado, Anton massiva).
-4. "brutal-split" ➔ Alto contraste, educação, comparações 'antes/depois', hacks de produtividade. (Divisão 50/50 em duas cores puras com selo central).
-5. "stroke-impact" ➔ Lifestyle, fitness, música, moda streetwear, eventos. (Títulos com palavras vazadas em contorno stroke outline).
-6. "cyber-glitch" ➔ Cripto, inteligência artificial, desenvolvimento, segurança, futuro. (Miras táticas +, scanlines, estética terminal).
-7. "cinematic-depth" ➔ Narrativas profundas, cinema, cultura, storytelling denso. (Tipografia monumental condensada em camadas).
-8. "duotone-wash" ➔ Criatividade, design, psicologia, autoridade suave. (Gradiente diagonal a 135° com composição limpa).
+REGRA DE OURO DO HEADLINE (MANCHETE AUTORAL DE IMPACTO):
+- É TERMINANTEMENTE PROIBIDO usar a frase do prompt ou do tópico como headline.
+- O headline é a MANCHETE DE CAPA do post: concisa (máximo 60 caracteres), sem ponto final.
+- Crie um título magnético, provocativo e memorável, gerando curiosidade imediata no feed.
+- Cada uma das 3 variações DEVE ter um headline com ângulo e gancho verbal totalmente diferente das outras duas.
 
-DIRETRIZES DE COPYWRITING SUPER PREMIUM (ZERO VÍCIOS DE IA & QUIET AUTHORITY):
+VOZ E TONALIDADE (AUTORIDADE MAGNÉTICA):
+- Escreva na voz de um especialista perspicaz que domina os bastidores e fala de igual para igual com pessoas inteligentes.
+- Seja afiado, analítico e assertivo. Use contrastes fortes, princípios práticos e verdades de bastidores.
+- ZERO clichês sintéticos de IA: sem "No mundo acelerado de hoje", sem "Você sabia?", sem exclamações forçadas (!), sem suspense barato ("isso muda tudo"), sem tom de assistente bajulador.
+- Declare verdades de forma afirmativa e direta: Sujeito → Verbo → Impacto.
 
-1. PERSONA E POSTURA (ALTA AUTORIDADE SILENCIOSA):
-   - Escreva na voz de um DIRETOR / FUNDADOR / EDITORIALISTA SÊNIOR que domina profundamente o ofício e fala de igual para igual com pessoas inteligentes.
-   - O tom é calmo, analítico, afiado e seguro de si. Quem realmente tem autoridade não precisa forçar entusiasmo, não usa pontos de exclamação (!) e não recorre a suspense barato.
+3 MATRIZES COGNITIVAS (uma por variação):
+1. O Choque de Realidade / Sintoma Oculto — aponta um hábito comum ou erro inocente que revela ineficiência invisível.
+2. O Critério Técnico / Régua de Decisão — entrega a regra prática ou métrica que veteranos usam nos bastidores para julgar o excelente.
+3. A Tese Contraintuitiva — demonstra onde o esforço comum é jogado fora e qual ajuste sutil gera resultado de longo prazo.
 
-2. A REGRA DE ORDEM DIRETA (FIM DA ANTÍTESE VICIADA):
-   - Declare toda ideia na ordem afirmativa direta: Sujeito ➔ Verbo ➔ Predicado/Impacto.
-   - NUNCA estruture frases negando uma premissa para só depois fazer uma revelação (proibido o padrão "Não é X, é Y", "O segredo não é o produto, é..."). Declare a verdade positiva imediatamente com solidez.
-
-3. O TESTE DA SUBSTITUIÇÃO UNIVERSAL (DENSIDADE FACTUAL OBRIGATÓRIA):
-   - Critério mandatório de validação: Se a sua copy puder ser aplicada a outro nicho trocando apenas uma palavra, ela foi reprovada por ser vazia e genérica.
-   - O post DEVE conter pelo menos um elemento tátil, sintoma físico observável, unidade de medida, erro operacional prático ou critério técnico do nicho em questão.
-
-4. ELIMINAÇÃO DE GATILHOS MEME & VÍCIOS SINTÉTICOS:
-   - 🚫 PROIBIDO suspense artificial e meta-anúncios ("e isso muda tudo", "aqui vai o pulo do gato", "prepare-se", "o que ninguém te conta", "spoiler", "pare agora").
-   - 🚫 PROIBIDO tom de assistente ("Espero ter ajudado", "Se precisar estou aqui", "Comente aqui embaixo").
-   - 🚫 PROIBIDO preâmbulos conversacionais ("Neste post eu vou te mostrar", "Hoje eu trouxe uma reflexão"). Vá direto ao ponto.
-   - 🚫 PROIBIDO vazar nomes técnicos de estratégia no texto final (NUNCA escreva "— objeção comum", "[dor]", "gatilho" no headline ou body).
-
-5. AS 3 MATRIZES COGNITIVAS OBRIGATÓRIAS (UMA PARA CADA VARIAÇÃO):
-   - Variação 1 ➔ O DIAGNÓSTICO DO SINTOMA OCULTO:
-     Identifique um hábito ou detalhe do cotidiano que parece inocente ou comum, mas que na verdade revela um processo ineficiente ou amador. Aponte a causa invisível.
-   - Variação 2 ➔ O CRITÉRIO DE JULGAMENTO TÉCNICO:
-     Apresente a régua prática de corte ou regra de avaliação que veteranos e profissionais sêniores usam nos bastidores para diferenciar o bom do excelente.
-   - Variação 3 ➔ A RELAÇÃO CAUSA-EFEITO CONTRAINTUITIVA:
-     Mostre onde o esforço comum é desperdiçado e qual ajuste específico de fundamentos gera o resultado de longo prazo.
-
-6. REGRAS POR CAMPO:
-   - Headline: máximo 65 caracteres. Título conciso, provocativo e magnético. Sem ponto final.
-   - Body: 1 a 3 frases densas (máx 200 caracteres). Complementa o headline com precisão e densidade de informação.
-     • Se o post for uma lista ou número (ex: "3 sinais", "3 erros", "3 critérios"), entregue os pontos estruturados diretamente no body com marcadores limpos: "1. [Item A]  •  2. [Item B]  •  3. [Item C]".
-   - Caption/Legenda: Legenda completa pronta para publicação no Instagram/LinkedIn com formatação e respiros reais:
-     • Gancho de abertura provocativo que expande o título sem repetir o texto do card;
-     • Conflito / Causa raiz da dor ou mecanismo em debate;
-     • 2 ou 3 tópicos estratégicos com quebras de linha duplas;
-     • CTA maduro e profissional (ex: "Qual é o padrão que a sua marca quer consolidar?", "Salve para consultar no próximo alinhamento.").
-   - NUNCA coloque hashtags ou emojis dentro do headline ou body.
-   - Hashtags: máximo 4, somente no campo separado "hashtags".
-   - CallToAction: máximo 40 caracteres com verbo de ação direto.
-
-7. HIERARQUIA VISUAL E LAYOUT:
-   - "centered": Para princípios de autoridade, citações nobres e teses contraintuitivas.
-   - "left-aligned": Para diagnósticos, tutoriais e listas condensadas.
-   - Varie o campo "layout" entre as 3 variações para que cada uma ofereça uma diagramação visual única!
-   - Em posts estáticos normais, use 'simple' em template e passe [] em sections, mantendo o conteúdo rico no headline e body.
-
-Responda APENAS com JSON válido.`;
+CAMPOS:
+- headline: manchete autoral de impacto ≤60 chars, sem ponto final.
+- body: 1 a 3 frases densas (máx 180 chars) com entrega direta do insight. Em listas, formate com "1. ... • 2. ... • 3. ...".
+- callToAction: verbo de ação direto (máx 40 chars).
+- hashtags: máximo 4 tags estratégicas, apenas no campo "hashtags". Sem hashtags no headline/body.
+- caption: legenda completa para publicação com gancho de abertura + conflito de bastidores + 2 a 3 tópicos estratégicos com quebras de linha duplas + CTA maduro.
+${input.hasAnchors ? `ANCORAGEM: preencha "anchorUsed" com o ID de fato das ANCORAS OBRIGATORIAS e "proprietaryTerms" com 1 a 3 termos que aparecem no texto.` : ""}
+LAYOUT: varie "centered" e "left-aligned" entre as 3 variações para diversidade visual. Em posts estáticos, use template "simple" e sections [].`;
 
   return `${modeInstruction}
 ${executionBrief ? `As ${POST_VARIATION_TARGET} variações devem ser próximas entre si e altamente fiéis ao briefing.` : `As 3 variações DEVEM seguir as 3 matrizes cognitivas: 1) Diagnóstico do Sintoma Oculto, 2) Critério de Julgamento Técnico, 3) Causa-Efeito Contraintuitiva.`}${input.toneHint}
@@ -436,6 +412,7 @@ function buildSystemPrompt(input: {
   toneHint: string;
   brandDnaContext: string;
   promptContext: string;
+  hasAnchors?: boolean;
 }): string {
   const core = buildGenerationInstructionCore({
     isCarousel: input.isCarousel,
@@ -443,6 +420,7 @@ function buildSystemPrompt(input: {
     toneHint: input.toneHint,
     brandDnaContext: input.brandDnaContext,
     promptContext: input.promptContext,
+    hasAnchors: input.hasAnchors,
   });
   return `Você é um especialista em marketing digital, design visual e criação de conteúdo para redes sociais.
 Gere EXATAMENTE ${POST_VARIATION_TARGET} variações de post para ${input.platformLabel}.
@@ -499,7 +477,7 @@ function formatOptimizationSchema() {
   };
 }
 
-function variationSchema(isCarousel: boolean): Record<string, unknown> {
+function variationSchema(isCarousel: boolean, validAnchorIds?: string[]): Record<string, unknown> {
   const commonProperties: Record<string, unknown> = {
     headline: { type: "string", description: "Título principal do post" },
     body: { type: "string", description: "Corpo principal do post" },
@@ -584,7 +562,25 @@ function variationSchema(isCarousel: boolean): Record<string, unknown> {
       required: ["type", "label"],
       additionalProperties: false,
     },
+    ...(validAnchorIds && validAnchorIds.length > 0
+      ? {
+          anchorUsed: {
+            type: "string",
+            enum: validAnchorIds,
+            description: "ID de um fato do bloco ANCORAS OBRIGATORIAS usado como âncora deste post (ex: 'f2').",
+          },
+          proprietaryTerms: {
+            type: "array",
+            minItems: 1,
+            maxItems: 3,
+            items: { type: "string" },
+            description: "Termos proprietários do bloco ANCORAS OBRIGATORIAS que aparecem no headline, body ou caption.",
+          },
+        }
+      : {}),
   };
+
+  const anchorRequired = validAnchorIds && validAnchorIds.length > 0 ? ["anchorUsed", "proprietaryTerms"] : [];
 
   if (isCarousel) {
     return {
@@ -628,6 +624,7 @@ function variationSchema(isCarousel: boolean): Record<string, unknown> {
         "slides",
         "aspectRatioOptimizations",
         "copyAngle",
+        ...anchorRequired,
       ],
       additionalProperties: false,
     };
@@ -656,6 +653,7 @@ function variationSchema(isCarousel: boolean): Record<string, unknown> {
       "sections",
       "aspectRatioOptimizations",
       "copyAngle",
+      ...anchorRequired,
     ],
     additionalProperties: false,
   };
@@ -665,6 +663,7 @@ function buildVariationsSchema(
   isCarousel: boolean,
   count: number,
   schemaName: string,
+  validAnchorIds?: string[],
 ): InvokeParams["response_format"] {
   return {
     type: "json_schema",
@@ -678,7 +677,7 @@ function buildVariationsSchema(
             type: "array",
             minItems: count,
             maxItems: count,
-            items: variationSchema(isCarousel),
+            items: variationSchema(isCarousel, validAnchorIds),
           },
         },
         required: ["variations"],
@@ -736,6 +735,37 @@ function collectSlotIssues(variation: ParsedVariation | null, isCarousel: boolea
     issues.push(`slot ${index + 1} com ${variation.slides?.length ?? 0} slides (esperado ${CAROUSEL_SLIDE_TARGET})`);
   }
   return issues;
+}
+
+function checkAnchorUsage(
+  variation: ParsedVariation,
+  anchors: NonNullable<SiteIntelligence["anchors"]>,
+): string[] {
+  const issues: string[] = [];
+  const validAnchorIds = anchors.facts.map((f) => f.id);
+
+  if (!variation.anchorUsed || !validAnchorIds.includes(variation.anchorUsed)) {
+    issues.push(`missing_anchor: anchorUsed "${variation.anchorUsed ?? ""}" não está entre os fatos válidos [${validAnchorIds.join(", ")}]`);
+  }
+
+  const visibleText = `${variation.headline ?? ""} ${variation.body ?? ""} ${variation.caption ?? ""}`.toLowerCase();
+  const matched = (variation.proprietaryTerms ?? []).filter((t) =>
+    visibleText.includes(t.toLowerCase()),
+  );
+  if (matched.length === 0) {
+    issues.push(`missing_proprietary_term: nenhum termo proprietário [${anchors.proprietaryTerms.join(", ")}] aparece no headline, body ou caption`);
+  }
+
+  return issues;
+}
+
+function checkAiVices(
+  evaluation: GenerationEvaluationSummary,
+): string[] {
+  if (evaluation.aiViceScore === undefined || evaluation.aiViceScore >= 70) return [];
+  const patterns = evaluation.vicePatterns ?? [];
+  if (patterns.length === 0) return [];
+  return [`ai_vice_detected: ${patterns.join(", ")}`];
 }
 
 function normalizeCarouselSlides(variation: ParsedVariation): Array<Record<string, unknown>> {
@@ -804,7 +834,13 @@ function buildRepairPrompt(input: {
     .map((slotIndex) => {
       const structural = input.issuesBySlot.get(slotIndex) ?? [];
       const quality = input.qualityFeedbackBySlot.get(slotIndex) ?? [];
-      const allReasons = [...structural, ...quality];
+      const allReasons = [...structural, ...quality].map((reason) => {
+        if (reason.startsWith("ai_vice_detected:")) {
+          const patterns = reason.replace("ai_vice_detected:", "").trim();
+          return `Padroes de escrita generica detectados: ${patterns}. Reescreva substituindo por forma positiva (ex: em vez de "nao e X, e Y", escreva "X faz Y").`;
+        }
+        return reason;
+      });
       const current = input.variations[slotIndex] ? JSON.stringify(input.variations[slotIndex], null, 2) : "(slot ausente)";
       return `SLOT ${slotIndex + 1}:
 - Motivos da rejeição: ${allReasons.length > 0 ? allReasons.join("; ") : "falha na validação de qualidade"}
@@ -815,6 +851,7 @@ function buildRepairPrompt(input: {
   const diversityDirective = input.diversityDirective
     ? `
 DIVERSIDADE: o conjunto ficou parecido demais. Reescreva os slots listados para que fiquem nitidamente distintos entre si:
+- O headline de cada variação deve ser uma manchete autoral inédita e provocativa, NUNCA a frase do tema.
 - Não repita headline, body, CTA, hashtags, copyAngle, nem a mesma combinação de layout + paleta.
 - Garanta pelo menos 2 layouts diferentes no conjunto final.
 - Garanta ângulos de copy diferentes e facilmente distinguíveis.
@@ -952,6 +989,7 @@ export async function generatePostVariations(
   const toneHint = effectiveTone ? `\nTom detectado no input do usuário: "${effectiveTone}" — calibre o conteúdo gerado para esse estado emocional.\n` : "";
   const brandDnaContext = siteIntelligence ? siteIntelligenceToPrompt(siteIntelligence) : "";
   const contextContent = request.content;
+  const validAnchorIds = siteIntelligence?.anchors?.facts.map((f) => f.id) ?? [];
 
   const deadlineExceeded = (): boolean => {
     if (input.deadlineMs === null) return false;
@@ -983,6 +1021,7 @@ export async function generatePostVariations(
       toneHint,
       brandDnaContext,
       promptContext: plan.promptContext,
+      hasAnchors: validAnchorIds.length > 0,
     });
     const { content: userContent } = buildUserPrompt({ request, executionBrief, contextContent });
 
@@ -997,7 +1036,7 @@ export async function generatePostVariations(
           { role: "system", content: systemPrompt },
           { role: "user", content: userContent },
         ],
-        response_format: buildVariationsSchema(isCarousel, POST_VARIATION_TARGET, "post_variations"),
+        response_format: buildVariationsSchema(isCarousel, POST_VARIATION_TARGET, "post_variations", validAnchorIds),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -1024,9 +1063,12 @@ export async function generatePostVariations(
 
     // ── 2. Validação estrutural por slot ────────────────────────────────────
     const issuesBySlot = new Map<number, string[]>();
+    const anchors = siteIntelligence?.anchors;
     variations.forEach((variation, index) => {
-      const issues = collectSlotIssues(variation, isCarousel, index);
-      if (issues.length > 0) issuesBySlot.set(index, issues);
+      const structural = collectSlotIssues(variation, isCarousel, index);
+      const semantic = variation && anchors ? checkAnchorUsage(variation, anchors) : [];
+      const all = [...structural, ...semantic];
+      if (all.length > 0) issuesBySlot.set(index, all);
     });
 
     // ── 3. Originalidade (paralela) + avaliação de qualidade ────────────────
@@ -1067,8 +1109,35 @@ export async function generatePostVariations(
     if (originality.fallbackUsed) metrics.fallbacks.push("originality");
     const originalityScores = originality.assessments.map((assessment) => assessment.score);
     evaluations = applyOriginalityToEvaluations(evaluations, originalityScores);
+
+    // Anchor penalty: slots with anchor issues get factuality -15,
+    // which drops them below the gate (factuality >= 65) and triggers repair.
+    if (anchors) {
+      evaluations = evaluations.map((evaluation, index) => {
+        const slotIssues = issuesBySlot.get(index) ?? [];
+        const hasAnchorIssue = slotIssues.some((issue) =>
+          issue.startsWith("missing_anchor") || issue.startsWith("missing_proprietary_term"),
+        );
+        if (!hasAnchorIssue) return evaluation;
+        const dimensions = {
+          ...evaluation.dimensions,
+          factuality: Math.max(0, Math.round(evaluation.dimensions.factuality - 15)),
+        };
+        return summarize(dimensions, evaluation.feedback);
+      });
+    }
+
     recordEvent("originality", originality.fallbackUsed ? "fallback" : "completed", `Originality assessed (${originality.assessments.length} assessments).`);
     recordEvent("quality_evaluation", evaluations.every((evaluation) => evaluation.accepted) ? "completed" : "rejected", `Evaluation round: ${evaluations.filter((evaluation) => evaluation.accepted).length}/${evaluations.length} accepted.`);
+
+    // AI vice detection: slots with generic LLM patterns go to repair
+    evaluations.forEach((evaluation, index) => {
+      const viceIssues = checkAiVices(evaluation);
+      if (viceIssues.length > 0) {
+        const existing = issuesBySlot.get(index) ?? [];
+        issuesBySlot.set(index, [...existing, ...viceIssues]);
+      }
+    });
 
     // ── 4. Alvos de reparo (estrutura ∪ qualidade ∪ diversidade) ────────────
     const qualityFeedbackBySlot = new Map<number, string[]>();
@@ -1142,7 +1211,7 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
             { role: "system", content: repairSystemPrompt },
             { role: "user", content: repairUserPrompt },
           ],
-          response_format: buildVariationsSchema(isCarousel, repairTargets.length, "post_variations_repair"),
+          response_format: buildVariationsSchema(isCarousel, repairTargets.length, "post_variations_repair", validAnchorIds),
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

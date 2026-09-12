@@ -23,5 +23,6 @@ REGRAS:
 - A variacao 1 deve executar a estrategia 1, e assim por diante.
 - Nao misture os tres angulos em uma mesma variacao.
 - Preserve o topico, objetivo, publico e limite factual de cada contrato.
-- Escreva copy original; nao copie literalmente o texto de evidencia.`;
+- Escreva copy original; nao copie literalmente o texto de evidencia.
+- O Topico define o assunto; o Headline DEVE ser uma manchete inedita, provocativa e magnetica baseada no Gancho e Angulo, NUNCA a repeticao literal do Topico.`;
 }

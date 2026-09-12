@@ -1,6 +1,6 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Stage, Layer, Rect, Text, Group, Image as KonvaImage, Transformer, Line, Circle } from "react-konva";
-import type { BgImageTransform, CanvasPostModel, ElementPosition, LogoPositionType, TextLegibilityEffect } from "./types";
+import type { BgImageTransform, CanvasCustomImage, CanvasPostModel, ElementPosition, LogoPositionType, TextLegibilityEffect, SplitBgPosition } from "./types";
 import { isDarkColor, resolveLegibleTextColor, normalizeHexColor } from "./types";
 import { getKonvaTextMetrics } from "./textMetrics";
 import { useDynamicFont } from "@/hooks/useDynamicFont";
@@ -25,6 +25,7 @@ interface CanvasPostStageProps {
   onUpdateText?: (field: "headline" | "subtext" | "badgeText", value: string) => void;
   onUpdateExtraTextPosition?: (id: string, pos: ElementPosition) => void;
   onUpdateExtraTextContent?: (id: string, value: string) => void;
+  onUpdateExtraImage?: (id: string, patch: Partial<CanvasCustomImage>) => void;
 }
 
 // Cálculo de crop proporcional (object-fit: cover)
@@ -284,6 +285,63 @@ function getTextEffectProps(
   return {};
 }
 
+// ─── COMPONENTE DE IMAGEM LIVRE ADICIONAL (FOTO / STICKER / ADESIVO) ───
+const CanvasCustomImageNode: React.FC<{
+  item: CanvasCustomImage;
+  isInteractive: boolean;
+  onSelect: () => void;
+  onDragMove: (e: any) => void;
+  onDragEnd: (e: any) => void;
+  onTransformEnd: (e: any) => void;
+  createSnapBoundFunc: (width: number, height: number) => any;
+  setRef: (el: any) => void;
+}> = ({
+  item,
+  isInteractive,
+  onSelect,
+  onDragMove,
+  onDragEnd,
+  onTransformEnd,
+  createSnapBoundFunc,
+  setRef,
+}) => {
+  const [imageEl, setImageEl] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (!item.url) {
+      setImageEl(null);
+      return;
+    }
+    const img = new window.Image();
+    img.crossOrigin = "Anonymous";
+    img.src = item.url;
+    img.onload = () => setImageEl(img);
+  }, [item.url]);
+
+  if (!imageEl) return null;
+
+  return (
+    <KonvaImage
+      ref={setRef}
+      image={imageEl}
+      x={item.x}
+      y={item.y}
+      width={item.width}
+      height={item.height}
+      rotation={item.rotation || 0}
+      opacity={item.opacity ?? 1}
+      cornerRadius={item.cornerRadius || 0}
+      draggable={isInteractive}
+      dragBoundFunc={isInteractive ? createSnapBoundFunc(item.width, item.height) : undefined}
+      onClick={onSelect}
+      onTap={onSelect}
+      onDragMove={onDragMove}
+      onDragEnd={onDragEnd}
+      onTransformEnd={onTransformEnd}
+    />
+  );
+};
+
 export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStageProps>(
   (
     {
@@ -299,6 +357,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       onUpdateText,
       onUpdateExtraTextPosition,
       onUpdateExtraTextContent,
+      onUpdateExtraImage,
     },
     ref
   ) => {
@@ -314,6 +373,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const logoRef = useRef<any>(null);
     const bgImageRef = useRef<any>(null);
     const extraTextRefs = useRef<Record<string, any>>({});
+    const extraImageRefs = useRef<Record<string, any>>({});
 
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -416,6 +476,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       else if (selectedId === "logo") targetNode = logoRef.current;
       else if (selectedId && extraTextRefs.current[selectedId]) {
         targetNode = extraTextRefs.current[selectedId];
+      } else if (selectedId && extraImageRefs.current[selectedId]) {
+        targetNode = extraImageRefs.current[selectedId];
       }
 
       if (targetNode) {
@@ -494,6 +556,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const showSecondarySlideChip = isBadgeVisible && isStepVisible;
     const secondarySlideText = currentSlide?.step || "";
     const activeExtraTexts = currentSlide?.extraTexts || post.extraTexts || [];
+    const activeExtraImages = currentSlide?.extraImages || post.extraImages || [];
 
     // --- CARACTERÍSTICAS DA FAMÍLIA ATIVA ---
     const fam = post.familyId || "editorial-poster";
@@ -508,8 +571,6 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const isKinetic = fam === "kinetic-type";
     const isDataPunch = fam === "data-punch";
     const isQuote = fam === "quote-authority";
-    const isMinimalAir = fam === "minimal-air";
-    const hasBgImage = Boolean(activeBg);
 
     const contentWidth = baseWidth - (isGlass ? 56 : 48);
 
@@ -665,8 +726,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       defaultHeadlineY = Math.max(70, (baseHeight - totalStackHeight) / 2 + 15);
       defaultSubtextY = defaultHeadlineY + headlineHeight + 12;
       defaultBarY = defaultSubtextY + subtextHeight + 16;
-    } else if (isKinetic || isDataPunch || isQuote || isMinimalAir || !hasBgImage) {
-      // Famílias tipográficas e posts sem foto de fundo: distribuição harmônica e centrada
+    } else {
+      // Distribuição harmônica e centrada (preserva a posição estável do texto com ou sem foto de fundo)
       const availableHeight = baseHeight - layoutBottomMargin;
       defaultHeadlineY = Math.max(
         hasVisibleBadge ? 54 : 36,
@@ -676,13 +737,6 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       defaultBadgeX = 24;
       defaultBadgeY = 22;
       defaultBarY = defaultSubtextY + subtextHeight + 16;
-    } else {
-      // Pôster Editorial com foto de fundo: texto ancorado na base sobre o degradê escuro
-      defaultHeadlineY = Math.max(80, baseHeight - layoutBottomMargin - totalStackHeight);
-      defaultSubtextY = defaultHeadlineY + headlineHeight + 10;
-      defaultBadgeX = 24;
-      defaultBadgeY = 24;
-      defaultBarY = defaultSubtextY + subtextHeight + 18;
     }
 
     const badgePos = currentSlide?.badgePos || { x: defaultBadgeX, y: defaultBadgeY };
@@ -702,12 +756,18 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     };
     const logoPos = currentSlide?.logoPos || defaultLogoPositions[post.logoPosition || "top-right"];
 
+    const splitBgPos: SplitBgPosition = currentSlide?.splitBgPosition || post.splitBgPosition || "bottom";
+    const isSplitHalf = isBrutalSplit && splitBgPos !== "full";
+    const targetBgWidth = baseWidth;
+    const targetBgHeight = isSplitHalf ? baseHeight * 0.5 : baseHeight;
+    const targetBgY = isSplitHalf && splitBgPos === "bottom" ? baseHeight * 0.5 : 0;
+
     const bgCrop = bgImgElement
       ? getCoverCrop(
           bgImgElement.naturalWidth || bgImgElement.width,
           bgImgElement.naturalHeight || bgImgElement.height,
-          baseWidth,
-          baseHeight
+          targetBgWidth,
+          targetBgHeight
         )
       : undefined;
 
@@ -879,8 +939,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       const isBar = isDescendantOf(e.target, barRef.current);
       const isLogo = isDescendantOf(e.target, logoRef.current);
       const isExtraText = Object.values(extraTextRefs.current).some((ref) => isDescendantOf(e.target, ref));
+      const isExtraImage = Object.values(extraImageRefs.current).some((ref) => isDescendantOf(e.target, ref));
 
-      if (isHeadline || isSubtext || isBadge || isBar || isLogo || isExtraText) {
+      if (isHeadline || isSubtext || isBadge || isBar || isLogo || isExtraText || isExtraImage) {
         return;
       }
 
@@ -963,7 +1024,6 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 <>
                   <Rect name="canvas-bg" x={0} y={0} width={baseWidth} height={baseHeight * 0.5} fill={post.palette.background || "#171717"} />
                   <Rect name="canvas-bg" x={0} y={baseHeight * 0.5} width={baseWidth} height={baseHeight * 0.5} fill={post.palette.accent || "#21F1A8"} />
-                  <Line points={[0, baseHeight * 0.5, baseWidth, baseHeight * 0.5]} stroke="#000000" strokeWidth={2} opacity={0.4} listening={false} />
                 </>
               ) : isDuotone ? (
                 // 1.B) DUOTONE WASH: GRADIENTE LINEAR DIAGONAL RICO A 135°
@@ -991,141 +1051,176 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 <Rect name="canvas-bg" x={0} y={0} width={baseWidth} height={baseHeight} fill={post.palette.background} />
               )}
 
-              {/* IMAGEM DE FUNDO COM SUPORTE A EDIÇÃO ESTILO CANVA */}
-              {bgImgElement && (
-                <KonvaImage
-                  ref={bgImageRef}
-                  image={bgImgElement}
-                  x={bgTransform?.x ?? 0}
-                  y={bgTransform?.y ?? 0}
-                  scaleX={bgTransform?.scaleX ?? 1}
-                  scaleY={bgTransform?.scaleY ?? 1}
-                  rotation={bgTransform?.rotation ?? 0}
-                  width={baseWidth}
-                  height={baseHeight}
-                  crop={bgCrop}
-                  opacity={isEditingBackground ? 0.95 : 0.8}
-                  draggable={isInteractive && isEditingBackground}
-                  onDblClick={() => {
-                    if (!isEditingBackground && onEnterBackgroundEdit) {
-                      onEnterBackgroundEdit();
-                    }
-                  }}
-                  onDragEnd={(e) => {
-                    if (!onUpdateBgTransform) return;
-                    onUpdateBgTransform({
-                      x: Math.round(e.target.x()),
-                      y: Math.round(e.target.y()),
-                      scaleX: Number(e.target.scaleX().toFixed(3)),
-                      scaleY: Number(e.target.scaleY().toFixed(3)),
-                      rotation: Math.round(e.target.rotation()),
-                    });
-                  }}
-                  onTransformEnd={() => {
-                    if (!onUpdateBgTransform) return;
-                    const node = bgImageRef.current;
-                    if (!node) return;
-                    onUpdateBgTransform({
-                      x: Math.round(node.x()),
-                      y: Math.round(node.y()),
-                      scaleX: Number(node.scaleX().toFixed(3)),
-                      scaleY: Number(node.scaleY().toFixed(3)),
-                      rotation: Math.round(node.rotation()),
-                    });
-                  }}
-                />
-              )}
-
-              {/* GRADIENTE / SCRIM / OVERLAY DE CONTRASTE */}
+              {/* IMAGEM DE FUNDO COM SUPORTE A EDIÇÃO ESTILO CANVA E RECORTE DO BRUTAL SPLIT */}
               {bgImgElement && (() => {
+                const bgImageNode = (
+                  <KonvaImage
+                    ref={bgImageRef}
+                    image={bgImgElement}
+                    x={bgTransform?.x ?? 0}
+                    y={bgTransform?.y ?? targetBgY}
+                    scaleX={bgTransform?.scaleX ?? 1}
+                    scaleY={bgTransform?.scaleY ?? 1}
+                    rotation={bgTransform?.rotation ?? 0}
+                    width={targetBgWidth}
+                    height={targetBgHeight}
+                    crop={bgCrop}
+                    opacity={isEditingBackground ? 0.95 : 0.8}
+                    draggable={isInteractive && isEditingBackground}
+                    onDblClick={() => {
+                      if (!isEditingBackground && onEnterBackgroundEdit) {
+                        onEnterBackgroundEdit();
+                      }
+                    }}
+                    onDragEnd={(e) => {
+                      if (!onUpdateBgTransform) return;
+                      onUpdateBgTransform({
+                        x: Math.round(e.target.x()),
+                        y: Math.round(e.target.y()),
+                        scaleX: Number(e.target.scaleX().toFixed(3)),
+                        scaleY: Number(e.target.scaleY().toFixed(3)),
+                        rotation: Math.round(e.target.rotation()),
+                      });
+                    }}
+                    onTransformEnd={() => {
+                      if (!onUpdateBgTransform) return;
+                      const node = bgImageRef.current;
+                      if (!node) return;
+                      onUpdateBgTransform({
+                        x: Math.round(node.x()),
+                        y: Math.round(node.y()),
+                        scaleX: Number(node.scaleX().toFixed(3)),
+                        scaleY: Number(node.scaleY().toFixed(3)),
+                        rotation: Math.round(node.rotation()),
+                      });
+                    }}
+                  />
+                );
+
                 const effectiveOverlayColor = normalizeHexColor(post.overlayColor || post.palette.background || "#000000");
                 const mode = post.overlayMode || "gradient-bottom";
                 const opacity = isEditingBackground ? 0.2 : (post.overlayOpacity ?? 0.55);
 
-                if (mode === "solid") {
-                  return (
-                    <Rect
-                      x={0}
-                      y={0}
-                      width={baseWidth}
-                      height={baseHeight}
-                      fill={effectiveOverlayColor}
-                      opacity={opacity}
-                      listening={false}
-                    />
-                  );
-                }
+                const overlayNode = (() => {
+                  if (mode === "solid") {
+                    return (
+                      <Rect
+                        x={0}
+                        y={targetBgY}
+                        width={targetBgWidth}
+                        height={targetBgHeight}
+                        fill={effectiveOverlayColor}
+                        opacity={opacity}
+                        listening={false}
+                      />
+                    );
+                  }
 
-                if (mode === "radial") {
-                  return (
-                    <Rect
-                      x={0}
-                      y={0}
-                      width={baseWidth}
-                      height={baseHeight}
-                      fillRadialGradientStartPoint={{ x: baseWidth / 2, y: baseHeight / 2 }}
-                      fillRadialGradientStartRadius={0}
-                      fillRadialGradientEndPoint={{ x: baseWidth / 2, y: baseHeight / 2 }}
-                      fillRadialGradientEndRadius={Math.max(baseWidth, baseHeight) * 0.72}
-                      fillRadialGradientColorStops={[
-                        0,
-                        `${effectiveOverlayColor}00`,
-                        0.45,
-                        `${effectiveOverlayColor}66`,
-                        1,
-                        effectiveOverlayColor,
-                      ]}
-                      opacity={opacity}
-                      listening={false}
-                    />
-                  );
-                }
+                  if (mode === "radial") {
+                    return (
+                      <Rect
+                        x={0}
+                        y={targetBgY}
+                        width={targetBgWidth}
+                        height={targetBgHeight}
+                        fillRadialGradientStartPoint={{ x: targetBgWidth / 2, y: targetBgY + targetBgHeight / 2 }}
+                        fillRadialGradientStartRadius={0}
+                        fillRadialGradientEndPoint={{ x: targetBgWidth / 2, y: targetBgY + targetBgHeight / 2 }}
+                        fillRadialGradientEndRadius={Math.max(targetBgWidth, targetBgHeight) * 0.72}
+                        fillRadialGradientColorStops={[
+                          0,
+                          `${effectiveOverlayColor}00`,
+                          0.45,
+                          `${effectiveOverlayColor}66`,
+                          1,
+                          effectiveOverlayColor,
+                        ]}
+                        opacity={opacity}
+                        listening={false}
+                      />
+                    );
+                  }
 
-                if (mode === "gradient-top") {
+                  if (mode === "gradient-top") {
+                    return (
+                      <Rect
+                        x={0}
+                        y={targetBgY}
+                        width={targetBgWidth}
+                        height={targetBgHeight}
+                        fillLinearGradientStartPoint={{ x: 0, y: targetBgY }}
+                        fillLinearGradientEndPoint={{ x: 0, y: targetBgY + targetBgHeight }}
+                        fillLinearGradientColorStops={[
+                          0,
+                          effectiveOverlayColor,
+                          0.5,
+                          `${effectiveOverlayColor}BB`,
+                          1,
+                          `${effectiveOverlayColor}22`,
+                        ]}
+                        opacity={opacity}
+                        listening={false}
+                      />
+                    );
+                  }
+
+                  // Padrão: gradient-bottom (suave no topo, denso na base)
                   return (
                     <Rect
                       x={0}
-                      y={0}
-                      width={baseWidth}
-                      height={baseHeight}
-                      fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-                      fillLinearGradientEndPoint={{ x: 0, y: baseHeight }}
+                      y={targetBgY}
+                      width={targetBgWidth}
+                      height={targetBgHeight}
+                      fillLinearGradientStartPoint={{ x: 0, y: targetBgY }}
+                      fillLinearGradientEndPoint={{ x: 0, y: targetBgY + targetBgHeight }}
                       fillLinearGradientColorStops={[
                         0,
-                        effectiveOverlayColor,
+                        `${effectiveOverlayColor}22`,
                         0.5,
                         `${effectiveOverlayColor}BB`,
                         1,
-                        `${effectiveOverlayColor}22`,
+                        effectiveOverlayColor,
                       ]}
                       opacity={opacity}
                       listening={false}
                     />
                   );
+                })();
+
+                if (isSplitHalf) {
+                  return (
+                    <Group
+                      clip={{
+                        x: 0,
+                        y: targetBgY,
+                        width: targetBgWidth,
+                        height: targetBgHeight,
+                      }}
+                    >
+                      {bgImageNode}
+                      {overlayNode}
+                    </Group>
+                  );
                 }
 
-                // Padrão: gradient-bottom (suave no topo, denso na base)
                 return (
-                  <Rect
-                    x={0}
-                    y={0}
-                    width={baseWidth}
-                    height={baseHeight}
-                    fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-                    fillLinearGradientEndPoint={{ x: 0, y: baseHeight }}
-                    fillLinearGradientColorStops={[
-                      0,
-                      `${effectiveOverlayColor}22`,
-                      0.5,
-                      `${effectiveOverlayColor}BB`,
-                      1,
-                      effectiveOverlayColor,
-                    ]}
-                    opacity={opacity}
-                    listening={false}
-                  />
+                  <>
+                    {bgImageNode}
+                    {overlayNode}
+                  </>
                 );
               })()}
+
+              {/* Linha divisória do Brutal Split (sempre no topo dos blocos de fundo) */}
+              {isBrutalSplit && (
+                <Line
+                  points={[0, baseHeight * 0.5, baseWidth, baseHeight * 0.5]}
+                  stroke="#000000"
+                  strokeWidth={2}
+                  opacity={0.4}
+                  listening={false}
+                />
+              )}
 
               {/* ─── PRIMEIRO PLANO (TEXTOS E ELEMENTOS GRÁFICOS) ─── */}
               {/* Quando isEditingBackground === true (Estilo Canva), o primeiro plano atenua e não captura cliques */}
@@ -1570,17 +1665,71 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
               })}
               </Group>
 
-              {/* ─── 8. TRANSFORMER PARA ELEMENTOS DE TEXTO/MARCA ─── */}
+              {/* ─── 7.C) IMAGENS LIVRES ADICIONAIS (FOTOS / ADESIVOS / STICKERS) ─── */}
+              {activeExtraImages.map((imgItem) => (
+                <CanvasCustomImageNode
+                  key={imgItem.id}
+                  item={imgItem}
+                  isInteractive={isInteractive}
+                  createSnapBoundFunc={createSnapBoundFunc}
+                  setRef={(el) => {
+                    if (el) extraImageRefs.current[imgItem.id] = el;
+                    else delete extraImageRefs.current[imgItem.id];
+                  }}
+                  onSelect={() => handleSelect(imgItem.id)}
+                  onDragMove={handleDragMove}
+                  onDragEnd={(e) => {
+                    setSnapLines({});
+                    if (onUpdateExtraImage) {
+                      onUpdateExtraImage(imgItem.id, {
+                        x: Math.round(e.target.x()),
+                        y: Math.round(e.target.y()),
+                      });
+                    }
+                  }}
+                  onTransformEnd={(e) => {
+                    const node = e.target;
+                    const scaleX = node.scaleX();
+                    const scaleY = node.scaleY();
+                    const newWidth = Math.max(20, Math.round(node.width() * scaleX));
+                    const newHeight = Math.max(20, Math.round(node.height() * scaleY));
+                    const newRotation = Math.round(node.rotation());
+                    const newX = Math.round(node.x());
+                    const newY = Math.round(node.y());
+                    // Invariante Konva: reseta escalas para 1 para não acumular distorções
+                    node.scaleX(1);
+                    node.scaleY(1);
+                    if (onUpdateExtraImage) {
+                      onUpdateExtraImage(imgItem.id, {
+                        x: newX,
+                        y: newY,
+                        width: newWidth,
+                        height: newHeight,
+                        rotation: newRotation,
+                      });
+                    }
+                  }}
+                />
+              ))}
+
+              {/* ─── 8. TRANSFORMER PARA ELEMENTOS DE TEXTO/MARCA/IMAGENS ─── */}
               {isInteractive && !isEditingBackground && (
                 <Transformer
                   ref={transformerRef}
                   rotateEnabled={true}
+                  rotationSnaps={[0, 90, 180, 270]}
                   borderStroke="#38bdf8"
                   borderStrokeWidth={1.5}
                   anchorStroke="#38bdf8"
                   anchorFill="#ffffff"
                   anchorSize={7}
                   anchorCornerRadius={2}
+                  keepRatio={Boolean(selectedId && extraImageRefs.current[selectedId])}
+                  enabledAnchors={
+                    selectedId && extraImageRefs.current[selectedId]
+                      ? ["top-left", "top-right", "bottom-left", "bottom-right"]
+                      : undefined
+                  }
                   onDblClick={() => {
                     if (selectedId === "headline" || selectedId === "subtext" || selectedId === "badge") {
                       startEditing(selectedId);

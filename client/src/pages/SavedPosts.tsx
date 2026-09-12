@@ -20,32 +20,39 @@ function formatDate(value: string | null | undefined) {
 
 function savedPostToVariation(post: any): PostVisualSnapshot {
   const snapshot = post.variation_snapshot && typeof post.variation_snapshot === "object" ? post.variation_snapshot : null;
+  const canvasModel = post.canvas_model && typeof post.canvas_model === "object" ? post.canvas_model : null;
   const slides = Array.isArray(snapshot?.slides) ? (snapshot.slides as CarouselSlide[]) : Array.isArray(post.slides) ? (post.slides as CarouselSlide[]) : [];
+
+  const bgUrl = snapshot?.imageUrl || canvasModel?.bgImage || post.imageUrl || undefined;
+  const bgColor = snapshot?.backgroundColor || canvasModel?.palette?.background || post.backgroundColor || "#0f1117";
+  const txtColor = snapshot?.textColor || canvasModel?.palette?.text || post.textColor || "#ffffff";
+  const accColor = snapshot?.accentColor || canvasModel?.palette?.accent || post.accentColor || "#d4af37";
+  const aspRatio = (snapshot?.aspectRatio || canvasModel?.aspectRatio || "1:1") as AspectRatio;
 
   return createPostVisualSnapshot({
     id: `saved-${post.id}`,
     ...(snapshot ?? {}),
-    headline: snapshot?.headline || post.headline || "",
-    body: snapshot?.body || post.body || "",
-    caption: snapshot?.caption || post.caption || "",
+    headline: snapshot?.headline || canvasModel?.headline || post.headline || "",
+    body: snapshot?.body || canvasModel?.subtext || post.body || "",
+    caption: snapshot?.caption || canvasModel?.caption || post.caption || "",
     hashtags: Array.isArray(snapshot?.hashtags) ? snapshot.hashtags : Array.isArray(post.hashtags) ? post.hashtags : [],
     callToAction: snapshot?.callToAction || post.callToAction || "",
     tone: snapshot?.tone || post.tone || "",
     platform: (snapshot?.platform || post.platform || "instagram") as Platform,
-    imagePrompt: snapshot?.imagePrompt || post.imagePrompt || "",
-    imageUrl: snapshot?.imageUrl || post.imageUrl || undefined,
-    backgroundColor: snapshot?.backgroundColor || post.backgroundColor || "#0f1117",
-    textColor: snapshot?.textColor || post.textColor || "#ffffff",
-    accentColor: snapshot?.accentColor || post.accentColor || "#d4af37",
+    imagePrompt: snapshot?.imagePrompt || canvasModel?.imagePrompt || post.imagePrompt || "",
+    imageUrl: bgUrl,
+    backgroundColor: bgColor,
+    textColor: txtColor,
+    accentColor: accColor,
     layout: snapshot?.layout || post.layout || "centered",
-    aspectRatio: (snapshot?.aspectRatio || "1:1") as AspectRatio,
+    aspectRatio: aspRatio,
     postMode: (snapshot?.postMode || post.postMode || "static") as PostMode,
     slides,
     copyAngle: snapshot?.copyAngle || post.copy_angle || undefined,
     textElements: Array.isArray(snapshot?.textElements) ? snapshot.textElements : Array.isArray(post.textElements) ? post.textElements : undefined,
     imageSettings: snapshot?.imageSettings || post.image_settings || undefined,
     layoutSettings: snapshot?.layoutSettings || post.layout_settings || layoutToAdvanced(post.layout || "centered"),
-    bgValue: snapshot?.bgValue || post.bg_value || (post.imageUrl ? { type: "ai", url: post.imageUrl } : { type: "solid", color: post.backgroundColor || "#0f1117" }),
+    bgValue: snapshot?.bgValue || post.bg_value || (bgUrl ? { type: "ai", url: bgUrl } : { type: "solid", color: bgColor }),
     bgOverlay: snapshot?.bgOverlay || post.bg_overlay || undefined,
   } as PostVariation);
 }
@@ -63,7 +70,7 @@ function SavedPostPreview({ post }: { post: any }) {
 
 export default function SavedPosts() {
   const [, setLocation] = useLocation();
-  const { data: posts, isLoading } = trpc.post.list.useQuery();
+  const { data: posts, isLoading, error, refetch } = trpc.post.list.useQuery();
 
   const openSavedPost = (post: any) => {
     // Item 7: reabre o post no editor oficial CanvasLab (rota /thevoid).
@@ -137,6 +144,28 @@ export default function SavedPosts() {
               />
             ))}
           </div>
+        ) : error ? (
+          <motion.div
+            className="rounded-3xl border px-6 py-16 text-center"
+            style={{
+              background: "oklch(0.08 0.02 280)",
+              borderColor: "oklch(0.7 0.22 40 / 30%)",
+            }}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="mx-auto flex max-w-md flex-col items-center gap-3">
+              <Bookmark className="h-8 w-8 text-destructive" />
+              <h2 className="text-xl font-semibold text-foreground">Erro ao carregar posts salvos</h2>
+              <p className="text-sm text-muted-foreground">{error.message || "Não foi possível carregar a lista de posts."}</p>
+              <button
+                onClick={() => refetch()}
+                className="mt-2 rounded-full border border-thermal-orange bg-thermal-orange/10 px-4 py-2 text-xs font-semibold text-thermal-orange hover:bg-thermal-orange/20 transition-colors"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          </motion.div>
         ) : posts && posts.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {posts.map(post => (

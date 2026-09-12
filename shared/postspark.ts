@@ -556,6 +556,11 @@ export interface PostVariation {
   /** Copy angle metadata — defines the persuasion angle of this variation */
   copyAngle?: CopyAngle;
 
+  /** ID of the site anchor fact used in this variation (e.g. "f2") */
+  anchorUsed?: string;
+  /** Proprietary terms from site anchors that appear in the visible text */
+  proprietaryTerms?: string[];
+
   /** Design tokens override — when set, these drive the visual rendering directly */
   designTokens?: Partial<DesignTokens>;
   brandMeta?: {
@@ -751,6 +756,10 @@ export interface GenerationEvaluationSummary {
     layoutIntegrity: number;
   };
   feedback: string[];
+  /** 0-100 where 100 = specific human voice, 0 = generic LLM voice. Only from LLM judge. */
+  aiViceScore?: number;
+  /** Detected AI writing patterns. Only from LLM judge. */
+  vicePatterns?: Array<"antitese_negativa" | "meta_anuncio" | "tom_assistente" | "preambulo_conversacional" | "vazamento_tecnico" | "pergunta_retorica" | "exclamacao" | "frase_vazia">;
 }
 
 /** App state machine */
@@ -1084,6 +1093,12 @@ export interface SiteIntelligence {
     toneGuidelines: string[];
   };
   evidence: SiteEvidence[];
+  /** Concrete facts, proprietary terms and objections extracted from site evidence. */
+  anchors?: {
+    facts: Array<{ id: string; text: string }>;
+    proprietaryTerms: string[];
+    objections: string[];
+  };
   quality: {
     overall: number;
     visual: number;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Edit3,
@@ -20,9 +20,10 @@ import {
   RotateCcw,
   Type,
   Plus,
+  ImagePlus,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { CanvasPostModel, VisualFamilyId, TextAlignType, OverlayMode, CanvasCustomText } from "@/pages/CanvasLab/components/types";
+import type { CanvasPostModel, VisualFamilyId, TextAlignType, OverlayMode, CanvasCustomText, CanvasCustomImage, SplitBgPosition } from "@/pages/CanvasLab/components/types";
 import { OFFICIAL_FAMILIES_META } from "@/pages/CanvasLab/components/types";
 import { applyFamilyPreset } from "../lib/familyPreset";
 import TypographyColorControls from "./TypographyColorControls";
@@ -46,6 +47,10 @@ interface CanvasMobileDrawerProps {
   onAddExtraText?: () => void;
   onUpdateExtraText?: (id: string, patch: Partial<CanvasCustomText>) => void;
   onRemoveExtraText?: (id: string) => void;
+  onAddExtraImage?: (url: string, naturalWidth?: number, naturalHeight?: number) => void;
+  onUpdateExtraImage?: (id: string, patch: Partial<CanvasCustomImage>) => void;
+  onRemoveExtraImage?: (id: string) => void;
+  selectedElementId?: string | null;
 }
 
 type MobileTab = "text" | "style" | "media" | "brand";
@@ -61,6 +66,10 @@ export default function CanvasMobileDrawer({
   onAddExtraText,
   onUpdateExtraText,
   onRemoveExtraText,
+  onAddExtraImage,
+  onUpdateExtraImage,
+  onRemoveExtraImage,
+  selectedElementId,
 }: CanvasMobileDrawerProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isControlled = controlledIsOpen !== undefined;
@@ -105,7 +114,27 @@ export default function CanvasMobileDrawer({
 
   const currentSlide = post.slides[post.currentSlideIndex] || post.slides[0];
   const extraTextsList = currentSlide?.extraTexts || post.extraTexts || [];
+  const extraImagesList = currentSlide?.extraImages || post.extraImages || [];
   const activeBg = currentSlide?.bgImage || post.bgImage;
+
+  const mobileImageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleMobileImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target?.result as string;
+      if (!dataUrl) return;
+      const img = new Image();
+      img.onload = () => {
+        onAddExtraImage?.(dataUrl, img.naturalWidth, img.naturalHeight);
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   const handleUpdateSlide = (field: "headline" | "subtext" | "step", value: string) => {
     const nextSlides = [...post.slides];
@@ -278,17 +307,38 @@ export default function CanvasMobileDrawer({
                     Título, subtexto, alinhamentos, fontes e cores por elemento com contraste garantido.
                   </TipCallout>
 
-                  {/* Ação Rápida: Inserir Nova Caixa de Texto */}
-                  {onAddExtraText && (
-                    <button
-                      type="button"
-                      onClick={onAddExtraText}
-                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[oklch(0.78_0.22_48)]/20 to-[oklch(0.78_0.22_48)]/10 hover:from-[oklch(0.78_0.22_48)]/30 hover:to-[oklch(0.78_0.22_48)]/20 border border-[oklch(0.78_0.22_48)]/40 text-[oklch(0.78_0.22_48)] text-xs font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                    >
-                      <Plus size={14} strokeWidth={2.5} />
-                      <span>+ Adicionar Caixa de Texto Livre</span>
-                    </button>
-                  )}
+                  {/* Ações Rápidas: Inserir Nova Caixa de Texto ou Imagem */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {onAddExtraText && (
+                      <button
+                        type="button"
+                        onClick={onAddExtraText}
+                        className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[oklch(0.78_0.22_48)]/20 to-[oklch(0.78_0.22_48)]/10 hover:from-[oklch(0.78_0.22_48)]/30 hover:to-[oklch(0.78_0.22_48)]/20 border border-[oklch(0.78_0.22_48)]/40 text-[oklch(0.78_0.22_48)] text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                      >
+                        <Plus size={14} strokeWidth={2.5} />
+                        <span>+ Texto</span>
+                      </button>
+                    )}
+                    {onAddExtraImage && (
+                      <>
+                        <input
+                          ref={mobileImageInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleMobileImageFile}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => mobileImageInputRef.current?.click()}
+                          className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white/80 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                        >
+                          <ImagePlus size={14} strokeWidth={2.2} />
+                          <span>+ Imagem</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
 
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
@@ -517,6 +567,101 @@ export default function CanvasMobileDrawer({
                     )}
                   </div>
 
+                  {/* ── Imagens e Fotos Livres Adicionais ── */}
+                  <div className="space-y-2 pt-2 border-t border-white/8">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-mono text-white/50 uppercase flex items-center gap-1">
+                        <ImagePlus size={11} className="text-[oklch(0.78_0.22_48)]" />
+                        <span>Imagens & Fotos ({extraImagesList.length})</span>
+                      </label>
+                      {onAddExtraImage && (
+                        <button
+                          type="button"
+                          onClick={() => mobileImageInputRef.current?.click()}
+                          className="flex items-center gap-1 text-[11px] font-medium text-[oklch(0.78_0.22_48)] hover:text-white bg-[oklch(0.78_0.22_48)]/10 hover:bg-[oklch(0.78_0.22_48)]/20 px-2 py-0.5 rounded-lg border border-[oklch(0.78_0.22_48)]/30 transition-all cursor-pointer"
+                        >
+                          <Plus size={11} />
+                          <span>Inserir</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {extraImagesList.length > 0 && (
+                      <div className="space-y-2">
+                        {extraImagesList.map((img, idx) => {
+                          const isSelected = selectedElementId === img.id;
+                          return (
+                            <div
+                              key={img.id}
+                              className={`p-2.5 rounded-xl border space-y-2 transition-all ${
+                                isSelected
+                                  ? "bg-[oklch(0.78_0.22_48)]/10 border-[oklch(0.78_0.22_48)]/50 shadow-sm"
+                                  : "bg-white/3 border-white/8 hover:border-white/15"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-9 h-9 rounded-lg overflow-hidden border border-white/15 bg-black/40 shrink-0">
+                                    <img src={img.url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                                  </div>
+                                  <div>
+                                    <div className="text-xs font-medium text-white/90">
+                                      Foto #{idx + 1}
+                                    </div>
+                                    <div className="text-[10px] text-white/40 font-mono">
+                                      {img.width} × {img.height}px
+                                    </div>
+                                  </div>
+                                </div>
+                                {onRemoveExtraImage && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onRemoveExtraImage(img.id)}
+                                    title="Remover imagem"
+                                    className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all cursor-pointer"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Opacidade e Arredondamento */}
+                              <div className="space-y-1.5 pt-1.5 border-t border-white/5 text-[11px]">
+                                <div className="flex items-center justify-between text-white/60">
+                                  <span>Opacidade</span>
+                                  <span className="font-mono text-[10px]">{Math.round((img.opacity ?? 1) * 100)}%</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0.1"
+                                  max="1"
+                                  step="0.05"
+                                  value={img.opacity ?? 1}
+                                  onChange={(e) => onUpdateExtraImage?.(img.id, { opacity: parseFloat(e.target.value) })}
+                                  className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                                />
+
+                                <div className="flex items-center justify-between text-white/60 pt-0.5">
+                                  <span>Arredondamento</span>
+                                  <span className="font-mono text-[10px]">{img.cornerRadius || 0}px</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="60"
+                                  step="2"
+                                  value={img.cornerRadius || 0}
+                                  onChange={(e) => onUpdateExtraImage?.(img.id, { cornerRadius: parseInt(e.target.value, 10) })}
+                                  className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Tipografia do Post */}
                   <div className="space-y-1 pt-2 border-t border-white/8">
                     <label className="text-[11px] font-mono text-white/50 uppercase flex items-center gap-1">
@@ -635,6 +780,54 @@ export default function CanvasMobileDrawer({
                         <Trash2 size={12} />
                         <span>Remover</span>
                       </button>
+                    </div>
+                  )}
+
+                  {/* Posição da Foto no Brutal Split */}
+                  {post.familyId === "brutal-split" && (
+                    <div className="p-3 rounded-2xl border border-[oklch(0.78_0.22_48)]/30 bg-[oklch(0.78_0.22_48)]/5 space-y-2">
+                      <div className="flex items-center justify-between text-xs uppercase tracking-wider font-semibold text-[oklch(0.78_0.22_48)]">
+                        <span>Posição da Foto no Split</span>
+                        <span className="text-[10px] font-mono text-white/50 lowercase">brutal-split</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[
+                          { id: "bottom", label: "Metade Inferior", desc: "Clássico" },
+                          { id: "top", label: "Metade Superior", desc: "No Topo" },
+                          { id: "full", label: "Fundo Todo", desc: "100%" },
+                        ].map((pos) => {
+                          const active = (currentSlide?.splitBgPosition || post.splitBgPosition || "bottom") === pos.id;
+                          return (
+                            <button
+                              key={pos.id}
+                              type="button"
+                              onClick={() => {
+                                if (currentSlide) {
+                                  const updatedSlides = [...post.slides];
+                                  updatedSlides[post.currentSlideIndex] = {
+                                    ...currentSlide,
+                                    splitBgPosition: pos.id as SplitBgPosition,
+                                  };
+                                  onUpdatePost({
+                                    slides: updatedSlides,
+                                    splitBgPosition: pos.id as SplitBgPosition,
+                                  });
+                                } else {
+                                  onUpdatePost({ splitBgPosition: pos.id as SplitBgPosition });
+                                }
+                              }}
+                              className={`p-2 rounded-xl text-center transition-all cursor-pointer border ${
+                                active
+                                  ? "bg-[oklch(0.78_0.22_48)]/20 border-[oklch(0.78_0.22_48)] text-white font-bold shadow-sm"
+                                  : "bg-white/4 border-white/8 text-white/60 hover:text-white"
+                              }`}
+                            >
+                              <div className="text-[11px] font-bold">{pos.label}</div>
+                              <div className="text-[9px] text-white/40 mt-0.5">{pos.desc}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
@@ -835,15 +1028,15 @@ export default function CanvasMobileDrawer({
                     </button>
                   </div>
 
-                  {/* 4. Upload da Galeria do Celular */}
+                  {/* 4. Upload da Galeria do Celular (Fundo) */}
                   <label className="flex items-center justify-between p-3 rounded-2xl bg-white/4 hover:bg-white/7 border border-white/10 cursor-pointer active:scale-[0.99] transition-all">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-lg bg-white/8 flex items-center justify-center">
                         <Upload size={14} className="text-white/70" />
                       </div>
-                      <span className="text-xs font-semibold text-white/90">Escolher da Galeria do Celular</span>
+                      <span className="text-xs font-semibold text-white/90">Definir Imagem de Fundo</span>
                     </div>
-                    <span className="text-xs text-white/50">Upload</span>
+                    <span className="text-xs text-white/50">Fundo</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -851,6 +1044,26 @@ export default function CanvasMobileDrawer({
                       className="hidden"
                     />
                   </label>
+
+                  {/* 5. Inserir Foto como Camada Livre */}
+                  {onAddExtraImage && (
+                    <button
+                      type="button"
+                      onClick={() => mobileImageInputRef.current?.click()}
+                      className="w-full flex items-center justify-between p-3 rounded-2xl bg-[oklch(0.78_0.22_48)]/10 hover:bg-[oklch(0.78_0.22_48)]/15 border border-[oklch(0.78_0.22_48)]/30 cursor-pointer active:scale-[0.99] transition-all"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-[oklch(0.78_0.22_48)]/20 flex items-center justify-center text-[oklch(0.78_0.22_48)]">
+                          <ImagePlus size={15} />
+                        </div>
+                        <div className="text-left">
+                          <span className="text-xs font-semibold text-white block">Inserir Imagem / Foto Sobreposta</span>
+                          <span className="text-[10px] text-white/50">Adicione imagens redimensionáveis no post</span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-[oklch(0.78_0.22_48)]">+ Inserir</span>
+                    </button>
+                  )}
                 </div>
               )}
 

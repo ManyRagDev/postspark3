@@ -15,6 +15,7 @@ import {
   type ElementPosition,
   type BgImageTransform,
   type CanvasCustomText,
+  type CanvasCustomImage,
 } from "./components/types";
 import { applyContrastGuard, patchTouchesContrast } from "./lib/contrast";
 
@@ -334,6 +335,113 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     });
   };
 
+  // ─── GERENCIAMENTO DE IMAGENS LIVRES ADICIONAIS (FOTOS / ADESIVOS) ───
+  const handleAddExtraImage = (url: string, naturalWidth?: number, naturalHeight?: number) => {
+    const curIdx = post.currentSlideIndex;
+    const currentSlide = post.slides[curIdx];
+    const slideImages = currentSlide?.extraImages || post.extraImages || [];
+    const count = slideImages.length + 1;
+    const newId = `img-${Date.now()}-${count}`;
+
+    // Dimensões proporcionais contidas na prancheta
+    let targetWidth = 140;
+    let targetHeight = 140;
+    if (naturalWidth && naturalHeight && naturalWidth > 0 && naturalHeight > 0) {
+      const ratio = naturalWidth / naturalHeight;
+      if (ratio >= 1) {
+        targetWidth = Math.min(180, Math.round(baseWidth * 0.45));
+        targetHeight = Math.round(targetWidth / ratio);
+      } else {
+        targetHeight = Math.min(180, Math.round(baseHeight * 0.45));
+        targetWidth = Math.round(targetHeight * ratio);
+      }
+    }
+
+    const newExtraImage: CanvasCustomImage = {
+      id: newId,
+      url,
+      x: Math.round((baseWidth - targetWidth) / 2),
+      y: Math.round((baseHeight - targetHeight) / 2),
+      width: targetWidth,
+      height: targetHeight,
+      rotation: 0,
+      opacity: 1,
+      cornerRadius: 0,
+    };
+
+    const updatedImages = [...slideImages, newExtraImage];
+    const updatedSlides = [...post.slides];
+    if (currentSlide) {
+      updatedSlides[curIdx] = {
+        ...currentSlide,
+        extraImages: updatedImages,
+      };
+    }
+
+    setPost((prev) => ({
+      ...prev,
+      extraImages: updatedImages,
+      slides: updatedSlides,
+    }));
+
+    setSelectedElementId(newId);
+    toast.success("Imagem adicionada ao post! Use as alças para redimensionar ou mover.");
+  };
+
+  const handleUpdateExtraImage = (id: string, patch: Partial<CanvasCustomImage>) => {
+    setPost((prev) => {
+      const curIdx = prev.currentSlideIndex;
+      const currentSlide = prev.slides[curIdx];
+      const slideImages = currentSlide?.extraImages || prev.extraImages || [];
+      const updatedImages = slideImages.map((item) =>
+        item.id === id ? { ...item, ...patch } : item
+      );
+
+      const updatedSlides = [...prev.slides];
+      if (currentSlide) {
+        updatedSlides[curIdx] = {
+          ...currentSlide,
+          extraImages: updatedImages,
+        };
+      }
+
+      return {
+        ...prev,
+        extraImages: updatedImages,
+        slides: updatedSlides,
+      };
+    });
+  };
+
+  const handleRemoveExtraImage = (id: string) => {
+    setPost((prev) => {
+      const curIdx = prev.currentSlideIndex;
+      const currentSlide = prev.slides[curIdx];
+      const slideImages = currentSlide?.extraImages || prev.extraImages || [];
+      const updatedImages = slideImages.filter((item) => item.id !== id);
+
+      const updatedSlides = [...prev.slides];
+      if (currentSlide) {
+        updatedSlides[curIdx] = {
+          ...currentSlide,
+          extraImages: updatedImages,
+        };
+      }
+
+      if (selectedElementId === id) {
+        setSelectedElementId(null);
+      }
+
+      toast.info("Imagem removida do post.");
+
+      return {
+        ...prev,
+        extraImages: updatedImages,
+        slides: updatedSlides,
+      };
+    });
+  };
+
   // ─── Item 7: fluxo de salvamento com decisão memorizável ───
   const handleSaveClick = () => {
     if (!onSave) {
@@ -484,6 +592,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         onSave={onSave ? handleSaveClick : undefined}
         isSaving={isSaving}
         onAddExtraText={handleAddExtraText}
+        onAddExtraImage={handleAddExtraImage}
       />
 
       {/* 2. Área Central */}
@@ -498,6 +607,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
             onAddExtraText={handleAddExtraText}
             onUpdateExtraText={handleUpdateExtraText}
             onRemoveExtraText={handleRemoveExtraText}
+            onAddExtraImage={handleAddExtraImage}
+            onUpdateExtraImage={handleUpdateExtraImage}
+            onRemoveExtraImage={handleRemoveExtraImage}
+            selectedElementId={selectedElementId}
           />
         </div>
 
@@ -588,6 +701,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
               onUpdateText={handleUpdateText}
               onUpdateExtraTextPosition={handleUpdateExtraTextPosition}
               onUpdateExtraTextContent={handleUpdateExtraTextContent}
+              onUpdateExtraImage={handleUpdateExtraImage}
             />
           </motion.div>
         </main>
@@ -604,6 +718,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
           onAddExtraText={handleAddExtraText}
           onUpdateExtraText={handleUpdateExtraText}
           onRemoveExtraText={handleRemoveExtraText}
+          onAddExtraImage={handleAddExtraImage}
+          onUpdateExtraImage={handleUpdateExtraImage}
+          onRemoveExtraImage={handleRemoveExtraImage}
+          selectedElementId={selectedElementId}
         />
       </div>
 

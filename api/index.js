@@ -5813,6 +5813,117 @@ function mapStripeStatus(status) {
 init_env();
 import { TRPCError as TRPCError5 } from "@trpc/server";
 
+// server/lib/imageCompress.ts
+import { createCanvas, loadImage } from "@napi-rs/canvas";
+async function compressBase64Image(dataUri, maxDimension = 600) {
+  if (!dataUri || !dataUri.startsWith("data:image/")) return dataUri;
+  if (dataUri.length < 8e4) return dataUri;
+  try {
+    const img = await loadImage(dataUri);
+    let { width, height } = img;
+    if (width > maxDimension || height > maxDimension) {
+      if (width > height) {
+        height = Math.round(height * maxDimension / width);
+        width = maxDimension;
+      } else {
+        width = Math.round(width * maxDimension / height);
+        height = maxDimension;
+      }
+    }
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, width, height);
+    const jpegBuffer = canvas.toBuffer("image/jpeg");
+    const newUri = `data:image/jpeg;base64,${jpegBuffer.toString("base64")}`;
+    console.info(`[imageCompress] Compressed ${Math.round(dataUri.length / 1024)} KB -> ${Math.round(newUri.length / 1024)} KB (${width}x${height})`);
+    return newUri;
+  } catch (err) {
+    console.warn("[imageCompress] Failed to compress image, keeping original:", err);
+    return dataUri;
+  }
+}
+async function compressPostPayload(payload) {
+  const result = { ...payload };
+  if (typeof result.imageUrl === "string" && result.imageUrl.startsWith("data:image/") && result.imageUrl.length > 5e4) {
+    result.imageUrl = await compressBase64Image(result.imageUrl);
+  }
+  if (result.bgValue && typeof result.bgValue === "object" && typeof result.bgValue.url === "string" && result.bgValue.url.startsWith("data:image/") && result.bgValue.url.length > 5e4) {
+    result.bgValue = { ...result.bgValue, url: await compressBase64Image(result.bgValue.url) };
+  }
+  if (Array.isArray(result.slides)) {
+    result.slides = await Promise.all(
+      result.slides.map(async (slide) => {
+        if (!slide || typeof slide !== "object") return slide;
+        const s = { ...slide };
+        if (typeof s.imageUrl === "string" && s.imageUrl.startsWith("data:image/") && s.imageUrl.length > 5e4) {
+          s.imageUrl = await compressBase64Image(s.imageUrl);
+        }
+        if (s.editorState && typeof s.editorState === "object" && s.editorState.bgValue && typeof s.editorState.bgValue.url === "string" && s.editorState.bgValue.url.startsWith("data:image/") && s.editorState.bgValue.url.length > 5e4) {
+          s.editorState = {
+            ...s.editorState,
+            bgValue: {
+              ...s.editorState.bgValue,
+              url: await compressBase64Image(s.editorState.bgValue.url)
+            }
+          };
+        }
+        return s;
+      })
+    );
+  }
+  if (result.variationSnapshot && typeof result.variationSnapshot === "object") {
+    const snap = { ...result.variationSnapshot };
+    if (typeof snap.imageUrl === "string" && snap.imageUrl.startsWith("data:image/") && snap.imageUrl.length > 5e4) {
+      snap.imageUrl = await compressBase64Image(snap.imageUrl);
+    }
+    if (snap.bgValue && typeof snap.bgValue.url === "string" && snap.bgValue.url.startsWith("data:image/") && snap.bgValue.url.length > 5e4) {
+      snap.bgValue = { ...snap.bgValue, url: await compressBase64Image(snap.bgValue.url) };
+    }
+    if (Array.isArray(snap.slides)) {
+      snap.slides = await Promise.all(
+        snap.slides.map(async (slide) => {
+          if (!slide || typeof slide !== "object") return slide;
+          const s = { ...slide };
+          if (typeof s.imageUrl === "string" && s.imageUrl.startsWith("data:image/") && s.imageUrl.length > 5e4) {
+            s.imageUrl = await compressBase64Image(s.imageUrl);
+          }
+          if (s.editorState && typeof s.editorState === "object" && s.editorState.bgValue && typeof s.editorState.bgValue.url === "string" && s.editorState.bgValue.url.startsWith("data:image/") && s.editorState.bgValue.url.length > 5e4) {
+            s.editorState = {
+              ...s.editorState,
+              bgValue: {
+                ...s.editorState.bgValue,
+                url: await compressBase64Image(s.editorState.bgValue.url)
+              }
+            };
+          }
+          return s;
+        })
+      );
+    }
+    result.variationSnapshot = snap;
+  }
+  if (result.canvasModel && typeof result.canvasModel === "object") {
+    const cm = { ...result.canvasModel };
+    if (typeof cm.bgImage === "string" && cm.bgImage.startsWith("data:image/") && cm.bgImage.length > 5e4) {
+      cm.bgImage = await compressBase64Image(cm.bgImage);
+    }
+    if (Array.isArray(cm.slides)) {
+      cm.slides = await Promise.all(
+        cm.slides.map(async (slide) => {
+          if (!slide || typeof slide !== "object") return slide;
+          const s = { ...slide };
+          if (typeof s.bgImage === "string" && s.bgImage.startsWith("data:image/") && s.bgImage.length > 5e4) {
+            s.bgImage = await compressBase64Image(s.bgImage);
+          }
+          return s;
+        })
+      );
+    }
+    result.canvasModel = cm;
+  }
+  return result;
+}
+
 // server/ai/contentStrategy.ts
 var ANGLES = [
   "pain",
@@ -11601,9 +11712,12 @@ Conteudo: ${scrapeResult.content}`;
     ).mutation(async ({ input, ctx }) => {
       try {
         const validatedSnapshot = input.variationSnapshot ? postVisualSnapshotSchema.parse(input.variationSnapshot) : void 0;
-        const postId = await createPost({
+        const compressedInput = await compressPostPayload({
           ...input,
-          variationSnapshot: validatedSnapshot,
+          variationSnapshot: validatedSnapshot
+        });
+        const postId = await createPost({
+          ...compressedInput,
           userUuid: ctx.user.id
         });
         return { id: postId };
@@ -11647,7 +11761,11 @@ Conteudo: ${scrapeResult.content}`;
       })
     ).mutation(async ({ input, ctx }) => {
       const validatedSnapshot = input.variationSnapshot ? postVisualSnapshotSchema.parse(input.variationSnapshot) : void 0;
-      await updatePost(input.id, ctx.user.id, { ...input, variationSnapshot: validatedSnapshot });
+      const compressedInput = await compressPostPayload({
+        ...input,
+        variationSnapshot: validatedSnapshot
+      });
+      await updatePost(input.id, ctx.user.id, compressedInput);
       return { success: true };
     }),
     /** List user's posts */

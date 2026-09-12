@@ -16,6 +16,7 @@ import {
   type VisualFamilyId,
   type TextLegibilityEffect,
   type OverlayMode,
+  type SplitBgPosition,
   TEXT_EFFECTS_META,
 } from "../components/types";
 
@@ -176,6 +177,8 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
           barPos: s.barPos,
           logoPos: s.logoPos,
           extraTexts: Array.isArray(s.extraTexts) ? s.extraTexts : undefined,
+          extraImages: Array.isArray(s.extraImages) ? s.extraImages : undefined,
+          splitBgPosition: (typeof s.splitBgPosition === "string" && ["bottom", "top", "full"].includes(s.splitBgPosition) ? s.splitBgPosition : undefined) as SplitBgPosition | undefined,
         }))
       : [
           {
@@ -184,9 +187,13 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
             headline: raw.headline ?? "",
             subtext: raw.subtext ?? "",
             extraTexts: Array.isArray(raw.extraTexts) ? raw.extraTexts : undefined,
+            extraImages: Array.isArray(raw.extraImages) ? raw.extraImages : undefined,
+            splitBgPosition: (typeof raw.splitBgPosition === "string" && ["bottom", "top", "full"].includes(raw.splitBgPosition) ? raw.splitBgPosition : undefined) as SplitBgPosition | undefined,
           },
         ],
     extraTexts: Array.isArray(raw.extraTexts) ? raw.extraTexts : undefined,
+    extraImages: Array.isArray(raw.extraImages) ? raw.extraImages : undefined,
+    splitBgPosition: (typeof raw.splitBgPosition === "string" && ["bottom", "top", "full"].includes(raw.splitBgPosition) ? raw.splitBgPosition : undefined) as SplitBgPosition | undefined,
     currentSlideIndex: Math.min(
       Math.max(0, raw.currentSlideIndex ?? 0),
       Math.max(0, (raw.slides?.length ?? 1) - 1),

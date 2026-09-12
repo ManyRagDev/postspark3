@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, Lightbulb, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop, RotateCcw, Plus, Trash2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, ImagePlus, Lightbulb, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop, RotateCcw, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { OFFICIAL_FAMILIES_META, type CanvasPostModel, type TextAlignType, type VisualFamilyId, type OverlayMode, type CanvasCustomText } from "./types";
+import { OFFICIAL_FAMILIES_META, type CanvasPostModel, type TextAlignType, type VisualFamilyId, type OverlayMode, type CanvasCustomText, type CanvasCustomImage, type SplitBgPosition } from "./types";
 import { applyFamilyPreset } from "../lib/familyPreset";
 import TypographyColorControls from "./TypographyColorControls";
 import TipCallout from "./TipCallout";
@@ -20,6 +20,10 @@ interface CanvasSidebarProps {
   onAddExtraText?: () => void;
   onUpdateExtraText?: (id: string, patch: Partial<CanvasCustomText>) => void;
   onRemoveExtraText?: (id: string) => void;
+  onAddExtraImage?: (url: string, naturalWidth?: number, naturalHeight?: number) => void;
+  onUpdateExtraImage?: (id: string, patch: Partial<CanvasCustomImage>) => void;
+  onRemoveExtraImage?: (id: string) => void;
+  selectedElementId?: string | null;
 }
 
 type TabType = "content" | "style" | "media" | "brand";
@@ -34,6 +38,10 @@ export default function CanvasSidebar({
   onAddExtraText,
   onUpdateExtraText,
   onRemoveExtraText,
+  onAddExtraImage,
+  onUpdateExtraImage,
+  onRemoveExtraImage,
+  selectedElementId,
 }: CanvasSidebarProps) {
   const [activeTab, setActiveTab] = useState<TabType>("content");
   const [copiedCaption, setCopiedCaption] = useState(false);
@@ -44,6 +52,25 @@ export default function CanvasSidebar({
   const [applyToAllSlides, setApplyToAllSlides] = useState(false);
   const [customFontInput, setCustomFontInput] = useState(post.customFontUrl || "");
   const [uploadedFontName, setUploadedFontName] = useState<string | null>(null);
+
+  const sidebarImageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSidebarImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target?.result as string;
+      if (!dataUrl) return;
+      const img = new Image();
+      img.onload = () => {
+        onAddExtraImage?.(dataUrl, img.naturalWidth, img.naturalHeight);
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   // Manifest de Backgrounds dos Assets
   const [manifestData, setManifestData] = useState<any>(null);
@@ -69,6 +96,7 @@ export default function CanvasSidebar({
 
   const currentSlide = post.slides[post.currentSlideIndex];
   const extraTextsList = currentSlide?.extraTexts || post.extraTexts || [];
+  const extraImagesList = currentSlide?.extraImages || post.extraImages || [];
 
   const handleUpdateHeadline = (text: string) => {
     if (currentSlide) {
@@ -254,17 +282,41 @@ export default function CanvasSidebar({
               Edite título, subtítulo e alinhamento; defina cores e tamanho da fonte por elemento; e prepare a legenda estratégica do Instagram.
             </TipCallout>
 
-            {/* Ação Rápida: Inserir Nova Caixa de Texto */}
-            {onAddExtraText && (
-              <button
-                type="button"
-                onClick={onAddExtraText}
-                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[oklch(0.78_0.22_48)]/20 to-[oklch(0.78_0.22_48)]/10 hover:from-[oklch(0.78_0.22_48)]/30 hover:to-[oklch(0.78_0.22_48)]/20 border border-[oklch(0.78_0.22_48)]/40 hover:border-[oklch(0.78_0.22_48)]/60 text-[oklch(0.78_0.22_48)] hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
-              >
-                <Plus size={14} strokeWidth={2.5} />
-                <span>+ Adicionar Caixa de Texto Livre</span>
-              </button>
-            )}
+            {/* Ações Rápidas: Inserir Texto ou Imagem */}
+            <div className="grid grid-cols-2 gap-2">
+              {onAddExtraText && (
+                <button
+                  type="button"
+                  onClick={onAddExtraText}
+                  className="py-2.5 px-2 rounded-xl bg-gradient-to-r from-[oklch(0.78_0.22_48)]/20 to-[oklch(0.78_0.22_48)]/10 hover:from-[oklch(0.78_0.22_48)]/30 hover:to-[oklch(0.78_0.22_48)]/20 border border-[oklch(0.78_0.22_48)]/40 hover:border-[oklch(0.78_0.22_48)]/60 text-[oklch(0.78_0.22_48)] hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                  title="Adicionar nova caixa de texto livre"
+                >
+                  <Plus size={13} strokeWidth={2.5} />
+                  <span>+ Texto</span>
+                </button>
+              )}
+
+              {onAddExtraImage && (
+                <>
+                  <input
+                    ref={sidebarImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleSidebarImageFile}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => sidebarImageInputRef.current?.click()}
+                    className="py-2.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 hover:border-white/30 text-white/80 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                    title="Inserir foto ou imagem no post"
+                  >
+                    <ImagePlus size={13} strokeWidth={2.2} />
+                    <span>+ Imagem</span>
+                  </button>
+                </>
+              )}
+            </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
@@ -503,6 +555,105 @@ export default function CanvasSidebar({
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Imagens e Fotos Livres Adicionais ── */}
+            <div className="pt-3 border-t border-white/8 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold flex items-center gap-1.5">
+                  <ImagePlus size={12} className="text-[oklch(0.78_0.22_48)]" />
+                  <span>Imagens & Fotos ({extraImagesList.length})</span>
+                </label>
+                {onAddExtraImage && (
+                  <button
+                    type="button"
+                    onClick={() => sidebarImageInputRef.current?.click()}
+                    className="flex items-center gap-1 text-[11px] font-medium text-[oklch(0.78_0.22_48)] hover:text-white bg-[oklch(0.78_0.22_48)]/10 hover:bg-[oklch(0.78_0.22_48)]/20 px-2 py-1 rounded-lg border border-[oklch(0.78_0.22_48)]/30 transition-all cursor-pointer"
+                  >
+                    <Plus size={12} />
+                    <span>Inserir Imagem</span>
+                  </button>
+                )}
+              </div>
+
+              {extraImagesList.length === 0 ? (
+                <p className="text-[11px] text-white/40 italic">
+                  Nenhuma imagem inserida neste slide. Clique em "+ Imagem" para adicionar fotos, adesivos ou ilustrações.
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {extraImagesList.map((img, idx) => {
+                    const isSelected = selectedElementId === img.id;
+                    return (
+                      <div
+                        key={img.id}
+                        className={`p-2.5 rounded-xl border space-y-2 transition-all ${
+                          isSelected
+                            ? "bg-[oklch(0.78_0.22_48)]/10 border-[oklch(0.78_0.22_48)]/50 shadow-sm"
+                            : "bg-white/3 border-white/8 hover:border-white/15"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/15 bg-black/40 shrink-0">
+                              <img src={img.url} alt={`Imagem ${idx + 1}`} className="w-full h-full object-cover" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-white/90">
+                                Foto #{idx + 1}
+                              </div>
+                              <div className="text-[10px] text-white/40 font-mono">
+                                {img.width} × {img.height}px
+                              </div>
+                            </div>
+                          </div>
+                          {onRemoveExtraImage && (
+                            <button
+                              type="button"
+                              onClick={() => onRemoveExtraImage(img.id)}
+                              title="Remover imagem do slide"
+                              className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all cursor-pointer"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Controles de Opacidade e Arredondamento */}
+                        <div className="space-y-1.5 pt-1.5 border-t border-white/5 text-[11px]">
+                          <div className="flex items-center justify-between text-white/60">
+                            <span>Opacidade</span>
+                            <span className="font-mono text-[10px]">{Math.round((img.opacity ?? 1) * 100)}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0.1"
+                            max="1"
+                            step="0.05"
+                            value={img.opacity ?? 1}
+                            onChange={(e) => onUpdateExtraImage?.(img.id, { opacity: parseFloat(e.target.value) })}
+                            className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                          />
+
+                          <div className="flex items-center justify-between text-white/60 pt-1">
+                            <span>Arredondamento</span>
+                            <span className="font-mono text-[10px]">{img.cornerRadius || 0}px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="40"
+                            step="2"
+                            value={img.cornerRadius || 0}
+                            onChange={(e) => onUpdateExtraImage?.(img.id, { cornerRadius: parseInt(e.target.value) })}
+                            className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -748,6 +899,54 @@ export default function CanvasSidebar({
                       <span>Baixar Foto (Alta Res)</span>
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* 0.B DISTRIBUIÇÃO DO FUNDO NO BRUTAL SPLIT */}
+            {post.familyId === "brutal-split" && (
+              <div className="p-3 rounded-xl border border-[oklch(0.78_0.22_48)]/30 bg-[oklch(0.78_0.22_48)]/5 space-y-2">
+                <div className="flex items-center justify-between text-[11px] uppercase tracking-wider font-semibold text-[oklch(0.78_0.22_48)]">
+                  <span>Posição da Foto no Split</span>
+                  <span className="text-[10px] font-mono text-white/50 lowercase">brutal-split</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { id: "bottom", label: "Metade Inferior", desc: "Clássico Brutal" },
+                    { id: "top", label: "Metade Superior", desc: "Foto no Topo" },
+                    { id: "full", label: "Fundo Todo", desc: "100% da Arte" },
+                  ].map((pos) => {
+                    const active = (currentSlide?.splitBgPosition || post.splitBgPosition || "bottom") === pos.id;
+                    return (
+                      <button
+                        key={pos.id}
+                        type="button"
+                        onClick={() => {
+                          if (currentSlide) {
+                            const updatedSlides = [...post.slides];
+                            updatedSlides[post.currentSlideIndex] = {
+                              ...currentSlide,
+                              splitBgPosition: pos.id as SplitBgPosition,
+                            };
+                            onUpdatePost({
+                              slides: updatedSlides,
+                              splitBgPosition: pos.id as SplitBgPosition,
+                            });
+                          } else {
+                            onUpdatePost({ splitBgPosition: pos.id as SplitBgPosition });
+                          }
+                        }}
+                        className={`p-2 rounded-lg text-center transition-all cursor-pointer border ${
+                          active
+                            ? "bg-[oklch(0.78_0.22_48)]/20 border-[oklch(0.78_0.22_48)] text-white font-bold shadow-sm"
+                            : "bg-white/4 border-white/8 text-white/60 hover:text-white hover:bg-white/8"
+                        }`}
+                      >
+                        <div className="text-[11px] font-bold">{pos.label}</div>
+                        <div className="text-[9px] text-white/40 mt-0.5">{pos.desc}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}

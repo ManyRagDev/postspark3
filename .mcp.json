@@ -1,5 +1,17 @@
 {
   "mcpServers": {
+    "compass": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "C:\\Users\\emanu\\Documents\\Projetos\\Compass D0\\dist\\mcp.js",
+        "--workspace",
+        "C:\\Users\\emanu\\Documents\\Projetos\\PostSpark 3",
+        "--retrieval",
+        "hybrid",
+        "--log",
+        "error"
+      ]
+    },
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=spbuwcwmxlycchuwhfir"

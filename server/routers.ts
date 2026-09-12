@@ -22,6 +22,7 @@ import { getBillingProfile, debitSparks, deriveIdempotencyKey, reserveSparks, co
 import { ENV } from "./_core/env";
 import { appendOperationalLog } from "./_core/operationalLog";
 import { TRPCError } from "@trpc/server";
+import { compressPostPayload } from "./lib/imageCompress";
 import { prepareGenerationPlan } from "./ai/generationPipeline";
 import { loadGenerationContext } from "./ai/contextLoader";
 import { routeHighTicketIntent, angleToStrategy } from "./ai/intentRouter";
@@ -788,9 +789,12 @@ export const appRouter = router({
           const validatedSnapshot = input.variationSnapshot
             ? postVisualSnapshotSchema.parse(input.variationSnapshot)
             : undefined;
-          const postId = await createPost({
+          const compressedInput = await compressPostPayload({
             ...input,
             variationSnapshot: validatedSnapshot,
+          });
+          const postId = await createPost({
+            ...compressedInput,
             userUuid: ctx.user.id,
           });
           return { id: postId };
@@ -839,7 +843,11 @@ export const appRouter = router({
         const validatedSnapshot = input.variationSnapshot
           ? postVisualSnapshotSchema.parse(input.variationSnapshot)
           : undefined;
-        await updatePost(input.id, ctx.user.id, { ...input, variationSnapshot: validatedSnapshot });
+        const compressedInput = await compressPostPayload({
+          ...input,
+          variationSnapshot: validatedSnapshot,
+        });
+        await updatePost(input.id, ctx.user.id, compressedInput);
         return { success: true };
       }),
 

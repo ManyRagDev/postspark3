@@ -21,6 +21,7 @@ import {
 
 type BusinessSynthesis = Pick<SiteIntelligence, "business" | "editorial"> & {
   warnings: string[];
+  anchors?: SiteIntelligence["anchors"];
 };
 
 function responseText(content: unknown): string {
@@ -138,7 +139,14 @@ async function synthesizeBusiness(
           content: `Voce e um estrategista de marca e conteudo. Extraia somente informacoes sustentadas pelas evidencias do site.
 Nao invente produtos, publicos, diferenciais, resultados ou objetivos.
 Quando algo nao estiver claro, retorne array vazio e registre um warning.
-Os pilares e temas editoriais devem servir ao assunto, publico e objetivos comerciais observados no site.`,
+Os pilares e temas editoriais devem servir ao assunto, publico e objetivos comerciais observados no site.
+
+Voce DEVE preencher o bloco "anchors" com elementos extraidos literalmente das evidencias:
+- "facts": 3 a 5 fatos concretos do negocio. Cada fato tem um id (f1, f2, ...) e um texto de ate 140 caracteres. Um fato concreto contem pelo menos um: numero com unidade, nome proprio de produto ou servico, intervalo de tempo, sintoma observavel do publico, ou erro operacional nomeado.
+- "proprietaryTerms": 2 a 5 termos que aparecem no site e que sao especificos do vocabulario desta marca. Identifique termos que outro negocio do mesmo setor nao usaria.
+- "objections": 1 a 3 objecoes reais do publico extraidas do site. Se o site nao declara objecoes explicitamente, extraia do campo "audienceProblems".
+
+Se as evidencias nao sustentam um item, retorne array vazio NAQUELE campo e adicione um warning nomeado em "warnings" no formato "anchors_missing:<campo>".`,
         },
         {
           role: "user",
@@ -205,8 +213,41 @@ Sintetize negocio e estrategia editorial. Responda apenas JSON valido.`,
                 additionalProperties: false,
               },
               warnings: { type: "array", items: { type: "string" } },
+              anchors: {
+                type: "object",
+                properties: {
+                  facts: {
+                    type: "array",
+                    minItems: 3,
+                    maxItems: 5,
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        text: { type: "string", maxLength: 140 },
+                      },
+                      required: ["id", "text"],
+                      additionalProperties: false,
+                    },
+                  },
+                  proprietaryTerms: {
+                    type: "array",
+                    minItems: 2,
+                    maxItems: 5,
+                    items: { type: "string", maxLength: 40 },
+                  },
+                  objections: {
+                    type: "array",
+                    minItems: 1,
+                    maxItems: 3,
+                    items: { type: "string", maxLength: 120 },
+                  },
+                },
+                required: ["facts", "proprietaryTerms", "objections"],
+                additionalProperties: false,
+              },
             },
-            required: ["business", "editorial", "warnings"],
+            required: ["business", "editorial", "warnings", "anchors"],
             additionalProperties: false,
           },
         },
@@ -235,6 +276,9 @@ function calculateQuality(
     ...synthesis.business.services,
     ...synthesis.business.audiences,
     ...synthesis.editorial.pillars,
+    ...(synthesis.anchors?.facts.map((f) => f.text) ?? []),
+    ...(synthesis.anchors?.proprietaryTerms ?? []),
+    ...(synthesis.anchors?.objections ?? []),
   ].filter(Boolean).length;
   const semantic = Math.min(1, semanticSignals / 10);
   const evidenceCoverage = Math.min(1, content.evidence.length / 8);
@@ -315,6 +359,21 @@ export async function analyzeSiteIntelligence(
     }),
     synthesizeBusiness(content),
   ]);
+
+  // Validate anchors quality: only persist if extraction was complete
+  const rawAnchors = synthesis.anchors;
+  const anchorsValid =
+    rawAnchors &&
+    rawAnchors.facts.length >= 3 &&
+    rawAnchors.proprietaryTerms.length >= 2 &&
+    rawAnchors.objections.length >= 1;
+  const anchors = anchorsValid ? rawAnchors : undefined;
+  if (!anchorsValid && rawAnchors) {
+    synthesis.warnings.push(
+      "anchors_partial: evidências insuficientes para extrair fatos, termos e objeções completos. Conteúdo gerado pode ficar mais genérico.",
+    );
+  }
+
   const siteIntelligence: SiteIntelligence = {
     id: randomUUID(),
     version: 1,
@@ -325,6 +384,7 @@ export async function analyzeSiteIntelligence(
     business: synthesis.business,
     editorial: synthesis.editorial,
     evidence: content.evidence,
+    anchors,
     quality: calculateQuality(brand, content, synthesis),
     extractedAt: new Date().toISOString(),
   };
@@ -415,7 +475,17 @@ REGRAS DE CORES OBRIGATORIAS (BRAND SOUL):
 - backgroundColor DEVE ser um destes hexes: ${[canvasBackground, ...palette].slice(0, 4).join(", ")}.
 - accentColor DEVE ser o hex mais saturado da marca: ${brandAccent}.
 - textColor deve garantir contraste WCAG >= 4.5:1 contra o backgroundColor escolhido.
-- NUNCA use preto puro (#000000) nem branco puro (#ffffff) quando a paleta da marca oferece alternativas.`;
+- NUNCA use preto puro (#000000) nem branco puro (#ffffff) quando a paleta da marca oferece alternativas.${
+  intelligence.anchors
+    ? `
+
+ANCORAS OBRIGATORIAS (use pelo menos 1 fato e 1 termo proprietario por variacao):
+Fatos:
+${intelligence.anchors.facts.map((f) => `[${f.id}] ${f.text}`).join("\n")}
+Termos proprietarios: ${intelligence.anchors.proprietaryTerms.join(", ")}
+Objecao principal: ${intelligence.anchors.objections[0] ?? "nao declarada"}`
+    : ""
+}`;
 }
 
 // ─── WCAG color utilities (local, no dependencies) ──────────────────────────
