@@ -406,7 +406,7 @@ describe("invokeLLM resilience", () => {
       .fn()
       .mockResolvedValue(
         providerResponse(
-          "openai/gpt-5-mini",
+          "google/gemini-3.8-flash",
           '{"answer":"vision"}',
         ),
       );
@@ -427,12 +427,12 @@ describe("invokeLLM resilience", () => {
       ],
     });
 
-    expect(result.model).toBe("openai/gpt-5-mini");
+    expect(result.model).toBe("google/gemini-3.8-flash");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const request = JSON.parse(String(fetchMock.mock.calls[0][1]?.body)) as {
       model: string;
     };
-    expect(request.model).toBe("openai/gpt-5-mini");
+    expect(request.model).toBe("google/gemini-3.8-flash");
   });
 
   it("falls back from OpenRouter vision to Gemini for multimodal transient failures", async () => {
@@ -475,7 +475,7 @@ describe("invokeLLM resilience", () => {
     const geminiRequest = JSON.parse(String(fetchMock.mock.calls[1][1]?.body)) as {
       model: string;
     };
-    expect(visionRequest.model).toBe("openai/gpt-5-mini");
+    expect(visionRequest.model).toBe("google/gemini-3.8-flash");
     expect(geminiRequest.model).toBe("gemini-2.5-flash");
   });
 });

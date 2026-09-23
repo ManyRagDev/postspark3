@@ -1,57 +1,90 @@
-# Especificação Técnica: Workbench V2
+# Especificação Técnica (Specs) - Experiência Inteligente
 
-## 1. Visão Geral
-O Workbench atual atingiu limites insustentáveis de complexidade estrutural em seu arquivo raiz (`WorkbenchRefactored.tsx`), o que afeta drasticamente a propagação consistente das props originárias do workflow anterior (`HoloDeck`). Como resultado de bugs arquiteturais, as features "Ajustar com IA" e "Modelo de Imagens Pro" foram corrompidas, juntamente com badges e adesivos que sumiam ao fazer deep cloning via router.
+Este documento consolida as interfaces e contratos necessários para as próximas implementações no ecossistema do PostSpark (Etapas 4 a 8).
 
-## 2. Padrões Impostos (Strangler Fig)
-- Todo o desenvolvimento se dará sobre `WorkbenchV2.tsx` e subcomponentes da pasta homônima.
-- O arquivo antigo NÃO deve ser tocado durante o processo, agindo como seguro de roll-back.
-- **Tipagem Exata**: Tipos que antes permitiam margens opcionais devem ser consolidados via `AdvancedLayoutSettings` restrito.
+## 1. Contrato de Briefing (Etapa 4)
+Este contrato define o estado persistido das intenções do usuário antes da geração final, separando o "o que ele pediu" do "o que a IA entendeu e estruturou".
 
-## 3. Arquitetura de Estado
-Será abolido qualquer uso nativo do Router do React ou props contextuais em cascatas.
-* **Componente de Origem (`HoloDeck`)**: Irá "puxar" um hook setter da Store Zustand e despachar a variação integralizada gerada por LLM antes do redirecionamento de URL. 
-* **Componente de Destino (`WorkbenchV2`)**: Reagirá nativamente e escutará mudanças da Store com re-renders seletivos, prevenindo freeze ou delays na digitação/arrastes (drag).
+```typescript
+// Local: shared/postsparkSchemas.ts (Tipos inferidos do Zod)
 
-## 4. O Componente PostCard (Visual Puro)
-A camada visual deve seguir restritamente ser uma manifestação reativa do Zustand.
-Camadas complexas de lógica do Architect (Acesso às quinas, giros, grid snap de 5x5 posições de ímã) vão viver exclusivamente num invólucro (Wrapper) ou `ArchitectOverlay` transparente posto por Traz ou Frente ao Canvas puro. O PostCard final receberá a injeção seca das propriedades visuais via Store.
+export interface CreationBrief {
+  version: number; // Controle de migração
+  rawInput: string; // Texto original digitado
+  format: "static" | "carousel";
+  slideCount?: number;
+  objective?: string;
+  audience?: string;
+  brandEssence?: string;
+  positioning?: string;
+  tone?: string;
+  keyMessage?: string;
+  proofPoints?: string[];
+  requiredTerms?: string[];
+  forbiddenTerms?: string[];
+  callToAction?: string;
+  sourceUrls?: string[]; // URLs identificadas e validadas
+}
+```
 
-### 4.1 Sistema de Projeção de Coordenadas (Padding-Aware)
-Para garantir que elementos em (0,0) ou (100,100) não toquem a borda do card, implementamos um sistema de mapeamento projetado:
-*   **Input**: Coordenadas abstratas 0-100% (armazenadas no DB).
-*   **Projeção**: O componente `DraggableBlock` projeta esses valores apenas para a área interna (*inner area*) subtraindo o `padding` do card.
-*   **Visualização**: A grade 5x5 renderizada é a própria projeção, garantindo paridade visual absoluta entre o arrasto e o snap.
+## 2. Controle de Fundo e Crop (Etapa 6)
+O `CanvasPostModel` precisa deixar de assumir preenchimentos absolutos ou base64 diretos, e passar a usar intenções de enquadramento em imagens fornecidas via URI/Storage.
 
-### 4.2 Professional Glow System
-A interface V2 utiliza um sistema de brilho reativo baseado em `framer-motion`:
-*   **Accent Sync**: O brilho usa o `accentColor` da variação ativa.
-*   **Feedback Tátil**: Botões de ação (Salvar/Exportar) e seletores de estado (Magnet/Ratio) usam pulse e glow para indicar atividade.
+```typescript
+// Local: client/src/pages/CanvasLab/components/types.ts
 
-## 5. Resgate High-Ticket
-- **Geração de Imagem Pro:** Garantir o switch para consumo fidedigno entre endpoints rápidos (flux/nanobanana flash) e premium.
-- **Ajustar com IA**: Restauro do prompt multimodal injetando visualização via Canvas Output para LLM Gemini 1.5 Pro/2.5 Pro no node server.
+export type FitMode = "cover" | "contain" | "original" | "custom";
 
----
+export interface BackgroundPlacement {
+  fitMode: FitMode;
+  focalPoint?: { x: number; y: number }; // Centro semântico (hotspot)
+  crop?: { 
+    x: number; 
+    y: number; 
+    width: number; 
+    height: number 
+  };
+  transform?: {
+    scaleX: number;
+    scaleY: number;
+    rotation: number;
+    x: number;
+    y: number;
+  };
+}
 
-## 6. Recursos de Edição de Texto
+// Em CanvasPostModel.slides[]:
+export interface CanvasSlideOverride {
+   // ...
+   bgPlacement?: BackgroundPlacement;
+   // ...
+}
+```
 
-**Plano de Implementação**: Veja `docs/text-editing-implementation-plan.md` para análise completa e roadmap de funcionalidades de edição de texto (tamanho, espaçamento, alinhamento, formatação rich).
+## 3. Paridade de Elementos Livres (Etapa 7)
+Qualquer novo `extraText` ou `extraImage` injetado pelo usuário deve persistir suas transformações finais de maneira isolada e determinística, evitando degradação de estado ao recarregar.
 
-### Status Atual
+```typescript
+export interface CanvasExtraElement {
+  id: string; // DEVE ser um UUID novo a cada clone/duplicação
+  zIndex: number; // Para gestão via 'bring to front' e 'send to back'
+  opacity?: number;
+  rotation?: number;
+  scaleX?: number;
+  scaleY?: number;
+  x: number;
+  y: number;
+}
+```
 
-| Funcionalidade | Status |
-|---------------|--------|
-| Tamanho de texto | ✅ Implementado |
-| Espaçamento (line-height) | ⚠️ Parcial |
-| Espaçamento (letter-spacing) | ❌ Ausente |
-| Alinhamento | ⚠️ Parcial |
-| Formatação rich | ❌ Ausente |
+## 4. Autosave e Editor Assistido (Etapa 8)
+A máquina de estado local para salvar deve garantir lock no documento para não corromper submissões paralelas ao Supabase, nem enfileirar promises que sobrescrevam a mais recente.
 
-### Fases de Implementação
+```typescript
+export type AutoSaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
-1. **FASE 1**: Fundação de Tipografia (Alta prioridade)
-2. **FASE 2**: Unificação de Alinhamento (Alta prioridade)
-3. **FASE 3**: Toolbar de Formatação Rich (Média prioridade)
-4. **FASE 4**: Melhorias de UX (Média prioridade)
-5. **FASE 5**: Persistência e Backend (Baixa prioridade)
+// Regras de Implementação para o Debouncer de AutoSave
+// 1. Mutação em documento dispara state = 'dirty'.
+// 2. Após 1000ms de inatividade, state = 'saving' e requisição API inicia.
+// 3. Se nova mutação ocorrer durante 'saving', o payload pendente é atualizado, mas uma nova request só acontece quando a anterior terminar ou falhar.
+```

@@ -371,22 +371,17 @@ MODO DE EXECUÇÃO ATIVADO:
 7. "cinematic-depth" (storytelling denso, narrativas profundas, tipografia condensada)
 8. "duotone-wash" (criatividade, design, psicologia, autoridade suave, gradiente a 135°)
 
-REGRA DE OURO DO HEADLINE (MANCHETE AUTORAL DE IMPACTO):
-- É TERMINANTEMENTE PROIBIDO usar a frase do prompt ou do tópico como headline.
-- O headline é a MANCHETE DE CAPA do post: concisa (máximo 60 caracteres), sem ponto final.
-- Crie um título magnético, provocativo e memorável, gerando curiosidade imediata no feed.
-- Cada uma das 3 variações DEVE ter um headline com ângulo e gancho verbal totalmente diferente das outras duas.
+HEADLINE E PRIMEIRA LEITURA:
+- O headline é a manchete de capa: concisa (máximo 60 caracteres), sem ponto final.
+- A melhor frase do briefing pode ser preservada quando já funciona; novidade verbal não vale perda de clareza.
+- Gere curiosidade com informação concreta. O corpo visível deve resolver o referente e o nexo prometido pelo headline.
+- As 3 opções podem usar a mesma tese e variar apenas redação, hierarquia e direção visual.
 
-VOZ E TONALIDADE (AUTORIDADE MAGNÉTICA):
-- Escreva na voz de um especialista perspicaz que domina os bastidores e fala de igual para igual com pessoas inteligentes.
-- Seja afiado, analítico e assertivo. Use contrastes fortes, princípios práticos e verdades de bastidores.
-- ZERO clichês sintéticos de IA: sem "No mundo acelerado de hoje", sem "Você sabia?", sem exclamações forçadas (!), sem suspense barato ("isso muda tudo"), sem tom de assistente bajulador.
-- Declare verdades de forma afirmativa e direta: Sujeito → Verbo → Impacto.
-
-3 MATRIZES COGNITIVAS (uma por variação):
-1. O Choque de Realidade / Sintoma Oculto — aponta um hábito comum ou erro inocente que revela ineficiência invisível.
-2. O Critério Técnico / Régua de Decisão — entrega a regra prática ou métrica que veteranos usam nos bastidores para julgar o excelente.
-3. A Tese Contraintuitiva — demonstra onde o esforço comum é jogado fora e qual ajuste sutil gera resultado de longo prazo.
+VOZ E TONALIDADE:
+- Escreva de forma fluida, humana, específica e segura, falando de igual para igual.
+- Autoridade vem da precisão. Não encene voz de especialista e não atribua opinião a profissionais sem fonte.
+- Prefira sujeito, verbo e consequência identificáveis. Uma frase bonita que exige adivinhar a premissa deve ser reescrita.
+- Evite cacoetes sintéticos como preâmbulo de assistente, suspense sem entrega e entusiasmo artificial.
 
 CAMPOS:
 - headline: manchete autoral de impacto ≤60 chars, sem ponto final.
@@ -398,7 +393,7 @@ ${input.hasAnchors ? `ANCORAGEM: preencha "anchorUsed" com o ID de fato das ANCO
 LAYOUT: varie "centered" e "left-aligned" entre as 3 variações para diversidade visual. Em posts estáticos, use template "simple" e sections [].`;
 
   return `${modeInstruction}
-${executionBrief ? `As ${POST_VARIATION_TARGET} variações devem ser próximas entre si e altamente fiéis ao briefing.` : `As 3 variações DEVEM seguir as 3 matrizes cognitivas: 1) Diagnóstico do Sintoma Oculto, 2) Critério de Julgamento Técnico, 3) Causa-Efeito Contraintuitiva.`}${input.toneHint}
+As ${POST_VARIATION_TARGET} opções são direções visuais. ${executionBrief ? "Mantenha-as próximas e altamente fiéis ao briefing." : "Use somente o número de proposições sustentado pelo plano; não force um papel semântico diferente para cada posição."}${input.toneHint}
 ${input.brandDnaContext}
 ${executionSystemContext}
 ${input.promptContext}
@@ -1100,6 +1095,7 @@ export async function generatePostVariations(
       platform: request.platform,
       originalityScores: undefined,
       skipJudgeIndexes: Array.from(issuesBySlot.keys()),
+      meaningPlan: plan.strategies.meaningPlan,
     });
     metrics.evaluationCalls += input.aiLlmJudgeEnabled
       ? variations.length - issuesBySlot.size
@@ -1199,7 +1195,7 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
       try {
         repairResponse = await deps.generate({
           traceLabel: "generation_repair",
-          taskRoute: isCarousel ? "carousel_generation" : "static_generation",
+          taskRoute: "quality_revision",
           model: request.model,
           // Mesmo orçamento por slot da chamada principal (9000/3 estático,
           // 12000/3 carrossel): o reparo de diversidade reescreve os 3 slots.
@@ -1271,6 +1267,7 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
           siteIntelligence,
           platform: request.platform,
           originalityScore: originalityScores[slotIndex],
+          meaningPlan: plan.strategies.meaningPlan,
         });
       });
         recordEvent("repair", revisedIndexes.length > 0 ? "completed" : "rejected", `Repair applied to ${revisedIndexes.length} slot(s); failed for ${revisionFailedIndexes.length}.`);
@@ -1349,7 +1346,18 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
       );
     }
     const finalValidation = validateVariationSet(frozenSnapshots, request.postMode);
-    recordEvent("final_validation", finalValidation.valid ? "completed" : "rejected", finalValidation.valid ? "Exactly three complete and distinct variations approved." : finalValidation.errors.join("; "));
+    const rejectedQualitySlots = evaluations
+      .map((evaluation, index) => (
+        evaluation.feedback.some((feedback) =>
+          feedback.includes("fato obrigatorio") || feedback.includes("atribuicao de autoridade")
+        ) ? index : -1
+      ))
+      .filter((index) => index >= 0);
+    if (rejectedQualitySlots.length > 0) {
+      finalValidation.valid = false;
+      finalValidation.errors.push(`quality_rejected_slots:${rejectedQualitySlots.map((index) => index + 1).join(",")}`);
+    }
+    recordEvent("final_validation", finalValidation.valid ? "completed" : "rejected", finalValidation.valid ? "Exactly three complete variations approved." : finalValidation.errors.join("; "));
 
     if (!finalValidation.valid) {
       const issues: GenerationIssue[] = finalValidation.errors.map((detail) => ({

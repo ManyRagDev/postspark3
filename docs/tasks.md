@@ -1,20 +1,34 @@
-# Motor de Variabilidade Criativa - Tasks
+# Tarefas - Experiência Inteligente PostSpark
 
-O projeto está sendo implementado com base no `docs/creative-engine/BLUEPRINT_MOTOR_VARIABILIDADE_CRIATIVA.md`.
+## Etapa 4 — Briefing persistente e inteligência de marca
+- [x] Criar o contrato e schemas Zod `CreationBrief` (versionado) em `shared/postsparkSchemas.ts`.
+- [x] Separar a tela de input bruto da tela de revisão da interpretação (Progressive Disclosure) em `StudioAppV2BPage`.
+- [x] Adicionar lógica para persistir duravelmente (Storage / DB local ou remoto) o rascunho do briefing.
+- [x] Recuperar rascunho após refresh na aba/perda de sessão.
+- [x] Implementar a detecção de URLs embutidas no meio do texto e extrair referências.
+- [x] Carregar a síntese de Brand Kit antes da geração.
+- [x] Testes: Validação de refresh recuperando draft, URLs extraídas e alteração da interpretação do briefing.
 
-## Fases de Execução:
+## Etapa 6 — Fundo, crop e mídia
+- [x] Estender tipagem do `CanvasPostModel` para suportar `BackgroundPlacement` (fitMode: cover | contain | original | custom, focalPoint, crop).
+- [x] Criar controles de UI para enquadramento na Sidebar (desktop) e Drawer (mobile).
+- [x] Refatorar manipulação de imagens no `CanvasPostStage.tsx` para preservar o asset original (URL/Storage) e aplicar manipulações visualmente, evitando uso abusivo de base64 no schema json.
+- [x] Garantir que o export em formato ZIP/PNG offscreen respeite o crop não destrutivo.
+- [x] Testes: Comprovar modos cover/contain, isolamento de crop por slide, exportação determinística.
 
-- [ ] **Fase 0 — Fundações**
-  - Criar base matemática de seeds (`shared/creative/seed.ts`) e cálculos puros de cor (`shared/creative/color.ts`).
-- [ ] **Fase 1 — Catálogo**
-  - Declarar as interfaces base (`types.ts`), as 10 Paletas Iniciais (`palettes.ts`) e as 12 Famílias Criativas puras (`families.ts`).
-- [ ] **Fase 2 — Montagem Determinística**
-  - Construir o orquestrador (`compose.ts` e `directCreative.ts`), injetar schema de suporte (`postsparkSchemas.ts`) e permitir hook de fonts de UI para suportar a mecânica nova no Workbench sem quebrar drag and drop.
-- [ ] **Fase 3 — Integração Server & HoloDeck**
-  - Refatorar o `server/routers.ts` para capturar a intenção LLM (creativeIntent). Modificar `HoloDeck.tsx` para listar as famílias por nome, permitindo troca imediata (0 sparks).
-- [ ] **Fase 4 — Ajustes do Workbench**
-  - Lógica de downgrade de marcação de cor para `"custom"` no `editorStore.ts` quando o usuário edita manualmente. Garantir snap e drag imutáveis.
-- [ ] **Fase 5 — Testes Visuais e Documentação**
-  - Cobertura Playwright e atualização das invariantes canônicas no `DOCUMENTO_MESTRE.md`.
-- [ ] **Fase 6 — Otimizações Futuras**
-  - Limpar schemas antigos e avançar no Motor.
+## Etapa 7 — Paridade de textos e imagens livres
+- [x] Tornar `onTransformEnd` persistente (salvar escala e translação no `CanvasPostModel` evitando o acúmulo infinito de transformações do Konva).
+- [x] Implementar controles de ordem de camada (z-index/bring to front) e rotação/opacidade para elementos livres.
+- [x] Corrigir rotina de duplicação para gerar UUIDs reais/novos, impedindo referência duplicada e crash visual.
+- [x] Assegurar paridade das funções (documentCommands.ts) para Mobile.
+- [x] Testes: `onTransformEnd` perene pós-save, duplicação não destrutiva.
+
+## Etapa 8 — Editor assistido e produtividade
+- [x] Implementar Autosave: debouncer configurado, estado visual (`dirty`, `saving`, `saved`, `error`), e controle de concorrência com `updatedAt`.
+- [x] Implementar sistema de Undo/Redo baseado no `CanvasPostModel` centralizado (historico de patches em memória).
+- [x] Implementar reordenação drag-and-drop de slides preservando a Capa.
+- [x] Testes: Concorrência de AutoSave não gerando duplicação e undo/redo consistentes.
+
+## Etapa 9 — Hardening, rollout e documentação
+- [x] Auditoria final: revisão estrutural do `DOCUMENTO_MESTRE.md` e limpeza de artefatos temporários.
+- [x] Escrita da matriz de testes E2E finais.

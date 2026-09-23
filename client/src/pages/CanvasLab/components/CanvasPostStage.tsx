@@ -1,9 +1,10 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Stage, Layer, Rect, Text, Group, Image as KonvaImage, Transformer, Line, Circle } from "react-konva";
-import type { BgImageTransform, CanvasCustomImage, CanvasPostModel, ElementPosition, LogoPositionType, TextLegibilityEffect, SplitBgPosition } from "./types";
+import type { BgImageTransform, CanvasCustomImage, CanvasCustomText, CanvasPostModel, ElementPosition, LogoPositionType, TextLegibilityEffect, SplitBgPosition } from "./types";
 import { isDarkColor, resolveLegibleTextColor, normalizeHexColor } from "./types";
 import { getKonvaTextMetrics } from "./textMetrics";
 import { useDynamicFont } from "@/hooks/useDynamicFont";
+import { computeBackgroundGeometry } from "../lib/backgroundPlacement";
 import JSZip from "jszip";
 import { Check, X } from "lucide-react";
 
@@ -23,6 +24,7 @@ interface CanvasPostStageProps {
   onUpdateBgTransform?: (transform: BgImageTransform) => void;
   onEnterBackgroundEdit?: () => void;
   onUpdateText?: (field: "headline" | "subtext" | "badgeText", value: string) => void;
+  onUpdateExtraText?: (id: string, patch: Partial<CanvasCustomText>) => void;
   onUpdateExtraTextPosition?: (id: string, pos: ElementPosition) => void;
   onUpdateExtraTextContent?: (id: string, value: string) => void;
   onUpdateExtraImage?: (id: string, patch: Partial<CanvasCustomImage>) => void;
@@ -355,6 +357,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       onUpdateBgTransform,
       onEnterBackgroundEdit,
       onUpdateText,
+      onUpdateExtraText,
       onUpdateExtraTextPosition,
       onUpdateExtraTextContent,
       onUpdateExtraImage,
@@ -376,6 +379,10 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const extraImageRefs = useRef<Record<string, any>>({});
 
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    // Índice de slide usado exclusivamente durante a exportação ZIP offscreen:
+    // o mesmo motor renderiza cada slide de forma determinística, em vez de
+    // capturar repetidamente o slide visível (Etapa 2 §7.6).
+    const [exportSlideIndex, setExportSlideIndex] = useState<number | null>(null);
 
     useEffect(() => {
       if (selectedElementId !== undefined) {
@@ -434,7 +441,10 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const baseHeight =
       post.aspectRatio === "9:16" ? 640 : post.aspectRatio === "5:6" ? 432 : 360;
 
-    const currentSlide = post.slides[post.currentSlideIndex] || post.slides[0];
+    // Durante o ZIP, o índice de exportação prevalece sobre o slide ativo —
+    // este é o ÚNICO motor de renderização; nenhuma segunda máquina é criada.
+    const currentSlide =
+      post.slides[exportSlideIndex ?? post.currentSlideIndex] || post.slides[0];
     const activeBg = currentSlide?.bgImage || post.bgImage;
     const bgTransform = currentSlide?.bgTransform || post.bgTransform;
 
@@ -515,16 +525,47 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       },
       exportZip4K: async (onProgress) => {
         const zip = new JSZip();
-        if (!stageRef.current) return new Blob();
+        const stage = stageRef.current;
+        if (!stage) return new Blob();
 
         setSelectedId(null);
         transformerRef.current?.nodes([]);
         bgTransformerRef.current?.nodes([]);
-        stageRef.current.getLayers().forEach((l: any) => l.batchDraw());
+
+        const awaitFrame = () =>
+          new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+        const awaitStageImagesLoaded = async (timeoutMs: number): Promise<void> => {
+          const started = Date.now();
+          while (Date.now() - started < timeoutMs) {
+            const imageNodes = stage.find("Image") as any[];
+            const pending = imageNodes.filter((node) => {
+              const img = node?.image?.();
+              return !img || !img.complete || !img.naturalWidth;
+            });
+            if (pending.length === 0) return;
+            await new Promise((resolve) => setTimeout(resolve, 20));
+          }
+        };
 
         for (let i = 0; i < post.slides.length; i++) {
           if (onProgress) onProgress(i + 1, post.slides.length);
-          const dataUrl = stageRef.current.toDataURL({
+          // Renderiza o slide i no mesmo motor e aguarda composição + assets.
+          setExportSlideIndex(i);
+          await awaitFrame();
+          await awaitFrame();
+          try {
+            await Promise.race([
+              (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready,
+              Promise.resolve(),
+            ]);
+          } catch {
+            /* fontes não disponíveis — segue com o fallback do motor */
+          }
+          await awaitStageImagesLoaded(2000);
+
+          stage.getLayers().forEach((l: any) => l.batchDraw());
+          const dataUrl = stage.toDataURL({
             pixelRatio: 4,
             mimeType: "image/png",
           });
@@ -532,6 +573,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
           zip.file(`slide-${i + 1}.png`, base64Data, { base64: true });
         }
 
+        setExportSlideIndex(null);
+        await awaitFrame();
+        stage.getLayers().forEach((l: any) => l.batchDraw());
         return await zip.generateAsync({ type: "blob" });
       },
     }));
@@ -762,14 +806,21 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const targetBgHeight = isSplitHalf ? baseHeight * 0.5 : baseHeight;
     const targetBgY = isSplitHalf && splitBgPos === "bottom" ? baseHeight * 0.5 : 0;
 
-    const bgCrop = bgImgElement
-      ? getCoverCrop(
-          bgImgElement.naturalWidth || bgImgElement.width,
-          bgImgElement.naturalHeight || bgImgElement.height,
-          targetBgWidth,
-          targetBgHeight
-        )
+    const bgPlacement = currentSlide?.bgPlacement || post.bgPlacement;
+    const computedBgLayout = bgImgElement
+      ? computeBackgroundGeometry({
+          imageWidth: bgImgElement.naturalWidth || bgImgElement.width,
+          imageHeight: bgImgElement.naturalHeight || bgImgElement.height,
+          baseWidth,
+          baseHeight,
+          placement: bgPlacement,
+          transformOverride: bgTransform,
+          splitBgPos,
+          isBrutalSplit,
+        })
       : undefined;
+
+    const bgCrop = computedBgLayout?.crop;
 
     // ─── MAGNET SNAP CALCULATION VIA DRAGBOUNDFUNC (Konva Canonical) ───
     const createSnapBoundFunc = (elemWidth: number, elemHeight: number) => {
@@ -1057,13 +1108,13 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   <KonvaImage
                     ref={bgImageRef}
                     image={bgImgElement}
-                    x={bgTransform?.x ?? 0}
-                    y={bgTransform?.y ?? targetBgY}
-                    scaleX={bgTransform?.scaleX ?? 1}
-                    scaleY={bgTransform?.scaleY ?? 1}
-                    rotation={bgTransform?.rotation ?? 0}
-                    width={targetBgWidth}
-                    height={targetBgHeight}
+                    x={computedBgLayout ? computedBgLayout.x : (bgTransform?.x ?? 0)}
+                    y={computedBgLayout ? computedBgLayout.y : (bgTransform?.y ?? targetBgY)}
+                    scaleX={computedBgLayout ? computedBgLayout.scaleX : (bgTransform?.scaleX ?? 1)}
+                    scaleY={computedBgLayout ? computedBgLayout.scaleY : (bgTransform?.scaleY ?? 1)}
+                    rotation={computedBgLayout ? computedBgLayout.rotation : (bgTransform?.rotation ?? 0)}
+                    width={computedBgLayout ? computedBgLayout.width : targetBgWidth}
+                    height={computedBgLayout ? computedBgLayout.height : targetBgHeight}
                     crop={bgCrop}
                     opacity={isEditingBackground ? 0.95 : 0.8}
                     draggable={isInteractive && isEditingBackground}
@@ -1601,6 +1652,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     x={itemX}
                     y={itemY}
                     rotation={item.rotation || 0}
+                    opacity={item.opacity ?? 1}
                     draggable={isInteractive}
                     dragBoundFunc={
                       isInteractive
@@ -1614,10 +1666,42 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     onDragMove={handleDragMove}
                     onDragEnd={(e) => {
                       setSnapLines({});
-                      if (onUpdateExtraTextPosition) {
+                      const newX = Math.round(e.target.x());
+                      const newY = Math.round(e.target.y());
+                      if (onUpdateExtraText) {
+                        onUpdateExtraText(item.id, {
+                          x: newX,
+                          y: newY,
+                        });
+                      } else if (onUpdateExtraTextPosition) {
                         onUpdateExtraTextPosition(item.id, {
-                          x: Math.round(e.target.x()),
-                          y: Math.round(e.target.y()),
+                          x: newX,
+                          y: newY,
+                        });
+                      }
+                    }}
+                    onTransformEnd={(e) => {
+                      const node = e.target;
+                      const scaleX = node.scaleX();
+                      const currentWidth = item.width || contentWidth;
+                      const newWidth = Math.max(40, Math.round(currentWidth * scaleX));
+                      const newRotation = Math.round(node.rotation());
+                      const newX = Math.round(node.x());
+                      const newY = Math.round(node.y());
+                      // Invariante Konva: reseta escalas para 1 para não acumular distorções
+                      node.scaleX(1);
+                      node.scaleY(1);
+                      if (onUpdateExtraText) {
+                        onUpdateExtraText(item.id, {
+                          x: newX,
+                          y: newY,
+                          width: newWidth,
+                          rotation: newRotation,
+                        });
+                      } else if (onUpdateExtraTextPosition) {
+                        onUpdateExtraTextPosition(item.id, {
+                          x: newX,
+                          y: newY,
                         });
                       }
                     }}

@@ -14,6 +14,8 @@
  *      custo, chamadas) para o mesmo corpus.
  *
  * Uso: `npm run verify:e2e -- --runs 3` (default 1).
+ * Para auditorias pontuais de copy, `VERIFY_E2E_CORPUS` substitui o corpus
+ * padrão sem alterar o fluxo de geração nem o ambiente.
  */
 
 import "dotenv/config";
@@ -45,7 +47,9 @@ function testUserUuid(runId: string): string {
 
 const TEST_EMAIL_PREFIX = "verify-e2e";
 
-const CORPUS = "Dicas práticas de organização pessoal para quem trabalha de casa";
+const CORPUS =
+  process.env.VERIFY_E2E_CORPUS?.trim() ||
+  "Dicas práticas de organização pessoal para quem trabalha de casa";
 
 const ARTIFACTS_ROOT = path.resolve(process.cwd(), "artifacts", "verification");
 

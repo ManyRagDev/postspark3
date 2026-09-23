@@ -15,7 +15,7 @@ import { createPostVisualSnapshot, projectSnapshotForSlide } from "@shared/varia
 import { validateVisualFit, type VisualFitIssueType } from "@shared/visualFit";
 import { invokeLLM } from "../_core/llm";
 import { ENV } from "../_core/env";
-import type { ContentStrategy } from "./contentStrategy";
+import type { ContentStrategy, EditorialMeaningPlan } from "./contentStrategy";
 import {
   jaccardSimilarity,
   tokenizeVariationText,
@@ -41,6 +41,62 @@ export interface EvaluatedCandidate extends VariationDiversityInput {
   // overlay), não só a cor sólida de fallback.
   bgValue?: BackgroundValue;
   bgOverlay?: BgOverlaySettings;
+}
+
+const GROUNDING_STOPWORDS = new Set([
+  "para", "com", "uma", "que", "das", "dos", "por", "sobre", "como", "mais",
+  "post", "conteudo", "anunciar", "divulgar", "quero", "faca", "crie", "gere",
+]);
+
+function normalize(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function candidateVisibleText(candidate: EvaluatedCandidate): string {
+  return [
+    candidate.headline,
+    candidate.body,
+    candidate.caption,
+    candidate.callToAction,
+    ...(candidate.slides ?? []).flatMap((slide) => [slide.headline, slide.body]),
+    ...(candidate.sections ?? []).flatMap((section) => [section.label, section.description]),
+  ].filter(Boolean).join(" ");
+}
+
+/** Gate factual conservador: fatos marcados precisam sobreviver e autoridade precisa de fonte. */
+export function checkEditorialGrounding(input: {
+  candidate: EvaluatedCandidate;
+  meaningPlan?: EditorialMeaningPlan;
+}): string[] {
+  const plan = input.meaningPlan;
+  if (!plan) return [];
+  const visible = candidateVisibleText(input.candidate);
+  const visibleNormalized = normalize(visible);
+  const visibleTokens = new Set(visibleNormalized.match(/[a-z0-9]+/g) ?? []);
+  const visibleNumbers = new Set(normalizeNumbers(visibleNormalized));
+  const issues: string[] = [];
+
+  for (const fact of plan.sourceFacts.filter((item) => item.required)) {
+    const factNormalized = normalize(fact.text);
+    const factNumbers = normalizeNumbers(factNormalized);
+    const numbersPresent = factNumbers.every((number) => visibleNumbers.has(number));
+    const factTokens = (factNormalized.match(/[a-z0-9]+/g) ?? [])
+      .filter((token) => token.length >= 4 && !GROUNDING_STOPWORDS.has(token));
+    const lexicalCoverage = factTokens.length === 0
+      ? 1
+      : factTokens.filter((token) => visibleTokens.has(token)).length / factTokens.length;
+    if (!numbersPresent || lexicalCoverage < 0.5) {
+      issues.push(`Preserve o fato obrigatorio "${fact.text}" em uma superficie visivel; faltam referentes, condicoes ou valores.`);
+    }
+  }
+
+  if (!plan.authoritySource && /\b(?:segundo (?:os )?especialistas|especialistas (?:afirmam|recomendam|dizem)|mestres?|veteranos?|profissionais seniores|na opini[aã]o de especialistas)\b/i.test(visible)) {
+    issues.push("Remova a atribuicao de autoridade: o briefing nao fornece especialista, credencial ou fonte que a sustente.");
+  }
+  return issues;
 }
 
 type Dimensions = GenerationEvaluationSummary["dimensions"];
@@ -143,9 +199,11 @@ export function deterministicEvaluation(input: {
   siteIntelligence?: SiteIntelligence | null;
   platform: Platform;
   originalityScore?: number;
+  meaningPlan?: EditorialMeaningPlan;
 }): GenerationEvaluationSummary {
   const { candidate, allCandidates, strategy, siteIntelligence, platform } = input;
-  const fullText = `${candidate.headline ?? ""} ${candidate.body ?? ""} ${candidate.caption ?? ""} ${candidate.callToAction ?? ""}`;
+  const fullText = candidateVisibleText(candidate);
+  const groundingFeedback = checkEditorialGrounding({ candidate, meaningPlan: input.meaningPlan });
   const brandReference = siteIntelligence
     ? `${siteIntelligence.business.summary} ${siteIntelligence.business.valueProposition} ${siteIntelligence.editorial.toneGuidelines.join(" ")}`
     : fullText;
@@ -157,6 +215,7 @@ export function deterministicEvaluation(input: {
     : siteIntelligence?.editorial.priorityTopics.join(" ") ?? fullText;
   const evidenceText = siteIntelligence?.evidence.map((item) => item.text).join(" ") ?? "";
   const containsUnverifiedNumber =
+    Boolean(siteIntelligence) &&
     /\b\d+(?:[.,]\d+)?%?\b/.test(fullText) &&
     !normalizeNumbers(evidenceText).some((number) => fullText.includes(number));
 
@@ -196,7 +255,7 @@ export function deterministicEvaluation(input: {
     brandAlignment: overlapScore(fullText, brandReference),
     objectiveAlignment: overlapScore(fullText, objectiveReference),
     audienceRelevance: overlapScore(fullText, audienceReference),
-    factuality: containsUnverifiedNumber ? 35 : siteIntelligence ? 85 : 75,
+    factuality: groundingFeedback.length > 0 ? 35 : containsUnverifiedNumber ? 35 : siteIntelligence ? 85 : 75,
     originality:
       input.originalityScore ?? clampScore(100 - maxSimilarity * 100),
     clarity: clampScore(
@@ -217,7 +276,7 @@ export function deterministicEvaluation(input: {
     layoutIntegrity: computeLayoutIntegrity(candidate),
   };
 
-  return summarize(dimensions, []);
+  return summarize(dimensions, groundingFeedback);
 }
 
 function normalizeNumbers(value: string): string[] {
@@ -504,6 +563,7 @@ export async function evaluateCandidates<T extends EvaluatedCandidate>(input: {
   originalityScores?: number[];
   /** Índices que já falharam na validação estrutural — não vale pagar um juiz. */
   skipJudgeIndexes?: number[];
+  meaningPlan?: EditorialMeaningPlan;
 }): Promise<GenerationEvaluationSummary[]> {
   // Phase 1: deterministic evaluation for all candidates
   const deterministics = input.candidates.map((candidate, index) =>
@@ -514,6 +574,7 @@ export async function evaluateCandidates<T extends EvaluatedCandidate>(input: {
       siteIntelligence: input.siteIntelligence,
       platform: input.platform,
       originalityScore: input.originalityScores?.[index],
+      meaningPlan: input.meaningPlan,
     }),
   );
 

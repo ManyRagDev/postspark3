@@ -740,6 +740,63 @@ export interface PostGenerationResult {
   debug?: GenerationDebugTrace;
 }
 
+// ─── Taxonomia de falhas de geração (Etapa 1) ─────────────────────────────────
+
+/**
+ * Causa normalizada de uma falha de geração. Distingue reprovação editorial
+ * (`quality_rejected`) de falha de rede/provider (`provider_unavailable` /
+ * `provider_timeout`) para que o frontend jamais apresente uma reprovação de
+ * qualidade como "instabilidade de conexão".
+ */
+export type GenerationFailureReason =
+  | "insufficient_sparks"
+  | "authentication"
+  | "provider_unavailable"
+  | "provider_timeout"
+  | "invalid_provider_response"
+  | "format_mismatch"
+  | "quality_rejected"
+  | "variations_not_distinct"
+  | "persistence_failed"
+  | "billing_commit_failed"
+  | "unknown";
+
+/** Metadados estruturados expostos ao cliente junto a uma falha de geração. */
+export interface GenerationFailureMetadata {
+  generationRunId: string;
+  reason: GenerationFailureReason;
+  retryable: boolean;
+  refunded?: boolean;
+  userMessage: string;
+  validationIssues?: Array<{ code: string; slot?: number; detail: string }>;
+}
+
+/**
+ * Proveniência de uma variação/peça: distingue IA de sugestão local e mantém
+ * o vínculo com o `generationRunId` da execução que a originou.
+ */
+export interface GenerationProvenance {
+  source: "ai" | "local_fallback";
+  generationRunId?: string;
+  fallbackReason?: GenerationFailureReason;
+  generatedAt: string;
+}
+
+/** Motivo de falha retornado no trace mínimo degradável (Etapa 1 §6.2). */
+export const GENERATION_FAILURE_REASONS: GenerationFailureReason[] = [
+  "insufficient_sparks",
+  "authentication",
+  "provider_unavailable",
+  "provider_timeout",
+  "invalid_provider_response",
+  "format_mismatch",
+  "quality_rejected",
+  "variations_not_distinct",
+  "persistence_failed",
+  "billing_commit_failed",
+  "unknown",
+];
+
 export interface GenerationEvaluationSummary {
   overallScore: number;
   accepted: boolean;
@@ -1199,3 +1256,16 @@ export function chameleonResultToDesignTokens(result: ChameleonVisionResult): De
     decorations: result.designTokens.decorations,
   };
 }
+
+export {
+  CREATION_BRIEF_VERSION,
+  creationBriefSchema,
+  type CreationBrief,
+} from "./postsparkSchemas";
+
+export {
+  extractUrlsFromText,
+  interpretRawBriefing,
+  creationBriefToExecutionBrief,
+  type BrandKitSummaryInput,
+} from "./creationBrief";

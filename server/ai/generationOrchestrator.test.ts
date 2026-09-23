@@ -123,8 +123,20 @@ function makePlan(variations: Array<Record<string, unknown>>): PreparedGeneratio
   });
   const selected = variations.map(build);
   return {
-    strategies: { objective: "engage", candidates: selected, selected, fallbackUsed: true },
-    promptContext: "CONTRATOS ESTRATEGICOS DAS VARIACOES:\n1. ...",
+    strategies: {
+      objective: "engage",
+      meaningPlan: {
+        objective: "engage",
+        propositions: [{ id: "proposition-1", literalClaim: SOURCE_CONTENT, supportIds: [] }],
+        sourceFacts: [],
+        semanticVariationBudget: 1,
+        mustKeep: [],
+      },
+      candidates: selected,
+      selected,
+      fallbackUsed: false,
+    },
+    promptContext: "PLANO INTERNO DE SIGNIFICADO:\n1. ...",
   };
 }
 
@@ -289,6 +301,7 @@ describe("generatePostVariations — orçamento de chamadas", () => {
     expect(outcome.metrics.repairCalls).toBe(1);
     expect(repairLabel(harness.calls)).toHaveLength(1);
     const repairCall = repairLabel(harness.calls)[0];
+    expect(repairCall.taskRoute).toBe("quality_revision");
     expect(repairCall.messages[1].content).toContain("SLOT 3");
     expect(repairCall.messages[1].content).not.toContain("SLOT 1:");
     expect(repairCall.messages[1].content).not.toContain("SLOT 2:");
@@ -319,6 +332,24 @@ describe("generatePostVariations — orçamento de chamadas", () => {
     expect(outcome.issues.length).toBeGreaterThan(0);
     expect(outcome.metrics.generativeCalls).toBe(2);
     expect(outcome.metrics.repairCalls).toBe(1);
+  });
+
+  it("não entrega sucesso quando fato obrigatório continua ausente apó o reparo", async () => {
+    const harness = makeHarness();
+    harness.plan.strategies.meaningPlan = {
+      objective: "sell",
+      propositions: [{ id: "p1", literalClaim: "20% de desconto no Dia das Mães", supportIds: ["f1"] }],
+      sourceFacts: [{ id: "f1", text: "20% de desconto no Dia das Mães na clínica de estética", placement: "any", required: true }],
+      semanticVariationBudget: 1,
+      mustKeep: [],
+    };
+
+    const outcome = await generatePostVariations(makeInput(harness), harness.deps);
+
+    expect(outcome.status).toBe("rejected");
+    if (outcome.status !== "rejected") return;
+    expect(outcome.metrics.repairCalls).toBe(1);
+    expect(outcome.issues.some((issue) => issue.detail.includes("quality_rejected_slots"))).toBe(true);
   });
 
   it("deadline estourada durante o reparo → falha de deadline (não aprova)", async () => {
@@ -455,13 +486,13 @@ describe("generatePostVariations — orçamento de chamadas", () => {
     expect(harness.events.some((event) => event.stage === "caption_synthesis" && event.status === "fallback")).toBe(true);
   });
 
-  it("fallback de estratégia determinística registrado nas métricas", async () => {
+  it("planejamento semântico determinístico não é registrado como fallback", async () => {
     const harness = makeHarness();
     const outcome = await generatePostVariations(makeInput(harness), harness.deps);
 
     expect(outcome.status).toBe("approved");
     if (outcome.status !== "approved") return;
-    expect(outcome.metrics.fallbacks).toContain("strategy_deterministic");
+    expect(outcome.metrics.fallbacks).not.toContain("strategy_deterministic");
   });
 
   it("fallback de originalidade registrado quando embeddings não disponíveis", async () => {

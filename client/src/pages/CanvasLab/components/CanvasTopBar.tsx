@@ -1,7 +1,8 @@
 import { useRef } from "react";
-import { ArrowDownToLine, ArrowLeft, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, FileArchive, ImagePlus, Layers, Loader2, Magnet, Plus, RotateCcw, Smartphone, Square, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, FileArchive, ImagePlus, Layers, Loader2, Magnet, Plus, RotateCcw, Smartphone, Square, ZoomIn, ZoomOut, Undo2, Redo2, Check, AlertCircle } from "lucide-react";
 import type { AspectRatioType } from "./types";
 import { ASPECT_RATIO_CAPTIONS } from "./types";
+import type { AutoSaveState } from "../lib/autoSaveManager";
 import UserTopMenu from "@/components/UserTopMenu";
 
 interface CanvasTopBarProps {
@@ -30,6 +31,13 @@ interface CanvasTopBarProps {
   onAddExtraText?: () => void;
   /** Inserir imagem livre no canvas */
   onAddExtraImage?: (url: string, naturalWidth?: number, naturalHeight?: number) => void;
+  /** Histórico e Produtividade (Etapa 8 §4) */
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  autoSaveState?: AutoSaveState;
+  lastSavedAt?: Date | null;
 }
 
 export default function CanvasTopBar({
@@ -54,6 +62,12 @@ export default function CanvasTopBar({
   isSaving = false,
   onAddExtraText,
   onAddExtraImage,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
+  autoSaveState,
+  lastSavedAt,
 }: CanvasTopBarProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -102,6 +116,31 @@ export default function CanvasTopBar({
             <span className="hidden md:inline font-medium">Recomeçar</span>
           </button>
         )}
+
+        {/* Desfazer e Refazer (Etapa 8 §4) */}
+        {onUndo && (
+          <div className="flex items-center gap-0.5 bg-white/6 p-0.5 rounded-xl border border-white/10">
+            <button
+              type="button"
+              onClick={onUndo}
+              disabled={!canUndo}
+              title="Desfazer (Ctrl+Z / Cmd+Z)"
+              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-25 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed transition-all"
+            >
+              <Undo2 size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={onRedo}
+              disabled={!canRedo}
+              title="Refazer (Ctrl+Shift+Z / Cmd+Shift+Z)"
+              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-25 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed transition-all"
+            >
+              <Redo2 size={13} />
+            </button>
+          </div>
+        )}
+
         <div className="hidden sm:flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-xs font-bold uppercase tracking-widest text-white">PostSpark Studio</span>
@@ -237,6 +276,36 @@ export default function CanvasTopBar({
 
       {/* ─── LADO DIREITO (DESKTOP: BOTÕES COMPLETOS) ─── */}
       <div className="flex items-center gap-2 md:gap-3 shrink-0">
+        {/* Indicador Visual de AutoSave (Etapa 8 §4) */}
+        {autoSaveState && autoSaveState !== "idle" && (
+          <div className="hidden lg:flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-xl bg-white/4 border border-white/8 select-none">
+            {autoSaveState === "saving" && (
+              <>
+                <Loader2 size={12} className="animate-spin text-sky-400" />
+                <span className="text-white/70">Salvando...</span>
+              </>
+            )}
+            {autoSaveState === "saved" && (
+              <>
+                <Check size={12} className="text-emerald-400" />
+                <span className="text-white/60">Salvo</span>
+              </>
+            )}
+            {autoSaveState === "dirty" && (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-white/50">Não salvo</span>
+              </>
+            )}
+            {autoSaveState === "error" && (
+              <>
+                <AlertCircle size={12} className="text-red-400" />
+                <span className="text-red-400 font-medium">Erro ao salvar</span>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Salvar no banco (item 7) */}
         {onSave && (
           <button

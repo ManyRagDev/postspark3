@@ -6,6 +6,7 @@ vi.mock("../_core/llm", () => ({
 
 import {
   applyOriginalityToEvaluations,
+  checkEditorialGrounding,
   contrastRatio,
   deterministicEvaluation,
   evaluateCandidates,
@@ -155,5 +156,41 @@ describe("postEvaluation (API mantida pós-SPEC-005)", () => {
 
     expect(evaluation.dimensions.captionCoherence).toBeLessThan(50);
     expect(evaluation.accepted).toBe(false);
+  });
+
+  it("rejeita perda de um fato obrigatório da oferta", () => {
+    const issues = checkEditorialGrounding({
+      candidate: cleanCandidate({
+        headline: "Um presente para sua mãe",
+        body: "Cuidados especiais na clínica de estética",
+      }),
+      meaningPlan: {
+        objective: "sell",
+        propositions: [{ id: "p1", literalClaim: "20% de desconto no Dia das Mães", supportIds: ["f1"] }],
+        sourceFacts: [{ id: "f1", text: "20% de desconto no Dia das Mães na clínica de estética", placement: "any", required: true }],
+        semanticVariationBudget: 1,
+        mustKeep: [],
+      },
+    });
+
+    expect(issues[0]).toContain("20% de desconto");
+  });
+
+  it("aceita uma realização natural que preserva a oferta e bloqueia autoridade sem fonte", () => {
+    const meaningPlan = {
+      objective: "sell" as const,
+      propositions: [{ id: "p1", literalClaim: "20% de desconto no Dia das Mães", supportIds: ["f1"] }],
+      sourceFacts: [{ id: "f1", text: "20% de desconto no Dia das Mães na clínica de estética", placement: "any" as const, required: true }],
+      semanticVariationBudget: 1 as const,
+      mustKeep: [],
+    };
+    expect(checkEditorialGrounding({
+      candidate: cleanCandidate({ headline: "Neste Dia das Mães, seu cuidado tem 20% de desconto", body: "Condição especial na clínica de estética" }),
+      meaningPlan,
+    })).toEqual([]);
+    expect(checkEditorialGrounding({
+      candidate: cleanCandidate({ headline: "Segundo especialistas, sua mãe merece", body: "20% de desconto no Dia das Mães na clínica de estética" }),
+      meaningPlan,
+    })).toContain("Remova a atribuicao de autoridade: o briefing nao fornece especialista, credencial ou fonte que a sustente.");
   });
 });

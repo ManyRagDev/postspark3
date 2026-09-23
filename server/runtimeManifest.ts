@@ -70,6 +70,7 @@ export const RUNTIME_MANIFEST: RuntimeManifest = {
     { kind: "column", schema: "postspark", table: "posts", name: "canvas_model", critical: false, consumers: ["db.ts (createPost/updatePost)", "drizzle/0016_add_canvas_model_to_posts.sql"], note: "reabertura com fidelidade do editor CanvasLab (PostSpark Studio)" },
     { kind: "column", schema: "postspark", table: "generation_runs", name: "events", critical: true, consumers: ["db.ts:866", "generationTrace.ts:188"], note: "runtime persiste eventos de geração" },
     { kind: "column", schema: "postspark", table: "generation_runs", name: "events_version", critical: true, consumers: ["db.ts:849", "generationTrace.ts:188"] },
+    { kind: "column", schema: "postspark", table: "generation_runs", name: "failure_reason", critical: false, consumers: ["db.ts:createGenerationRun", "drizzle/0017_add_generation_failure_reason.sql"], note: "motivo normalizado de falha (taxonomia compartilhada); ausência degrada apenas o diagnóstico" },
     { kind: "column", schema: "postspark", table: "profiles", name: "id", critical: true, consumers: ["billing.ts:102"] },
     { kind: "column", schema: "postspark", table: "profiles", name: "email", critical: true, consumers: ["billing.ts:102"] },
     { kind: "column", schema: "postspark", table: "profiles", name: "plan", critical: true, consumers: ["billing.ts:102,473,486"] },

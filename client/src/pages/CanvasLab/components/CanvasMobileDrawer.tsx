@@ -21,11 +21,15 @@ import {
   Type,
   Plus,
   ImagePlus,
+  Copy,
+  ChevronsUp,
+  ChevronsDown,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { CanvasPostModel, VisualFamilyId, TextAlignType, OverlayMode, CanvasCustomText, CanvasCustomImage, SplitBgPosition } from "@/pages/CanvasLab/components/types";
+import type { CanvasPostModel, VisualFamilyId, TextAlignType, OverlayMode, CanvasCustomText, CanvasCustomImage, SplitBgPosition, FitMode, BackgroundPlacement } from "@/pages/CanvasLab/components/types";
 import { OFFICIAL_FAMILIES_META } from "@/pages/CanvasLab/components/types";
 import { applyFamilyPreset } from "../lib/familyPreset";
+import { duplicateExtraElement, reorderExtraElement } from "../lib/documentCommands";
 import TypographyColorControls from "./TypographyColorControls";
 import TipCallout from "./TipCallout";
 import { useStudioTipsStore } from "@/store/studioTipsStore";
@@ -561,6 +565,76 @@ export default function CanvasMobileDrawer({
                                 className="w-5 h-5 rounded border-0 bg-transparent cursor-pointer"
                               />
                             </div>
+
+                            {/* Controles de Opacidade, Rotação e Camadas */}
+                            <div className="space-y-1.5 pt-1.5 border-t border-white/5 text-[10px]">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex-1 flex items-center gap-1">
+                                  <span className="text-white/40">Opac:</span>
+                                  <input
+                                    type="range"
+                                    min="0.1"
+                                    max="1"
+                                    step="0.05"
+                                    value={et.opacity ?? 1}
+                                    onChange={(e) => onUpdateExtraText?.(et.id, { opacity: parseFloat(e.target.value) })}
+                                    className="w-12 accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                                  />
+                                  <span className="font-mono text-white/50">{Math.round((et.opacity ?? 1) * 100)}%</span>
+                                </div>
+
+                                <div className="flex-1 flex items-center gap-1 justify-end">
+                                  <span className="text-white/40">Giro:</span>
+                                  <input
+                                    type="range"
+                                    min="-180"
+                                    max="180"
+                                    step="5"
+                                    value={et.rotation || 0}
+                                    onChange={(e) => onUpdateExtraText?.(et.id, { rotation: parseInt(e.target.value, 10) })}
+                                    className="w-12 accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                                  />
+                                  <span className="font-mono text-white/50">{et.rotation || 0}°</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between gap-1 pt-1 border-t border-white/5">
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => onUpdatePost(reorderExtraElement(post, et.id, "front"))}
+                                    title="Trazer para frente no palco"
+                                    className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[9px] flex items-center gap-1 transition-all cursor-pointer"
+                                  >
+                                    <ChevronsUp size={10} />
+                                    <span>Frente</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onUpdatePost(reorderExtraElement(post, et.id, "back"))}
+                                    title="Enviar para trás no palco"
+                                    className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[9px] flex items-center gap-1 transition-all cursor-pointer"
+                                  >
+                                    <ChevronsDown size={10} />
+                                    <span>Trás</span>
+                                  </button>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const result = duplicateExtraElement(post, et.id);
+                                    onUpdatePost(result.post);
+                                    toast.success("Texto duplicado!");
+                                  }}
+                                  title="Duplicar texto"
+                                  className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[9px] flex items-center gap-1 transition-all cursor-pointer"
+                                >
+                                  <Copy size={9} />
+                                  <span>Duplicar</span>
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -654,6 +728,57 @@ export default function CanvasMobileDrawer({
                                   onChange={(e) => onUpdateExtraImage?.(img.id, { cornerRadius: parseInt(e.target.value, 10) })}
                                   className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
                                 />
+
+                                <div className="flex items-center justify-between text-white/60 pt-0.5">
+                                  <span>Giro / Rotação</span>
+                                  <span className="font-mono text-[10px]">{img.rotation || 0}°</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="-180"
+                                  max="180"
+                                  step="5"
+                                  value={img.rotation || 0}
+                                  onChange={(e) => onUpdateExtraImage?.(img.id, { rotation: parseInt(e.target.value, 10) })}
+                                  className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                                />
+
+                                <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-white/5">
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => onUpdatePost(reorderExtraElement(post, img.id, "front"))}
+                                      title="Trazer para frente no palco"
+                                      className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[9px] flex items-center gap-1 transition-all cursor-pointer"
+                                    >
+                                      <ChevronsUp size={10} />
+                                      <span>Frente</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onUpdatePost(reorderExtraElement(post, img.id, "back"))}
+                                      title="Enviar para trás no palco"
+                                      className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[9px] flex items-center gap-1 transition-all cursor-pointer"
+                                    >
+                                      <ChevronsDown size={10} />
+                                      <span>Trás</span>
+                                    </button>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const result = duplicateExtraElement(post, img.id);
+                                      onUpdatePost(result.post);
+                                      toast.success("Imagem duplicada!");
+                                    }}
+                                    title="Duplicar imagem"
+                                    className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[9px] flex items-center gap-1 transition-all cursor-pointer"
+                                  >
+                                    <Copy size={9} />
+                                    <span>Duplicar</span>
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           );
@@ -759,29 +884,92 @@ export default function CanvasMobileDrawer({
                   </TipCallout>
 
                   {/* Status do Fundo Ativo */}
-                  {activeBg && (
-                    <div className="flex items-center justify-between p-3 rounded-2xl bg-white/6 border border-white/12">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={activeBg}
-                          alt="Fundo Ativo"
-                          className="w-10 h-10 rounded-xl object-cover border border-white/15"
-                        />
-                        <div>
-                          <span className="text-xs font-bold text-white block">Foto Ativa</span>
-                          <span className="text-[10px] text-white/50">Fundo aplicado</span>
+                  {activeBg && (() => {
+                    const currentPlacement = currentSlide?.bgPlacement || post.bgPlacement;
+                    const activeFitMode: FitMode = currentPlacement?.fitMode || "cover";
+
+                    const handleSetMobileFitMode = (mode: FitMode) => {
+                      const newPlacement: BackgroundPlacement = {
+                        fitMode: mode,
+                        focalPoint: { x: 0.5, y: 0.5 },
+                        crop: undefined,
+                        transform: undefined,
+                      };
+                      if (currentSlide) {
+                        const updated = [...post.slides];
+                        updated[post.currentSlideIndex] = {
+                          ...currentSlide,
+                          bgPlacement: newPlacement,
+                          bgTransform: undefined,
+                        };
+                        onUpdatePost({ slides: updated, bgPlacement: newPlacement });
+                      } else {
+                        onUpdatePost({ bgPlacement: newPlacement, bgTransform: undefined });
+                      }
+                    };
+
+                    return (
+                      <div className="p-3 rounded-2xl bg-white/6 border border-white/12 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <img
+                              src={activeBg}
+                              alt="Fundo Ativo"
+                              className="w-10 h-10 rounded-xl object-cover border border-white/15"
+                            />
+                            <div>
+                              <span className="text-xs font-bold text-white block">Foto Ativa</span>
+                              <span className="text-[10px] text-white/50">Fundo aplicado</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyBackground(undefined)}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold hover:bg-rose-500/30 active:scale-95 cursor-pointer"
+                          >
+                            <Trash2 size={12} />
+                            <span>Remover</span>
+                          </button>
+                        </div>
+
+                        {/* Modos de Enquadramento */}
+                        <div className="pt-2 border-t border-white/8 space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px] uppercase font-mono text-white/50">
+                            <span>Enquadramento</span>
+                            <button
+                              type="button"
+                              onClick={() => handleSetMobileFitMode("cover")}
+                              className="text-[oklch(0.78_0.22_48)] hover:underline flex items-center gap-0.5"
+                            >
+                              <RotateCcw size={10} />
+                              <span>Restaurar</span>
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-1">
+                            {[
+                              { id: "cover", label: "Preencher" },
+                              { id: "contain", label: "Inteira" },
+                              { id: "original", label: "Original" },
+                            ].map((btn) => (
+                              <button
+                                key={btn.id}
+                                type="button"
+                                onClick={() => handleSetMobileFitMode(btn.id as FitMode)}
+                                className={`py-1 px-2 rounded-lg text-[11px] font-semibold transition-all border ${
+                                  activeFitMode === btn.id
+                                    ? "bg-[oklch(0.78_0.22_48)] text-black border-[oklch(0.78_0.22_48)] font-bold shadow-sm"
+                                    : "bg-white/5 border-white/8 text-white/70 active:bg-white/10"
+                                }`}
+                              >
+                                {btn.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleApplyBackground(undefined)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold hover:bg-rose-500/30 active:scale-95 cursor-pointer"
-                      >
-                        <Trash2 size={12} />
-                        <span>Remover</span>
-                      </button>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Posição da Foto no Brutal Split */}
                   {post.familyId === "brutal-split" && (

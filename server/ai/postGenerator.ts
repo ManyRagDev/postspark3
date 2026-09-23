@@ -1,28 +1,33 @@
-import type { ContentStrategy } from "./contentStrategy";
+import type { ContentStrategy, EditorialMeaningPlan } from "./contentStrategy";
 
 export function buildStrategyGenerationContext(
   strategies: ContentStrategy[],
+  meaningPlan?: EditorialMeaningPlan,
 ): string {
   if (strategies.length === 0) return "";
 
-  return `CONTRATOS ESTRATEGICOS DAS VARIACOES:
+  const requiredFacts = meaningPlan?.sourceFacts.filter((fact) => fact.required) ?? [];
+
+  return `PLANO INTERNO DE SIGNIFICADO:
 ${strategies
   .map(
-    (strategy, index) => `${index + 1}. ${strategy.title}
-   - Topico: ${strategy.topic}
+    (strategy, index) => `${index + 1}. Opção visual ${index + 1}
+   - Proposição: ${strategy.literalClaim ?? strategy.hook}
+   - ID da proposição: ${strategy.propositionId ?? strategy.id}
    - Objetivo: ${strategy.objective}
-   - Publico: ${strategy.audience}
-   - Angulo: ${strategy.angle}
-   - Gancho: ${strategy.hook}
-   - Promessa: ${strategy.promise}
-   - Evidencias permitidas: ${strategy.evidenceIds.join(", ") || "nenhuma afirmacao factual especifica"}`,
+   - Público: ${strategy.audience}
+   - Ganho para o leitor: ${strategy.readerPayoff ?? strategy.promise}
+   - Suportes: ${(strategy.supportIds ?? strategy.evidenceIds).join(", ") || "somente o insumo fornecido"}`,
   )
   .join("\n")}
 
 REGRAS:
-- A variacao 1 deve executar a estrategia 1, e assim por diante.
-- Nao misture os tres angulos em uma mesma variacao.
-- Preserve o topico, objetivo, publico e limite factual de cada contrato.
-- Escreva copy original; nao copie literalmente o texto de evidencia.
-- O Topico define o assunto; o Headline DEVE ser uma manchete inedita, provocativa e magnetica baseada no Gancho e Angulo, NUNCA a repeticao literal do Topico.`;
+- Primeiro compreenda a proposição literal; depois escreva uma realização editorial natural.
+- As opções podem compartilhar a mesma proposição. A diversidade principal é visual; não invente três teses.
+- Preserve sujeito, ação, condição e consequência necessários para recuperar o significado na primeira leitura.
+- Ambiguidade ou metáfora só é válida quando o texto visível resolve o referente e completa o nexo.
+- Não atribua opinião a especialista, veterano, mestre ou profissional sem uma fonte expressa no insumo.
+- Fatos obrigatórios: ${requiredFacts.map((fact) => `${fact.id}: ${fact.text}`).join(" | ") || "nenhum fato marcado como obrigatório"}.
+- Fonte de autoridade autorizada: ${meaningPlan?.authoritySource || "nenhuma"}.
+- Escreva copy original sem transformar o plano interno em texto visível.`;
 }

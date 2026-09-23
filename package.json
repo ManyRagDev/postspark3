@@ -12,6 +12,8 @@
     "test": "vitest run",
     "harness": "tsx harness/run.ts",
     "harness:corpus": "tsx harness/pullCorpus.ts",
+    "benchmark:editorial": "tsx --env-file=.env server/benchmarks/editorialModels/run.ts",
+    "benchmark:editorial:summary": "tsx server/benchmarks/editorialModels/summarize.ts",
     "verify:runtime": "tsx --env-file=.env server/verifyRuntime.ts",
     "verify:e2e": "tsx --env-file=.env server/verifyE2E.ts"
   },

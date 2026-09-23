@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ENV } from "../_core/env";
-import { createGenerationRun } from "../db";
+import { createGenerationRun, createGenerationRunMinimal, isSchemaIncompatibilityError } from "../db";
 import {
   finishGenerationTrace,
   recordGenerationEvent,
@@ -10,6 +10,8 @@ import {
 
 vi.mock("../db", () => ({
   createGenerationRun: vi.fn().mockResolvedValue(undefined),
+  createGenerationRunMinimal: vi.fn().mockResolvedValue(undefined),
+  isSchemaIncompatibilityError: vi.fn().mockReturnValue(false),
 }));
 
 const originalTraceContent = ENV.aiTraceStoreContent;
@@ -166,6 +168,33 @@ describe("generationTrace", () => {
         revisionCount: 1,
         strategyFallbackUsed: true,
         originalityFallbackUsed: false,
+      }),
+    );
+  });
+
+  it("falls back to a minimal compatible record on schema incompatibility", async () => {
+    (createGenerationRun as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error("column generation_runs.events does not exist"),
+    );
+    (isSchemaIncompatibilityError as ReturnType<typeof vi.fn>).mockReturnValueOnce(true);
+
+    const trace = startGenerationTrace({
+      userUuid: "00000000-0000-0000-0000-000000000001",
+      inputType: "text",
+      inputContent: "baseline",
+      platform: "instagram",
+      postMode: "static",
+      creationMode: "ideation",
+      requestedModel: "gemini",
+    });
+
+    await finishGenerationTrace({ trace, status: "failed", error: "boom" });
+
+    expect(createGenerationRunMinimal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: trace.id,
+        status: "failed",
+        errorMessage: "boom",
       }),
     );
   });

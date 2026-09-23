@@ -35,6 +35,21 @@ const MODEL_COSTS: Record<string, ModelCostConfig> = {
     outputCostPerMillion: 2,
     platformFeePercent: ENV.openRouterPlatformFeePercent,
   },
+  "openai/gpt-5.4-mini": {
+    inputCostPerMillion: 0.75,
+    outputCostPerMillion: 4.5,
+    platformFeePercent: ENV.openRouterPlatformFeePercent,
+  },
+  "google/gemini-3.8-flash": {
+    inputCostPerMillion: 0.75,
+    outputCostPerMillion: 3.75,
+    platformFeePercent: ENV.openRouterPlatformFeePercent,
+  },
+  "z-ai/glm-5.3-flash": {
+    inputCostPerMillion: 0.075,
+    outputCostPerMillion: 0.25,
+    platformFeePercent: ENV.openRouterPlatformFeePercent,
+  },
   "openai/gpt-oss-120b": {
     inputCostPerMillion: 0,
     outputCostPerMillion: 0,
@@ -51,6 +66,9 @@ const MODEL_COSTS: Record<string, ModelCostConfig> = {
 
 function normalizeModelForCost(model: string): string {
   if (model.startsWith("openai/gpt-5-mini")) return "openai/gpt-5-mini";
+  if (model.startsWith("openai/gpt-5.4-mini")) return "openai/gpt-5.4-mini";
+  if (model.startsWith("google/gemini-3.8-flash")) return "google/gemini-3.8-flash";
+  if (model.startsWith("z-ai/glm-5.3-flash")) return "z-ai/glm-5.3-flash";
   if (model.startsWith("gemini-2.5-flash")) return "gemini-2.5-flash";
   return model;
 }
@@ -141,18 +159,14 @@ export function resolveTaskModelConfig(input: {
   if (route === "fast_vision") return groqConfig(GROQ_SCOUT_MODEL);
   if (route === "fallback_text_or_vision") return resolveGeminiFallbackConfig();
 
-  if (
-    route === "content_strategy" ||
-    route === "static_generation" ||
-    route === "carousel_generation" ||
-    route === "post_evaluation" ||
-    route === "quality_revision" ||
-    route === "caption_synthesis"
-  ) {
-    return openRouterConfig(ENV.openRouterTextModel);
-  }
+  if (route === "content_strategy") return openRouterConfig(ENV.openRouterContentStrategyModel);
+  if (route === "static_generation") return openRouterConfig(ENV.openRouterStaticModel);
+  if (route === "carousel_generation") return openRouterConfig(ENV.openRouterCarouselModel);
+  if (route === "quality_revision") return openRouterConfig(ENV.openRouterQualityRevisionModel);
+  if (route === "post_evaluation") return openRouterConfig(ENV.openRouterEvaluationModel);
+  if (route === "caption_synthesis") return openRouterConfig(ENV.openRouterStaticModel);
 
-    // CR-004: rotas high_ticket (intent router / context summary) saíram do
+  // CR-004: rotas high_ticket (intent router / context summary) saíram do
   // caminho síncrono — roteamento de intenção e budget de contexto são
   // determinísticos; nenhuma chamada LLM usa mais essas rotas.
 

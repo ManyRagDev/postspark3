@@ -5,7 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { invokeLLM } from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
-import { createBackgroundAsset, createPost, getGenerationRunById, getPostById, getUserBackgroundAssets, getUserGenerationRuns, getUserPosts, updatePost } from "./db";
+import { createBackgroundAsset, createPost, getBrandKitByUser, getGenerationRunById, getPostById, getUserBackgroundAssets, getUserGenerationRuns, getUserPosts, updatePost } from "./db";
 import { storagePut } from "./storage";
 import { analyzeBrandFromUrl, generateCardThemeVariations } from "./chameleon";
 import { generateBackgroundImage } from "./imageGenerateBackground";
@@ -28,6 +28,11 @@ import { loadGenerationContext } from "./ai/contextLoader";
 import { routeHighTicketIntent, angleToStrategy } from "./ai/intentRouter";
 import { buildGenerationDebugTrace, finishGenerationTrace, recordGenerationEvent, startGenerationTrace } from "./ai/generationTrace";
 import { assessSemanticOriginality, persistCandidateFingerprints } from "./ai/semanticOriginality";
+import { classifyGenerationError, toFailureMetadata } from "@shared/generationFailure";
+import { GenerationFailureError } from "./_core/generationError";
+import { hasFormatMismatch } from "@shared/formatIntent";
+import { evaluateSourceCopyGate } from "@shared/sourceCopyGate";
+import type { PostVariation } from "@shared/postspark";
 import { generatePostVariations, type ExecutionBriefContext } from "./ai/generationOrchestrator";
 import { safeJsonParse } from "./ai/llmJson";
 import {
@@ -51,6 +56,24 @@ const logSnippet = (value: unknown, maxLength = 320): string | undefined => {
   if (!text) return undefined;
   return text.length > maxLength ? `${text.slice(0, maxLength)}...[truncated]` : text;
 };
+
+/** Projeta os campos de texto verificáveis pelo gate de similaridade. */
+function outputSnapshotsToSourceFields(
+  snapshots: PostVariation[],
+): Array<{ field: "headline" | "body" | "caption" | "slide_headline" | "slide_body" | "callToAction"; value: string }> {
+  const fields: Array<{ field: "headline" | "body" | "caption" | "slide_headline" | "slide_body" | "callToAction"; value: string }> = [];
+  for (const variation of snapshots) {
+    if (variation.headline?.trim()) fields.push({ field: "headline", value: variation.headline });
+    if (variation.body?.trim()) fields.push({ field: "body", value: variation.body });
+    if (variation.caption?.trim()) fields.push({ field: "caption", value: variation.caption });
+    if (variation.callToAction?.trim()) fields.push({ field: "callToAction", value: variation.callToAction });
+    for (const slide of variation.slides ?? []) {
+      if (slide.headline?.trim()) fields.push({ field: "slide_headline", value: slide.headline });
+      if (slide.body?.trim()) fields.push({ field: "slide_body", value: slide.body });
+    }
+  }
+  return fields;
+}
 
 const summarizeGeneratedVariation = (variation: any, index: number) => ({
   index,
@@ -358,6 +381,19 @@ export const appRouter = router({
     }),
   }),
 
+  /** Etapa 4 §9.5 — Carrega a síntese de Brand Kit do usuário logado */
+  brandKit: router({
+    get: protectedProcedure.query(async ({ ctx }) => {
+      try {
+        const kit = await getBrandKitByUser(ctx.user.id);
+        return kit ?? null;
+      } catch (err) {
+        console.warn("[brandKit.get] Falha ao carregar brand kit:", err);
+        return null;
+      }
+    }),
+  }),
+
   post: router({
     /** Generate 3 post variations from user input */
     generate: protectedProcedure
@@ -378,6 +414,20 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
+        // Etapa 3 §8.2 — validação de intenção de formato ANTES de reservar
+        // Sparks: contradição clara entre briefing e seletor retorna
+        // `format_mismatch` sem chamada generativa nem reserva (Sparks não
+        // são consumidos para incompatibilidade detectável localmente).
+        if (input.inputType === "text" && hasFormatMismatch(input.content, input.postMode)) {
+          throw new GenerationFailureError({
+            code: "BAD_REQUEST",
+            failure: toFailureMetadata({
+              generationRunId: "format-check",
+              reason: "format_mismatch",
+            }),
+          });
+        }
+
         // Fase C — Billing transacional: reserva Sparks no início (bloqueando
         // saldo), commit só na aprovação final, refund em qualquer falha.
         // idempotencyKey derivada do input impede double-charge no duplo-click.
@@ -564,6 +614,39 @@ export const appRouter = router({
                 (snapshot) => snapshot.generationMeta?.revisionCount ?? 0,
               ),
             );
+
+            // Etapa 3 §8.4 — gate de similaridade com o prompt após geração.
+            // Copy literal não autorizada é rejeitada; trechos obrigatórios
+            // (mustKeep) são preservados e não geram violação.
+            if (input.inputType === "text") {
+              const sourceFields = outputSnapshotsToSourceFields(outcome.snapshots);
+              const sourceViolations = evaluateSourceCopyGate({
+                prompt: input.content,
+                requiredTerms: normalizedExecutionBrief?.mustKeep,
+                fields: sourceFields,
+              });
+              if (sourceViolations.length > 0) {
+                recordGenerationEvent({
+                  stage: "source_copy_gate",
+                  status: "rejected",
+                  detail: sourceViolations.map((v) => v.detail).join("; "),
+                  data: sourceViolations,
+                });
+                throw new GenerationFailureError({
+                  code: "BAD_GATEWAY",
+                  failure: toFailureMetadata({
+                    generationRunId: generationTrace.id,
+                    reason: "quality_rejected",
+                    validationIssues: sourceViolations.map((v) => ({
+                      code: v.code,
+                      detail: v.detail,
+                    })),
+                  }),
+                  cause: new Error(sourceViolations.map((v) => v.detail).join("; ")),
+                });
+              }
+            }
+
             await persistCandidateFingerprints({
               userUuid: ctx.user.id,
               generationRunId: generationTrace.id,
@@ -647,16 +730,43 @@ export const appRouter = router({
           // encerramento do trace e do log. A distinção entre rejeição de
           // qualidade e falha operacional é preservada até a borda.
           if (outcome.status === "rejected") {
-            const issuesText = outcome.issues.map((issue) => issue.detail).join("; ");
-            throw new TRPCError({
+            const reason = outcome.issues.some((issue) => issue.type === "diversity")
+              ? "variations_not_distinct"
+              : "quality_rejected";
+            const validationIssues = outcome.issues.map((issue) => ({
+              code:
+                issue.type === "diversity"
+                  ? "variations_not_distinct"
+                  : issue.type === "quality"
+                    ? "quality_rejected"
+                    : "invalid_set",
+              slot: issue.slot === "set" ? undefined : (issue.slot as number),
+              detail: issue.detail,
+            }));
+            throw new GenerationFailureError({
               code: "BAD_GATEWAY",
-              message: "A IA não conseguiu produzir três variações válidas e distintas. Tente novamente.",
-              cause: new Error(issuesText),
+              failure: toFailureMetadata({
+                generationRunId: generationTrace.id,
+                reason,
+                validationIssues,
+              }),
+              cause: new Error(outcome.issues.map((issue) => issue.detail).join("; ")),
             });
           }
-          throw new TRPCError({
+          throw new GenerationFailureError({
             code: outcome.error.kind === "deadline" ? "GATEWAY_TIMEOUT" : "INTERNAL_SERVER_ERROR",
-            message: "Falha operacional durante a geração. Tente novamente.",
+            failure: toFailureMetadata({
+              generationRunId: generationTrace.id,
+              reason:
+                outcome.error.kind === "deadline"
+                  ? "provider_timeout"
+                  : outcome.error.kind === "provider"
+                    ? "provider_unavailable"
+                    : outcome.error.kind === "parse"
+                      ? "invalid_provider_response"
+                      : "unknown",
+              error: outcome.error.message,
+            }),
             cause: new Error(outcome.error.message),
           });
         } catch (error) {
@@ -681,10 +791,15 @@ export const appRouter = router({
               originalError: error instanceof Error ? error.message : "Generation failed",
             });
           }
+          const failureReason =
+            error instanceof GenerationFailureError
+              ? error.failure.reason
+              : classifyGenerationError(error);
           await finishGenerationTrace({
             trace: generationTrace,
             status: "failed",
             error: `${error instanceof Error ? error.message : "Generation failed"}${refundNote}`,
+            failureReason,
           });
           await appendOperationalLog("POST_GENERATION_FAILED", {
             generationRunId: generationTrace.id,

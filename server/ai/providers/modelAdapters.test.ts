@@ -87,6 +87,23 @@ describe("model provider adapters", () => {
     expect(String(adapted.messages[0].content)).toContain("JSON Schema");
   });
 
+  it("translates Gemini 3.8 OpenRouter schema to the prompt-json mode validated by the benchmark", () => {
+    const adapted = adaptRequestForProvider({
+      provider: "openrouter",
+      effectiveModel: "google/gemini-3.8-flash",
+      messages: [{ role: "user", content: "Gere o resultado" }],
+      responseFormat: {
+        type: "json_schema",
+        json_schema: schema,
+      },
+    });
+
+    expect(adapted.responseFormat).toEqual({ type: "json_object" });
+    expect(adapted.schema).toEqual(schema);
+    expect(adapted.structuredOutputMode).toBe("text_schema");
+    expect(String(adapted.messages[0].content)).toContain("JSON Schema");
+  });
+
   it("validates required fields, nested arrays and extra properties", () => {
     expect(
       validateStructuredContent(

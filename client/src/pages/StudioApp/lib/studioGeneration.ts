@@ -5,8 +5,47 @@ import {
   OFFICIAL_FAMILIES_META,
   type AspectRatioType,
   type CanvasPostModel,
+  type CanvasPostProvenance,
+  type TextLegibilityEffect,
 } from "@/pages/CanvasLab/components/types";
 import { applyContrastGuard } from "@/pages/CanvasLab/lib/contrast";
+import type { CarouselSlide, ContentSection, GenerationFailureReason } from "@shared/postspark";
+
+/** Versão corrente do contrato CanvasPostModel (Etapa 5 §10). */
+export const CANVAS_MODEL_VERSION = 2;
+
+/** Campos consumidos por `variationToCanvasModel` (entrada tipada — Etapa 5 §10). */
+export interface GeneratedVariationInput {
+  familyId?: string;
+  creativeDirection?: { familyId?: string };
+  backgroundColor?: string;
+  accentColor?: string;
+  textColor?: string;
+  headlineColor?: string;
+  bodyColor?: string;
+  subtextColor?: string;
+  headline?: string;
+  body?: string;
+  subtext?: string;
+  caption?: string;
+  imagePrompt?: string;
+  layout?: string;
+  aspectRatio?: string;
+  slides?: CarouselSlide[];
+  sections?: ContentSection[];
+  callToAction?: string;
+  hashtags?: string[];
+  copyAngle?: {
+    type: string;
+    label: string;
+    badge: string;
+    stickerText?: string;
+  };
+  headlineEffect?: string;
+  headlineEffectColor?: string;
+  subtextEffect?: string;
+  subtextEffectColor?: string;
+}
 
 /**
  * Mapeamento e fallbacks do fluxo Studio (create → gallery → editor).
@@ -16,7 +55,22 @@ import { applyContrastGuard } from "@/pages/CanvasLab/lib/contrast";
  * Qualquer mudança aqui afeta as duas páginas simultaneamente.
  */
 
-export function variationToCanvasModel(v: any, index: number, originalPrompt: string): CanvasPostModel {
+/** Proveniência "IA" usada quando o backend aprovou as variações. */
+export function aiGenerationProvenance(generationRunId: string): CanvasPostProvenance {
+  return { source: "ai", generationRunId, generatedAt: new Date().toISOString() };
+}
+
+/** Proveniência permanente para sugestões locais — nunca apresentadas como IA. */
+export function localFallbackProvenance(reason: GenerationFailureReason): CanvasPostProvenance {
+  return { source: "local_fallback", fallbackReason: reason, generatedAt: new Date().toISOString() };
+}
+
+export function variationToCanvasModel(
+  v: GeneratedVariationInput,
+  index: number,
+  originalPrompt: string,
+  provenance?: CanvasPostProvenance,
+): CanvasPostModel {
   const resolvedFamilyId = v.familyId || v.creativeDirection?.familyId;
   const famMeta = (resolvedFamilyId && OFFICIAL_FAMILIES_META[resolvedFamilyId as keyof typeof OFFICIAL_FAMILIES_META]) || OFFICIAL_FAMILIES_META["editorial-poster"];
   const familyId = famMeta.id;
@@ -63,11 +117,15 @@ export function variationToCanvasModel(v: any, index: number, originalPrompt: st
       ? "right"
       : "left";
 
+  const sourceSlides = Array.isArray(v.slides) ? v.slides : [];
+  const headlineEffect = (v.headlineEffect as TextLegibilityEffect | undefined) || "none";
+  const subtextEffect = (v.subtextEffect as TextLegibilityEffect | undefined) || "none";
+
   let slides: any[] = [];
-  if (v.slides && Array.isArray(v.slides) && v.slides.length > 1) {
-    slides = v.slides.map((s: any, sIdx: number) => ({
+  if (sourceSlides.length > 1) {
+    slides = sourceSlides.map((s: any, sIdx: number) => ({
       id: `s-${sIdx + 1}`,
-      step: `0${sIdx + 1} // ${sIdx === 0 ? "O GANCHO" : sIdx === v.slides.length - 1 ? "O CHAMADO" : "CONTEÚDO"}`,
+      step: `0${sIdx + 1} // ${sIdx === 0 ? "O GANCHO" : sIdx === sourceSlides.length - 1 ? "O CHAMADO" : "CONTEÚDO"}`,
       headline: s.headline || headline,
       subtext: s.body || s.subtext || subtext,
       imagePrompt,
@@ -86,6 +144,31 @@ export function variationToCanvasModel(v: any, index: number, originalPrompt: st
 
   const rawModel: CanvasPostModel = {
     id: `gen-${Date.now()}-${index}`,
+    modelVersion: CANVAS_MODEL_VERSION,
+    ...(provenance ? { provenance } : {}),
+    ...(v.callToAction ? { callToAction: v.callToAction } : {}),
+    ...(Array.isArray(v.hashtags) && v.hashtags.length > 0 ? { hashtags: v.hashtags as string[] } : {}),
+    ...(Array.isArray(v.sections) && v.sections.length > 0
+      ? {
+          sections: v.sections.map((s: any) => ({
+            id: s.id,
+            icon: s.icon,
+            label: s.label ?? s.title ?? "",
+            description: s.description ?? s.body,
+            number: s.number,
+          })),
+        }
+      : {}),
+    ...(v.copyAngle
+      ? {
+          copyAngle: {
+            type: v.copyAngle.type,
+            label: v.copyAngle.label,
+            badge: v.copyAngle.badge,
+            stickerText: v.copyAngle.stickerText,
+          },
+        }
+      : {}),
     familyId,
     familyName,
     aspectRatio: (v.aspectRatio as AspectRatioType) || "1:1",
@@ -102,9 +185,9 @@ export function variationToCanvasModel(v: any, index: number, originalPrompt: st
     overlayOpacity: 0.55,
     logoPosition: "top-right",
     isSnapEnabled: true,
-    headlineEffect: v.headlineEffect || "none",
+    headlineEffect,
     headlineEffectColor: v.headlineEffectColor,
-    subtextEffect: v.subtextEffect || "none",
+    subtextEffect,
     subtextEffectColor: v.subtextEffectColor,
     palette: {
       background: bg,
@@ -150,14 +233,20 @@ function formatFallbackHeadline(promptText: string, angle: "hidden-cost" | "rule
  * Quando `declaredFamilyId` é informado, a primeira variação é remapeada para
  * a família declarada — o fallback também honra o gosto do usuário.
  */
-export function buildInitialFallbackVariations(promptText: string, declaredFamilyId?: string): CanvasPostModel[] {
+export function buildInitialFallbackVariations(
+  promptText: string,
+  declaredFamilyId?: string,
+  reason: GenerationFailureReason = "unknown",
+): CanvasPostModel[] {
   const h1 = formatFallbackHeadline(promptText, "hidden-cost");
   const h2 = formatFallbackHeadline(promptText, "rule");
   const h3 = formatFallbackHeadline(promptText, "counterintuitive");
+  const provenance = localFallbackProvenance(reason);
 
   const variations: CanvasPostModel[] = [
     {
       id: "var-1",
+      provenance,
       familyId: "editorial-poster",
       familyName: "Editorial de Luxo",
       aspectRatio: "1:1",
@@ -184,6 +273,7 @@ export function buildInitialFallbackVariations(promptText: string, declaredFamil
     },
     {
       id: "var-2",
+      provenance,
       familyId: "glass-veil",
       familyName: "Glass Veil (Vidro)",
       aspectRatio: "1:1",
@@ -209,6 +299,7 @@ export function buildInitialFallbackVariations(promptText: string, declaredFamil
     },
     {
       id: "var-3",
+      provenance,
       familyId: "chromatic-block",
       familyName: "Minimalismo Brutal",
       aspectRatio: "1:1",
@@ -257,10 +348,15 @@ export function buildInitialFallbackVariations(promptText: string, declaredFamil
 }
 
 /** Fallback inteligente com 3 famílias complementares e 3 novos ganchos ("Gerar mais"). */
-export function buildExtraFallbackVariations(lastPrompt: string): CanvasPostModel[] {
+export function buildExtraFallbackVariations(
+  lastPrompt: string,
+  reason: GenerationFailureReason = "unknown",
+): CanvasPostModel[] {
+  const provenance = localFallbackProvenance(reason);
   return [
     {
       id: `var-${Date.now()}-1`,
+      provenance,
       familyId: "brutal-split",
       familyName: "Brutal Split",
       aspectRatio: "1:1",
@@ -283,6 +379,7 @@ export function buildExtraFallbackVariations(lastPrompt: string): CanvasPostMode
     },
     {
       id: `var-${Date.now()}-2`,
+      provenance,
       familyId: "cyber-glitch",
       familyName: "Cyber & Tech",
       aspectRatio: "1:1",
@@ -305,6 +402,7 @@ export function buildExtraFallbackVariations(lastPrompt: string): CanvasPostMode
     },
     {
       id: `var-${Date.now()}-3`,
+      provenance,
       familyId: "duotone-wash",
       familyName: "Duotone Wash",
       aspectRatio: "1:1",

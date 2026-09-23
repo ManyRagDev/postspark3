@@ -27,7 +27,18 @@ export const ENV = {
   openRouterSiteUrl: process.env.OPENROUTER_SITE_URL ?? "https://postspark.app",
   openRouterAppName: process.env.OPENROUTER_APP_NAME ?? "PostSpark",
   openRouterTextModel: process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5-mini",
-  openRouterVisionModel: process.env.OPENROUTER_VISION_MODEL ?? "openai/gpt-5-mini",
+  // Rotas especificas preservam OPENROUTER_TEXT_MODEL como rollback global.
+  openRouterStaticModel:
+    process.env.OPENROUTER_STATIC_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "google/gemini-3.8-flash",
+  openRouterCarouselModel:
+    process.env.OPENROUTER_CAROUSEL_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "google/gemini-3.8-flash",
+  openRouterQualityRevisionModel:
+    process.env.OPENROUTER_QUALITY_REVISION_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5.4-mini",
+  openRouterContentStrategyModel:
+    process.env.OPENROUTER_CONTENT_STRATEGY_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "z-ai/glm-5.3-flash",
+  openRouterEvaluationModel:
+    process.env.OPENROUTER_EVALUATION_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "z-ai/glm-5.3-flash",
+  openRouterVisionModel: process.env.OPENROUTER_VISION_MODEL ?? "google/gemini-3.8-flash",
   openRouterImageModel: process.env.OPENROUTER_IMAGE_MODEL ?? "google/gemini-3.1-flash-image-preview",
   openRouterPlatformFeePercent: parseFloat(process.env.OPENROUTER_PLATFORM_FEE_PERCENT || "5.5"),
   llmInputCostPerMillion: parseFloat(process.env.LLM_INPUT_COST_PER_MILLION || "0"),

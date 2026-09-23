@@ -1,4 +1,5 @@
-import { Copy, Plus, Trash2, Layers } from "lucide-react";
+import { useState } from "react";
+import { Copy, Plus, Trash2, Layers, ChevronLeft, ChevronRight } from "lucide-react";
 import type { CarouselSlideItem } from "./types";
 
 interface CarouselFilmstripProps {
@@ -8,6 +9,7 @@ interface CarouselFilmstripProps {
   onAddSlide: () => void;
   onDuplicateSlide: (index: number) => void;
   onRemoveSlide: (index: number) => void;
+  onReorderSlide?: (sourceIndex: number, targetIndex: number) => void;
 }
 
 export default function CarouselFilmstrip({
@@ -17,7 +19,9 @@ export default function CarouselFilmstrip({
   onAddSlide,
   onDuplicateSlide,
   onRemoveSlide,
+  onReorderSlide,
 }: CarouselFilmstripProps) {
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   return (
     <div className="h-20 border-t border-white/10 bg-black/60 backdrop-blur-xl px-4 py-2 flex items-center gap-3 shrink-0 z-20 overflow-x-auto select-none custom-scrollbar">
       <div className="flex items-center gap-2 pr-3 border-r border-white/10 shrink-0 text-white/50 text-[11px] font-semibold uppercase tracking-wider">
@@ -29,19 +33,74 @@ export default function CarouselFilmstrip({
       <div className="flex items-center gap-2.5 flex-1">
         {slides.map((slide, idx) => {
           const isSelected = idx === currentIndex;
+          const isDraggingThis = draggedIdx === idx;
           return (
             <div
               key={slide.id || idx}
               onClick={() => onSelectSlide(idx)}
+              draggable={Boolean(onReorderSlide && slides.length > 1)}
+              onDragStart={(e) => {
+                setDraggedIdx(idx);
+                e.dataTransfer.setData("text/plain", String(idx));
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragEnd={() => setDraggedIdx(null)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDraggedIdx(null);
+                const from = parseInt(e.dataTransfer.getData("text/plain"), 10);
+                if (!isNaN(from) && from !== idx) {
+                  onReorderSlide?.(from, idx);
+                }
+              }}
               className={`group relative h-15 w-24 rounded-xl border p-1.5 flex flex-col justify-between cursor-pointer transition-all shrink-0 ${
+                isDraggingThis ? "opacity-40 border-dashed border-[oklch(0.78_0.22_48)]" : ""
+              } ${
                 isSelected
                   ? "bg-white/15 border-[oklch(0.78_0.22_48)] shadow-md ring-1 ring-[oklch(0.78_0.22_48)]"
                   : "bg-white/4 border-white/10 hover:bg-white/8 text-white/60"
               }`}
             >
               <div className="flex items-center justify-between text-[9px] font-mono font-bold text-white/70">
-                <span>0{idx + 1}</span>
+                <div className="flex items-center gap-1">
+                  <span>0{idx + 1}</span>
+                  {idx === 0 && (
+                    <span className="px-1 py-0.2 rounded bg-[oklch(0.78_0.22_48)]/25 text-[oklch(0.78_0.22_48)] text-[7px] font-bold tracking-wider uppercase">
+                      Capa
+                    </span>
+                  )}
+                </div>
                 <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+                  {idx > 0 && onReorderSlide && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onReorderSlide(idx, idx - 1);
+                      }}
+                      className="hover:text-white"
+                      title="Mover slide para a esquerda"
+                    >
+                      <ChevronLeft size={10} />
+                    </button>
+                  )}
+                  {idx < slides.length - 1 && onReorderSlide && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onReorderSlide(idx, idx + 1);
+                      }}
+                      className="hover:text-white"
+                      title="Mover slide para a direita"
+                    >
+                      <ChevronRight size={10} />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => {

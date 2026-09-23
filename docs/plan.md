@@ -1,24 +1,29 @@
-# Plano de Refatoração: Workbench V2 (Strangler Fig)
+# Plano de Implementação — Experiência Inteligente PostSpark (Fase Final)
 
 ## Visão Geral
-Este plano estrutura a solução definitiva para o monolito de 2.300+ linhas (`WorkbenchRefactored.tsx`).
-O trânsito de dados complexos do `HoloDeck` para o `Workbench` por meio do Router state vinha causando regressões (sumiço de stickers, badges e ferramentas Pro). Construiremos paralelamente a infraestrutura V2, centralizando o estado de domínio.
+Este plano estrutura a conclusão da transição do PostSpark para a sua "Experiência Inteligente e Confiável". As fundações (Traces, Tratamento de Erros, Modais de Fallback, Zod Schemas e integridade básica do `CanvasPostModel` v2) já foram implementadas nas Etapas 1, 2, 3 e 5.
 
-## Fases da Arquitetura
-O detalhamento exaustivo das interfaces e fluxos encontra-se no artefato principal: `docs/arquitetura_workbench_v2.md`.
+Agora, o objetivo é entregar as capacidades avançadas de edição guiada por IA e aprimorar a robustez do motor visual `CanvasLab`.
 
-1. **Fase 1: Fonte Única de Verdade (Zustand)**
-   Migração completa do prop drilling entre páginas para mutações centralizadas num state global de editor (`client/src/store/editorStore.ts`).
+## Fonte da Verdade e Invariantes
+- A documentação de contexto obrigatória está em `DOCUMENTO_MESTRE.md`.
+- O modelo autoritativo é o `CanvasPostModel`. O estado visual é mutado através de funções puras no `documentCommands.ts`.
+- **Atenção:** O ecossistema legado (`Home.tsx`, `WorkbenchV2`, `HoloDeck.tsx`) é considerado **órfão** e não deve receber novas features. Operamos primariamente na rota `/thevoid` -> `StudioAppV2BPage` -> `CanvasLabPage`.
+- Mantenha a separação entre *Estado Global* (defaults herdados) e *Estado Local* (override específico de um slide). Nunca escreva em ambos ao mesmo tempo.
 
-2. **Fase 2: Type-Driven Development (Contratos Estritos)**
-   Fortalecimento dos tipos em `client/src/types/editor.ts`, extirpando parciais e injetando obrigatoriedade em `AdvancedLayoutSettings`. Evita dados perdidos durante clones assíncronos.
+## Fases da Arquitetura (Etapas Restantes)
 
-3. **Fase 3: Desidratação do PostCard.tsx**
-   Substituição das lógicas UI-bound intrincadas. O PostCard não terá mais código de `architectProps`. O PostCard passa a ser puramente visual (MVC View literal), reagindo à store.
+1. **Etapa 4: Briefing persistente e inteligência de marca**
+   Transição de uma experiência de "campo único" para uma etapa estruturada, permitindo ao usuário revisar a interpretação da IA (formatos, brand kit, URLs extraídas) antes do gasto de *Sparks*.
 
-4. **Fase 4: Modularização (Workbench V2)**
-   Fatiamento físico para reuso e manutenibilidade em `client/src/components/views/WorkbenchV2/`:
-   `SidebarText`, `SidebarImage`, `SidebarDesign`, `SidebarLayout` e `CanvasWorkspace`.
+2. **Etapa 6: Fundo, crop e mídia**
+   Garantia de que uploads de imagens sejam tratados de forma não destrutiva, evitando gargalos de performance (sem base64 pesados atrelados ao JSON) e adicionando flexibilidade de enquadramento (contain, cover, custom).
 
-5. **Fase 5: Resgate Premium**
-   Reintrodução das features elitizadas do PostSpark: o "Ajustar com IA" utilizando Visão Multimodal e o switch de capacidade para modelos "Pro" que haviam quebrado na esteira V1.
+3. **Etapa 7: Paridade de elementos livres (textos e imagens extras)**
+   Garantir que os nós do Konva para elementos extras tenham suporte de primeira classe: persistência correta de `onTransformEnd` (escala, rotação, translação) no `CanvasPostModel`, duplicação com geração de UUIDs, e gestão de camadas (z-index).
+
+4. **Etapa 8: Editor assistido e produtividade**
+   Implementação das melhorias de Qualidade de Vida (QoL) exigidas por um produto profissional: Auto-Save resiliente, Undo/Redo rastreável sobre o estado do documento e drag-and-drop de reordenação de slides.
+
+5. **Etapa 9: Rollout, Testes e Documentação**
+   Validações E2E finais e consolidação do `DOCUMENTO_MESTRE.md`.

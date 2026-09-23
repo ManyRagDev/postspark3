@@ -168,14 +168,21 @@ export default function History() {
         return;
       }
 
-      // Store in sessionStorage for restoration in Home/TheVoid
-      sessionStorage.setItem("restoredGeneration", JSON.stringify(variations));
-      sessionStorage.setItem("restoredGenerationMeta", JSON.stringify({
-        id: generation.id,
-        platform: generation.platform,
-        postMode: generation.post_mode,
-        createdAt: generation.createdAt,
-      }));
+      // Etapa 2 §7.5 — contrato versionado único: History → Studio ativo.
+      // O Studio oficial (StudioAppV2BPage) lê `postspark.restore_generation`
+      // e reconstrói as variações no fluxo create → gallery → editor.
+      sessionStorage.setItem(
+        "postspark.restore_generation",
+        JSON.stringify({
+          version: 1,
+          generationRunId: generation.id,
+          inputType: generation.input_type || "text",
+          inputContent: generation.input_content || "",
+          platform: generation.platform,
+          postMode: generation.post_mode,
+          variations,
+        }),
+      );
 
       toast.success("Geração restaurada! Você pode editar as variações.");
       setLocation("/thevoid");

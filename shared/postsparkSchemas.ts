@@ -172,6 +172,44 @@ const formatOptimizationSchema = z.object({
     .optional(),
 });
 
+export const generationFailureReasonSchema = z.enum([
+  "insufficient_sparks",
+  "authentication",
+  "provider_unavailable",
+  "provider_timeout",
+  "invalid_provider_response",
+  "format_mismatch",
+  "quality_rejected",
+  "variations_not_distinct",
+  "persistence_failed",
+  "billing_commit_failed",
+  "unknown",
+]);
+
+export const generationFailureMetadataSchema = z.object({
+  generationRunId: z.string(),
+  reason: generationFailureReasonSchema,
+  retryable: z.boolean(),
+  refunded: z.boolean().optional(),
+  userMessage: z.string(),
+  validationIssues: z
+    .array(
+      z.object({
+        code: z.string(),
+        slot: z.number().optional(),
+        detail: z.string(),
+      }),
+    )
+    .optional(),
+});
+
+export const generationProvenanceSchema = z.object({
+  source: z.enum(["ai", "local_fallback"]),
+  generationRunId: z.string().optional(),
+  fallbackReason: generationFailureReasonSchema.optional(),
+  generatedAt: z.string(),
+});
+
 export const generationEvaluationSchema = z.object({
   overallScore: z.number(),
   accepted: z.boolean(),
@@ -412,3 +450,26 @@ export const postVisualSnapshotSchema = z.object({
     }
   }
 });
+
+// Etapa 4 §9.1 — Contrato de Briefing versionado
+export const CREATION_BRIEF_VERSION = 1;
+
+export const creationBriefSchema = z.object({
+  version: z.number().default(CREATION_BRIEF_VERSION),
+  rawInput: z.string(),
+  format: z.enum(["static", "carousel"]),
+  slideCount: z.number().int().min(1).max(10).optional(),
+  objective: z.string().optional(),
+  audience: z.string().optional(),
+  brandEssence: z.string().optional(),
+  positioning: z.string().optional(),
+  tone: z.string().optional(),
+  keyMessage: z.string().optional(),
+  proofPoints: z.array(z.string()).optional(),
+  requiredTerms: z.array(z.string()).optional(),
+  forbiddenTerms: z.array(z.string()).optional(),
+  callToAction: z.string().optional(),
+  sourceUrls: z.array(z.string()).optional(),
+});
+
+export type CreationBrief = z.infer<typeof creationBriefSchema>;

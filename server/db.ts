@@ -156,6 +156,8 @@ export type CreateGenerationRunInput = {
   graphState?: JsonValue;
   sparkCost?: number;
   completedAt?: string;
+  /** Motivo normalizado de falha (taxonomia compartilhada, Etapa 1 §6.3). */
+  failureReason?: string;
 };
 
 export type CreateContentFingerprintInput = {
@@ -199,6 +201,7 @@ export type GenerationRunRecord = {
   estimated_cost_usd: number;
   latency_ms: number;
   error_message: string | null;
+  failure_reason: string | null;
   graph_state?: JsonValue | null;
   spark_cost?: number | null;
   completed_at?: string | null;
@@ -589,6 +592,7 @@ export async function createGenerationRun(
     estimated_cost_usd: input.estimatedCostUsd,
     latency_ms: input.latencyMs,
     error_message: input.errorMessage ?? null,
+    failure_reason: input.failureReason ?? null,
     graph_state: input.graphState,
     spark_cost: input.sparkCost,
     completed_at: input.completedAt,
@@ -598,6 +602,53 @@ export async function createGenerationRun(
   if (error) {
     throw new Error(`[Database] createGenerationRun failed: ${error.message}`);
   }
+}
+
+/**
+ * Persistência degradável do trace (Etapa 1 §6.2): grava apenas as colunas
+ * garantidas pela migration 0006 (todas presentes em qualquer ambiente que
+ * já tenha `generation_runs`). Usado quando o upsert completo falha por
+ * incompatibilidade de schema (`events`/`events_version`/scratch columns
+ * ausentes). Nunca silencia a falha: o chamador registra o erro operacional.
+ */
+export async function createGenerationRunMinimal(
+  input: CreateGenerationRunInput,
+): Promise<void> {
+  const db = getSupabaseDbClient();
+  const payload = removeUndefined({
+    id: input.id,
+    user_uuid: input.userUuid,
+    site_intelligence_id: input.siteIntelligenceId ?? null,
+    status: input.status,
+    input_type: input.inputType,
+    input_content: input.inputContent,
+    platform: input.platform,
+    post_mode: input.postMode,
+    creation_mode: input.creationMode,
+    requested_model: input.requestedModel,
+    effective_models: input.effectiveModels,
+    prompt_tokens: input.promptTokens,
+    completion_tokens: input.completionTokens,
+    total_tokens: input.totalTokens,
+    estimated_cost_usd: input.estimatedCostUsd,
+    latency_ms: input.latencyMs,
+    error_message: input.errorMessage ?? null,
+  });
+  const { error } = await db.from("generation_runs").upsert(payload);
+
+  if (error) {
+    throw new Error(`[Database] createGenerationRunMinimal failed: ${error.message}`);
+  }
+}
+
+export function isSchemaIncompatibilityError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return (
+    /column .* does not exist/i.test(message) ||
+    /could not find the table/i.test(message) ||
+    /relation .* does not exist/i.test(message) ||
+    /42703|42P01/.test(message)
+  );
 }
 
 export async function updateGenerationRun(

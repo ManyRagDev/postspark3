@@ -4,17 +4,18 @@ import { planContentStrategiesDeterministic } from "./contentStrategy";
 import { buildStrategyGenerationContext } from "./postGenerator";
 
 describe("contentStrategy — planejamento determinístico (SPEC-003/005)", () => {
-  it("produces five scored candidates and selects three distinct contracts", () => {
+  it("limita um insumo raso a uma proposição compartilhada por três direções visuais", () => {
     const plan = planContentStrategiesDeterministic({
       sourceContent:
         "Plataforma de automacao reduz tarefas manuais e melhora indicadores de operacoes B2B.",
     });
 
-    expect(plan.fallbackUsed).toBe(true);
-    expect(plan.candidates).toHaveLength(5);
+    expect(plan.fallbackUsed).toBe(false);
+    expect(plan.candidates).toHaveLength(3);
     expect(plan.selected).toHaveLength(3);
     expect(plan.selected.every((item) => item.score.total >= 0)).toBe(true);
-    expect(new Set(plan.selected.map((item) => item.angle)).size).toBe(3);
+    expect(plan.meaningPlan.semanticVariationBudget).toBe(1);
+    expect(new Set(plan.selected.map((item) => item.propositionId)).size).toBe(1);
   });
 
   it("serializes selected strategies as variation-specific prompt contracts", () => {
@@ -22,11 +23,11 @@ describe("contentStrategy — planejamento determinístico (SPEC-003/005)", () =
       sourceContent:
         "Contabilidade consultiva para pequenas empresas com planejamento tributario.",
     });
-    const context = buildStrategyGenerationContext(plan.selected);
+    const context = buildStrategyGenerationContext(plan.selected, plan.meaningPlan);
 
-    expect(context).toContain("CONTRATOS ESTRATEGICOS");
-    expect(context).toContain("A variacao 1 deve executar a estrategia 1");
-    expect(context).toContain("Nao misture os tres angulos");
+    expect(context).toContain("PLANO INTERNO DE SIGNIFICADO");
+    expect(context).toContain("As opções podem compartilhar a mesma proposição");
+    expect(context).toContain("Fonte de autoridade autorizada: nenhuma");
   });
 
   it("é determinístico: mesmo input produz o mesmo plano", () => {
@@ -67,6 +68,17 @@ describe("contentStrategy — planejamento determinístico (SPEC-003/005)", () =
     });
 
     expect(plan.candidates.some((item) => item.topic.includes("torra"))).toBe(true);
-    expect(plan.candidates[0].evidenceIds).toContain("e1");
+    expect(plan.meaningPlan.sourceFacts.some((fact) => fact.text.includes("Torramos semanalmente"))).toBe(true);
+  });
+
+  it("preserva oferta concreta e não inventa papel de autoridade", () => {
+    const plan = planContentStrategiesDeterministic({
+      sourceContent: "quero um post para anunciar desconto de 20% no dia das mães na clínica de estética",
+    });
+
+    expect(plan.meaningPlan.semanticVariationBudget).toBe(1);
+    expect(plan.meaningPlan.sourceFacts.some((fact) => fact.required && fact.text.includes("20%"))).toBe(true);
+    expect(plan.meaningPlan.authoritySource).toBeUndefined();
+    expect(plan.selected.every((item) => item.angle !== "authority")).toBe(true);
   });
 });

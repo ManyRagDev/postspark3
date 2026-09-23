@@ -296,7 +296,11 @@ export interface CanvasCustomText {
   effect?: TextLegibilityEffect;
   effectColor?: string;
   rotation?: number;
+  opacity?: number;
   sizeScale?: number;
+  scaleX?: number;
+  scaleY?: number;
+  zIndex?: number;
 }
 
 export interface CanvasCustomImage {
@@ -309,9 +313,28 @@ export interface CanvasCustomImage {
   rotation?: number;
   opacity?: number;
   cornerRadius?: number;
+  scaleX?: number;
+  scaleY?: number;
+  zIndex?: number;
 }
 
 export type SplitBgPosition = "bottom" | "top" | "full";
+
+/** Modo de enquadramento da imagem de fundo (Etapa 6 §11). */
+export type FitMode = "cover" | "contain" | "original" | "custom";
+
+/** Controle de enquadramento não destrutivo do fundo fotográfico. */
+export interface BackgroundPlacement {
+  fitMode: FitMode;
+  focalPoint?: { x: number; y: number }; // Ponto focal normalizado (0..1)
+  crop?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  transform?: BgImageTransform;
+}
 
 export interface CarouselSlideItem {
   id: string;
@@ -320,6 +343,7 @@ export interface CarouselSlideItem {
   subtext: string;
   bgImage?: string;
   bgTransform?: BgImageTransform;
+  bgPlacement?: BackgroundPlacement;
   imagePrompt?: string;
   headlinePos?: ElementPosition;
   subtextPos?: ElementPosition;
@@ -424,8 +448,45 @@ export const TEXT_EFFECTS_META: Record<TextLegibilityEffect, TextEffectMeta> = {
   },
 };
 
+/** Proveniência de uma peça no editor: distingue IA de sugestão local. */
+export interface CanvasPostProvenance {
+  source: "ai" | "local_fallback";
+  generationRunId?: string;
+  fallbackReason?: string;
+  generatedAt: string;
+}
+
+/** Seção estruturada preservada da geração (Etapa 5 §10) — não deve ser descartada. */
+export interface CanvasContentSection {
+  id?: string;
+  icon?: string;
+  label: string;
+  description?: string;
+  number?: number;
+}
+
+/** Ângulo de copy aprovado pela geração (Etapa 5 §10). */
+export interface CanvasCopyAngle {
+  type: string;
+  label: string;
+  badge: string;
+  stickerText?: string;
+}
+
 export interface CanvasPostModel {
   id: string;
+  /** Versão do contrato do modelo (Etapa 5 §10). Ausente = modelo legado v1. */
+  modelVersion?: number;
+  /** Proveniência da peça (Etapa 3 §8.3): impede fallback local como IA. */
+  provenance?: CanvasPostProvenance;
+  /** Call-to-action aprovado pela geração (Etapa 5 §10) — preservado no modelo. */
+  callToAction?: string;
+  /** Hashtags aprovadas pela geração (Etapa 5 §10) — preservadas no modelo. */
+  hashtags?: string[];
+  /** Seções estruturadas aprovadas (Etapa 5 §10) — preservadas mesmo com body. */
+  sections?: CanvasContentSection[];
+  /** Ângulo de copywriting da variação (Etapa 5 §10). */
+  copyAngle?: CanvasCopyAngle;
   familyId: VisualFamilyId;
   familyName: string;
   aspectRatio: AspectRatioType;
@@ -444,6 +505,7 @@ export interface CanvasPostModel {
   customFontUrl?: string;
   bgImage?: string;
   bgTransform?: BgImageTransform;
+  bgPlacement?: BackgroundPlacement;
   overlayOpacity: number;
   /** Cor personalizada do overlay sobre a imagem de fundo (se undefined, usa background do post ou #000000). */
   overlayColor?: string;

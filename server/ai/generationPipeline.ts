@@ -26,6 +26,6 @@ export async function prepareGenerationPlan(input: {
   const strategies = planContentStrategiesDeterministic(input);
   return {
     strategies,
-    promptContext: buildStrategyGenerationContext(strategies.selected),
+    promptContext: buildStrategyGenerationContext(strategies.selected, strategies.meaningPlan),
   };
 }

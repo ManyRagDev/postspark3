@@ -6,8 +6,13 @@ import type {
   GenerationEvaluationSummary,
   PostVariation,
 } from "@shared/postspark";
-import { createGenerationRun } from "../db";
+import {
+  createGenerationRun,
+  createGenerationRunMinimal,
+  isSchemaIncompatibilityError,
+} from "../db";
 import { ENV } from "../_core/env";
+import { appendOperationalLog } from "../_core/operationalLog";
 
 export interface LlmTraceCall {
   label: string;
@@ -141,6 +146,7 @@ export async function finishGenerationTrace(input: {
   strategyFallbackUsed?: boolean;
   originalityFallbackUsed?: boolean;
   error?: string;
+  failureReason?: string;
 }): Promise<void> {
   const { trace } = input;
   const promptTokens = trace.calls.reduce(
@@ -202,8 +208,73 @@ export async function finishGenerationTrace(input: {
       estimatedCostUsd,
       latencyMs: Date.now() - trace.startedAt,
       errorMessage: input.error,
+      failureReason: input.failureReason,
     });
   } catch (error) {
-    console.warn("[generationTrace] Could not persist generation run:", error);
+    // Etapa 1 §6.2 — persistência degradável: tenta o registro mínimo
+    // compatível quando a falha é incompatibilidade de schema, e registra o
+    // erro operacional em ambos os casos. Nunca silencia com console.warn.
+    const normalized = error instanceof Error ? error.message : String(error);
+    if (isSchemaIncompatibilityError(error)) {
+      await appendOperationalLog("GENERATION_TRACE_SCHEMA_INCOMPATIBLE", {
+        generationRunId: trace.id,
+        userUuid: trace.userUuid,
+        error: normalized,
+        fallback: "createGenerationRunMinimal",
+      });
+      try {
+        await createGenerationRunMinimal({
+          id: trace.id,
+          userUuid: trace.userUuid,
+          siteIntelligenceId: trace.siteIntelligenceId,
+          status: input.status,
+          inputType: trace.inputType,
+          inputContent: ENV.aiTraceStoreContent ? trace.inputContent : redactedInput,
+          platform: trace.platform,
+          postMode: trace.postMode,
+          creationMode: trace.creationMode,
+          requestedModel: trace.requestedModel,
+          effectiveModels: Array.from(
+            new Set(trace.calls.map((call) => call.effectiveModel)),
+          ),
+          revisionCount: input.revisionCount ?? 0,
+          candidateCount: Array.isArray(input.output)
+            ? input.output.length
+            : evaluations.length,
+          acceptedCount,
+          averageQualityScore,
+          strategyFallbackUsed: input.strategyFallbackUsed ?? false,
+          originalityFallbackUsed: input.originalityFallbackUsed ?? false,
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens + completionTokens,
+          estimatedCostUsd,
+          latencyMs: Date.now() - trace.startedAt,
+          errorMessage: input.error,
+        });
+        await appendOperationalLog("GENERATION_TRACE_MINIMAL_PERSISTED", {
+          generationRunId: trace.id,
+          userUuid: trace.userUuid,
+          status: input.status,
+        });
+        return;
+      } catch (fallbackError) {
+        const fallbackMessage =
+          fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+        await appendOperationalLog("GENERATION_TRACE_PERSIST_FAILED", {
+          generationRunId: trace.id,
+          userUuid: trace.userUuid,
+          error: normalized,
+          fallbackError: fallbackMessage,
+        });
+        return;
+      }
+    }
+
+    await appendOperationalLog("GENERATION_TRACE_PERSIST_FAILED", {
+      generationRunId: trace.id,
+      userUuid: trace.userUuid,
+      error: normalized,
+    });
   }
 }

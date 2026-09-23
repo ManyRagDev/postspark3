@@ -18,6 +18,22 @@ import {
   type CanvasCustomImage,
 } from "./components/types";
 import { applyContrastGuard, patchTouchesContrast } from "./lib/contrast";
+import {
+  applyPatchToCurrentSlide,
+  duplicateSlide,
+  removeSlide,
+  reorderSlides,
+  freshId,
+} from "./lib/documentCommands";
+import {
+  createHistory,
+  pushHistory,
+  undoHistory,
+  redoHistory,
+  canUndo,
+  canRedo,
+} from "./lib/canvasHistory";
+import { AutoSaveManager, type AutoSaveState } from "./lib/autoSaveManager";
 
 interface CanvasLabPageProps {
   initialPost?: CanvasPostModel;
@@ -35,7 +51,90 @@ interface CanvasLabPageProps {
 export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart, onSave, hasSavedPost = false, isSaving = false }: CanvasLabPageProps = {}) {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isEditingBackground, setIsEditingBackground] = useState(false);
-  const [post, setPost] = useState<CanvasPostModel>(initialPost || INITIAL_POST);
+  const [history, setHistory] = useState(() => createHistory<CanvasPostModel>(initialPost || INITIAL_POST));
+  const post = history.present;
+
+  const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const autoSaveManagerRef = useRef<AutoSaveManager<CanvasPostModel> | null>(null);
+
+  // Inicializa o gerenciador de autosave resiliente com debounce e mutex (Etapa 8 §4)
+  useEffect(() => {
+    if (!onSave) return;
+    const manager = new AutoSaveManager<CanvasPostModel>({
+      onSave: async (docToSave) => {
+        const mode = hasSavedPost ? "update" : "new";
+        return onSave(docToSave, mode);
+      },
+      debounceMs: 1000,
+      onStateChange: (state, savedAt) => {
+        setAutoSaveState(state);
+        if (savedAt) setLastSavedAt(savedAt);
+      },
+    });
+    autoSaveManagerRef.current = manager;
+    return () => manager.destroy();
+  }, [onSave, hasSavedPost]);
+
+  // Função centralizadora de mutações com histórico de Undo/Redo e agendamento de AutoSave
+  const setPost = (updater: CanvasPostModel | ((prev: CanvasPostModel) => CanvasPostModel)) => {
+    setHistory((prevHistory) => {
+      const current = prevHistory.present;
+      const next = typeof updater === "function" ? updater(current) : updater;
+      if (next === current) return prevHistory;
+      const nextHistory = pushHistory(prevHistory, next);
+      autoSaveManagerRef.current?.triggerChange(next);
+      return nextHistory;
+    });
+  };
+
+  const handleUndo = () => {
+    setHistory((prev) => {
+      if (!canUndo(prev)) return prev;
+      const next = undoHistory(prev);
+      autoSaveManagerRef.current?.triggerChange(next.present);
+      return next;
+    });
+  };
+
+  const handleRedo = () => {
+    setHistory((prev) => {
+      if (!canRedo(prev)) return prev;
+      const next = redoHistory(prev);
+      autoSaveManagerRef.current?.triggerChange(next.present);
+      return next;
+    });
+  };
+
+  // Atalhos canônicos de teclado: Ctrl+Z / Cmd+Z (Undo) e Ctrl+Shift+Z / Cmd+Shift+Z / Ctrl+Y (Redo)
+  useEffect(() => {
+    const handleHistoryKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+        return;
+      }
+      const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+      if (mod && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if (mod && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener("keydown", handleHistoryKeyDown);
+    return () => window.removeEventListener("keydown", handleHistoryKeyDown);
+  }, []);
+
+  const handleReorderSlide = (sourceIndex: number, targetIndex: number) => {
+    setPost((prev) => reorderSlides(prev, sourceIndex, targetIndex));
+  };
+
   const [zoom, setZoom] = useState(1);
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -131,25 +230,11 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     });
   };
 
-  // Salva enquadramento (posição e escala) do plano de fundo
+  // Salva enquadramento (posição e escala) do plano de fundo — somente no
+  // slide atual (Etapa 2 §7.3): nunca vaza para o default global nem para
+  // outros slides.
   const handleUpdateBgTransform = (transform: BgImageTransform) => {
-    setPost((prev) => {
-      const curIdx = prev.currentSlideIndex;
-      const currentSlide = prev.slides[curIdx];
-      if (!currentSlide) return { ...prev, bgTransform: transform };
-
-      const updatedSlides = [...prev.slides];
-      updatedSlides[curIdx] = {
-        ...currentSlide,
-        bgTransform: transform,
-      };
-
-      return {
-        ...prev,
-        bgTransform: transform,
-        slides: updatedSlides,
-      };
-    });
+    setPost((prev) => applyPatchToCurrentSlide(prev, { bgTransform: transform }));
   };
 
   const handleResetBgTransform = () => {
@@ -252,7 +337,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     const currentSlide = post.slides[curIdx];
     const slideExtra = currentSlide?.extraTexts || post.extraTexts || [];
     const count = slideExtra.length + 1;
-    const newId = `extra-${Date.now()}-${count}`;
+    const newId = freshId("tx");
     const newExtraText: CanvasCustomText = {
       id: newId,
       text: "Novo Texto",
@@ -341,7 +426,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     const currentSlide = post.slides[curIdx];
     const slideImages = currentSlide?.extraImages || post.extraImages || [];
     const count = slideImages.length + 1;
-    const newId = `img-${Date.now()}-${count}`;
+    const newId = freshId("im");
 
     // Dimensões proporcionais contidas na prancheta
     let targetWidth = 140;
@@ -539,20 +624,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   const handleDuplicateSlide = (index: number) => {
-    const target = post.slides[index];
-    if (!target) return;
-    const duplicated = {
-      ...target,
-      id: `s-${Date.now()}`,
-      step: `${target.step} (CÓPIA)`,
-    };
-    const nextSlides = [...post.slides];
-    nextSlides.splice(index + 1, 0, duplicated);
-    setPost((prev) => ({
-      ...prev,
-      slides: nextSlides,
-      currentSlideIndex: index + 1,
-    }));
+    if (!post.slides[index]) return;
+    setPost((prev) => duplicateSlide(prev, index));
+    setSelectedElementId(null);
   };
 
   const handleDeleteSlide = (index: number) => {
@@ -560,12 +634,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       toast.error("O carrossel precisa ter no mínimo 1 slide.");
       return;
     }
-    const nextSlides = post.slides.filter((_, i) => i !== index);
-    setPost((prev) => ({
-      ...prev,
-      slides: nextSlides,
-      currentSlideIndex: Math.min(prev.currentSlideIndex, nextSlides.length - 1),
-    }));
+    setPost((prev) => removeSlide(prev, index));
+    setSelectedElementId(null);
   };
 
   return (
@@ -593,6 +663,12 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         isSaving={isSaving}
         onAddExtraText={handleAddExtraText}
         onAddExtraImage={handleAddExtraImage}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={canUndo(history)}
+        canRedo={canRedo(history)}
+        autoSaveState={autoSaveState}
+        lastSavedAt={lastSavedAt}
       />
 
       {/* 2. Área Central */}
@@ -699,6 +775,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
               onUpdateBgTransform={handleUpdateBgTransform}
               onEnterBackgroundEdit={() => setIsEditingBackground(true)}
               onUpdateText={handleUpdateText}
+              onUpdateExtraText={handleUpdateExtraText}
               onUpdateExtraTextPosition={handleUpdateExtraTextPosition}
               onUpdateExtraTextContent={handleUpdateExtraTextContent}
               onUpdateExtraImage={handleUpdateExtraImage}
@@ -733,6 +810,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         onAddSlide={handleAddSlide}
         onDuplicateSlide={handleDuplicateSlide}
         onRemoveSlide={handleDeleteSlide}
+        onReorderSlide={handleReorderSlide}
       />
 
       {/* ── Diálogos: Salvar (item 7) e Recomeçar (item 6) ── */}

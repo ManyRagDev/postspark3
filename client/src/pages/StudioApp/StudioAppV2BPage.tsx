@@ -17,10 +17,54 @@ import {
   buildInitialFallbackVariations,
   buildExtraFallbackVariations,
   buildTasteInstruction,
+  aiGenerationProvenance,
 } from "./lib/studioGeneration";
 import { loadCatalogFonts } from "@/lib/fonts";
+import { detectFormatIntent, hasFormatMismatch, type FormatIntent } from "@shared/formatIntent";
+import { classifyGenerationError, isRetryable, userMessageFor } from "@shared/generationFailure";
+import type { GenerationFailureReason, GenerationFailureMetadata } from "@shared/postspark";
+import {
+  type CreationBrief,
+  interpretRawBriefing,
+  creationBriefToExecutionBrief,
+} from "@shared/postspark";
+import { CreationGuardsHost, FormatConfirmModal, GenerationFailureModal } from "./components/v2/CreationGuards";
+import BriefReviewModal from "./components/v2/BriefReviewModal";
+import {
+  saveBriefDraft,
+  loadBriefDraft,
+  clearBriefDraft,
+} from "./lib/briefDraftStorage";
 
 type ScreenStage = "create" | "gallery" | "editor";
+
+interface FormatConfirmState {
+  prompt: string;
+  mode: "static" | "carousel";
+  intent: FormatIntent;
+}
+
+interface GenerationFailureState {
+  reason: GenerationFailureReason;
+  userMessage: string;
+  retryable: boolean;
+  prompt: string;
+  mode: "static" | "carousel";
+  source: "create" | "more";
+}
+
+/** Extrai os metadados estruturados de uma falha tRPC, com fallback local. */
+function extractFailureMetadata(err: unknown): GenerationFailureMetadata {
+  const data = (err as { data?: { generationFailure?: GenerationFailureMetadata } } | undefined)?.data;
+  if (data?.generationFailure) return data.generationFailure;
+  const reason = classifyGenerationError(err);
+  return {
+    generationRunId: "client-unclassified",
+    reason,
+    retryable: isRetryable(reason),
+    userMessage: userMessageFor(reason),
+  };
+}
 
 /**
  * Rota experimental `/studio-v2b` — mesma máquina de estados do fluxo Studio,
@@ -47,9 +91,31 @@ export default function StudioAppV2BPage() {
   /** Item 7: id do post salvo vinculado à sessão do editor (habilita "Atualizar"). */
   const [savedPostId, setSavedPostId] = useState<number | null>(null);
 
+  // Etapa 3 — estado dos bloqueios de UX (confirmação de formato e falha explícita).
+  const [formatConfirm, setFormatConfirm] = useState<FormatConfirmState | null>(null);
+  const [failure, setFailure] = useState<GenerationFailureState | null>(null);
+
+  // Etapa 4 — Briefing persistente e inteligência de marca
+  const [activeBrief, setActiveBrief] = useState<CreationBrief | null>(null);
+  const [isReviewingBrief, setIsReviewingBrief] = useState(false);
+  const brandKitQuery = trpc.brandKit.get.useQuery();
+
   const generateMutation = trpc.post.generate.useMutation();
   const saveMutation = trpc.post.save.useMutation();
   const updateMutation = trpc.post.update.useMutation();
+
+  // Etapa 4 §9.4 — Recuperação de rascunho de briefing após refresh/perda de sessão
+  useEffect(() => {
+    const draft = loadBriefDraft();
+    if (draft && draft.brief && draft.brief.rawInput) {
+      setLastPrompt(draft.brief.rawInput);
+      setLastMode(draft.brief.format);
+      if (draft.declaredFamilyId) {
+        setDeclaredFamilyId(draft.declaredFamilyId);
+      }
+      setActiveBrief(draft.brief);
+    }
+  }, []);
 
   // Pré-carrega antecipadamente todas as 14 fontes oficiais para evitar FOUC na galeria e editor
   useEffect(() => {
@@ -84,7 +150,47 @@ export default function StudioAppV2BPage() {
     }
   }, []);
 
-  const handleCreateSubmit = async (promptText: string, mode: "static" | "carousel") => {
+  // Etapa 2 §7.5 — restauração de geração a partir do Histórico: contrato
+  // versionado `postspark.restore_generation` → reconstrói as variações no
+  // fluxo oficial (create → gallery → editor), sem depender do legado.
+  useEffect(() => {
+    const raw = sessionStorage.getItem("postspark.restore_generation");
+    if (!raw) return;
+    try {
+      const payload = JSON.parse(raw) as {
+        version?: number;
+        inputType?: string;
+        inputContent?: string;
+        postMode?: "static" | "carousel";
+        variations?: unknown[];
+      };
+      if (Array.isArray(payload.variations) && payload.variations.length > 0) {
+        setLastPrompt(payload.inputContent || "");
+        setLastMode(payload.postMode === "carousel" ? "carousel" : "static");
+        setLastInputMeta({
+          inputType: payload.inputType === "url" ? "url" : payload.inputType === "image" ? "image" : "text",
+          inputContent: payload.inputContent || "",
+        });
+        const mapped = ensureDistinctFamilies(payload.variations as any[], payload.inputContent || "historico").map(
+          (v: any, i: number) => variationToCanvasModel(v, i, payload.inputContent || "historico"),
+        );
+        setGeneratedVariations(mapped);
+        setStage("gallery");
+        toast.success("Geração do histórico restaurada no Studio.");
+      }
+    } catch {
+      /* payload corrompido — ignora */
+    } finally {
+      sessionStorage.removeItem("postspark.restore_generation");
+    }
+  }, []);
+
+  /** Execução real de geração de texto/URL (sem fallback automático). */
+  const doGenerate = async (
+    promptText: string,
+    mode: "static" | "carousel",
+    brief?: CreationBrief | null
+  ) => {
     setIsLoading(true);
     setLastPrompt(promptText);
     setLastMode(mode);
@@ -97,23 +203,34 @@ export default function StudioAppV2BPage() {
       // é usado pelo backend como endereço a raspar — nunca contaminar.
       const tasteInstruction =
         !isUrl && declaredFamilyId ? buildTasteInstruction(declaredFamilyId) : "";
+
+      const executionBrief = brief ? creationBriefToExecutionBrief(brief) : undefined;
+      const creationMode = executionBrief ? "execution" : "ideation";
+
       const result = await generateMutation.mutateAsync({
         inputType: isUrl ? "url" : "text",
         content: `${promptText}${tasteInstruction}`,
         platform: "instagram",
         postMode: mode,
         model: "llama",
+        creationMode,
+        executionBrief,
       });
 
       if (result?.variations && result.variations.length > 0) {
+        const provenance = aiGenerationProvenance(result.generationRunId);
         const distinctVars = ensureDistinctFamilies(result.variations as any[], promptText);
-        const mapped = distinctVars.map((v: any, i: number) => variationToCanvasModel(v, i, promptText));
+        const mapped = distinctVars.map((v: any, i: number) => variationToCanvasModel(v, i, promptText, provenance));
 
         if (declaredFamilyId && !isUrl) {
           const tasteMatched = mapped.some((v) => v.familyId === declaredFamilyId);
           if (!tasteMatched) {
             toast.info("A IA explorou outras direções; seu gosto foi considerado, mas não prevaleceu.");
           }
+        }
+
+        if (brief) {
+          saveBriefDraft(brief, declaredFamilyId, "gallery");
         }
 
         setGeneratedVariations(mapped);
@@ -123,50 +240,112 @@ export default function StudioAppV2BPage() {
         throw new Error("Nenhuma variação gerada.");
       }
     } catch (err: any) {
-      console.warn("[StudioAppV2B] Fallback acionado:", err);
-      setGeneratedVariations(buildInitialFallbackVariations(promptText, declaredFamilyId ?? undefined));
-      setStage("gallery");
-      toast.warning("Instabilidade na conexão com a IA. Exibindo direções editoriais sugeridas.");
+      // Etapa 3 §8.3 — falha explícita: NUNCA gerar fallback automático.
+      const meta = extractFailureMetadata(err);
+      setFailure({
+        reason: meta.reason,
+        userMessage: meta.userMessage,
+        retryable: meta.retryable,
+        prompt: promptText,
+        mode,
+        source: "create",
+      });
     } finally {
       setIsLoading(false);
+      setIsReviewingBrief(false);
     }
   };
 
-  const handleGenerateMore = async () => {
+  const doGenerateMore = async (
+    promptText: string,
+    mode: "static" | "carousel",
+    brief?: CreationBrief | null
+  ) => {
     setIsGeneratingMore(true);
     toast.info("A IA está criando 3 novos ângulos criativos...");
 
     try {
-      const isUrl = lastPrompt.startsWith("http://") || lastPrompt.startsWith("https://");
+      const isUrl = promptText.startsWith("http://") || promptText.startsWith("https://");
+      const executionBrief = brief ? creationBriefToExecutionBrief(brief) : undefined;
+      const creationMode = executionBrief ? "execution" : "ideation";
+
       const result = await generateMutation.mutateAsync({
         inputType: isUrl ? "url" : "text",
-        content: `Crie 3 novos ganchos criativos e direções de arte alternativas sobre: ${lastPrompt}`,
+        content: `Crie 3 novos ganchos criativos e direções de arte alternativas sobre: ${promptText}`,
         platform: "instagram",
-        postMode: lastMode,
+        postMode: mode,
         model: "llama",
+        creationMode,
+        executionBrief,
       });
 
       if (result?.variations && result.variations.length > 0) {
         const offset = generatedVariations.length;
-        const distinctVars = ensureDistinctFamilies(result.variations as any[], `${lastPrompt}:${offset}`);
-        const newMapped = distinctVars.map((v, i) => variationToCanvasModel(v, offset + i, lastPrompt));
+        const provenance = aiGenerationProvenance(result.generationRunId);
+        const distinctVars = ensureDistinctFamilies(result.variations as any[], `${promptText}:${offset}`);
+        const newMapped = distinctVars.map((v: any, i: number) => variationToCanvasModel(v, offset + i, promptText, provenance));
         setGeneratedVariations((prev) => [...prev, ...newMapped]);
         toast.success("3 novas direções de arte criadas com IA!");
       } else {
         throw new Error("Sem resposta da IA");
       }
     } catch (err: any) {
-      console.warn("[StudioAppV2B] Fallback inteligente de novas variações acionado:", err);
-      setGeneratedVariations((prev) => [...prev, ...buildExtraFallbackVariations(lastPrompt)]);
-      toast.success("3 novas direções de arte adicionadas à galeria!");
+      // Etapa 3 §8.3 — "Gerar mais" também não pode exibir fallback como sucesso de IA.
+      const meta = extractFailureMetadata(err);
+      setFailure({
+        reason: meta.reason,
+        userMessage: meta.userMessage,
+        retryable: meta.retryable,
+        prompt: promptText,
+        mode,
+        source: "more",
+      });
     } finally {
       setIsGeneratingMore(false);
     }
   };
 
+  const handleCreateSubmit = (promptText: string, mode: "static" | "carousel") => {
+    // Etapa 3 §8.2 — divergência de formato detectável localmente: interrompe
+    // e pede confirmação antes de qualquer chamada/reserva de Sparks.
+    if (hasFormatMismatch(promptText, mode)) {
+      setFormatConfirm({ prompt: promptText, mode, intent: detectFormatIntent(promptText) });
+      return;
+    }
+
+    // Etapa 4 §9.2 — Interpretação estruturada antes de gerar (Progressive Disclosure)
+    const interpreted = interpretRawBriefing(promptText, {
+      selectedFormat: mode,
+      brandKit: brandKitQuery.data,
+    });
+    setActiveBrief(interpreted);
+    saveBriefDraft(interpreted, declaredFamilyId, "create");
+    setIsReviewingBrief(true);
+  };
+
+  const handleGenerateMore = () => {
+    void doGenerateMore(lastPrompt, lastMode, activeBrief);
+  };
+
   const handleSelectVariation = (post: CanvasPostModel) => {
     setSelectedPost(post);
     setStage("editor");
+  };
+
+  // ─── Fallback local opt-in: só roda após escolha explícita do usuário ───
+  const handleUseLocalFallback = () => {
+    if (!failure) return;
+    const reason = failure.reason;
+    if (failure.source === "more") {
+      const extra = buildExtraFallbackVariations(failure.prompt, reason);
+      setGeneratedVariations((prev) => [...prev, ...extra]);
+      toast.warning("Sugestões locais adicionadas à galeria (não são geração de IA).");
+    } else {
+      setGeneratedVariations(buildInitialFallbackVariations(failure.prompt, declaredFamilyId ?? undefined, reason));
+      setStage("gallery");
+      toast.warning("Exibindo sugestões locais — não são geração de IA.");
+    }
+    setFailure(null);
   };
 
   // ─── Item 7: salvar / atualizar ───
@@ -200,12 +379,17 @@ export default function StudioAppV2BPage() {
 
   // ─── Item 6: recomeçar do zero ───
   const handleRestart = () => {
+    clearBriefDraft();
+    setActiveBrief(null);
+    setIsReviewingBrief(false);
     setStage("create");
     setGeneratedVariations([]);
     setSelectedPost(INITIAL_POST);
     setDeclaredFamilyId(null);
     setSavedPostId(null);
     setLastInputMeta({ inputType: "text", inputContent: "" });
+    setFailure(null);
+    setFormatConfirm(null);
   };
 
   return (
@@ -216,6 +400,8 @@ export default function StudioAppV2BPage() {
           isLoading={isLoading}
           declaredFamilyId={declaredFamilyId}
           onDeclareFamily={setDeclaredFamilyId}
+          initialPrompt={lastPrompt}
+          initialMode={lastMode}
         />
       )}
 
@@ -243,6 +429,86 @@ export default function StudioAppV2BPage() {
           isSaving={isSaving}
         />
       )}
+
+      {/* Etapa 3 & 4 — bloqueios de UX e revisão de briefing sobre as telas */}
+      <CreationGuardsHost>
+        {isReviewingBrief && activeBrief && (
+          <BriefReviewModal
+            brief={activeBrief}
+            brandKit={brandKitQuery.data}
+            onUpdateBrief={(updated) => {
+              setActiveBrief(updated);
+              saveBriefDraft(updated, declaredFamilyId, "create");
+            }}
+            onConfirmGenerate={() => {
+              void doGenerate(activeBrief.rawInput, activeBrief.format, activeBrief);
+            }}
+            onBackToEditPrompt={() => {
+              setIsReviewingBrief(false);
+            }}
+            isLoading={isLoading}
+          />
+        )}
+
+        {formatConfirm && (
+          <FormatConfirmModal
+            intent={formatConfirm.intent}
+            selectedMode={formatConfirm.mode}
+            onSwitchToDetected={() => {
+              const detected = formatConfirm.intent.detectedFormat;
+              const prompt = formatConfirm.prompt;
+              setFormatConfirm(null);
+              const interpreted = interpretRawBriefing(prompt, {
+                selectedFormat: detected,
+                brandKit: brandKitQuery.data,
+              });
+              setActiveBrief(interpreted);
+              saveBriefDraft(interpreted, declaredFamilyId, "create");
+              setIsReviewingBrief(true);
+            }}
+            onKeepSelected={() => {
+              const prompt = formatConfirm.prompt;
+              const mode = formatConfirm.mode;
+              setFormatConfirm(null);
+              const interpreted = interpretRawBriefing(prompt, {
+                selectedFormat: mode,
+                brandKit: brandKitQuery.data,
+              });
+              setActiveBrief(interpreted);
+              saveBriefDraft(interpreted, declaredFamilyId, "create");
+              setIsReviewingBrief(true);
+            }}
+            onDismiss={() => setFormatConfirm(null)}
+          />
+        )}
+
+        {failure && (
+          <GenerationFailureModal
+            reason={failure.reason}
+            userMessage={failure.userMessage}
+            retryable={failure.retryable}
+            onRetry={() => {
+              const { prompt, mode, source } = failure;
+              setFailure(null);
+              if (source === "more") {
+                void doGenerateMore(prompt, mode);
+              } else {
+                void doGenerate(prompt, mode, activeBrief);
+              }
+            }}
+            onReviewBriefing={() => {
+              setFailure(null);
+              if (activeBrief) {
+                setIsReviewingBrief(true);
+              } else {
+                setStage("create");
+              }
+            }}
+            onUseLocalFallback={handleUseLocalFallback}
+            onDismiss={() => setFailure(null)}
+          />
+        )}
+      </CreationGuardsHost>
     </div>
   );
 }

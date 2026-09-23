@@ -27,6 +27,8 @@ interface StudioCreateViewV2BProps {
   isLoading: boolean;
   declaredFamilyId: string | null;
   onDeclareFamily: (familyId: string | null) => void;
+  initialPrompt?: string;
+  initialMode?: "static" | "carousel";
 }
 
 export default function StudioCreateViewV2B({
@@ -34,9 +36,24 @@ export default function StudioCreateViewV2B({
   isLoading,
   declaredFamilyId,
   onDeclareFamily,
+  initialPrompt = "",
+  initialMode = "static",
 }: StudioCreateViewV2BProps) {
-  const [prompt, setPrompt] = useState("");
-  const [postMode, setPostMode] = useState<"static" | "carousel">("static");
+  const [prompt, setPrompt] = useState(initialPrompt);
+  const [postMode, setPostMode] = useState<"static" | "carousel">(initialMode);
+
+  useEffect(() => {
+    if (initialPrompt && !prompt) {
+      setPrompt(initialPrompt);
+    }
+  }, [initialPrompt]);
+
+  useEffect(() => {
+    if (initialMode) {
+      setPostMode(initialMode);
+    }
+  }, [initialMode]);
+
   const [isFocused, setIsFocused] = useState(false);
   // Inicia recolhido por padrão conforme solicitado
   const [isSpecimensOpen, setIsSpecimensOpen] = useState(false);

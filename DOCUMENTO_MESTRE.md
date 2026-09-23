@@ -1,8 +1,9 @@
 # DOCUMENTO_MESTRE — PostSpark 3
 
 > **Status do Documento:** Documento-Mestre Canônico e Fonte Primária da Verdade (Single Source of Truth).  
-> **Revisão:** 2026-09-05 — Reforma do Editor Oficial (CanvasLab), Guardião de Contraste, Salvamento v2, Sistema de Dicas e Correções de Usabilidade (11 itens).  
+> **Revisão:** 2026-09-14 — Roteamento multimodelo por responsabilidade implementado sem reintroduzir grafo.
 > **Pendência registrada (2026-09-08):** Plano da integração local "PostSpark Bridge" aprovado — [`docs/plano-postspark-bridge.md`](./docs/plano-postspark-bridge.md). Cada fase concluída vira nova seção §13.x neste documento.  
+> **Plano em execução (2026-09-12):** Qualidade editorial da IA — [`docs/plano-qualidade-editorial-ia.md`](./docs/plano-qualidade-editorial-ia.md). A Fase 0C de roteamento multimodelo foi implementada; contrato semântico e avaliação humana seguem pendentes.
 > **Regra Mandatória (AGENTS.md):** Todo agente ou desenvolvedor deve consultar este documento antes de alterações e atualizá-lo sempre que houver mudanças arquiteturais, estruturais, de contratos ou de rotas.
 
 ---
@@ -183,7 +184,7 @@ Regras mandatórias do editor oficial:
    [Estratégia de Conteúdo] ──► prepareGenerationPlan() (Seleção Semântica de Ângulos)
                                   │
                                   ▼
-   [Orquestrador Único LLM] ──► invokeLLM() (2 a 4s via OpenRouter -> Groq -> Gemini)
+   [Orquestrador Único LLM] ──► invokeLLM() (OpenRouter -> Groq -> Gemini; latência depende de reparo/avaliação)
                                   │
                                   ▼
    [BrandVisualGuardian]    ──► Validação Determinística: Paleta Oficial + Contraste WCAG >= 4.5:1
@@ -211,7 +212,8 @@ Regras mandatórias do editor oficial:
      - *Variação 3 ➔ A Relação Causa-Efeito Contraintuitiva*: demonstra onde o esforço comum é desperdiçado e qual ajuste de fundamentos gera alavancagem.
    - **Autoridade Magnética (Zero Clichês Sintéticos)**: Proibição de pontos de exclamação (!), entusiasmo artificial, tom de assistente/chatbot (*"Espero ter ajudado"*, *"conte comigo"*), suspense sintético (*"e isso muda tudo"*, *"o pulo do gato"*) e vazamento de termos de estratégia no texto (`— objeção comum`, `[dor]`).
    - **Síntese Defensiva de Seções (`studioGeneration.ts`)**: Quando o modelo estruturar listas numeradas em `v.sections`, o gerador sintetiza defensivamente os tópicos dentro de `subtext` (`1. Label: desc • 2. ...`), garantindo que nenhum insight do usuário seja perdido silenciosamente.
-   - **Blindagem do Fallback (`studioGeneration.ts`)**: Em caso de falha de conexão de rede externa, o fallback local formula manchetes dinâmicas por ângulo (*"O Custo Oculto em..."*, *"O Critério de Ouro em..."*, *"A Verdade Contraintuitiva de..."*), prevenindo qualquer repetição crua do prompt.
+    - **Blindagem do Fallback (`studioGeneration.ts`)**: Em caso de falha de conexão de rede externa, o fallback local formula manchetes dinâmicas por ângulo (*"O Custo Oculto em..."*, *"O Critério de Ouro em..."*, *"A Verdade Contraintuitiva de..."*), prevenindo qualquer repetição crua do prompt.
+    - **Disponibilidade real do modo `execution` (confirmada em 2026-09-12)**: o contrato ainda existe no backend (`post.generate`) e em `Home.tsx`, mas `Home.tsx` é legado órfão. A rota oficial `/thevoid` monta `StudioAppV2BPage`, que não expõe nem envia `creationMode: "execution"` ou `executionBrief`; portanto, todo uso normal do Studio passa por `ideation`. HoloDeck e WorkbenchV2 também não fazem parte do fluxo montado.
 3. **Cascata de LLMs Resiliente (`server/_core/llm.ts`)**:
    - Primário: OpenRouter (`openai/gpt-5-mini`);
    - Fallback 1: Groq;
@@ -220,7 +222,16 @@ Regras mandatórias do editor oficial:
 4. **BrandVisualGuardian (`server/ai/brandVisualGuardian.ts`)**:
    - Pure function síncrona que substitui juízes lentos de IA;
    - Força `backgroundColor` e `accentColor` na paleta da marca e garante contraste mínimo de 4.5:1 (WCAG AA).
-5. **Geração de Imagens (`server/imageGenerateBackground.ts`)**:
+5. **Limite atual de qualidade de copy (auditoria de 2026-09-12)**:
+    - A avaliação determinística é usada para selecionar reparos. Desde 2026-09-14, violações objetivas de fato obrigatório ou autoridade sem fonte também bloqueiam a entrega após reparo; outras notas `accepted=false` permanecem graduais até calibração.
+    - O juiz editorial LLM e a detecção de vícios só são acionados se `AI_LLM_JUDGE_ENABLED=true`; o padrão é `false` e, portanto, `judgeCalls=0` no caminho usual.
+    - Em três execuções reais de auditoria textual, com 1 chamada principal + 1 reparo cada, a latência observada foi de 29,6–36,8s. A meta histórica de 2–4s não representa esse caminho quando há reparo.
+    - A leitura retrospectiva de 35 `generation_runs` confirmou o padrão: 33/35 tiveram reparo, com 1,1 candidato aceito de 3 e latência média de 49,8s. Todos eram `text` + `ideation`; `output_snapshot` estava vazio em todos, inviabilizando auditoria da copy por slot. Ver `docs/AUDITORIA_IA_HISTORICO_2026-09-12.md`.
+    - Validação manual do Studio oficial confirmou que os contratos fixos de *Sintoma Oculto*, *Régua de Decisão* e *Causa-Efeito Contraintuitiva* vazam para a copy mesmo diante de insumo factual. Em texto livre, facts como percentual e janela operacional não são guardados por anchors; o resultado pode preservar o tema e perder o mecanismo.
+    - Reavaliação editorial de 2026-09-13: o problema inclui clareza pragmática baixa — frases gramaticais, mas com referente indefinido, causalidade elíptica ou metáfora não ancorada, que transferem ao leitor a reconstrução do significado. Foi descartada a proposta inicial de três novos enquadramentos obrigatórios. O plano atual cria primeiro uma proposição literal sustentada, calcula um orçamento de 1–3 variações semânticas conforme a riqueza do insumo e permite que três direções visuais compartilhem copy. O contrato governa significado/evidência; forma, tom e concisão continuam flexíveis.
+    - Benchmark editorial isolado (`server/benchmarks/editorialModels/`, 2026-09-13): corpus sintético de 10 briefs, ficha cega, interrupção imediata em 429, timeout por chamada e relatório rederivável. A primeira bateria completou 40 tentativas por US$ 0,0635: Gemini 3.8 Flash 10/10 respostas estruturalmente válidas (3,4s médios), GPT-5 Mini 9/10 (7,0s), Qwen 3.6 Flash 7/10 (6,6s) e DeepSeek V3.2 5/10 (27,9s). GLM 4.7 foi excluído após três timeouts no smoke. Esses números não constituem decisão editorial; a avaliação humana cega permanece pendente e o modelo de produção não mudou.
+    - Eliminatória de versões atuais (2026-09-13): 5 briefs × 5 modelos, com 25/25 respostas válidas, 100% de cobertura factual automática e nenhum 429. Latências médias: Gemini 3.8 Flash 3,7s; GPT-5.4 Mini 5,1s; GLM 5.3 Flash 7,8s; DeepSeek V4.1 Flash 10,5s; Qwen 3.8 Flash 13,7s. Custo retido no artefato final: US$ 0,0414. O modelo de produção permanece `openai/gpt-5-mini`; a escolha editorial depende da avaliação cega. Evidências e ressalvas: [`BENCHMARK_EDITORIAL_RESULTADOS_2026-09-13.md`](./BENCHMARK_EDITORIAL_RESULTADOS_2026-09-13.md).
+6. **Geração de Imagens (`server/imageGenerateBackground.ts`)**:
    - Serviço primário: OpenRouter (`google/gemini-3.1-flash-image-preview`);
    - Serviço secundário automático: Pollinations.ai em alta definição;
    - Imagens são sempre entregues em formato DataURI validado, impedindo quebras de renderização por bloqueios de CORS ou links mortos.
@@ -393,6 +404,12 @@ As operações em runtime ocorrem diretamente via cliente Supabase sobre as segu
 | `SUPABASE_SERVICE_ROLE_KEY`| - | Sim | Chave de serviço (backend only) com permissões administrativas |
 | `OPENROUTER_API_KEY` | - | Recomendada | Chave do OpenRouter (provedor primário de texto e imagem) |
 | `OPENROUTER_TEXT_MODEL` | `openai/gpt-5-mini` | Não | Modelo de linguagem primário para geração de copywriting |
+| `OPENROUTER_STATIC_MODEL` | `google/gemini-3.8-flash`* | Não | Geração principal de posts estáticos; recua para `OPENROUTER_TEXT_MODEL` quando ausente |
+| `OPENROUTER_CAROUSEL_MODEL` | `google/gemini-3.8-flash`* | Não | Geração principal de carrosséis; recua para `OPENROUTER_TEXT_MODEL` quando ausente |
+| `OPENROUTER_QUALITY_REVISION_MODEL` | `openai/gpt-5.4-mini`* | Não | Única chamada condicional de reparo; recua para `OPENROUTER_TEXT_MODEL` quando ausente |
+| `OPENROUTER_CONTENT_STRATEGY_MODEL` | `z-ai/glm-5.3-flash`* | Não | Síntese semântica de Site Intelligence; recua para `OPENROUTER_TEXT_MODEL` quando ausente |
+| `OPENROUTER_EVALUATION_MODEL` | `z-ai/glm-5.3-flash`* | Não | Juiz opcional, desligado por padrão; recua para `OPENROUTER_TEXT_MODEL` quando ausente |
+| `OPENROUTER_VISION_MODEL` | `google/gemini-3.8-flash` | Não | Análise multimodal e identidade visual |
 | `OPENROUTER_IMAGE_MODEL`| `google/gemini-3.1-flash-image-preview` | Não | Modelo de geração de imagens |
 | `GROQ_API_KEY` | - | Recomendada | Chave da Groq para fallback rápido de LLM |
 | `GEMINI_API_KEY` | - | Recomendada | Chave do Google Gemini para fallback de contingência |
@@ -401,6 +418,8 @@ As operações em runtime ocorrem diretamente via cliente Supabase sobre as segu
 | `RAILWAY_SCREENSHOT_SERVICE_URL` | - | Não | URL do microsserviço no Railway para captura e bypass de Cloudflare |
 | `AI_LLM_JUDGE_ENABLED` | `false` | Não | Mantido em `false` para preservar a geração única em 2 a 4s |
 | `AI_SITE_INTELLIGENCE_ENABLED` | `true` | Não | Habilita a extração automática de Brand DNA por URL |
+
+\* A variável específica tem precedência sobre `OPENROUTER_TEXT_MODEL`. Quando ausente, a rota recua para o override global; remover as variáveis específicas restaura imediatamente o comportamento anterior.
 
 ---
 
@@ -522,6 +541,162 @@ Como consequência, a interface React renderizava silenciosamente a mensagem fal
 
 ---
 
+## 13.5 ADR — Roteamento multimodelo sem novas rodadas (2026-09-14)
+
+> **Status:** implementado e verificado localmente; ativação em ambiente publicado e avaliação editorial humana permanecem pendentes.
+
+1. `server/ai/modelRouter.ts` passou a resolver modelos por responsabilidade: Gemini 3.8 Flash para geração estática/carrossel e visão, GPT-5.4 Mini para reparo e GLM 5.3 Flash para síntese semântica/juiz opcional.
+2. O roteamento não cria ensemble nem nova chamada. Cada `taskRoute` escolhe apenas o modelo da chamada que já existia.
+3. O reparo do `generationOrchestrator` agora usa a rota real `quality_revision`; permanece limitado a uma única chamada condicional.
+4. `OPENROUTER_TEXT_MODEL` continua como rollback global. Variáveis específicas podem ser removidas para restaurar o modelo anterior sem alteração de código.
+5. O adapter converte o JSON Schema do Gemini 3.8 via OpenRouter para `json_object` com schema no prompt, modo que apresentou resposta válida no benchmark; a validação local do contrato permanece obrigatória.
+6. `AI_LLM_JUDGE_ENABLED` continua `false` por padrão. Flags obsoletas de grafo foram removidas do `.env.example`.
+7. Verificação em 2026-09-14: `tsc --noEmit`, build de produção e 708/708 testes aprovados. Nenhuma chamada externa foi feita nesta entrega; o smoke E2E do schema completo de produção ainda é pendente.
+
+---
+
+## 13.6 ADR — Núcleo semântico e gate editorial (2026-09-14)
+
+> **Status:** implementado localmente; conferência de saídas reais pendente.
+
+1. `contentStrategy.ts` não usa mais perfis fixos de Sintoma Oculto, Critério Técnico ou Causa Contraintuitiva. Ele deriva um `EditorialMeaningPlan` determinístico e limita o número de proposições independentes ao material disponível.
+2. As três opções são direções visuais e podem compartilhar a mesma proposição. A posição central não tem papel editorial especial.
+3. O prompt principal deixou de pedir voz de especialista, régua de veteranos e três ganchos semanticamente distintos. A redação continua flexível, mas precisa manter referentes e nexo recuperáveis.
+4. `checkEditorialGrounding` bloqueia perda de fatos marcados como obrigatórios e atribuição de autoridade sem fonte. Após o único reparo, a persistência dessas violações objetivas rejeita o conjunto; o handler existente executa refund da reserva de Sparks.
+5. `evaluation.accepted=false` por outras heurísticas antigas ainda orienta reparo, mas não é bloqueio terminal nesta etapa. O gate não usa uma lista extensa de metáforas proibidas; clareza pragmática será calibrada por amostras reais antes de novos bloqueios.
+
+---
+
+## 13.7 ADR — Taxonomia de falhas e trace degradável (Etapa 1, 2026-09-22)
+
+> **Status:** código, contratos, migração idempotente e testes concluídos localmente; aplicação de migrations no banco remoto aguarda autorização do dono.
+
+1. **Taxonomia compartilhada** em `shared/`: `GenerationFailureReason` (11 causas), `GenerationFailureMetadata` e `GenerationProvenance`, com funções puras em `shared/generationFailure.ts` (`classifyGenerationError`, `toFailureMetadata`, `isRetryable`, `userMessageFor`). Uma reprovação editorial (`quality_rejected`) nunca é classificada como falha de rede.
+2. **Erro estruturado na borda**: `GenerationFailureError` (tRPC) transporta `failure` metadata e o `errorFormatter` em `server/_core/trpc.ts` serializa `shape.data.generationFailure`, permitindo que o frontend leia `reason` e `generationRunId` sem depender da mensagem textual. Stack traces são omitidos em produção.
+3. **Persistência degradável do trace**: `finishGenerationTrace` tenta o upsert completo e, em incompatibilidade de schema, grava `GENERATION_TRACE_SCHEMA_INCOMPATIBLE` no log operacional e re-tenta com `createGenerationRunMinimal` (colunas da migration 0006). Em qualquer caso registra `GENERATION_TRACE_PERSIST_FAILED`/`GENERATION_TRACE_MINIMAL_PERSISTED` — nunca silencia com `console.warn`.
+4. **Coluna `generation_runs.failure_reason`** (migration `0017_add_generation_failure_reason.sql`, idempotente) persiste o motivo normalizado, exposto também no `runtimeManifest` (não-crítico) e no `generationRunRecord`.
+5. **`verify:runtime`** continua detectando explicitamente os 6 requisitos críticos ausentes no banco remoto (`spark_reservations`, `generation_runs.events`, `events_version` e as RPCs `reserve_/commit_/refund_spark_reservation`), cuja aplicação requer autorização do dono.
+
+---
+
+## 13.8 ADR — Integridade de slides, save e exportação no CanvasLab (Etapa 2, 2026-09-22)
+
+> **Status:** implementado localmente; checkpoint manual de carrossel (salvar→reabrir→exportar) pendente de validação em navegador.
+
+1. **Comandos canônicos do documento** em `client/src/pages/CanvasLab/lib/documentCommands.ts` (funções puras e imutáveis): `applyPatchToCurrentSlide`, `applyPatchToAllSlides`, `updateSlideById`, `setCurrentSlideBackground`, `duplicateSlide`, `removeSlide`, `reorderSlides` e `resolveCoverSlide`. Regra mandatória: ação "slide atual" nunca escreve no root global.
+2. **Projeção pela capa** corrigida em `saveAdapter.ts`: `canvasModelToSavePayload` projeta `headline`, `body` e `imageUrl` a partir do **primeiro slide** (capa), nunca do slide ativo no instante do save. `canvas_model` continua autoritativo.
+3. **Duplicação com IDs novos**: `duplicateSlide` regenera IDs de slide e de `extraTexts`/`extraImages` aninhados, sem compartilhar referências mutáveis; `CanvasLabPage` limpa a seleção transitória após duplicar/excluir.
+4. **Isolamento de fundo**: `handleUpdateBgTransform` grava `bgTransform` apenas no slide atual (before: escrevia também no root global, causando vazamento entre slides).
+5. **ZIP offscreen determinístico** em `CanvasPostStage.exportZip4K`: um único motor (`exportSlideIndex` override) renderiza cada slide explicitamente, aguarda fonts.ready e imagens carregadas, e empacota um PNG por slide na ordem correta — eliminando o bug de repetir o slide visível.
+6. **Restore do histórico no Studio ativo** (contrato versionado `postspark.restore_generation` ↔ `StudioAppV2BPage`), eliminando a dependência das chaves legadas `restoredGeneration` que nenhum fluxo oficial consumia.
+7. Testes adicionados: `documentCommands.test.ts` (isolamento, IDs, reordenação, capa) e `saveAdapter.test.ts` (projeção pela capa e round-trip save→reopen).
+
+---
+
+## 13.9 ADR — Gates de geração: formato, cópia literal e fallback (Etapa 3, 2026-09-22)
+
+> **Status:** conclusão de UI implementada e testada localmente (confirmação de formato e fallback opt-in); checkout funcional em navegador pendente.
+
+1. **Detector de intenção de formato** em `shared/formatIntent.ts` (`detectFormatIntent` → `detectedFormat`/`confidence`/`evidence`, `hasFormatMismatch`). Regra determinística, sem chamada externa.
+2. **Gate de similaridade com o input** em `shared/sourceCopyGate.ts` (`evaluateSourceCopyGate`, `ngramOverlap`, `stripRequiredTerms`): bloqueia copy literal/não autorizada e preserva termos obrigatórios (`mustKeep`) como exceção explícita.
+3. **`post.generate` revalida formato antes de reservar Sparks** (`format_mismatch` sem chamada generativa) e roda o gate de similaridade após `approved` — reprovação vira `quality_rejected` com `validationIssues` e refund.
+4. **Confirmação de divergência de formato na UI**: `FormatConfirmModal` em `client/src/pages/StudioApp/components/v2/CreationGuards.tsx` interrompe a criação quando `hasFormatMismatch(prompt, mode)` e oferece "Alterar para {detectado}" ou "Manter {selecionado}", sem consumir Sparks antes da decisão.
+5. **Fallback explícito opt-in**: `GenerationFailureModal` mostra a causa real (`reason`/`userMessage` da taxonomia), oferece "Tentar novamente" e "Revisar briefing"; sugestões locais só aparecem após escolha explícita e nascem com proveniência `local_fallback` permanente (nunca toast de sucesso de IA). `StudioAppV2BPage` aplica o mesmo tratamento ao "Gerar mais".
+6. **Proveniência persistente**: `CanvasPostModel.provenance` + `saveAdapter.normalizeCanvasModel` preservam o campo no save/reopen; `studioGeneration.ts` ganhou `aiGenerationProvenance`/`localFallbackProvenance` e os builders passam a receber `reason`.
+7. Testes: `shared/formatIntent.test.ts`, `shared/sourceCopyGate.test.ts`, `studioGeneration.test.ts` (proveniência e fallback) e `saveAdapter.test.ts` (proveniência no round-trip).
+
+---
+
+## 13.10 ADR — Fidelidade tipada entre geração e CanvasLab (Etapa 5, 2026-09-22)
+
+> **Status:** implementado e testado localmente (typed adapter + preservação de campos + versionamento); checkout funcional em navegador pendente.
+
+1. **Adaptador tipado**: `variationToCanvasModel` deixou de receber `any` e passou a consumir `GeneratedVariationInput` (em `client/src/pages/StudioApp/lib/studioGeneration.ts`); o contrato `CarouselSlide`/`ContentSection` vem de `@shared/postspark`.
+2. **Campos preservados sem descarte**: `callToAction`, `hashtags`, `sections` (mesmo quando `body` também existe) e `copyAngle` agora viajam do `PostVariation` para o `CanvasPostModel`. `sections` também continuam sintetizadas em `subtext` por legibilidade, sem perder a estrutura original.
+3. **Versionamento do modelo**: `CanvasPostModel.modelVersion` (constante `CANVAS_MODEL_VERSION = 2`) — modelos legados sem o campo são lidos com defaults seguros pelo `normalizeCanvasModel`.
+4. **Proveniência na fidelidade**: `saveAdapter.normalizeCanvasModel` preserva `provenance`, `callToAction`, `hashtags`, `sections` e `copyAngle` no save/reopen (coluna autoritativa `canvas_model`).
+5. Testes: `studioGeneration.test.ts` (round-trip `PostVariation → CanvasPostModel` sem perda) e `saveAdapter.test.ts` (round-trip save→reopen dos campos enriquecidos).
+
+---
+
+## 13.11 ADR — Briefing persistente e inteligência de marca (Etapa 4, 2026-09-23)
+
+> **Status:** implementado e testado localmente (contrato versionado + parsing de URLs + Progressive Disclosure + draft storage + Brand Kit integration).
+
+1. **Contrato versionado `CreationBrief`**: definido em `shared/postsparkSchemas.ts` (`CREATION_BRIEF_VERSION = 1`) com validação estrita via Zod e reexportado em `shared/postspark.ts`.
+2. **Parsing e inteligência pura**: `shared/creationBrief.ts` implementa `extractUrlsFromText` (extrai URLs embutidas no meio do texto, limpando pontuações e normalizando), `interpretRawBriefing` (separa entrada bruta de interpretação estruturada, identifica formato, contagem de slides, CTAs e incorpora Brand Kit) e `creationBriefToExecutionBrief` (integração direta com o backend `post.generate`).
+3. **Persistência durável de rascunho**: `client/src/pages/StudioApp/lib/briefDraftStorage.ts` persiste o rascunho de criação no `localStorage` de forma resiliente a falhas e corrupção de schema, garantindo recuperação instantânea pós-refresh da aba.
+4. **Progressive Disclosure no Studio**: `BriefReviewModal.tsx` exibe a interpretação estruturada antes do gasto de Sparks, permitindo validar e remover fontes/URLs identificadas, ver o Brand Kit ativo e editar opções avançadas de direcionamento editorial.
+5. **Integração de Brand Kit**: exposto endpoint tRPC `brandKit.get` em `server/routers.ts` consultando `getBrandKitByUser` e consumido pelo `StudioAppV2BPage` para enriquecer a geração com tom de voz e termos de marca.
+6. Testes adicionados: `shared/creationBrief.test.ts` (7 testes cobrindo extração de links, enriquecimento e parsing) e `client/src/pages/StudioApp/lib/briefDraftStorage.test.ts` (4 testes cobrindo round-trip, limpeza e tolerância a corrupção).
+
+---
+
+## 13.12 ADR — Fundo, enquadramento e crop não destrutivo (Etapa 6, 2026-09-23)
+
+> **Status:** implementado e testado localmente (modelo de enquadramento + motor geométrico puro + paridade desktop/mobile + exportação determinística).
+
+1. **Modelo de Enquadramento (`BackgroundPlacement`)**: `client/src/pages/CanvasLab/components/types.ts` ganha `FitMode` (`"cover" | "contain" | "original" | "custom"`) e `BackgroundPlacement` (`fitMode`, `focalPoint`, `crop`, `transform`), suportado em `CarouselSlideItem` e `CanvasPostModel`.
+2. **Motor Geométrico Puro**: `client/src/pages/CanvasLab/lib/backgroundPlacement.ts` implementa `computeBackgroundGeometry` e `computeCoverCrop`, garantindo que uploads e imagens de IA preservem o asset original (URL/Storage) de forma não destrutiva, evitando incorporar base64 pesado ao JSON.
+3. **Renderização Konva & Exportação 4K**: `CanvasPostStage.tsx` consome `computeBackgroundGeometry` tanto no preview interativo quanto na exportação offscreen em lote (`exportZip4K`), garantindo fidelidade pixel-a-pixel entre o que o usuário vê e os arquivos PNG gerados.
+4. **Controles com Paridade Desktop e Mobile**:
+   - `CanvasSidebar.tsx` (Desktop) e `CanvasMobileDrawer.tsx` (Mobile) ganham seletores de enquadramento com botões rápidos: Preencher (`cover`), Mostrar Inteira (`contain`), Tamanho Original (`original`) e Restaurar.
+5. **Isolamento por Slide e Persistência**: `documentCommands.ts` ganhou `setCurrentSlideBackgroundPlacement` e `saveAdapter.ts` normaliza e preserva `bgPlacement` no round-trip de salvamento e reabertura.
+6. Testes adicionados: `client/src/pages/CanvasLab/lib/backgroundPlacement.test.ts` (9 testes cobrindo todos os modos de fit, ponto focal, brutal split, isolamento por slide e persistência).
+
+### 13.13. Etapa 7: Paridade de Textos e Imagens Livres, Normalização de Transformação e Empilhamento
+
+Implementada a arquitetura canônica e paritária de elementos livres (`CanvasCustomText` e `CanvasCustomImage`):
+1. **Normalização do `onTransformEnd`**:
+   - No `CanvasPostStage.tsx`, o manipulador do Transformer do Konva agora calcula deterministicamente a nova largura `width = Math.max(40, Math.round(itemWidth * scaleX))`, normaliza translação `(x, y)` e rotação `rotation`, e **reseta imediatamente as escalas locais do nó Konva para 1** (`node.scaleX(1); node.scaleY(1)`).
+   - Esse padrão impede o acúmulo infinito de distorções matriciais do Konva ao redimensionar elementos repetidas vezes.
+2. **Identidade e Duplicação com UUID v4 Real**:
+   - `freshUUID()` e `freshId()` em `documentCommands.ts` agora empregam `crypto.randomUUID()` (com fallback RFC4122 v4) em substituição a hashes baseados em timestamp.
+   - `duplicateExtraElement` gera IDs verdadeiramente únicos, eliminando conflitos de referências, clonagens corrompidas e crashes visuais.
+3. **Controles de Empilhamento (z-index) e Transformação**:
+   - Funções puras em `documentCommands.ts`: `duplicateExtraElement`, `removeExtraElement`, `reorderExtraElement` (`front` / `back`), `updateExtraElement`, `setExtraElementOpacity` e `setExtraElementRotation`.
+   - Adicionados controles completos na `CanvasSidebar.tsx` (Desktop) e `CanvasMobileDrawer.tsx` (Mobile): slider de opacidade (10% a 100%), slider de giro (-180° a 180°), botões rápidos de camada ("Frente" / "Trás") e botão "Duplicar".
+4. **Testes Unitários**:
+   - `client/src/pages/CanvasLab/lib/documentCommands.extraElements.test.ts` (9 testes cobrindo conformidade RFC4122/UUID-v4, duplicação não destrutiva, empilhamento Konva, clamps de opacidade/rotação e prevenção de acúmulo de matriz no `onTransformEnd`).
+
+### 13.14. Etapa 8: Editor Assistido, Autosave Resiliente, Undo/Redo e Reordenação de Slides
+
+Implementado o sistema de produtividade e resiliência de edição no CanvasLab:
+1. **Autosave com Debounce e Mutex Concorrente**:
+   - Módulo `client/src/pages/CanvasLab/lib/autoSaveManager.ts` implementa o `AutoSaveManager` com debounce de 1000ms e controle estrito de concorrência.
+   - Enquanto uma requisição de salvamento estiver em voo (`isSaving === true`), mutações subsequentes são enfileiradas (`queuedDoc`) e processadas sequencialmente assim que o save atual terminar.
+   - Isso impede condições de corrida, saves concorrentes desordenados e duplicação acidental de posts na biblioteca do Supabase.
+   - Estados suportados: `"idle" | "dirty" | "saving" | "saved" | "error"`.
+   - Indicador visual no `CanvasTopBar.tsx` exibe o status em tempo real (spinner "Salvando...", check "Salvo", badge âmbar "Não salvo" e alerta vermelho "Erro ao salvar").
+2. **Histórico Centralizado de Undo/Redo**:
+   - Módulo `client/src/pages/CanvasLab/lib/canvasHistory.ts` implementa operações imutáveis (`createHistory`, `pushHistory`, `undoHistory`, `redoHistory`, `canUndo`, `canRedo`) com limite máximo de profundidade (30 snapshots) para preservar memória.
+   - Atalhos de teclado canônicos mapeados: `Ctrl+Z` / `Cmd+Z` (Desfazer), `Ctrl+Shift+Z` / `Cmd+Shift+Z` ou `Ctrl+Y` (Refazer), ignorados quando o foco está em inputs/textareas para não quebrar o histórico nativo de formulários.
+   - Botões com estado habilitado/desabilitado integrados ao `CanvasTopBar.tsx`.
+3. **Reordenação Drag-and-Drop de Slides Preservando a Capa**:
+   - Em `CarouselFilmstrip.tsx`, os cartões de slides agora suportam HTML5 Drag-and-Drop nativo e botões direcionais (setas esquerda/direita).
+   - O primeiro slide exibe o badge exclusivo `CAPA`, mantendo a regra canônica de que `resolveCoverSlide(post)` sempre consome deterministicamente o slide 0 como capa autoritativa.
+   - Reordenação orquestrada pelo comando canônico `reorderSlides` em `documentCommands.ts`.
+4. **Testes Unitários**:
+   - `client/src/pages/CanvasLab/lib/canvasHistory.test.ts` (6 testes cobrindo push, undo, redo, descarte de futuro em novos branches e limite de pilha).
+   - `client/src/pages/CanvasLab/lib/autoSaveManager.test.ts` (4 testes cobrindo agrupamento de debounce, proteção contra requisições concorrentes, salvamento da versão mais recente da fila, flushNow e tratamento de falha).
+
+### 13.15. Etapa 9: Hardening, Rollout e Matriz de Testes E2E Finais
+
+Conclusão e validação integrada do ciclo Studio V2 / CanvasLab:
+1. **Matriz de Testes de Integração Ponta a Ponta**:
+   - Desenvolvida a suíte em `client/src/pages/StudioApp/lib/studioFlowIntegration.test.ts` (5 testes integrados) validando a jornada completa sem gaps de contrato:
+     - *Cenário 1*: Briefing completo com Brand Kit e URLs externas (`interpretRawBriefing`), persistência de rascunho em storage (`saveBriefDraft`/`loadBriefDraft`), e exportação limpa para o formulário do modal.
+     - *Cenário 2*: Transição determinística da galeria do Studio para o CanvasLab com hidratação autoritativa do `CanvasPostModel` e integridade de slides.
+     - *Cenário 3*: Manipulação de elementos extras livres (duplicação UUID-v4, opacidade, rotação, empilhamento z-index `front`/`back` e remoção limpa).
+     - *Cenário 4*: Edição assistida no CanvasLab combinando histórico imutável (`pushHistory`, `undoHistory`, `redoHistory`), salvamento concorrente com mutex/debounce (`AutoSaveManager`) e reordenação drag-and-drop de carrossel mantendo a regra canônica do slide 0 como capa.
+     - *Cenário 5*: Proteção contra regressões no normalizador de transformações do Konva Stage (`width = Math.max(40, Math.round(width * scaleX))`, reset de `scaleX(1)/scaleY(1)`).
+2. **Auditoria de Integridade**:
+   - Nenhuma migração destrutiva aplicada no Supabase.
+   - Todos os arquivos essenciais e pré-modificados preservados intactos.
+   - Paridade rigorosa entre as interfaces de desktop (`CanvasSidebar`) e mobile (`CanvasMobileDrawer`).
+
+---
+
 ## 14. Comandos de Validação e Deploy
 
 Toda alteração de código deve ser verificada pelo seguinte protocolo antes do deploy:
@@ -530,7 +705,7 @@ Toda alteração de código deve ser verificada pelo seguinte protocolo antes do
 # 1. Verificação Estrita de Tipagem TypeScript (0 erros obrigatórios)
 pnpm check
 
-# 2. Execução da Bateria Completa de Testes Automatizados (676 testes)
+# 2. Execução da Bateria Completa de Testes Automatizados (804 testes em 2026-09-23)
 pnpm test
 
 # 3. Compilação de Produção (Vite para frontend + esbuild para api/index.js)
@@ -542,3 +717,4 @@ pnpm run verify:runtime
 # 5. Execução do Servidor em Produção
 pnpm start
 ```
+

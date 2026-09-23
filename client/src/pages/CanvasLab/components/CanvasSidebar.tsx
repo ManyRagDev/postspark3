@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, ImagePlus, Lightbulb, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop, RotateCcw, Plus, Trash2 } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, ImagePlus, Lightbulb, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop, RotateCcw, Plus, Trash2, ChevronsUp, ChevronsDown } from "lucide-react";
 import { toast } from "sonner";
-import { OFFICIAL_FAMILIES_META, type CanvasPostModel, type TextAlignType, type VisualFamilyId, type OverlayMode, type CanvasCustomText, type CanvasCustomImage, type SplitBgPosition } from "./types";
+import { OFFICIAL_FAMILIES_META, type CanvasPostModel, type TextAlignType, type VisualFamilyId, type OverlayMode, type CanvasCustomText, type CanvasCustomImage, type SplitBgPosition, type FitMode, type BackgroundPlacement } from "./types";
 import { applyFamilyPreset } from "../lib/familyPreset";
+import { duplicateExtraElement, reorderExtraElement } from "../lib/documentCommands";
 import TypographyColorControls from "./TypographyColorControls";
 import TipCallout from "./TipCallout";
 import { useStudioTipsStore } from "@/store/studioTipsStore";
@@ -553,6 +554,76 @@ export default function CanvasSidebar({
                           />
                         </div>
                       </div>
+
+                      {/* Controles de Opacidade, Rotação e Camadas */}
+                      <div className="space-y-1.5 pt-1.5 border-t border-white/5 text-[11px]">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex-1 flex items-center gap-1.5">
+                            <span className="text-[10px] text-white/40">Opacidade:</span>
+                            <input
+                              type="range"
+                              min="0.1"
+                              max="1"
+                              step="0.05"
+                              value={et.opacity ?? 1}
+                              onChange={(e) => onUpdateExtraText?.(et.id, { opacity: parseFloat(e.target.value) })}
+                              className="w-14 accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                            />
+                            <span className="text-[10px] font-mono text-white/50">{Math.round((et.opacity ?? 1) * 100)}%</span>
+                          </div>
+
+                          <div className="flex-1 flex items-center gap-1.5 justify-end">
+                            <span className="text-[10px] text-white/40">Giro:</span>
+                            <input
+                              type="range"
+                              min="-180"
+                              max="180"
+                              step="5"
+                              value={et.rotation || 0}
+                              onChange={(e) => onUpdateExtraText?.(et.id, { rotation: parseInt(e.target.value, 10) })}
+                              className="w-14 accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                            />
+                            <span className="text-[10px] font-mono text-white/50">{et.rotation || 0}°</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-1 pt-1 border-t border-white/5">
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => onUpdatePost(reorderExtraElement(post, et.id, "front"))}
+                              title="Trazer para frente no palco"
+                              className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                            >
+                              <ChevronsUp size={11} />
+                              <span>Frente</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onUpdatePost(reorderExtraElement(post, et.id, "back"))}
+                              title="Enviar para trás no palco"
+                              className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                            >
+                              <ChevronsDown size={11} />
+                              <span>Trás</span>
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const result = duplicateExtraElement(post, et.id);
+                              onUpdatePost(result.post);
+                              toast.success("Texto duplicado!");
+                            }}
+                            title="Duplicar caixa de texto"
+                            className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                          >
+                            <Copy size={10} />
+                            <span>Duplicar</span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -650,6 +721,57 @@ export default function CanvasSidebar({
                             onChange={(e) => onUpdateExtraImage?.(img.id, { cornerRadius: parseInt(e.target.value) })}
                             className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
                           />
+
+                          <div className="flex items-center justify-between text-white/60 pt-1">
+                            <span>Giro / Rotação</span>
+                            <span className="font-mono text-[10px]">{img.rotation || 0}°</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-180"
+                            max="180"
+                            step="5"
+                            value={img.rotation || 0}
+                            onChange={(e) => onUpdateExtraImage?.(img.id, { rotation: parseInt(e.target.value, 10) })}
+                            className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                          />
+
+                          <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-white/5">
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => onUpdatePost(reorderExtraElement(post, img.id, "front"))}
+                                title="Trazer para frente no palco"
+                                className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                              >
+                                <ChevronsUp size={11} />
+                                <span>Frente</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onUpdatePost(reorderExtraElement(post, img.id, "back"))}
+                                title="Enviar para trás no palco"
+                                className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                              >
+                                <ChevronsDown size={11} />
+                                <span>Trás</span>
+                              </button>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const result = duplicateExtraElement(post, img.id);
+                                onUpdatePost(result.post);
+                                toast.success("Imagem duplicada!");
+                              }}
+                              title="Duplicar imagem"
+                              className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                            >
+                              <Copy size={10} />
+                              <span>Duplicar</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -843,65 +965,128 @@ export default function CanvasSidebar({
             )}
 
             {/* CARD DO PLANO DE FUNDO ATIVO (AJUSTE ESTILO CANVA + DOWNLOAD) */}
-            {Boolean(post.slides[post.currentSlideIndex]?.bgImage || post.bgImage) && (
-              <div className="p-3.5 rounded-xl border border-white/12 bg-white/4 space-y-3 shadow-md">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] uppercase tracking-wider text-white/70 font-bold flex items-center gap-1.5">
-                    <ImageIcon size={13} className="text-[oklch(0.78_0.22_48)]" />
-                    <span>Fundo do Slide</span>
-                  </span>
-                  <span className="text-[10px] text-white/40 font-mono">
-                    Slide {post.currentSlideIndex + 1} de {post.slides.length}
-                  </span>
-                </div>
+            {Boolean(post.slides[post.currentSlideIndex]?.bgImage || post.bgImage) && (() => {
+              const currentSlide = post.slides[post.currentSlideIndex];
+              const currentPlacement = currentSlide?.bgPlacement || post.bgPlacement;
+              const activeFitMode: FitMode = currentPlacement?.fitMode || "cover";
 
-                <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/15 shrink-0 bg-black/40 relative shadow-inner">
-                    <img
-                      src={post.slides[post.currentSlideIndex]?.bgImage || post.bgImage}
-                      alt="Fundo atual"
-                      className="w-full h-full object-cover"
-                    />
+              const handleSetFitMode = (mode: FitMode) => {
+                const newPlacement: BackgroundPlacement = {
+                  fitMode: mode,
+                  focalPoint: { x: 0.5, y: 0.5 },
+                  crop: undefined,
+                  transform: undefined,
+                };
+                if (currentSlide) {
+                  const updated = [...post.slides];
+                  updated[post.currentSlideIndex] = {
+                    ...currentSlide,
+                    bgPlacement: newPlacement,
+                    bgTransform: undefined,
+                  };
+                  onUpdatePost({ slides: updated, bgPlacement: newPlacement });
+                } else {
+                  onUpdatePost({ bgPlacement: newPlacement, bgTransform: undefined });
+                }
+              };
+
+              return (
+                <div className="p-3.5 rounded-xl border border-white/12 bg-white/4 space-y-3 shadow-md">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] uppercase tracking-wider text-white/70 font-bold flex items-center gap-1.5">
+                      <ImageIcon size={13} className="text-[oklch(0.78_0.22_48)]" />
+                      <span>Fundo do Slide</span>
+                    </span>
+                    <span className="text-[10px] text-white/40 font-mono">
+                      Slide {post.currentSlideIndex + 1} de {post.slides.length}
+                    </span>
                   </div>
 
-                  <div className="flex-1 flex flex-col gap-1.5">
-                    {/* Botão para ativar modo de edição do fundo estilo Canva */}
-                    <button
-                      type="button"
-                      onClick={onToggleBackgroundEdit}
-                      className={`w-full py-2 px-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                        isEditingBackground
-                          ? "bg-[oklch(0.78_0.22_48)] text-black border-[oklch(0.78_0.22_48)] shadow-md"
-                          : "bg-white/8 hover:bg-white/14 text-white border-white/15"
-                      }`}
-                    >
-                      <Crop size={13} />
-                      <span>{isEditingBackground ? "✓ Concluir Ajuste" : "Ajustar Enquadramento"}</span>
-                    </button>
+                  <div className="flex items-center gap-3">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/15 shrink-0 bg-black/40 relative shadow-inner">
+                      <img
+                        src={post.slides[post.currentSlideIndex]?.bgImage || post.bgImage}
+                        alt="Fundo atual"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
 
-                    {/* Botão de download direto da foto em alta resolução */}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const targetUrl = post.slides[post.currentSlideIndex]?.bgImage || post.bgImage;
-                        if (!targetUrl) return;
-                        toast.info("Iniciando download da imagem...");
-                        await downloadImageFile(
-                          targetUrl,
-                          `postspark-fundo-slide-${post.currentSlideIndex + 1}-${Date.now()}.png`
-                        );
-                        toast.success("Download da imagem concluído!");
-                      }}
-                      className="w-full py-1.5 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                      title="Baixar imagem original de alta resolução gerada ou aplicada"
-                    >
-                      <Download size={12} className="text-[oklch(0.78_0.22_48)]" />
-                      <span>Baixar Foto (Alta Res)</span>
-                    </button>
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      {/* Botão para ativar modo de edição do fundo estilo Canva */}
+                      <button
+                        type="button"
+                        onClick={onToggleBackgroundEdit}
+                        className={`w-full py-2 px-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                          isEditingBackground
+                            ? "bg-[oklch(0.78_0.22_48)] text-black border-[oklch(0.78_0.22_48)] shadow-md"
+                            : "bg-white/8 hover:bg-white/14 text-white border-white/15"
+                        }`}
+                      >
+                        <Crop size={13} />
+                        <span>{isEditingBackground ? "✓ Concluir Ajuste" : "Ajustar Enquadramento"}</span>
+                      </button>
+
+                      {/* Botão de download direto da foto em alta resolução */}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const targetUrl = post.slides[post.currentSlideIndex]?.bgImage || post.bgImage;
+                          if (!targetUrl) return;
+                          toast.info("Iniciando download da imagem...");
+                          await downloadImageFile(
+                            targetUrl,
+                            `postspark-fundo-slide-${post.currentSlideIndex + 1}-${Date.now()}.png`
+                          );
+                          toast.success("Download da imagem concluído!");
+                        }}
+                        className="w-full py-1.5 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        title="Baixar imagem original de alta resolução gerada ou aplicada"
+                      >
+                        <Download size={12} className="text-[oklch(0.78_0.22_48)]" />
+                        <span>Baixar Foto (Alta Res)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* CONTROLES DE ENQUADRAMENTO (FIT MODE) */}
+                  <div className="pt-2 border-t border-white/8 space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px] uppercase font-mono text-white/50">
+                      <span>Modo de Enquadramento</span>
+                      <button
+                        type="button"
+                        onClick={() => handleSetFitMode("cover")}
+                        className="text-[oklch(0.78_0.22_48)] hover:underline flex items-center gap-0.5"
+                        title="Restaurar padrão"
+                      >
+                        <RotateCcw size={10} />
+                        <span>Restaurar</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { id: "cover", label: "Preencher" },
+                        { id: "contain", label: "Inteira" },
+                        { id: "original", label: "Original" },
+                      ].map((btn) => (
+                        <button
+                          key={btn.id}
+                          type="button"
+                          onClick={() => handleSetFitMode(btn.id as FitMode)}
+                          className={`py-1.5 px-2 rounded-lg text-[11px] font-semibold transition-all border ${
+                            activeFitMode === btn.id
+                              ? "bg-[oklch(0.78_0.22_48)] text-black border-[oklch(0.78_0.22_48)] shadow-sm font-bold"
+                              : "bg-white/5 border-white/8 text-white/70 hover:bg-white/10 hover:text-white"
+                          }`}
+                        >
+                          {btn.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* 0.B DISTRIBUIÇÃO DO FUNDO NO BRUTAL SPLIT */}
             {post.familyId === "brutal-split" && (

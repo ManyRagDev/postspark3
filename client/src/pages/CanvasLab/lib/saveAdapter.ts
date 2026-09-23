@@ -19,6 +19,7 @@ import {
   type SplitBgPosition,
   TEXT_EFFECTS_META,
 } from "../components/types";
+import { resolveCoverSlide } from "./documentCommands";
 
 export type SaveInputType = "text" | "url" | "image";
 
@@ -67,18 +68,20 @@ export function canvasModelToSavePayload(
   post: CanvasPostModel,
   inputMeta: CanvasSaveInputMeta,
 ): CanvasSavePayload {
-  const activeSlide = post.slides[post.currentSlideIndex] || post.slides[0];
-  const activeBg = activeSlide?.bgImage || post.bgImage;
+  // Etapa 2 §7.4 — campos legados do post representam a CAPA (primeiro
+  // slide), nunca o slide ativo no instante do save.
+  const cover = resolveCoverSlide(post);
+  const coverBg = cover.bgImage || post.bgImage;
 
   return {
     inputType: inputMeta.inputType,
     inputContent: inputMeta.inputContent || post.headline || "Post PostSpark",
     platform: "instagram",
-    headline: activeSlide?.headline ?? post.headline,
-    body: activeSlide?.subtext ?? post.subtext,
+    headline: cover.headline ?? post.headline,
+    body: cover.subtext ?? post.subtext,
     caption: post.caption,
     imagePrompt: post.imagePrompt,
-    imageUrl: activeBg,
+    imageUrl: coverBg,
     backgroundColor: post.palette.background,
     textColor: post.palette.text,
     accentColor: post.palette.accent,
@@ -124,6 +127,12 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
 
   return {
     id: raw.id || `saved-${Date.now()}`,
+    modelVersion: raw.modelVersion,
+    ...(raw.provenance ? { provenance: raw.provenance } : {}),
+    ...(typeof raw.callToAction === "string" ? { callToAction: raw.callToAction } : {}),
+    ...(Array.isArray(raw.hashtags) ? { hashtags: raw.hashtags } : {}),
+    ...(Array.isArray(raw.sections) ? { sections: raw.sections } : {}),
+    ...(raw.copyAngle ? { copyAngle: raw.copyAngle } : {}),
     familyId,
     familyName: raw.familyName || meta.name,
     aspectRatio,
@@ -140,6 +149,7 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
     customFontUrl: raw.customFontUrl,
     bgImage: raw.bgImage,
     bgTransform: raw.bgTransform,
+    bgPlacement: raw.bgPlacement,
     overlayOpacity: typeof raw.overlayOpacity === "number" ? raw.overlayOpacity : 0.55,
     overlayColor: typeof raw.overlayColor === "string" && raw.overlayColor.trim() ? raw.overlayColor.trim() : undefined,
     overlayMode: (typeof raw.overlayMode === "string" && ["gradient-bottom", "gradient-top", "solid", "radial"].includes(raw.overlayMode) ? raw.overlayMode : "gradient-bottom") as OverlayMode,
@@ -170,6 +180,7 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
           subtext: s.subtext ?? "",
           bgImage: s.bgImage,
           bgTransform: s.bgTransform,
+          bgPlacement: s.bgPlacement,
           imagePrompt: s.imagePrompt,
           headlinePos: s.headlinePos,
           subtextPos: s.subtextPos,
