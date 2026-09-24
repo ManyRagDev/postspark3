@@ -505,7 +505,7 @@ Revisão estrutural de separação de responsabilidades nas abas de controle do 
    - Upload de foto local / galeria do celular.
    - Botão para fundo sólido sem foto.
    - Slider de escurecimento (Overlay / Scrim).
-   - Chave para aplicar fundo a todos os slides em carrossel.
+   - Controle de escopo acima das abas no desktop e no painel de edição mobile, compartilhando o mesmo estado: por padrão, imagem de fundo, enquadramento e posição no Brutal Split afetam apenas o slide ativo; ao marcar “Aplicar fundo a todos os slides”, essas alterações visuais são propagadas a todo o carrossel. A gaveta de texturas usa o mesmo estado. A edição local não altera os campos globais usados como fallback por outros slides; remoção local grava fundo vazio explicitamente para não ressuscitar o fallback. Tipografia, paleta e overlay continuam globais pelo contrato atual do `CanvasPostModel`, independentemente desse controle; texto e elementos livres continuam individuais por slide. Implementação central em `lib/slideVisualScope.ts`.
 
 4. **Aba "Logo" (Identidade e Marca):**
    - Upload do logo em PNG transparente com visualização e botão de remoção.
@@ -625,7 +625,7 @@ Como consequência, a interface React renderizava silenciosamente a mensagem fal
 
 1. **Contrato versionado `CreationBrief`**: definido em `shared/postsparkSchemas.ts` (`CREATION_BRIEF_VERSION = 1`) com validação estrita via Zod e reexportado em `shared/postspark.ts`.
 2. **Parsing e inteligência pura**: `shared/creationBrief.ts` implementa `extractUrlsFromText` (extrai URLs embutidas no meio do texto, limpando pontuações e normalizando), `interpretRawBriefing` (separa entrada bruta de interpretação estruturada, identifica formato, contagem de slides, CTAs e incorpora Brand Kit) e `creationBriefToExecutionBrief` (integração direta com o backend `post.generate`).
-3. **Persistência durável de rascunho**: `client/src/pages/StudioApp/lib/briefDraftStorage.ts` persiste o rascunho de criação no `localStorage` de forma resiliente a falhas e corrupção de schema, garantindo recuperação instantânea pós-refresh da aba.
+3. **Persistência durável de rascunho com descarte explícito**: `client/src/pages/StudioApp/lib/briefDraftStorage.ts` persiste o rascunho de criação no `localStorage` de forma resiliente a falhas e corrupção de schema, garantindo recuperação instantânea pós-refresh da aba. Quando há rascunho recuperável, `StudioCreateViewV2B` mostra “Rascunho salvo neste navegador” e “Apagar rascunho”; a ação remove o dado local e limpa o prompt, formato, briefing e família restaurados em memória. A geração não apaga o rascunho automaticamente. “Recomeçar” também zera `lastPrompt` e o formato, evitando repovoar o campo após limpar o storage.
 4. **Progressive Disclosure no Studio**: `BriefReviewModal.tsx` exibe a interpretação estruturada antes do gasto de Sparks, permitindo validar e remover fontes/URLs identificadas, ver o Brand Kit ativo e editar opções avançadas de direcionamento editorial.
 5. **Integração de Brand Kit**: exposto endpoint tRPC `brandKit.get` em `server/routers.ts` consultando `getBrandKitByUser` e consumido pelo `StudioAppV2BPage` para enriquecer a geração com tom de voz e termos de marca.
 6. Testes adicionados: `shared/creationBrief.test.ts` (7 testes cobrindo extração de links, enriquecimento e parsing) e `client/src/pages/StudioApp/lib/briefDraftStorage.test.ts` (4 testes cobrindo round-trip, limpeza e tolerância a corrupção).

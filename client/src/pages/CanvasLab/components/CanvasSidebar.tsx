@@ -13,10 +13,14 @@ import { trpc } from "@/lib/trpc";
 import BackgroundsDrawer from "./BackgroundsDrawer";
 import { downloadImageFile } from "@/lib/downloadHelper";
 import FontPickerDropdown from "./FontPickerDropdown";
+import SlideScopeControl from "./SlideScopeControl";
+import { applySlideVisualPatch } from "../lib/slideVisualScope";
 
 interface CanvasSidebarProps {
   post: CanvasPostModel;
   onUpdatePost: (patch: Partial<CanvasPostModel>) => void;
+  applyToAllSlides: boolean;
+  onToggleApplyToAll: (value: boolean) => void;
   isEditingBackground?: boolean;
   onToggleBackgroundEdit?: () => void;
   onAddExtraText?: () => void;
@@ -36,6 +40,8 @@ const ALL_FAMILIES_LIST = Object.values(OFFICIAL_FAMILIES_META);
 export default function CanvasSidebar({
   post,
   onUpdatePost,
+  applyToAllSlides,
+  onToggleApplyToAll,
   isEditingBackground = false,
   onToggleBackgroundEdit,
   onAddExtraText,
@@ -53,7 +59,6 @@ export default function CanvasSidebar({
   const setShowTips = useStudioTipsStore((s) => s.setShowTips);
   const [aiImagePrompt, setAiImagePrompt] = useState(post.imagePrompt || "");
   const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
-  const [applyToAllSlides, setApplyToAllSlides] = useState(false);
   const [customFontInput, setCustomFontInput] = useState(post.customFontUrl || "");
   const [uploadedFontName, setUploadedFontName] = useState<string | null>(null);
 
@@ -146,16 +151,7 @@ export default function CanvasSidebar({
   };
 
   const handleApplyBackground = (url?: string) => {
-    if (applyToAllSlides && post.slides.length > 0) {
-      const updated = post.slides.map((s) => ({ ...s, bgImage: url }));
-      onUpdatePost({ slides: updated, bgImage: url });
-          } else if (currentSlide) {
-      const updated = [...post.slides];
-      updated[post.currentSlideIndex] = { ...currentSlide, bgImage: url };
-      onUpdatePost({ slides: updated, bgImage: url });
-          } else {
-      onUpdatePost({ bgImage: url });
-          }
+    onUpdatePost(applySlideVisualPatch(post, { bgImage: url }, applyToAllSlides));
   };
 
   const handleCopyCaption = () => {
@@ -277,6 +273,17 @@ export default function CanvasSidebar({
           );
         })}
       </div>
+
+      {post.slides.length > 1 && (
+        <div className="border-b border-white/10 p-2">
+          <SlideScopeControl
+            slideCount={post.slides.length}
+            currentSlideIndex={post.currentSlideIndex}
+            applyToAllSlides={applyToAllSlides}
+            onToggleApplyToAll={onToggleApplyToAll}
+          />
+        </div>
+      )}
 
       {/* Conteúdo da Aba Ativa */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar">
@@ -933,21 +940,8 @@ export default function CanvasSidebar({
 
             {onAddExtraImage && <button type="button" onClick={() => sidebarImageInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-orange-400/35 bg-orange-400/10 px-3 py-2.5 text-xs font-semibold text-orange-300 hover:bg-orange-400/20"><ImagePlus size={15} /> Inserir imagem sobreposta</button>}
 
-            {/* Chave: Aplicar a todos os slides do carrossel */}
-            {post.slides.length > 1 && (
-              <label className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10 cursor-pointer">
-                <span className="text-xs font-semibold text-white/80">Aplicar a todos os slides</span>
-                <input
-                  type="checkbox"
-                  checked={applyToAllSlides}
-                  onChange={(e) => setApplyToAllSlides(e.target.checked)}
-                  className="w-4 h-4 accent-[oklch(0.78_0.22_48)]"
-                />
-              </label>
-            )}
-
             {/* CARD DO PLANO DE FUNDO ATIVO (AJUSTE ESTILO CANVA + DOWNLOAD) */}
-            {Boolean(post.slides[post.currentSlideIndex]?.bgImage || post.bgImage) && (() => {
+            {Boolean(post.slides[post.currentSlideIndex]?.bgImage ?? post.bgImage) && (() => {
               const currentSlide = post.slides[post.currentSlideIndex];
               const currentPlacement = currentSlide?.bgPlacement || post.bgPlacement;
               const activeFitMode: FitMode = currentPlacement?.fitMode || "cover";
@@ -959,17 +953,7 @@ export default function CanvasSidebar({
                   crop: undefined,
                   transform: undefined,
                 };
-                if (currentSlide) {
-                  const updated = [...post.slides];
-                  updated[post.currentSlideIndex] = {
-                    ...currentSlide,
-                    bgPlacement: newPlacement,
-                    bgTransform: undefined,
-                  };
-                  onUpdatePost({ slides: updated, bgPlacement: newPlacement });
-                } else {
-                  onUpdatePost({ bgPlacement: newPlacement, bgTransform: undefined });
-                }
+                onUpdatePost(applySlideVisualPatch(post, { bgPlacement: newPlacement, bgTransform: undefined }, applyToAllSlides));
               };
 
               return (
@@ -987,7 +971,7 @@ export default function CanvasSidebar({
                   <div className="flex items-center gap-3">
                     <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/15 shrink-0 bg-black/40 relative shadow-inner">
                       <img
-                        src={post.slides[post.currentSlideIndex]?.bgImage || post.bgImage}
+                        src={post.slides[post.currentSlideIndex]?.bgImage ?? post.bgImage}
                         alt="Fundo atual"
                         className="w-full h-full object-cover"
                       />
@@ -1012,7 +996,7 @@ export default function CanvasSidebar({
                       <button
                         type="button"
                         onClick={async () => {
-                          const targetUrl = post.slides[post.currentSlideIndex]?.bgImage || post.bgImage;
+                          const targetUrl = post.slides[post.currentSlideIndex]?.bgImage ?? post.bgImage;
                           if (!targetUrl) return;
                           toast.info("Iniciando download da imagem...");
                           await downloadImageFile(
@@ -1089,19 +1073,7 @@ export default function CanvasSidebar({
                         key={pos.id}
                         type="button"
                         onClick={() => {
-                          if (currentSlide) {
-                            const updatedSlides = [...post.slides];
-                            updatedSlides[post.currentSlideIndex] = {
-                              ...currentSlide,
-                              splitBgPosition: pos.id as SplitBgPosition,
-                            };
-                            onUpdatePost({
-                              slides: updatedSlides,
-                              splitBgPosition: pos.id as SplitBgPosition,
-                            });
-                          } else {
-                            onUpdatePost({ splitBgPosition: pos.id as SplitBgPosition });
-                          }
+                          onUpdatePost(applySlideVisualPatch(post, { splitBgPosition: pos.id as SplitBgPosition }, applyToAllSlides));
                         }}
                         className={`p-2 rounded-lg text-center transition-all cursor-pointer border ${
                           active
@@ -1397,7 +1369,7 @@ export default function CanvasSidebar({
         onApplyBackground={handleApplyBackground}
         manifestData={manifestData}
         applyToAllSlides={applyToAllSlides}
-        onToggleApplyToAll={(val) => setApplyToAllSlides(val)}
+        onToggleApplyToAll={onToggleApplyToAll}
       />
     </aside>
   );

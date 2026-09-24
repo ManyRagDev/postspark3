@@ -558,7 +558,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     // este é o ÚNICO motor de renderização; nenhuma segunda máquina é criada.
     const currentSlide =
       post.slides[exportSlideIndex ?? post.currentSlideIndex] || post.slides[0];
-    const activeBg = currentSlide?.bgImage || post.bgImage;
+    const activeBg = currentSlide?.bgImage ?? post.bgImage;
     const bgTransform = currentSlide?.bgTransform || post.bgTransform;
 
     useEffect(() => {

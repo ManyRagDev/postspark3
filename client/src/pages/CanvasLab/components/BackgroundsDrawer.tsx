@@ -26,7 +26,7 @@ export default function BackgroundsDrawer({
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const currentSlide = post.slides[post.currentSlideIndex];
-  const activeBg = currentSlide?.bgImage || post.bgImage;
+  const activeBg = currentSlide?.bgImage ?? post.bgImage;
 
   // Lista agregada de todas as imagens com metadados
   const allImages = useMemo(() => {
@@ -124,7 +124,7 @@ export default function BackgroundsDrawer({
         {/* Chave: Aplicar a todos os slides */}
         {post.slides.length > 1 && (
           <label className="flex items-center justify-between p-2 rounded-xl bg-white/4 border border-white/8 cursor-pointer hover:bg-white/6 transition-all">
-            <span className="text-[11px] font-medium text-white/80">Aplicar textura a todos os slides</span>
+            <span className="text-[11px] font-medium text-white/80">Aplicar fundo a todos os slides</span>
             <input
               type="checkbox"
               checked={applyToAllSlides}

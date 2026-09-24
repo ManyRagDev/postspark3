@@ -37,6 +37,8 @@ describe("CanvasMobileDrawer", () => {
       <CanvasMobileDrawer
         post={INITIAL_POST}
         onUpdatePost={vi.fn()}
+        applyToAllSlides={false}
+        onToggleApplyToAll={vi.fn()}
         onExportPng={vi.fn()}
         onExportZip={vi.fn()}
         isOpen={false}
@@ -60,7 +62,7 @@ describe("CanvasMobileDrawer", () => {
   it("closes with a downward swipe from the header without scrolling the page", () => {
     const onToggleOpen = vi.fn();
     act(() => root.render(
-      <CanvasMobileDrawer post={INITIAL_POST} onUpdatePost={vi.fn()} onExportPng={vi.fn()} onExportZip={vi.fn()} isOpen onToggleOpen={onToggleOpen} />
+      <CanvasMobileDrawer post={INITIAL_POST} onUpdatePost={vi.fn()} applyToAllSlides={false} onToggleApplyToAll={vi.fn()} onExportPng={vi.fn()} onExportZip={vi.fn()} isOpen onToggleOpen={onToggleOpen} />
     ));
     const header = container.querySelector("#canvas-mobile-editor-panel > div") as HTMLElement;
     const sendTouch = (type: string, x: number, y: number) => {

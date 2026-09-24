@@ -39,10 +39,14 @@ import { FONT_CATALOG } from "@/lib/fonts";
 import BackgroundsDrawer from "./BackgroundsDrawer";
 import RadialTextureSelector from "./RadialTextureSelector";
 import FontPickerDropdown from "./FontPickerDropdown";
+import SlideScopeControl from "./SlideScopeControl";
+import { applySlideVisualPatch } from "../lib/slideVisualScope";
 
 interface CanvasMobileDrawerProps {
   post: CanvasPostModel;
   onUpdatePost: (updates: Partial<CanvasPostModel>) => void;
+  applyToAllSlides: boolean;
+  onToggleApplyToAll: (value: boolean) => void;
   onExportPng: () => void;
   onExportZip: () => void;
   isExportingZip?: boolean;
@@ -70,6 +74,8 @@ const mobileTabs = [
 export default function CanvasMobileDrawer({
   post,
   onUpdatePost,
+  applyToAllSlides,
+  onToggleApplyToAll,
   onExportPng,
   onExportZip,
   isExportingZip = false,
@@ -165,7 +171,6 @@ export default function CanvasMobileDrawer({
   // Estado da Mídia / Background
   const [aiPrompt, setAiPrompt] = useState(post.imagePrompt || "");
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
-  const [applyToAllSlides, setApplyToAllSlides] = useState(false);
   const [isTexturesDrawerOpen, setIsTexturesDrawerOpen] = useState(false);
   const [isTextureStudioOpen, setIsTextureStudioOpen] = useState(false);
   const [manifestData, setManifestData] = useState<any>(null);
@@ -191,7 +196,7 @@ export default function CanvasMobileDrawer({
   const extraTextsList = currentSlide?.extraTexts || post.extraTexts || [];
   const extraImagesList = currentSlide?.extraImages || post.extraImages || [];
   const selectedExtraText = extraTextsList.find(text => text.id === selectedElementId);
-  const activeBg = currentSlide?.bgImage || post.bgImage;
+  const activeBg = currentSlide?.bgImage ?? post.bgImage;
 
   const mobileImageInputRef = useRef<HTMLInputElement>(null);
 
@@ -250,16 +255,7 @@ export default function CanvasMobileDrawer({
   };
 
   const handleApplyBackground = (url?: string) => {
-    if (applyToAllSlides && post.slides.length > 0) {
-      const updated = post.slides.map((s) => ({ ...s, bgImage: url }));
-      onUpdatePost({ slides: updated, bgImage: url });
-    } else if (currentSlide) {
-      const updated = [...post.slides];
-      updated[post.currentSlideIndex] = { ...currentSlide, bgImage: url };
-      onUpdatePost({ slides: updated, bgImage: url });
-    } else {
-      onUpdatePost({ bgImage: url });
-    }
+    onUpdatePost(applySlideVisualPatch(post, { bgImage: url }, applyToAllSlides));
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -309,7 +305,7 @@ export default function CanvasMobileDrawer({
         onApplyBackground={handleApplyBackground}
         manifestData={manifestData}
         applyToAllSlides={applyToAllSlides}
-        onToggleApplyToAll={setApplyToAllSlides}
+        onToggleApplyToAll={onToggleApplyToAll}
       />
 
       <div className="md:hidden fixed inset-x-0 bottom-0 z-40 select-none flex flex-col justify-end gap-2 pb-[calc(env(safe-area-inset-bottom)+10px)] pointer-events-none overscroll-y-none">
@@ -358,6 +354,17 @@ export default function CanvasMobileDrawer({
               </button>
             </div>
           </div>}
+
+          {isOpen && post.slides.length > 1 && (
+            <div className="shrink-0 border-b border-white/10 p-2">
+              <SlideScopeControl
+                slideCount={post.slides.length}
+                currentSlideIndex={post.currentSlideIndex}
+                applyToAllSlides={applyToAllSlides}
+                onToggleApplyToAll={onToggleApplyToAll}
+              />
+            </div>
+          )}
 
           {/* Conteúdo da Aba (Apenas quando aberta) */}
           {isOpen && (
@@ -930,17 +937,7 @@ export default function CanvasMobileDrawer({
                         crop: undefined,
                         transform: undefined,
                       };
-                      if (currentSlide) {
-                        const updated = [...post.slides];
-                        updated[post.currentSlideIndex] = {
-                          ...currentSlide,
-                          bgPlacement: newPlacement,
-                          bgTransform: undefined,
-                        };
-                        onUpdatePost({ slides: updated, bgPlacement: newPlacement });
-                      } else {
-                        onUpdatePost({ bgPlacement: newPlacement, bgTransform: undefined });
-                      }
+                      onUpdatePost(applySlideVisualPatch(post, { bgPlacement: newPlacement, bgTransform: undefined }, applyToAllSlides));
                     };
 
                     return (
@@ -1025,19 +1022,7 @@ export default function CanvasMobileDrawer({
                               key={pos.id}
                               type="button"
                               onClick={() => {
-                                if (currentSlide) {
-                                  const updatedSlides = [...post.slides];
-                                  updatedSlides[post.currentSlideIndex] = {
-                                    ...currentSlide,
-                                    splitBgPosition: pos.id as SplitBgPosition,
-                                  };
-                                  onUpdatePost({
-                                    slides: updatedSlides,
-                                    splitBgPosition: pos.id as SplitBgPosition,
-                                  });
-                                } else {
-                                  onUpdatePost({ splitBgPosition: pos.id as SplitBgPosition });
-                                }
+                                onUpdatePost(applySlideVisualPatch(post, { splitBgPosition: pos.id as SplitBgPosition }, applyToAllSlides));
                               }}
                               className={`p-2 rounded-xl text-center transition-all cursor-pointer border ${
                                 active
@@ -1197,19 +1182,6 @@ export default function CanvasMobileDrawer({
                         />
                       </div>
                     </div>
-                  )}
-
-                  {/* Toggle para aplicar a todos os slides se for carrossel */}
-                  {post.slides.length > 1 && (
-                    <label className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10 cursor-pointer">
-                      <span className="text-xs font-semibold text-white/80">Aplicar textura em todos os slides</span>
-                      <input
-                        type="checkbox"
-                        checked={applyToAllSlides}
-                        onChange={(e) => setApplyToAllSlides(e.target.checked)}
-                        className="w-4 h-4 accent-[oklch(0.78_0.22_48)] cursor-pointer"
-                      />
-                    </label>
                   )}
 
                   {/* 3. Gerador de Imagem com IA */}

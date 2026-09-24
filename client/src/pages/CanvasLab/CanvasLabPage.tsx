@@ -180,6 +180,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isRestartConfirmOpen, setIsRestartConfirmOpen] = useState(false);
+  const [applyBackgroundToAllSlides, setApplyBackgroundToAllSlides] = useState(false);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const stageRef = useRef<CanvasPostStageRef>(null);
   const mobileStageAreaRef = useRef<HTMLElement>(null);
@@ -844,6 +845,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
           <CanvasSidebar
             post={post}
             onUpdatePost={handleUpdatePost}
+            applyToAllSlides={applyBackgroundToAllSlides}
+            onToggleApplyToAll={setApplyBackgroundToAllSlides}
             isEditingBackground={isEditingBackground}
             onToggleBackgroundEdit={() => setIsEditingBackground((v) => !v)}
             onAddExtraText={handleAddExtraText}
@@ -964,6 +967,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         <CanvasMobileDrawer
           post={post}
           onUpdatePost={handleUpdatePost}
+          applyToAllSlides={applyBackgroundToAllSlides}
+          onToggleApplyToAll={setApplyBackgroundToAllSlides}
           onExportPng={handleExportPng}
           onExportZip={handleExportZip}
           isExportingZip={isExportingZip}

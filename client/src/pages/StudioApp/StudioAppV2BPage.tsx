@@ -34,6 +34,7 @@ import {
   saveBriefDraft,
   loadBriefDraft,
   clearBriefDraft,
+  hasRecoverableBriefDraft,
 } from "./lib/briefDraftStorage";
 import { shouldReviewBriefBeforeGeneration } from "./lib/briefReviewPolicy";
 
@@ -98,6 +99,7 @@ export default function StudioAppV2BPage() {
 
   // Etapa 4 — Briefing persistente e inteligência de marca
   const [activeBrief, setActiveBrief] = useState<CreationBrief | null>(null);
+  const [hasSavedDraft, setHasSavedDraft] = useState(false);
   const [isReviewingBrief, setIsReviewingBrief] = useState(false);
   const brandKitQuery = trpc.brandKit.get.useQuery();
 
@@ -105,9 +107,15 @@ export default function StudioAppV2BPage() {
   const saveMutation = trpc.post.save.useMutation();
   const updateMutation = trpc.post.update.useMutation();
 
+  const persistBriefDraft = (brief: CreationBrief, stage: "create" | "gallery") => {
+    saveBriefDraft(brief, declaredFamilyId, stage);
+    setHasSavedDraft(hasRecoverableBriefDraft());
+  };
+
   // Etapa 4 §9.4 — Recuperação de rascunho de briefing após refresh/perda de sessão
   useEffect(() => {
     const draft = loadBriefDraft();
+    setHasSavedDraft(Boolean(draft?.brief.rawInput?.trim()));
     if (draft && draft.brief && draft.brief.rawInput) {
       setLastPrompt(draft.brief.rawInput);
       setLastMode(draft.brief.format);
@@ -231,7 +239,7 @@ export default function StudioAppV2BPage() {
         }
 
         if (brief) {
-          saveBriefDraft(brief, declaredFamilyId, "gallery");
+          persistBriefDraft(brief, "gallery");
         }
 
         setGeneratedVariations(mapped);
@@ -319,7 +327,7 @@ export default function StudioAppV2BPage() {
       brandKit: brandKitQuery.data,
     });
     setActiveBrief(interpreted);
-    saveBriefDraft(interpreted, declaredFamilyId, "create");
+    persistBriefDraft(interpreted, "create");
 
     if (shouldReviewBriefBeforeGeneration(mode)) {
       setIsReviewingBrief(true);
@@ -402,6 +410,9 @@ export default function StudioAppV2BPage() {
   // ─── Item 6: recomeçar do zero ───
   const handleRestart = () => {
     clearBriefDraft();
+    setHasSavedDraft(false);
+    setLastPrompt("");
+    setLastMode("static");
     setActiveBrief(null);
     setIsReviewingBrief(false);
     setStage("create");
@@ -414,6 +425,19 @@ export default function StudioAppV2BPage() {
     setFormatConfirm(null);
   };
 
+  const handleDiscardDraft = () => {
+    clearBriefDraft();
+    setHasSavedDraft(false);
+    setLastPrompt("");
+    setLastMode("static");
+    setLastInputMeta({ inputType: "text", inputContent: "" });
+    setActiveBrief(null);
+    setIsReviewingBrief(false);
+    setDeclaredFamilyId(null);
+    setFormatConfirm(null);
+    setFailure(null);
+  };
+
   return (
     <div className="min-h-screen w-full bg-[#0B0A08] text-white flex flex-col overflow-hidden font-sans">
       {stage === "create" && (
@@ -424,6 +448,8 @@ export default function StudioAppV2BPage() {
           onDeclareFamily={setDeclaredFamilyId}
           initialPrompt={lastPrompt}
           initialMode={lastMode}
+          hasSavedDraft={hasSavedDraft}
+          onDiscardDraft={handleDiscardDraft}
         />
       )}
 
@@ -460,7 +486,7 @@ export default function StudioAppV2BPage() {
             brandKit={brandKitQuery.data}
             onUpdateBrief={(updated) => {
               setActiveBrief(updated);
-              saveBriefDraft(updated, declaredFamilyId, "create");
+              persistBriefDraft(updated, "create");
             }}
             onConfirmGenerate={() => {
               // Fecha primeiro para revelar imediatamente o ProductionOverlay

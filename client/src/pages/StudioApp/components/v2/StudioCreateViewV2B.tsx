@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Loader2, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { loadFontByName } from "@/lib/fonts";
 import SparkLogo from "@/components/SparkLogo";
 import UserTopMenu from "@/components/UserTopMenu";
@@ -29,6 +29,8 @@ interface StudioCreateViewV2BProps {
   onDeclareFamily: (familyId: string | null) => void;
   initialPrompt?: string;
   initialMode?: "static" | "carousel";
+  hasSavedDraft?: boolean;
+  onDiscardDraft?: () => void;
 }
 
 export default function StudioCreateViewV2B({
@@ -38,6 +40,8 @@ export default function StudioCreateViewV2B({
   onDeclareFamily,
   initialPrompt = "",
   initialMode = "static",
+  hasSavedDraft = false,
+  onDiscardDraft,
 }: StudioCreateViewV2BProps) {
   const [prompt, setPrompt] = useState(initialPrompt);
   const [postMode, setPostMode] = useState<"static" | "carousel">(initialMode);
@@ -84,6 +88,13 @@ export default function StudioCreateViewV2B({
     if (!canSubmit) return;
     setLastSubmittedPrompt(prompt.trim());
     onSubmit(prompt.trim(), postMode);
+  };
+
+  const handleDiscardDraft = () => {
+    setPrompt("");
+    setPostMode("static");
+    onDiscardDraft?.();
+    textareaRef.current?.focus();
   };
 
   // Toque no espécime: traz a copy e alterna o gosto (liga/desliga/migra).
@@ -206,6 +217,23 @@ export default function StudioCreateViewV2B({
                 </button>
               </div>
             </div>
+
+            {hasSavedDraft && onDiscardDraft && (
+              <div className="mt-2 flex items-center justify-between gap-2 px-1 text-[11px] text-white/50">
+                <span>Rascunho salvo neste navegador</span>
+                <button
+                  type="button"
+                  onClick={handleDiscardDraft}
+                  disabled={isLoading}
+                  className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg px-2 text-orange-200 transition-colors hover:bg-orange-400/10 hover:text-orange-100 disabled:opacity-40"
+                  aria-label="Apagar rascunho salvo e limpar o prompt"
+                  title="Apagar o rascunho salvo neste navegador e limpar o campo"
+                >
+                  <Trash2 size={13} aria-hidden="true" />
+                  Apagar rascunho
+                </button>
+              </div>
+            )}
 
             {/* Micro-labels abaixo do campo */}
             <div className="mt-1.5 flex items-baseline justify-between px-1">

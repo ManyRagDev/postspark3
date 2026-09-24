@@ -41,7 +41,7 @@ export default function RadialTextureSelector({
 
   // Rastreamento da textura ativa no post
   const currentSlide = post.slides[post.currentSlideIndex];
-  const activeBg = currentSlide?.bgImage || post.bgImage;
+  const activeBg = currentSlide?.bgImage ?? post.bgImage;
 
   // Processa as categorias do manifest
   const categories: CategoryItem[] = useMemo(() => {
