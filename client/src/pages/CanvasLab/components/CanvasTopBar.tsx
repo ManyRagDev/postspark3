@@ -1,9 +1,34 @@
-import { useRef } from "react";
-import { ArrowDownToLine, ArrowLeft, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, FileArchive, ImagePlus, Layers, Loader2, Magnet, Plus, RotateCcw, Smartphone, Square, ZoomIn, ZoomOut, Undo2, Redo2, Check, AlertCircle } from "lucide-react";
-import type { AspectRatioType } from "./types";
-import { ASPECT_RATIO_CAPTIONS } from "./types";
-import type { AutoSaveState } from "../lib/autoSaveManager";
+import {
+  AlertCircle,
+  ArrowDownToLine,
+  ArrowLeft,
+  BookmarkCheck,
+  Check,
+  FileArchive,
+  Loader2,
+  Magnet,
+  MoreHorizontal,
+  Plus,
+  Redo2,
+  RotateCcw,
+  Undo2,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import UserTopMenu from "@/components/UserTopMenu";
+import { ASPECT_RATIO_CAPTIONS, type AspectRatioType } from "./types";
+import type { AutoSaveState } from "../lib/autoSaveManager";
 
 interface CanvasTopBarProps {
   aspectRatio: AspectRatioType;
@@ -19,26 +44,22 @@ interface CanvasTopBarProps {
   onToggleSnap?: () => void;
   isExportingZip?: boolean;
   slideCount?: number;
-  currentSlide?: number;
-  onPrevSlide?: () => void;
-  onNextSlide?: () => void;
-  /** Item 6: recomeçar do zero (com confirmação controlada pelo pai). */
+  onAddSlide?: () => void;
   onRestart?: () => void;
-  /** Item 7: abrir o fluxo de salvamento. */
   onSave?: () => void;
   isSaving?: boolean;
-  /** Adicionar nova caixa de texto livre */
-  onAddExtraText?: () => void;
-  /** Inserir imagem livre no canvas */
-  onAddExtraImage?: (url: string, naturalWidth?: number, naturalHeight?: number) => void;
-  /** Histórico e Produtividade (Etapa 8 §4) */
   onUndo?: () => void;
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   autoSaveState?: AutoSaveState;
   lastSavedAt?: Date | null;
+  isAutoSaveEnabled?: boolean;
+  onAutoSaveChange?: (enabled: boolean) => void;
 }
+
+const iconButton =
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/75 transition-colors hover:bg-white/12 hover:text-white disabled:cursor-not-allowed disabled:opacity-35 sm:h-10 sm:w-10";
 
 export default function CanvasTopBar({
   aspectRatio,
@@ -54,334 +75,272 @@ export default function CanvasTopBar({
   onToggleSnap,
   isExportingZip = false,
   slideCount = 1,
-  currentSlide = 0,
-  onPrevSlide,
-  onNextSlide,
+  onAddSlide,
   onRestart,
   onSave,
   isSaving = false,
-  onAddExtraText,
-  onAddExtraImage,
   onUndo,
   onRedo,
   canUndo = false,
   canRedo = false,
-  autoSaveState,
+  autoSaveState = "idle",
   lastSavedAt,
+  isAutoSaveEnabled = false,
+  onAutoSaveChange,
 }: CanvasTopBarProps) {
-  const imageInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const dataUrl = evt.target?.result as string;
-      if (!dataUrl) return;
-      const img = new Image();
-      img.onload = () => {
-        if (onAddExtraImage) {
-          onAddExtraImage(dataUrl, img.naturalWidth, img.naturalHeight);
-        }
-      };
-      img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
-  };
+  const saveStatus =
+    autoSaveState === "saving"
+      ? "Salvando automaticamente"
+      : autoSaveState === "saved"
+        ? "Alterações salvas"
+        : autoSaveState === "dirty"
+          ? "Alterações não salvas"
+          : autoSaveState === "error"
+            ? "Erro no salvamento automático"
+            : "";
 
   return (
-    <header className="h-14 border-b border-white/10 bg-black/70 backdrop-blur-xl px-3 md:px-6 flex items-center justify-between z-30 shrink-0 select-none">
-      {/* ─── LADO ESQUERDO ─── */}
-      <div className="flex items-center gap-2 md:gap-3 shrink-0">
+    <header className="relative z-30 flex h-14 w-full shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-[#0a0d16]/95 px-2 backdrop-blur-xl sm:px-4 xl:px-5">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <div
+          className="flex shrink-0 items-center gap-1.5"
+          aria-label="PostSpark Studio"
+        >
+          <span
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-orange-400/35 bg-orange-500/10 text-lg text-orange-400 shadow-[0_0_18px_rgba(255,92,0,0.15)]"
+            aria-hidden="true"
+          >
+            ✦
+          </span>
+          <div className="hidden leading-none sm:block">
+            <span className="block bg-gradient-to-r from-white via-white to-orange-300 bg-clip-text text-sm font-black tracking-tight text-transparent">
+              PostSpark
+            </span>
+            <span className="mt-0.5 block text-[9px] font-bold tracking-[0.24em] text-orange-400">
+              STUDIO
+            </span>
+          </div>
+          <span className="hidden text-[10px] font-black tracking-[0.12em] text-orange-200 min-[380px]:inline sm:hidden">
+            STUDIO
+          </span>
+        </div>
         {onBackToGallery && (
           <button
             type="button"
             onClick={onBackToGallery}
-            className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:gap-1.5 text-xs text-white/70 hover:text-white bg-white/6 hover:bg-white/12 md:px-3 md:py-1.5 rounded-xl border border-white/10 transition-all cursor-pointer active:scale-95"
-            title="Voltar para a Galeria"
+            className={`${iconButton} sm:hidden`}
+            aria-label="Voltar para a galeria"
+            title="Voltar para a galeria"
           >
-            <ArrowLeft size={14} />
-            <span className="hidden md:inline font-medium">Galeria</span>
+            <ArrowLeft size={17} />
           </button>
         )}
-        {onRestart && (
-          <button
-            type="button"
-            onClick={onRestart}
-            className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:gap-1.5 text-xs text-white/70 hover:text-white bg-white/6 hover:bg-white/12 md:px-3 md:py-1.5 rounded-xl border border-white/10 transition-all cursor-pointer active:scale-95"
-            title="Recomeçar do zero (novas direções de arte)"
-          >
-            <RotateCcw size={14} />
-            <span className="hidden md:inline font-medium">Recomeçar</span>
-          </button>
-        )}
-
-        {/* Desfazer e Refazer (Etapa 8 §4) */}
         {onUndo && (
-          <div className="flex items-center gap-0.5 bg-white/6 p-0.5 rounded-xl border border-white/10">
+          <div
+            className="flex shrink-0 items-center gap-1 rounded-xl border border-orange-400/20 bg-orange-400/[0.06] p-0.5"
+            role="group"
+            aria-label="Histórico de edição"
+          >
             <button
               type="button"
               onClick={onUndo}
               disabled={!canUndo}
+              className="flex h-8 w-8 items-center justify-center gap-1.5 rounded-lg text-white transition-colors hover:bg-orange-400/15 disabled:text-white/35 sm:h-9 sm:w-9 xl:w-auto xl:px-2.5"
+              aria-label="Desfazer"
               title="Desfazer (Ctrl+Z / Cmd+Z)"
-              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-25 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed transition-all"
             >
-              <Undo2 size={13} />
+              <Undo2 size={17} />
+              <span className="hidden text-xs font-semibold xl:inline">
+                Desfazer
+              </span>
             </button>
             <button
               type="button"
               onClick={onRedo}
               disabled={!canRedo}
-              title="Refazer (Ctrl+Shift+Z / Cmd+Shift+Z)"
-              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-25 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed transition-all"
+              className="flex h-8 w-8 items-center justify-center gap-1.5 rounded-lg text-white transition-colors hover:bg-orange-400/15 disabled:text-white/35 sm:h-9 sm:w-9 xl:w-auto xl:px-2.5"
+              aria-label="Refazer"
+              title="Refazer"
             >
-              <Redo2 size={13} />
+              <Redo2 size={17} />
+              <span className="hidden text-xs font-semibold xl:inline">
+                Refazer
+              </span>
             </button>
           </div>
         )}
-
-        <div className="hidden sm:flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-bold uppercase tracking-widest text-white">PostSpark Studio</span>
-        </div>
       </div>
 
-      {/* ─── CENTRO: SELETOR DE PROPORÇÃO CLARO & CONTROLES ─── */}
-      <div className="flex items-center gap-2 md:gap-3">
-        {/* Seletor de Formato Desktop (com Ícones e Labels — item 8) */}
-        <div className="hidden md:flex items-center bg-white/6 p-1 rounded-xl border border-white/10">
-          {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map((id) => {
-            const cap = ASPECT_RATIO_CAPTIONS[id];
-            const Icon = id === "9:16" ? Smartphone : id === "5:6" ? Layers : Square;
-            const isSelected = aspectRatio === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => onAspectRatioChange(id)}
-                aria-label={`Formato ${cap.short} ${cap.caption}`}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  isSelected
-                    ? "bg-white text-black shadow-sm"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <Icon size={13} />
-                <span>{cap.short} {cap.caption}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Seletor de Formato Mobile (ratio + legenda, item 8) */}
-        <div className="md:hidden flex items-center bg-white/8 p-0.5 rounded-xl border border-white/12">
-          {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map((id) => {
-            const cap = ASPECT_RATIO_CAPTIONS[id];
-            const isSelected = aspectRatio === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => onAspectRatioChange(id)}
-                aria-label={`Formato ${cap.short} ${cap.caption}`}
-                className={`flex flex-col items-center px-2.5 py-1 rounded-lg transition-all ${
-                  isSelected ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
-                }`}
-              >
-                <span className="text-xs font-mono font-bold leading-none">{cap.short}</span>
-                <span className="text-[7.5px] font-semibold uppercase tracking-wider mt-0.5 opacity-80">
-                  {cap.caption}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Botão Adicionar Caixa de Texto Livre */}
-        {onAddExtraText && (
-          <button
-            type="button"
-            onClick={onAddExtraText}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[oklch(0.78_0.22_48)]/40 bg-[oklch(0.78_0.22_48)]/15 hover:bg-[oklch(0.78_0.22_48)]/25 text-[oklch(0.78_0.22_48)] hover:text-white text-xs font-semibold transition-all cursor-pointer active:scale-95 shadow-sm"
-            title="Adicionar nova caixa de texto no canvas"
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        {onSave && onAutoSaveChange && (
+          <label
+            className="hidden cursor-pointer items-center gap-1.5 text-[11px] text-white/70 lg:flex"
+            title="Salvar automaticamente após alterações"
           >
-            <Plus size={13} strokeWidth={2.5} />
-            <span className="hidden sm:inline">Texto</span>
-          </button>
-        )}
-
-        {/* Input Oculto e Botão Adicionar Imagem Livre */}
-        {onAddExtraImage && (
-          <>
             <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageFileChange}
+              type="checkbox"
+              checked={isAutoSaveEnabled}
+              onChange={event => onAutoSaveChange(event.target.checked)}
+              className="h-4 w-4 cursor-pointer accent-[#FF5C00]"
             />
-            <button
-              type="button"
-              onClick={() => imageInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-semibold transition-all cursor-pointer active:scale-95 shadow-sm"
-              title="Inserir foto ou imagem na prancheta"
-            >
-              <ImagePlus size={13} strokeWidth={2.2} />
-              <span className="hidden sm:inline">Imagem</span>
-            </button>
-          </>
+            <span>Auto-save</span>
+          </label>
         )}
-
-        {/* Botão Ímã (Magnet Snap) */}
-        {onToggleSnap && (
-          <button
-            type="button"
-            onClick={onToggleSnap}
-            className={`flex items-center gap-1.5 px-2 py-1.5 md:px-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer active:scale-95 ${
-              isSnapEnabled
-                ? "bg-[#38bdf8]/15 border-[#38bdf8]/40 text-[#38bdf8]"
-                : "bg-white/5 border-white/10 text-white/40 hover:text-white"
-            }`}
-            title={isSnapEnabled ? "Ímã ativado" : "Ímã desativado"}
+        {saveStatus && (
+          <span
+            className="hidden items-center gap-1.5 text-[11px] text-white/55 xl:flex"
+            title={
+              lastSavedAt
+                ? `Último salvamento: ${lastSavedAt.toLocaleTimeString("pt-BR")}`
+                : saveStatus
+            }
+            role="status"
           >
-            <Magnet size={13} />
-            <span className="hidden md:inline">Ímã</span>
-          </button>
+            {autoSaveState === "saving" ? (
+              <Loader2 size={13} className="animate-spin text-sky-400" />
+            ) : autoSaveState === "saved" ? (
+              <Check size={13} className="text-emerald-400" />
+            ) : autoSaveState === "error" ? (
+              <AlertCircle size={13} className="text-red-400" />
+            ) : (
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            )}
+            <span>{saveStatus}</span>
+          </span>
         )}
-
-        {/* Paginação do Carrossel */}
-        {slideCount > 1 && (
-          <div className="flex items-center gap-1 bg-white/6 px-1.5 py-1 rounded-xl border border-white/10 text-xs font-mono text-white/80">
-            <button
-              type="button"
-              onClick={onPrevSlide}
-              disabled={currentSlide === 0}
-              className="p-1 hover:bg-white/10 rounded disabled:opacity-30 cursor-pointer"
-            >
-              <ChevronLeft size={13} />
-            </button>
-            <span className="text-[11px]">{currentSlide + 1}/{slideCount}</span>
-            <button
-              type="button"
-              onClick={onNextSlide}
-              disabled={currentSlide === slideCount - 1}
-              className="p-1 hover:bg-white/10 rounded disabled:opacity-30 cursor-pointer"
-            >
-              <ChevronRight size={13} />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* ─── LADO DIREITO (DESKTOP: BOTÕES COMPLETOS) ─── */}
-      <div className="flex items-center gap-2 md:gap-3 shrink-0">
-        {/* Indicador Visual de AutoSave (Etapa 8 §4) */}
-        {autoSaveState && autoSaveState !== "idle" && (
-          <div className="hidden lg:flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-xl bg-white/4 border border-white/8 select-none">
-            {autoSaveState === "saving" && (
-              <>
-                <Loader2 size={12} className="animate-spin text-sky-400" />
-                <span className="text-white/70">Salvando...</span>
-              </>
-            )}
-            {autoSaveState === "saved" && (
-              <>
-                <Check size={12} className="text-emerald-400" />
-                <span className="text-white/60">Salvo</span>
-              </>
-            )}
-            {autoSaveState === "dirty" && (
-              <>
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-white/50">Não salvo</span>
-              </>
-            )}
-            {autoSaveState === "error" && (
-              <>
-                <AlertCircle size={12} className="text-red-400" />
-                <span className="text-red-400 font-medium">Erro ao salvar</span>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Salvar no banco (item 7) */}
         {onSave && (
           <button
             type="button"
             onClick={onSave}
             disabled={isSaving}
-            className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:gap-1.5 text-xs font-bold text-white bg-white/8 hover:bg-white/14 border border-white/12 md:px-3 md:py-2 rounded-xl transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+            className="flex h-9 min-w-9 shrink-0 items-center justify-center gap-2 rounded-xl border border-orange-400/35 bg-orange-400/15 px-2 text-orange-100 transition-colors hover:bg-orange-400/25 disabled:opacity-50 sm:h-10 sm:px-3"
+            aria-label={isSaving ? "Salvando post" : "Salvar post"}
             title="Salvar este post na sua biblioteca"
           >
             {isSaving ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : (
-              <BookmarkCheck size={14} />
+              <BookmarkCheck size={16} />
             )}
-            <span className="hidden md:inline">{isSaving ? "Salvando..." : "Salvar"}</span>
+            <span className="hidden text-xs font-bold sm:inline">
+              {isSaving ? "Salvando" : "Salvar"}
+            </span>
           </button>
         )}
-
-        {/* Zoom (Apenas Desktop) */}
-        <div className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/8 text-xs text-white/60">
-          <button
-            type="button"
-            onClick={onZoomOut}
-            className="p-1 hover:bg-white/10 hover:text-white rounded cursor-pointer"
-            title="Diminuir Zoom"
-          >
-            <ZoomOut size={13} />
-          </button>
-          <button
-            type="button"
-            onClick={onResetZoom}
-            className="px-1.5 font-mono text-[11px] hover:text-white cursor-pointer"
-          >
-            {Math.round(zoom * 100)}%
-          </button>
-          <button
-            type="button"
-            onClick={onZoomIn}
-            className="p-1 hover:bg-white/10 hover:text-white rounded cursor-pointer"
-            title="Aumentar Zoom"
-          >
-            <ZoomIn size={13} />
-          </button>
-        </div>
-
-        {/* Baixar ZIP do Carrossel (Desktop) */}
-        {slideCount > 1 && (
-          <button
-            type="button"
-            onClick={onExportZip}
-            disabled={isExportingZip}
-            className="hidden md:flex items-center gap-1.5 rounded-xl py-2 px-3 text-xs font-semibold bg-white/10 hover:bg-white/15 text-white border border-white/10 cursor-pointer transition-all"
-            title="Baixar todos os slides em arquivo .zip"
-          >
-            <FileArchive size={14} className="text-white/80" />
-            <span>{isExportingZip ? "Gerando ZIP..." : "Baixar ZIP"}</span>
-          </button>
-        )}
-
-        {/* Exportar Slide 4K (Desktop) */}
         <button
           type="button"
           onClick={onExportPng}
-          className="hidden md:flex group items-center gap-2 rounded-xl py-2 px-4 text-xs font-bold text-black shadow-lg transition-all hover:scale-105 hover:brightness-110 active:scale-95 cursor-pointer"
-          style={{
-            background: "linear-gradient(135deg, oklch(0.78 0.22 48), oklch(0.65 0.2 28))",
-            boxShadow: "0 0 20px oklch(0.7 0.22 40 / 35%)",
-          }}
+          className="hidden h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-orange-400 to-orange-600 px-3 text-xs font-bold text-black shadow-[0_0_20px_rgba(255,92,0,0.18)] transition hover:brightness-110 xl:flex"
         >
-          <ArrowDownToLine size={14} className="text-black" />
-          <span>Exportar 4K</span>
+          <ArrowDownToLine size={15} /> Exportar 4K
         </button>
-
-        {/* Menu do Usuário (Sparks, Perfil, Salvos, Configurações) */}
-        <div className="h-5 w-[1px] bg-white/12 hidden sm:block mx-1" />
-        <UserTopMenu variant="inline" />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className={iconButton}
+              aria-label="Mais ações do editor"
+              title="Mais ações do editor"
+            >
+              <MoreHorizontal size={19} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-60 border-white/15 bg-[#10141D] text-white"
+          >
+            {onBackToGallery && (
+              <DropdownMenuItem
+                onSelect={onBackToGallery}
+                className="hidden sm:flex"
+              >
+                <ArrowLeft /> Galeria
+              </DropdownMenuItem>
+            )}
+            {onRestart && (
+              <DropdownMenuItem onSelect={onRestart} variant="destructive" className="hidden md:flex">
+                <RotateCcw /> Recomeçar
+              </DropdownMenuItem>
+            )}
+            {slideCount === 1 && onAddSlide && (
+              <DropdownMenuItem onSelect={onAddSlide} className="md:hidden">
+                <Plus /> Transformar este post em carrossel
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator className="bg-white/10" />
+            <div className="hidden md:block xl:hidden">
+              <DropdownMenuLabel>Formato</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={aspectRatio}
+                onValueChange={value =>
+                  onAspectRatioChange(value as AspectRatioType)
+                }
+              >
+                {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map(
+                  id => (
+                    <DropdownMenuRadioItem key={id} value={id}>
+                      {id} · {ASPECT_RATIO_CAPTIONS[id].caption}
+                    </DropdownMenuRadioItem>
+                  )
+                )}
+              </DropdownMenuRadioGroup>
+              {onToggleSnap && (
+                <DropdownMenuCheckboxItem
+                  checked={isSnapEnabled}
+                  onCheckedChange={() => onToggleSnap()}
+                >
+                  <Magnet /> Ímã de alinhamento
+                </DropdownMenuCheckboxItem>
+              )}
+              <DropdownMenuItem
+                onSelect={event => {
+                  event.preventDefault();
+                  onZoomOut();
+                }}
+              >
+                <ZoomOut /> Diminuir zoom
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onResetZoom}>
+                Zoom: {Math.round(zoom * 100)}% · Ajustar para 100%
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={event => {
+                  event.preventDefault();
+                  onZoomIn();
+                }}
+              >
+                <ZoomIn /> Aumentar zoom
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/10" />
+            </div>
+            {onSave && onAutoSaveChange && (
+              <DropdownMenuCheckboxItem
+                className="lg:hidden"
+                checked={isAutoSaveEnabled}
+                onCheckedChange={checked => onAutoSaveChange(checked === true)}
+              >
+                Salvamento automático
+              </DropdownMenuCheckboxItem>
+            )}
+            <DropdownMenuItem
+              onSelect={onExportPng}
+              className="hidden md:flex xl:hidden"
+            >
+              <ArrowDownToLine /> Exportar imagem 4K
+            </DropdownMenuItem>
+            {slideCount > 1 && (
+              <DropdownMenuItem
+                onSelect={onExportZip}
+                disabled={isExportingZip}
+                className="hidden md:flex"
+              >
+                <FileArchive />{" "}
+                {isExportingZip ? "Gerando ZIP" : "Baixar carrossel ZIP"}
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <UserTopMenu variant="inline" compactMobile />
       </div>
     </header>
   );

@@ -41,9 +41,10 @@ interface UserTopMenuProps {
    * "inline": apenas o gatilho + dropdown, para embutir num header (ex.: editor mobile).
    */
   variant?: "floating" | "inline";
+  compactMobile?: boolean;
 }
 
-export default function UserTopMenu({ variant = "floating" }: UserTopMenuProps) {
+export default function UserTopMenu({ variant = "floating", compactMobile = false }: UserTopMenuProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const immersiveEditor = useMobileEditorUI((s) => s.immersive);
   const utils = trpc.useUtils();
@@ -141,7 +142,7 @@ export default function UserTopMenu({ variant = "floating" }: UserTopMenuProps) 
       <span className="hidden sm:inline text-xs font-semibold text-white/90">
         {(billing?.sparks ?? 0).toLocaleString("pt-BR")} ✦
       </span>
-      <ChevronDown size={12} className="opacity-60" />
+      <ChevronDown size={12} className={compactMobile ? "hidden opacity-60 sm:block" : "opacity-60"} />
     </button>
   ) : (
     <button

@@ -17,6 +17,7 @@ import {
   type TextLegibilityEffect,
   type OverlayMode,
   type SplitBgPosition,
+  type CanvasRichTextChunk,
   TEXT_EFFECTS_META,
 } from "../components/types";
 import { resolveCoverSlide } from "./documentCommands";
@@ -62,6 +63,28 @@ export type SavedPostRecordLike = {
   inputContent?: string | null;
   inputType?: string | null;
 };
+
+function normalizeRichTextChunks(value: unknown): CanvasRichTextChunk[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const chunks = value
+    .filter((chunk): chunk is Record<string, unknown> => Boolean(chunk) && typeof chunk === "object")
+    .map((chunk) => ({
+      text: typeof chunk.text === "string" ? chunk.text : "",
+      ...(typeof chunk.color === "string" && chunk.color.trim() ? { color: chunk.color } : {}),
+      ...(typeof chunk.sizeScale === "number" && Number.isFinite(chunk.sizeScale) && chunk.sizeScale > 0
+        ? { sizeScale: chunk.sizeScale }
+        : {}),
+      ...(typeof chunk.bold === "boolean" ? { bold: chunk.bold } : {}),
+      ...(typeof chunk.italic === "boolean" ? { italic: chunk.italic } : {}),
+      ...(typeof chunk.underline === "boolean" ? { underline: chunk.underline } : {}),
+    }))
+    .filter((chunk) => chunk.text.length > 0);
+  return chunks.length > 0 ? chunks : undefined;
+}
+
+function normalizePositiveNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+}
 
 /** Constrói o payload de salvamento a partir do modelo do editor. */
 export function canvasModelToSavePayload(
@@ -143,6 +166,8 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
     showStep: Boolean(raw.showStep),
     headline: raw.headline ?? "",
     subtext: raw.subtext ?? "",
+    headlineRich: normalizeRichTextChunks(raw.headlineRich),
+    subtextRich: normalizeRichTextChunks(raw.subtextRich),
     caption: raw.caption ?? "",
     imagePrompt: raw.imagePrompt,
     fontFamily: raw.fontFamily || meta.defaultFont,
@@ -178,6 +203,8 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
           step: s.step || `SLIDE 0${i + 1}`,
           headline: s.headline ?? "",
           subtext: s.subtext ?? "",
+          headlineRich: normalizeRichTextChunks(s.headlineRich),
+          subtextRich: normalizeRichTextChunks(s.subtextRich),
           bgImage: s.bgImage,
           bgTransform: s.bgTransform,
           bgPlacement: s.bgPlacement,
@@ -187,6 +214,10 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
           badgePos: s.badgePos,
           barPos: s.barPos,
           logoPos: s.logoPos,
+          headlineWidth: normalizePositiveNumber(s.headlineWidth),
+          subtextWidth: normalizePositiveNumber(s.subtextWidth),
+          headlineScale: normalizePositiveNumber(s.headlineScale),
+          subtextScale: normalizePositiveNumber(s.subtextScale),
           extraTexts: Array.isArray(s.extraTexts) ? s.extraTexts : undefined,
           extraImages: Array.isArray(s.extraImages) ? s.extraImages : undefined,
           splitBgPosition: (typeof s.splitBgPosition === "string" && ["bottom", "top", "full"].includes(s.splitBgPosition) ? s.splitBgPosition : undefined) as SplitBgPosition | undefined,

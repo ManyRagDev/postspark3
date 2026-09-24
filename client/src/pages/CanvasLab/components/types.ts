@@ -281,9 +281,19 @@ export interface CanvasPostPalette {
   subtextColor?: string;
 }
 
+export interface CanvasRichTextChunk {
+  text: string;
+  color?: string;
+  sizeScale?: number;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+}
+
 export interface CanvasCustomText {
   id: string;
   text: string;
+  textRich?: CanvasRichTextChunk[];
   x?: number;
   y?: number;
   width?: number;
@@ -341,6 +351,8 @@ export interface CarouselSlideItem {
   step: string;
   headline: string;
   subtext: string;
+  headlineRich?: CanvasRichTextChunk[];
+  subtextRich?: CanvasRichTextChunk[];
   bgImage?: string;
   bgTransform?: BgImageTransform;
   bgPlacement?: BackgroundPlacement;
@@ -350,6 +362,10 @@ export interface CarouselSlideItem {
   badgePos?: ElementPosition;
   barPos?: ElementPosition;
   logoPos?: ElementPosition;
+  headlineWidth?: number;
+  subtextWidth?: number;
+  headlineScale?: number;
+  subtextScale?: number;
   extraTexts?: CanvasCustomText[];
   extraImages?: CanvasCustomImage[];
   splitBgPosition?: SplitBgPosition;
@@ -499,6 +515,8 @@ export interface CanvasPostModel {
   showStep?: boolean;
   headline: string;
   subtext: string;
+  headlineRich?: CanvasRichTextChunk[];
+  subtextRich?: CanvasRichTextChunk[];
   caption: string;
   imagePrompt?: string;
   fontFamily: string;

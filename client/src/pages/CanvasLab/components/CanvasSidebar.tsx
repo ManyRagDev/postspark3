@@ -5,6 +5,7 @@ import { OFFICIAL_FAMILIES_META, type CanvasPostModel, type TextAlignType, type 
 import { applyFamilyPreset } from "../lib/familyPreset";
 import { duplicateExtraElement, reorderExtraElement } from "../lib/documentCommands";
 import TypographyColorControls from "./TypographyColorControls";
+import PropertyInspector from "./PropertyInspector";
 import TipCallout from "./TipCallout";
 import { useStudioTipsStore } from "@/store/studioTipsStore";
 import { FONT_CATALOG } from "@/lib/fonts";
@@ -25,6 +26,7 @@ interface CanvasSidebarProps {
   onUpdateExtraImage?: (id: string, patch: Partial<CanvasCustomImage>) => void;
   onRemoveExtraImage?: (id: string) => void;
   selectedElementId?: string | null;
+  onSelectElement?: (id: string | null) => void;
 }
 
 type TabType = "content" | "style" | "media" | "brand";
@@ -43,6 +45,7 @@ export default function CanvasSidebar({
   onUpdateExtraImage,
   onRemoveExtraImage,
   selectedElementId,
+  onSelectElement,
 }: CanvasSidebarProps) {
   const [activeTab, setActiveTab] = useState<TabType>("content");
   const [copiedCaption, setCopiedCaption] = useState(false);
@@ -98,6 +101,7 @@ export default function CanvasSidebar({
   const currentSlide = post.slides[post.currentSlideIndex];
   const extraTextsList = currentSlide?.extraTexts || post.extraTexts || [];
   const extraImagesList = currentSlide?.extraImages || post.extraImages || [];
+  const selectedExtraText = extraTextsList.find(text => text.id === selectedElementId);
 
   const handleUpdateHeadline = (text: string) => {
     if (currentSlide) {
@@ -245,6 +249,7 @@ export default function CanvasSidebar({
 
   return (
     <aside className="w-80 h-full border-r border-white/10 bg-black/50 backdrop-blur-xl flex flex-col shrink-0 select-none z-20">
+      <input ref={sidebarImageInputRef} type="file" accept="image/*" className="hidden" onChange={handleSidebarImageFile} />
       {/* 4 Abas Principais */}
       <div className="grid grid-cols-4 p-2 gap-1 border-b border-white/10 bg-white/4">
         {[
@@ -283,13 +288,13 @@ export default function CanvasSidebar({
               Edite título, subtítulo e alinhamento; defina cores e tamanho da fonte por elemento; e prepare a legenda estratégica do Instagram.
             </TipCallout>
 
-            {/* Ações Rápidas: Inserir Texto ou Imagem */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Texto livre pertence à aba Texto; imagens podem ser inseridas em Mídia. */}
+            <div>
               {onAddExtraText && (
                 <button
                   type="button"
                   onClick={onAddExtraText}
-                  className="py-2.5 px-2 rounded-xl bg-gradient-to-r from-[oklch(0.78_0.22_48)]/20 to-[oklch(0.78_0.22_48)]/10 hover:from-[oklch(0.78_0.22_48)]/30 hover:to-[oklch(0.78_0.22_48)]/20 border border-[oklch(0.78_0.22_48)]/40 hover:border-[oklch(0.78_0.22_48)]/60 text-[oklch(0.78_0.22_48)] hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                  className="w-full py-2.5 px-2 rounded-xl bg-gradient-to-r from-[oklch(0.78_0.22_48)]/20 to-[oklch(0.78_0.22_48)]/10 hover:from-[oklch(0.78_0.22_48)]/30 hover:to-[oklch(0.78_0.22_48)]/20 border border-[oklch(0.78_0.22_48)]/40 hover:border-[oklch(0.78_0.22_48)]/60 text-[oklch(0.78_0.22_48)] hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
                   title="Adicionar nova caixa de texto livre"
                 >
                   <Plus size={13} strokeWidth={2.5} />
@@ -297,26 +302,6 @@ export default function CanvasSidebar({
                 </button>
               )}
 
-              {onAddExtraImage && (
-                <>
-                  <input
-                    ref={sidebarImageInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleSidebarImageFile}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => sidebarImageInputRef.current?.click()}
-                    className="py-2.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 hover:border-white/30 text-white/80 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
-                    title="Inserir foto ou imagem no post"
-                  >
-                    <ImagePlus size={13} strokeWidth={2.2} />
-                    <span>+ Imagem</span>
-                  </button>
-                </>
-              )}
             </div>
 
             <div className="space-y-1.5">
@@ -637,21 +622,11 @@ export default function CanvasSidebar({
                   <ImagePlus size={12} className="text-[oklch(0.78_0.22_48)]" />
                   <span>Imagens & Fotos ({extraImagesList.length})</span>
                 </label>
-                {onAddExtraImage && (
-                  <button
-                    type="button"
-                    onClick={() => sidebarImageInputRef.current?.click()}
-                    className="flex items-center gap-1 text-[11px] font-medium text-[oklch(0.78_0.22_48)] hover:text-white bg-[oklch(0.78_0.22_48)]/10 hover:bg-[oklch(0.78_0.22_48)]/20 px-2 py-1 rounded-lg border border-[oklch(0.78_0.22_48)]/30 transition-all cursor-pointer"
-                  >
-                    <Plus size={12} />
-                    <span>Inserir Imagem</span>
-                  </button>
-                )}
               </div>
 
               {extraImagesList.length === 0 ? (
                 <p className="text-[11px] text-white/40 italic">
-                  Nenhuma imagem inserida neste slide. Clique em "+ Imagem" para adicionar fotos, adesivos ou ilustrações.
+                  Nenhuma imagem inserida neste slide. Use a aba Mídia para adicionar fotos, adesivos ou ilustrações.
                 </p>
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
@@ -831,7 +806,12 @@ export default function CanvasSidebar({
 
             {/* ── Cores e tamanho da tipografia (guardião de contraste integrado) ── */}
             <div className="pt-3 border-t border-white/8">
-              <TypographyColorControls post={post} onUpdatePost={onUpdatePost} />
+              <TypographyColorControls
+                post={post}
+                onUpdatePost={onUpdatePost}
+                selectedExtraText={selectedExtraText}
+                onUpdateExtraText={onUpdateExtraText}
+              />
             </div>
 
             <div className="space-y-1.5 pt-3 border-t border-white/8">
@@ -950,6 +930,8 @@ export default function CanvasSidebar({
             <TipCallout id="tip-media-tab" title="Fundos por IA, texturas ou suas fotos">
               Gere um fundo com IA, explore 110+ texturas da biblioteca ou envie uma foto. Para enquadrar, dê duplo clique no fundo do palco.
             </TipCallout>
+
+            {onAddExtraImage && <button type="button" onClick={() => sidebarImageInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-orange-400/35 bg-orange-400/10 px-3 py-2.5 text-xs font-semibold text-orange-300 hover:bg-orange-400/20"><ImagePlus size={15} /> Inserir imagem sobreposta</button>}
 
             {/* Chave: Aplicar a todos os slides do carrossel */}
             {post.slides.length > 1 && (

@@ -35,6 +35,7 @@ import {
   loadBriefDraft,
   clearBriefDraft,
 } from "./lib/briefDraftStorage";
+import { shouldReviewBriefBeforeGeneration } from "./lib/briefReviewPolicy";
 
 type ScreenStage = "create" | "gallery" | "editor";
 
@@ -305,6 +306,30 @@ export default function StudioAppV2BPage() {
     }
   };
 
+  /**
+   * Interpreta e persiste o briefing sem impor uma etapa extra ao post único.
+   * Apenas carrosséis precisam da revisão de estrutura/quantidade de slides.
+   */
+  const prepareBriefAndContinue = (
+    promptText: string,
+    mode: "static" | "carousel"
+  ) => {
+    const interpreted = interpretRawBriefing(promptText, {
+      selectedFormat: mode,
+      brandKit: brandKitQuery.data,
+    });
+    setActiveBrief(interpreted);
+    saveBriefDraft(interpreted, declaredFamilyId, "create");
+
+    if (shouldReviewBriefBeforeGeneration(mode)) {
+      setIsReviewingBrief(true);
+      return;
+    }
+
+    setIsReviewingBrief(false);
+    void doGenerate(promptText, mode, interpreted);
+  };
+
   const handleCreateSubmit = (promptText: string, mode: "static" | "carousel") => {
     // Etapa 3 §8.2 — divergência de formato detectável localmente: interrompe
     // e pede confirmação antes de qualquer chamada/reserva de Sparks.
@@ -313,14 +338,7 @@ export default function StudioAppV2BPage() {
       return;
     }
 
-    // Etapa 4 §9.2 — Interpretação estruturada antes de gerar (Progressive Disclosure)
-    const interpreted = interpretRawBriefing(promptText, {
-      selectedFormat: mode,
-      brandKit: brandKitQuery.data,
-    });
-    setActiveBrief(interpreted);
-    saveBriefDraft(interpreted, declaredFamilyId, "create");
-    setIsReviewingBrief(true);
+    prepareBriefAndContinue(promptText, mode);
   };
 
   const handleGenerateMore = () => {
@@ -349,28 +367,32 @@ export default function StudioAppV2BPage() {
   };
 
   // ─── Item 7: salvar / atualizar ───
-  const handleSavePost = async (post: CanvasPostModel, mode: "new" | "update"): Promise<boolean> => {
+  const handleSavePost = async (post: CanvasPostModel, mode: "new" | "update", source: "manual" | "auto"): Promise<boolean> => {
     if (isSaving) return false;
     setIsSaving(true);
     try {
       if (mode === "update" && savedPostId) {
         await updateMutation.mutateAsync({ id: savedPostId, ...canvasModelToUpdatePayload(post) });
-        toast.success("Post atualizado na sua biblioteca!", {
-          action: { label: "Ver salvos", onClick: () => setLocation("/saved-posts") },
-        });
+        if (source === "manual") {
+          toast.success("Post atualizado na sua biblioteca!", {
+            action: { label: "Ver salvos", onClick: () => setLocation("/saved-posts") },
+          });
+        }
       } else {
         const result = await saveMutation.mutateAsync(
           canvasModelToSavePayload(post, lastInputMeta),
         );
         setSavedPostId(result.id);
-        toast.success("Post salvo na sua biblioteca!", {
-          action: { label: "Ver salvos", onClick: () => setLocation("/saved-posts") },
-        });
+        if (source === "manual") {
+          toast.success("Post salvo na sua biblioteca!", {
+            action: { label: "Ver salvos", onClick: () => setLocation("/saved-posts") },
+          });
+        }
       }
       return true;
     } catch (err: any) {
       const message = err?.message || "Não foi possível salvar o post agora.";
-      toast.error(message);
+      if (source === "manual") toast.error(message);
       return false;
     } finally {
       setIsSaving(false);
@@ -432,7 +454,7 @@ export default function StudioAppV2BPage() {
 
       {/* Etapa 3 & 4 — bloqueios de UX e revisão de briefing sobre as telas */}
       <CreationGuardsHost>
-        {isReviewingBrief && activeBrief && (
+        {isReviewingBrief && activeBrief?.format === "carousel" && (
           <BriefReviewModal
             brief={activeBrief}
             brandKit={brandKitQuery.data}
@@ -441,6 +463,9 @@ export default function StudioAppV2BPage() {
               saveBriefDraft(updated, declaredFamilyId, "create");
             }}
             onConfirmGenerate={() => {
+              // Fecha primeiro para revelar imediatamente o ProductionOverlay
+              // da tela de criação enquanto a geração acontece.
+              setIsReviewingBrief(false);
               void doGenerate(activeBrief.rawInput, activeBrief.format, activeBrief);
             }}
             onBackToEditPrompt={() => {
@@ -458,25 +483,13 @@ export default function StudioAppV2BPage() {
               const detected = formatConfirm.intent.detectedFormat;
               const prompt = formatConfirm.prompt;
               setFormatConfirm(null);
-              const interpreted = interpretRawBriefing(prompt, {
-                selectedFormat: detected,
-                brandKit: brandKitQuery.data,
-              });
-              setActiveBrief(interpreted);
-              saveBriefDraft(interpreted, declaredFamilyId, "create");
-              setIsReviewingBrief(true);
+              prepareBriefAndContinue(prompt, detected);
             }}
             onKeepSelected={() => {
               const prompt = formatConfirm.prompt;
               const mode = formatConfirm.mode;
               setFormatConfirm(null);
-              const interpreted = interpretRawBriefing(prompt, {
-                selectedFormat: mode,
-                brandKit: brandKitQuery.data,
-              });
-              setActiveBrief(interpreted);
-              saveBriefDraft(interpreted, declaredFamilyId, "create");
-              setIsReviewingBrief(true);
+              prepareBriefAndContinue(prompt, mode);
             }}
             onDismiss={() => setFormatConfirm(null)}
           />
@@ -498,7 +511,7 @@ export default function StudioAppV2BPage() {
             }}
             onReviewBriefing={() => {
               setFailure(null);
-              if (activeBrief) {
+              if (activeBrief?.format === "carousel") {
                 setIsReviewingBrief(true);
               } else {
                 setStage("create");

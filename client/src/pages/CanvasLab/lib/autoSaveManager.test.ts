@@ -119,4 +119,43 @@ describe("AutoSaveManager", () => {
 
     expect(manager.getState()).toBe("error");
   });
+
+  it("cancels pending and queued saves when autosave is turned off", async () => {
+    const pendingSave = vi.fn().mockResolvedValue(true);
+    const pendingManager = new AutoSaveManager({ onSave: pendingSave, debounceMs: 100 });
+    pendingManager.triggerChange({ version: 1 });
+    pendingManager.destroy();
+    await vi.runAllTimersAsync();
+    expect(pendingSave).not.toHaveBeenCalled();
+
+    let finishSave: (success: boolean) => void = () => {};
+    const firstSave = new Promise<boolean>((resolve) => { finishSave = resolve; });
+    const inFlightSave = vi.fn().mockReturnValueOnce(firstSave);
+    const inFlightManager = new AutoSaveManager({ onSave: inFlightSave, debounceMs: 100 });
+    inFlightManager.triggerChange({ version: 1 });
+    vi.advanceTimersByTime(100);
+    inFlightManager.triggerChange({ version: 2 });
+    inFlightManager.destroy();
+    finishSave(true);
+    await vi.runAllTimersAsync();
+    expect(inFlightSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not duplicate a manual save and resumes for edits made during it", async () => {
+    const saveFn = vi.fn().mockResolvedValue(true);
+    const manager = new AutoSaveManager({ onSave: saveFn, debounceMs: 100 });
+    manager.triggerChange({ version: 1 });
+    manager.pauseForManualSave();
+    await vi.runAllTimersAsync();
+    expect(saveFn).not.toHaveBeenCalled();
+
+    manager.triggerChange({ version: 2 });
+    await vi.runAllTimersAsync();
+    expect(saveFn).not.toHaveBeenCalled();
+
+    manager.resumeAfterManualSave();
+    await vi.runAllTimersAsync();
+    expect(saveFn).toHaveBeenCalledOnce();
+    expect(saveFn).toHaveBeenCalledWith({ version: 2 });
+  });
 });

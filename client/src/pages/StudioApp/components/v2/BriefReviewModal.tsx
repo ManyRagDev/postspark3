@@ -23,14 +23,6 @@ export default function BriefReviewModal({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [newUrlInput, setNewUrlInput] = useState("");
 
-  const handleFormatChange = (newFormat: "static" | "carousel") => {
-    onUpdateBrief({
-      ...brief,
-      format: newFormat,
-      slideCount: newFormat === "carousel" ? (brief.slideCount ?? 5) : undefined,
-    });
-  };
-
   const handleSlideCountChange = (count: number) => {
     onUpdateBrief({
       ...brief,
@@ -80,7 +72,7 @@ export default function BriefReviewModal({
               <h2 className="text-xl font-bold tracking-tight text-white">Revisão do Briefing</h2>
             </div>
             <p className="text-xs text-white/50 mt-1">
-              Confirme como a IA estruturou sua ideia antes de despender Sparks na criação.
+              Revise a estrutura do carrossel antes de despender Sparks na criação.
             </p>
           </div>
           <button
@@ -92,55 +84,28 @@ export default function BriefReviewModal({
           </button>
         </div>
 
-        {/* FORMATO E CONTAGEM */}
+        {/* CONTAGEM DO CARROSSEL — o formato já foi escolhido no The Void */}
         <div className="flex flex-col gap-2 bg-white/[0.02] p-3.5 rounded-xl border border-white/5">
-          <label className="text-xs font-semibold text-white/70 uppercase tracking-wider">Formato Confirmado</label>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => handleFormatChange("static")}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
-                brief.format === "static"
-                  ? "bg-[#FF5C00]/20 border-[#FF5C00] text-[#FF5C00]"
-                  : "bg-white/5 border-white/10 text-white/60 hover:text-white"
-              }`}
-            >
-              Post Único (1 slide)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleFormatChange("carousel")}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
-                brief.format === "carousel"
-                  ? "bg-[#FF5C00]/20 border-[#FF5C00] text-[#FF5C00]"
-                  : "bg-white/5 border-white/10 text-white/60 hover:text-white"
-              }`}
-            >
-              Carrossel Multi-slide
-            </button>
+          <label className="text-xs font-semibold text-white/70 uppercase tracking-wider">
+            Quantidade de slides do carrossel
+          </label>
+          <div className="flex items-center gap-1.5 pt-1">
+            {[3, 4, 5, 7, 10].map((num) => (
+              <button
+                key={num}
+                type="button"
+                onClick={() => handleSlideCountChange(num)}
+                aria-pressed={(brief.slideCount ?? 5) === num}
+                className={`flex-1 h-8 rounded-md font-bold text-xs transition-colors ${
+                  (brief.slideCount ?? 5) === num
+                    ? "bg-[#FF5C00] text-black"
+                    : "bg-white/10 text-white/70 hover:bg-white/20"
+                }`}
+              >
+                {num}
+              </button>
+            ))}
           </div>
-
-          {brief.format === "carousel" && (
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5 text-xs text-white/70">
-              <span>Quantidade de slides:</span>
-              <div className="flex items-center gap-1.5">
-                {[3, 4, 5, 7, 10].map((num) => (
-                  <button
-                    key={num}
-                    type="button"
-                    onClick={() => handleSlideCountChange(num)}
-                    className={`w-7 h-7 rounded-md font-bold text-xs transition-colors ${
-                      (brief.slideCount ?? 5) === num
-                        ? "bg-[#FF5C00] text-black"
-                        : "bg-white/10 text-white/70 hover:bg-white/20"
-                    }`}
-                  >
-                    {num}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* FONTES / URLS IDENTIFICADAS */}

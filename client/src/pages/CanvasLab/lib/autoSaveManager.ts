@@ -21,6 +21,8 @@ export class AutoSaveManager<T> {
   private latestDoc: T | null = null;
   private queuedDoc: T | null = null;
   private isSaving = false;
+  private destroyed = false;
+  private paused = false;
   private timer: any = null;
   private lastSavedAt: Date | null = null;
 
@@ -43,6 +45,7 @@ export class AutoSaveManager<T> {
   }
 
   private setState(next: AutoSaveState, savedAt?: Date) {
+    if (this.destroyed) return;
     this.state = next;
     if (savedAt) this.lastSavedAt = savedAt;
     this.onStateChange?.(next, this.lastSavedAt ?? undefined);
@@ -50,7 +53,13 @@ export class AutoSaveManager<T> {
 
   /** Notifica que o documento sofreu alteração pelo usuário. */
   public triggerChange(doc: T): void {
+    if (this.destroyed) return;
     this.latestDoc = doc;
+
+    if (this.paused) {
+      this.setState("dirty");
+      return;
+    }
 
     // Se já estiver salvando, apenas enfileira o doc mais recente para o próximo ciclo
     if (this.isSaving) {
@@ -71,6 +80,23 @@ export class AutoSaveManager<T> {
       this.timer = null;
       void this.executeSave();
     }, this.debounceMs);
+  }
+
+  /** Evita salvar novamente a mesma versão enquanto um save manual acontece. */
+  public pauseForManualSave(): void {
+    if (this.destroyed) return;
+    this.paused = true;
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+    this.latestDoc = null;
+    this.queuedDoc = null;
+  }
+
+  /** Retoma o autosave somente se houve novas edições durante o save manual. */
+  public resumeAfterManualSave(): void {
+    if (this.destroyed) return;
+    this.paused = false;
+    if (this.latestDoc) this.triggerChange(this.latestDoc);
   }
 
   /** Força o salvamento imediato sem esperar o tempo de debounce. */
@@ -104,6 +130,11 @@ export class AutoSaveManager<T> {
       const result = await this.onSave(docToSave);
       const success = result !== false;
 
+      if (this.destroyed) {
+        this.isSaving = false;
+        return success;
+      }
+
       if (success) {
         const now = new Date();
         this.setState("saved", now);
@@ -123,6 +154,10 @@ export class AutoSaveManager<T> {
       this.isSaving = false;
       return success;
     } catch {
+      if (this.destroyed) {
+        this.isSaving = false;
+        return false;
+      }
       this.setState("error");
       this.isSaving = false;
 
@@ -136,6 +171,7 @@ export class AutoSaveManager<T> {
 
   /** Limpa timers pendentes ao desmontar o componente. */
   public destroy(): void {
+    this.destroyed = true;
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;

@@ -58,6 +58,33 @@ describe("saveAdapter", () => {
     expect(reopened.slides.map((s) => s.headline)).toEqual(["Capa", "Slide 2", "Slide 3", "Slide 4"]);
   });
 
+  it("round-trips rich text formatting and stable text-box geometry", () => {
+    const post = makePost({
+      headlineRich: [{ text: "Headline ", bold: true }, { text: "root", bold: false, color: "#ff0000", underline: true }],
+      slides: [
+        {
+          id: "s1",
+          step: "SLIDE 01",
+          headline: "Capa colorida",
+          subtext: "Corpo",
+          headlineRich: [{ text: "Capa ", color: "#ffffff" }, { text: "colorida", color: "#ff0000" }],
+          subtextRich: [{ text: "Corpo", sizeScale: 1.5, underline: true }],
+          headlineWidth: 216,
+          subtextWidth: 184,
+        },
+      ],
+    });
+
+    const payload = canvasModelToSavePayload(post, { inputType: "text", inputContent: "p" });
+    const reopened = savedPostToCanvasModel({ id: 5, canvas_model: payload.canvasModel });
+
+    expect(reopened.headlineRich).toEqual(post.headlineRich);
+    expect(reopened.slides[0].headlineRich).toEqual(post.slides[0].headlineRich);
+    expect(reopened.slides[0].subtextRich).toEqual(post.slides[0].subtextRich);
+    expect(reopened.slides[0].headlineWidth).toBe(216);
+    expect(reopened.slides[0].subtextWidth).toBe(184);
+  });
+
   it("preserves provenance through save → reopen (local fallback never becomes AI)", () => {
     const provenance = {
       source: "local_fallback" as const,

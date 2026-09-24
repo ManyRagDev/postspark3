@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Edit3,
   Palette,
   Image as ImageIcon,
   Sparkles,
-  ChevronUp,
-  ChevronDown,
   ArrowDownToLine,
   Wand2,
   Upload,
@@ -24,6 +22,7 @@ import {
   Copy,
   ChevronsUp,
   ChevronsDown,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { CanvasPostModel, VisualFamilyId, TextAlignType, OverlayMode, CanvasCustomText, CanvasCustomImage, SplitBgPosition, FitMode, BackgroundPlacement } from "@/pages/CanvasLab/components/types";
@@ -31,6 +30,7 @@ import { OFFICIAL_FAMILIES_META } from "@/pages/CanvasLab/components/types";
 import { applyFamilyPreset } from "../lib/familyPreset";
 import { duplicateExtraElement, reorderExtraElement } from "../lib/documentCommands";
 import TypographyColorControls from "./TypographyColorControls";
+import PropertyInspector from "./PropertyInspector";
 import TipCallout from "./TipCallout";
 import { useStudioTipsStore } from "@/store/studioTipsStore";
 import { Lightbulb } from "lucide-react";
@@ -55,9 +55,17 @@ interface CanvasMobileDrawerProps {
   onUpdateExtraImage?: (id: string, patch: Partial<CanvasCustomImage>) => void;
   onRemoveExtraImage?: (id: string) => void;
   selectedElementId?: string | null;
+  onSelectElement?: (id: string | null) => void;
 }
 
 type MobileTab = "text" | "style" | "media" | "brand";
+
+const mobileTabs = [
+  { id: "text", label: "Texto", icon: Edit3 },
+  { id: "style", label: "Estilo", icon: Palette },
+  { id: "media", label: "Mídia", icon: ImageIcon },
+  { id: "brand", label: "Logo", icon: Sparkles },
+] as const;
 
 export default function CanvasMobileDrawer({
   post,
@@ -74,6 +82,7 @@ export default function CanvasMobileDrawer({
   onUpdateExtraImage,
   onRemoveExtraImage,
   selectedElementId,
+  onSelectElement,
 }: CanvasMobileDrawerProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isControlled = controlledIsOpen !== undefined;
@@ -88,6 +97,68 @@ export default function CanvasMobileDrawer({
     }
   };
   const [activeTab, setActiveTab] = useState<MobileTab>("text");
+  const panelHeaderRef = useRef<HTMLDivElement>(null);
+  const panelContentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousHtml = document.documentElement.style.overscrollBehaviorY;
+    const previousBody = document.body.style.overscrollBehaviorY;
+    document.documentElement.style.overscrollBehaviorY = "none";
+    document.body.style.overscrollBehaviorY = "none";
+    return () => {
+      document.documentElement.style.overscrollBehaviorY = previousHtml;
+      document.body.style.overscrollBehaviorY = previousBody;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const header = panelHeaderRef.current;
+    const content = panelContentRef.current;
+    if (!header || !content) return;
+    let startX = 0;
+    let startY = 0;
+    let shouldClose = false;
+    const start = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      startX = touch.clientX;
+      startY = touch.clientY;
+      shouldClose = false;
+    };
+    const move = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      const dy = touch.clientY - startY;
+      const dx = touch.clientX - startX;
+      if (dy > 10 && dy > Math.abs(dx) && (event.currentTarget === header || content.scrollTop <= 0)) {
+        event.preventDefault();
+        shouldClose = dy > 64;
+      } else if (dy < 0 || Math.abs(dx) > dy) {
+        shouldClose = false;
+      }
+    };
+    const end = () => {
+      if (shouldClose) setIsOpen(false);
+      shouldClose = false;
+    };
+    const cancel = () => { shouldClose = false; };
+    for (const element of [header, content]) {
+      element.addEventListener("touchstart", start, { passive: true });
+      element.addEventListener("touchmove", move, { passive: false });
+      element.addEventListener("touchend", end);
+      element.addEventListener("touchcancel", cancel);
+    }
+    return () => {
+      for (const element of [header, content]) {
+        element.removeEventListener("touchstart", start);
+        element.removeEventListener("touchmove", move);
+        element.removeEventListener("touchend", end);
+        element.removeEventListener("touchcancel", cancel);
+      }
+    };
+  }, [isOpen, onToggleOpen]);
   const showTips = useStudioTipsStore((s) => s.showTips);
   const setShowTips = useStudioTipsStore((s) => s.setShowTips);
 
@@ -119,6 +190,7 @@ export default function CanvasMobileDrawer({
   const currentSlide = post.slides[post.currentSlideIndex] || post.slides[0];
   const extraTextsList = currentSlide?.extraTexts || post.extraTexts || [];
   const extraImagesList = currentSlide?.extraImages || post.extraImages || [];
+  const selectedExtraText = extraTextsList.find(text => text.id === selectedElementId);
   const activeBg = currentSlide?.bgImage || post.bgImage;
 
   const mobileImageInputRef = useRef<HTMLInputElement>(null);
@@ -228,6 +300,7 @@ export default function CanvasMobileDrawer({
 
   return (
     <>
+      <input ref={mobileImageInputRef} type="file" accept="image/*" className="hidden" onChange={handleMobileImageFile} />
       {/* Gaveta Oficial de Texturas (Modal tela cheia no mobile) */}
       <BackgroundsDrawer
         isOpen={isTexturesDrawerOpen}
@@ -239,7 +312,7 @@ export default function CanvasMobileDrawer({
         onToggleApplyToAll={setApplyToAllSlides}
       />
 
-      <div className="md:hidden fixed inset-x-0 bottom-0 z-40 select-none flex flex-col justify-end pointer-events-none">
+      <div className="md:hidden fixed inset-x-0 bottom-0 z-40 select-none flex flex-col justify-end gap-2 pb-[calc(env(safe-area-inset-bottom)+10px)] pointer-events-none overscroll-y-none">
         {/* Backdrop Transparente (Sem embaçar o post) */}
         {isOpen && (
           <div
@@ -248,62 +321,47 @@ export default function CanvasMobileDrawer({
           />
         )}
 
-        {/* Container da Gaveta */}
+        {/* Painel de propriedades: aparece acima do dock, sem cobrir os controles. */}
         <motion.div
-          className="w-full bg-[#0a0d16] border-t border-white/15 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.8)] pointer-events-auto flex flex-col overflow-hidden z-40"
+          id="canvas-mobile-editor-panel"
+          role="region"
+          aria-label={`Opções de ${mobileTabs.find(tab => tab.id === activeTab)?.label}`}
+          aria-hidden={!isOpen}
+          className={`relative z-40 mx-3 flex flex-col overflow-hidden rounded-3xl bg-[#0a0d16] shadow-[0_-10px_40px_rgba(0,0,0,0.8)] ${isOpen ? "border border-white/15 pointer-events-auto" : "pointer-events-none"}`}
           initial={false}
-          animate={{ height: isOpen ? "62vh" : "auto" }}
+          animate={{ height: isOpen ? "min(52dvh, 560px)" : 0 }}
           transition={{ type: "spring", stiffness: 350, damping: 30 }}
         >
-          {/* Handle / Puxador Superior */}
-          <div
-            onClick={() => setIsOpen(!isOpen)}
-            className="w-full py-2 flex flex-col items-center justify-center cursor-pointer bg-white/4 border-b border-white/8 active:bg-white/8"
-          >
-            <div className="w-10 h-1 rounded-full bg-white/25 mb-1" />
-            <div className="flex items-center justify-between w-full px-4 text-xs font-semibold text-white/80">
-              <span className="flex items-center gap-1.5">
-                <span className="text-[oklch(0.78_0.22_48)]">✦</span>
-                <span>{isOpen ? "Painel de Edição" : "Toque para Editar Post"}</span>
-              </span>
-              {isOpen ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-            </div>
-          </div>
-
-          {/* Barra de 4 Abas Táteis */}
-          <div className="grid grid-cols-4 p-1.5 gap-1 bg-black/40 border-b border-white/10 shrink-0">
-            {[
-              { id: "text", label: "Texto", icon: Edit3 },
-              { id: "style", label: "Estilo", icon: Palette },
-              { id: "media", label: "Mídia", icon: ImageIcon },
-              { id: "brand", label: "Logo", icon: Sparkles },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isSelected = activeTab === tab.id;
-              return (
+          {isOpen && <div ref={panelHeaderRef} className="flex min-h-11 shrink-0 touch-none items-center justify-between gap-2 border-b border-white/10 bg-white/4 px-4">
+            <span className="h-1 w-6 rounded-full bg-white/30" aria-hidden="true" />
+            <span className="text-xs font-semibold text-white">
+              {mobileTabs.find(tab => tab.id === activeTab)?.label}
+            </span>
+            <div className="flex items-center gap-2">
+              {post.slides.length > 1 && (
                 <button
-                  key={tab.id}
                   type="button"
-                  onClick={() => {
-                    setActiveTab(tab.id as MobileTab);
-                    if (!isOpen) setIsOpen(true);
-                  }}
-                  className={`flex flex-col items-center justify-center py-2 rounded-xl text-[11px] font-semibold transition-all ${
-                    isSelected
-                      ? "bg-white/15 text-white shadow-sm"
-                      : "text-white/40 hover:text-white"
-                  }`}
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-lg px-2 py-1.5 text-[11px] font-semibold text-orange-300 hover:bg-white/10"
+                  aria-label={`Ver slides. Slide ${post.currentSlideIndex + 1} de ${post.slides.length}`}
                 >
-                  <Icon size={15} className={isSelected ? "text-[oklch(0.78_0.22_48)]" : ""} />
-                  <span className="mt-0.5">{tab.label}</span>
+                  Slides · {post.currentSlideIndex + 1}/{post.slides.length}
                 </button>
-              );
-            })}
-          </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
+                aria-label="Fechar painel de edição"
+              >
+                <X size={17} />
+              </button>
+            </div>
+          </div>}
 
           {/* Conteúdo da Aba (Apenas quando aberta) */}
           {isOpen && (
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+            <div ref={panelContentRef} className="flex-1 overflow-y-auto overscroll-y-contain p-4 space-y-4 custom-scrollbar">
               {/* ─── ABA 1: TEXTO ─── */}
               {activeTab === "text" && (
                 <div className="space-y-3">
@@ -311,36 +369,17 @@ export default function CanvasMobileDrawer({
                     Título, subtexto, alinhamentos, fontes e cores por elemento com contraste garantido.
                   </TipCallout>
 
-                  {/* Ações Rápidas: Inserir Nova Caixa de Texto ou Imagem */}
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* Inserção de texto livre; imagem sobreposta fica em Mídia. */}
+                  <div>
                     {onAddExtraText && (
                       <button
                         type="button"
                         onClick={onAddExtraText}
-                        className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[oklch(0.78_0.22_48)]/20 to-[oklch(0.78_0.22_48)]/10 hover:from-[oklch(0.78_0.22_48)]/30 hover:to-[oklch(0.78_0.22_48)]/20 border border-[oklch(0.78_0.22_48)]/40 text-[oklch(0.78_0.22_48)] text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[oklch(0.78_0.22_48)]/20 to-[oklch(0.78_0.22_48)]/10 hover:from-[oklch(0.78_0.22_48)]/30 hover:to-[oklch(0.78_0.22_48)]/20 border border-[oklch(0.78_0.22_48)]/40 text-[oklch(0.78_0.22_48)] text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
                       >
                         <Plus size={14} strokeWidth={2.5} />
                         <span>+ Texto</span>
                       </button>
-                    )}
-                    {onAddExtraImage && (
-                      <>
-                        <input
-                          ref={mobileImageInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleMobileImageFile}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => mobileImageInputRef.current?.click()}
-                          className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white/80 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
-                        >
-                          <ImagePlus size={14} strokeWidth={2.2} />
-                          <span>+ Imagem</span>
-                        </button>
-                      </>
                     )}
                   </div>
 
@@ -648,16 +687,6 @@ export default function CanvasMobileDrawer({
                         <ImagePlus size={11} className="text-[oklch(0.78_0.22_48)]" />
                         <span>Imagens & Fotos ({extraImagesList.length})</span>
                       </label>
-                      {onAddExtraImage && (
-                        <button
-                          type="button"
-                          onClick={() => mobileImageInputRef.current?.click()}
-                          className="flex items-center gap-1 text-[11px] font-medium text-[oklch(0.78_0.22_48)] hover:text-white bg-[oklch(0.78_0.22_48)]/10 hover:bg-[oklch(0.78_0.22_48)]/20 px-2 py-0.5 rounded-lg border border-[oklch(0.78_0.22_48)]/30 transition-all cursor-pointer"
-                        >
-                          <Plus size={11} />
-                          <span>Inserir</span>
-                        </button>
-                      )}
                     </div>
 
                     {extraImagesList.length > 0 && (
@@ -801,7 +830,13 @@ export default function CanvasMobileDrawer({
 
                   {/* ── Cores e tamanho da tipografia (guardião de contraste integrado) ── */}
                   <div className="pt-3 border-t border-white/8">
-                    <TypographyColorControls post={post} onUpdatePost={onUpdatePost} compact />
+                    <TypographyColorControls
+                      post={post}
+                      onUpdatePost={onUpdatePost}
+                      selectedExtraText={selectedExtraText}
+                      onUpdateExtraText={onUpdateExtraText}
+                      compact
+                    />
                   </div>
                 </div>
               )}
@@ -1345,7 +1380,7 @@ export default function CanvasMobileDrawer({
           )}
 
           {/* Botão de Exportação Fixo no Rodapé */}
-          <div className="p-3 border-t border-white/10 bg-black/80 flex items-center gap-2">
+          {isOpen && <div className="p-3 border-t border-white/10 bg-black/80 flex items-center gap-2">
             <button
               type="button"
               onClick={onExportPng}
@@ -1364,7 +1399,7 @@ export default function CanvasMobileDrawer({
                 <span>ZIP</span>
               </button>
             )}
-          </div>
+          </div>}
           {/* Modo Estúdio Imersivo de Texturas */}
         <RadialTextureSelector
           isOpen={isTextureStudioOpen}
@@ -1375,6 +1410,43 @@ export default function CanvasMobileDrawer({
           applyToAllSlides={applyToAllSlides}
         />
       </motion.div>
+
+        <div id="canvas-mobile-text-format-slot" className="relative z-40 mx-3 empty:hidden pointer-events-auto" />
+        <div id="canvas-mobile-text-actions-slot" className="relative z-40 mx-3 empty:hidden pointer-events-auto" />
+      <div
+        role="toolbar"
+        aria-label="Ferramentas de edição"
+        className="relative z-40 mx-3 grid h-14 grid-cols-4 gap-1 rounded-2xl border border-white/15 bg-[#11151f]/95 p-1 shadow-[0_12px_35px_rgba(0,0,0,0.55)] backdrop-blur-xl pointer-events-auto"
+      >
+        {mobileTabs.map(tab => {
+          const Icon = tab.icon;
+          const isSelected = isOpen && activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                if (isSelected) {
+                  setIsOpen(false);
+                } else {
+                  setActiveTab(tab.id);
+                  setIsOpen(true);
+                }
+              }}
+              aria-controls="canvas-mobile-editor-panel"
+              aria-expanded={isSelected}
+              className={`flex min-w-0 flex-col items-center justify-center rounded-xl text-[11px] font-semibold transition-colors ${
+                isSelected
+                  ? "bg-orange-400/20 text-white"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <Icon size={17} className={isSelected ? "text-orange-300" : ""} />
+              <span className="mt-0.5">{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
       </div>
     </>
   );

@@ -63,18 +63,18 @@ Regras mandatórias do editor oficial:
 1. **`CanvasPostModel` é o documento autoritativo** do editor (`client/src/pages/CanvasLab/components/types.ts`). Toda mutação passa pelo funil `CanvasLabPage.handleUpdatePost`.
 2. **Guardião de Contraste (`lib/contrast.ts`)**: regra mandatória de usabilidade — fundo escuro ⇄ texto claro e vice-versa, **incluindo as metades do brutal-split** (título contra `background`, corpo contra `accent`). Executa em mudança de fundo, acento ou família (`patchTouchesContrast`). Escolhas manuais do usuário (flags `manualHeadlineColor`/`manualSubtextColor`) são preservadas e apenas sinalizadas com selo "contraste baixo".
 3. **Estilos pré-definidos nunca alteram cores**: `applyFamilyPreset` (`lib/familyPreset.ts`) aplica família alterando APENAS tipografia/composição; `background` e `accent` são preservados; `surface` só entra como fallback. Usar este helper (nunca reimplementar a lógica nos componentes).
-4. **Motor anti-sobreposição e estabilidade de layout**: `CanvasPostStage` adota distribuição harmônica e centrada por padrão (preservando a posição estável do texto com ou sem foto/textura de fundo, evitando que o texto salte arbitrariamente para o rodapé ao aplicar uma imagem). Reduz a fonte do título em até 3 passos (0.88×) quando a pilha título/corpo colide com a linha de corte do split (50%) ou a margem inferior; o subtítulo do split fica no mínimo na linha de corte (nunca o preto hardcoded legado). O usuário mantém controle total via drag-and-drop livre a qualquer momento.
+4. **Estabilidade de layout e resize previsível**: `CanvasPostStage` adota distribuição harmônica e centrada somente para o posicionamento inicial. A partir da primeira edição direta ou transformação, as posições efetivas de título, corpo e barra são congeladas no slide. A largura controla exclusivamente o word wrap; o motor não reduz a fonte implicitamente durante digitação ou resize. O subtítulo do split nasce no mínimo na linha de corte de 50%, e o usuário mantém controle total via drag-and-drop livre.
 5. **Persistência**: salvamento via `post.save`/`post.update` com o modelo completo na coluna `canvas_model` (drizzle/0016) — reabertura com fidelidade total via `savedPostToCanvasModel`.
 6. **Efeitos de Legibilidade Tipográfica (10 Estilos Oficiais)**: Para fotos e fundos com textura ou detalhes ricos (onde o cálculo de cor sólida é insuficiente para garantir leitura), o editor disponibiliza 10 estilos de realce aplicáveis livremente ao Título, Corpo ou Ambos (`headlineEffect`, `subtextEffect`):
    - *Básicos*: `none` (Normal), `shadow` (Sombra suave projetada com blur 12), `outline` (Contorno/stroke nítido com `fillAfterStrokeEnabled`).
    - *Caixas & Formas*: `box-card` (Cartão com cantos arredondados e preenchimento suave), `box-pill` (Pílula cápsula 999px), `box-glass` (Vidro fosco glassmorphism translúcido), `box-accent` (Caixa na cor primária da marca com texto contrastante automático), `box-brutal` (Tarja neobrutal com cantos vivos e sombra preta sólida de 3px).
    - *Atmosféricos & Dinâmicos*: `scrim` (Gradiente/vinheta suave sem bordas geométricas duras), `strip-line` (Tarjas ajustadas por linha de texto estilo Stories).
-7. **Edição Direta On-Canvas (Inline Editor Konva + HTML Overlay)**:
-   - Duplo clique no Desktop ou duplo toque no Mobile diretamente sobre o Título, Subtítulo ou Badge abre imediatamente uma caixa `<textarea>` HTML espelhada sobre a prancheta.
-   - O elemento HTML sobrepõe-se no container relativo da prancheta herdando o mesmo sistema de coordenadas e a escala CSS exata (`zoom`), clonando família tipográfica, tamanho, peso, altura de linha, espaçamento entre letras, cor e alinhamento do Konva com 0px de deslocamento.
-   - Durante a edição, o texto vetorial do Konva adota opacidade 0 para eliminar duplicação visual (ghosting), enquanto o efeito de legibilidade de fundo (`box-card`, `box-pill`, `box-glass`, etc.) permanece visível atrás do texto digitado.
-   - Apresenta barra flutuante de ações com botões táteis `[ ✓ Concluir ]` e `[ ✕ Cancelar ]`, além de atalhos (`Ctrl+Enter` / `Enter` para concluir, `Esc` para cancelar, e salvamento automático ao clicar fora).
-   - O salvamento propaga-se via `onUpdateText` atualizando o slide ativo e os campos-base do `CanvasPostModel`.
+7. **Edição Direta On-Canvas (Konva autoritativo)**:
+   - Duplo clique no Desktop ou duplo toque no Mobile sobre Título, Subtítulo, Badge ou Texto Extra inicia a edição sem ocultar nem substituir o nó visual do Konva.
+   - Um `<textarea>` de 1×1, invisível e fora da área visual, existe apenas como ponte nativa de teclado, clipboard e IME. Ele não desenha uma segunda cópia do texto.
+   - Texto, word wrap, seleção e caret são desenhados no próprio Konva a partir da mesma geometria de `lib/richTextLayout.ts`; a caixa não muda de forma ou posição ao entrar/sair do modo de edição.
+   - A seleção no palco alimenta a barra flutuante de cor, tamanho, negrito, itálico e limpeza; o feedback aparece imediatamente no texto Konva. `Concluir`, `Ctrl/Cmd+Enter` ou clique fora persistem; `Esc`/`Cancelar` descartam o rascunho.
+   - Texto e chunks ricos são persistidos em uma única mutação de `CanvasPostModel`, produzindo uma única entrada de Undo/Redo e de autosave.
 
 8. **Progresso Realista de Geração (`ProductionOverlay`)**:
    - Eliminação do temporizador linear artificial de 2,6s que congelava em 96%.
@@ -85,7 +85,7 @@ Regras mandatórias do editor oficial:
    - O menu de conta, saldo de Sparks em tempo real (`billing.getProfile`), plano, perfil, posts salvos (`/saved-posts`), histórico (`/history`) e logout é persistente e acessível em todas as telas da aplicação.
    - Na tela de criação do Studio (`StudioCreateViewV2B`), fica ancorado no canto superior direito (`fixed top-3.5 right-4 md:right-6`).
    - Na galeria de direções (`StudioGalleryView` e `StudioMobileFlashcards`), é embutido diretamente no header superior ao lado do seletor de formatos.
-   - No editor do CanvasLab (`CanvasTopBar`), é embutido no canto direito da barra de ferramentas ao lado do botão de exportação 4K.
+   - No editor do CanvasLab (`CanvasTopBar`), é embutido no canto direito da barra superior, depois das ações globais de edição e salvamento.
    - Em todas as demais páginas do sistema (`/saved-posts`, `/history`, `/billing`, `/pricing`, etc.), o menu flutuante global permanece permanentemente ativo e ancorado no topo (`top-3.5 right-4 md:right-6`).
 
 10. **Seletor de Cor da Sombra e Fundo das Letras (`headlineEffectColor`, `subtextEffectColor`)**:
@@ -292,7 +292,7 @@ O editor visual oficial do PostSpark (`CanvasLabPage`, rota `/thevoid`) foi cons
 ### Estrutura e Fluxo:
 - **Máquina de estados** (`StudioAppV2BPage`): `create` (StudioCreateViewV2B) → `gallery` (StudioGalleryView desktop / StudioMobileFlashcards mobile — "HoloDeck" histórico) → `editor` (CanvasLabPage).
 - **Galeria**: clique/toque no card seleciona a direção e abre o editor (além do botão "Personalizar Post").
-- **Editor CanvasLab**: `CanvasTopBar` (Galeria, **Recomeçar**, formatos, Ímã, paginação de carrossel, zoom, **Salvar**, ZIP, Exportar 4K), `CanvasSidebar` (desktop) / `CanvasMobileDrawer` (mobile) com abas **Texto · Estilo · Mídia · Logo**, `CanvasPostStage` (prancheta Konva com snap magnético, transformadores e edição de fundo estilo Canva via duplo clique) e `CarouselFilmstrip`.
+- **Editor CanvasLab**: `CanvasTopBar` concentra identidade Studio, Desfazer/Refazer, salvamento, exportação e menu de ações; `CanvasToolRail` reúne formato, ímã e zoom à direita apenas em desktop largo; `CanvasSidebar` (desktop) / `CanvasMobileDrawer` (mobile) preservam as abas **Texto · Estilo · Mídia · Logo**; `CanvasPostStage` desenha a prancheta Konva e `CarouselFilmstrip` controla os slides. Em larguras menores, as ferramentas da rail ficam no menu da barra superior.
 
 ### Abas do editor (desktop e mobile em paridade):
 - **Texto**: título/subtítulo/etapa/badge, alinhamento, **cores por elemento** (Título/Corpo, com selo de contraste baixo e botão Limpar), **multiplicadores de tamanho** (`headlineSizeScale`/`subtextSizeScale`, 60–160%) e legenda estratégica do Instagram.
@@ -689,13 +689,108 @@ Conclusão e validação integrada do ciclo Studio V2 / CanvasLab:
      - *Cenário 2*: Transição determinística da galeria do Studio para o CanvasLab com hidratação autoritativa do `CanvasPostModel` e integridade de slides.
      - *Cenário 3*: Manipulação de elementos extras livres (duplicação UUID-v4, opacidade, rotação, empilhamento z-index `front`/`back` e remoção limpa).
      - *Cenário 4*: Edição assistida no CanvasLab combinando histórico imutável (`pushHistory`, `undoHistory`, `redoHistory`), salvamento concorrente com mutex/debounce (`AutoSaveManager`) e reordenação drag-and-drop de carrossel mantendo a regra canônica do slide 0 como capa.
-     - *Cenário 5*: Proteção contra regressões no normalizador de transformações do Konva Stage (`width = Math.max(40, Math.round(width * scaleX))`, reset de `scaleX(1)/scaleY(1)`).
+     - *Cenário 5*: Proteção contra regressões nos normalizadores de transformação do Konva Stage: elementos livres continuam consolidando escala na dimensão final; headline e subtítulo usam uma sessão geométrica imutável, sem realimentar cada frame com a caixa visual recalculada pelo word wrap.
 2. **Auditoria de Integridade**:
    - Nenhuma migração destrutiva aplicada no Supabase.
    - Todos os arquivos essenciais e pré-modificados preservados intactos.
    - Paridade rigorosa entre as interfaces de desktop (`CanvasSidebar`) e mobile (`CanvasMobileDrawer`).
 
 ---
+
+## 13.13 ADR — Word Wrap e Nova Física da Caixa de Texto no CanvasLab (2026-09-23)
+
+Implementada a Etapa 1 da refatoração de redimensionamento de texto para o editor oficial:
+
+1. **Redimensionamento Natural (Word Wrap Vivo)**: A deformação anamórfica de arrastar textos com escala livre foi removida. O componente `<Transformer>` do Konva agora oculta alças verticais para textos (`enabledAnchors`). Ajustar pelas alças laterais altera ativamente a propriedade `width` das caixas (`onTransform`), acionando o word wrap em tempo real sem esticar as letras.
+2. **Geometria estável**: Headline e subtítulo expõem somente as alças laterais. Um frame geométrico transparente e dedicado, irmão do grupo visual, é o único alvo do `Transformer`; fundos de legibilidade, sombras e alterações de altura causadas pelo word wrap ficam fora do cálculo do bounding box. A escala Konva volta imediatamente a 1, sem distorcer os glifos.
+3. **Persistência de Propriedades por Slide**: `CanvasPostModel.CarouselSlideItem` rastreia individualmente `headlineWidth`, `subtextWidth`, `headlineScale` e `subtextScale`. O normalizador de `saveAdapter.ts` preserva e valida essas propriedades ao reabrir o post.
+
+## 13.14 ADR — Inspetor Contextual Universal no CanvasLab (2026-09-23)
+
+Implementada a Etapa 2 da refatoração de UX do editor oficial:
+
+1. **Property Inspector (UX Universal)**: O CanvasLab agora possui o módulo `PropertyInspector.tsx` responsável por substituir os painéis inteiros da Barra Lateral (`CanvasSidebar`) e do Drawer (`CanvasMobileDrawer`) quando há um elemento de texto selecionado.
+2. **Separação de Abas vs Propriedades**: As abas globais de "Estilo", "Mídia" e "Conteúdo" continuam disponíveis apenas quando o CanvasLab não possui seleção ativa. Ao clicar em Título, Subtítulo ou Texto Extra, o Property Inspector fornece controles unificados (Cor, Fonte, Opacidade, Fundo de Legibilidade, Z-Index) focados estritamente na seleção atual.
+3. **Limpeza da aba Style**: `TypographyColorControls` foi migrado globalmente para o escopo do Inspector.
+
+## 13.15 ADR — Motor de Rich Text Nativo Konva (2026-09-23)
+
+Implementada a Etapa 3 da refatoração de tipografia do CanvasLab:
+
+1. **Schema JSON de Rich Text**: A interface `CanvasRichTextChunk` foi criada no `CanvasPostModel` e implementada dentro de `CarouselSlideItem` (via `headlineRich` e `subtextRich`) e `CanvasCustomText`. Inclui overrides por trecho de cor, escala, negrito, itálico e sublinhado.
+2. **Mini-Barra Contextual (`RichTextFloatingToolbar.tsx`)**: Recebe a seleção autoritativa do editor e dispara formatações granulares de Cor e Tamanho (Ex: T+, T-). No desktop é posicionada dentro do viewport; no mobile integra o chrome inferior de edição, sem substituir o texto do Konva.
+3. **Konva Rendering 2D Engine (`RichTextRenderer.tsx`)**: Para suportar nós de cores diferentes sem o DOM `foreignObject` (visando manter as fontes carregáveis na exportação zip), o motor cria os nós de `<Text>` do Konva posicionados individualmente. A quebra de linha utiliza `canvas.measureText()` nativo antes do envio ao WebGL. O alinhamento resolve conflitos com tamanhos variados usando `textBaseline="top"` nativo e cálculo de offsets locais para Y e alinhamento center/right.
+
+## 13.16 Estabilização da edição inline e do resize tipográfico (2026-09-23)
+
+1. **Konva como representação visual única**: o texto selecionado permanece visível e editável no próprio palco. O HTML não espelha fonte, dimensões ou quebras; um `<textarea>` invisível captura apenas teclado, clipboard, seleção nativa e IME. Isso elimina tanto o ghosting quanto a troca perceptível de motor ao entrar e sair da edição.
+2. **Geometria compartilhada**: `lib/richTextLayout.ts` é usado por `RichTextRenderer`, hit test, caret, seleção, cálculo de altura e word wrap. Título, corpo e textos extras deixam de combinar métricas independentes durante a interação.
+3. **Feedback rico imediato e transacional**: cor, tamanho, negrito, itálico, sublinhado e limpeza atualizam o render Konva local antes da persistência. Inserções e remoções reconciliam os chunks para conservar o estilo ao redor. `Concluir` persiste texto e chunks juntos em uma única entrada do histórico; `Cancelar` descarta ambos.
+4. **Resize horizontal determinístico**: headline e subtítulo expõem somente alças laterais. Cada gesto parte de um snapshot imutável capturado no `transformstart`; a geometria corrente é derivada diretamente do deslocamento do ponteiro, com precisão subpixel durante a interação e arredondamento apenas no commit. A alça direita mantém a borda esquerda fixa, a esquerda mantém a borda direita fixa, e a largura redistribui palavras entre linhas sem escala anamórfica nem redução automática da fonte. As posições relacionadas são congeladas durante o gesto e persistidas atomicamente no slide ao final.
+5. **Seleção on-canvas**: clique/arraste dentro de título, corpo ou texto extra resolve índices pelo mesmo layout e desenha highlight/caret em Konva; a barra HTML permanece apenas como controle flutuante e nunca substitui a arte.
+6. **Persistência**: `headlineRich`, `subtextRich`, `textRich`, `headlineWidth`, `subtextWidth` e escalas legadas são normalizados em `saveAdapter.ts` na raiz e por slide, garantindo reabertura fiel.
+7. **Testes de regressão**: `richText.test.ts` cobre aplicação/reconciliação dos chunks e `richTextLayout.test.ts` cobre reflow monotônico, hit test, seleção, caret, quebras explícitas e estilos mistos.
+
+## 13.17 Frame geométrico determinístico para resize de texto (2026-09-24)
+
+1. **Separação entre geometria e aparência**: `CanvasPostStage.tsx` conecta o `Transformer` de headline e subtítulo a frames transparentes dedicados, em vez dos grupos que contêm glifos, seleção e efeitos de legibilidade. O bounding box deixa de variar quando o texto troca de linha ou quando um efeito extrapola a largura nominal.
+2. **Sessão imutável por gesto**: `lib/textResizeGeometry.ts` registra alça ativa, ponteiro inicial, posição e largura iniciais. Cada frame é calculado a partir desse mesmo baseline, impedindo que o resultado renderizado no frame anterior realimente o próximo cálculo.
+3. **Invariantes das bordas**: a alça direita altera somente a largura e mantém `x`; a alça esquerda conserva a borda direita e deriva `x` da nova largura. O limite mínimo de 40 px é aplicado sem salto de posição.
+4. **Renderização fluida e commit estável**: valores fracionários são preservados durante o arraste; `x`, `y` e largura são arredondados apenas no `transformend`. A persistência continua atômica por `CanvasLabPage.handleUpdateTextTransform`, produzindo uma única mutação de documento/histórico ao concluir o gesto.
+5. **Sincronização de movimento**: ao arrastar headline ou subtítulo, o frame geométrico acompanha o grupo visual e o `Transformer` é atualizado, evitando divergência entre a caixa de seleção e o texto.
+6. **Cobertura de regressão**: `lib/textResizeGeometry.test.ts` valida monotonicidade, bordas fixas, largura mínima, gesto de ida e volta, precisão subpixel e independência entre frames.
+
+## 13.18 Toggle de negrito e overrides tipográficos explícitos (2026-09-24)
+
+1. **Toggle contextual**: o botão de negrito da `RichTextFloatingToolbar` consulta o peso efetivo do intervalo selecionado. Se todo o trecho estiver em bold, o clique desativa; em seleção normal ou mista, o clique uniformiza o intervalo em bold.
+2. **Estado visual e acessibilidade**: o controle expõe `aria-pressed` e apresenta fundo de acento, deslocamento e sombra interna quando ativado, reproduzindo o comportamento pressionado/despressionado esperado em editores visuais.
+3. **Contrato com três estados**: `RichTextFormatPatch` distingue herança (`null`/ausência de override), bold explícito (`true`) e peso normal explícito (`false`). Isso permite remover negrito de um trecho mesmo quando o estilo-base do elemento — como a headline — já é bold.
+4. **Renderização independente da família**: `richTextLayout.ts` resolve o override por caractere antes de gerar os nós `Text` do Konva, enviando `fontStyle="bold"` ou `fontStyle="normal"` ao canvas para qualquer família tipográfica ativa.
+5. **Persistência fiel**: `saveAdapter.ts` preserva tanto `bold: true` quanto `bold: false` no `CanvasPostModel`, mantendo o estado após salvar e reabrir.
+6. **Cobertura de regressão**: `richText.test.ts`, `richTextLayout.test.ts` e `saveAdapter.test.ts` cobrem o toggle, seleção mista, override normal dentro de uma base bold e round-trip de persistência.
+
+## 13.19 Fundos e efeitos para a caixa de texto selecionada (2026-09-24)
+
+1. **Novo alvo contextual**: o seletor de “Fundo e Efeito das Letras” oferece `Caixa selecionada` quando `selectedElementId` corresponde a um `CanvasCustomText` do slide ativo. Ao trocar a seleção para outra caixa, esse alvo passa a apontar automaticamente para o novo elemento.
+2. **Isolamento da mutação**: efeitos e cores escolhidos nesse alvo são enviados por `onUpdateExtraText(id, patch)` e alteram somente `effect`/`effectColor` da caixa selecionada; Título, Corpo, outras caixas e outros slides permanecem intactos.
+3. **Paridade desktop/mobile**: `CanvasSidebar` e `CanvasMobileDrawer` resolvem o texto extra ativo e entregam o mesmo contexto a `TypographyColorControls`. O seletor usa grade adaptativa para acomodar quatro alvos sem comprimir o controle mobile.
+4. **Paridade do inspetor contextual**: `PropertyInspector` também aceita `effect` e `effectColor` para textos extras, eliminando a antiga restrição interna a headline/subtexto.
+5. **Contraste no Konva**: `CanvasPostStage` aplica às caixas extras a mesma resolução de cor usada por Título e Corpo nos efeitos `box-accent` e `box-brutal`, evitando texto ilegível sobre a nova superfície.
+6. **Cobertura de regressão**: `TypographyColorControls.test.tsx` valida em DOM que o alvo contextual nasce ativo e que selecionar um fundo atualiza exclusivamente a caixa escolhida.
+
+## 13.20 Revisão de briefing condicional por formato (2026-09-24)
+
+1. **Revisão exclusiva para carrossel**: após interpretar e persistir o briefing, o fluxo do The Void abre `BriefReviewModal` apenas quando o formato efetivo é `carousel`. Posts estáticos seguem diretamente para `doGenerate`, sem uma etapa intermediária de revisão.
+2. **Formato definido antes do modal**: o seletor entre post único e carrossel foi removido da revisão. O formato autoritativo vem da escolha feita na criação ou da decisão tomada no `FormatConfirmModal` quando o texto e a seleção explícita divergem.
+3. **Roteamento unificado**: submissões normais e as duas decisões do modal de divergência passam por `prepareBriefAndContinue`, evitando diferenças de comportamento entre os caminhos e garantindo que somente carrosséis parem para revisão.
+4. **Revisão focada na estrutura**: para carrosséis, o modal mantém a quantidade de slides, referências e campos avançados relevantes à composição, sem permitir uma troca tardia de formato.
+5. **Transição de geração visível**: ao confirmar o briefing, `isReviewingBrief` é desativado antes de iniciar `doGenerate`. Assim, o modal sai da tela e o `ProductionOverlay` normal de preparação dos posts fica visível durante a geração.
+6. **Recuperação coerente**: a opção de revisar o briefing após uma falha de geração reabre o modal somente para carrosséis; em posts estáticos, retorna à etapa de criação.
+7. **Cobertura de regressão**: `lib/briefReviewPolicy.test.ts` fixa a política por formato e `components/v2/BriefReviewModal.test.tsx` confirma a ausência do seletor de formato e o acionamento da confirmação.
+
+## 13.21 Salvamento automático opcional no CanvasLab (2026-09-24)
+
+1. **Controle explícito**: `CanvasTopBar` oferece um checkbox de salvamento automático, inicialmente desativado. A preferência é guardada em `localStorage` (`postspark.canvasAutoSaveEnabled`) e aplicada nas próximas sessões do navegador.
+2. **Edição independente da persistência**: com o checkbox desligado, mutações, Undo e Redo continuam atualizando o `CanvasPostModel` e o indicador de alterações, mas não agendam requisições de salvamento. Ao ativar o controle com alterações pendentes, o documento atual entra no fluxo de autosave.
+3. **Desativação imediata e coordenação manual**: o `AutoSaveManager` cancela o debounce e descarta versões enfileiradas ao desligar. Uma requisição já enviada pode terminar, sem iniciar outra após a desativação. Durante um save manual, o autosave pausa o agendamento para não duplicar a mesma versão e retoma somente se novas edições ocorrerem nesse intervalo.
+4. **Feedback conforme a origem**: `CanvasLabPage` informa se o salvamento foi manual ou automático a `StudioAppV2BPage.handleSavePost`. Somente o salvamento manual mostra toast de sucesso ou erro; o automático usa apenas o indicador discreto da barra superior.
+5. **Cobertura de regressão**: `lib/autoSaveManager.test.ts` verifica o cancelamento de saves pendentes e enfileirados e a coordenação com um save manual.
+
+## 13.22 Hierarquia responsiva dos controles do CanvasLab (2026-09-24)
+
+1. **Barra superior enxuta**: a marca PostSpark Studio ocupa o início do cabeçalho, com tratamento tipográfico e brilho discreto. Desfazer/Refazer recebem um grupo destacado; salvamento manual, preferência de autosave, exportação e conta ficam entre as ações globais. Galeria permanece como retorno direto no mobile e como ação do menu no desktop. Recomeçar mantém o diálogo de confirmação: aparece na barra rápida acima da arte no mobile e no menu no desktop.
+2. **Ferramentas da prancheta por largura**: `CanvasToolRail` apresenta formato, ímã e zoom em uma coluna compacta na borda direita do canvas a partir de `xl` (1280 px). O seletor de proporção mostra o valor atual (por exemplo, `1:1`) junto ao rótulo visível “Formato”, em vez de depender apenas de um ícone; o menu também usa esse nome. Entre `md` e `xl`, esses comandos ficam em “Mais ações”. Abaixo de `md`, `CanvasMobileQuickActions` mostra Formato, slide, Zoom, Ímã, Baixar e Recomeçar em uma faixa própria acima da prancheta enquanto o painel inferior estiver fechado; o espaço é reservado no layout e liberado ao abrir o painel. O botão Zoom abre abaixo de si um slider tátil de 60% a 180%, em passos de 5%, com percentual atual e restauração para 100%; durante o arraste a escala do palco acompanha o dedo sem a interpolação de mola. Baixar oferece a imagem 4K do slide atual e, em carrossel, o ZIP de todos os slides, usando os mesmos handlers de exportação do editor.
+3. **Inserção sem duplicação na barra**: os atalhos de inserir texto e imagem saíram do topo. Texto livre permanece em Texto; a ação principal de inserir imagem sobreposta fica em Mídia, distinta de definir imagem de fundo. As listas contextuais dos elementos continuam disponíveis para gerenciamento.
+4. **Dock e slides no mobile**: Texto, Estilo, Mídia e Logo ficam sempre visíveis em um dock flutuante inferior, afastado das bordas e da área segura do dispositivo. Em carrosséis, a faixa compacta de slides aparece acima dele quando o painel de edição está fechado. Ao abrir uma ferramenta, o painel de propriedades ocupa a área acima do dock, a faixa se recolhe e um indicador “Slides · atual/total” permite voltar a ela. Em posts de slide único a faixa não ocupa espaço; a barra rápida usa “+ 2º slide” para acrescentar o segundo slide ao post atual e transformá-lo em carrossel (texto detalhado “Transformar este post em carrossel” no menu). A partir de dois slides, o rótulo vira “+ Slide”; o botão de inserção da faixa fica apenas no desktop para não duplicar a ação no mobile. O menu tátil de ações de cada slide permanece disponível na faixa.
+5. **Viewport**: a página usa altura dinâmica (`100dvh`), reserva espaço real para a barra rápida, o dock e a faixa mobile e calcula a escala/deslocamento da prancheta conforme a área livre quando o painel abre. A barra superior não depende da distribuição simultânea de todos os controles em uma única linha.
+6. **Cobertura de regressão**: `CanvasTopBar.test.tsx` garante que Desfazer, Refazer e Salvar continuem acionáveis e que os atalhos redundantes de inserção não voltem ao cabeçalho; `CanvasMobileDrawer.test.tsx` confirma que as quatro ferramentas de edição permanecem acessíveis com o painel fechado; `CanvasMobileQuickActions.test.tsx` verifica o rótulo contextual do segundo slide, as ações diretas e o ajuste por teclado do slider de zoom.
+
+## 13.23 Seleção de texto tátil e chrome contextual estável (2026-09-24)
+
+1. **Seleção no Konva**: duplo clique/toque em título, corpo ou texto extra seleciona a palavra usando `lib/textSelection.ts`; triplo clique seleciona todo o conteúdo. Toque longo também abre a edição no mobile. O highlight e o caret continuam no Konva; o `textarea` invisível conserva teclado, clipboard e IME.
+2. **Alças táteis**: uma seleção não vazia no mobile mostra alças de início e fim desenhadas no Konva, com área de toque ampliada conforme a escala visual da prancheta. Arrastá-las atualiza a mesma seleção do `textarea` e do render, permitindo expansão do intervalo sem duplicar a arte.
+3. **Formatação sem deslocamento**: no mobile, formatação e ações Concluir/Cancelar/Selecionar tudo ocupam slots fixos acima do dock inferior; a barra não persegue a palavra nem ultrapassa a borda. A paleta contextual mobile usa duas linhas de seis células ajustadas à largura disponível, sem rolagem horizontal: cinco cores rápidas mais o seletor nativo de espectro completo na primeira; B, I e U com toggle/estado pressionado, T+, T− e Limpar na segunda. `T=` foi removido por duplicar a restauração de tamanho de Limpar. A escolha personalizada atualiza os chunks ricos do trecho selecionado sem devolver prematuramente o foco ao `textarea`; ao fechar o seletor, o foco volta ao editor. No desktop, a barra contextual fica limitada ao viewport e oferece os mesmos comandos de estilo. A seleção é o estado único compartilhado entre canvas e comandos.
+4. **Recolher o painel**: deslizar para baixo no cabeçalho fecha o painel de propriedades; no conteúdo, fecha somente quando a rolagem interna está no topo. O movimento é interceptado para não acionar o pull-to-refresh durante esse gesto; a rolagem normal do conteúdo permanece disponível.
 
 ## 14. Comandos de Validação e Deploy
 
@@ -705,7 +800,7 @@ Toda alteração de código deve ser verificada pelo seguinte protocolo antes do
 # 1. Verificação Estrita de Tipagem TypeScript (0 erros obrigatórios)
 pnpm check
 
-# 2. Execução da Bateria Completa de Testes Automatizados (804 testes em 2026-09-23)
+# 2. Execução da Bateria Completa de Testes Automatizados (831 testes em 2026-09-24)
 pnpm test
 
 # 3. Compilação de Produção (Vite para frontend + esbuild para api/index.js)
@@ -717,4 +812,3 @@ pnpm run verify:runtime
 # 5. Execução do Servidor em Produção
 pnpm start
 ```
-

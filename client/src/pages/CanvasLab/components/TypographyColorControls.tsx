@@ -13,16 +13,21 @@
 
 import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
-import type { CanvasPostModel, TextLegibilityEffect } from "./types";
+import type { CanvasCustomText, CanvasPostModel, TextLegibilityEffect } from "./types";
 import { TEXT_EFFECTS_META } from "./types";
 import { getContrastWarnings } from "../lib/contrast";
 
 interface TypographyColorControlsProps {
   post: CanvasPostModel;
   onUpdatePost: (patch: Partial<CanvasPostModel>) => void;
+  /** Caixa de texto livre atualmente selecionada no canvas. */
+  selectedExtraText?: CanvasCustomText;
+  onUpdateExtraText?: (id: string, patch: Partial<CanvasCustomText>) => void;
   /** Visual compacto para o drawer mobile. */
   compact?: boolean;
 }
+
+type EffectTarget = "both" | "headline" | "subtext" | "selected";
 
 function LowContrastBadge() {
   return (
@@ -36,62 +41,93 @@ function LowContrastBadge() {
   );
 }
 
-export default function TypographyColorControls({ post, onUpdatePost, compact = false }: TypographyColorControlsProps) {
+export default function TypographyColorControls({
+  post,
+  onUpdatePost,
+  selectedExtraText,
+  onUpdateExtraText,
+  compact = false,
+}: TypographyColorControlsProps) {
   const warnings = getContrastWarnings(post);
   const headlineColor = post.palette.headlineColor ?? post.palette.text;
   const subtextColor = post.palette.subtextColor ?? post.palette.text;
 
-  const [effectTarget, setEffectTarget] = useState<"both" | "headline" | "subtext">("both");
+  const [effectTarget, setEffectTarget] = useState<EffectTarget>("both");
+  const [effectTargetSelectionId, setEffectTargetSelectionId] = useState<string>();
+  const canTargetSelectedBox = Boolean(selectedExtraText && onUpdateExtraText);
+  const selectedExtraTextId = canTargetSelectedBox ? selectedExtraText?.id : undefined;
+  const resolvedEffectTarget: EffectTarget = selectedExtraTextId && effectTargetSelectionId !== selectedExtraTextId
+    ? "selected"
+    : effectTarget === "selected" && !selectedExtraTextId
+    ? "both"
+    : effectTarget;
+
+  const selectEffectTarget = (target: EffectTarget) => {
+    setEffectTarget(target);
+    setEffectTargetSelectionId(selectedExtraTextId);
+  };
 
   const currentEffect =
-    effectTarget === "both"
+    resolvedEffectTarget === "both"
       ? (post.headlineEffect === post.subtextEffect ? post.headlineEffect || "none" : null)
-      : effectTarget === "headline"
+      : resolvedEffectTarget === "headline"
       ? post.headlineEffect || "none"
-      : post.subtextEffect || "none";
+      : resolvedEffectTarget === "subtext"
+      ? post.subtextEffect || "none"
+      : selectedExtraText?.effect || "none";
 
   const handleSelectEffect = (effectId: TextLegibilityEffect) => {
-    if (effectTarget === "both") {
+    if (resolvedEffectTarget === "both") {
       onUpdatePost({ headlineEffect: effectId, subtextEffect: effectId });
-    } else if (effectTarget === "headline") {
+    } else if (resolvedEffectTarget === "headline") {
       onUpdatePost({ headlineEffect: effectId });
-    } else {
+    } else if (resolvedEffectTarget === "subtext") {
       onUpdatePost({ subtextEffect: effectId });
+    } else if (selectedExtraText && onUpdateExtraText) {
+      onUpdateExtraText(selectedExtraText.id, { effect: effectId });
     }
   };
 
   const handleSelectEffectColor = (color: string) => {
-    if (effectTarget === "both") {
+    if (resolvedEffectTarget === "both") {
       onUpdatePost({ headlineEffectColor: color, subtextEffectColor: color });
-    } else if (effectTarget === "headline") {
+    } else if (resolvedEffectTarget === "headline") {
       onUpdatePost({ headlineEffectColor: color });
-    } else {
+    } else if (resolvedEffectTarget === "subtext") {
       onUpdatePost({ subtextEffectColor: color });
+    } else if (selectedExtraText && onUpdateExtraText) {
+      onUpdateExtraText(selectedExtraText.id, { effectColor: color });
     }
   };
 
   const clearEffectColor = () => {
-    if (effectTarget === "both") {
+    if (resolvedEffectTarget === "both") {
       onUpdatePost({ headlineEffectColor: undefined, subtextEffectColor: undefined });
-    } else if (effectTarget === "headline") {
+    } else if (resolvedEffectTarget === "headline") {
       onUpdatePost({ headlineEffectColor: undefined });
-    } else {
+    } else if (resolvedEffectTarget === "subtext") {
       onUpdatePost({ subtextEffectColor: undefined });
+    } else if (selectedExtraText && onUpdateExtraText) {
+      onUpdateExtraText(selectedExtraText.id, { effectColor: undefined });
     }
   };
 
   const hasActiveEffect =
-    effectTarget === "headline"
+    resolvedEffectTarget === "headline"
       ? Boolean(post.headlineEffect && post.headlineEffect !== "none")
-      : effectTarget === "subtext"
+      : resolvedEffectTarget === "subtext"
       ? Boolean(post.subtextEffect && post.subtextEffect !== "none")
+      : resolvedEffectTarget === "selected"
+      ? Boolean(selectedExtraText?.effect && selectedExtraText.effect !== "none")
       : Boolean((post.headlineEffect && post.headlineEffect !== "none") || (post.subtextEffect && post.subtextEffect !== "none"));
 
   const activeEffectColor =
-    effectTarget === "headline"
+    resolvedEffectTarget === "headline"
       ? post.headlineEffectColor
-      : effectTarget === "subtext"
+      : resolvedEffectTarget === "subtext"
       ? post.subtextEffectColor
+      : resolvedEffectTarget === "selected"
+      ? selectedExtraText?.effectColor
       : post.headlineEffectColor || post.subtextEffectColor;
 
   const currentEffectColorHex = activeEffectColor && activeEffectColor.startsWith("#")
@@ -206,19 +242,22 @@ export default function TypographyColorControls({ post, onUpdatePost, compact = 
             Fundo e Efeito das Letras
           </label>
           <span className="text-[9px] font-mono text-white/40">
-            {post.headlineEffect === post.subtextEffect
+            {resolvedEffectTarget === "selected"
+              ? `Caixa: ${TEXT_EFFECTS_META[selectedExtraText?.effect || "none"]?.name}`
+              : post.headlineEffect === post.subtextEffect
               ? TEXT_EFFECTS_META[post.headlineEffect || "none"]?.name
               : `T: ${TEXT_EFFECTS_META[post.headlineEffect || "none"]?.name} • C: ${TEXT_EFFECTS_META[post.subtextEffect || "none"]?.name}`}
           </span>
         </div>
 
-        {/* Seletor de Alvo: Ambos | Título | Corpo */}
-        <div className="flex items-center p-0.5 rounded-lg bg-white/5 border border-white/10 text-[10px]">
+        {/* Seletor de Alvo: Ambos | Título | Corpo | Caixa selecionada */}
+        <div className={`grid ${canTargetSelectedBox ? "grid-cols-2" : "grid-cols-3"} items-center gap-0.5 p-0.5 rounded-lg bg-white/5 border border-white/10 text-[10px]`}>
           <button
             type="button"
-            onClick={() => setEffectTarget("both")}
+            onClick={() => selectEffectTarget("both")}
+            aria-pressed={resolvedEffectTarget === "both"}
             className={`flex-1 py-1 px-2 rounded-md font-medium transition-all text-center cursor-pointer ${
-              effectTarget === "both"
+              resolvedEffectTarget === "both"
                 ? "bg-[oklch(0.78_0.22_48)] text-white shadow-sm"
                 : "text-white/60 hover:text-white"
             }`}
@@ -227,9 +266,10 @@ export default function TypographyColorControls({ post, onUpdatePost, compact = 
           </button>
           <button
             type="button"
-            onClick={() => setEffectTarget("headline")}
+            onClick={() => selectEffectTarget("headline")}
+            aria-pressed={resolvedEffectTarget === "headline"}
             className={`flex-1 py-1 px-2 rounded-md font-medium transition-all text-center cursor-pointer ${
-              effectTarget === "headline"
+              resolvedEffectTarget === "headline"
                 ? "bg-[oklch(0.78_0.22_48)] text-white shadow-sm"
                 : "text-white/60 hover:text-white"
             }`}
@@ -238,15 +278,30 @@ export default function TypographyColorControls({ post, onUpdatePost, compact = 
           </button>
           <button
             type="button"
-            onClick={() => setEffectTarget("subtext")}
+            onClick={() => selectEffectTarget("subtext")}
+            aria-pressed={resolvedEffectTarget === "subtext"}
             className={`flex-1 py-1 px-2 rounded-md font-medium transition-all text-center cursor-pointer ${
-              effectTarget === "subtext"
+              resolvedEffectTarget === "subtext"
                 ? "bg-[oklch(0.78_0.22_48)] text-white shadow-sm"
                 : "text-white/60 hover:text-white"
             }`}
           >
             Corpo
           </button>
+          {canTargetSelectedBox && (
+            <button
+              type="button"
+              onClick={() => selectEffectTarget("selected")}
+              aria-pressed={resolvedEffectTarget === "selected"}
+              className={`py-1 px-2 rounded-md font-medium transition-all text-center cursor-pointer ${
+                resolvedEffectTarget === "selected"
+                  ? "bg-[oklch(0.78_0.22_48)] text-white shadow-sm"
+                  : "text-white/60 hover:text-white"
+              }`}
+            >
+              Caixa selecionada
+            </button>
+          )}
         </div>
 
         {/* Lista de Efeitos */}
@@ -308,10 +363,12 @@ export default function TypographyColorControls({ post, onUpdatePost, compact = 
               <label className="text-[10px] uppercase tracking-wider text-white/60 font-semibold flex items-center gap-1.5">
                 <span>Cor da Sombra / Fundo</span>
               </label>
-              {(effectTarget === "headline"
+              {(resolvedEffectTarget === "headline"
                 ? post.headlineEffectColor
-                : effectTarget === "subtext"
+                : resolvedEffectTarget === "subtext"
                 ? post.subtextEffectColor
+                : resolvedEffectTarget === "selected"
+                ? selectedExtraText?.effectColor
                 : post.headlineEffectColor || post.subtextEffectColor) && (
                 <button
                   type="button"

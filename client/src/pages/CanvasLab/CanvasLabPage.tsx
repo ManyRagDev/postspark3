@@ -1,10 +1,12 @@
 import CanvasMobileDrawer from "./components/CanvasMobileDrawer";
-import { useRef, useState, useEffect, useMemo } from "react";
+import { useRef, useState, useEffect, useLayoutEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RotateCcw, Check, Crop } from "lucide-react";
 import { toast } from "sonner";
 import { CanvasPostStage, type CanvasPostStageRef } from "./components/CanvasPostStage";
 import CanvasTopBar from "./components/CanvasTopBar";
+import CanvasToolRail from "./components/CanvasToolRail";
+import CanvasMobileQuickActions from "./components/CanvasMobileQuickActions";
 import CanvasSidebar from "./components/CanvasSidebar";
 import CarouselFilmstrip from "./components/CarouselFilmstrip";
 import { ConfirmDialog, SaveChoiceDialog, readSavePreference, writeSavePreference } from "./components/CanvasLabDialogs";
@@ -16,6 +18,7 @@ import {
   type BgImageTransform,
   type CanvasCustomText,
   type CanvasCustomImage,
+  type CanvasRichTextChunk,
 } from "./components/types";
 import { applyContrastGuard, patchTouchesContrast } from "./lib/contrast";
 import {
@@ -41,11 +44,21 @@ interface CanvasLabPageProps {
   /** Item 6: recomeçar do zero — limpa a sessão e volta à tela de criação. */
   onRestart?: () => void;
   /** Item 7: persiste o post ("new" = INSERT, "update" = UPDATE do salvo). */
-  onSave?: (post: CanvasPostModel, mode: "new" | "update") => Promise<boolean>;
+  onSave?: (post: CanvasPostModel, mode: "new" | "update", source: "manual" | "auto") => Promise<boolean>;
   /** Existe um post salvo vinculado à sessão (habilita "Atualizar"). */
   hasSavedPost?: boolean;
   isSaving?: boolean;
   [key: string]: any;
+}
+
+const AUTO_SAVE_PREF_KEY = "postspark.canvasAutoSaveEnabled";
+
+function readAutoSavePreference(): boolean {
+  try {
+    return window.localStorage.getItem(AUTO_SAVE_PREF_KEY) === "true";
+  } catch {
+    return false;
+  }
 }
 
 export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart, onSave, hasSavedPost = false, isSaving = false }: CanvasLabPageProps = {}) {
@@ -56,15 +69,22 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
 
   const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(readAutoSavePreference);
   const autoSaveManagerRef = useRef<AutoSaveManager<CanvasPostModel> | null>(null);
+  const onSaveRef = useRef(onSave);
+  const hasSavedPostRef = useRef(hasSavedPost);
+  const postRef = useRef(post);
+  onSaveRef.current = onSave;
+  hasSavedPostRef.current = hasSavedPost;
+  postRef.current = post;
 
-  // Inicializa o gerenciador de autosave resiliente com debounce e mutex (Etapa 8 §4)
+  // O gerenciador só existe enquanto o usuário mantém o salvamento automático ativo.
   useEffect(() => {
-    if (!onSave) return;
+    if (!isAutoSaveEnabled || !onSaveRef.current) return;
     const manager = new AutoSaveManager<CanvasPostModel>({
       onSave: async (docToSave) => {
-        const mode = hasSavedPost ? "update" : "new";
-        return onSave(docToSave, mode);
+        const mode = hasSavedPostRef.current ? "update" : "new";
+        return onSaveRef.current?.(docToSave, mode, "auto") ?? false;
       },
       debounceMs: 1000,
       onStateChange: (state, savedAt) => {
@@ -73,8 +93,25 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       },
     });
     autoSaveManagerRef.current = manager;
-    return () => manager.destroy();
-  }, [onSave, hasSavedPost]);
+    if (autoSaveState === "dirty") manager.triggerChange(postRef.current);
+    return () => {
+      manager.destroy();
+      if (autoSaveManagerRef.current === manager) autoSaveManagerRef.current = null;
+    };
+  }, [isAutoSaveEnabled]);
+
+  const handleAutoSaveChange = (enabled: boolean) => {
+    if (!enabled) {
+      autoSaveManagerRef.current?.destroy();
+      autoSaveManagerRef.current = null;
+    }
+    setIsAutoSaveEnabled(enabled);
+    try {
+      window.localStorage.setItem(AUTO_SAVE_PREF_KEY, String(enabled));
+    } catch {
+      // Preferência apenas nesta sessão quando o armazenamento está indisponível.
+    }
+  };
 
   // Função centralizadora de mutações com histórico de Undo/Redo e agendamento de AutoSave
   const setPost = (updater: CanvasPostModel | ((prev: CanvasPostModel) => CanvasPostModel)) => {
@@ -84,6 +121,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       if (next === current) return prevHistory;
       const nextHistory = pushHistory(prevHistory, next);
       autoSaveManagerRef.current?.triggerChange(next);
+      if (!autoSaveManagerRef.current) setAutoSaveState("dirty");
       return nextHistory;
     });
   };
@@ -93,6 +131,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       if (!canUndo(prev)) return prev;
       const next = undoHistory(prev);
       autoSaveManagerRef.current?.triggerChange(next.present);
+      if (!autoSaveManagerRef.current) setAutoSaveState("dirty");
       return next;
     });
   };
@@ -102,6 +141,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       if (!canRedo(prev)) return prev;
       const next = redoHistory(prev);
       autoSaveManagerRef.current?.triggerChange(next.present);
+      if (!autoSaveManagerRef.current) setAutoSaveState("dirty");
       return next;
     });
   };
@@ -136,11 +176,14 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   const [zoom, setZoom] = useState(1);
+  const [isZoomScrubbing, setIsZoomScrubbing] = useState(false);
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isRestartConfirmOpen, setIsRestartConfirmOpen] = useState(false);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const stageRef = useRef<CanvasPostStageRef>(null);
+  const mobileStageAreaRef = useRef<HTMLElement>(null);
+  const [measuredStageHeight, setMeasuredStageHeight] = useState<number | null>(null);
 
   // Monitoramento dinâmico da resolução da tela para responsividade matemática
   const [windowDimensions, setWindowDimensions] = useState({
@@ -159,32 +202,42 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Mede a altura real após o layout (inclusive safe area e teclado), evitando
+  // estimativas fixas quando a faixa de slides entra ou sai.
+  useLayoutEffect(() => {
+    const stageArea = mobileStageAreaRef.current;
+    if (!stageArea) return;
+    const measure = () => {
+      const height = stageArea.getBoundingClientRect().height;
+      setMeasuredStageHeight(previous => previous === height ? previous : height);
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(stageArea);
+    return () => observer.disconnect();
+  }, [isMobileDrawerOpen, post.slides.length]);
+
   const isMobile = windowDimensions.width < 768;
   const baseWidth = 360;
   const baseHeight = post.aspectRatio === "9:16" ? 640 : post.aspectRatio === "5:6" ? 432 : 360;
 
-  // Escala adaptativa calculada matematicamente pelo tamanho real da tela
+  // A área útil mobile acompanha o dock, a faixa de slides e o painel flutuante.
+  const mobileDockHeight = 74;
+  const mobileQuickActionsHeight = isMobileDrawerOpen ? 0 : 64;
+  const mobileFilmstripHeight = post.slides.length > 1 && !isMobileDrawerOpen ? 76 : 0;
+  const mobilePanelHeight = Math.min(windowDimensions.height * 0.52, 560);
+
   const mobileAdaptiveScale = useMemo(() => {
     if (!isMobile) return 1;
 
     const topBarHeight = 56;
     const padding = 16;
     const availableWidth = windowDimensions.width - padding * 2;
-
-    if (isMobileDrawerOpen) {
-      // Drawer aberto ocupa ~58% da tela. A área superior livre é ~42vh menos a barra superior.
-      const upperAreaHeight = Math.max(140, windowDimensions.height * 0.40 - topBarHeight - padding);
-      const scaleX = availableWidth / baseWidth;
-      const scaleY = upperAreaHeight / baseHeight;
-      return Math.min(scaleX, scaleY, 0.92);
-    } else {
-      // Drawer fechado: quase a tela inteira disponível acima da barra inferior
-      const closedAreaHeight = Math.max(200, windowDimensions.height - topBarHeight - 110 - padding);
-      const scaleX = availableWidth / baseWidth;
-      const scaleY = closedAreaHeight / baseHeight;
-      return Math.min(scaleX, scaleY, 0.98);
-    }
-  }, [isMobile, isMobileDrawerOpen, windowDimensions.width, windowDimensions.height, baseWidth, baseHeight]);
+    const stageAreaHeight = measuredStageHeight ?? windowDimensions.height - topBarHeight - mobileQuickActionsHeight - mobileDockHeight - mobileFilmstripHeight;
+    const visibleHeight = Math.max(100, stageAreaHeight - (isMobileDrawerOpen ? mobilePanelHeight + 8 : 0) - padding * 2);
+    return Math.min(availableWidth / baseWidth, visibleHeight / baseHeight, 0.98);
+  }, [isMobile, isMobileDrawerOpen, windowDimensions.width, windowDimensions.height, baseWidth, baseHeight, mobileQuickActionsHeight, mobileFilmstripHeight, mobilePanelHeight, measuredStageHeight]);
 
   const handleUpdatePost = (patch: Partial<CanvasPostModel>) => {
     setPost((prev) => {
@@ -208,6 +261,54 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   // Salva posições individuais arrastadas no slide ativo
+  const handleUpdateRichText = (field: "headline" | "subtext", chunks: any[]) => {
+    setPost((prev) => {
+      const curIdx = prev.currentSlideIndex;
+      const currentSlide = prev.slides[curIdx];
+      const updatedSlides = [...prev.slides];
+      if (currentSlide) {
+        updatedSlides[curIdx] = { ...currentSlide, [`${field}Rich`]: chunks };
+      }
+      return {
+        ...prev,
+        [`${field}Rich`]: chunks,
+        slides: updatedSlides,
+      };
+    });
+  };
+
+  const handleUpdateTextTransform = (
+    elementKey: "headline" | "subtext",
+    props: { x?: number; y?: number; width?: number; scale?: number },
+    layoutPositions?: { headlinePos: ElementPosition; subtextPos: ElementPosition; barPos: ElementPosition }
+  ) => {
+    setPost((prev) => {
+      const currentSlide = prev.slides[prev.currentSlideIndex];
+      if (!currentSlide) return prev;
+
+      const updatedSlide = { ...currentSlide };
+
+      if (props.x !== undefined && props.y !== undefined) {
+         (updatedSlide as any)[`${elementKey}Pos`] = { x: props.x, y: props.y };
+      }
+      if (props.width !== undefined) {
+         (updatedSlide as any)[`${elementKey}Width`] = props.width;
+      }
+      if (props.scale !== undefined) {
+         (updatedSlide as any)[`${elementKey}Scale`] = props.scale;
+      }
+      if (layoutPositions) {
+        updatedSlide.headlinePos = layoutPositions.headlinePos;
+        updatedSlide.subtextPos = layoutPositions.subtextPos;
+        updatedSlide.barPos = layoutPositions.barPos;
+      }
+
+      const updatedSlides = [...prev.slides];
+      updatedSlides[prev.currentSlideIndex] = updatedSlide;
+      return { ...prev, slides: updatedSlides };
+    });
+  };
+
   const handleUpdateElementPosition = (
     elementKey: "headlinePos" | "subtextPos" | "badgePos" | "barPos" | "logoPos",
     pos: ElementPosition
@@ -274,6 +375,38 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       return {
         ...prev,
         [field]: value,
+        slides: updatedSlides,
+      };
+    });
+  };
+
+  // Texto e marcações rich-text formam uma única mutação do documento. Assim,
+  // concluir uma edição cria exatamente uma entrada no histórico/autosave.
+  const handleCommitTextEdit = (
+    field: "headline" | "subtext",
+    value: string,
+    chunks: CanvasRichTextChunk[],
+    layoutPositions?: { headlinePos: ElementPosition; subtextPos: ElementPosition; barPos: ElementPosition }
+  ) => {
+    setPost((prev) => {
+      const curIdx = prev.currentSlideIndex;
+      const currentSlide = prev.slides[curIdx];
+      const richField = `${field}Rich` as "headlineRich" | "subtextRich";
+      const updatedSlides = [...prev.slides];
+
+      if (currentSlide) {
+        updatedSlides[curIdx] = {
+          ...currentSlide,
+          [field]: value,
+          [richField]: chunks,
+          ...(layoutPositions || {}),
+        };
+      }
+
+      return {
+        ...prev,
+        [field]: value,
+        [richField]: chunks,
         slides: updatedSlides,
       };
     });
@@ -528,6 +661,22 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   // ─── Item 7: fluxo de salvamento com decisão memorizável ───
+  const saveManually = async (mode: "new" | "update") => {
+    if (!onSave) return;
+    const docToSave = post;
+    const manager = autoSaveManagerRef.current;
+    manager?.pauseForManualSave();
+    try {
+      const saved = await onSave(docToSave, mode, "manual");
+      if (saved && postRef.current === docToSave) {
+        setAutoSaveState("saved");
+        setLastSavedAt(new Date());
+      }
+    } finally {
+      manager?.resumeAfterManualSave();
+    }
+  };
+
   const handleSaveClick = () => {
     if (!onSave) {
       toast.error("Salvamento indisponível nesta tela.");
@@ -535,11 +684,11 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     }
     const pref = readSavePreference();
     if (pref === "new") {
-      void onSave(post, "new");
+      void saveManually("new");
       return;
     }
     if (pref === "update" && hasSavedPost) {
-      void onSave(post, "update");
+      void saveManually("update");
       return;
     }
     setIsSaveDialogOpen(true);
@@ -548,13 +697,13 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const handleSaveNew = (remember: boolean) => {
     if (remember) writeSavePreference("new");
     setIsSaveDialogOpen(false);
-    void onSave?.(post, "new");
+    void saveManually("new");
   };
 
   const handleSaveUpdate = (remember: boolean) => {
     if (remember) writeSavePreference("update");
     setIsSaveDialogOpen(false);
-    void onSave?.(post, "update");
+    void saveManually("update");
   };
 
   // Teclado: Escape ou Enter concluem o modo de edição do fundo
@@ -639,7 +788,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   return (
-    <div className="h-screen w-full bg-[#07090E] text-white flex flex-col overflow-hidden select-none font-sans">
+    <div className="h-[100dvh] w-full bg-[#07090E] text-white flex flex-col overflow-hidden select-none font-sans">
       {/* 1. Top Bar */}
       <CanvasTopBar
         aspectRatio={post.aspectRatio}
@@ -655,21 +804,38 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         onToggleSnap={handleToggleSnap}
         isExportingZip={isExportingZip}
         slideCount={post.slides.length}
-        currentSlide={post.currentSlideIndex}
-        onPrevSlide={() => setPost((p) => ({ ...p, currentSlideIndex: Math.max(0, p.currentSlideIndex - 1) }))}
-        onNextSlide={() => setPost((p) => ({ ...p, currentSlideIndex: Math.min(p.slides.length - 1, p.currentSlideIndex + 1) }))}
+        onAddSlide={handleAddSlide}
         onRestart={onRestart ? () => setIsRestartConfirmOpen(true) : undefined}
         onSave={onSave ? handleSaveClick : undefined}
         isSaving={isSaving}
-        onAddExtraText={handleAddExtraText}
-        onAddExtraImage={handleAddExtraImage}
         onUndo={handleUndo}
         onRedo={handleRedo}
         canUndo={canUndo(history)}
         canRedo={canRedo(history)}
         autoSaveState={autoSaveState}
         lastSavedAt={lastSavedAt}
+        isAutoSaveEnabled={isAutoSaveEnabled}
+        onAutoSaveChange={handleAutoSaveChange}
       />
+
+      {!isMobileDrawerOpen && (
+        <CanvasMobileQuickActions
+          aspectRatio={post.aspectRatio}
+          onAspectRatioChange={handleAspectRatioChange}
+          slideCount={post.slides.length}
+          onAddSlide={handleAddSlide}
+          zoom={zoom}
+          onZoomChange={setZoom}
+          onZoomScrubChange={setIsZoomScrubbing}
+          onResetZoom={() => setZoom(1)}
+          isSnapEnabled={post.isSnapEnabled !== false}
+          onToggleSnap={handleToggleSnap}
+          onRestart={onRestart ? () => setIsRestartConfirmOpen(true) : undefined}
+          onExportPng={handleExportPng}
+          onExportZip={handleExportZip}
+          isExportingZip={isExportingZip}
+        />
+      )}
 
       {/* 2. Área Central */}
       <div className="flex-1 flex overflow-hidden relative">
@@ -687,16 +853,28 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
             onUpdateExtraImage={handleUpdateExtraImage}
             onRemoveExtraImage={handleRemoveExtraImage}
             selectedElementId={selectedElementId}
-          />
-        </div>
+              onSelectElement={setSelectedElementId}
+            />
+          </div>
 
         {/* Palco da Prancheta com Viewport Adaptativo (Mobile & Desktop) */}
         <main
+          ref={mobileStageAreaRef}
           onClick={() => {
             if (isMobileDrawerOpen) setIsMobileDrawerOpen(false);
           }}
-          className="flex-1 bg-[#040508] relative overflow-hidden flex items-center justify-center p-2 sm:p-8 pb-20 md:pb-8 custom-scrollbar"
+          className="min-w-0 flex-1 bg-[#040508] relative overflow-hidden flex items-center justify-center p-2 sm:p-8 xl:pr-20 custom-scrollbar"
         >
+          <CanvasToolRail
+            aspectRatio={post.aspectRatio}
+            onAspectRatioChange={handleAspectRatioChange}
+            isSnapEnabled={post.isSnapEnabled !== false}
+            onToggleSnap={handleToggleSnap}
+            zoom={zoom}
+            onZoomIn={() => setZoom((z) => Math.min(1.8, z + 0.1))}
+            onZoomOut={() => setZoom((z) => Math.max(0.6, z - 0.1))}
+            onResetZoom={() => setZoom(1)}
+          />
           {/* BARRA FLUTUANTE DE MODO DE EDIÇÃO DO FUNDO (ESTILO CANVA) */}
           <AnimatePresence>
             {isEditingBackground && (
@@ -748,33 +926,32 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
               isMobile
                 ? {
                     scale: mobileAdaptiveScale * zoom,
-                    y: isMobileDrawerOpen
-                      ? -Math.round(windowDimensions.height * 0.23)
-                      : 0,
+                    y: isMobileDrawerOpen ? -(mobilePanelHeight + 8) / 2 : 0,
                   }
                 : {
                     scale: zoom,
                     y: 0,
                   }
             }
-            transition={{
-              type: "spring",
-              stiffness: 280,
-              damping: 26,
-              mass: 0.8,
-            }}
+            transition={isMobile && isZoomScrubbing
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 280, damping: 26, mass: 0.8 }}
           >
             <CanvasPostStage
               ref={stageRef}
               post={post}
+              isMobile={isMobile}
               zoom={1}
               selectedElementId={selectedElementId}
               onSelectElement={setSelectedElementId}
               onUpdateElementPosition={handleUpdateElementPosition}
+              onUpdateTextTransform={handleUpdateTextTransform}
               isEditingBackground={isEditingBackground}
               onUpdateBgTransform={handleUpdateBgTransform}
               onEnterBackgroundEdit={() => setIsEditingBackground(true)}
               onUpdateText={handleUpdateText}
+              onCommitTextEdit={handleCommitTextEdit}
+              onUpdateRichText={handleUpdateRichText}
               onUpdateExtraText={handleUpdateExtraText}
               onUpdateExtraTextPosition={handleUpdateExtraTextPosition}
               onUpdateExtraTextContent={handleUpdateExtraTextContent}
@@ -799,19 +976,24 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
           onUpdateExtraImage={handleUpdateExtraImage}
           onRemoveExtraImage={handleRemoveExtraImage}
           selectedElementId={selectedElementId}
+              onSelectElement={setSelectedElementId}
+            />
+          </div>
+
+      {/* Mobile: slides visíveis apenas no carrossel e com o painel fechado. Desktop: fita permanente. */}
+      <div className={`${post.slides.length > 1 && !isMobileDrawerOpen ? "block" : "hidden"} shrink-0 md:block`}>
+        <CarouselFilmstrip
+          slides={post.slides}
+          currentIndex={post.currentSlideIndex}
+          onSelectSlide={(index) => setPost((p) => ({ ...p, currentSlideIndex: index }))}
+          onAddSlide={handleAddSlide}
+          onDuplicateSlide={handleDuplicateSlide}
+          onRemoveSlide={handleDeleteSlide}
+          onReorderSlide={handleReorderSlide}
         />
       </div>
-
-      {/* 3. Fita Inferior de Carrossel */}
-      <CarouselFilmstrip
-        slides={post.slides}
-        currentIndex={post.currentSlideIndex}
-        onSelectSlide={(index) => setPost((p) => ({ ...p, currentSlideIndex: index }))}
-        onAddSlide={handleAddSlide}
-        onDuplicateSlide={handleDuplicateSlide}
-        onRemoveSlide={handleDeleteSlide}
-        onReorderSlide={handleReorderSlide}
-      />
+      {/* Reserva real para o dock: o canvas não fica escondido atrás de um overlay. */}
+      <div className="h-[calc(74px+env(safe-area-inset-bottom))] shrink-0 md:hidden" aria-hidden="true" />
 
       {/* ── Diálogos: Salvar (item 7) e Recomeçar (item 6) ── */}
       <SaveChoiceDialog

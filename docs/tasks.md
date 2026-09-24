@@ -1,34 +1,21 @@
-# Tarefas - Experiência Inteligente PostSpark
+# Tarefas - Refatoração de Redimensionamento e UX de Rich Text
 
-## Etapa 4 — Briefing persistente e inteligência de marca
-- [x] Criar o contrato e schemas Zod `CreationBrief` (versionado) em `shared/postsparkSchemas.ts`.
-- [x] Separar a tela de input bruto da tela de revisão da interpretação (Progressive Disclosure) em `StudioAppV2BPage`.
-- [x] Adicionar lógica para persistir duravelmente (Storage / DB local ou remoto) o rascunho do briefing.
-- [x] Recuperar rascunho após refresh na aba/perda de sessão.
-- [x] Implementar a detecção de URLs embutidas no meio do texto e extrair referências.
-- [x] Carregar a síntese de Brand Kit antes da geração.
-- [x] Testes: Validação de refresh recuperando draft, URLs extraídas e alteração da interpretação do briefing.
+## Etapa 1 — A Nova Física da Caixa de Texto
+- [x] Adicionar suporte individual à largura de caixa (`width` flexível) para `headline` e `subtext` no `CanvasPostModel`.
+- [x] Configurar o `<Transformer>` do Konva para não usar alças verticais em caixas de texto.
+- [x] Implementar `onTransform` no redimensionamento de caixa de texto para ajustar `width` em vez de `scaleX` e recalcular word-wrap em tempo real nas alças laterais.
+- [x] Garantir que puxar as alças de canto redimensione o `fontSize` proporcionalmente, resetando a escala de matriz (scaleX/Y = 1).
+- [x] Validar a experiência de arrasto elástico vs natural para textos extras (`extraTexts`).
 
-## Etapa 6 — Fundo, crop e mídia
-- [x] Estender tipagem do `CanvasPostModel` para suportar `BackgroundPlacement` (fitMode: cover | contain | original | custom, focalPoint, crop).
-- [x] Criar controles de UI para enquadramento na Sidebar (desktop) e Drawer (mobile).
-- [x] Refatorar manipulação de imagens no `CanvasPostStage.tsx` para preservar o asset original (URL/Storage) e aplicar manipulações visualmente, evitando uso abusivo de base64 no schema json.
-- [x] Garantir que o export em formato ZIP/PNG offscreen respeite o crop não destrutivo.
-- [x] Testes: Comprovar modos cover/contain, isolamento de crop por slide, exportação determinística.
+## Etapa 2 — O Inspetor Contextual (UX Universal)
+- [x] Identificar a seleção atual ativa (`selectedId`) na barra lateral e separar as rotas de renderização do painel: "Nada Selecionado" vs "Texto Selecionado".
+- [x] Abstrair os controles individuais (Cor, Tamanho, Efeito, Opacidade, Família de Fonte, Z-Index) da `CanvasSidebar.tsx` e `CanvasMobileDrawer.tsx` em um bloco de `PropertyInspector`.
+- [x] Conectar os eventos do Inspetor Universal dinamicamente ao nó correspondente (se for `headline`, salva na raiz do slide; se for `extraTexts`, salva no array usando `documentCommands.ts`).
+- [x] Limpar as seções legadas de controle de "Cor do Título" e "Cor do Corpo" presas na aba principal quando há algo selecionado, focando na UX moderna.
 
-## Etapa 7 — Paridade de textos e imagens livres
-- [x] Tornar `onTransformEnd` persistente (salvar escala e translação no `CanvasPostModel` evitando o acúmulo infinito de transformações do Konva).
-- [x] Implementar controles de ordem de camada (z-index/bring to front) e rotação/opacidade para elementos livres.
-- [x] Corrigir rotina de duplicação para gerar UUIDs reais/novos, impedindo referência duplicada e crash visual.
-- [x] Assegurar paridade das funções (documentCommands.ts) para Mobile.
-- [x] Testes: `onTransformEnd` perene pós-save, duplicação não destrutiva.
-
-## Etapa 8 — Editor assistido e produtividade
-- [x] Implementar Autosave: debouncer configurado, estado visual (`dirty`, `saving`, `saved`, `error`), e controle de concorrência com `updatedAt`.
-- [x] Implementar sistema de Undo/Redo baseado no `CanvasPostModel` centralizado (historico de patches em memória).
-- [x] Implementar reordenação drag-and-drop de slides preservando a Capa.
-- [x] Testes: Concorrência de AutoSave não gerando duplicação e undo/redo consistentes.
-
-## Etapa 9 — Hardening, rollout e documentação
-- [x] Auditoria final: revisão estrutural do `DOCUMENTO_MESTRE.md` e limpeza de artefatos temporários.
-- [x] Escrita da matriz de testes E2E finais.
+## Etapa 3 — Rich Text Engine + Mini-Barra Flutuante
+- [x] Definir o schema JSON interno estruturado para representar as palavras multiformatadas em vez de strings planas.
+- [x] Atualizar o motor de renderização `CanvasPostStage.tsx` para desenhar os fragmentos estruturados lado a lado calculando posições com `measureText` nativo.
+- [x] Configurar `textBaseline = 'alphabetic'` em todo o motor gráfico para garantir alinhamento perfeito entre tamanhos de fonte variáveis.
+- [x] Desenvolver o componente da Toolbar Flutuante que captura e intercepta o texto destacado (highlight) no DOM durante o modo de edição em `contentEditable`.
+- [x] Acoplar as mutações cirúrgicas (trocar cor e tamanho) vindas da Toolbar para o novo schema estruturado.
