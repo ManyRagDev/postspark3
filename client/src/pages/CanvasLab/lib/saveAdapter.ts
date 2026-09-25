@@ -21,6 +21,7 @@ import {
   TEXT_EFFECTS_META,
 } from "../components/types";
 import { resolveCoverSlide } from "./documentCommands";
+import { resolveSlideAppearance } from "./slideReplication";
 
 export type SaveInputType = "text" | "url" | "image";
 
@@ -94,7 +95,8 @@ export function canvasModelToSavePayload(
   // Etapa 2 §7.4 — campos legados do post representam a CAPA (primeiro
   // slide), nunca o slide ativo no instante do save.
   const cover = resolveCoverSlide(post);
-  const coverBg = cover.bgImage || post.bgImage;
+  const coverAppearance = resolveSlideAppearance(post, 0);
+  const coverBg = cover.bgImage ?? post.bgImage;
 
   return {
     inputType: inputMeta.inputType,
@@ -105,9 +107,9 @@ export function canvasModelToSavePayload(
     caption: post.caption,
     imagePrompt: post.imagePrompt,
     imageUrl: coverBg,
-    backgroundColor: post.palette.background,
-    textColor: post.palette.text,
-    accentColor: post.palette.accent,
+    backgroundColor: coverAppearance.palette.background,
+    textColor: coverAppearance.palette.text,
+    accentColor: coverAppearance.palette.accent,
     layout: "centered",
     postMode: post.slides.length > 1 ? "carousel" : "static",
     slides: post.slides.map((s, i) => ({
@@ -221,6 +223,7 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
           extraTexts: Array.isArray(s.extraTexts) ? s.extraTexts : undefined,
           extraImages: Array.isArray(s.extraImages) ? s.extraImages : undefined,
           splitBgPosition: (typeof s.splitBgPosition === "string" && ["bottom", "top", "full"].includes(s.splitBgPosition) ? s.splitBgPosition : undefined) as SplitBgPosition | undefined,
+          visualStyle: s.visualStyle && typeof s.visualStyle === "object" ? s.visualStyle : undefined,
         }))
       : [
           {

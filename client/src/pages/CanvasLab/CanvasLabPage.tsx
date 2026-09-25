@@ -7,6 +7,7 @@ import { CanvasPostStage, type CanvasPostStageRef } from "./components/CanvasPos
 import CanvasTopBar from "./components/CanvasTopBar";
 import CanvasToolRail from "./components/CanvasToolRail";
 import CanvasMobileQuickActions from "./components/CanvasMobileQuickActions";
+import SlideReplicationDialog from "./components/SlideReplicationDialog";
 import CanvasSidebar from "./components/CanvasSidebar";
 import CarouselFilmstrip from "./components/CarouselFilmstrip";
 import { ConfirmDialog, SaveChoiceDialog, readSavePreference, writeSavePreference } from "./components/CanvasLabDialogs";
@@ -20,7 +21,6 @@ import {
   type CanvasCustomImage,
   type CanvasRichTextChunk,
 } from "./components/types";
-import { applyContrastGuard, patchTouchesContrast } from "./lib/contrast";
 import {
   applyPatchToCurrentSlide,
   duplicateSlide,
@@ -37,6 +37,7 @@ import {
   canRedo,
 } from "./lib/canvasHistory";
 import { AutoSaveManager, type AutoSaveState } from "./lib/autoSaveManager";
+import { applyCurrentSlideAppearancePatch, replicateSlideAppearance, resolveSlideAppearance, type ReplicationGroup } from "./lib/slideReplication";
 
 interface CanvasLabPageProps {
   initialPost?: CanvasPostModel;
@@ -66,6 +67,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const [isEditingBackground, setIsEditingBackground] = useState(false);
   const [history, setHistory] = useState(() => createHistory<CanvasPostModel>(initialPost || INITIAL_POST));
   const post = history.present;
+  const currentViewPost = useMemo(() => resolveSlideAppearance(post, post.currentSlideIndex), [post]);
 
   const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -180,7 +182,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isRestartConfirmOpen, setIsRestartConfirmOpen] = useState(false);
-  const [applyBackgroundToAllSlides, setApplyBackgroundToAllSlides] = useState(false);
+  const [isReplicationOpen, setIsReplicationOpen] = useState(false);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const stageRef = useRef<CanvasPostStageRef>(null);
   const mobileStageAreaRef = useRef<HTMLElement>(null);
@@ -241,13 +243,13 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   }, [isMobile, isMobileDrawerOpen, windowDimensions.width, windowDimensions.height, baseWidth, baseHeight, mobileQuickActionsHeight, mobileFilmstripHeight, mobilePanelHeight, measuredStageHeight]);
 
   const handleUpdatePost = (patch: Partial<CanvasPostModel>) => {
-    setPost((prev) => {
-      const next = { ...prev, ...patch };
-      // Guardião de contraste (regra mandatória): toda mudança de fundo,
-      // acento, família ou limpeza de cor manual re-resolve as cores de
-      // texto — fundo escuro ⇄ texto claro, e vice-versa, por metade no split.
-      return patchTouchesContrast(prev, patch) ? applyContrastGuard(next) : next;
-    });
+    setPost((prev) => applyCurrentSlideAppearancePatch(prev, patch));
+  };
+
+  const handleReplicate = (groups: ReplicationGroup[], targets: number[]) => {
+    setPost((prev) => replicateSlideAppearance(prev, prev.currentSlideIndex, targets, groups));
+    setIsReplicationOpen(false);
+    toast.success(`Formatação aplicada em ${targets.length} slide${targets.length === 1 ? "" : "s"}.`);
   };
 
   const handleAspectRatioChange = (ratio: AspectRatioType) => {
@@ -270,11 +272,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       if (currentSlide) {
         updatedSlides[curIdx] = { ...currentSlide, [`${field}Rich`]: chunks };
       }
-      return {
-        ...prev,
-        [`${field}Rich`]: chunks,
-        slides: updatedSlides,
-      };
+      return currentSlide
+        ? { ...prev, slides: updatedSlides }
+        : { ...prev, [`${field}Rich`]: chunks };
     });
   };
 
@@ -373,11 +373,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         }
       }
 
-      return {
-        ...prev,
-        [field]: value,
-        slides: updatedSlides,
-      };
+      return currentSlide && field !== "badgeText"
+        ? { ...prev, slides: updatedSlides }
+        : { ...prev, [field]: value, slides: updatedSlides };
     });
   };
 
@@ -404,12 +402,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         };
       }
 
-      return {
-        ...prev,
-        [field]: value,
-        [richField]: chunks,
-        slides: updatedSlides,
-      };
+      return currentSlide
+        ? { ...prev, slides: updatedSlides }
+        : { ...prev, [field]: value, [richField]: chunks };
     });
   };
 
@@ -759,18 +754,17 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   const handleAddSlide = () => {
-    const nextIdx = post.slides.length + 1;
-    const newSlide = {
-      id: `s-${Date.now()}`,
-      step: `SLIDE 0${nextIdx} // CONTINUAÇÃO`,
-      headline: "Novo ponto importante da narrativa",
-      subtext: "Explique este conceito com clareza para manter o público engajado até a chamada para ação.",
-    };
-    setPost((prev) => ({
-      ...prev,
-      slides: [...prev.slides, newSlide],
-      currentSlideIndex: prev.slides.length,
-    }));
+    setPost((prev) => {
+      const nextIdx = prev.slides.length + 1;
+      const newSlide = {
+        id: `s-${Date.now()}`,
+        step: `SLIDE 0${nextIdx} // CONTINUAÇÃO`,
+        headline: "Novo ponto importante da narrativa",
+        subtext: "Explique este conceito com clareza para manter o público engajado até a chamada para ação.",
+        visualStyle: prev.slides[prev.currentSlideIndex]?.visualStyle,
+      };
+      return { ...prev, slides: [...prev.slides, newSlide], currentSlideIndex: prev.slides.length };
+    });
   };
 
   const handleDuplicateSlide = (index: number) => {
@@ -817,25 +811,28 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         lastSavedAt={lastSavedAt}
         isAutoSaveEnabled={isAutoSaveEnabled}
         onAutoSaveChange={handleAutoSaveChange}
+        onReplicate={post.slides.length > 1 ? () => setIsReplicationOpen(true) : undefined}
       />
 
       {!isMobileDrawerOpen && (
-        <CanvasMobileQuickActions
-          aspectRatio={post.aspectRatio}
-          onAspectRatioChange={handleAspectRatioChange}
-          slideCount={post.slides.length}
-          onAddSlide={handleAddSlide}
-          zoom={zoom}
-          onZoomChange={setZoom}
-          onZoomScrubChange={setIsZoomScrubbing}
-          onResetZoom={() => setZoom(1)}
-          isSnapEnabled={post.isSnapEnabled !== false}
-          onToggleSnap={handleToggleSnap}
-          onRestart={onRestart ? () => setIsRestartConfirmOpen(true) : undefined}
-          onExportPng={handleExportPng}
-          onExportZip={handleExportZip}
-          isExportingZip={isExportingZip}
-        />
+        <div className={isReplicationOpen ? "invisible" : ""} aria-hidden={isReplicationOpen}>
+          <CanvasMobileQuickActions
+            aspectRatio={post.aspectRatio}
+            onAspectRatioChange={handleAspectRatioChange}
+            slideCount={post.slides.length}
+            onAddSlide={handleAddSlide}
+            zoom={zoom}
+            onZoomChange={setZoom}
+            onZoomScrubChange={setIsZoomScrubbing}
+            onResetZoom={() => setZoom(1)}
+            isSnapEnabled={post.isSnapEnabled !== false}
+            onToggleSnap={handleToggleSnap}
+            onRestart={onRestart ? () => setIsRestartConfirmOpen(true) : undefined}
+            onExportPng={handleExportPng}
+            onExportZip={handleExportZip}
+            isExportingZip={isExportingZip}
+          />
+        </div>
       )}
 
       {/* 2. Área Central */}
@@ -843,10 +840,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         {/* Desktop: Barra Lateral Fixa à Esquerda (Intocada) */}
         <div className="hidden md:flex h-full">
           <CanvasSidebar
-            post={post}
+            post={currentViewPost}
             onUpdatePost={handleUpdatePost}
-            applyToAllSlides={applyBackgroundToAllSlides}
-            onToggleApplyToAll={setApplyBackgroundToAllSlides}
+            onReplicate={post.slides.length > 1 ? () => setIsReplicationOpen(true) : undefined}
             isEditingBackground={isEditingBackground}
             onToggleBackgroundEdit={() => setIsEditingBackground((v) => !v)}
             onAddExtraText={handleAddExtraText}
@@ -965,15 +961,12 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
 
         {/* Mobile: Bottom Sheet Drawer Deslizante Nativo */}
         <CanvasMobileDrawer
-          post={post}
+          post={currentViewPost}
           onUpdatePost={handleUpdatePost}
-          applyToAllSlides={applyBackgroundToAllSlides}
-          onToggleApplyToAll={setApplyBackgroundToAllSlides}
-          onExportPng={handleExportPng}
-          onExportZip={handleExportZip}
-          isExportingZip={isExportingZip}
+          suspended={isReplicationOpen}
           isOpen={isMobileDrawerOpen}
           onToggleOpen={setIsMobileDrawerOpen}
+          onReplicate={post.slides.length > 1 ? () => setIsReplicationOpen(true) : undefined}
           onAddExtraText={handleAddExtraText}
           onUpdateExtraText={handleUpdateExtraText}
           onRemoveExtraText={handleRemoveExtraText}
@@ -1019,6 +1012,12 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
           onRestart?.();
         }}
         onCancel={() => setIsRestartConfirmOpen(false)}
+      />
+      <SlideReplicationDialog
+        open={isReplicationOpen}
+        post={post}
+        onOpenChange={setIsReplicationOpen}
+        onApply={handleReplicate}
       />
     </div>
   );

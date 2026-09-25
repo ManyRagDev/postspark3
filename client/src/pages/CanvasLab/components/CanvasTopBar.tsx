@@ -6,6 +6,7 @@ import {
   Check,
   FileArchive,
   Loader2,
+  Layers3,
   Magnet,
   MoreHorizontal,
   Plus,
@@ -56,6 +57,7 @@ interface CanvasTopBarProps {
   lastSavedAt?: Date | null;
   isAutoSaveEnabled?: boolean;
   onAutoSaveChange?: (enabled: boolean) => void;
+  onReplicate?: () => void;
 }
 
 const iconButton =
@@ -87,6 +89,7 @@ export default function CanvasTopBar({
   lastSavedAt,
   isAutoSaveEnabled = false,
   onAutoSaveChange,
+  onReplicate,
 }: CanvasTopBarProps) {
   const saveStatus =
     autoSaveState === "saving"
@@ -120,7 +123,7 @@ export default function CanvasTopBar({
               STUDIO
             </span>
           </div>
-          <span className="hidden text-[10px] font-black tracking-[0.12em] text-orange-200 min-[380px]:inline sm:hidden">
+          <span className={`hidden text-[10px] font-black tracking-[0.12em] text-orange-200 ${onReplicate ? "sm:hidden" : "min-[380px]:inline sm:hidden"}`}>
             STUDIO
           </span>
         </div>
@@ -172,6 +175,11 @@ export default function CanvasTopBar({
       </div>
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        {onReplicate && (
+          <button type="button" onClick={onReplicate} aria-label="Replicar formatação em outros slides" title="Replicar formatação em outros slides" className={`${iconButton} hidden min-[390px]:flex sm:hidden`}>
+            <Layers3 size={17} />
+          </button>
+        )}
         {onSave && onAutoSaveChange && (
           <label
             className="hidden cursor-pointer items-center gap-1.5 text-[11px] text-white/70 lg:flex"
@@ -265,6 +273,11 @@ export default function CanvasTopBar({
             {slideCount === 1 && onAddSlide && (
               <DropdownMenuItem onSelect={onAddSlide} className="md:hidden">
                 <Plus /> Transformar este post em carrossel
+              </DropdownMenuItem>
+            )}
+            {onReplicate && (
+              <DropdownMenuItem onSelect={onReplicate} className="sm:hidden">
+                <Layers3 /> Replicar em outros slides
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator className="bg-white/10" />

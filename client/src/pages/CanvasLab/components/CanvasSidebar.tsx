@@ -13,14 +13,12 @@ import { trpc } from "@/lib/trpc";
 import BackgroundsDrawer from "./BackgroundsDrawer";
 import { downloadImageFile } from "@/lib/downloadHelper";
 import FontPickerDropdown from "./FontPickerDropdown";
-import SlideScopeControl from "./SlideScopeControl";
 import { applySlideVisualPatch } from "../lib/slideVisualScope";
 
 interface CanvasSidebarProps {
   post: CanvasPostModel;
   onUpdatePost: (patch: Partial<CanvasPostModel>) => void;
-  applyToAllSlides: boolean;
-  onToggleApplyToAll: (value: boolean) => void;
+  onReplicate?: () => void;
   isEditingBackground?: boolean;
   onToggleBackgroundEdit?: () => void;
   onAddExtraText?: () => void;
@@ -40,8 +38,7 @@ const ALL_FAMILIES_LIST = Object.values(OFFICIAL_FAMILIES_META);
 export default function CanvasSidebar({
   post,
   onUpdatePost,
-  applyToAllSlides,
-  onToggleApplyToAll,
+  onReplicate,
   isEditingBackground = false,
   onToggleBackgroundEdit,
   onAddExtraText,
@@ -112,7 +109,7 @@ export default function CanvasSidebar({
     if (currentSlide) {
       const updatedSlides = [...post.slides];
       updatedSlides[post.currentSlideIndex] = { ...currentSlide, headline: text };
-      onUpdatePost({ slides: updatedSlides, headline: text });
+      onUpdatePost({ slides: updatedSlides });
     } else {
       onUpdatePost({ headline: text });
     }
@@ -122,7 +119,7 @@ export default function CanvasSidebar({
     if (currentSlide) {
       const updatedSlides = [...post.slides];
       updatedSlides[post.currentSlideIndex] = { ...currentSlide, subtext: text };
-      onUpdatePost({ slides: updatedSlides, subtext: text });
+      onUpdatePost({ slides: updatedSlides });
     } else {
       onUpdatePost({ subtext: text });
     }
@@ -151,7 +148,7 @@ export default function CanvasSidebar({
   };
 
   const handleApplyBackground = (url?: string) => {
-    onUpdatePost(applySlideVisualPatch(post, { bgImage: url }, applyToAllSlides));
+    onUpdatePost(applySlideVisualPatch(post, { bgImage: url }, false));
   };
 
   const handleCopyCaption = () => {
@@ -274,16 +271,7 @@ export default function CanvasSidebar({
         })}
       </div>
 
-      {post.slides.length > 1 && (
-        <div className="border-b border-white/10 p-2">
-          <SlideScopeControl
-            slideCount={post.slides.length}
-            currentSlideIndex={post.currentSlideIndex}
-            applyToAllSlides={applyToAllSlides}
-            onToggleApplyToAll={onToggleApplyToAll}
-          />
-        </div>
-      )}
+      {onReplicate && <div className="border-b border-white/10 p-2"><button type="button" onClick={onReplicate} className="w-full rounded-xl border border-orange-400/30 bg-orange-400/10 px-3 py-2 text-xs font-semibold text-orange-200 hover:bg-orange-400/20">Replicar estilos em outros slides…</button></div>}
 
       {/* Conteúdo da Aba Ativa */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar">
@@ -953,7 +941,7 @@ export default function CanvasSidebar({
                   crop: undefined,
                   transform: undefined,
                 };
-                onUpdatePost(applySlideVisualPatch(post, { bgPlacement: newPlacement, bgTransform: undefined }, applyToAllSlides));
+                onUpdatePost(applySlideVisualPatch(post, { bgPlacement: newPlacement, bgTransform: undefined }, false));
               };
 
               return (
@@ -1073,7 +1061,7 @@ export default function CanvasSidebar({
                         key={pos.id}
                         type="button"
                         onClick={() => {
-                          onUpdatePost(applySlideVisualPatch(post, { splitBgPosition: pos.id as SplitBgPosition }, applyToAllSlides));
+                          onUpdatePost(applySlideVisualPatch(post, { splitBgPosition: pos.id as SplitBgPosition }, false));
                         }}
                         className={`p-2 rounded-lg text-center transition-all cursor-pointer border ${
                           active
@@ -1368,8 +1356,6 @@ export default function CanvasSidebar({
         post={post}
         onApplyBackground={handleApplyBackground}
         manifestData={manifestData}
-        applyToAllSlides={applyToAllSlides}
-        onToggleApplyToAll={onToggleApplyToAll}
       />
     </aside>
   );

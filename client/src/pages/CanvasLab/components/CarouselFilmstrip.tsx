@@ -129,7 +129,7 @@ export default function CarouselFilmstrip({
                 </div>
                 <div className="md:hidden" onClick={(event) => event.stopPropagation()}>
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild><button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-white" aria-label={`Ações do slide ${idx + 1}`}><MoreHorizontal size={17} /></button></DropdownMenuTrigger>
+                    <DropdownMenuTrigger asChild><button type="button" draggable={false} className="flex h-5 w-5 items-center justify-center rounded-md bg-white/10 text-white" aria-label={`Ações do slide ${idx + 1}`}><MoreHorizontal size={13} /></button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48 border-white/15 bg-[#10141D] text-white">
                       {idx > 0 && onReorderSlide && <DropdownMenuItem onSelect={() => onReorderSlide(idx, idx - 1)}>Mover para a esquerda</DropdownMenuItem>}
                       {idx < slides.length - 1 && onReorderSlide && <DropdownMenuItem onSelect={() => onReorderSlide(idx, idx + 1)}>Mover para a direita</DropdownMenuItem>}

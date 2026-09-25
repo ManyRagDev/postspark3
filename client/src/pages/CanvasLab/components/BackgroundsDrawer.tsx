@@ -9,8 +9,6 @@ interface BackgroundsDrawerProps {
   post: CanvasPostModel;
   onApplyBackground: (url?: string) => void;
   manifestData: any;
-  applyToAllSlides: boolean;
-  onToggleApplyToAll: (value: boolean) => void;
 }
 
 export default function BackgroundsDrawer({
@@ -19,8 +17,6 @@ export default function BackgroundsDrawer({
   post,
   onApplyBackground,
   manifestData,
-  applyToAllSlides,
-  onToggleApplyToAll,
 }: BackgroundsDrawerProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -121,18 +117,6 @@ export default function BackgroundsDrawer({
           )}
         </div>
 
-        {/* Chave: Aplicar a todos os slides */}
-        {post.slides.length > 1 && (
-          <label className="flex items-center justify-between p-2 rounded-xl bg-white/4 border border-white/8 cursor-pointer hover:bg-white/6 transition-all">
-            <span className="text-[11px] font-medium text-white/80">Aplicar fundo a todos os slides</span>
-            <input
-              type="checkbox"
-              checked={applyToAllSlides}
-              onChange={(e) => onToggleApplyToAll(e.target.checked)}
-              className="w-3.5 h-3.5 accent-[oklch(0.78_0.22_48)] cursor-pointer"
-            />
-          </label>
-        )}
       </div>
 
       {/* ─── CATEGORIAS EM ABAS LÍQUIDAS ─── */}

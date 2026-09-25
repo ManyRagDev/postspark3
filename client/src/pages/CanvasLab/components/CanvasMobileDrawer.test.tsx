@@ -37,10 +37,6 @@ describe("CanvasMobileDrawer", () => {
       <CanvasMobileDrawer
         post={INITIAL_POST}
         onUpdatePost={vi.fn()}
-        applyToAllSlides={false}
-        onToggleApplyToAll={vi.fn()}
-        onExportPng={vi.fn()}
-        onExportZip={vi.fn()}
         isOpen={false}
         onToggleOpen={onToggleOpen}
       />
@@ -62,7 +58,7 @@ describe("CanvasMobileDrawer", () => {
   it("closes with a downward swipe from the header without scrolling the page", () => {
     const onToggleOpen = vi.fn();
     act(() => root.render(
-      <CanvasMobileDrawer post={INITIAL_POST} onUpdatePost={vi.fn()} applyToAllSlides={false} onToggleApplyToAll={vi.fn()} onExportPng={vi.fn()} onExportZip={vi.fn()} isOpen onToggleOpen={onToggleOpen} />
+      <CanvasMobileDrawer post={INITIAL_POST} onUpdatePost={vi.fn()} isOpen onToggleOpen={onToggleOpen} />
     ));
     const header = container.querySelector("#canvas-mobile-editor-panel > div") as HTMLElement;
     const sendTouch = (type: string, x: number, y: number) => {
@@ -77,5 +73,7 @@ describe("CanvasMobileDrawer", () => {
       sendTouch("touchend", 100, 180);
     });
     expect(onToggleOpen).toHaveBeenCalledWith(false);
+    expect(container.textContent).not.toContain("Baixar Imagem (HD)");
+    expect(container.textContent).not.toContain("Aplicar fundo a todos os slides");
   });
 });

@@ -369,6 +369,14 @@ export interface CarouselSlideItem {
   extraTexts?: CanvasCustomText[];
   extraImages?: CanvasCustomImage[];
   splitBgPosition?: SplitBgPosition;
+  /** Aparência local; campos ausentes herdam os defaults do documento. */
+  visualStyle?: Partial<Pick<CanvasPostModel,
+    | "familyId" | "familyName" | "fontFamily" | "customFontUrl"
+    | "palette" | "overlayOpacity" | "overlayColor" | "overlayMode"
+    | "headlineAlign" | "bodyAlign" | "headlineSizeScale" | "subtextSizeScale"
+    | "manualHeadlineColor" | "manualSubtextColor"
+    | "headlineEffect" | "headlineEffectColor" | "subtextEffect" | "subtextEffectColor"
+  >>;
 }
 
 export type TextLegibilityEffect =

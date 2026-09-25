@@ -5,6 +5,7 @@ import type { BgImageTransform, CanvasCustomImage, CanvasCustomText, CanvasPostM
 import { isDarkColor, resolveLegibleTextColor, normalizeHexColor } from "./types";
 import { useDynamicFont } from "@/hooks/useDynamicFont";
 import { computeBackgroundGeometry } from "../lib/backgroundPlacement";
+import { resolveSlideAppearance } from "../lib/slideReplication";
 import JSZip from "jszip";
 import { Check, X } from "lucide-react";
 import RichTextFloatingToolbar from "./RichTextFloatingToolbar";
@@ -425,7 +426,7 @@ const CanvasCustomImageNode: React.FC<{
 export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStageProps>(
   (
     {
-      post,
+      post: documentPost,
       isMobile = false,
       zoom,
       onUpdateElementPosition,
@@ -467,6 +468,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     // o mesmo motor renderiza cada slide de forma determinística, em vez de
     // capturar repetidamente o slide visível (Etapa 2 §7.6).
     const [exportSlideIndex, setExportSlideIndex] = useState<number | null>(null);
+    const post = resolveSlideAppearance(documentPost, exportSlideIndex ?? documentPost.currentSlideIndex);
 
     useEffect(() => {
       if (selectedElementId !== undefined) {
@@ -668,10 +670,10 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
           await awaitFrame();
           await awaitFrame();
           try {
-            await Promise.race([
-              (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready,
-              Promise.resolve(),
-            ]);
+            const fontReady = (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
+            if (fontReady) {
+              await Promise.race([fontReady, new Promise(resolve => setTimeout(resolve, 3000))]);
+            }
           } catch {
             /* fontes não disponíveis — segue com o fallback do motor */
           }

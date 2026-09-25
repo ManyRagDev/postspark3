@@ -5,7 +5,6 @@ import {
   Palette,
   Image as ImageIcon,
   Sparkles,
-  ArrowDownToLine,
   Wand2,
   Upload,
   Trash2,
@@ -39,17 +38,13 @@ import { FONT_CATALOG } from "@/lib/fonts";
 import BackgroundsDrawer from "./BackgroundsDrawer";
 import RadialTextureSelector from "./RadialTextureSelector";
 import FontPickerDropdown from "./FontPickerDropdown";
-import SlideScopeControl from "./SlideScopeControl";
 import { applySlideVisualPatch } from "../lib/slideVisualScope";
 
 interface CanvasMobileDrawerProps {
   post: CanvasPostModel;
   onUpdatePost: (updates: Partial<CanvasPostModel>) => void;
-  applyToAllSlides: boolean;
-  onToggleApplyToAll: (value: boolean) => void;
-  onExportPng: () => void;
-  onExportZip: () => void;
-  isExportingZip?: boolean;
+  suspended?: boolean;
+  onReplicate?: () => void;
   isOpen?: boolean;
   onToggleOpen?: (open: boolean) => void;
   onAddExtraText?: () => void;
@@ -74,11 +69,8 @@ const mobileTabs = [
 export default function CanvasMobileDrawer({
   post,
   onUpdatePost,
-  applyToAllSlides,
-  onToggleApplyToAll,
-  onExportPng,
-  onExportZip,
-  isExportingZip = false,
+  suspended = false,
+  onReplicate,
   isOpen: controlledIsOpen,
   onToggleOpen,
   onAddExtraText,
@@ -223,11 +215,7 @@ export default function CanvasMobileDrawer({
       ...currentSlide,
       [field]: value,
     };
-    onUpdatePost({
-      slides: nextSlides,
-      headline: field === "headline" ? value : post.headline,
-      subtext: field === "subtext" ? value : post.subtext,
-    });
+    onUpdatePost({ slides: nextSlides });
   };
 
   const handleUpdateBadge = (value: string) => {
@@ -255,7 +243,7 @@ export default function CanvasMobileDrawer({
   };
 
   const handleApplyBackground = (url?: string) => {
-    onUpdatePost(applySlideVisualPatch(post, { bgImage: url }, applyToAllSlides));
+    onUpdatePost(applySlideVisualPatch(post, { bgImage: url }, false));
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -304,11 +292,9 @@ export default function CanvasMobileDrawer({
         post={post}
         onApplyBackground={handleApplyBackground}
         manifestData={manifestData}
-        applyToAllSlides={applyToAllSlides}
-        onToggleApplyToAll={onToggleApplyToAll}
       />
 
-      <div className="md:hidden fixed inset-x-0 bottom-0 z-40 select-none flex flex-col justify-end gap-2 pb-[calc(env(safe-area-inset-bottom)+10px)] pointer-events-none overscroll-y-none">
+      <div className={`md:hidden fixed inset-x-0 bottom-0 z-40 select-none flex flex-col justify-end gap-2 pb-[calc(env(safe-area-inset-bottom)+10px)] pointer-events-none overscroll-y-none ${suspended ? "invisible" : ""}`}>
         {/* Backdrop Transparente (Sem embaçar o post) */}
         {isOpen && (
           <div
@@ -335,14 +321,17 @@ export default function CanvasMobileDrawer({
             </span>
             <div className="flex items-center gap-2">
               {post.slides.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-lg px-2 py-1.5 text-[11px] font-semibold text-orange-300 hover:bg-white/10"
-                  aria-label={`Ver slides. Slide ${post.currentSlideIndex + 1} de ${post.slides.length}`}
-                >
-                  Slides · {post.currentSlideIndex + 1}/{post.slides.length}
-                </button>
+                <>
+                  {onReplicate && <button type="button" onClick={onReplicate} className="flex min-h-9 items-center gap-1 rounded-lg px-2 text-[11px] font-semibold text-orange-300 hover:bg-white/10"><Layers size={14} /> Replicar</button>}
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="rounded-lg px-2 py-1.5 text-[11px] font-semibold text-orange-300 hover:bg-white/10"
+                    aria-label={`Ver slides. Slide ${post.currentSlideIndex + 1} de ${post.slides.length}`}
+                  >
+                    Slides · {post.currentSlideIndex + 1}/{post.slides.length}
+                  </button>
+                </>
               )}
               <button
                 type="button"
@@ -354,17 +343,6 @@ export default function CanvasMobileDrawer({
               </button>
             </div>
           </div>}
-
-          {isOpen && post.slides.length > 1 && (
-            <div className="shrink-0 border-b border-white/10 p-2">
-              <SlideScopeControl
-                slideCount={post.slides.length}
-                currentSlideIndex={post.currentSlideIndex}
-                applyToAllSlides={applyToAllSlides}
-                onToggleApplyToAll={onToggleApplyToAll}
-              />
-            </div>
-          )}
 
           {/* Conteúdo da Aba (Apenas quando aberta) */}
           {isOpen && (
@@ -937,7 +915,7 @@ export default function CanvasMobileDrawer({
                         crop: undefined,
                         transform: undefined,
                       };
-                      onUpdatePost(applySlideVisualPatch(post, { bgPlacement: newPlacement, bgTransform: undefined }, applyToAllSlides));
+                      onUpdatePost(applySlideVisualPatch(post, { bgPlacement: newPlacement, bgTransform: undefined }, false));
                     };
 
                     return (
@@ -1022,7 +1000,7 @@ export default function CanvasMobileDrawer({
                               key={pos.id}
                               type="button"
                               onClick={() => {
-                                onUpdatePost(applySlideVisualPatch(post, { splitBgPosition: pos.id as SplitBgPosition }, applyToAllSlides));
+                                onUpdatePost(applySlideVisualPatch(post, { splitBgPosition: pos.id as SplitBgPosition }, false));
                               }}
                               className={`p-2 rounded-xl text-center transition-all cursor-pointer border ${
                                 active
@@ -1351,27 +1329,6 @@ export default function CanvasMobileDrawer({
             </label>
           )}
 
-          {/* Botão de Exportação Fixo no Rodapé */}
-          {isOpen && <div className="p-3 border-t border-white/10 bg-black/80 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onExportPng}
-              className="flex-1 py-3 rounded-2xl bg-white text-black font-bold text-xs shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-transform"
-            >
-              <ArrowDownToLine size={14} />
-              <span>Baixar Imagem (HD)</span>
-            </button>
-            {post.slides.length > 1 && (
-              <button
-                type="button"
-                onClick={onExportZip}
-                disabled={isExportingZip}
-                className="py-3 px-4 rounded-2xl bg-white/10 text-white font-bold text-xs border border-white/10 flex items-center justify-center gap-1 active:scale-95"
-              >
-                <span>ZIP</span>
-              </button>
-            )}
-          </div>}
           {/* Modo Estúdio Imersivo de Texturas */}
         <RadialTextureSelector
           isOpen={isTextureStudioOpen}
@@ -1379,7 +1336,7 @@ export default function CanvasMobileDrawer({
           post={post}
           onApplyBackground={handleApplyBackground}
           manifestData={manifestData}
-          applyToAllSlides={applyToAllSlides}
+          applyToAllSlides={false}
         />
       </motion.div>
 
