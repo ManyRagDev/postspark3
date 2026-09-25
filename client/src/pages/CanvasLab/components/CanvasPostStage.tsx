@@ -24,6 +24,7 @@ import {
 export interface CanvasPostStageRef {
   exportPng4K: () => string;
   exportZip4K: (onProgress?: (current: number, total: number) => void) => Promise<Blob>;
+  exportThumbnail: () => Promise<string>;
 }
 
 interface CanvasPostStageProps {
@@ -627,6 +628,42 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     }, [isEditingBackground, bgImgElement]);
 
     useImperativeHandle(ref, () => ({
+      exportThumbnail: async () => {
+        const stage = stageRef.current;
+        if (!stage) return "";
+
+        // Capture the same 360px composition used by the editor, after its
+        // font and image nodes have finished loading into Konva.
+        const fontsReady = (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
+        if (fontsReady) {
+          const loaded = await Promise.race([
+            fontsReady.then(() => true).catch(() => false),
+            new Promise<false>(resolve => setTimeout(() => resolve(false), 4000)),
+          ]);
+          if (!loaded) return "";
+        }
+
+        const expectedImages = Number(Boolean(activeBg)) + Number(Boolean(post.logoUrl))
+          + activeExtraImages.filter(item => Boolean(item.url)).length;
+        const started = Date.now();
+        while (Date.now() - started < 4000) {
+          const imageNodes = stage.find("Image") as any[];
+          if (imageNodes.length >= expectedImages && imageNodes.every(node => {
+            const image = node.image?.();
+            return image?.complete && image?.naturalWidth > 0;
+          })) {
+            await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+            stage.getLayers().forEach((layer: any) => layer.draw());
+            try {
+              return stage.toDataURL({ pixelRatio: 1.5, mimeType: "image/png" });
+            } catch {
+              return "";
+            }
+          }
+          await new Promise(resolve => setTimeout(resolve, 40));
+        }
+        return "";
+      },
       exportPng4K: () => {
         if (!stageRef.current) return "";
         setSelectedId(null);

@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Bookmark, Sparkles } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -6,6 +7,7 @@ import { createPostVisualSnapshot } from "@/lib/variationSnapshot";
 import type { PostVariation, PostVisualSnapshot, PostMode, Platform, CarouselSlide, AspectRatio } from "@shared/postspark";
 import { layoutToAdvanced } from "@/lib/layoutToAdvanced";
 import { savedPostToCanvasModel } from "@/pages/CanvasLab/lib/saveAdapter";
+import { CanvasPostStage, type CanvasPostStageRef } from "@/pages/CanvasLab/components/CanvasPostStage";
 import PostRenderer from "@/components/PostRenderer";
 
 function formatDate(value: string | null | undefined) {
@@ -58,12 +60,67 @@ function savedPostToVariation(post: any): PostVisualSnapshot {
 }
 
 function SavedPostPreview({ post }: { post: any }) {
-  const preview = savedPostToVariation(post);
-  const width = preview.aspectRatio === "9:16" ? 90 : preview.aspectRatio === "5:6" ? 150 : 180;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<CanvasPostStageRef>(null);
+  const [visible, setVisible] = useState(false);
+  const [size, setSize] = useState({ width: 180, height: 200 });
+  const [thumbnail, setThumbnail] = useState("");
+  const hasCanvasModel = Boolean(post.canvas_model && typeof post.canvas_model === "object" && !Array.isArray(post.canvas_model));
+  const canvasModel = useMemo(() => {
+    if (!hasCanvasModel) return null;
+    return { ...savedPostToCanvasModel(post), currentSlideIndex: 0 };
+  }, [hasCanvasModel, post]);
+  const legacyPreview = useMemo(() => hasCanvasModel ? null : savedPostToVariation(post), [hasCanvasModel, post]);
+  const baseHeight = canvasModel?.aspectRatio === "9:16" ? 640 : canvasModel?.aspectRatio === "5:6" ? 432 : 360;
+  const zoom = Math.min((size.width - 24) / 360, (size.height - 24) / baseHeight, 1);
+
+  useEffect(() => setThumbnail(""), [post.canvas_model]);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(([entry]) => {
+      setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    resize?.observe(element);
+    const observer = typeof IntersectionObserver === "undefined" ? null : new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setVisible(true);
+        observer?.disconnect();
+      }
+    }, { rootMargin: "300px" });
+    if (observer) observer.observe(element);
+    else setVisible(true);
+    return () => {
+      resize?.disconnect();
+      observer?.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!visible || !canvasModel || thumbnail) return;
+    let cancelled = false;
+    stageRef.current?.exportThumbnail()
+      .then(dataUrl => {
+        if (!cancelled && dataUrl) setThumbnail(dataUrl);
+      })
+      .catch(() => {
+        // Canvas remains visible when a remote asset cannot be captured.
+      });
+    return () => { cancelled = true; };
+  }, [visible, canvasModel, thumbnail]);
 
   return (
-    <div className="relative flex h-52 items-center justify-center overflow-hidden bg-black/25 p-3">
-      <PostRenderer mode="preview" snapshot={preview} aspectRatio={preview.aspectRatio} className="shrink-0 shadow-2xl" style={{ width }} />
+    <div ref={containerRef} className="relative flex h-52 items-center justify-center overflow-hidden bg-black/25 p-3 sm:h-72 lg:h-96">
+      {thumbnail ? (
+        <img src={thumbnail} alt={`Prévia da capa: ${post.headline || "Post salvo"}`} className="max-h-full max-w-full object-contain shadow-2xl" />
+      ) : visible && canvasModel ? (
+        <div className="pointer-events-none" aria-hidden="true">
+          <CanvasPostStage ref={stageRef} post={canvasModel} zoom={Math.max(0.1, zoom)} isReadOnly />
+        </div>
+      ) : visible && legacyPreview ? (
+        <PostRenderer mode="preview" snapshot={legacyPreview} aspectRatio={legacyPreview.aspectRatio} className="shrink-0 shadow-2xl" style={{ width: Math.min(size.width - 24, legacyPreview.aspectRatio === "9:16" ? 90 : legacyPreview.aspectRatio === "5:6" ? 150 : 180) }} />
+      ) : null}
     </div>
   );
 }
@@ -132,7 +189,7 @@ export default function SavedPosts() {
         </motion.div>
 
         {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {[1, 2, 3, 4].map(item => (
               <div
                 key={item}
@@ -167,11 +224,11 @@ export default function SavedPosts() {
             </div>
           </motion.div>
         ) : posts && posts.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {posts.map(post => (
               <motion.article
                 key={post.id}
-                className="overflow-hidden rounded-3xl border"
+                className="min-w-0 overflow-hidden rounded-3xl border"
                 style={{
                   background: "oklch(0.08 0.02 280)",
                   borderColor: "oklch(1 0 0 / 8%)",
@@ -182,9 +239,9 @@ export default function SavedPosts() {
               >
                 <SavedPostPreview post={post} />
 
-                <div className="space-y-4 p-5">
+                <div className="space-y-4 p-3 sm:p-5">
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
                       <span
                         className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-thermal-orange"
                         style={{
@@ -196,12 +253,12 @@ export default function SavedPosts() {
                       </span>
                       <span className="text-[11px] text-muted-foreground">{formatDate(post.createdAt)}</span>
                     </div>
-                    <h2 className="line-clamp-2 text-lg font-semibold tracking-tight text-foreground">{post.headline || "Sem título"}</h2>
-                    <p className="line-clamp-3 text-sm text-muted-foreground">{post.body || post.inputContent}</p>
+                    <h2 className="line-clamp-2 break-words text-base font-semibold tracking-tight text-foreground sm:text-lg">{post.headline || "Sem título"}</h2>
+                    <p className="line-clamp-3 break-words text-sm text-muted-foreground">{post.body || post.inputContent}</p>
                   </div>
 
-                  <div className="flex items-center justify-between gap-3 border-t border-white/6 pt-4">
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/6 pt-4">
+                    <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
                       <Sparkles className="h-3.5 w-3.5 text-thermal-orange" />
                       {post.layout || "layout livre"}
                     </div>

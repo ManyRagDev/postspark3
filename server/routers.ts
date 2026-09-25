@@ -27,6 +27,7 @@ import { prepareGenerationPlan } from "./ai/generationPipeline";
 import { loadGenerationContext } from "./ai/contextLoader";
 import { routeHighTicketIntent, angleToStrategy } from "./ai/intentRouter";
 import { buildGenerationDebugTrace, finishGenerationTrace, recordGenerationEvent, startGenerationTrace } from "./ai/generationTrace";
+import { buildGenerationFailureDiagnostics, formatGenerationFailureError } from "./ai/generationFailureDiagnostics";
 import { assessSemanticOriginality, persistCandidateFingerprints } from "./ai/semanticOriginality";
 import { classifyGenerationError, toFailureMetadata } from "@shared/generationFailure";
 import { GenerationFailureError } from "./_core/generationError";
@@ -795,10 +796,33 @@ export const appRouter = router({
             error instanceof GenerationFailureError
               ? error.failure.reason
               : classifyGenerationError(error);
+          const diagnostics = failureReason === "quality_rejected" || failureReason === "variations_not_distinct"
+            ? buildGenerationFailureDiagnostics(
+                generationTrace,
+                error instanceof GenerationFailureError
+                  ? error.failure
+                  : toFailureMetadata({ generationRunId: generationTrace.id, reason: failureReason }),
+                error instanceof GenerationFailureError ? "typed" : "inferred",
+              )
+            : null;
+          if (diagnostics) {
+            // O log de arquivo é best-effort (e pode ser efêmero em serverless).
+            // A linha JSON também torna a causa consultável nos logs do runtime.
+            console.error(JSON.stringify({ event: "POST_GENERATION_REJECTED", ...diagnostics }));
+            await appendOperationalLog("POST_GENERATION_REJECTED", diagnostics);
+            recordGenerationEvent({
+              stage: "generation_failure_diagnostic",
+              status: "rejected",
+              detail: `Rejeição registrada: ${failureReason}; ${diagnostics.validationIssues.length} motivo(s).`,
+              data: diagnostics,
+            });
+          }
           await finishGenerationTrace({
             trace: generationTrace,
             status: "failed",
-            error: `${error instanceof Error ? error.message : "Generation failed"}${refundNote}`,
+            error: diagnostics
+              ? formatGenerationFailureError(`${error instanceof Error ? error.message : "Generation failed"}${refundNote}`, diagnostics)
+              : `${error instanceof Error ? error.message : "Generation failed"}${refundNote}`,
             failureReason,
           });
           await appendOperationalLog("POST_GENERATION_FAILED", {

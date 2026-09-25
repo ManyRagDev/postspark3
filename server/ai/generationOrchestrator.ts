@@ -1356,6 +1356,15 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
     if (rejectedQualitySlots.length > 0) {
       finalValidation.valid = false;
       finalValidation.errors.push(`quality_rejected_slots:${rejectedQualitySlots.map((index) => index + 1).join(",")}`);
+      rejectedQualitySlots.forEach((index) => {
+        const feedback = evaluations[index].feedback;
+        if (feedback.some((item) => item.includes("fato obrigatorio"))) {
+          finalValidation.errors.push(`quality_missing_required_fact_slot:${index + 1}`);
+        }
+        if (feedback.some((item) => item.includes("atribuicao de autoridade"))) {
+          finalValidation.errors.push(`quality_unsupported_authority_slot:${index + 1}`);
+        }
+      });
     }
     recordEvent("final_validation", finalValidation.valid ? "completed" : "rejected", finalValidation.valid ? "Exactly three complete variations approved." : finalValidation.errors.join("; "));
 

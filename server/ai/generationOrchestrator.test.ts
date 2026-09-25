@@ -350,6 +350,7 @@ describe("generatePostVariations — orçamento de chamadas", () => {
     if (outcome.status !== "rejected") return;
     expect(outcome.metrics.repairCalls).toBe(1);
     expect(outcome.issues.some((issue) => issue.detail.includes("quality_rejected_slots"))).toBe(true);
+    expect(outcome.issues.some((issue) => issue.detail.startsWith("quality_missing_required_fact_slot:"))).toBe(true);
   });
 
   it("deadline estourada durante o reparo → falha de deadline (não aprova)", async () => {
