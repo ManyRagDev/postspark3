@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectFormatIntent, hasFormatMismatch } from "./formatIntent";
+import { detectFormatIntent, formatMismatchMessage, hasFormatMismatch } from "./formatIntent";
 
 describe("formatIntent", () => {
   it("detects carousel intent with high confidence", () => {
@@ -13,6 +13,12 @@ describe("formatIntent", () => {
     const intent = detectFormatIntent("crie um post único e uma peça estática bem impactante");
     expect(intent.detectedFormat).toBe("static");
     expect(intent.confidence).toBe("high");
+  });
+
+  it("mostra o trecho real e oferece continuar com o formato escolhido", () => {
+    const intent = detectFormatIntent("Quero um post único sobre café");
+    expect(intent.evidence).toContain("post único");
+    expect(formatMismatchMessage(intent, "carousel")).toBe("Você escreveu “post único” no briefing, mas selecionou carrossel. Quer continuar com carrossel?");
   });
 
   it("returns low confidence when no signal is present", () => {

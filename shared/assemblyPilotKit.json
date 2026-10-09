@@ -1,0 +1,1835 @@
+{
+  "version": 1,
+  "sources": {
+    "paper": {
+      "path": "artifacts/design-recreation/family-library-2026-10-01T02-59-27-361Z/recipes/references/0623fb1c14937cd1e67e980b566710ba.json",
+      "sha256": "fb00b35f84130f0d120986dde16cbdd390458560f40215fdb169c70bdebe1072"
+    },
+    "window": {
+      "path": "artifacts/design-recreation/family-library-2026-10-01T02-59-27-361Z/recipes/references/1c2fb00a82a764bab2f4374d03f67886.json",
+      "sha256": "f63387a92a4558571d938f7207ac21026fcc7f8700b1453d41f8f5fd83244f0d"
+    },
+    "ribbons": {
+      "path": "artifacts/design-recreation/family-library-2026-10-01T02-59-27-361Z/recipes/references/94e0a100310160059384fb4c6ca5b2c4.json",
+      "sha256": "fcd9e2252beb54225460e37ad8ed0900666e064357d70372ce710975ea75aa2a"
+    },
+    "minimal-air": {
+      "path": "artifacts/design-recreation/family-library-2026-10-01T02-59-27-361Z/recipes/native/minimal-air-1x1.json",
+      "sha256": "533f796b90f183035482f6ffd7767aa8227573e77d03f86607eb532daa98839e"
+    },
+    "editorial-poster": {
+      "path": "artifacts/design-recreation/family-library-2026-10-01T02-59-27-361Z/recipes/native/editorial-poster-1x1.json",
+      "sha256": "541e2fde1b7a5fb57694ce3755c957188da04b4895fe65a597d2ec0339ea4b46"
+    },
+    "kinetic-type": {
+      "path": "artifacts/design-recreation/family-library-2026-10-01T02-59-27-361Z/recipes/native/kinetic-type-1x1.json",
+      "sha256": "0b6d226c1bab938550daecb57065fe53946592c981901d87ef24d7429e647559"
+    }
+  },
+  "backgrounds": {
+    "grid": {
+      "width": 736,
+      "height": 920,
+      "fill": "#F34B00",
+      "layers": [
+        {
+          "id": "grade-v-17",
+          "kind": "line",
+          "x": 17,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-48",
+          "kind": "line",
+          "x": 48,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-79",
+          "kind": "line",
+          "x": 79,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-110",
+          "kind": "line",
+          "x": 110,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-141",
+          "kind": "line",
+          "x": 141,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-172",
+          "kind": "line",
+          "x": 172,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-203",
+          "kind": "line",
+          "x": 203,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-234",
+          "kind": "line",
+          "x": 234,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-265",
+          "kind": "line",
+          "x": 265,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-296",
+          "kind": "line",
+          "x": 296,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-327",
+          "kind": "line",
+          "x": 327,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-358",
+          "kind": "line",
+          "x": 358,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-389",
+          "kind": "line",
+          "x": 389,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-420",
+          "kind": "line",
+          "x": 420,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-451",
+          "kind": "line",
+          "x": 451,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-482",
+          "kind": "line",
+          "x": 482,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-513",
+          "kind": "line",
+          "x": 513,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-544",
+          "kind": "line",
+          "x": 544,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-575",
+          "kind": "line",
+          "x": 575,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-606",
+          "kind": "line",
+          "x": 606,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-637",
+          "kind": "line",
+          "x": 637,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-668",
+          "kind": "line",
+          "x": 668,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-699",
+          "kind": "line",
+          "x": 699,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-v-730",
+          "kind": "line",
+          "x": 730,
+          "y": 0,
+          "width": 1,
+          "height": 920,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            0,
+            920
+          ]
+        },
+        {
+          "id": "grade-h-16",
+          "kind": "line",
+          "x": 0,
+          "y": 16,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-47",
+          "kind": "line",
+          "x": 0,
+          "y": 47,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-78",
+          "kind": "line",
+          "x": 0,
+          "y": 78,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-109",
+          "kind": "line",
+          "x": 0,
+          "y": 109,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-140",
+          "kind": "line",
+          "x": 0,
+          "y": 140,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-171",
+          "kind": "line",
+          "x": 0,
+          "y": 171,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-202",
+          "kind": "line",
+          "x": 0,
+          "y": 202,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-233",
+          "kind": "line",
+          "x": 0,
+          "y": 233,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-264",
+          "kind": "line",
+          "x": 0,
+          "y": 264,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-295",
+          "kind": "line",
+          "x": 0,
+          "y": 295,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-326",
+          "kind": "line",
+          "x": 0,
+          "y": 326,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-357",
+          "kind": "line",
+          "x": 0,
+          "y": 357,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-388",
+          "kind": "line",
+          "x": 0,
+          "y": 388,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-419",
+          "kind": "line",
+          "x": 0,
+          "y": 419,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-450",
+          "kind": "line",
+          "x": 0,
+          "y": 450,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-481",
+          "kind": "line",
+          "x": 0,
+          "y": 481,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-512",
+          "kind": "line",
+          "x": 0,
+          "y": 512,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-543",
+          "kind": "line",
+          "x": 0,
+          "y": 543,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-574",
+          "kind": "line",
+          "x": 0,
+          "y": 574,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-605",
+          "kind": "line",
+          "x": 0,
+          "y": 605,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-636",
+          "kind": "line",
+          "x": 0,
+          "y": 636,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-667",
+          "kind": "line",
+          "x": 0,
+          "y": 667,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-698",
+          "kind": "line",
+          "x": 0,
+          "y": 698,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-729",
+          "kind": "line",
+          "x": 0,
+          "y": 729,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-760",
+          "kind": "line",
+          "x": 0,
+          "y": 760,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-791",
+          "kind": "line",
+          "x": 0,
+          "y": 791,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-822",
+          "kind": "line",
+          "x": 0,
+          "y": 822,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-853",
+          "kind": "line",
+          "x": 0,
+          "y": 853,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-884",
+          "kind": "line",
+          "x": 0,
+          "y": 884,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-915",
+          "kind": "line",
+          "x": 0,
+          "y": 915,
+          "width": 736,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.65,
+          "fill": "#F7A764",
+          "strokeColor": "#F7A764",
+          "strokeWidth": 0.8,
+          "points": [
+            0,
+            0,
+            736,
+            0
+          ]
+        }
+      ]
+    },
+    "playful": {
+      "width": 1200,
+      "height": 1500,
+      "fill": "#E9B708",
+      "layers": [
+        {
+          "id": "grade-v-6",
+          "kind": "line",
+          "x": 6,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-v-98",
+          "kind": "line",
+          "x": 98,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-v-190",
+          "kind": "line",
+          "x": 190,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-v-282",
+          "kind": "line",
+          "x": 282,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-v-374",
+          "kind": "line",
+          "x": 374,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-v-466",
+          "kind": "line",
+          "x": 466,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-v-558",
+          "kind": "line",
+          "x": 558,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-v-650",
+          "kind": "line",
+          "x": 650,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-v-742",
+          "kind": "line",
+          "x": 742,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-v-834",
+          "kind": "line",
+          "x": 834,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-v-926",
+          "kind": "line",
+          "x": 926,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-v-1018",
+          "kind": "line",
+          "x": 1018,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-v-1110",
+          "kind": "line",
+          "x": 1110,
+          "y": 0,
+          "width": 1,
+          "height": 1500,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            0,
+            1500
+          ]
+        },
+        {
+          "id": "grade-h-2",
+          "kind": "line",
+          "x": 0,
+          "y": 2,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-94",
+          "kind": "line",
+          "x": 0,
+          "y": 94,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-186",
+          "kind": "line",
+          "x": 0,
+          "y": 186,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-278",
+          "kind": "line",
+          "x": 0,
+          "y": 278,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-370",
+          "kind": "line",
+          "x": 0,
+          "y": 370,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-462",
+          "kind": "line",
+          "x": 0,
+          "y": 462,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-554",
+          "kind": "line",
+          "x": 0,
+          "y": 554,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-646",
+          "kind": "line",
+          "x": 0,
+          "y": 646,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-738",
+          "kind": "line",
+          "x": 0,
+          "y": 738,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-830",
+          "kind": "line",
+          "x": 0,
+          "y": 830,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-922",
+          "kind": "line",
+          "x": 0,
+          "y": 922,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-1014",
+          "kind": "line",
+          "x": 0,
+          "y": 1014,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-1106",
+          "kind": "line",
+          "x": 0,
+          "y": 1106,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-1198",
+          "kind": "line",
+          "x": 0,
+          "y": 1198,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-1290",
+          "kind": "line",
+          "x": 0,
+          "y": 1290,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-1382",
+          "kind": "line",
+          "x": 0,
+          "y": 1382,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "grade-h-1474",
+          "kind": "line",
+          "x": 0,
+          "y": 1474,
+          "width": 1200,
+          "height": 1,
+          "rotationDeg": 0,
+          "opacity": 0.48,
+          "fill": "#F3D044",
+          "strokeColor": "#F3D044",
+          "strokeWidth": 2,
+          "points": [
+            0,
+            0,
+            1200,
+            0
+          ]
+        },
+        {
+          "id": "forma-verde-topo",
+          "kind": "polygon",
+          "x": 850,
+          "y": 0,
+          "width": 350,
+          "height": 382,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "fill": "#46AF45",
+          "strokeColor": "#111111",
+          "strokeWidth": 3,
+          "points": [
+            38,
+            0,
+            350,
+            0,
+            350,
+            174,
+            318,
+            181,
+            298,
+            223,
+            281,
+            294,
+            261,
+            355,
+            240,
+            382,
+            218,
+            365,
+            201,
+            317,
+            192,
+            227,
+            177,
+            161,
+            151,
+            123,
+            142,
+            132,
+            133,
+            173,
+            116,
+            217,
+            87,
+            246,
+            56,
+            258,
+            29,
+            242,
+            6,
+            215,
+            0,
+            180,
+            13,
+            140,
+            34,
+            101,
+            43,
+            63
+          ]
+        },
+        {
+          "id": "forma-laranja-base",
+          "kind": "polygon",
+          "x": 0,
+          "y": 1195,
+          "width": 317,
+          "height": 305,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "fill": "#EF420C",
+          "strokeColor": "#111111",
+          "strokeWidth": 3,
+          "points": [
+            0,
+            0,
+            44,
+            48,
+            80,
+            74,
+            122,
+            87,
+            183,
+            90,
+            219,
+            109,
+            252,
+            152,
+            281,
+            212,
+            306,
+            269,
+            317,
+            305,
+            0,
+            305
+          ]
+        },
+        {
+          "id": "asterisco-base",
+          "kind": "polygon",
+          "x": 1017,
+          "y": 1229,
+          "width": 134,
+          "height": 134,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "fill": "#B477BD",
+          "strokeColor": "#111111",
+          "strokeWidth": 2,
+          "points": [
+            67,
+            0,
+            74.5057523079731,
+            38.988151037617016,
+            100.5,
+            8.976297946442607,
+            114.3761543394987,
+            19.623845660501317,
+            92.11473670974871,
+            52.5,
+            131.71703036136756,
+            49.65912397813111,
+            134,
+            67,
+            95.01184896238298,
+            74.5057523079731,
+            125.0237020535574,
+            100.49999999999999,
+            114.3761543394987,
+            114.37615433949868,
+            81.5,
+            92.11473670974873,
+            84.34087602186891,
+            131.71703036136756,
+            67,
+            134,
+            59.494247692026896,
+            95.01184896238298,
+            33.500000000000014,
+            125.0237020535574,
+            19.623845660501345,
+            114.37615433949871,
+            41.88526329025129,
+            81.50000000000001,
+            2.282969638632423,
+            84.34087602186888,
+            0,
+            67.00000000000001,
+            38.988151037617016,
+            59.49424769202691,
+            8.976297946442614,
+            33.49999999999999,
+            19.623845660501303,
+            19.623845660501317,
+            52.499999999999986,
+            41.88526329025129,
+            49.65912397813106,
+            2.282969638632437
+          ]
+        }
+      ]
+    }
+  },
+  "typography": {
+    "minimal-air": {
+      "assetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "label": "Inter",
+      "sourceId": "minimal-air"
+    },
+    "editorial-poster": {
+      "assetId": "font-c40f2293766a503bc70cce9e512ef844a4ccb7cbcde792fe2ea31d191917d8d6",
+      "label": "Playfair Display",
+      "sourceId": "editorial-poster"
+    },
+    "kinetic-type": {
+      "assetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "label": "Anton",
+      "sourceId": "kinetic-type"
+    }
+  },
+  "modules": {
+    "paper": {
+      "sourceId": "paper",
+      "fill": "#EFECE2"
+    },
+    "window": {
+      "sourceId": "window",
+      "fill": "#F3F3F1"
+    },
+    "ribbons": {
+      "sourceId": "ribbons",
+      "fill": "#244FDA"
+    }
+  }
+}

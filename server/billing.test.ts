@@ -11,6 +11,10 @@ import {
   reserveSparks,
   commitSparkReservation,
   refundSparkReservation,
+  calculateV5SparkReservation,
+  settleV5GenerationReservation,
+  getReservationByIdempotencyKey,
+  setSupabaseForTesting,
   type BillingProfile,
 } from "./billing";
 
@@ -139,3 +143,214 @@ describe("transactional billing — contract shapes", () => {
     expect(result.reservationId).not.toBeNull();
   });
 });
+
+describe("V5 Orchestrated Generation Billing", () => {
+  it("calculates static vs carousel spark reservations accurately", () => {
+    const staticRes = calculateV5SparkReservation("static", 3);
+    expect(staticRes.preparationSparks).toBe(5);
+    expect(staticRes.sparksPerProposal).toBe(10);
+    expect(staticRes.totalReservation).toBe(35); // 5 + 3 * 10
+
+    const carouselRes = calculateV5SparkReservation("carousel", 3);
+    expect(carouselRes.preparationSparks).toBe(5);
+    expect(carouselRes.sparksPerProposal).toBe(20);
+    expect(carouselRes.totalReservation).toBe(65); // 5 + 3 * 20
+  });
+
+  it("settles V5 reservation in dev-mock mode with zero debited sparks", async () => {
+    const settlement = await settleV5GenerationReservation({
+      reservationId: "dev-mock",
+      postMode: "static",
+      deliveredReadyCount: 3,
+      totalProposalsCount: 3,
+      generationRunId: "00000000-0000-4000-8000-000000000001",
+    });
+    expect(settlement.settled).toBe(true);
+    expect(settlement.debitedSparks).toBe(0);
+    expect(settlement.refundedSparks).toBe(0);
+  });
+
+  it("proportional settlement adjusts spark_reservations amount to 25 and commits partial debt", async () => {
+    let updatedPayload: any = null;
+    let updatedFilters: any = {};
+    let committedRunId: string | null = null;
+    let committedResId: string | null = null;
+
+    const mockSb: any = {
+      from: vi.fn((table: string) => {
+        expect(table).toBe("spark_reservations");
+        return {
+          update: (payload: any) => {
+            updatedPayload = payload;
+            return {
+              eq: (col1: string, val1: any) => {
+                updatedFilters[col1] = val1;
+                return {
+                  eq: (col2: string, val2: any) => {
+                    updatedFilters[col2] = val2;
+                    return Promise.resolve({ error: null });
+                  },
+                };
+              },
+            };
+          },
+        };
+      }),
+      rpc: vi.fn((fn: string, args: any) => {
+        if (fn === "next_commit_reservation_v2") {
+          committedResId = args.p_reservation_id;
+          committedRunId = args.p_description;
+          return Promise.resolve({ data: true, error: null });
+        }
+        return Promise.resolve({ data: null, error: new Error("unknown_rpc") });
+      }),
+    };
+
+    setSupabaseForTesting(mockSb);
+    try {
+      const settlement = await settleV5GenerationReservation({
+        reservationId: "00000000-0000-4000-8000-000000000100",
+        postMode: "carousel",
+        deliveredReadyCount: 1, // 1 pronta de 3 (preparação: 5 + 1*20 = 25)
+        totalProposalsCount: 3,
+        generationRunId: "00000000-0000-4000-8000-000000000200",
+      });
+
+      expect(settlement.settled).toBe(true);
+      expect(settlement.debitedSparks).toBe(25);
+      expect(settlement.refundedSparks).toBe(40);
+      expect(updatedPayload).toMatchObject({ amount: 25 });
+      expect(updatedFilters).toMatchObject({
+        id: "00000000-0000-4000-8000-000000000100",
+        status: "reserved",
+      });
+      expect(committedResId).toBe("00000000-0000-4000-8000-000000000100");
+      expect(committedRunId).toBe("00000000-0000-4000-8000-000000000200");
+    } finally {
+      setSupabaseForTesting(null);
+    }
+  });
+
+  it("proportional settlement refunds full reservation when 0 proposals are delivered ready", async () => {
+    let refundedResId: string | null = null;
+    let refundReason: string | null = null;
+
+    const mockSb: any = {
+      rpc: vi.fn((fn: string, args: any) => {
+        if (fn === "next_refund_reservation_v2") {
+          refundedResId = args.p_reservation_id;
+          refundReason = args.p_reason;
+          return Promise.resolve({ data: true, error: null });
+        }
+        return Promise.resolve({ data: null, error: new Error("unknown_rpc") });
+      }),
+    };
+
+    setSupabaseForTesting(mockSb);
+    try {
+      const settlement = await settleV5GenerationReservation({
+        reservationId: "00000000-0000-4000-8000-000000000100",
+        postMode: "carousel",
+        deliveredReadyCount: 0,
+        totalProposalsCount: 3,
+        generationRunId: "00000000-0000-4000-8000-000000000200",
+      });
+
+      expect(settlement.settled).toBe(true);
+      expect(settlement.debitedSparks).toBe(0);
+      expect(settlement.refundedSparks).toBe(65);
+      expect(refundedResId).toBe("00000000-0000-4000-8000-000000000100");
+      expect(refundReason).toContain("Geração V5 concluída sem nenhuma entrega utilizável");
+    } finally {
+      setSupabaseForTesting(null);
+    }
+  });
+
+  it("bypasses billing when user has unlimited plan (DEV/FOUNDER)", async () => {
+    const settlement = await settleV5GenerationReservation({
+      reservationId: "00000000-0000-4000-8000-000000000100",
+      postMode: "carousel",
+      deliveredReadyCount: 1,
+      totalProposalsCount: 3,
+      generationRunId: "00000000-0000-4000-8000-000000000200",
+      plan: "DEV",
+    });
+
+    expect(settlement.settled).toBe(true);
+    expect(settlement.debitedSparks).toBe(0);
+    expect(settlement.refundedSparks).toBe(0);
+  });
+
+  it("getReservationByIdempotencyKey queries spark_reservations table", async () => {
+    const mockSb: any = {
+      from: vi.fn((table: string) => {
+        expect(table).toBe("spark_reservations");
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn((_col1: string, _val1: any) => ({
+              eq: vi.fn((_col2: string, _val2: any) => ({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: "res-xyz", amount: 65, status: "reserved" },
+                  error: null,
+                }),
+              })),
+            })),
+          })),
+        };
+      }),
+    };
+
+    setSupabaseForTesting(mockSb);
+    try {
+      const res = await getReservationByIdempotencyKey("user-1", "idem-1");
+      expect(res).toEqual({ id: "res-xyz", amount: 65, status: "reserved" });
+    } finally {
+      setSupabaseForTesting(null);
+    }
+  });
+
+  it("refunds full reservation if proportional update fails instead of overcharging", async () => {
+    let refundCalled = false;
+    const mockSb: any = {
+      from: vi.fn((table: string) => {
+        expect(table).toBe("spark_reservations");
+        return {
+          update: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn().mockResolvedValue({
+                data: null,
+                error: { message: "database network timeout" },
+              }),
+            })),
+          })),
+        };
+      }),
+      rpc: vi.fn((proc: string, _args: any) => {
+        if (proc === "refund_spark_reservation") {
+          refundCalled = true;
+          return Promise.resolve({ data: true, error: null });
+        }
+        return Promise.resolve({ data: null, error: new Error("unexpected rpc") });
+      }),
+    };
+
+    setSupabaseForTesting(mockSb);
+    try {
+      const settlement = await settleV5GenerationReservation({
+        reservationId: "00000000-0000-4000-8000-000000000100",
+        postMode: "carousel",
+        deliveredReadyCount: 1,
+        totalProposalsCount: 3,
+        generationRunId: "00000000-0000-4000-8000-000000000200",
+      });
+
+      expect(settlement.settled).toBe(false);
+      expect(settlement.debitedSparks).toBe(0);
+      expect(settlement.refundedSparks).toBe(65);
+      expect(refundCalled).toBe(true);
+    } finally {
+      setSupabaseForTesting(null);
+    }
+  });
+});
+

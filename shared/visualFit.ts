@@ -177,7 +177,7 @@ function clampedCopyIssues(snapshot: PostVisualSnapshot, structured: boolean): V
   const body = snapshot.body ?? "";
   const headlineLen = headline.length;
   const totalLen = headlineLen + body.length;
-  const portrait = snapshot.aspectRatio === "5:6";
+  const portrait = (snapshot.aspectRatio === "4:5" || snapshot.aspectRatio === "5:6");
   const headlineRem = Math.max(
     portrait ? 1.05 : 1.1,
     (structured ? 1.38 : portrait ? 1.55 : 1.65) -

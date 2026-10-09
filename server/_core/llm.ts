@@ -97,6 +97,11 @@ export type InvokeParams = {
   responseFormat?: ResponseFormat;
   response_format?: ResponseFormat;
   disableFallback?: boolean;
+  deadlineMs?: number;
+  signal?: AbortSignal;
+  maxTransportAttempts?: number;
+  forceTextSchema?: boolean;
+  disableStructuredRepair?: boolean;
 };
 
 export type ToolCall = {
@@ -304,7 +309,7 @@ type StructuredFailureType =
   | "invalid_json"
   | "schema_mismatch";
 
-class StructuredOutputError extends Error {
+export class StructuredOutputError extends Error {
   constructor(
     readonly failureType: StructuredFailureType,
     message: string,
@@ -320,16 +325,33 @@ const OPENROUTER_TASK_POLICY: Partial<
     {
       temperature: number;
       topP: number;
-      reasoningEffort: "minimal" | "low";
+      reasoningEffort?: "minimal" | "low";
       timeoutMs: number;
     }
   >
 > = {
+  brief_interpretation: {
+    temperature: 0.2,
+    topP: 0.85,
+    reasoningEffort: "low",
+    timeoutMs: 8_000,
+  },
   content_strategy: {
     temperature: 0.35,
     topP: 0.85,
     reasoningEffort: "minimal",
     timeoutMs: 12_000,
+  },
+  design_analysis: {
+    temperature: 0.2,
+    topP: 0.85,
+    timeoutMs: 90_000,
+  },
+  design_recreation: {
+    temperature: 0.15,
+    topP: 0.85,
+    reasoningEffort: "low",
+    timeoutMs: 90_000,
   },
   static_generation: {
     temperature: 0.4,
@@ -374,10 +396,13 @@ function timeoutForTaskRoute(route?: AiTaskRoute): number {
 }
 
 function isAiTaskRoute(value: string | undefined): value is AiTaskRoute {
-  return value === "content_strategy" ||
+  return value === "brief_interpretation" ||
+    value === "content_strategy" ||
     value === "static_generation" ||
     value === "carousel_generation" ||
     value === "vision_analysis" ||
+    value === "design_analysis" ||
+    value === "design_recreation" ||
     value === "microcopy" ||
     value === "fast_vision" ||
     value === "fallback_text_or_vision" ||
@@ -450,7 +475,18 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     responseFormat,
     response_format,
     disableFallback = false,
+    deadlineMs,
+    signal,
+    maxTransportAttempts,
+    forceTextSchema = false,
+    disableStructuredRepair = false,
   } = params;
+  const ensureBeforeDeadline = () => {
+    signal?.throwIfAborted();
+    if (deadlineMs !== undefined && Date.now() >= deadlineMs) {
+      throw new LlmDeadlineExceededError();
+    }
+  };
   const normalizedMessages = messages.map(normalizeMessage);
   const containsMultimodalContent = hasMultimodalContent(normalizedMessages);
   const requestedModel = taskRoute ?? model ?? (containsMultimodalContent ? "vision_analysis" : "static_generation");
@@ -663,11 +699,18 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     config: ProviderModelConfig,
     payload: Record<string, unknown>,
   ): Promise<InvokeResult> => {
+    ensureBeforeDeadline();
     const controller = new AbortController();
-    const timeout = setTimeout(
-      () => controller.abort(),
-      timeoutForTaskRoute(effectiveTaskRoute),
-    );
+    const onAbort = () => controller.abort(signal?.reason);
+    signal?.addEventListener("abort", onAbort, { once: true });
+    const routeTimeoutMs = timeoutForTaskRoute(effectiveTaskRoute);
+    const remainingMs = deadlineMs === undefined ? Infinity : deadlineMs - Date.now();
+    const deadlineIsLimiting = remainingMs <= routeTimeoutMs;
+    let deadlineTimerFired = false;
+    const timeout = setTimeout(() => {
+      if (deadlineIsLimiting) deadlineTimerFired = true;
+      controller.abort();
+    }, Math.max(1, Math.min(routeTimeoutMs, remainingMs)));
     try {
       const response = await fetch(config.apiUrl, {
         method: "POST",
@@ -697,8 +740,14 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
           parseRetryAfterMs(response.headers.get("retry-after")),
         );
       }
-      return (await response.json()) as InvokeResult;
+      const result = (await response.json()) as InvokeResult;
+      ensureBeforeDeadline();
+      return result;
     } catch (error) {
+      signal?.throwIfAborted();
+      if (deadlineTimerFired || (deadlineMs !== undefined && Date.now() >= deadlineMs)) {
+        throw new LlmDeadlineExceededError();
+      }
       if (error instanceof ProviderRequestError) throw error;
       void appendOperationalLog("AI_PROVIDER_REQUEST_ERROR", {
         provider: config.provider,
@@ -711,6 +760,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         error instanceof Error ? error.message : "Network request failed",
       );
     } finally {
+      signal?.removeEventListener("abort", onAbort);
       clearTimeout(timeout);
     }
   };
@@ -805,9 +855,13 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         messages: normalizedMessages,
         responseFormat: normalizedResponseFormat,
       });
-    let adapted = buildAdaptedRequest();
+    let adapted = buildAdaptedRequest(forceTextSchema);
     let lastError: unknown;
-    let maxAttempts = ENV.llmTransientRetries + 1;
+    // A interpretação é auxiliar: não deixa retries consumirem o tempo da geração.
+    const defaultMaxAttempts = effectiveTaskRoute === "brief_interpretation" ? 1 : ENV.llmTransientRetries + 1;
+    let maxAttempts = maxTransportAttempts === undefined
+      ? defaultMaxAttempts
+      : Math.max(1, Math.floor(maxTransportAttempts));
     let downgradedNativeSchema = false;
 
     for (
@@ -815,6 +869,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       attempt <= maxAttempts;
       attempt += 1
     ) {
+      ensureBeforeDeadline();
       const startedAt = Date.now();
       const payload = buildPayload(config, adapted.messages, adapted.responseFormat);
       try {
@@ -842,7 +897,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
                 `Structured output validation failed: ${validation.errors.join("; ")}`,
               ),
             });
-            if (!shouldAttemptStructuredRepair(structuredFailureType)) {
+            if (disableStructuredRepair || effectiveTaskRoute === "brief_interpretation" || effectiveTaskRoute === "design_recreation" || !shouldAttemptStructuredRepair(structuredFailureType)) {
               throw new StructuredOutputError(
                 structuredFailureType,
                 `Structured output ${structuredFailureType}; skipping repair`,
@@ -890,9 +945,10 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
           shouldDowngradeGroqSchema(error, config, adapted) &&
           !downgradedNativeSchema
         ) {
+          if (maxTransportAttempts === undefined) maxAttempts += 1;
+          else if (attempt >= maxAttempts) throw error;
           adapted = buildAdaptedRequest(true);
           downgradedNativeSchema = true;
-          maxAttempts += 1;
           continue;
         }
         if (
@@ -905,7 +961,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
           error instanceof ProviderRequestError
             ? error.retryAfterMs
             : undefined;
-        await sleep(Math.max(retryDelayMs(attempt), providerDelay ?? 0));
+        ensureBeforeDeadline();
+        const delay = Math.max(retryDelayMs(attempt), providerDelay ?? 0);
+        const remaining = deadlineMs === undefined ? delay : Math.max(0, deadlineMs - Date.now());
+        await sleep(Math.min(delay, remaining));
+        ensureBeforeDeadline();
       }
     }
     throw lastError;
@@ -914,6 +974,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   try {
     return await executeWithRetries(primaryConfig);
   } catch (primaryError) {
+    if (deadlineMs !== undefined && Date.now() >= deadlineMs) {
+      throw primaryError instanceof LlmDeadlineExceededError
+        ? primaryError
+        : new LlmDeadlineExceededError();
+    }
     const canFallback =
       primaryConfig.provider !== "google" &&
       primaryConfig.provider !== "forge" &&
@@ -928,6 +993,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     }
 
     try {
+      ensureBeforeDeadline();
       const fallbackConfig = resolveGeminiFallbackConfig();
       return await executeWithRetries(
         fallbackConfig,
@@ -941,6 +1007,13 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         cause: fallbackError,
       });
     }
+  }
+}
+
+class LlmDeadlineExceededError extends Error {
+  constructor() {
+    super("LLM request deadline exceeded");
+    this.name = "LlmDeadlineExceededError";
   }
 }
 

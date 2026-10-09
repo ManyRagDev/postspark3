@@ -1,3 +1,4 @@
+import { generationAspectRatios } from "@shared/aspectRatios";
 import { Magnet, ZoomIn, ZoomOut } from "lucide-react";
 import {
   DropdownMenu,
@@ -64,7 +65,7 @@ export default function CanvasToolRail({
               onAspectRatioChange(value as AspectRatioType)
             }
           >
-            {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map(
+            {generationAspectRatios.map(
               id => (
                 <DropdownMenuRadioItem key={id} value={id}>
                   {id} · {ASPECT_RATIO_CAPTIONS[id].caption}

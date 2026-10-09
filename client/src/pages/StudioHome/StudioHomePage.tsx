@@ -13,7 +13,7 @@ export default function StudioHomePage() {
   const [, setLocation] = useLocation();
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [aspectRatio, setAspectRatio] = useState<"1:1" | "5:6" | "9:16">("1:1");
+  const [aspectRatio, setAspectRatio] = useState<"1:1" | "4:5" | "5:6" | "9:16">("1:1");
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [activeMode, setActiveMode] = useState<"url" | "idea">("idea");
 

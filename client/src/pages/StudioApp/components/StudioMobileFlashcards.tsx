@@ -1,13 +1,21 @@
-import { useState, useRef } from "react";
+import { generationAspectRatios, isPortraitRatio, aspectRatioHeight } from "@shared/aspectRatios";
+import { fitPostToAspectRatio } from "@/pages/CanvasLab/lib/guidedComposition";
+import { resolveSlideAppearance } from "@/pages/CanvasLab/lib/slideReplication";
+import PostDownloadDialog from "@/pages/CanvasLab/components/PostDownloadDialog";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight, Layers, RefreshCw, Smartphone, Sparkles, Square } from "lucide-react";
 import type { AspectRatioType, CanvasPostModel } from "@/pages/CanvasLab/components/types";
 import { ASPECT_RATIO_CAPTIONS } from "@/pages/CanvasLab/components/types";
 import { CanvasPostStage } from "@/pages/CanvasLab/components/CanvasPostStage";
 import UserTopMenu from "@/components/UserTopMenu";
+import StudioDirectionFeedback from "./StudioDirectionFeedback";
+import StudioGalleryEmptyState from "./StudioGalleryEmptyState";
 
 interface StudioMobileFlashcardsProps {
   variations: CanvasPostModel[];
+  aspectRatio: AspectRatioType;
+  onAspectRatioChange: (ratio: AspectRatioType) => void;
   onSelectVariation: (variation: CanvasPostModel) => void;
   onBackToCreate: () => void;
   onGenerateMore?: () => void;
@@ -18,31 +26,44 @@ interface StudioMobileFlashcardsProps {
 
 export default function StudioMobileFlashcards({
   variations,
+  aspectRatio,
+  onAspectRatioChange: setAspectRatio,
   onSelectVariation,
   onBackToCreate,
   onGenerateMore,
   isGeneratingMore = false,
   declaredFamilyId,
 }: StudioMobileFlashcardsProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [aspectRatio, setAspectRatio] = useState<AspectRatioType>("1:1");
+  const [selectedIndex, setCurrentIndex] = useState(0);
+  const [downloadPost, setDownloadPost] = useState<CanvasPostModel | null>(null);
   /** Guarda o estado de drag para não selecionar quando o usuário só navega. */
   const isDraggingCard = useRef(false);
 
   const total = variations.length;
-  const currentPost = variations[currentIndex] || variations[0];
+  const currentIndex = Math.min(selectedIndex, Math.max(0, total - 1));
+  useEffect(() => {
+    setCurrentIndex(previous => Math.min(previous, Math.max(0, total - 1)));
+  }, [total]);
+
+  if (total === 0) {
+    return <StudioGalleryEmptyState isGenerating={isGeneratingMore} onBackToCreate={onBackToCreate} aspectRatio={aspectRatio} />;
+  }
+
+  const currentPost = variations[currentIndex];
+  const currentProjection = fitPostToAspectRatio(currentPost, aspectRatio);
+  const currentAppearance = resolveSlideAppearance(currentPost, currentPost.currentSlideIndex);
 
   // Dimensões do Card Mobile
-  const cardScale = aspectRatio === "9:16" ? 0.48 : aspectRatio === "5:6" ? 0.58 : 0.65;
+  const cardScale = aspectRatio === "9:16" ? 0.48 : isPortraitRatio(aspectRatio) ? 0.58 : 0.65;
   const stageWidth = 360 * cardScale;
-  const stageHeight = (aspectRatio === "9:16" ? 640 : aspectRatio === "5:6" ? 432 : 360) * cardScale;
+  const stageHeight = aspectRatioHeight(aspectRatio) * cardScale;
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev < total - 1 ? prev + 1 : 0));
+    setCurrentIndex(currentIndex < total - 1 ? currentIndex + 1 : 0);
   };
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : total - 1));
+    setCurrentIndex(currentIndex > 0 ? currentIndex - 1 : total - 1);
   };
 
   return (
@@ -60,7 +81,7 @@ export default function StudioMobileFlashcards({
 
         {/* Seletor de Formato Claro (ratio + legenda — item 8) */}
         <div className="flex items-center bg-white/8 p-0.5 rounded-xl border border-white/12">
-          {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map((id) => {
+          {generationAspectRatios.map((id) => {
             const cap = ASPECT_RATIO_CAPTIONS[id];
             const isSelected = aspectRatio === id;
             return (
@@ -97,12 +118,12 @@ export default function StudioMobileFlashcards({
         <div className="flex items-center gap-2 mb-3 z-20">
           <span
             className="w-2.5 h-2.5 rounded-full shadow-sm"
-            style={{ backgroundColor: currentPost.palette.accent }}
+            style={{ backgroundColor: currentAppearance.palette.accent }}
           />
           <span className="text-xs font-bold uppercase tracking-wider text-white">
-            {currentPost.familyName}
+            {currentAppearance.familyName}
           </span>
-          {currentPost.familyId === declaredFamilyId ? (
+          {currentAppearance.familyId === declaredFamilyId ? (
             <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-black bg-[oklch(0.78_0.22_48)] px-1.5 py-0.5 rounded-full">
               ✓ Seu gosto
             </span>
@@ -117,12 +138,8 @@ export default function StudioMobileFlashcards({
             if (Math.abs(offset) > 1) return null;
 
             const isCenter = offset === 0;
-            const cleanItem: CanvasPostModel = {
-              ...item,
-              aspectRatio,
-              bgImage: undefined,
-              slides: item.slides.map((s) => ({ ...s, bgImage: undefined })),
-            };
+            const projection = fitPostToAspectRatio(item, aspectRatio);
+            const cleanItem = projection.post || item;
 
             return (
               <motion.div
@@ -154,7 +171,7 @@ export default function StudioMobileFlashcards({
                 }}
                 // Item 10: toque no card central seleciona para edição.
                 onTap={() => {
-                  if (isCenter && !isDraggingCard.current) onSelectVariation(cleanItem);
+                  if (isCenter && !isDraggingCard.current && !projection.error) onSelectVariation(cleanItem);
                 }}
               >
                 {/* Prancheta Konva Auto-Fit */}
@@ -162,18 +179,22 @@ export default function StudioMobileFlashcards({
                   className="flex items-center justify-center rounded-2xl overflow-hidden shadow-inner pointer-events-none select-none"
                   style={{ width: stageWidth, height: stageHeight }}
                 >
-                  <CanvasPostStage post={cleanItem} zoom={cardScale} isReadOnly={true} />
+                  {projection.error ? <p className="max-w-56 p-4 text-sm text-amber-200">{projection.error}</p> : <CanvasPostStage post={cleanItem} zoom={cardScale} isReadOnly={true} />}
                 </div>
               </motion.div>
             );
           })}
         </div>
 
+        {/* Fora do cartão arrastável para que o botão de preferência não navegue os flashcards. */}
+        {currentPost ? <div className="z-20 mt-3 w-full max-w-sm"><StudioDirectionFeedback key={`${currentPost.completeDesign?.runId ?? currentPost.componentAssembly?.runId}:${currentPost.completeDesign?.slot ?? currentPost.componentAssembly?.slot}`} post={currentPost} /></div> : null}
+
         {/* Dots de Paginação e Setas Rápidas */}
         <div className="flex items-center gap-4 mt-4 z-20">
           <button
             type="button"
             onClick={handlePrev}
+            aria-label="Variação anterior"
             className="p-2 rounded-full bg-white/6 hover:bg-white/12 border border-white/10 text-white/80 active:scale-90 transition-transform"
           >
             <ChevronLeft size={16} />
@@ -196,6 +217,7 @@ export default function StudioMobileFlashcards({
           <button
             type="button"
             onClick={handleNext}
+            aria-label="Próxima variação"
             className="p-2 rounded-full bg-white/6 hover:bg-white/12 border border-white/10 text-white/80 active:scale-90 transition-transform"
           >
             <ChevronRight size={16} />
@@ -208,18 +230,16 @@ export default function StudioMobileFlashcards({
         </p>
       </main>
 
+      {downloadPost && <PostDownloadDialog post={downloadPost} onClose={() => setDownloadPost(null)} />}
+
       {/* ─── 3. BARRA DE AÇÃO INFERIOR FIXA (THUMB ZONE) ─── */}
       <footer className="p-4 border-t border-white/10 bg-black/70 backdrop-blur-xl shrink-0 flex flex-col gap-2 z-30">
+        <button type="button" disabled={!!currentProjection.error} onClick={() => { if (currentProjection.post) setDownloadPost(currentProjection.post); }} className="w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-black">Baixar</button>
         <button
           type="button"
+          disabled={!!currentProjection.error}
           onClick={() => {
-            const cleanPost: CanvasPostModel = {
-              ...currentPost,
-              aspectRatio,
-              bgImage: undefined,
-              slides: currentPost.slides.map((s) => ({ ...s, bgImage: undefined })),
-            };
-            onSelectVariation(cleanPost);
+            if (currentProjection.post) onSelectVariation(currentProjection.post);
           }}
           className="w-full py-3.5 px-5 rounded-2xl text-sm font-bold text-black shadow-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform cursor-pointer"
           style={{

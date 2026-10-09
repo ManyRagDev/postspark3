@@ -8,6 +8,7 @@ const original = {
   openRouterCarouselModel: ENV.openRouterCarouselModel,
   openRouterQualityRevisionModel: ENV.openRouterQualityRevisionModel,
   openRouterContentStrategyModel: ENV.openRouterContentStrategyModel,
+  openRouterBriefInterpretationModel: ENV.openRouterBriefInterpretationModel,
   openRouterEvaluationModel: ENV.openRouterEvaluationModel,
   openRouterVisionModel: ENV.openRouterVisionModel,
 };
@@ -19,6 +20,7 @@ describe("task model routing", () => {
     ENV.openRouterCarouselModel = "google/gemini-3.8-flash";
     ENV.openRouterQualityRevisionModel = "openai/gpt-5.4-mini";
     ENV.openRouterContentStrategyModel = "z-ai/glm-5.3-flash";
+    ENV.openRouterBriefInterpretationModel = "google/gemini-3.8-flash";
     ENV.openRouterEvaluationModel = "z-ai/glm-5.3-flash";
     ENV.openRouterVisionModel = "google/gemini-3.8-flash";
   });
@@ -30,6 +32,7 @@ describe("task model routing", () => {
     ["carousel_generation", "google/gemini-3.8-flash"],
     ["quality_revision", "openai/gpt-5.4-mini"],
     ["content_strategy", "z-ai/glm-5.3-flash"],
+    ["brief_interpretation", "google/gemini-3.8-flash"],
     ["post_evaluation", "z-ai/glm-5.3-flash"],
     ["vision_analysis", "google/gemini-3.8-flash"],
   ] as const)("routes %s to %s", (taskRoute, expectedModel) => {

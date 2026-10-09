@@ -25,10 +25,19 @@ export interface VisualDiversityPlanResult {
   plan: VisualDiversityPlan;
 }
 
+function preservesRequiredTerms(variation: PostVariation, terms: string[]): boolean {
+  if (terms.length === 0) return true;
+  const normalize = (value: string) => value.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+  const fields = [variation.headline, variation.body, variation.caption, variation.callToAction,
+    ...(variation.slides ?? []).flatMap((slide) => [slide.headline, slide.body])]
+    .filter((value): value is string => typeof value === "string").map(normalize);
+  return terms.every((term) => fields.some((field) => field.includes(normalize(term))));
+}
+
 /**
  * Post-composition invariants. They deliberately only apply when every item
- * has a creative direction: raw LLM candidates are validated by the existing
- * lexical guard, while this guard owns the final rendered composition set.
+ * has a creative direction: this guard owns the final rendered composition
+ * set, sem exigir diferenciação lexical da copy entre variações.
  */
 export function visualDiversityIssues(
   variations: Array<Partial<PostVariation>>,
@@ -77,7 +86,7 @@ function cloneForComposition(
 export function composeVisualDiversityPlan(
   variations: PostVariation[],
   brandTokens: DesignTokens,
-  options: { brandLocked?: boolean } = {},
+  options: { brandLocked?: boolean; requiredVisibleTerms?: string[] } = {},
 ): VisualDiversityPlanResult {
   const composed: PostVariation[] = [];
   const usedFamilyIds: string[] = [];
@@ -105,6 +114,9 @@ export function composeVisualDiversityPlan(
         cloneForComposition(variation, creativeDirection),
         brandTokens,
       );
+      // Algumas famílias ocultam o body como ornamento. Isso não pode apagar
+      // uma expressão que o usuário exigiu explicitamente no texto final.
+      if (!preservesRequiredTerms(candidate, options.requiredVisibleTerms ?? [])) continue;
       const family = FAMILIES.find((item) => item.id === creativeDirection.familyId);
       const cell = family ? creativeCellOf(family) : "unknown";
       const score =
@@ -122,7 +134,8 @@ export function composeVisualDiversityPlan(
     // directCreative always has a deterministic fallback; this guard protects
     // the contract if a future family registry becomes empty.
     if (!best) {
-      best = composeVariation(variation, brandTokens, { brandLocked: options.brandLocked });
+      const fallback = composeVariation(variation, brandTokens, { brandLocked: options.brandLocked });
+      best = preservesRequiredTerms(fallback, options.requiredVisibleTerms ?? []) ? fallback : variation;
     }
 
     const familyId = best.creativeDirection?.familyId;

@@ -1,3 +1,8 @@
+import { assemblyDirectionV1Schema, assemblySlideRoles, assemblyDensities } from "@shared/componentAssembly";
+import { arsenalCompilationReportSchema } from "@shared/arsenalGeneration";
+import { catalogCompilationSchema } from "@shared/designCatalog";
+import { readArsenalComposition } from "@shared/designArsenal";
+import { completeDesignProvenanceSchema } from "@shared/completeDesignGeneration";
 /**
  * Adapters de persistência do CanvasLab (PostSpark Studio).
  *
@@ -80,7 +85,7 @@ function normalizeRichTextChunks(value: unknown): CanvasRichTextChunk[] | undefi
       ...(typeof chunk.underline === "boolean" ? { underline: chunk.underline } : {}),
     }))
     .filter((chunk) => chunk.text.length > 0);
-  return chunks.length > 0 ? chunks : undefined;
+  return chunks; // [] é override explícito: não reativar rich text herdado da raiz.
 }
 
 function normalizePositiveNumber(value: unknown): number | undefined {
@@ -132,7 +137,7 @@ export function canvasModelToUpdatePayload(post: CanvasPostModel) {
 
 /** Normaliza defensivamente um objeto parcial em CanvasPostModel completo. */
 export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: string }): CanvasPostModel {
-  const aspectRatio = (["1:1", "5:6", "9:16"].includes(String(raw.aspectRatio))
+  const aspectRatio = (["1:1", "4:5", "5:6", "9:16"].includes(String(raw.aspectRatio))
     ? raw.aspectRatio
     : "1:1") as AspectRatioType;
   const familyId = (OFFICIAL_FAMILIES_META[raw.familyId as VisualFamilyId]
@@ -153,6 +158,14 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
   return {
     id: raw.id || `saved-${Date.now()}`,
     modelVersion: raw.modelVersion,
+    ...(completeDesignProvenanceSchema.safeParse(raw.completeDesign).success ? { completeDesign: completeDesignProvenanceSchema.parse(raw.completeDesign) } : {}),
+    catalogCompilation: catalogCompilationSchema.safeParse(raw.catalogCompilation).data,
+    arsenalCompilation: arsenalCompilationReportSchema.safeParse(raw.arsenalCompilation).data,
+    ...(raw.componentAssembly?.schemaVersion === 1 && assemblyDirectionV1Schema.safeParse(raw.componentAssembly.direction).success ? { componentAssembly: raw.componentAssembly } : {}),
+    ...(Array.isArray(raw.componentCompilationReports) ? { componentCompilationReports: raw.componentCompilationReports.flatMap(entry => {
+      const report = arsenalCompilationReportSchema.safeParse(entry.report);
+      return typeof entry.slideId === 'string' && report.success ? [{ slideId: entry.slideId, report: report.data }] : [];
+    }) } : {}),
     ...(raw.provenance ? { provenance: raw.provenance } : {}),
     ...(typeof raw.callToAction === "string" ? { callToAction: raw.callToAction } : {}),
     ...(Array.isArray(raw.hashtags) ? { hashtags: raw.hashtags } : {}),
@@ -173,6 +186,9 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
     caption: raw.caption ?? "",
     imagePrompt: raw.imagePrompt,
     fontFamily: raw.fontFamily || meta.defaultFont,
+    subtextFontFamily: typeof raw.subtextFontFamily === "string" && raw.subtextFontFamily.trim() ? raw.subtextFontFamily : undefined,
+    headlineFontWeight: typeof raw.headlineFontWeight === "number" && raw.headlineFontWeight >= 100 && raw.headlineFontWeight <= 900 ? raw.headlineFontWeight : undefined,
+    subtextFontWeight: typeof raw.subtextFontWeight === "number" && raw.subtextFontWeight >= 100 && raw.subtextFontWeight <= 900 ? raw.subtextFontWeight : undefined,
     customFontUrl: raw.customFontUrl,
     bgImage: raw.bgImage,
     bgTransform: raw.bgTransform,
@@ -201,7 +217,10 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
     },
     slides: Array.isArray(raw.slides) && raw.slides.length > 0
       ? raw.slides.map((s, i) => ({
+          ...(s.composition !== undefined ? { composition: readArsenalComposition(s.composition) } : {}),
           id: s.id || `s-${i + 1}`,
+          ...(s.assemblyRole && assemblySlideRoles.includes(s.assemblyRole) ? { assemblyRole: s.assemblyRole } : {}),
+          ...(s.assemblyDensity && assemblyDensities.includes(s.assemblyDensity) ? { assemblyDensity: s.assemblyDensity } : {}),
           step: s.step || `SLIDE 0${i + 1}`,
           headline: s.headline ?? "",
           subtext: s.subtext ?? "",
@@ -221,8 +240,15 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
           headlineScale: normalizePositiveNumber(s.headlineScale),
           subtextScale: normalizePositiveNumber(s.subtextScale),
           extraTexts: Array.isArray(s.extraTexts) ? s.extraTexts : undefined,
+          extraShapes: Array.isArray(s.extraShapes) ? s.extraShapes : undefined,
           extraImages: Array.isArray(s.extraImages) ? s.extraImages : undefined,
+          suppressFamilyDecorations: s.suppressFamilyDecorations === true ? true : undefined,
           splitBgPosition: (typeof s.splitBgPosition === "string" && ["bottom", "top", "full"].includes(s.splitBgPosition) ? s.splitBgPosition : undefined) as SplitBgPosition | undefined,
+          guidedComposition: s.guidedComposition?.version === 1 && ["headline", "image", "balanced"].includes(s.guidedComposition.id)
+            && Number.isFinite(s.guidedComposition.readingArea?.y) && Number.isFinite(s.guidedComposition.readingArea?.height)
+            ? s.guidedComposition : undefined,
+          initialVisual: s.initialVisual?.version === 1 && s.initialVisual.visualStyle && s.initialVisual.geometry
+            && ["1:1", "4:5", "5:6", "9:16"].includes(s.initialVisual.aspectRatio) ? s.initialVisual : undefined,
           visualStyle: s.visualStyle && typeof s.visualStyle === "object" ? s.visualStyle : undefined,
         }))
       : [

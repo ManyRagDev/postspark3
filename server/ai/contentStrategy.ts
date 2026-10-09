@@ -91,7 +91,7 @@ function cleanSourceInstruction(value: string): string {
 function sourceSegments(value: string): string[] {
   const segments = cleanSourceInstruction(value)
     .split(/(?:\r?\n)+|(?<=[.!?;])\s+/)
-    .map((item) => item.replace(/^[\s\-\d.)]+/, "").trim())
+    .map((item) => item.replace(/^\s*(?:[-•*]|\d{1,2}[.)])\s+/, "").trim())
     .filter((item) => item.length >= 8);
   return Array.from(new Set(segments)).slice(0, 6);
 }
@@ -111,9 +111,13 @@ function buildMeaningPlan(input: {
   sourceContent: string;
   siteIntelligence?: SiteIntelligence | null;
   executionBrief?: CreativeExecutionBrief | null;
+  interpretedContent?: string | null;
 }): EditorialMeaningPlan {
   const objective = resolveObjective(input.siteIntelligence, input.executionBrief);
-  const segments = sourceSegments(input.executionBrief?.rawInput || input.sourceContent);
+  const rawSegments = sourceSegments(input.executionBrief?.rawInput || input.sourceContent);
+  const preferredSegments = input.interpretedContent ? sourceSegments(input.interpretedContent) : [];
+  // A classificação orienta a tese, mas não pode apagar fatos do briefing original.
+  const segments = preferredSegments.length > 0 ? preferredSegments : rawSegments;
   const mustKeep = Array.from(new Set([
     ...(input.executionBrief?.mustKeep ?? []),
     ...(input.executionBrief?.mustInclude ?? []),
@@ -126,13 +130,10 @@ function buildMeaningPlan(input: {
   };
 
   mustKeep.forEach((text) => addFact(text, true, "brief"));
-  segments.forEach((text) => {
-    // Texto promocional genérico continua flexível. Valores, prazos e itens
-    // fixados pelo briefing são contrato factual duro.
-    const isConcrete = /\b\d+(?:[.,]\d+)?\s*(?:%|h|hora|horas|dia|dias|x)?\b/i.test(text);
-    addFact(text, isConcrete, "input");
-  });
-  (input.siteIntelligence?.anchors?.facts ?? []).forEach((fact) => addFact(fact.text, true, "anchor"));
+  // Números em exemplos ou cenários não tornam a frase obrigatória.
+  // Só mustKeep/mustInclude explicitamente escolhidos são contrato duro.
+  rawSegments.forEach((text) => addFact(text, false, "input"));
+  (input.siteIntelligence?.anchors?.facts ?? []).forEach((fact) => addFact(fact.text, false, "anchor"));
   (input.siteIntelligence?.evidence ?? []).slice(0, 4).forEach((fact) => addFact(fact.text, false, "site"));
 
   const propositionSources = Array.from(new Set([
@@ -142,7 +143,7 @@ function buildMeaningPlan(input: {
     ...(input.siteIntelligence?.editorial.priorityTopics ?? []),
   ].map((item) => item.trim()).filter(Boolean)));
   const semanticVariationBudget = Math.max(1, Math.min(3, propositionSources.length)) as 1 | 2 | 3;
-  const fallbackClaim = input.siteIntelligence?.business.valueProposition || cleanSourceInstruction(input.sourceContent) || "O tema informado precisa ser apresentado com clareza";
+  const fallbackClaim = input.siteIntelligence?.business.valueProposition || cleanSourceInstruction(input.interpretedContent || input.sourceContent) || "O tema informado precisa ser apresentado com clareza";
   const claims = (propositionSources.length ? propositionSources : [fallbackClaim]).slice(0, semanticVariationBudget);
   const propositions = claims.map((literalClaim, index) => ({
     id: `proposition-${index + 1}`,
@@ -215,9 +216,10 @@ export function planContentStrategiesDeterministic(input: {
   sourceContent: string;
   siteIntelligence?: SiteIntelligence | null;
   executionBrief?: CreativeExecutionBrief | null;
+  interpretedContent?: string | null;
 }): ContentStrategyPlan {
   const meaningPlan = buildMeaningPlan(input);
-  const candidates = buildStrategies(meaningPlan, input.sourceContent, input.siteIntelligence);
+  const candidates = buildStrategies(meaningPlan, input.interpretedContent || input.sourceContent, input.siteIntelligence);
   return {
     objective: meaningPlan.objective,
     meaningPlan,

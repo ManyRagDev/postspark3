@@ -1,0 +1,530 @@
+[
+  {
+    "id": "b6f6a7c4-7427-43e9-8913-830cb732f8ef",
+    "hash": "ad401f2065b0f85f709794ac862ab510ef11d1e3929de6d90a820dfa483e91f2",
+    "kind": "media",
+    "label": "Editorial — Graphic Design · media · 4:5",
+    "roles": [
+      "static",
+      "cover",
+      "development",
+      "list",
+      "comparison",
+      "example",
+      "closing"
+    ],
+    "assets": [],
+    "pieces": {
+      "0ed74d41b861b46698bf901a2a3c2fe7da0c7b2d8c59f87d773c9ca8ce018bf1": {
+        "fill": "#E4E2DC",
+        "kind": "media",
+        "align": "left",
+        "points": [],
+        "stroke": null,
+        "fontSize": 24,
+        "fixedText": null,
+        "fontFamily": "Arial",
+        "fontWeight": 400,
+        "lineHeight": 1.15,
+        "fontAssetId": null,
+        "strokeWidth": 0,
+        "cornerRadius": 0,
+        "letterSpacing": 0
+      }
+    },
+    "source": {
+      "kind": "recipe",
+      "fileHash": "6a2c960c1c889d0a227380594c41ddd9e1a6da1b040f82df57e56facaa42f518",
+      "recipeHash": "96f210aeeed5de5f162ce5bc2046990a481799540e205c2e58e5a0871969036e",
+      "variantKey": "5x6-6a2c960c1c88-portrait4x5",
+      "referenceId": "f0aea278d4b4be1a351ad73a5b715bab"
+    },
+    "fragment": {
+      "groups": [
+        {
+          "x": 0,
+          "y": 0,
+          "id": "g-media",
+          "label": "Fotografia substituível",
+          "scale": 1,
+          "width": 1200,
+          "height": 1600,
+          "zIndex": 0,
+          "opacity": 1,
+          "parentId": "authored-portrait-projection",
+          "rotation": 0
+        },
+        {
+          "x": 33.75,
+          "y": 0,
+          "id": "authored-portrait-projection",
+          "label": "Projeção uniforme 5:6 para 4:5",
+          "scale": 0.84375,
+          "width": 1200,
+          "height": 1600,
+          "zIndex": 0,
+          "opacity": 1,
+          "parentId": null,
+          "rotation": 0
+        }
+      ],
+      "artboard": { "width": 1080, "height": 1350, "background": "#F6F5EF" },
+      "assetIds": [],
+      "bindings": [
+        {
+          "id": "photo",
+          "gap": 0,
+          "kind": "media",
+          "label": "Fotografia — inserir no Admin2",
+          "prefix": "",
+          "source": "media.primary",
+          "required": false,
+          "targetIds": ["photo"],
+          "cardinality": null
+        }
+      ],
+      "instances": [
+        {
+          "x": 0,
+          "y": 460,
+          "id": "photo",
+          "width": 1200,
+          "height": 1140,
+          "zIndex": 0,
+          "opacity": 1,
+          "parentId": "g-media",
+          "rotation": 0,
+          "pieceHash": "0ed74d41b861b46698bf901a2a3c2fe7da0c7b2d8c59f87d773c9ca8ce018bf1"
+        }
+      ],
+      "relations": [],
+      "mediaSlots": [
+        {
+          "id": "photo",
+          "label": "Fotografia — inserir no Admin2",
+          "policy": "cover",
+          "prompt": "",
+          "deferred": true,
+          "function": "user-replaceable-image"
+        }
+      ],
+      "variantKey": "5x6-6a2c960c1c88-portrait4x5",
+      "aspectRatio": "4:5",
+      "limitations": [
+        "Rascunho de componentes: revisão visual humana e publicação pendentes.",
+        "Geometria autorada preservada. Encaixe limitado às caixas de origem; overflow deve permanecer explícito.",
+        "Fragmentos distribuem palavras completas por capacidade declarada; quebra intrapalavra do exemplo não é reutilizada.",
+        "Fotos de demonstração permanecem apenas no snapshot de origem; slots aguardam mídia do usuário.",
+        "Adaptação 4:5 por projeção uniforme rastreável: conteúdo/efeitos/relações locais preservados; margens adicionais conservam fundo. Revisão própria obrigatória."
+      ],
+      "capabilities": [
+        "text",
+        "rect",
+        "line",
+        "polygon",
+        "media",
+        "groups",
+        "relations",
+        "content-fragments",
+        "extrusion"
+      ],
+      "compilerVersion": "arsenal-v3.0.0",
+      "intentionalOverlaps": []
+    },
+    "densities": ["balanced", "expressive"],
+    "colorRoles": { "photo": "preserve" },
+    "description": "Componente da receita curada f0aea278d4b4be1a351ad73a5b715bab; autoria component-reference-authoring-v1.",
+    "aspectRatios": ["4:5"],
+    "schemaVersion": 1,
+    "decorativeIntensity": 0
+  },
+  {
+    "id": "d83d928c-5fbc-49a3-8aff-88d0a559b43f",
+    "hash": "ff1566588394aeea55d8140632fad67ebb85dd7dfb63642fa97b8ed8b45fbfd2",
+    "kind": "content",
+    "label": "Perguntas antes do design — papel empilhado · papel de leitura",
+    "roles": ["static", "cover", "development", "example", "closing"],
+    "assets": [
+      {
+        "id": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+        "kind": "catalog",
+        "bytes": 18612,
+        "family": "Arsenal_d0fa07ff63dd60cb",
+        "sha256": "d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+        "weight": 400,
+        "license": "open-source",
+        "mimeType": "font/woff2",
+        "sourceFamily": "Anton"
+      },
+      {
+        "id": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+        "kind": "catalog",
+        "bytes": 23664,
+        "family": "Arsenal_8909904ab6c872eb",
+        "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+        "weight": 400,
+        "license": "open-source",
+        "mimeType": "font/woff2",
+        "sourceFamily": "Inter"
+      }
+    ],
+    "pieces": {
+      "11bedcac3213f34cbcc50fbb099e205144ef6d1d74eaab4e2e5711ad25491319": {
+        "fill": "#000000",
+        "kind": "text",
+        "align": "left",
+        "points": [],
+        "stroke": null,
+        "fontSize": 57.408,
+        "fixedText": null,
+        "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+        "fontWeight": 400,
+        "lineHeight": 1.12,
+        "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+        "strokeWidth": 0,
+        "cornerRadius": 0,
+        "letterSpacing": 0
+      },
+      "12c77f8b250c9158db27d7bc549682bf2eac0cd02919aad49e682a407b404316": {
+        "fill": "#EFECE2",
+        "kind": "rect",
+        "align": "left",
+        "points": [],
+        "stroke": null,
+        "fontSize": 24,
+        "fixedText": null,
+        "fontFamily": "Arial",
+        "fontWeight": 400,
+        "lineHeight": 1.15,
+        "fontAssetId": null,
+        "strokeWidth": 0,
+        "cornerRadius": 22,
+        "letterSpacing": 0
+      },
+      "277fceafc38425d72f9d274a420d32c369c61047e70a3608505d790fae9e9963": {
+        "fill": "#B8B3A9",
+        "kind": "rect",
+        "align": "left",
+        "points": [],
+        "stroke": null,
+        "fontSize": 24,
+        "fixedText": null,
+        "fontFamily": "Arial",
+        "fontWeight": 400,
+        "lineHeight": 1.15,
+        "fontAssetId": null,
+        "strokeWidth": 0,
+        "cornerRadius": 22,
+        "letterSpacing": 0
+      },
+      "973629b0842731fe923b516fdf2c73b92273ff3c7a93e3c8a973f3a3b7268d51": {
+        "fill": "#000000",
+        "kind": "text",
+        "align": "left",
+        "points": [],
+        "stroke": null,
+        "fontSize": 22.816,
+        "fixedText": null,
+        "fontFamily": "Arsenal_8909904ab6c872eb",
+        "fontWeight": 400,
+        "lineHeight": 1.35,
+        "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+        "strokeWidth": 0,
+        "cornerRadius": 0,
+        "letterSpacing": 0
+      }
+    },
+    "source": {
+      "kind": "recipe",
+      "fileHash": "fb00b35f84130f0d120986dde16cbdd390458560f40215fdb169c70bdebe1072",
+      "recipeHash": "f25da1d7aa2d1a07083659033eabaf43441b5bc2d30b665a83e247f8397fb1b1",
+      "variantKey": "4x5-fb00b35f8413-quiet",
+      "referenceId": "0623fb1c14937cd1e67e980b566710ba"
+    },
+    "fragment": {
+      "groups": [],
+      "artboard": { "width": 736, "height": 920, "background": "#F34B00" },
+      "assetIds": [
+        "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+        "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc"
+      ],
+      "bindings": [
+        {
+          "id": "quiet-binding-0",
+          "gap": 0,
+          "kind": "text",
+          "label": "headline — adaptação sem ornamentos",
+          "prefix": "",
+          "source": "block:headline:0:text",
+          "required": true,
+          "targetIds": ["quiet-0"],
+          "cardinality": null
+        },
+        {
+          "id": "quiet-binding-1",
+          "gap": 0,
+          "kind": "text",
+          "label": "body — adaptação sem ornamentos",
+          "prefix": "",
+          "source": "block:body:0:text",
+          "required": false,
+          "targetIds": ["quiet-1"],
+          "cardinality": null
+        },
+        {
+          "id": "quiet-binding-2",
+          "gap": 0,
+          "kind": "text",
+          "label": "callToAction — adaptação sem ornamentos",
+          "prefix": "",
+          "source": "block:callToAction:0:text",
+          "required": false,
+          "targetIds": ["quiet-2"],
+          "cardinality": null
+        }
+      ],
+      "instances": [
+        {
+          "x": 103.04,
+          "y": 110.39999999999999,
+          "id": "quiet-0",
+          "width": 529.92,
+          "height": 202.4,
+          "zIndex": 0,
+          "opacity": 1,
+          "parentId": null,
+          "rotation": 0,
+          "pieceHash": "11bedcac3213f34cbcc50fbb099e205144ef6d1d74eaab4e2e5711ad25491319"
+        },
+        {
+          "x": 103.04,
+          "y": 345,
+          "id": "quiet-1",
+          "width": 529.92,
+          "height": 230,
+          "zIndex": 1,
+          "opacity": 1,
+          "parentId": null,
+          "rotation": 0,
+          "pieceHash": "973629b0842731fe923b516fdf2c73b92273ff3c7a93e3c8a973f3a3b7268d51"
+        },
+        {
+          "x": 103.04,
+          "y": 607.2,
+          "id": "quiet-2",
+          "width": 529.92,
+          "height": 138,
+          "zIndex": 2,
+          "opacity": 1,
+          "parentId": null,
+          "rotation": 0,
+          "pieceHash": "973629b0842731fe923b516fdf2c73b92273ff3c7a93e3c8a973f3a3b7268d51"
+        },
+        {
+          "x": 73.60000000000001,
+          "y": 69,
+          "id": "quiet-support",
+          "width": 588.8000000000001,
+          "height": 552,
+          "zIndex": -10,
+          "opacity": 1,
+          "parentId": null,
+          "rotation": 0,
+          "pieceHash": "12c77f8b250c9158db27d7bc549682bf2eac0cd02919aad49e682a407b404316"
+        },
+        {
+          "x": 78.01599999999999,
+          "y": 74.52,
+          "id": "quiet-paper-shadow",
+          "width": 588.8000000000001,
+          "height": 552,
+          "zIndex": -11,
+          "opacity": 1,
+          "parentId": null,
+          "rotation": 0,
+          "pieceHash": "277fceafc38425d72f9d274a420d32c369c61047e70a3608505d790fae9e9963"
+        }
+      ],
+      "relations": [
+        {
+          "id": "quiet-fit-0",
+          "kind": "textFit",
+          "inputs": [],
+          "enabled": true,
+          "outputs": [
+            {
+              "targetId": "quiet-0",
+              "properties": ["x", "width", "height", "fontSize"]
+            }
+          ],
+          "version": 1,
+          "parameters": {
+            "anchor": "left",
+            "maxWidth": 529.92,
+            "maxHeight": 202.4,
+            "minFontSize": 47.07456
+          }
+        },
+        {
+          "id": "quiet-fit-1",
+          "kind": "textFit",
+          "inputs": [],
+          "enabled": true,
+          "outputs": [
+            {
+              "targetId": "quiet-1",
+              "properties": ["x", "width", "height", "fontSize"]
+            }
+          ],
+          "version": 1,
+          "parameters": {
+            "anchor": "left",
+            "maxWidth": 529.92,
+            "maxHeight": 230,
+            "minFontSize": 18.70912
+          }
+        },
+        {
+          "id": "quiet-fit-2",
+          "kind": "textFit",
+          "inputs": [],
+          "enabled": true,
+          "outputs": [
+            {
+              "targetId": "quiet-2",
+              "properties": ["x", "width", "height", "fontSize"]
+            }
+          ],
+          "version": 1,
+          "parameters": {
+            "anchor": "left",
+            "maxWidth": 529.92,
+            "maxHeight": 138,
+            "minFontSize": 18.70912
+          }
+        },
+        {
+          "id": "quiet-flow",
+          "kind": "verticalFlow",
+          "inputs": ["quiet-0", "quiet-1", "quiet-2"],
+          "enabled": true,
+          "outputs": [
+            { "targetId": "quiet-0", "properties": ["y"] },
+            { "targetId": "quiet-1", "properties": ["y"] },
+            { "targetId": "quiet-2", "properties": ["y"] }
+          ],
+          "version": 1,
+          "parameters": { "gap": 50.6, "startY": 110.39999999999999 }
+        },
+        {
+          "id": "quiet-support-fit",
+          "kind": "surfaceFit",
+          "inputs": ["quiet-0", "quiet-1", "quiet-2"],
+          "enabled": true,
+          "outputs": [
+            {
+              "targetId": "quiet-support",
+              "properties": ["x", "y", "width", "height"]
+            }
+          ],
+          "version": 1,
+          "parameters": {
+            "padding": {
+              "top": 36.800000000000004,
+              "left": 29.44,
+              "right": 29.44,
+              "bottom": 32.2
+            },
+            "minWidth": 588.8000000000001,
+            "minHeight": 110.39999999999999
+          }
+        },
+        {
+          "id": "quiet-shadow-fit",
+          "kind": "surfaceFit",
+          "inputs": ["quiet-support"],
+          "enabled": true,
+          "outputs": [
+            {
+              "targetId": "quiet-paper-shadow",
+              "properties": ["width", "height"]
+            }
+          ],
+          "version": 1,
+          "parameters": {
+            "padding": { "top": 0, "left": 0, "right": 0, "bottom": 0 },
+            "minWidth": 1,
+            "minHeight": 1
+          }
+        },
+        {
+          "id": "quiet-shadow-x",
+          "kind": "anchor",
+          "inputs": ["quiet-support"],
+          "enabled": true,
+          "outputs": [
+            { "targetId": "quiet-paper-shadow", "properties": ["x"] }
+          ],
+          "version": 1,
+          "parameters": {
+            "axis": "x",
+            "offset": 4.416,
+            "targetEdge": "start",
+            "referenceEdge": "start"
+          }
+        },
+        {
+          "id": "quiet-shadow-y",
+          "kind": "anchor",
+          "inputs": ["quiet-support"],
+          "enabled": true,
+          "outputs": [
+            { "targetId": "quiet-paper-shadow", "properties": ["y"] }
+          ],
+          "version": 1,
+          "parameters": {
+            "axis": "y",
+            "offset": 4.416,
+            "targetEdge": "start",
+            "referenceEdge": "start"
+          }
+        }
+      ],
+      "mediaSlots": [],
+      "variantKey": "4x5-fb00b35f8413-quiet",
+      "aspectRatio": "4:5",
+      "limitations": [
+        "Rascunho de componentes: revisão visual humana e publicação pendentes.",
+        "Geometria autorada preservada. Encaixe limitado às caixas de origem; overflow deve permanecer explícito.",
+        "Fragmentos distribuem palavras completas por capacidade declarada; quebra intrapalavra do exemplo não é reutilizada.",
+        "Fotos de demonstração permanecem apenas no snapshot de origem; slots aguardam mídia do usuário.",
+        "Adaptação quiet autorada para leitura; conserva fontes e responsabilidades, reduz superfícies, rotações e extrusões. Requer aprovação própria."
+      ],
+      "capabilities": [
+        "text",
+        "rect",
+        "line",
+        "polygon",
+        "media",
+        "groups",
+        "relations",
+        "content-fragments",
+        "extrusion"
+      ],
+      "compilerVersion": "arsenal-v3.0.0",
+      "intentionalOverlaps": []
+    },
+    "densities": ["quiet", "balanced"],
+    "colorRoles": {
+      "quiet-0": "text",
+      "quiet-1": "text",
+      "quiet-2": "text",
+      "quiet-support": "preserve",
+      "quiet-paper-shadow": "preserve"
+    },
+    "description": "Adaptação de desenvolvimento/encerramento com título, até dois blocos de leitura, CTA opcional e suporte visual real quando autorado, vinculados ao fluxo.",
+    "aspectRatios": ["4:5"],
+    "schemaVersion": 1,
+    "decorativeIntensity": 0.18
+  }
+]

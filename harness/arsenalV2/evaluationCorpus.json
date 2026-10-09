@@ -1,0 +1,958 @@
+{
+  "schemaVersion": 1,
+  "status": "prepared_not_executed",
+  "humanAdequacy": "pending",
+  "productionGeneration": false,
+  "caseCount": 30,
+  "variationsPerCase": 3,
+  "sourceSpanIds": "Expected semantic labels; actual generated evidence IDs are validated against the run, not these placeholders.",
+  "limitations": [
+    "Photo cases require actual authorized photos; no synthetic photo is treated as production evidence.",
+    "Expected candidates and human reasons must be reviewed before computing relevance denominators.",
+    "Factual refusal cases specify behavior; they do not authorize fabricated expected values."
+  ],
+  "cases": [
+    {
+      "id": "brief-01",
+      "group": "headline-body",
+      "aspectRatio": "1:1",
+      "prompt": "Crie um post estático. Preserve literalmente o título: Crie hoje.. Apoio: Uma ideia basta..",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Crie hoje.",
+        "body": "Uma ideia basta.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-02",
+      "group": "headline-body",
+      "aspectRatio": "5:6",
+      "prompt": "Crie um post estático. Preserve literalmente o título: Sua ideia merece espaço.. Apoio: Crie com clareza..",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Sua ideia merece espaço.",
+        "body": "Crie com clareza.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-03",
+      "group": "headline-body",
+      "aspectRatio": "9:16",
+      "prompt": "Crie um post estático. Preserve literalmente o título: Pequenos passos, grandes mudanças.. Apoio: Escolha uma ação possível para hoje..",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Pequenos passos, grandes mudanças.",
+        "body": "Escolha uma ação possível para hoje.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-04",
+      "group": "headline-body",
+      "aspectRatio": "1:1",
+      "prompt": "Crie um post estático. Preserve literalmente o título: Conteúdo claro começa por uma boa pergunta.. Apoio: O que seu público precisa entender agora?.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Conteúdo claro começa por uma boa pergunta.",
+        "body": "O que seu público precisa entender agora?",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-05",
+      "group": "headline-body",
+      "aspectRatio": "5:6",
+      "prompt": "Crie um post estático. Preserve literalmente o título: Comunicar também é saber ouvir.. Apoio: Observe antes de publicar..",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Comunicar também é saber ouvir.",
+        "body": "Observe antes de publicar.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-06",
+      "group": "headline-body",
+      "aspectRatio": "9:16",
+      "prompt": "Crie um post estático. Preserve literalmente o título: Sua experiência pode ajudar outras pessoas.. Apoio: Transforme uma dúvida frequente em um post..",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Sua experiência pode ajudar outras pessoas.",
+        "body": "Transforme uma dúvida frequente em um post.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-07",
+      "group": "headline-body",
+      "aspectRatio": "1:1",
+      "prompt": "Crie um post estático. Preserve literalmente o título: Atenção aos detalhes: eles contam sua história.. Apoio: Acentos, pontuação e espaço fazem parte da leitura..",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Atenção aos detalhes: eles contam sua história.",
+        "body": "Acentos, pontuação e espaço fazem parte da leitura.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-08",
+      "group": "headline-body",
+      "aspectRatio": "5:6",
+      "prompt": "Crie um post estático. Preserve literalmente o título: Uma ideia por vez.. Apoio: Organize o conteúdo para facilitar a compreensão, sem perder o que importa..",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Uma ideia por vez.",
+        "body": "Organize o conteúdo para facilitar a compreensão, sem perder o que importa.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-09",
+      "group": "headline-body",
+      "aspectRatio": "9:16",
+      "prompt": "Crie um post estático. Preserve literalmente o título: Você não precisa resolver tudo em uma única publicação.. Apoio: Uma mensagem específica pode abrir uma conversa maior. Escolha um ponto e explique com um exemplo..",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Você não precisa resolver tudo em uma única publicação.",
+        "body": "Uma mensagem específica pode abrir uma conversa maior. Escolha um ponto e explique com um exemplo.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-10",
+      "group": "headline-body",
+      "aspectRatio": "1:1",
+      "prompt": "Crie um post estático. Preserve literalmente o título: Clareza não é apagar a complexidade: é dar ao leitor um caminho para compreendê-la.. Apoio: Comece pelo essencial e acrescente o contexto necessário..",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Clareza não é apagar a complexidade: é dar ao leitor um caminho para compreendê-la.",
+        "body": "Comece pelo essencial e acrescente o contexto necessário.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-11",
+      "group": "headline-body",
+      "aspectRatio": "5:6",
+      "prompt": "Crie um post estático. Preserve literalmente o título: Quando há espaço para respirar, uma mensagem pode chegar mais longe e ser lembrada por mais tempo.. Apoio: Texto longo exige composição adequada. Não corte nenhuma palavra para fazê-lo caber..",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Quando há espaço para respirar, uma mensagem pode chegar mais longe e ser lembrada por mais tempo.",
+        "body": "Texto longo exige composição adequada. Não corte nenhuma palavra para fazê-lo caber.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-12",
+      "group": "headline-body",
+      "aspectRatio": "9:16",
+      "prompt": "Crie um post estático. Preserve literalmente o título: Uma boa conversa começa quando encontramos uma forma simples de dizer algo que parecia difícil de explicar.. Apoio: Este apoio tem várias frases. Ele precisa permanecer completo e legível. A composição pode exigir ajuste, mas não autoriza truncamento, alteração dos fatos ou redução silenciosa durante a edição..",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Uma boa conversa começa quando encontramos uma forma simples de dizer algo que parecia difícil de explicar.",
+        "body": "Este apoio tem várias frases. Ele precisa permanecer completo e legível. A composição pode exigir ajuste, mas não autoriza truncamento, alteração dos fatos ou redução silenciosa durante a edição.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-13",
+      "group": "list",
+      "aspectRatio": "1:1",
+      "prompt": "Crie uma lista com 1 itens. Preserve o título e todos os itens do conteúdo esperado.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "1 passos para organizar uma ideia",
+        "body": null,
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [
+          {
+            "id": "item-1",
+            "text": "Etapa 1: confira um ponto antes de avançar."
+          }
+        ],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-14",
+      "group": "list",
+      "aspectRatio": "5:6",
+      "prompt": "Crie uma lista com 2 itens. Preserve o título e todos os itens do conteúdo esperado.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "2 passos para organizar uma ideia",
+        "body": null,
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [
+          {
+            "id": "item-1",
+            "text": "Etapa 1: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-2",
+            "text": "Etapa 2: confira um ponto antes de avançar."
+          }
+        ],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-15",
+      "group": "list",
+      "aspectRatio": "9:16",
+      "prompt": "Crie uma lista com 3 itens. Preserve o título e todos os itens do conteúdo esperado.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "3 passos para organizar uma ideia",
+        "body": null,
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [
+          {
+            "id": "item-1",
+            "text": "Etapa 1: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-2",
+            "text": "Etapa 2: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-3",
+            "text": "Etapa 3: confira um ponto antes de avançar."
+          }
+        ],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-16",
+      "group": "list",
+      "aspectRatio": "1:1",
+      "prompt": "Crie uma lista com 4 itens. Preserve o título e todos os itens do conteúdo esperado.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "4 passos para organizar uma ideia",
+        "body": null,
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [
+          {
+            "id": "item-1",
+            "text": "Etapa 1: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-2",
+            "text": "Etapa 2: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-3",
+            "text": "Etapa 3: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-4",
+            "text": "Etapa 4: confira um ponto antes de avançar."
+          }
+        ],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-17",
+      "group": "list",
+      "aspectRatio": "5:6",
+      "prompt": "Crie uma lista com 5 itens. Preserve o título e todos os itens do conteúdo esperado.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "5 passos para organizar uma ideia",
+        "body": null,
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [
+          {
+            "id": "item-1",
+            "text": "Etapa 1: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-2",
+            "text": "Etapa 2: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-3",
+            "text": "Etapa 3: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-4",
+            "text": "Etapa 4: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-5",
+            "text": "Etapa 5: confira um ponto antes de avançar."
+          }
+        ],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-18",
+      "group": "list",
+      "aspectRatio": "9:16",
+      "prompt": "Crie uma lista com 6 itens. Preserve o título e todos os itens do conteúdo esperado.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "6 passos para organizar uma ideia",
+        "body": null,
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [
+          {
+            "id": "item-1",
+            "text": "Etapa 1: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-2",
+            "text": "Etapa 2: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-3",
+            "text": "Etapa 3: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-4",
+            "text": "Etapa 4: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-5",
+            "text": "Etapa 5: confira um ponto antes de avançar."
+          },
+          {
+            "id": "item-6",
+            "text": "Etapa 6: confira um ponto antes de avançar."
+          }
+        ],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-19",
+      "group": "media",
+      "aspectRatio": "1:1",
+      "prompt": "Use um design com foto obrigatória, preservando título e apoio. Não adquira mídia automaticamente.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Uma cena pode contar uma história.",
+        "body": "Inclua este apoio sem cortes.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": true,
+        "fixturePath": null,
+        "requiresUserProvidedPhoto": true
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending",
+      "expectedBehavior": "pending_real_photo"
+    },
+    {
+      "id": "brief-20",
+      "group": "media",
+      "aspectRatio": "5:6",
+      "prompt": "Use um design com foto obrigatória, preservando título e apoio. Não adquira mídia automaticamente.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Uma cena pode contar uma história.",
+        "body": "Inclua este apoio sem cortes.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false,
+        "fixturePath": null,
+        "requiresUserProvidedPhoto": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending",
+      "expectedBehavior": "exclude_media_required_variants"
+    },
+    {
+      "id": "brief-21",
+      "group": "media",
+      "aspectRatio": "9:16",
+      "prompt": "Use um design com foto obrigatória, preservando título e apoio. Não adquira mídia automaticamente.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Uma cena pode contar uma história.",
+        "body": "Inclua este apoio sem cortes.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": true,
+        "fixturePath": null,
+        "requiresUserProvidedPhoto": true
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending",
+      "expectedBehavior": "pending_real_photo"
+    },
+    {
+      "id": "brief-22",
+      "group": "media",
+      "aspectRatio": "1:1",
+      "prompt": "Use um design com foto obrigatória, preservando título e apoio. Não adquira mídia automaticamente.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Uma cena pode contar uma história.",
+        "body": "Inclua este apoio sem cortes.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false,
+        "fixturePath": null,
+        "requiresUserProvidedPhoto": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending",
+      "expectedBehavior": "exclude_media_required_variants"
+    },
+    {
+      "id": "brief-23",
+      "group": "media",
+      "aspectRatio": "5:6",
+      "prompt": "Use um design com foto obrigatória, preservando título e apoio. Não adquira mídia automaticamente.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Uma cena pode contar uma história.",
+        "body": "Inclua este apoio sem cortes.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": true,
+        "fixturePath": null,
+        "requiresUserProvidedPhoto": true
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending",
+      "expectedBehavior": "pending_real_photo"
+    },
+    {
+      "id": "brief-24",
+      "group": "media",
+      "aspectRatio": "9:16",
+      "prompt": "Use um design com foto obrigatória, preservando título e apoio. Não adquira mídia automaticamente.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Uma cena pode contar uma história.",
+        "body": "Inclua este apoio sem cortes.",
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false,
+        "fixturePath": null,
+        "requiresUserProvidedPhoto": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending",
+      "expectedBehavior": "exclude_media_required_variants"
+    },
+    {
+      "id": "brief-25",
+      "group": "fact",
+      "aspectRatio": "1:1",
+      "prompt": "Dados fornecidos: crescimento de 23% em março. Use uma métrica com valor e rótulo, sem criar outros dados.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Resultado do mês.",
+        "body": null,
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": {
+          "value": "23%",
+          "label": "crescimento em março",
+          "sourceSpanIds": [
+            "source-1"
+          ]
+        },
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-26",
+      "group": "fact",
+      "aspectRatio": "5:6",
+      "prompt": "Use uma métrica sobre o resultado do mês. Nenhum valor foi fornecido; não invente.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Resultado do mês.",
+        "body": null,
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending",
+      "expectedBehavior": "refuse_unsupplied_metric"
+    },
+    {
+      "id": "brief-27",
+      "group": "fact",
+      "aspectRatio": "9:16",
+      "prompt": "Use a citação fornecida: “Crie com clareza.” — Maria. Preserve frase e autoria.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Uma frase para refletir.",
+        "body": null,
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": {
+          "quote": "Crie com clareza.",
+          "author": "Maria",
+          "sourceSpanIds": [
+            "source-1"
+          ]
+        },
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-28",
+      "group": "fact",
+      "aspectRatio": "1:1",
+      "prompt": "Use “Crie com clareza.” em uma composição com autoria obrigatória. Nenhum autor foi fornecido; não invente.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Uma frase para refletir.",
+        "body": null,
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending",
+      "expectedBehavior": "refuse_unsupplied_author"
+    },
+    {
+      "id": "brief-29",
+      "group": "fact",
+      "aspectRatio": "5:6",
+      "prompt": "Comparar trabalhar sozinho versus em equipe, usando literalmente os dois lados do conteúdo esperado.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Duas formas de trabalhar.",
+        "body": null,
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": {
+          "left": {
+            "label": "Sozinho",
+            "text": "Autonomia para organizar seu tempo."
+          },
+          "right": {
+            "label": "Em equipe",
+            "text": "Troca de ideias durante o trabalho."
+          }
+        },
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending"
+    },
+    {
+      "id": "brief-30",
+      "group": "fact",
+      "aspectRatio": "9:16",
+      "prompt": "Comparar dois resultados de faturamento. Nenhum valor foi fornecido; não invente números.",
+      "expectedContent": {
+        "schemaVersion": 2,
+        "headline": "Duas formas de trabalhar.",
+        "body": null,
+        "eyebrow": null,
+        "sectionLabel": null,
+        "callToAction": null,
+        "label": null,
+        "items": [],
+        "metric": null,
+        "attribution": null,
+        "comparison": null,
+        "caption": "",
+        "hashtags": []
+      },
+      "media": {
+        "available": false
+      },
+      "humanExpectedCandidates": null,
+      "humanReason": null,
+      "execution": "pending",
+      "expectedBehavior": "do_not_invent_comparison_data"
+    }
+  ]
+}

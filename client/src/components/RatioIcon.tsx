@@ -1,6 +1,6 @@
 /**
  * RatioIcon — mini SVG que representa visualmente cada proporção de aspecto.
- * Quadrado para 1:1 · Retrato leve para 5:6 · Retrato alto para 9:16
+ * Quadrado para 1:1 · Retrato para 4:5 · Retrato alto para 9:16
  */
 import type { AspectRatio } from "@shared/postspark";
 
@@ -14,6 +14,7 @@ export default function RatioIcon({ ratio, size = 12, color = "currentColor" }: 
   // Dimensões do retângulo dentro de um viewBox de 12×16
   const configs: Record<AspectRatio, { w: number; h: number }> = {
     "1:1":  { w: 11, h: 11 }, // quadrado
+    "4:5":  { w: 10, h: 12.5 }, // feed portrait
     "5:6":  { w: 10, h: 12 }, // retrato suave
     "9:16": { w:  7, h: 13 }, // retrato alto
   };

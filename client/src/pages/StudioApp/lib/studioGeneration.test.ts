@@ -1,11 +1,25 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { PostVariation } from "@shared/postspark";
+import type { CanvasPostModel } from "@/pages/CanvasLab/components/types";
+import {
+  CatalogMaterializationError,
+  materializeCatalogVariations,
+  materializeCatalogVariationsDetailed,
+} from "./studioGeneration";
 import {
   buildExtraFallbackVariations,
   buildInitialFallbackVariations,
   variationToCanvasModel,
   aiGenerationProvenance,
 } from "./studioGeneration";
+
+const compilerMocks = vi.hoisted(() => ({
+  compileCompleteDesign: vi.fn(),
+}));
+
+vi.mock("@/pages/CanvasLab/lib/completeDesignCompiler", () => ({
+  compileCompleteDesign: compilerMocks.compileCompleteDesign,
+}));
 
 function makeVariation(overrides: Partial<PostVariation> = {}): PostVariation {
   return {
@@ -28,6 +42,70 @@ function makeVariation(overrides: Partial<PostVariation> = {}): PostVariation {
 }
 
 describe("studioGeneration (Etapa 3 e 5)", () => {
+  it("reports partial materialization failures with their original slot and a same-result recovery action", async () => {
+    const firstPost = { id: "post-1" } as CanvasPostModel;
+    compilerMocks.compileCompleteDesign
+      .mockResolvedValueOnce(firstPost)
+      .mockRejectedValueOnce(new Error("fonte indisponível"));
+
+    const result = await materializeCatalogVariationsDetailed(
+      [
+        { completeDesignV1: { slot: 1 } as any },
+        { completeDesignV1: { slot: 2 } as any },
+      ],
+      "briefing",
+    );
+
+    expect(result.posts).toEqual([firstPost]);
+    expect(result.requestedCount).toBe(2);
+    expect(result.materializedCount).toBe(1);
+    expect(result.failures).toHaveLength(1);
+    expect(result.failures[0]).toMatchObject({
+      index: 1,
+      slot: 2,
+      message: "fonte indisponível",
+      recoveryAction: "retry_same_result",
+    });
+    expect(result.failures[0].variation.completeDesignV1?.slot).toBe(2);
+
+    compilerMocks.compileCompleteDesign
+      .mockResolvedValueOnce(firstPost)
+      .mockRejectedValueOnce(new Error("fonte indisponível"));
+    await expect(materializeCatalogVariations([
+      { completeDesignV1: { slot: 1 } as any },
+      { completeDesignV1: { slot: 2 } as any },
+    ], "briefing")).resolves.toEqual([firstPost]);
+  });
+
+  it("throws a structured error for zero materialized results while the detailed API keeps every failure", async () => {
+    compilerMocks.compileCompleteDesign
+      .mockRejectedValueOnce(new Error("asset timeout"))
+      .mockRejectedValueOnce(new Error("schema mismatch"));
+    const variations = [
+      { completeDesignV1: { slot: 0 } as any },
+      { completeDesignV1: { slot: 1 } as any },
+    ];
+
+    await expect(materializeCatalogVariationsDetailed(variations, "briefing")).resolves.toMatchObject({
+      posts: [],
+      requestedCount: 2,
+      materializedCount: 0,
+      failures: [
+        { index: 0, slot: 0, message: "asset timeout" },
+        { index: 1, slot: 1, message: "schema mismatch" },
+      ],
+    });
+
+    compilerMocks.compileCompleteDesign
+      .mockRejectedValueOnce(new Error("asset timeout"))
+      .mockRejectedValueOnce(new Error("schema mismatch"));
+    await expect(materializeCatalogVariations(variations, "briefing")).rejects.toMatchObject({
+      name: "CatalogMaterializationError",
+      code: "CATALOG_MATERIALIZATION_FAILED",
+      result: { posts: [], failures: [{ slot: 0 }, { slot: 1 }] },
+    } satisfies Partial<CatalogMaterializationError>);
+  });
+
   it("stamps local fallbacks with permanent local_fallback provenance", () => {
     const fallbacks = buildInitialFallbackVariations("branding de luxo", undefined, "provider_unavailable");
     expect(fallbacks).toHaveLength(3);

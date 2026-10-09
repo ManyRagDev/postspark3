@@ -146,6 +146,7 @@ export async function finishGenerationTrace(input: {
   strategyFallbackUsed?: boolean;
   originalityFallbackUsed?: boolean;
   error?: string;
+  acceptedCount?: number;
   failureReason?: string;
 }): Promise<void> {
   const { trace } = input;
@@ -162,11 +163,20 @@ export async function finishGenerationTrace(input: {
     0,
   );
   const evaluations = input.evaluations ?? [];
-  const averageQualityScore = evaluations.length > 0
+  const evaluationsConducted = evaluations.length > 0;
+  const averageQualityScore = evaluationsConducted
     ? evaluations.reduce((sum, evaluation) => sum + evaluation.overallScore, 0) /
       evaluations.length
     : 0;
-  const acceptedCount = evaluations.filter((evaluation) => evaluation.accepted).length;
+  const acceptedCount = input.acceptedCount !== undefined
+    ? input.acceptedCount
+    : evaluationsConducted
+      ? evaluations.filter((evaluation) => evaluation.accepted).length
+      : Array.isArray(input.output)
+        ? input.output.length
+        : 0;
+
+
   const redactedInput = `[sha256:${createHash("sha256")
     .update(trace.inputContent)
     .digest("hex")}]`;

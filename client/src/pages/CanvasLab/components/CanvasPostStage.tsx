@@ -1,3 +1,11 @@
+import { aspectRatioHeight } from "@shared/aspectRatios";
+import { ArsenalCompositionContents } from "./ArsenalCompositionContents";
+import { editArsenalElementText, overrideArsenalElement, arsenalWorldGeometry } from "../lib/arsenalComposition";
+import { ensureArsenalCompositionFonts } from "../lib/arsenalAssets";
+import { renderedCompositionImageCount, visibleExportImageNodes, exportImageNodeReady } from "../lib/exportMedia";
+import type { ArsenalComposition } from "@shared/designArsenal";
+import { ensureCatalogPostFonts } from "../lib/catalogCompiler";
+import { canvasTypography } from "../lib/catalogTypography";
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Stage, Layer, Rect, Text, Group, Image as KonvaImage, Transformer, Line, Circle } from "react-konva";
@@ -13,6 +21,10 @@ import RichTextRenderer from "./RichTextRenderer";
 import { applyRichTextFormat, reconcileRichTextChange } from "../lib/richText";
 import type { CanvasRichTextChunk } from "./types";
 import { getCaretGeometry, getSelectionGeometry, hitTestRichText, layoutRichText, type CaretGeometry, type RichTextLayout } from "../lib/richTextLayout";
+import type { ReferenceReconstructionSpecV2 } from "@shared/referenceReconstruction";
+import { ReferenceSceneContents } from "./ReferenceSceneContents";
+import type { ReferenceMediaImage } from "../../Admin2/matrixMedia";
+import type { RecreationLayerStyle } from "@shared/designRecreation";
 import { wordRangeAt, type TextRange } from "../lib/textSelection";
 import {
   computeTextResizeGeometry,
@@ -29,6 +41,13 @@ export interface CanvasPostStageRef {
 
 interface CanvasPostStageProps {
   post: CanvasPostModel;
+  onUpdateComposition?: (composition: ArsenalComposition) => void;
+  /** Cena privada de diagnóstico; usa o mesmo Stage/Konva sem criar um post de produto. */
+  diagnosticScene?: ReferenceReconstructionSpecV2;
+  diagnosticTextMode?: "wrap" | "fixed-lines";
+  diagnosticLayerStyles?: RecreationLayerStyle[];
+  diagnosticMediaImages?: ReferenceMediaImage[];
+  diagnosticNeutralFrame?: boolean;
   isMobile?: boolean;
   onUpdateRichText?: (field: "headline" | "subtext", chunks: CanvasRichTextChunk[]) => void;
   zoom: number;
@@ -428,6 +447,12 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
   (
     {
       post: documentPost,
+      onUpdateComposition,
+      diagnosticScene,
+      diagnosticTextMode,
+      diagnosticLayerStyles,
+      diagnosticMediaImages,
+      diagnosticNeutralFrame = false,
       isMobile = false,
       zoom,
       onUpdateElementPosition,
@@ -448,7 +473,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     },
     ref
   ) => {
-    const isInteractive = !isReadOnly && Boolean(onUpdateElementPosition);
+    const isInteractive = !isReadOnly && Boolean(onUpdateElementPosition || onUpdateComposition);
     const stageRef = useRef<any>(null);
     const transformerRef = useRef<any>(null);
     const bgTransformerRef = useRef<any>(null);
@@ -462,6 +487,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const logoRef = useRef<any>(null);
     const bgImageRef = useRef<any>(null);
     const extraTextRefs = useRef<Record<string, any>>({});
+    const compositionNodeRefs = useRef<Record<string, any>>({});
     const extraImageRefs = useRef<Record<string, any>>({});
 
     const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -470,6 +496,17 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     // capturar repetidamente o slide visível (Etapa 2 §7.6).
     const [exportSlideIndex, setExportSlideIndex] = useState<number | null>(null);
     const post = resolveSlideAppearance(documentPost, exportSlideIndex ?? documentPost.currentSlideIndex);
+    const composition = post.slides[exportSlideIndex ?? post.currentSlideIndex]?.composition;
+    const [arsenalFonts, setArsenalFonts] = useState<{key: string; ready: boolean; error?: string}>({key:"",ready:false});
+    const arsenalFontKey = composition ? JSON.stringify(composition.elements.filter(e=>e.kind === "text").map(e=>[e.fontAssetId,e.fontFamily,e.fontWeight])) : "";
+    useEffect(() => {
+      if (!composition) return;
+      let active=true;setArsenalFonts({key:arsenalFontKey,ready:false});
+      void ensureArsenalCompositionFonts(composition).then(()=>{if(active)setArsenalFonts({key:arsenalFontKey,ready:true});})
+        .catch(error=>{if(active)setArsenalFonts({key:arsenalFontKey,ready:false,error:String(error.message || error)});});
+      return()=>{active=false;};
+    },[arsenalFontKey]);
+    const arsenalReady = !composition || (arsenalFonts.key === arsenalFontKey && arsenalFonts.ready);
 
     useEffect(() => {
       if (selectedElementId !== undefined) {
@@ -497,6 +534,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     editingTargetRef.current = editingTarget;
     const editingTextRef = useRef(editingText);
     editingTextRef.current = editingText;
+    const displayComposition = React.useMemo(()=>composition && editingTarget && composition.elements.some(e=>e.id===editingTarget) ? editArsenalElementText(composition,editingTarget,editingText,editingRichText) : composition,[composition,editingTarget,editingText,editingRichText]);
     const editingRichTextRef = useRef(editingRichText);
     editingRichTextRef.current = editingRichText;
     const stageContainerRef = useRef<HTMLDivElement>(null);
@@ -505,7 +543,17 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
 
     const [bgImgElement, setBgImgElement] = useState<HTMLImageElement | null>(null);
     const [logoImgElement, setLogoImgElement] = useState<HTMLImageElement | null>(null);
-    useDynamicFont(post.fontFamily, post.customFontUrl);
+    const [, setCatalogFontRevision] = useState(0);
+    useEffect(() => {
+      if (!post.catalogCompilation || post.catalogCompilation.status === "fallback") return;
+      let active = true;
+      void ensureCatalogPostFonts(post).then(() => {
+        if (active) setCatalogFontRevision(value => value + 1);
+      }).catch(() => console.warn("[catalog.font] Fonte indisponível ao reabrir", post.catalogCompilation?.versionId));
+      return () => { active = false; };
+    }, [post.catalogCompilation?.versionId, post.catalogCompilation?.status, post.fontFamily, post.subtextFontFamily, post.headlineFontWeight, post.subtextFontWeight]);
+    useDynamicFont(composition ? "Arial" : post.fontFamily, composition ? undefined : post.customFontUrl);
+    useDynamicFont(composition ? "Arial" : post.subtextFontFamily ?? "Inter");
 
     // Redesenho reativo quando as fontes web terminam de carregar no navegador
     useEffect(() => {
@@ -520,7 +568,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
           isMounted = false;
         };
       }
-    }, [post.fontFamily]);
+    }, [post.fontFamily, post.subtextFontFamily]);
 
     const [localHeadlineWidth, setLocalHeadlineWidth] = useState<number | null>(null);
     const [localSubtextWidth, setLocalSubtextWidth] = useState<number | null>(null);
@@ -554,8 +602,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     }, []);
 
     const baseWidth = 360;
-    const baseHeight =
-      post.aspectRatio === "9:16" ? 640 : post.aspectRatio === "5:6" ? 432 : 360;
+    const baseHeight = diagnosticScene
+      ? 360 * diagnosticScene.source.heightPx / diagnosticScene.source.widthPx
+      : aspectRatioHeight(post.aspectRatio);
 
     // Durante o ZIP, o índice de exportação prevalece sobre o slide ativo —
     // este é o ÚNICO motor de renderização; nenhuma segunda máquina é criada.
@@ -569,10 +618,13 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         setBgImgElement(null);
         return;
       }
+      let active = true;
+      setBgImgElement(null);
       const img = new window.Image();
       img.crossOrigin = "Anonymous";
+      img.onload = () => { if (active) setBgImgElement(img); };
       img.src = activeBg;
-      img.onload = () => setBgImgElement(img);
+      return () => { active = false; };
     }, [activeBg]);
 
     useEffect(() => {
@@ -595,7 +647,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       }
       if (!transformerRef.current) return;
       let targetNode = null;
-      if (selectedId === "headline") targetNode = headlineResizeFrameRef.current;
+      if (selectedId && compositionNodeRefs.current[selectedId]) targetNode = compositionNodeRefs.current[selectedId];
+      else if (selectedId === "headline") targetNode = headlineResizeFrameRef.current;
       else if (selectedId === "subtext") targetNode = subtextResizeFrameRef.current;
       else if (selectedId === "badge") targetNode = badgeRef.current;
       else if (selectedId === "bar") targetNode = barRef.current;
@@ -613,7 +666,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         transformerRef.current.nodes([]);
         transformerRef.current.getLayer()?.batchDraw();
       }
-    }, [selectedId, isEditingBackground, editingTarget]);
+    }, [selectedId, isEditingBackground, editingTarget, composition]);
 
     // Vincula o Transformer exclusivo ao Plano de Fundo quando isEditingBackground === true (Estilo Canva)
     useEffect(() => {
@@ -631,6 +684,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       exportThumbnail: async () => {
         const stage = stageRef.current;
         if (!stage) return "";
+        if (composition) { try { await ensureArsenalCompositionFonts(composition); } catch { return ""; } }
 
         // Capture the same 360px composition used by the editor, after its
         // font and image nodes have finished loading into Konva.
@@ -643,15 +697,12 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
           if (!loaded) return "";
         }
 
-        const expectedImages = Number(Boolean(activeBg)) + Number(Boolean(post.logoUrl))
+        const expectedImages = composition ? renderedCompositionImageCount(composition) : Number(Boolean(activeBg)) + Number(Boolean(post.logoUrl))
           + activeExtraImages.filter(item => Boolean(item.url)).length;
         const started = Date.now();
         while (Date.now() - started < 4000) {
-          const imageNodes = stage.find("Image") as any[];
-          if (imageNodes.length >= expectedImages && imageNodes.every(node => {
-            const image = node.image?.();
-            return image?.complete && image?.naturalWidth > 0;
-          })) {
+          const imageNodes = visibleExportImageNodes(stage.find("Image") as any[]);
+          if (imageNodes.length >= expectedImages && imageNodes.every(exportImageNodeReady)) {
             await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
             stage.getLayers().forEach((layer: any) => layer.draw());
             try {
@@ -666,16 +717,21 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       },
       exportPng4K: () => {
         if (!stageRef.current) return "";
+        if (composition && (!arsenalReady || editingTarget || renderedCompositionImageCount(composition) > visibleExportImageNodes(stageRef.current.find("Image")).filter(exportImageNodeReady).length)) throw new Error("Conclua a edição e aguarde o carregamento das fontes e da foto antes de exportar.");
         setSelectedId(null);
         transformerRef.current?.nodes([]);
         bgTransformerRef.current?.nodes([]);
-        stageRef.current.getLayers().forEach((l: any) => l.batchDraw());
-        return stageRef.current.toDataURL({
-          pixelRatio: 4,
+        stageRef.current.getLayers().forEach((l: any) => l.draw());
+        const mediaGuides = stageRef.current.find(".editor-media-guide");
+        mediaGuides.forEach((node: any) => node.hide());
+        stageRef.current.getLayers().forEach((layer: any) => layer.draw());
+        try { return stageRef.current.toDataURL({
+          pixelRatio: diagnosticScene ? diagnosticScene.source.widthPx / baseWidth : 3840 / Math.max(baseWidth, baseHeight),
           mimeType: "image/png",
-        });
+        }); } finally { mediaGuides.forEach((node: any) => node.show()); stageRef.current.getLayers().forEach((layer: any) => layer.draw()); }
       },
       exportZip4K: async (onProgress) => {
+        if (composition && editingTarget) throw new Error("Conclua a edição do texto antes de exportar.");
         const zip = new JSZip();
         const stage = stageRef.current;
         if (!stage) return new Blob();
@@ -687,48 +743,56 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         const awaitFrame = () =>
           new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
-        const awaitStageImagesLoaded = async (timeoutMs: number): Promise<void> => {
+        const awaitStageImagesLoaded = async (timeoutMs: number, expected: number): Promise<void> => {
           const started = Date.now();
           while (Date.now() - started < timeoutMs) {
-            const imageNodes = stage.find("Image") as any[];
-            const pending = imageNodes.filter((node) => {
-              const img = node?.image?.();
-              return !img || !img.complete || !img.naturalWidth;
-            });
-            if (pending.length === 0) return;
+            const imageNodes = visibleExportImageNodes(stage.find("Image") as any[]);
+            const pending = imageNodes.filter(node => !exportImageNodeReady(node));
+            if (imageNodes.length >= expected && pending.length === 0) return;
             await new Promise((resolve) => setTimeout(resolve, 20));
           }
+          throw new Error("Uma imagem do carrossel não carregou. Aguarde e tente baixar novamente.");
         };
 
-        for (let i = 0; i < post.slides.length; i++) {
-          if (onProgress) onProgress(i + 1, post.slides.length);
-          // Renderiza o slide i no mesmo motor e aguarda composição + assets.
-          setExportSlideIndex(i);
-          await awaitFrame();
-          await awaitFrame();
-          try {
-            const fontReady = (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
-            if (fontReady) {
-              await Promise.race([fontReady, new Promise(resolve => setTimeout(resolve, 3000))]);
+        try {
+          for (let i = 0; i < post.slides.length; i++) {
+            if (onProgress) onProgress(i + 1, post.slides.length);
+            // Renderiza o slide i no mesmo motor e aguarda composição + assets.
+            setExportSlideIndex(i);
+            await awaitFrame();
+            await awaitFrame();
+            try {
+              const fontReady = (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready;
+              if (fontReady) {
+                await Promise.race([fontReady, new Promise(resolve => setTimeout(resolve, 3000))]);
+              }
+            } catch {
+              /* fontes não disponíveis — segue com o fallback do motor */
             }
-          } catch {
-            /* fontes não disponíveis — segue com o fallback do motor */
+            const slide = post.slides[i];
+            if (slide.composition) { await ensureArsenalCompositionFonts(slide.composition); await awaitFrame(); }
+            const expected = slide.composition ? renderedCompositionImageCount(slide.composition) : Number(Boolean(slide.bgImage ?? post.bgImage)) + Number(Boolean(post.logoUrl))
+              + (slide.extraImages ?? post.extraImages ?? []).filter(image => Boolean(image.url)).length;
+            await awaitStageImagesLoaded(4000, expected);
+
+            const mediaGuides = stage.find(".editor-media-guide");
+            mediaGuides.forEach((node: any) => node.hide());
+            stage.getLayers().forEach((l: any) => l.draw());
+            let dataUrl: string;
+            try { dataUrl = stage.toDataURL({
+              pixelRatio: 3840 / Math.max(baseWidth, baseHeight),
+              mimeType: "image/png",
+            }); } finally { mediaGuides.forEach((node: any) => node.show()); }
+            const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+            zip.file(`slide-${i + 1}.png`, base64Data, { base64: true });
           }
-          await awaitStageImagesLoaded(2000);
 
+          return await zip.generateAsync({ type: "blob" });
+        } finally {
+          setExportSlideIndex(null);
+          await awaitFrame();
           stage.getLayers().forEach((l: any) => l.batchDraw());
-          const dataUrl = stage.toDataURL({
-            pixelRatio: 4,
-            mimeType: "image/png",
-          });
-          const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
-          zip.file(`slide-${i + 1}.png`, base64Data, { base64: true });
         }
-
-        setExportSlideIndex(null);
-        await awaitFrame();
-        stage.getLayers().forEach((l: any) => l.batchDraw());
-        return await zip.generateAsync({ type: "blob" });
       },
     }));
 
@@ -758,7 +822,10 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     // Se AMBOS estiverem visíveis no carrossel, o secundário (contador numérico) é exibido como chip discreto
     const showSecondarySlideChip = isBadgeVisible && isStepVisible;
     const secondarySlideText = currentSlide?.step || "";
-    const activeExtraTexts = currentSlide?.extraTexts || post.extraTexts || [];
+    const activeExtraTexts: CanvasCustomText[] = composition ? composition.elements.filter(e=>e.kind === "text").map(e=>{
+      const w=arsenalWorldGeometry(e,composition.groups),scale=360/composition.artboard.width*composition.projection.scale;
+      return {id:e.id,text:e.text,textRich:e.richText,x:w.x*scale+composition.projection.x*360/composition.artboard.width,y:w.y*scale+composition.projection.y*360/composition.artboard.width,width:e.width*scale*w.scale,fontSize:e.fontSize*scale*w.scale,fontFamily:e.fontFamily,color:e.fill,rotation:w.rotation};
+    }) : currentSlide?.extraTexts || post.extraTexts || [];
     const activeExtraImages = currentSlide?.extraImages || post.extraImages || [];
 
     // --- CARACTERÍSTICAS DA FAMÍLIA ATIVA ---
@@ -891,25 +958,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     };
 
     // ─── TAMANHOS BASE POR FAMÍLIA × ESCALA DO USUÁRIO (item 2) ───
-    const headlineBaseSize =
-      isBrutalBlock || isStrokeImpact
-        ? 32
-        : isCinematic
-        ? 34
-        : isKinetic
-        ? 30
-        : isBrutalSplit
-        ? 28
-        : isDataPunch
-        ? 28
-        : isQuote
-        ? 26
-        : isCyber
-        ? 18
-        : isEditorial
-        ? 23
-        : 22;
-    const subtextBaseSize = isBrutalBlock ? 11 : isCyber ? 11 : 12;
+    const typography = canvasTypography(fam);
+    const headlineBaseSize = typography.headlineBase;
+    const subtextBaseSize = typography.bodyBase;
     const effHeadlineSizeBase = headlineBaseSize * (post.headlineSizeScale ?? 1) * activeHeadlineScale;
     const effSubtextSize = subtextBaseSize * (post.subtextSizeScale ?? 1) * activeSubtextScale;
 
@@ -927,11 +978,11 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         width: activeHeadlineWidth,
         fontSize: size,
         fontFamily: post.fontFamily,
-        fontStyle: "bold",
+        fontStyle: post.headlineFontWeight ? String(post.headlineFontWeight) : "bold",
         fill: post.palette.headlineColor || post.palette.text,
         align: post.headlineAlign || "left",
-        letterSpacing: isBrutalBlock ? 0.5 : isEditorial ? -0.2 : -0.4,
-        lineHeight: isBrutalBlock ? 1.1 : 1.25,
+        letterSpacing: typography.headlineLetterSpacing,
+        lineHeight: typography.headlineLineHeight,
       });
 
     const subtextMetricsFor = (size: number) =>
@@ -940,8 +991,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         richText: displaySubtextChunks,
         width: activeSubtextWidth,
         fontSize: size,
-        fontFamily: isCyber ? "Space Mono, monospace" : "Inter, sans-serif",
-        fontStyle: "normal",
+        fontFamily: post.subtextFontFamily ?? (currentSlide?.guidedComposition ? "Arial, sans-serif" : isCyber ? "Space Mono, monospace" : "Inter, sans-serif"),
+        fontStyle: post.subtextFontWeight ? String(post.subtextFontWeight) : "normal",
         fill: post.palette.subtextColor || post.palette.text,
         align: post.bodyAlign || "left",
         lineHeight: 1.45,
@@ -1221,7 +1272,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
 
     // ─── Ações de Edição Direta no Canvas ───
     const startEditing = (target: string, event?: any, targetLayout?: RichTextLayout) => {
-      if (isReadOnly || isEditingBackground) return;
+      if (isReadOnly || isEditingBackground || !arsenalReady) return;
       transformerRef.current?.nodes([]);
       transformerRef.current?.getLayer()?.batchDraw();
       let initialText = "";
@@ -1268,7 +1319,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       const target = editingTargetRef.current;
       const val = editingTextRef.current;
       if (target) {
-        if (target === "headline" || target === "subtext") {
+        if (composition?.elements.some(e=>e.id === target)) {
+          onUpdateComposition?.(editArsenalElementText(composition,target,val,editingRichTextRef.current));
+        } else if (target === "headline" || target === "subtext") {
           const chunks = editingRichTextRef.current || [{ text: val }];
           if (onCommitTextEdit) {
             onCommitTextEdit(target, val, chunks, textLayoutSnapshotRef.current || undefined);
@@ -1440,7 +1493,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         if (!isDescendantOf(e.target, editingNode)) handleCommitText();
       }
 
-      if (isHeadline || isSubtext || isBadge || isBar || isLogo || isExtraText || isExtraImage) {
+      const isComposition = Object.values(compositionNodeRefs.current).some(node=>isDescendantOf(e.target,node));
+      if (isHeadline || isSubtext || isBadge || isBar || isLogo || isExtraText || isExtraImage || isComposition) {
         return;
       }
 
@@ -1479,7 +1533,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         }}
       >
         <div
-          className="rounded-[28px] overflow-hidden shadow-[0_32px_90px_rgba(0,0,0,0.9)] border border-white/15 relative"
+          className={diagnosticScene && diagnosticNeutralFrame ? "overflow-hidden relative" : "rounded-[28px] overflow-hidden shadow-[0_32px_90px_rgba(0,0,0,0.9)] border border-white/15 relative"}
           style={{
             width: baseWidth,
             height: baseHeight,
@@ -1500,6 +1554,11 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
             onTouchCancel={handleEditingPointerUp}
           >
             <Layer listening={isInteractive}>
+              {diagnosticScene ? <ReferenceSceneContents scene={diagnosticScene} stageWidth={baseWidth} textMode={diagnosticTextMode} layerStyles={diagnosticLayerStyles} mediaImages={diagnosticMediaImages} /> : composition ? (arsenalReady ? <ArsenalCompositionContents composition={displayComposition!}
+                interactive={isInteractive && arsenalReady}
+                register={(id,node,isText)=>{ if(node)compositionNodeRefs.current[id]=node;else delete compositionNodeRefs.current[id];if(isText){if(node)extraTextRefs.current[id]=node;else delete extraTextRefs.current[id];} }}
+                onSelect={handleSelect} onTransform={(id,patch)=>onUpdateComposition?.(overrideArsenalElement(composition,id,patch))}
+                bridge={{target:editingTarget,selection:editingSelection,click:handleTextClick,doubleClick:handleTextDoubleClick,down:handleEditingPointerDown,move:handleEditingPointerMove,touchStart:handleTextTouchStart,touchMove:handleTextTouchMove,up:handleEditingPointerUp,selectionHandles:isMobile ? (id,layout)=><TextSelectionHandles layout={layout} start={editingSelection.start} end={editingSelection.end} touchScale={touchScale*composition.artboard.width/360/composition.projection.scale} onStart={(event,edge,metrics)=>handleSelectionHandleStart(event,id,edge,metrics)} /> : undefined}} /> : null) : (<React.Fragment>
               {/* ─── 0. GRADE GUIA 5x5 DE ALINHAMENTO MAGNÉTICO (GPU-Accelerated) ─── */}
               {post.isSnapEnabled !== false && (
                 <>
@@ -1719,6 +1778,18 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 );
               })()}
 
+              {currentSlide?.extraShapes?.map(shape => (
+                <Rect
+                  key={shape.id}
+                  x={shape.x}
+                  y={shape.y}
+                  width={shape.width}
+                  height={shape.height}
+                  fill={shape.color}
+                  listening={false}
+                />
+              ))}
+
               {/* Linha divisória do Brutal Split (sempre no topo dos blocos de fundo) */}
               {isBrutalSplit && (
                 <Line
@@ -1739,7 +1810,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 {/* ─── 2. DETALHES GRÁFICOS ÚNICOS DE CADA FAMÍLIA ─── */}
 
               {/* 2.A) EDITORIAL: Aspas Gigantes no Fundo + Divisória Fina */}
-              {isEditorial && (
+              {isEditorial && !currentSlide?.guidedComposition && !currentSlide?.suppressFamilyDecorations && (
                 <>
                   <Text
                     text="“"
@@ -1948,6 +2019,12 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 </Group>
               )}
 
+              {currentSlide?.guidedComposition && (
+                <Rect x={0} y={currentSlide.guidedComposition.readingArea.y}
+                  width={baseWidth} height={currentSlide.guidedComposition.readingArea.height}
+                  fill={currentSlide.guidedComposition.readingArea.color} listening={false} />
+              )}
+
               {/* ─── 4. LOGO DA MARCA (SE HOUVER) ─── */}
               {logoImgElement && (
                 <KonvaImage
@@ -2032,7 +2109,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   accentColor: post.palette.accent,
                   customColor: post.headlineEffectColor,
                   lines: headlineLines,
-                  lineHeightPx: headlineFontSize * (isBrutalBlock ? 1.1 : 1.25),
+                  lineHeightPx: headlineFontSize * (typography.headlineLineHeight),
                   align: defaultAlign,
                 })}
                 {headlineSelectionRects.map(rect => (
@@ -2054,11 +2131,11 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   width={activeHeadlineWidth}
                   fontSize={headlineFontSize}
                   fontFamily={post.fontFamily}
-                  fontStyle="bold"
+                  fontStyle={post.headlineFontWeight ? String(post.headlineFontWeight) : "bold"}
                   fill={headlineColor}
                   align={defaultAlign}
-                  lineHeight={isBrutalBlock ? 1.1 : 1.25}
-                  letterSpacing={isBrutalBlock ? 0.5 : isEditorial ? -0.2 : -0.4}
+                  lineHeight={typography.headlineLineHeight}
+                  letterSpacing={typography.headlineLetterSpacing}
                   opacity={1}
                   {...getTextEffectProps(headlineEffect, isDarkHeadline, true, post.headlineEffectColor)}
                 />
@@ -2156,7 +2233,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   y={0}
                   width={activeSubtextWidth}
                   fontSize={subtextFontSize}
-                  fontFamily={isCyber ? "Space Mono, monospace" : "Inter, sans-serif"}
+                  fontFamily={post.subtextFontFamily ?? (currentSlide?.guidedComposition ? "Arial, sans-serif" : isCyber ? "Space Mono, monospace" : "Inter, sans-serif")}
+                  fontStyle={post.subtextFontWeight ? String(post.subtextFontWeight) : "normal"}
                   fill={subtextColor}
                   opacity={isBrutalSplit ? 0.95 : 0.85}
                   align={subtextAlign}
@@ -2170,7 +2248,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
               </Group>
 
               {/* ─── 7. BARRA DECORATIVA DE ACENTO (OCULTA NO BRUTALISMO/CYBER) ─── */}
-              {!isBrutalBlock && !isCyber && (
+              {!isBrutalBlock && !isCyber && !currentSlide?.suppressFamilyDecorations && (
                 <Rect
                   ref={barRef}
                   x={barPos.x}
@@ -2220,7 +2298,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   fontSize: itemSize,
                   fontFamily: itemFont,
                   fontStyle:
-                    item.fontWeight === "bold"
+                    typeof item.fontWeight === "number"
+                      ? String(item.fontWeight)
+                    : item.fontWeight === "bold"
                       ? "bold"
                       : item.fontStyle === "italic"
                       ? "italic"
@@ -2346,7 +2426,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                       fontSize={itemSize}
                       fontFamily={itemFont}
                       fontStyle={
-                        item.fontWeight === "bold"
+                        typeof item.fontWeight === "number"
+                          ? String(item.fontWeight)
+                        : item.fontWeight === "bold"
                           ? "bold"
                           : item.fontStyle === "italic"
                           ? "italic"
@@ -2419,40 +2501,6 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 />
               ))}
 
-              {/* ─── 8. TRANSFORMER PARA ELEMENTOS DE TEXTO/MARCA/IMAGENS ─── */}
-              {isInteractive && !isEditingBackground && (
-                <Transformer
-                  ref={transformerRef}
-                  rotateEnabled={selectedId !== "headline" && selectedId !== "subtext"}
-                  rotationSnaps={[0, 90, 180, 270]}
-                  borderStroke="#38bdf8"
-                  borderStrokeWidth={1.5}
-                  anchorStroke="#38bdf8"
-                  anchorFill="#ffffff"
-                  anchorSize={7}
-                  anchorCornerRadius={2}
-                  keepRatio={Boolean(selectedId && extraImageRefs.current[selectedId])}
-                  enabledAnchors={
-                    selectedId && extraImageRefs.current[selectedId]
-                      ? ["top-left", "top-right", "bottom-left", "bottom-right"]
-                      : selectedId === "headline" || selectedId === "subtext"
-                      ? ["middle-left", "middle-right"]
-                      : ["top-left", "top-right", "bottom-left", "bottom-right"]
-                  }
-                  boundBoxFunc={(oldBox, newBox) => Math.abs(newBox.width) < 40 ? oldBox : newBox}
-                  onDblClick={() => {
-                    if (selectedId === "headline" || selectedId === "subtext" || selectedId === "badge") {
-                      startEditing(selectedId);
-                    }
-                  }}
-                  onDblTap={() => {
-                    if (selectedId === "headline" || selectedId === "subtext" || selectedId === "badge") {
-                      startEditing(selectedId);
-                    }
-                  }}
-                />
-              )}
-
               {/* ─── 8.B TRANSFORMER DEDICADO DO PLANO DE FUNDO (ESTILO CANVA) ─── */}
               {isInteractive && isEditingBackground && (
                 <Transformer
@@ -2490,10 +2538,46 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   dash={[4, 4]}
                 />
               )}
+              </React.Fragment>)}
+              {/* ─── 8. TRANSFORMER PARA ELEMENTOS DE TEXTO/MARCA/IMAGENS ─── */}
+              {isInteractive && !isEditingBackground && (
+                <Transformer
+                  ref={transformerRef}
+                  rotateEnabled={selectedId !== "headline" && selectedId !== "subtext"}
+                  rotationSnaps={[0, 90, 180, 270]}
+                  borderStroke="#38bdf8"
+                  borderStrokeWidth={1.5}
+                  anchorStroke="#38bdf8"
+                  anchorFill="#ffffff"
+                  anchorSize={7}
+                  anchorCornerRadius={2}
+                  keepRatio={Boolean(selectedId && (extraImageRefs.current[selectedId] || composition?.groups.some(g=>g.id===selectedId)))}
+                  enabledAnchors={
+                    selectedId && extraImageRefs.current[selectedId]
+                      ? ["top-left", "top-right", "bottom-left", "bottom-right"]
+                      : (selectedId === "headline" || selectedId === "subtext" || composition?.elements.some(e=>e.id===selectedId && e.kind==="text"))
+                      ? ["middle-left", "middle-right"]
+                      : ["top-left", "top-right", "bottom-left", "bottom-right"]
+                  }
+                  boundBoxFunc={(oldBox, newBox) => Math.abs(newBox.width) < 40 ? oldBox : newBox}
+                  onDblClick={() => {
+                    if (selectedId && (selectedId === "headline" || selectedId === "subtext" || selectedId === "badge" || composition?.elements.some(e=>e.id===selectedId && e.kind==="text"))) {
+                      startEditing(selectedId);
+                    }
+                  }}
+                  onDblTap={() => {
+                    if (selectedId && (selectedId === "headline" || selectedId === "subtext" || selectedId === "badge" || composition?.elements.some(e=>e.id===selectedId && e.kind==="text"))) {
+                      startEditing(selectedId);
+                    }
+                  }}
+                />
+              )}
+
             </Layer>
           </Stage>
         </div>
 
+        {composition && !arsenalReady && <div role="status" className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 p-6 text-sm text-white">{arsenalFonts.error ? `Fonte indisponível: ${arsenalFonts.error}. Recarregue ou escolha outra fonte no painel.` : "Carregando fontes da composição…"}</div>}
         {/* Input invisível: teclado/clipboard/IME. Texto, seleção e caret permanecem no Konva. */}
         {editingTarget && (() => {
           const isHeadline = editingTarget === "headline";
@@ -2590,7 +2674,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   palette={post.palette}
                   baseColor={isHeadline ? headlineColor : isSubtext ? subtextColor : extraItem?.color || post.palette.text}
                   richText={editingRichText}
-                  baseBold={isHeadline || extraItem?.fontWeight === "bold"}
+                  baseBold={isHeadline || extraItem?.fontWeight === "bold" || (typeof extraItem?.fontWeight === "number" && extraItem.fontWeight >= 600)}
                   baseItalic={extraItem?.fontStyle === "italic"}
                   onRestoreFocus={() => window.requestAnimationFrame(() => {
                     if (editingTargetRef.current) textareaRef.current?.focus({ preventScroll: true });

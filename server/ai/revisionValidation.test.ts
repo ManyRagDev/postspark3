@@ -35,7 +35,7 @@ const siteIntelligence = {
 } as unknown as SiteIntelligence;
 
 describe("validateRevisedCandidate", () => {
-  it("G7: rejects a revision that reintroduces similarity into the set", () => {
+  it("G7: não rejeita um reparo por semelhança lexical com outro slot", () => {
     const candidates = [candidate(1), candidate(2), candidate(3)];
     const duplicate = { ...candidates[0], id: candidates[1].id };
     const result = validateRevisedCandidate({
@@ -45,7 +45,7 @@ describe("validateRevisedCandidate", () => {
       postMode: "static",
     });
 
-    expect(result.errors).toContain("variations are not sufficiently distinct");
+    expect(result.errors).toEqual([]);
   });
 
   it("G8: reapplies the Brand Guardian and WCAG contrast after revision", () => {

@@ -17,6 +17,8 @@ const RETRYABLE_REASONS: ReadonlySet<GenerationFailureReason> = new Set<Generati
   "provider_unavailable",
   "provider_timeout",
   "invalid_provider_response",
+  "quality_rejected",
+  "variations_not_distinct",
   "persistence_failed",
   "unknown",
 ]);
@@ -33,9 +35,9 @@ const USER_MESSAGES: Record<GenerationFailureReason, string> = {
   invalid_provider_response:
     "A resposta da IA veio em um formato inesperado. Tente novamente.",
   format_mismatch:
-    "O formato escolhido não combina com o seu pedido. Revise antes de gerar.",
+    "O briefing menciona outro formato. Confirme qual formato deseja usar.",
   quality_rejected:
-    "A IA não conseguiu produzir conteúdo aprovado pela qualidade editorial para este pedido.",
+    "A IA não conseguiu concluir uma opção válida desta vez. Tente novamente.",
   variations_not_distinct:
     "As opções geradas ficaram parecidas demais. Tente gerar novamente.",
   persistence_failed:

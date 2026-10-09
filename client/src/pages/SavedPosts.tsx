@@ -1,3 +1,4 @@
+import { aspectRatioHeight } from "@shared/aspectRatios";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Bookmark, Sparkles } from "lucide-react";
@@ -71,7 +72,7 @@ function SavedPostPreview({ post }: { post: any }) {
     return { ...savedPostToCanvasModel(post), currentSlideIndex: 0 };
   }, [hasCanvasModel, post]);
   const legacyPreview = useMemo(() => hasCanvasModel ? null : savedPostToVariation(post), [hasCanvasModel, post]);
-  const baseHeight = canvasModel?.aspectRatio === "9:16" ? 640 : canvasModel?.aspectRatio === "5:6" ? 432 : 360;
+  const baseHeight = aspectRatioHeight(canvasModel?.aspectRatio ?? "1:1");
   const zoom = Math.min((size.width - 24) / 360, (size.height - 24) / baseHeight, 1);
 
   useEffect(() => setThumbnail(""), [post.canvas_model]);

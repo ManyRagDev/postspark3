@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, ArrowRight, Lightbulb, X } from "lucide-react";
-import type { FormatIntent } from "@shared/formatIntent";
+import { formatMismatchMessage, type FormatIntent } from "@shared/formatIntent";
 import { MONO, STUDIO } from "./shared";
 
 /**
@@ -23,8 +23,8 @@ export function FormatConfirmModal({
   onSwitchToDetected: () => void;
   onDismiss: () => void;
 }) {
-  const detectedLabel = intent.detectedFormat === "carousel" ? "Carrossel" : "Post Único";
-  const selectedLabel = selectedMode === "carousel" ? "Carrossel" : "Post Único";
+  const detectedLabel = intent.detectedFormat === "carousel" ? "carrossel" : "post único";
+  const selectedLabel = selectedMode === "carousel" ? "carrossel" : "post único";
 
   return (
     <motion.div
@@ -50,9 +50,9 @@ export function FormatConfirmModal({
               <AlertTriangle size={17} style={{ color: "oklch(0.78 0.14 200)" }} />
             </div>
             <div>
-              <div style={{ ...MONO, fontSize: 11, fontWeight: 700 }}>Formato divergente</div>
+              <div style={{ ...MONO, fontSize: 11, fontWeight: 700 }}>Confirmar formato</div>
               <div className="text-[12.5px] leading-snug" style={{ color: STUDIO.ink60 }}>
-                Seu pedido parece ser <strong>{detectedLabel}</strong>, mas o seletor está em <strong>{selectedLabel}</strong>.
+                {formatMismatchMessage(intent, selectedMode)}
               </div>
             </div>
           </div>
@@ -61,37 +61,25 @@ export function FormatConfirmModal({
           </button>
         </div>
 
-        {intent.evidence.length > 0 ? (
-          <div className="mt-4 rounded-xl border p-3" style={{ borderColor: STUDIO.hairline, background: "rgba(242,237,228,0.03)" }}>
-            <div style={{ ...MONO, fontSize: 8.5, color: STUDIO.ink40 }}>Evidência detectada</div>
-            <ul className="mt-1.5 space-y-1">
-              {intent.evidence.map((ev) => (
-                <li key={ev} className="text-[12px]" style={{ color: STUDIO.ink60 }}>
-                  • {ev}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
         <div className="mt-5 flex flex-col gap-2.5">
           <button
             type="button"
-            onClick={onSwitchToDetected}
+            onClick={onKeepSelected}
             className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-bold text-black"
             style={{ background: STUDIO.accent }}
           >
-            <span>Alterar para {detectedLabel}</span>
+            <span>Continuar com {selectedLabel}</span>
             <ArrowRight size={16} />
           </button>
           <button
             type="button"
-            onClick={onKeepSelected}
+            onClick={onSwitchToDetected}
             className="flex w-full items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold"
             style={{ borderColor: STUDIO.hairline, color: STUDIO.ink }}
           >
-            Manter {selectedLabel}
+            Mudar para {detectedLabel}
           </button>
+          <button type="button" onClick={onDismiss} className="py-1 text-xs" style={{ color: STUDIO.ink60 }}>Editar briefing</button>
         </div>
         <p className="mt-3 text-center text-[10.5px]" style={{ color: STUDIO.ink40 }}>
           Nenhuma Spark é consumida até o formato ser confirmado.
@@ -175,14 +163,16 @@ export function GenerationFailureModal({
               Tentar novamente
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={onReviewBriefing}
-            className="flex w-full items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold"
-            style={{ borderColor: STUDIO.hairline, color: STUDIO.ink }}
-          >
-            Revisar briefing
-          </button>
+          {reason === "format_mismatch" ? (
+            <button
+              type="button"
+              onClick={onReviewBriefing}
+              className="flex w-full items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold"
+              style={{ borderColor: STUDIO.hairline, color: STUDIO.ink }}
+            >
+              Corrigir formato no briefing
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onUseLocalFallback}

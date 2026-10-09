@@ -1,5 +1,8 @@
 import type { CanvasPostModel, CarouselSlideItem } from "../components/types";
 import { applyContrastGuard, patchTouchesContrast } from "./contrast";
+import { editArsenalContent } from "./arsenalComposition";
+import { applyContentText } from "@shared/arsenalContent";
+import { freshId } from "./documentCommands";
 
 export const REPLICATION_GROUPS = ["background", "colors", "font", "headline", "body", "composition"] as const;
 export type ReplicationGroup = typeof REPLICATION_GROUPS[number];
@@ -129,3 +132,45 @@ export function replicateSlideAppearance(
   });
   return { ...post, slides };
 }
+
+export function replicateCarouselComposition(
+  post: CanvasPostModel,
+  sourceIndex: number,
+  targetIndices: readonly number[]
+): CanvasPostModel {
+  const sourceSlide = post.slides[sourceIndex];
+  const sourceComp = sourceSlide?.composition;
+  if (!sourceComp) return post;
+
+  const targets = new Set(
+    targetIndices.filter(
+      index => index !== sourceIndex && index >= 0 && index < post.slides.length
+    )
+  );
+  if (targets.size === 0) return post;
+
+  const slides = post.slides.map((targetSlide, index) => {
+    if (!targets.has(index)) return targetSlide;
+    let targetComp = structuredClone(sourceComp);
+    targetComp = editArsenalContent(
+      targetComp,
+      applyContentText(targetComp.content, {
+        headline: targetSlide.headline || undefined,
+        subtext: targetSlide.subtext || undefined,
+      })
+    );
+    if (targetComp.version === 3 && targetComp.authorialLayers?.length) {
+      targetComp.authorialLayers = targetComp.authorialLayers.map(l => ({
+        ...l,
+        id: freshId(l.kind === "text" ? "tx" : l.kind === "image" ? "im" : "layer"),
+      }));
+    }
+    return {
+      ...targetSlide,
+      composition: targetComp,
+    };
+  });
+
+  return { ...post, slides };
+}
+

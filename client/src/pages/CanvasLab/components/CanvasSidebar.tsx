@@ -1,7 +1,11 @@
+import MediaSlotPanel from './MediaSlotPanel';
+import type { MediaUpdate } from '../lib/mediaSlots';
 import { useState, useEffect, useRef } from "react";
-import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, ImagePlus, Lightbulb, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop, RotateCcw, Plus, Trash2, ChevronsUp, ChevronsDown } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Check, Copy, Edit3, Image as ImageIcon, ImagePlus, Lightbulb, Link, Loader2, Palette, Sparkles, Upload, Wand2, Type, Download, Crop, RotateCcw, Plus, Trash2, ChevronsUp, ChevronsDown, Layers3 } from "lucide-react";
 import { toast } from "sonner";
 import { OFFICIAL_FAMILIES_META, type CanvasPostModel, type TextAlignType, type VisualFamilyId, type OverlayMode, type CanvasCustomText, type CanvasCustomImage, type SplitBgPosition, type FitMode, type BackgroundPlacement } from "./types";
+import type { ArsenalComposition } from "@shared/designArsenal";
+import ArsenalCompositionInspector from "./ArsenalCompositionInspector";
 import { applyFamilyPreset } from "../lib/familyPreset";
 import { duplicateExtraElement, reorderExtraElement } from "../lib/documentCommands";
 import TypographyColorControls from "./TypographyColorControls";
@@ -14,9 +18,18 @@ import BackgroundsDrawer from "./BackgroundsDrawer";
 import { downloadImageFile } from "@/lib/downloadHelper";
 import FontPickerDropdown from "./FontPickerDropdown";
 import { applySlideVisualPatch } from "../lib/slideVisualScope";
+import { imageRequestForPost } from "../lib/imageGenerationContext";
+import type { ImageDirectionId } from "../lib/imageGenerationContext";
+import ImageDirectionSuggestions from "./ImageDirectionSuggestions";
 
 interface CanvasSidebarProps {
+  requestedTab?: "media";
   post: CanvasPostModel;
+  composition?: ArsenalComposition;
+  onUpdateComposition?: (composition: ArsenalComposition) => void;
+  onMediaUpdate?: MediaUpdate;
+  mediaPreview?: string;
+  onMediaPreview?: (url: string | undefined) => void;
   onUpdatePost: (patch: Partial<CanvasPostModel>) => void;
   onReplicate?: () => void;
   isEditingBackground?: boolean;
@@ -24,20 +37,26 @@ interface CanvasSidebarProps {
   onAddExtraText?: () => void;
   onUpdateExtraText?: (id: string, patch: Partial<CanvasCustomText>) => void;
   onRemoveExtraText?: (id: string) => void;
-  onAddExtraImage?: (url: string, naturalWidth?: number, naturalHeight?: number) => void;
+  onAddExtraImage?: (url: string, naturalWidth?: number, naturalHeight?: number, targetSlideId?: string) => void;
   onUpdateExtraImage?: (id: string, patch: Partial<CanvasCustomImage>) => void;
   onRemoveExtraImage?: (id: string) => void;
   selectedElementId?: string | null;
   onSelectElement?: (id: string | null) => void;
 }
 
-type TabType = "content" | "style" | "media" | "brand";
+type TabType = "content" | "style" | "media" | "brand" | "design";
 
 const ALL_FAMILIES_LIST = Object.values(OFFICIAL_FAMILIES_META);
 
 export default function CanvasSidebar({
   post,
+  composition,
+  onUpdateComposition,
+  requestedTab,
   onUpdatePost,
+  onMediaUpdate,
+  mediaPreview,
+  onMediaPreview,
   onReplicate,
   isEditingBackground = false,
   onToggleBackgroundEdit,
@@ -51,26 +70,29 @@ export default function CanvasSidebar({
   onSelectElement,
 }: CanvasSidebarProps) {
   const [activeTab, setActiveTab] = useState<TabType>("content");
+  useEffect(() => { if (requestedTab) setActiveTab(requestedTab); }, [requestedTab]);
   const [copiedCaption, setCopiedCaption] = useState(false);
   const showTips = useStudioTipsStore((s) => s.showTips);
   const setShowTips = useStudioTipsStore((s) => s.setShowTips);
-  const [aiImagePrompt, setAiImagePrompt] = useState(post.imagePrompt || "");
   const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
   const [customFontInput, setCustomFontInput] = useState(post.customFontUrl || "");
   const [uploadedFontName, setUploadedFontName] = useState<string | null>(null);
 
   const sidebarImageInputRef = useRef<HTMLInputElement>(null);
+  const latestPostRef = useRef(post);
+  latestPostRef.current = post;
 
   const handleSidebarImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const targetSlideId = latestPostRef.current.slides[latestPostRef.current.currentSlideIndex]?.id;
     const reader = new FileReader();
     reader.onload = (evt) => {
       const dataUrl = evt.target?.result as string;
       if (!dataUrl) return;
       const img = new Image();
       img.onload = () => {
-        onAddExtraImage?.(dataUrl, img.naturalWidth, img.naturalHeight);
+        onAddExtraImage?.(dataUrl, img.naturalWidth, img.naturalHeight, targetSlideId);
       };
       img.src = dataUrl;
     };
@@ -92,13 +114,6 @@ export default function CanvasSidebar({
       .then((data) => setManifestData(data))
       .catch((err) => console.warn("Erro ao carregar manifest de backgrounds:", err));
   }, []);
-
-  // Sincroniza o prompt de IA com o post
-  useEffect(() => {
-    if (post.imagePrompt) {
-      setAiImagePrompt(post.imagePrompt);
-    }
-  }, [post.imagePrompt]);
 
   const currentSlide = post.slides[post.currentSlideIndex];
   const extraTextsList = currentSlide?.extraTexts || post.extraTexts || [];
@@ -148,7 +163,7 @@ export default function CanvasSidebar({
   };
 
   const handleApplyBackground = (url?: string) => {
-    onUpdatePost(applySlideVisualPatch(post, { bgImage: url }, false));
+    onUpdatePost(applySlideVisualPatch(latestPostRef.current, { bgImage: url }, false));
   };
 
   const handleCopyCaption = () => {
@@ -201,28 +216,21 @@ export default function CanvasSidebar({
     reader.readAsDataURL(file);
   };
 
-  const handleGenerateAiImage = async () => {
-    if (!aiImagePrompt.trim()) {
-      toast.error("Digite uma descrição para a imagem.");
-      return;
-    }
+  const handleGenerateAiImage = async (
+    prompt: string,
+    directionId: ImageDirectionId | "custom",
+    useCompositionGuidance: boolean,
+  ): Promise<string | undefined> => {
+    if (!prompt.trim()) return;
     setIsGeneratingAiImage(true);
     toast.info("A IA está criando a imagem de alta resolução...");
 
     try {
-      const res = await generateImageMutation.mutateAsync({ prompt: aiImagePrompt.trim() });
+      const res = await generateImageMutation.mutateAsync(
+        {...imageRequestForPost(post, prompt, { directionId, useCompositionGuidance }), idempotencyKey: crypto.randomUUID()},
+      );
       if (res?.imageUrl) {
-        handleApplyBackground(res.imageUrl);
-        toast.success("Foto exclusiva gerada com sucesso pela IA!", {
-          action: {
-            label: "Baixar Foto",
-            onClick: () =>
-              downloadImageFile(
-                res.imageUrl,
-                `postspark-ia-slide-${post.currentSlideIndex + 1}-${Date.now()}.png`
-              ),
-          },
-        });
+        return res.imageUrl;
       } else {
         throw new Error("Nenhuma imagem retornada pelo motor de IA.");
       }
@@ -234,6 +242,16 @@ export default function CanvasSidebar({
     }
   };
 
+  const handleGeneratedAiImage = (url: string) => {
+    handleApplyBackground(url);
+    toast.success("Foto exclusiva gerada com sucesso pela IA!", {
+      action: {
+        label: "Baixar Foto",
+        onClick: () => downloadImageFile(url, `postspark-ia-slide-${latestPostRef.current.currentSlideIndex + 1}-${Date.now()}.png`),
+      },
+    });
+  };
+
   const handleApplyCustomFont = () => {
     if (!customFontInput.trim()) return;
     onUpdatePost({ customFontUrl: customFontInput.trim() });
@@ -243,13 +261,14 @@ export default function CanvasSidebar({
   return (
     <aside className="w-80 h-full border-r border-white/10 bg-black/50 backdrop-blur-xl flex flex-col shrink-0 select-none z-20">
       <input ref={sidebarImageInputRef} type="file" accept="image/*" className="hidden" onChange={handleSidebarImageFile} />
-      {/* 4 Abas Principais */}
-      <div className="grid grid-cols-4 p-2 gap-1 border-b border-white/10 bg-white/4">
+      {/* Abas Principais (5 abas se houver composição do Arsenal) */}
+      <div className={`grid ${composition ? "grid-cols-5" : "grid-cols-4"} p-2 gap-1 border-b border-white/10 bg-white/4`}>
         {[
-          { id: "content", label: "Texto", icon: Edit3 },
-          { id: "style", label: "Estilo", icon: Palette },
-          { id: "media", label: "Mídia", icon: ImageIcon },
-          { id: "brand", label: "Logo", icon: Sparkles },
+          { id: "content" as TabType, label: "Texto", icon: Edit3 },
+          { id: "style" as TabType, label: "Estilo", icon: Palette },
+          { id: "media" as TabType, label: "Mídia", icon: ImageIcon },
+          { id: "brand" as TabType, label: "Logo", icon: Sparkles },
+          ...(composition ? [{ id: "design" as TabType, label: "Design", icon: Layers3 }] : []),
         ].map((tab) => {
           const Icon = tab.icon;
           const isSelected = activeTab === tab.id;
@@ -276,7 +295,7 @@ export default function CanvasSidebar({
       {/* Conteúdo da Aba Ativa */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar">
         {/* ─── ABA 1: CONTEÚDO ─── */}
-        {activeTab === "content" && (
+        {activeTab === "content" && !composition && (
           <div className="space-y-4">
             {/* Dica contextual (item 9) */}
             <TipCallout id="tip-content-tab" title="Tudo sobre o conteúdo do post">
@@ -835,7 +854,7 @@ export default function CanvasSidebar({
         )}
 
         {/* ─── ABA 2: ESTILO (DIREÇÕES DE ARTE & PALETA) ─── */}
-        {activeTab === "style" && (
+        {activeTab === "style" && !composition && (
           <div className="space-y-4">
             {/* Dica contextual */}
             <TipCallout id="tip-style-tab" title="Direções de arte e paleta">
@@ -919,17 +938,20 @@ export default function CanvasSidebar({
         )}
 
         {/* ─── ABA 3: MÍDIA & FUNDOS PRÉ-DEFINIDOS ─── */}
-        {activeTab === "media" && (
+        {onMediaUpdate && <div className={activeTab === "media" ? "" : "hidden"}><MediaSlotPanel post={post} onUpdate={onMediaUpdate} selectedId={selectedElementId} retainedPreview={mediaPreview} onRetainPreview={onMediaPreview} /></div>}
+        {activeTab === "media" && !(composition && onMediaUpdate) && (
           <div className="space-y-4">
+{composition && <ArsenalCompositionInspector composition={composition} section="media" selectedId={selectedElementId ?? null} onSelect={id => onSelectElement?.(id)} onChange={c => onUpdateComposition?.(c)} />}
+
             {/* Dica contextual (item 9) */}
             <TipCallout id="tip-media-tab" title="Fundos por IA, texturas ou suas fotos">
-              Gere um fundo com IA, explore 110+ texturas da biblioteca ou envie uma foto. Para enquadrar, dê duplo clique no fundo do palco.
+              {composition ? "Gere um fundo, escolha uma textura ou envie uma foto. Ajuste o enquadramento nos controles acima." : "Gere um fundo com IA, explore 110+ texturas da biblioteca ou envie uma foto. Para enquadrar, dê duplo clique no fundo do palco."}
             </TipCallout>
 
             {onAddExtraImage && <button type="button" onClick={() => sidebarImageInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-orange-400/35 bg-orange-400/10 px-3 py-2.5 text-xs font-semibold text-orange-300 hover:bg-orange-400/20"><ImagePlus size={15} /> Inserir imagem sobreposta</button>}
 
             {/* CARD DO PLANO DE FUNDO ATIVO (AJUSTE ESTILO CANVA + DOWNLOAD) */}
-            {Boolean(post.slides[post.currentSlideIndex]?.bgImage ?? post.bgImage) && (() => {
+            {!composition && Boolean(post.slides[post.currentSlideIndex]?.bgImage ?? post.bgImage) && (() => {
               const currentSlide = post.slides[post.currentSlideIndex];
               const currentPlacement = currentSlide?.bgPlacement || post.bgPlacement;
               const activeFitMode: FitMode = currentPlacement?.fitMode || "cover";
@@ -1043,7 +1065,7 @@ export default function CanvasSidebar({
             })()}
 
             {/* 0.B DISTRIBUIÇÃO DO FUNDO NO BRUTAL SPLIT */}
-            {post.familyId === "brutal-split" && (
+            {!composition && post.familyId === "brutal-split" && (
               <div className="p-3 rounded-xl border border-[oklch(0.78_0.22_48)]/30 bg-[oklch(0.78_0.22_48)]/5 space-y-2">
                 <div className="flex items-center justify-between text-[11px] uppercase tracking-wider font-semibold text-[oklch(0.78_0.22_48)]">
                   <span>Posição da Foto no Split</span>
@@ -1078,35 +1100,23 @@ export default function CanvasSidebar({
               </div>
             )}
 
-            {/* 1. GERADOR DE IMAGENS POR IA (COM PROMPT PRÉ-PREENCHIDO PELA IA) */}
+            {/* 1. Direções e geração de imagem por IA */}
             <div className="space-y-2 p-3 rounded-xl border border-white/10 bg-white/3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-white">
                   <Wand2 size={13} className="text-[oklch(0.78_0.22_48)]" />
                   <span>Gerar Imagem com IA</span>
                 </div>
-                {post.imagePrompt && (
-                  <span className="text-[9px] font-mono text-[oklch(0.78_0.22_48)] bg-[oklch(0.78_0.22_48)]/10 px-1.5 py-0.5 rounded">
-                    Prompt da IA
-                  </span>
-                )}
               </div>
-              <textarea
-                rows={3}
-                value={aiImagePrompt}
-                onChange={(e) => setAiImagePrompt(e.target.value)}
-                placeholder="Descreva a imagem de fundo que você deseja..."
-                className="w-full rounded-lg border border-white/10 bg-black/40 p-2 text-xs text-white outline-none focus:border-[oklch(0.78_0.22_48)] resize-none"
+              <ImageDirectionSuggestions
+                post={post}
+                defaultPrompt={currentSlide?.imagePrompt || post.imagePrompt || ""}
+                busy={isGeneratingAiImage}
+                buttonLabel="Gerar Imagem com IA"
+                busyLabel="Gerando imagem..."
+                onGenerate={handleGenerateAiImage}
+                onGenerated={handleGeneratedAiImage}
               />
-              <button
-                type="button"
-                onClick={handleGenerateAiImage}
-                disabled={isGeneratingAiImage}
-                className="w-full py-2 px-3 rounded-lg bg-[oklch(0.78_0.22_48)] text-black text-xs font-bold flex items-center justify-center gap-1.5 hover:brightness-110 disabled:opacity-50 cursor-pointer shadow-md"
-              >
-                {isGeneratingAiImage ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                <span>{isGeneratingAiImage ? "Sintetizando Imagem..." : "Gerar Foto com IA"}</span>
-              </button>
             </div>
 
             {/* 2. BIBLIOTECA DE TEXTURAS OFICIAIS (ABRE GAVETA FLUTUANTE) */}
@@ -1156,7 +1166,7 @@ export default function CanvasSidebar({
             </button>
 
             {/* 5. CONTROLES DO OVERLAY / SCRIM */}
-            <div className="space-y-3 pt-3 border-t border-white/8">
+            {!composition && <div className="space-y-3 pt-3 border-t border-white/8">
               <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-white/50 font-semibold">
                 <span>Camada de Sobreposição (Overlay)</span>
                 <span>{Math.round((post.overlayOpacity ?? 0.55) * 100)}%</span>
@@ -1272,7 +1282,7 @@ export default function CanvasSidebar({
                   className="w-full accent-[oklch(0.78_0.22_48)] cursor-pointer"
                 />
               </div>
-            </div>
+            </div>}
           </div>
         )}
 
@@ -1334,6 +1344,16 @@ export default function CanvasSidebar({
               </div>
             </div>
           </div>
+        )}
+        {/* ─── ABA 5: DESIGN (ARSENAL COMPOSITION) ─── */}
+        {composition && ["content", "style", "design"].includes(activeTab) && (
+          <ArsenalCompositionInspector
+            composition={composition}
+            section={activeTab === "content" ? "content" : activeTab === "style" ? "style" : "design"}
+            selectedId={selectedElementId ?? null}
+            onSelect={(id) => onSelectElement?.(id)}
+            onChange={(c) => onUpdateComposition?.(c)}
+          />
         )}
       </div>
 

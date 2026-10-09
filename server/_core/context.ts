@@ -18,7 +18,7 @@ const DEV_USER: TrpcUser = {
 };
 
 export async function createContext(
-  opts: CreateExpressContextOptions
+  opts: Pick<CreateExpressContextOptions, "req" | "res">
 ): Promise<TrpcContext> {
   if (process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true") {
     return { req: opts.req, res: opts.res, user: DEV_USER };

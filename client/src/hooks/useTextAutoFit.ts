@@ -61,7 +61,7 @@ export function useTextAutoFit({
     }
 
     const isStory = aspectRatio === "9:16";
-    const isPortrait = aspectRatio === "5:6";
+    const isPortrait = (aspectRatio === "4:5" || aspectRatio === "5:6");
     const hasStructuredContent = structuredSectionCount > 0;
 
     // ══════════════════════════════════════════════════════════════════
@@ -208,6 +208,7 @@ export function analyzeTextFit(
 } {
   const limits = {
     "1:1": { headline: 60, body: 120 },
+    "4:5": { headline: 80, body: 180 },
     "5:6": { headline: 80, body: 180 },
     "9:16": { headline: 120, body: 300 },
   };

@@ -68,6 +68,16 @@ class FakeLedger {
 
   rpc(fn: string, args: Record<string, unknown>): { data: unknown; error: null } {
     this.rpcCalls.push({ fn, args });
+    if (fn === "next_reserve_sparks_v2") {
+      const res = this.reserve({
+        p_user_id: args.p_user_uuid as string,
+        p_amount: args.p_amount as number,
+        p_idempotency_key: args.p_nonce as string,
+      });
+      return { data: [{ reservation_id: res, status: res ? "reserved" : "insufficient_sparks" }], error: null };
+    }
+    if (fn === "next_commit_reservation_v2") return { data: this.commit({ p_reservation_id: args.p_reservation_id as string }), error: null };
+    if (fn === "next_refund_reservation_v2") return { data: this.refund({ p_reservation_id: args.p_reservation_id as string }), error: null };
     if (fn === "reserve_sparks") return { data: this.reserve(args as never), error: null };
     if (fn === "commit_spark_reservation") return { data: this.commit(args as never), error: null };
     if (fn === "refund_spark_reservation") return { data: this.refund(args as never), error: null };

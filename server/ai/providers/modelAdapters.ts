@@ -76,9 +76,12 @@ export function adaptRequestForProvider(input: {
   const openRouterGeminiNeedsTextSchema =
     input.provider === "openrouter" &&
     input.effectiveModel?.startsWith("google/gemini-3.8-flash");
+  const forceTextSchema = input.forceTextSchema === true;
   if (
-    (input.provider !== "groq" && !openRouterGeminiNeedsTextSchema) ||
-    input.responseFormat?.type !== "json_schema"
+    input.responseFormat?.type !== "json_schema" ||
+    (!forceTextSchema &&
+      input.provider !== "groq" &&
+      !openRouterGeminiNeedsTextSchema)
   ) {
     return {
       messages: input.messages,
@@ -94,6 +97,7 @@ export function adaptRequestForProvider(input: {
 
   const schema = input.responseFormat.json_schema;
   if (
+    !forceTextSchema &&
     !openRouterGeminiNeedsTextSchema &&
     input.effectiveModel === "openai/gpt-oss-120b" &&
     !input.forceTextSchema

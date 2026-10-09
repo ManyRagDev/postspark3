@@ -25,6 +25,7 @@ import { useEffect, lazy, Suspense, type ComponentType } from "react";
 
 // Lazy loading da vitrine de inspiração com isolamento total de bundle
 const InspiracaoShowcasePage = lazy(() => import("./pages/InspiracaoShowcase/InspiracaoShowcasePage"));
+const Admin2 = lazy(() => import("./pages/Admin2"));
 
 function PostCheckoutSuccess() {
   setTimeout(() => { window.location.href = "/"; }, 3000);
@@ -220,6 +221,9 @@ function PrivacySettingsRoute() {
 function AdminPageRoute() {
   return <AdminRoute component={Admin} />;
 }
+function Admin2PageRoute() {
+  return <Suspense fallback={<div className="min-h-screen bg-[#080d14] p-8 text-slate-300">Carregando laboratório…</div>}><AdminRoute component={Admin2} /></Suspense>;
+}
 
 function Router() {
   return (
@@ -270,6 +274,7 @@ function Router() {
       <Route path={"/billing/success"} component={PostCheckoutSuccess} />
       <Route path={"/billing/topup-success"} component={TopupSuccess} />
       <Route path={"/admin"} component={AdminPageRoute} />
+      <Route path={"/admin2"} component={Admin2PageRoute} />
       <Route path={"/familias"} component={FamilyCatalog} />
       <Route path={"/auth/google-callback"} component={GoogleAuthCallback} />
       <Route path={"/404"} component={NotFound} />

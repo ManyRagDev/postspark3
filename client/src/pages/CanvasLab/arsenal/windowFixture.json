@@ -1,0 +1,2116 @@
+{
+  "variant": {
+    "variantKey": "portrait-5x6-v1",
+    "aspectRatio": "5:6",
+    "compilerVersion": "arsenal-v2.0.0",
+    "artboard": {
+      "width": 1080,
+      "height": 1296,
+      "background": "#E9B708"
+    },
+    "instances": [
+      {
+        "id": "grade-v-6",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 0,
+        "x": 26.784,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-v-98",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 1,
+        "x": 106.272,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-v-190",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 2,
+        "x": 185.76,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-v-282",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 3,
+        "x": 265.248,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-v-374",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 4,
+        "x": 344.736,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-v-466",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 5,
+        "x": 424.224,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-v-558",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 6,
+        "x": 503.712,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-v-650",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 7,
+        "x": 583.2,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-v-742",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 8,
+        "x": 662.688,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-v-834",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 9,
+        "x": 742.176,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-v-926",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 10,
+        "x": 821.664,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-v-1018",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 11,
+        "x": 901.152,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-v-1110",
+        "pieceHash": "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448",
+        "parentId": null,
+        "zIndex": 12,
+        "x": 980.64,
+        "y": 0,
+        "width": 1,
+        "height": 1296,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-2",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 13,
+        "x": 21.6,
+        "y": 1.728,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-94",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 14,
+        "x": 21.6,
+        "y": 81.216,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-186",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 15,
+        "x": 21.6,
+        "y": 160.704,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-278",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 16,
+        "x": 21.6,
+        "y": 240.192,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-370",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 17,
+        "x": 21.6,
+        "y": 319.68,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-462",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 18,
+        "x": 21.6,
+        "y": 399.168,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-554",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 19,
+        "x": 21.6,
+        "y": 478.656,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-646",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 20,
+        "x": 21.6,
+        "y": 558.144,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-738",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 21,
+        "x": 21.6,
+        "y": 637.632,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-830",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 22,
+        "x": 21.6,
+        "y": 717.12,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-922",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 23,
+        "x": 21.6,
+        "y": 796.608,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-1014",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 24,
+        "x": 21.6,
+        "y": 876.096,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-1106",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 25,
+        "x": 21.6,
+        "y": 955.584,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-1198",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 26,
+        "x": 21.6,
+        "y": 1035.072,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-1290",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 27,
+        "x": 21.6,
+        "y": 1114.56,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-1382",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 28,
+        "x": 21.6,
+        "y": 1194.048,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "grade-h-1474",
+        "pieceHash": "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae",
+        "parentId": null,
+        "zIndex": 29,
+        "x": 21.6,
+        "y": 1273.536,
+        "width": 1036.8,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 0.48
+      },
+      {
+        "id": "forma-verde-topo",
+        "pieceHash": "21a925b87230094de42e7bfcb71a3b1e21ec0690e98b117bdf26dc0641656043",
+        "parentId": null,
+        "zIndex": 30,
+        "x": 756,
+        "y": 0,
+        "width": 302.4,
+        "height": 330.048,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "forma-laranja-base",
+        "pieceHash": "69181df6a016fbf87ad7c8850d1e4799eabe6f2ab12f2d1ae6d95581e2de4a22",
+        "parentId": null,
+        "zIndex": 31,
+        "x": 21.6,
+        "y": 1032.48,
+        "width": 273.888,
+        "height": 263.52,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "asterisco-fundo",
+        "pieceHash": "6b4c6293a1fa1b9c3d703b5ae5c456917d8777771c6e2d810c929ea137e96882",
+        "parentId": null,
+        "zIndex": 32,
+        "x": 76.032,
+        "y": 121.824,
+        "width": 164.16,
+        "height": 164.16,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "asterisco-base",
+        "pieceHash": "3f88ab0aa45ead4d06a71c6e4e828ae32bdaf02689e9dcd4607cf6c2fd135f33",
+        "parentId": null,
+        "zIndex": 33,
+        "x": 900.288,
+        "y": 1061.856,
+        "width": 115.776,
+        "height": 115.776,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "barra-roxa-sombra",
+        "pieceHash": "350bc5da486d8bc6b74623dd7ed2d58aea6652eb938fd50410d4d50cbbdbdee9",
+        "parentId": null,
+        "zIndex": 34,
+        "x": 768.096,
+        "y": 319.68,
+        "width": 147.744,
+        "height": 34.56,
+        "rotation": -5,
+        "opacity": 1
+      },
+      {
+        "id": "barra-roxa",
+        "pieceHash": "1f65876b1d45faa8319b270cd27f1758db36ff90a291cd6aa818f0e0b3ee34db",
+        "parentId": null,
+        "zIndex": 35,
+        "x": 761.184,
+        "y": 313.632,
+        "width": 147.744,
+        "height": 34.56,
+        "rotation": -5,
+        "opacity": 1
+      },
+      {
+        "id": "barra-verde-sombra",
+        "pieceHash": "350bc5da486d8bc6b74623dd7ed2d58aea6652eb938fd50410d4d50cbbdbdee9",
+        "parentId": null,
+        "zIndex": 36,
+        "x": 166.752,
+        "y": 1048.032,
+        "width": 146.88,
+        "height": 35.424,
+        "rotation": 6,
+        "opacity": 1
+      },
+      {
+        "id": "barra-verde",
+        "pieceHash": "4f7db9e73334eda33fe44b4dc3022bdef1a40df8950a84cb14228ebd7c38fea8",
+        "parentId": null,
+        "zIndex": 37,
+        "x": 159.84,
+        "y": 1040.256,
+        "width": 146.88,
+        "height": 35.424,
+        "rotation": 6,
+        "opacity": 1
+      },
+      {
+        "id": "cartao-conteudo-sombra",
+        "pieceHash": "350bc5da486d8bc6b74623dd7ed2d58aea6652eb938fd50410d4d50cbbdbdee9",
+        "parentId": "conteudo",
+        "zIndex": 38,
+        "x": 17.28,
+        "y": 16.416,
+        "width": 425.088,
+        "height": 455.328,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "cartao-conteudo",
+        "pieceHash": "e24fa4f5379de3676893d13a615ee9d2a65920406d1a1935cf1faa63a3663193",
+        "parentId": "conteudo",
+        "zIndex": 39,
+        "x": 0,
+        "y": 0,
+        "width": 423.36,
+        "height": 459.648,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "conteudo-cabecalho",
+        "pieceHash": "3bb38aa341f829c35641e090e77b7b9ecb32d1b51c437fd4f11612c890c382a6",
+        "parentId": "conteudo",
+        "zIndex": 40,
+        "x": 36.288,
+        "y": 43.2,
+        "width": 325.728,
+        "height": 44.928,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "conteudo-sublinhado",
+        "pieceHash": "fb7d310afc4b50464999663512d60d81e76c9bff95b66ec165a869334b9a33ae",
+        "parentId": "conteudo",
+        "zIndex": 41,
+        "x": 38.88,
+        "y": 101.952,
+        "width": 186.624,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "conteudo-item-1",
+        "pieceHash": "e78be12c8a00ce4e891348f919d354db3290ea38e99ea0e56f1d34b400eadf4c",
+        "parentId": "conteudo",
+        "zIndex": 42,
+        "x": 37.152,
+        "y": 134.784,
+        "width": 335.232,
+        "height": 38.016,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "janela-foto-2",
+        "pieceHash": "ebb2399d1c842158ec6db2f7b68e127f2dd9a5e1d0ae80ea348d1adc6e4cc87d",
+        "parentId": "foto",
+        "zIndex": 46,
+        "x": 60.48,
+        "y": 34.56,
+        "width": 489.888,
+        "height": 574.56,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "janela-foto-divisor-2",
+        "pieceHash": "287bfbfd5687c466ad398fa7ca5d2015508913c6c79119f4fae77e94fd68844c",
+        "parentId": "foto",
+        "zIndex": 47,
+        "x": 60.48,
+        "y": 103.68,
+        "width": 489.888,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "janela-foto-1",
+        "pieceHash": "ebb2399d1c842158ec6db2f7b68e127f2dd9a5e1d0ae80ea348d1adc6e4cc87d",
+        "parentId": "foto",
+        "zIndex": 48,
+        "x": 30.24,
+        "y": 17.28,
+        "width": 489.888,
+        "height": 574.56,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "janela-foto-divisor-1",
+        "pieceHash": "287bfbfd5687c466ad398fa7ca5d2015508913c6c79119f4fae77e94fd68844c",
+        "parentId": "foto",
+        "zIndex": 49,
+        "x": 30.24,
+        "y": 86.4,
+        "width": 489.888,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "janela-foto-0",
+        "pieceHash": "ebb2399d1c842158ec6db2f7b68e127f2dd9a5e1d0ae80ea348d1adc6e4cc87d",
+        "parentId": "foto",
+        "zIndex": 50,
+        "x": 0,
+        "y": 0,
+        "width": 489.888,
+        "height": 574.56,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "janela-foto-divisor-0",
+        "pieceHash": "287bfbfd5687c466ad398fa7ca5d2015508913c6c79119f4fae77e94fd68844c",
+        "parentId": "foto",
+        "zIndex": 51,
+        "x": 0,
+        "y": 69.12,
+        "width": 489.888,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "janela-foto-controle-0",
+        "pieceHash": "411a150b56de370570a6ced10f8b047fa1326a972c461d5439c321e485e72515",
+        "parentId": "foto",
+        "zIndex": 52,
+        "x": 19.872,
+        "y": 18.144,
+        "width": 27.648,
+        "height": 27.648,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "janela-foto-controle-1",
+        "pieceHash": "b2253413cf94e206e8e702714844096033ac7a6fbb083d16986066e05637010d",
+        "parentId": "foto",
+        "zIndex": 53,
+        "x": 55.296,
+        "y": 18.144,
+        "width": 27.648,
+        "height": 27.648,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "janela-foto-controle-2",
+        "pieceHash": "4f7db9e73334eda33fe44b4dc3022bdef1a40df8950a84cb14228ebd7c38fea8",
+        "parentId": "foto",
+        "zIndex": 54,
+        "x": 90.72,
+        "y": 18.144,
+        "width": 27.648,
+        "height": 27.648,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "area-foto",
+        "pieceHash": "bb48592bcfbf9e67652f34bd57cb77da1b4ff08d4b5dd897c77be0eef0d698f3",
+        "parentId": "foto",
+        "zIndex": 56,
+        "x": 15.552,
+        "y": 83.808,
+        "width": 459.648,
+        "height": 414.72,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "faixa-nome-sombra",
+        "pieceHash": "350bc5da486d8bc6b74623dd7ed2d58aea6652eb938fd50410d4d50cbbdbdee9",
+        "parentId": "foto",
+        "zIndex": 57,
+        "x": -40.608,
+        "y": 483.84,
+        "width": 523.584,
+        "height": 71.712,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "faixa-nome",
+        "pieceHash": "4f7db9e73334eda33fe44b4dc3022bdef1a40df8950a84cb14228ebd7c38fea8",
+        "parentId": "foto",
+        "zIndex": 58,
+        "x": -47.52,
+        "y": 476.064,
+        "width": 523.584,
+        "height": 71.712,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "faixa-nome-texto",
+        "pieceHash": "f5c0247e44ce91d3be69ba3f33f415eb89fe52e78dd32e2d55caac2adc5ba099",
+        "parentId": "foto",
+        "zIndex": 59,
+        "x": -29.376,
+        "y": 500.256,
+        "width": 489.888,
+        "height": 37.152,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "cta-sombra",
+        "pieceHash": "350bc5da486d8bc6b74623dd7ed2d58aea6652eb938fd50410d4d50cbbdbdee9",
+        "parentId": "conteudo",
+        "zIndex": 60,
+        "x": -16.416,
+        "y": 369.792,
+        "width": 308.448,
+        "height": 52.704,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "cta-fundo",
+        "pieceHash": "b675b4ba88b66bdeb12dba60d386783fe44929dd890f2ee1a20ec5b80815667e",
+        "parentId": "conteudo",
+        "zIndex": 61,
+        "x": -25.92,
+        "y": 360.288,
+        "width": 313.632,
+        "height": 53.568,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "cta-texto",
+        "pieceHash": "bebfa7dd4e116b7d5b0afdb450d498c2323ddc365fe2dcf34aeec70922dbe8ae",
+        "parentId": "conteudo",
+        "zIndex": 62,
+        "x": -8.64,
+        "y": 372.384,
+        "width": 279.072,
+        "height": 37.152,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "titulo-janela-sombra",
+        "pieceHash": "350bc5da486d8bc6b74623dd7ed2d58aea6652eb938fd50410d4d50cbbdbdee9",
+        "parentId": "titulo",
+        "zIndex": 63,
+        "x": 10.368,
+        "y": 14.688,
+        "width": 603.072,
+        "height": 214.272,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "titulo-janela",
+        "pieceHash": "9af492c6907fbf47491d868ab4bf05e4e36e89552198353721c3262cd12c49a3",
+        "parentId": "titulo",
+        "zIndex": 64,
+        "x": 0,
+        "y": 0,
+        "width": 603.072,
+        "height": 214.272,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "titulo-divisor",
+        "pieceHash": "ede0d21f67e8eceef4558c92230992b8abe950959e195113af489561e5dc7def",
+        "parentId": "titulo",
+        "zIndex": 65,
+        "x": 0,
+        "y": 54.432,
+        "width": 600.777129,
+        "height": 52.561188,
+        "rotation": 5,
+        "opacity": 1
+      },
+      {
+        "id": "titulo-fechar-divisor",
+        "pieceHash": "6bab427dd7b4363857479fed478de6a96f3e7b40644dbe09e7213013ffe81147",
+        "parentId": "titulo",
+        "zIndex": 66,
+        "x": 514.08,
+        "y": 0,
+        "width": 4.744061,
+        "height": 54.22487,
+        "rotation": 5,
+        "opacity": 1
+      },
+      {
+        "id": "titulo-sobretitulo",
+        "pieceHash": "85c77311ae3a42298af92676c8c4e0b4eb7b218e5cc1676d60ed1b7ac5163ba8",
+        "parentId": "titulo",
+        "zIndex": 67,
+        "x": 15.552,
+        "y": 13.824,
+        "width": 484.704,
+        "height": 37.152,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "titulo-fechar",
+        "pieceHash": "53bfc21bdacbca2c5d6d72c0d32c52ad773b044b59bede6339a93c2c8c3ad175",
+        "parentId": "titulo",
+        "zIndex": 68,
+        "x": 545.184,
+        "y": 10.368,
+        "width": 43.2,
+        "height": 43.2,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "titulo-principal",
+        "pieceHash": "d069edcf769016c9eec7f30f42d38f329a7111f80bfe2737f5dbf734049f1e67",
+        "parentId": "titulo",
+        "zIndex": 69,
+        "x": 36.288,
+        "y": 97.632,
+        "width": 532.224,
+        "height": 96.768,
+        "rotation": 0,
+        "opacity": 1
+      }
+    ],
+    "groups": [
+      {
+        "id": "titulo",
+        "label": "Janela do título",
+        "parentId": null,
+        "zIndex": 100,
+        "x": 95.904,
+        "y": 222.048,
+        "width": 604.8,
+        "height": 214.272,
+        "rotation": -5,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "conteudo",
+        "label": "Cartão de conteúdo e CTA",
+        "parentId": null,
+        "zIndex": 50,
+        "x": 101.952,
+        "y": 509.76,
+        "width": 604.8,
+        "height": 561.6,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "foto",
+        "label": "Janela da foto e faixa",
+        "parentId": null,
+        "zIndex": 70,
+        "x": 482.112,
+        "y": 441.504,
+        "width": 604.8,
+        "height": 561.6,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      }
+    ],
+    "bindings": [
+      {
+        "id": "binding-eyebrow",
+        "label": "Chamada",
+        "source": "eyebrow",
+        "targetIds": [
+          "titulo-sobretitulo"
+        ],
+        "required": false,
+        "kind": "text",
+        "cardinality": null,
+        "prefix": "",
+        "gap": 10.368
+      },
+      {
+        "id": "binding-headline",
+        "label": "Título",
+        "source": "headline",
+        "targetIds": [
+          "titulo-principal"
+        ],
+        "required": true,
+        "kind": "text",
+        "cardinality": null,
+        "prefix": "",
+        "gap": 10.368
+      },
+      {
+        "id": "binding-sectionLabel",
+        "label": "Cabeçalho da lista",
+        "source": "sectionLabel",
+        "targetIds": [
+          "conteudo-cabecalho"
+        ],
+        "required": false,
+        "kind": "text",
+        "cardinality": null,
+        "prefix": "",
+        "gap": 10.368
+      },
+      {
+        "id": "binding-items",
+        "label": "Itens",
+        "source": "items",
+        "targetIds": [
+          "conteudo-item-1"
+        ],
+        "required": true,
+        "kind": "list",
+        "cardinality": {
+          "min": 1,
+          "max": 6
+        },
+        "prefix": "",
+        "gap": 10.368
+      },
+      {
+        "id": "binding-callToAction",
+        "label": "Botão",
+        "source": "callToAction",
+        "targetIds": [
+          "cta-texto"
+        ],
+        "required": false,
+        "kind": "text",
+        "cardinality": null,
+        "prefix": "",
+        "gap": 10.368
+      },
+      {
+        "id": "binding-label",
+        "label": "Etiqueta",
+        "source": "label",
+        "targetIds": [
+          "faixa-nome-texto"
+        ],
+        "required": false,
+        "kind": "text",
+        "cardinality": null,
+        "prefix": "",
+        "gap": 10.368
+      },
+      {
+        "id": "binding-media.primary",
+        "label": "Foto",
+        "source": "media.primary",
+        "targetIds": [
+          "area-foto"
+        ],
+        "required": true,
+        "kind": "media",
+        "cardinality": null,
+        "prefix": "",
+        "gap": 10.368
+      }
+    ],
+    "relations": [
+      {
+        "id": "fit-conteudo-cabecalho",
+        "version": 1,
+        "enabled": true,
+        "kind": "textFit",
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "conteudo-cabecalho",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 325.728,
+          "maxHeight": 220,
+          "minFontSize": 15.7248
+        }
+      },
+      {
+        "id": "fit-conteudo-item-1",
+        "version": 1,
+        "enabled": true,
+        "kind": "textFit",
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "conteudo-item-1",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 335.232,
+          "maxHeight": 220,
+          "minFontSize": 13.3056
+        }
+      },
+      {
+        "id": "fit-cta-texto",
+        "version": 1,
+        "enabled": true,
+        "kind": "textFit",
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "cta-texto",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 279.072,
+          "maxHeight": 220,
+          "minFontSize": 13.0032
+        }
+      },
+      {
+        "id": "fit-faixa-nome-texto",
+        "version": 1,
+        "enabled": true,
+        "kind": "textFit",
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "faixa-nome-texto",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 489.888,
+          "maxHeight": 220,
+          "minFontSize": 13.0032
+        }
+      },
+      {
+        "id": "fit-titulo-principal",
+        "version": 1,
+        "enabled": true,
+        "kind": "textFit",
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "titulo-principal",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "parameters": {
+          "anchor": "center",
+          "maxWidth": 596,
+          "maxHeight": 260,
+          "minFontSize": 33.8688
+        }
+      },
+      {
+        "id": "fit-titulo-sobretitulo",
+        "version": 1,
+        "enabled": true,
+        "kind": "textFit",
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "titulo-sobretitulo",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 484.704,
+          "maxHeight": 220,
+          "minFontSize": 13.0032
+        }
+      },
+      {
+        "id": "list-flow",
+        "version": 1,
+        "enabled": true,
+        "kind": "verticalFlow",
+        "inputs": [
+          "conteudo-item-1"
+        ],
+        "outputs": [
+          {
+            "targetId": "conteudo-item-1",
+            "properties": [
+              "y"
+            ]
+          }
+        ],
+        "parameters": {
+          "gap": 10.368,
+          "startY": 134.784
+        }
+      },
+      {
+        "id": "photo-slot",
+        "version": 1,
+        "enabled": true,
+        "kind": "mediaSlot",
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "area-foto",
+            "properties": [
+              "width",
+              "height"
+            ]
+          }
+        ],
+        "parameters": {
+          "fit": "cover"
+        }
+      },
+      {
+        "id": "title-surface",
+        "version": 1,
+        "enabled": true,
+        "kind": "surfaceFit",
+        "inputs": [
+          "titulo-principal",
+          "titulo-sobretitulo"
+        ],
+        "outputs": [
+          {
+            "targetId": "titulo-janela",
+            "properties": [
+              "height"
+            ]
+          },
+          {
+            "targetId": "titulo-janela-sombra",
+            "properties": [
+              "height"
+            ]
+          },
+          {
+            "targetId": "titulo",
+            "properties": [
+              "height"
+            ]
+          }
+        ],
+        "parameters": {
+          "padding": {
+            "left": 0,
+            "right": 0,
+            "top": 14,
+            "bottom": 38
+          },
+          "minWidth": 603,
+          "minHeight": 215
+        }
+      },
+      {
+        "id": "content-position",
+        "version": 1,
+        "enabled": true,
+        "kind": "verticalFlow",
+        "inputs": [
+          "titulo"
+        ],
+        "outputs": [
+          {
+            "targetId": "conteudo",
+            "properties": [
+              "y"
+            ]
+          }
+        ],
+        "parameters": {
+          "gap": 70,
+          "startY": 510
+        }
+      },
+      {
+        "id": "cta-position",
+        "version": 1,
+        "enabled": true,
+        "kind": "verticalFlow",
+        "inputs": [
+          "conteudo-item-1"
+        ],
+        "outputs": [
+          {
+            "targetId": "cta-texto",
+            "properties": [
+              "y"
+            ]
+          }
+        ],
+        "parameters": {
+          "gap": 38,
+          "startY": 375
+        }
+      },
+      {
+        "id": "cta-surface",
+        "version": 1,
+        "enabled": true,
+        "kind": "surfaceFit",
+        "inputs": [
+          "cta-texto"
+        ],
+        "outputs": [
+          {
+            "targetId": "cta-fundo",
+            "properties": [
+              "x",
+              "y",
+              "width",
+              "height"
+            ]
+          }
+        ],
+        "parameters": {
+          "padding": {
+            "left": 18,
+            "right": 18,
+            "top": 12,
+            "bottom": 12
+          },
+          "minWidth": 313,
+          "minHeight": 54
+        }
+      },
+      {
+        "id": "cta-shadow",
+        "version": 1,
+        "enabled": true,
+        "kind": "anchor",
+        "inputs": [
+          "cta-fundo"
+        ],
+        "outputs": [
+          {
+            "targetId": "cta-sombra",
+            "properties": [
+              "y"
+            ]
+          }
+        ],
+        "parameters": {
+          "axis": "y",
+          "referenceEdge": "start",
+          "targetEdge": "start",
+          "offset": 10
+        }
+      },
+      {
+        "id": "content-surface",
+        "version": 1,
+        "enabled": true,
+        "kind": "surfaceFit",
+        "inputs": [
+          "conteudo-cabecalho",
+          "conteudo-item-1",
+          "cta-texto"
+        ],
+        "outputs": [
+          {
+            "targetId": "cartao-conteudo",
+            "properties": [
+              "height"
+            ]
+          },
+          {
+            "targetId": "cartao-conteudo-sombra",
+            "properties": [
+              "height"
+            ]
+          },
+          {
+            "targetId": "conteudo",
+            "properties": [
+              "height"
+            ]
+          }
+        ],
+        "parameters": {
+          "padding": {
+            "left": 0,
+            "right": 0,
+            "top": 43,
+            "bottom": 50
+          },
+          "minWidth": 425,
+          "minHeight": 460
+        }
+      },
+      {
+        "id": "photo-position",
+        "version": 1,
+        "enabled": true,
+        "kind": "anchor",
+        "inputs": [
+          "conteudo"
+        ],
+        "outputs": [
+          {
+            "targetId": "foto",
+            "properties": [
+              "y"
+            ]
+          }
+        ],
+        "parameters": {
+          "axis": "y",
+          "referenceEdge": "start",
+          "targetEdge": "start",
+          "offset": -68
+        }
+      },
+      {
+        "id": "label-surface",
+        "version": 1,
+        "enabled": true,
+        "kind": "surfaceFit",
+        "inputs": [
+          "faixa-nome-texto"
+        ],
+        "outputs": [
+          {
+            "targetId": "faixa-nome",
+            "properties": [
+              "width",
+              "height"
+            ]
+          }
+        ],
+        "parameters": {
+          "padding": {
+            "left": 20,
+            "right": 20,
+            "top": 20,
+            "bottom": 20
+          },
+          "minWidth": 524,
+          "minHeight": 72
+        }
+      }
+    ],
+    "assetIds": [
+      "font-afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548",
+      "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30"
+    ],
+    "capabilities": [
+      "text",
+      "rect",
+      "line",
+      "polygon",
+      "media",
+      "groups",
+      "relations"
+    ],
+    "intentionalOverlaps": [
+      [
+        "conteudo",
+        "foto"
+      ],
+      [
+        "foto",
+        "faixa-nome"
+      ]
+    ],
+    "limitations": [
+      "Derivação 5:6 pendente de revisão visual própria.",
+      "Foto obrigatória; nenhuma foto de demonstração incorporada."
+    ]
+  },
+  "pieces": {
+    "adcaa9f4b901102c40d5c5565799636508b2a5eae3dd1957a49c58f0e7040448": {
+      "kind": "line",
+      "fill": "#F3D044",
+      "stroke": "#F3D044",
+      "strokeWidth": 1.728,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        1296
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "f0f425ceef7eab64a70dfdb491930cfadd0f5f34ace37b3edb0db7c564d471ae": {
+      "kind": "line",
+      "fill": "#F3D044",
+      "stroke": "#F3D044",
+      "strokeWidth": 1.728,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        1036.8,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "21a925b87230094de42e7bfcb71a3b1e21ec0690e98b117bdf26dc0641656043": {
+      "kind": "polygon",
+      "fill": "#46AF45",
+      "stroke": "#111111",
+      "strokeWidth": 2.592,
+      "cornerRadius": 0,
+      "points": [
+        32.832,
+        0,
+        302.4,
+        0,
+        302.4,
+        150.336,
+        274.752,
+        156.384,
+        257.472,
+        192.672,
+        242.784,
+        254.016,
+        225.504,
+        306.72,
+        207.36,
+        330.048,
+        188.352,
+        315.36,
+        173.664,
+        273.888,
+        165.888,
+        196.128,
+        152.928,
+        139.104,
+        130.464,
+        106.272,
+        122.688,
+        114.048,
+        114.912,
+        149.472,
+        100.224,
+        187.488,
+        75.168,
+        212.544,
+        48.384,
+        222.912,
+        25.056,
+        209.088,
+        5.184,
+        185.76,
+        0,
+        155.52,
+        11.232,
+        120.96,
+        29.376,
+        87.264,
+        37.152,
+        54.432
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "69181df6a016fbf87ad7c8850d1e4799eabe6f2ab12f2d1ae6d95581e2de4a22": {
+      "kind": "polygon",
+      "fill": "#EF420C",
+      "stroke": "#111111",
+      "strokeWidth": 2.592,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        38.016,
+        41.472,
+        69.12,
+        63.936,
+        105.408,
+        75.168,
+        158.112,
+        77.76,
+        189.216,
+        94.176,
+        217.728,
+        131.328,
+        242.784,
+        183.168,
+        264.384,
+        232.416,
+        273.888,
+        263.52,
+        0,
+        263.52
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "6b4c6293a1fa1b9c3d703b5ae5c456917d8777771c6e2d810c929ea137e96882": {
+      "kind": "polygon",
+      "fill": "#BF4213",
+      "stroke": "#111111",
+      "strokeWidth": 1.728,
+      "cornerRadius": 0,
+      "points": [
+        82.08,
+        0,
+        91.919265,
+        45.359364,
+        123.12,
+        10.996635,
+        140.119325,
+        24.040675,
+        115.002822,
+        63.072,
+        161.363192,
+        60.836133,
+        164.16,
+        82.08,
+        118.800636,
+        91.919265,
+        153.163365,
+        123.12,
+        140.119325,
+        140.119325,
+        101.088,
+        115.002822,
+        103.323867,
+        161.363192,
+        82.08,
+        164.16,
+        72.240735,
+        118.800636,
+        41.04,
+        153.163365,
+        24.040675,
+        140.119325,
+        49.157178,
+        101.088,
+        2.796808,
+        103.323867,
+        0,
+        82.08,
+        45.359364,
+        72.240735,
+        10.996635,
+        41.04,
+        24.040675,
+        24.040675,
+        63.072,
+        49.157178,
+        60.836133,
+        2.796808
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "3f88ab0aa45ead4d06a71c6e4e828ae32bdaf02689e9dcd4607cf6c2fd135f33": {
+      "kind": "polygon",
+      "fill": "#B477BD",
+      "stroke": "#111111",
+      "strokeWidth": 1.728,
+      "cornerRadius": 0,
+      "points": [
+        57.888,
+        0,
+        64.37297,
+        33.685762,
+        86.832,
+        7.755521,
+        98.820997,
+        16.955003,
+        79.587133,
+        45.36,
+        113.803514,
+        42.905483,
+        115.776,
+        57.888,
+        82.090238,
+        64.37297,
+        108.020479,
+        86.832,
+        98.820997,
+        98.820997,
+        70.416,
+        79.587133,
+        72.870517,
+        113.803514,
+        57.888,
+        115.776,
+        51.40303,
+        82.090238,
+        28.944,
+        108.020479,
+        16.955003,
+        98.820997,
+        36.188867,
+        70.416,
+        1.972486,
+        72.870517,
+        0,
+        57.888,
+        33.685762,
+        51.40303,
+        7.755521,
+        28.944,
+        16.955003,
+        16.955003,
+        45.36,
+        36.188867,
+        42.905483,
+        1.972486
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "350bc5da486d8bc6b74623dd7ed2d58aea6652eb938fd50410d4d50cbbdbdee9": {
+      "kind": "rect",
+      "fill": "#111111",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "1f65876b1d45faa8319b270cd27f1758db36ff90a291cd6aa818f0e0b3ee34db": {
+      "kind": "rect",
+      "fill": "#B477BD",
+      "stroke": "#111111",
+      "strokeWidth": 1.728,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "4f7db9e73334eda33fe44b4dc3022bdef1a40df8950a84cb14228ebd7c38fea8": {
+      "kind": "rect",
+      "fill": "#46AF45",
+      "stroke": "#111111",
+      "strokeWidth": 1.728,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "e24fa4f5379de3676893d13a615ee9d2a65920406d1a1935cf1faa63a3663193": {
+      "kind": "rect",
+      "fill": "#FDEAB7",
+      "stroke": "#111111",
+      "strokeWidth": 6.048,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "3bb38aa341f829c35641e090e77b7b9ecb32d1b51c437fd4f11612c890c382a6": {
+      "kind": "text",
+      "fill": "#111111",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_afec86997fdaf54a",
+      "fontAssetId": "font-afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548",
+      "fontSize": 25.056,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "fb7d310afc4b50464999663512d60d81e76c9bff95b66ec165a869334b9a33ae": {
+      "kind": "line",
+      "fill": "#46AF45",
+      "stroke": "#46AF45",
+      "strokeWidth": 2.592,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        186.624,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "e78be12c8a00ce4e891348f919d354db3290ea38e99ea0e56f1d34b400eadf4c": {
+      "kind": "text",
+      "fill": "#111111",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 29.376,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "ebb2399d1c842158ec6db2f7b68e127f2dd9a5e1d0ae80ea348d1adc6e4cc87d": {
+      "kind": "rect",
+      "fill": "#F3F3F1",
+      "stroke": "#111111",
+      "strokeWidth": 5.184,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "287bfbfd5687c466ad398fa7ca5d2015508913c6c79119f4fae77e94fd68844c": {
+      "kind": "line",
+      "fill": "#111111",
+      "stroke": "#111111",
+      "strokeWidth": 5.184,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        489.888,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "411a150b56de370570a6ced10f8b047fa1326a972c461d5439c321e485e72515": {
+      "kind": "rect",
+      "fill": "#EF420C",
+      "stroke": "#111111",
+      "strokeWidth": 1.728,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "b2253413cf94e206e8e702714844096033ac7a6fbb083d16986066e05637010d": {
+      "kind": "rect",
+      "fill": "#E9B708",
+      "stroke": "#111111",
+      "strokeWidth": 1.728,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "bb48592bcfbf9e67652f34bd57cb77da1b4ff08d4b5dd897c77be0eef0d698f3": {
+      "kind": "media",
+      "fill": "#D8D8D2",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "f5c0247e44ce91d3be69ba3f33f415eb89fe52e78dd32e2d55caac2adc5ba099": {
+      "kind": "text",
+      "fill": "#111111",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_afec86997fdaf54a",
+      "fontAssetId": "font-afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548",
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "center",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "b675b4ba88b66bdeb12dba60d386783fe44929dd890f2ee1a20ec5b80815667e": {
+      "kind": "rect",
+      "fill": "#EF420C",
+      "stroke": "#111111",
+      "strokeWidth": 6.048,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "bebfa7dd4e116b7d5b0afdb450d498c2323ddc365fe2dcf34aeec70922dbe8ae": {
+      "kind": "text",
+      "fill": "#E9B708",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 31.104,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "9af492c6907fbf47491d868ab4bf05e4e36e89552198353721c3262cd12c49a3": {
+      "kind": "rect",
+      "fill": "#F3F3F1",
+      "stroke": "#111111",
+      "strokeWidth": 6.048,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "ede0d21f67e8eceef4558c92230992b8abe950959e195113af489561e5dc7def": {
+      "kind": "line",
+      "fill": "#111111",
+      "stroke": "#111111",
+      "strokeWidth": 6.048,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        600.777129,
+        -52.561188
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "6bab427dd7b4363857479fed478de6a96f3e7b40644dbe09e7213013ffe81147": {
+      "kind": "line",
+      "fill": "#111111",
+      "stroke": "#111111",
+      "strokeWidth": 6.048,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        4.744061,
+        54.22487
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 20.736,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "85c77311ae3a42298af92676c8c4e0b4eb7b218e5cc1676d60ed1b7ac5163ba8": {
+      "kind": "text",
+      "fill": "#111111",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_afec86997fdaf54a",
+      "fontAssetId": "font-afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548",
+      "fontSize": 22.049194,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "53bfc21bdacbca2c5d6d72c0d32c52ad773b044b59bede6339a93c2c8c3ad175": {
+      "kind": "text",
+      "fill": "#111111",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 36.288,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": "X"
+    },
+    "d069edcf769016c9eec7f30f42d38f329a7111f80bfe2737f5dbf734049f1e67": {
+      "kind": "text",
+      "fill": "#111111",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 67.020394,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null
+    }
+  },
+  "assets": [
+    {
+      "id": "font-afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548",
+      "kind": "bundled",
+      "sha256": "afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548",
+      "mimeType": "font/woff2",
+      "bytes": 12512,
+      "family": "Arsenal_afec86997fdaf54a",
+      "weight": 400,
+      "license": "open-source"
+    },
+    {
+      "id": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "kind": "bundled",
+      "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "mimeType": "font/woff2",
+      "bytes": 23664,
+      "family": "Arsenal_8909904ab6c872eb",
+      "weight": 400,
+      "license": "open-source"
+    },
+    {
+      "id": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "kind": "bundled",
+      "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "mimeType": "font/woff2",
+      "bytes": 24356,
+      "family": "Arsenal_6f56409fd3d64bb8",
+      "weight": 700,
+      "license": "open-source"
+    },
+    {
+      "id": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "kind": "bundled",
+      "sha256": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "mimeType": "font/woff2",
+      "bytes": 18604,
+      "family": "Arsenal_25f33e61cf995abd",
+      "weight": 400,
+      "license": "open-source"
+    }
+  ],
+  "content": {
+    "schemaVersion": 2,
+    "headline": "SE LIGA AQUI!",
+    "body": null,
+    "eyebrow": "Produto novo para você",
+    "sectionLabel": "Como funciona",
+    "callToAction": "Conheça a novidade",
+    "label": "Seu próximo projeto",
+    "items": [
+      {
+        "id": "item-1",
+        "text": "Criar conteúdo"
+      },
+      {
+        "id": "item-2",
+        "text": "Preparar a arte"
+      },
+      {
+        "id": "item-3",
+        "text": "Publicar na sua mídia"
+      },
+      {
+        "id": "item-4",
+        "text": "Acompanhar resultados"
+      }
+    ],
+    "metric": null,
+    "attribution": null,
+    "comparison": null,
+    "caption": "Uma sequência para organizar seu próximo conteúdo.",
+    "hashtags": []
+  },
+  "origin": {
+    "candidateId": "0320b073-619c-4e6c-81c6-6eacbb15f3cc:portrait-5x6-v1",
+    "blueprintId": "61d12c17-6bdb-4e70-b9d5-5f3f963bc871",
+    "versionId": "0320b073-619c-4e6c-81c6-6eacbb15f3cc",
+    "version": 1,
+    "definitionHash": "1414461908f82af766b9a2fc3ce8f834b30adc419444f8883397b866140ae7ae",
+    "variantKey": "portrait-5x6-v1",
+    "variantHash": "cea4b9db5c91333cc88d5596b3a45d3a963b3a3062fa6f8ee21a70bfb8250ea3",
+    "compilerVersion": "arsenal-v2.0.0"
+  },
+  "provenance": {
+    "sourcePath": "artifacts/design-recreation/chat-curation/approved/postspark-admin2-cfaccad3.json",
+    "sourceSha256": "f63387a92a4558571d938f7207ac21026fcc7f8700b1453d41f8f5fd83244f0d",
+    "sourceArtboard": {
+      "widthPx": 1200,
+      "heightPx": 1500,
+      "mimeType": "image/jpeg",
+      "preparedHash": "b89e69868d0ba81d21a4dcd570b870a95451c659dbaf5dad86714ee1ffaf5107",
+      "originalHash": "b89e69868d0ba81d21a4dcd570b870a95451c659dbaf5dad86714ee1ffaf5107"
+    },
+    "derivation": "Uniform .864 scale, centered horizontally; flexible relations authored explicitly.",
+    "approval": "pending"
+  }
+}

@@ -6,7 +6,7 @@ import { ComposeContext, FamilyOutput } from "./types";
 import { mulberry32, hashString } from "./seed";
 import { aspectOf, type AspectRatioKey } from "./layoutArchetypes";
 
-const RATIO_KEYS: AspectRatioKey[] = ["1:1", "5:6", "9:16"];
+const RATIO_KEYS: AspectRatioKey[] = ["1:1", "4:5", "5:6", "9:16"];
 
 export function composeVariation(
   variation: PostVariation,

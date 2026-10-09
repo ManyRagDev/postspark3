@@ -145,6 +145,7 @@ interface ConfirmDialogProps {
   title: string;
   description: string;
   confirmLabel: string;
+  children?: import("react").ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -154,6 +155,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -168,6 +170,9 @@ export function ConfirmDialog({
           onClick={onCancel}
         >
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
             className="w-full max-w-sm rounded-3xl border border-white/12 bg-[#0d1017] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.9)]"
             initial={{ opacity: 0, scale: 0.94, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -182,6 +187,7 @@ export function ConfirmDialog({
               <h2 className="text-sm font-bold text-white">{title}</h2>
             </div>
             <p className="text-xs text-white/50 mb-4">{description}</p>
+            {children}
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -203,4 +209,25 @@ export function ConfirmDialog({
       )}
     </AnimatePresence>
   );
+}
+
+export function PendingMediaExportDialog({
+  format,
+  count,
+  onConfirm,
+  onCancel,
+}: {
+  format: "png" | "zip" | null;
+  count: number;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return <ConfirmDialog
+    open={format !== null}
+    title="Exportar com imagens pendentes?"
+    description={`Há ${count} espaço${count === 1 ? "" : "s"} de imagem pendente${count === 1 ? "" : "s"} ${format === "zip" ? "no carrossel" : "neste slide"}. Você pode exportar com esses espaços vazios. As instruções de edição não aparecem no arquivo.`}
+    confirmLabel="Exportar mesmo assim"
+    onConfirm={onConfirm}
+    onCancel={onCancel}
+  />;
 }

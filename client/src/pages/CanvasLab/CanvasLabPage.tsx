@@ -1,3 +1,25 @@
+import { applyMediaOperation, pendingMediaCount, targetExists, type MediaUpdate } from './lib/mediaSlots';
+import { applyCompositionAppearancePatch, shouldDeleteCanvasSelection } from "./lib/compositionEditing";
+import { aspectRatioHeight } from "@shared/aspectRatios";
+import { ensureArsenalCompositionFonts } from "./lib/arsenalAssets";
+import { arsenalApi } from "@/lib/arsenalApi";
+import { applyArsenalFormatVariant } from "./lib/arsenalGenerationCompiler";
+import ArsenalCompositionInspector from "./components/ArsenalCompositionInspector";
+import type { ArsenalComposition } from "@shared/designArsenal";
+import { applyContentText } from "@shared/arsenalContent";
+import {
+  putArsenalComposition,
+  editArsenalContent,
+  editArsenalElementText,
+  setArsenalCustomBackground,
+  setArsenalLogo,
+  addArsenalAuthorialLayer,
+  updateArsenalAuthorialLayer,
+  removeArsenalAuthorialLayer,
+  hideArsenalInstance,
+} from "./lib/arsenalComposition";
+import GuidedEditor from "./components/GuidedEditor";
+import { captureInitialVisuals, composePost, fitPostToAspectRatio } from "./lib/guidedComposition";
 import CanvasMobileDrawer from "./components/CanvasMobileDrawer";
 import { useRef, useState, useEffect, useLayoutEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,7 +32,7 @@ import CanvasMobileQuickActions from "./components/CanvasMobileQuickActions";
 import SlideReplicationDialog from "./components/SlideReplicationDialog";
 import CanvasSidebar from "./components/CanvasSidebar";
 import CarouselFilmstrip from "./components/CarouselFilmstrip";
-import { ConfirmDialog, SaveChoiceDialog, readSavePreference, writeSavePreference } from "./components/CanvasLabDialogs";
+import { ConfirmDialog, PendingMediaExportDialog, SaveChoiceDialog, readSavePreference, writeSavePreference } from "./components/CanvasLabDialogs";
 import {
   INITIAL_POST,
   type AspectRatioType,
@@ -37,11 +59,11 @@ import {
   canRedo,
 } from "./lib/canvasHistory";
 import { AutoSaveManager, type AutoSaveState } from "./lib/autoSaveManager";
-import { applyCurrentSlideAppearancePatch, replicateSlideAppearance, resolveSlideAppearance, type ReplicationGroup } from "./lib/slideReplication";
+import { applyCurrentSlideAppearancePatch, replicateSlideAppearance, resolveSlideAppearance, replicateCarouselComposition, type ReplicationGroup } from "./lib/slideReplication";
 
 interface CanvasLabPageProps {
   initialPost?: CanvasPostModel;
-  onBackToGallery?: () => void;
+  onBackToGallery?: (post: CanvasPostModel) => void;
   /** Item 6: recomeçar do zero — limpa a sessão e volta à tela de criação. */
   onRestart?: () => void;
   /** Item 7: persiste o post ("new" = INSERT, "update" = UPDATE do salvo). */
@@ -64,9 +86,17 @@ function readAutoSavePreference(): boolean {
 
 export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart, onSave, hasSavedPost = false, isSaving = false }: CanvasLabPageProps = {}) {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [freeEditing, setFreeEditing] = useState(false);
+  const [formatPreview,setFormatPreview] = useState<CanvasPostModel|null>(null);
+  const [nativeFormatPreview,setNativeFormatPreview]=useState<CanvasPostModel|null>(null);
+  const [formatLoading,setFormatLoading]=useState(false);
+  const formatRequest=useRef(0);
+  const [mediaPreview, setMediaPreview] = useState<string>();
+  const [requestedTab, setRequestedTab] = useState<"media" | undefined>();
   const [isEditingBackground, setIsEditingBackground] = useState(false);
-  const [history, setHistory] = useState(() => createHistory<CanvasPostModel>(initialPost || INITIAL_POST));
+  const [history, setHistory] = useState(() => createHistory<CanvasPostModel>(captureInitialVisuals(initialPost || INITIAL_POST)));
   const post = history.present;
+  const arsenalComposition = post.slides[post.currentSlideIndex]?.composition;
   const currentViewPost = useMemo(() => resolveSlideAppearance(post, post.currentSlideIndex), [post]);
 
   const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>("idle");
@@ -119,7 +149,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const setPost = (updater: CanvasPostModel | ((prev: CanvasPostModel) => CanvasPostModel)) => {
     setHistory((prevHistory) => {
       const current = prevHistory.present;
-      const next = typeof updater === "function" ? updater(current) : updater;
+      const proposed = typeof updater === "function" ? updater(current) : updater;
+      const next = captureInitialVisuals(proposed);
       if (next === current) return prevHistory;
       const nextHistory = pushHistory(prevHistory, next);
       autoSaveManagerRef.current?.triggerChange(next);
@@ -180,6 +211,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const [zoom, setZoom] = useState(1);
   const [isZoomScrubbing, setIsZoomScrubbing] = useState(false);
   const [isExportingZip, setIsExportingZip] = useState(false);
+  const [pendingExport, setPendingExport] = useState<"png" | "zip" | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isRestartConfirmOpen, setIsRestartConfirmOpen] = useState(false);
   const [isReplicationOpen, setIsReplicationOpen] = useState(false);
@@ -223,10 +255,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
 
   const isMobile = windowDimensions.width < 768;
   const baseWidth = 360;
-  const baseHeight = post.aspectRatio === "9:16" ? 640 : post.aspectRatio === "5:6" ? 432 : 360;
+  const baseHeight = aspectRatioHeight(post.aspectRatio);
 
   // A área útil mobile acompanha o dock, a faixa de slides e o painel flutuante.
-  const mobileDockHeight = 74;
+  const mobileDockHeight = freeEditing ? 74 : 0;
   const mobileQuickActionsHeight = isMobileDrawerOpen ? 0 : 64;
   const mobileFilmstripHeight = post.slides.length > 1 && !isMobileDrawerOpen ? 76 : 0;
   const mobilePanelHeight = Math.min(windowDimensions.height * 0.52, 560);
@@ -242,18 +274,73 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     return Math.min(availableWidth / baseWidth, visibleHeight / baseHeight, 0.98);
   }, [isMobile, isMobileDrawerOpen, windowDimensions.width, windowDimensions.height, baseWidth, baseHeight, mobileQuickActionsHeight, mobileFilmstripHeight, mobilePanelHeight, measuredStageHeight]);
 
-  const handleUpdatePost = (patch: Partial<CanvasPostModel>) => {
-    setPost((prev) => applyCurrentSlideAppearancePatch(prev, patch));
+  const handleUpdatePost = (patch: Partial<CanvasPostModel>, composition?: ArsenalComposition) => {
+    if (composition) {
+      setPost(prev => ({
+        ...putArsenalComposition({ ...prev, ...patch }, composition),
+        aspectRatio: composition.effectiveAspectRatio,
+      }));
+      return;
+    }
+    setPost((prev) => {
+      const curIdx = prev.currentSlideIndex;
+      const currentSlide = prev.slides[curIdx];
+      let next = applyCurrentSlideAppearancePatch(prev, patch);
+      if (currentSlide?.composition) {
+        const comp = applyCompositionAppearancePatch(prev, patch)!;
+        next = putArsenalComposition(next, comp);
+      }
+      if (patch.familyId && patch.familyId !== currentViewPost.familyId) {
+        return { ...next, slides: next.slides.map((slide, index) => index === next.currentSlideIndex ? { ...slide, guidedComposition: undefined } : slide) };
+      }
+      return next;
+    });
+  };
+
+  const handleMediaUpdate: MediaUpdate = (target, operation) => {
+    if (operation.kind === 'apply' && !targetExists(postRef.current, target)) setMediaPreview(operation.url);
+    setPost(prev => applyMediaOperation(prev, target, operation) ?? prev);
   };
 
   const handleReplicate = (groups: ReplicationGroup[], targets: number[]) => {
-    setPost((prev) => replicateSlideAppearance(prev, prev.currentSlideIndex, targets, groups));
+    let next = replicateSlideAppearance(post, post.currentSlideIndex, targets, groups);
+    const composition = post.slides[post.currentSlideIndex]?.guidedComposition;
+    const sourceComp = post.slides[post.currentSlideIndex]?.composition;
+    if (groups.includes("composition") && composition) {
+      for (const index of targets) {
+        const proposal = composePost({ ...next, currentSlideIndex: index }, composition.id);
+        if (!proposal.post) {
+          toast.error(`Slide ${index + 1}: ${proposal.error} Nenhuma alteração foi aplicada.`);
+          return;
+        }
+        next = { ...proposal.post, currentSlideIndex: post.currentSlideIndex };
+      }
+    } else if (groups.includes("composition") && sourceComp) {
+      next = replicateCarouselComposition(next, post.currentSlideIndex, targets);
+    } else if (groups.includes("composition")) {
+      next = { ...next, slides: next.slides.map((slide, index) => targets.includes(index) ? { ...slide, guidedComposition: undefined, composition: undefined } : slide) };
+    }
+    setPost(next);
     setIsReplicationOpen(false);
     toast.success(`Formatação aplicada em ${targets.length} slide${targets.length === 1 ? "" : "s"}.`);
   };
 
-  const handleAspectRatioChange = (ratio: AspectRatioType) => {
-    setPost((prev) => ({ ...prev, aspectRatio: ratio }));
+  const handleAspectRatioChange = async (ratio: AspectRatioType) => {
+    if(arsenalComposition){try{await ensureArsenalCompositionFonts(arsenalComposition);}catch(error){toast.error((error as Error).message);return;}}
+    const proposal = fitPostToAspectRatio(post, ratio);
+    if (!proposal.post) { toast.error(proposal.error); return; }
+    if(arsenalComposition){
+      const request=++formatRequest.current;
+      setFormatPreview(proposal.post);setNativeFormatPreview(null);setFormatLoading(true);
+      try{
+        if (arsenalComposition.origin.componentAssembly) return;
+        const offer=await arsenalApi.designCatalog.resolveArsenalVariant.mutate({versionId:arsenalComposition.origin.versionId,aspectRatio:ratio},{signal:AbortSignal.timeout(8000)});
+        if(offer){const preview=await applyArsenalFormatVariant(post,offer);if(request===formatRequest.current)setNativeFormatPreview(preview);}
+      }catch{if(request===formatRequest.current)toast.info("Variante indisponível; a projeção preserva seus ajustes.");}
+      finally{if(request===formatRequest.current)setFormatLoading(false);}
+      return;
+    }
+    setPost(proposal.post);
   };
 
   const handleToggleSnap = () => {
@@ -410,8 +497,14 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
 
   // Atualiza posição de caixa de texto extra arrastada no slide ativo
   const handleUpdateExtraTextPosition = (id: string, pos: ElementPosition) => {
+    const curIdx = post.currentSlideIndex;
+    const currentSlide = post.slides[curIdx];
+    if (currentSlide?.composition) {
+      const updatedComp = updateArsenalAuthorialLayer(currentSlide.composition, id, pos);
+      handleUpdatePost({}, updatedComp);
+      return;
+    }
     setPost((prev) => {
-      const curIdx = prev.currentSlideIndex;
       const currentSlide = prev.slides[curIdx];
       const slideExtra = currentSlide?.extraTexts || prev.extraTexts || [];
       const updatedExtra = slideExtra.map((item) =>
@@ -436,8 +529,14 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
 
   // Edição de texto da caixa extra via duplo clique inline no canvas
   const handleUpdateExtraTextContent = (id: string, value: string) => {
+    const curIdx = post.currentSlideIndex;
+    const currentSlide = post.slides[curIdx];
+    if (currentSlide?.composition) {
+      const updatedComp = editArsenalElementText(currentSlide.composition, id, value);
+      handleUpdatePost({}, updatedComp);
+      return;
+    }
     setPost((prev) => {
-      const curIdx = prev.currentSlideIndex;
       const currentSlide = prev.slides[curIdx];
       const slideExtra = currentSlide?.extraTexts || prev.extraTexts || [];
       const updatedExtra = slideExtra.map((item) =>
@@ -477,8 +576,33 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       align: "center",
       color: post.palette.text,
     };
-    const updatedExtra = [...slideExtra, newExtraText];
 
+    if (currentSlide?.composition) {
+      const updatedComp = addArsenalAuthorialLayer(currentSlide.composition, {
+        id: newId,
+        kind: "text",
+        text: "Novo Texto",
+        zIndex: Math.max(0, ...[...currentSlide.composition.elements, ...currentSlide.composition.groups].filter(e => !e.parentId).map(e => e.zIndex)) + 1,
+        parentId: null,
+        x: (newExtraText.x ?? 0) * currentSlide.composition.artboard.width / baseWidth,
+        y: (newExtraText.y ?? 0) * currentSlide.composition.artboard.width / baseWidth,
+        width: 220 * currentSlide.composition.artboard.width / baseWidth,
+        height: 40 * currentSlide.composition.artboard.width / baseWidth,
+        fontSize: 20 * currentSlide.composition.artboard.width / baseWidth,
+        fontFamily: "Arial",
+        fontWeight: 400,
+        fill: post.palette.text || "#FFFFFF",
+        align: "center",
+        rotation: 0,
+        opacity: 1,
+      });
+      handleUpdatePost({}, updatedComp);
+      setSelectedElementId(newId);
+      toast.success("Nova caixa de texto adicionada! Dê dois cliques para editar no palco.");
+      return;
+    }
+
+    const updatedExtra = [...slideExtra, newExtraText];
     const updatedSlides = [...post.slides];
     if (currentSlide) {
       updatedSlides[curIdx] = {
@@ -499,8 +623,24 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
 
   // Atualiza propriedades de uma caixa de texto extra (cor, tamanho, texto, alinhamento)
   const handleUpdateExtraText = (id: string, patch: Partial<CanvasCustomText>) => {
+    const curIdx = post.currentSlideIndex;
+    const currentSlide = post.slides[curIdx];
+    if (currentSlide?.composition) {
+      const updatedComp = updateArsenalAuthorialLayer(currentSlide.composition, id, {
+        ...(patch.text !== undefined ? { text: patch.text } : {}),
+        ...(patch.fontSize !== undefined ? { fontSize: patch.fontSize } : {}),
+        ...(patch.color !== undefined ? { fill: patch.color } : {}),
+        ...(patch.fontFamily !== undefined ? { fontFamily: patch.fontFamily } : {}),
+        ...(patch.align !== undefined ? { align: patch.align } : {}),
+        ...(patch.width !== undefined ? { width: patch.width } : {}),
+        ...(patch.x !== undefined ? { x: patch.x } : {}),
+        ...(patch.y !== undefined ? { y: patch.y } : {}),
+        ...(patch.rotation !== undefined ? { rotation: patch.rotation } : {}),
+      });
+      handleUpdatePost({}, updatedComp);
+      return;
+    }
     setPost((prev) => {
-      const curIdx = prev.currentSlideIndex;
       const currentSlide = prev.slides[curIdx];
       const slideExtra = currentSlide?.extraTexts || prev.extraTexts || [];
       const updatedExtra = slideExtra.map((item) =>
@@ -525,8 +665,16 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
 
   // Remove uma caixa de texto extra
   const handleRemoveExtraText = (id: string) => {
+    const curIdx = post.currentSlideIndex;
+    const currentSlide = post.slides[curIdx];
+    if (currentSlide?.composition) {
+      const updatedComp = removeArsenalAuthorialLayer(currentSlide.composition, id);
+      handleUpdatePost({}, updatedComp);
+      if (selectedElementId === id) setSelectedElementId(null);
+      toast.info("Caixa de texto removida.");
+      return;
+    }
     setPost((prev) => {
-      const curIdx = prev.currentSlideIndex;
       const currentSlide = prev.slides[curIdx];
       const slideExtra = currentSlide?.extraTexts || prev.extraTexts || [];
       const updatedExtra = slideExtra.filter((item) => item.id !== id);
@@ -550,61 +698,62 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   // ─── GERENCIAMENTO DE IMAGENS LIVRES ADICIONAIS (FOTOS / ADESIVOS) ───
-  const handleAddExtraImage = (url: string, naturalWidth?: number, naturalHeight?: number) => {
-    const curIdx = post.currentSlideIndex;
-    const currentSlide = post.slides[curIdx];
-    const slideImages = currentSlide?.extraImages || post.extraImages || [];
-    const count = slideImages.length + 1;
-    const newId = freshId("im");
-
-    // Dimensões proporcionais contidas na prancheta
-    let targetWidth = 140;
-    let targetHeight = 140;
-    if (naturalWidth && naturalHeight && naturalWidth > 0 && naturalHeight > 0) {
-      const ratio = naturalWidth / naturalHeight;
-      if (ratio >= 1) {
-        targetWidth = Math.min(180, Math.round(baseWidth * 0.45));
-        targetHeight = Math.round(targetWidth / ratio);
-      } else {
-        targetHeight = Math.min(180, Math.round(baseHeight * 0.45));
-        targetWidth = Math.round(targetHeight * ratio);
+  const handleAddExtraImage = async (sourceUrl: string, naturalWidth?: number, naturalHeight?: number, targetSlideId?: string) => {
+    const sourcePostId = postRef.current.id;
+    const slideId = targetSlideId ?? postRef.current.slides[postRef.current.currentSlideIndex]?.id;
+    let url = sourceUrl;
+    if (sourceUrl.startsWith('data:image/')) {
+      try { url = (await arsenalApi.post.saveMediaAsset.mutate({ imageData: sourceUrl })).url; }
+      catch (error) { toast.error((error as Error).message); return; }
+    }
+    if (postRef.current.id !== sourcePostId || !postRef.current.slides.some(s => s.id === slideId)) {
+      toast.info('O slide foi removido. A imagem enviada não foi aplicada em outro slide.');
+      return;
+    }
+    const newId = freshId('im');
+    setPost(prev => {
+      const index = prev.slides.findIndex(s => s.id === slideId);
+      if (prev.id !== sourcePostId || index < 0) return prev;
+      const slide = prev.slides[index];
+      let width = 140, height = 140;
+      if (naturalWidth && naturalHeight && naturalWidth > 0 && naturalHeight > 0) {
+        const ratio = naturalWidth / naturalHeight;
+        if (ratio >= 1) { width = Math.min(180, Math.round(baseWidth * 0.45)); height = Math.round(width / ratio); }
+        else { height = Math.min(180, Math.round(baseHeight * 0.45)); width = Math.round(height * ratio); }
       }
-    }
-
-    const newExtraImage: CanvasCustomImage = {
-      id: newId,
-      url,
-      x: Math.round((baseWidth - targetWidth) / 2),
-      y: Math.round((baseHeight - targetHeight) / 2),
-      width: targetWidth,
-      height: targetHeight,
-      rotation: 0,
-      opacity: 1,
-      cornerRadius: 0,
-    };
-
-    const updatedImages = [...slideImages, newExtraImage];
-    const updatedSlides = [...post.slides];
-    if (currentSlide) {
-      updatedSlides[curIdx] = {
-        ...currentSlide,
-        extraImages: updatedImages,
-      };
-    }
-
-    setPost((prev) => ({
-      ...prev,
-      extraImages: updatedImages,
-      slides: updatedSlides,
-    }));
-
-    setSelectedElementId(newId);
-    toast.success("Imagem adicionada ao post! Use as alças para redimensionar ou mover.");
+      const image: CanvasCustomImage = { id: newId, url, x: Math.round((baseWidth - width) / 2), y: Math.round((baseHeight - height) / 2), width, height, rotation: 0, opacity: 1, cornerRadius: 0 };
+      if (slide.composition) {
+        const c = slide.composition, factor = c.artboard.width / baseWidth;
+        const zIndex = Math.max(0, ...[...c.elements, ...c.groups].filter(e => !e.parentId).map(e => e.zIndex)) + 1;
+        const next = addArsenalAuthorialLayer(c, { ...image, rotation: 0, opacity: 1, cornerRadius: 0, kind: 'image', zIndex, parentId: null, x: image.x * factor, y: image.y * factor, width: width * factor, height: height * factor });
+        const projected = putArsenalComposition({ ...prev, currentSlideIndex: index }, next);
+        return index === prev.currentSlideIndex ? { ...projected, caption: prev.caption, hashtags: prev.hashtags } : { ...prev, slides: projected.slides };
+      }
+      const images = [...(slide.extraImages ?? []), image];
+      return { ...prev, ...(index === prev.currentSlideIndex ? { extraImages: images } : {}), slides: prev.slides.map((s, i) => i === index ? { ...s, extraImages: images } : s) };
+    });
+    if (postRef.current.slides[postRef.current.currentSlideIndex]?.id === slideId) setSelectedElementId(newId);
+    toast.success('Imagem adicionada ao post! Use as alças para redimensionar ou mover.');
   };
 
   const handleUpdateExtraImage = (id: string, patch: Partial<CanvasCustomImage>) => {
+    const curIdx = post.currentSlideIndex;
+    const currentSlide = post.slides[curIdx];
+    if (currentSlide?.composition) {
+      const updatedComp = updateArsenalAuthorialLayer(currentSlide.composition, id, {
+        ...(patch.url !== undefined ? { url: patch.url } : {}),
+        ...(patch.width !== undefined ? { width: patch.width } : {}),
+        ...(patch.height !== undefined ? { height: patch.height } : {}),
+        ...(patch.x !== undefined ? { x: patch.x } : {}),
+        ...(patch.y !== undefined ? { y: patch.y } : {}),
+        ...(patch.rotation !== undefined ? { rotation: patch.rotation } : {}),
+        ...(patch.opacity !== undefined ? { opacity: patch.opacity } : {}),
+        ...(patch.cornerRadius !== undefined ? { cornerRadius: patch.cornerRadius } : {}),
+      });
+      handleUpdatePost({}, updatedComp);
+      return;
+    }
     setPost((prev) => {
-      const curIdx = prev.currentSlideIndex;
       const currentSlide = prev.slides[curIdx];
       const slideImages = currentSlide?.extraImages || prev.extraImages || [];
       const updatedImages = slideImages.map((item) =>
@@ -628,8 +777,16 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   const handleRemoveExtraImage = (id: string) => {
+    const curIdx = post.currentSlideIndex;
+    const currentSlide = post.slides[curIdx];
+    if (currentSlide?.composition) {
+      const updatedComp = removeArsenalAuthorialLayer(currentSlide.composition, id);
+      handleUpdatePost({}, updatedComp);
+      if (selectedElementId === id) setSelectedElementId(null);
+      toast.info("Imagem removida do post.");
+      return;
+    }
     setPost((prev) => {
-      const curIdx = prev.currentSlideIndex;
       const currentSlide = prev.slides[curIdx];
       const slideImages = currentSlide?.extraImages || prev.extraImages || [];
       const updatedImages = slideImages.filter((item) => item.id !== id);
@@ -655,6 +812,28 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       };
     });
   };
+
+  const removeSelectedElement = () => {
+    if (!selectedElementId) return;
+    if (arsenalComposition) {
+      if (selectedElementId === "logo") handleUpdatePost({ logoUrl: undefined });
+      else handleUpdatePost({}, hideArsenalInstance(arsenalComposition, selectedElementId));
+    } else {
+      const slide = post.slides[post.currentSlideIndex];
+      if ((slide?.extraImages ?? post.extraImages ?? []).some(e => e.id === selectedElementId)) handleRemoveExtraImage(selectedElementId);
+      else if ((slide?.extraTexts ?? post.extraTexts ?? []).some(e => e.id === selectedElementId)) handleRemoveExtraText(selectedElementId);
+    }
+    setSelectedElementId(null);
+  };
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (!selectedElementId || !freeEditing || !shouldDeleteCanvasSelection(event, event.target as HTMLElement | null)) return;
+      event.preventDefault();
+      removeSelectedElement();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [post, selectedElementId, freeEditing]);
 
   // ─── Item 7: fluxo de salvamento com decisão memorizável ───
   const saveManually = async (mode: "new" | "update") => {
@@ -714,9 +893,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isEditingBackground]);
 
-  const handleExportPng = () => {
+  const exportPng = () => {
     if (!stageRef.current) return;
-    const dataUrl = stageRef.current.exportPng4K();
+    let dataUrl: string;
+    try { dataUrl = stageRef.current.exportPng4K(); } catch(error) { toast.error((error as Error).message); return; }
     if (!dataUrl) {
       toast.error("Erro ao gerar imagem 4K.");
       return;
@@ -728,8 +908,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     toast.success("Post 4K exportado com sucesso!");
   };
 
-  const handleExportZip = async () => {
-    if (!stageRef.current) return;
+  const exportZip = async () => {
+    if (!stageRef.current || isExportingZip) return;
     setIsExportingZip(true);
     toast.info("Compilando todos os slides em arquivo ZIP de alta resolução...");
 
@@ -751,6 +931,25 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     } finally {
       setIsExportingZip(false);
     }
+  };
+
+  const handleExportPng = () => {
+    if (!stageRef.current || isExportingZip) return;
+    if (pendingMediaCount(post, false)) setPendingExport("png");
+    else exportPng();
+  };
+
+  const handleExportZip = () => {
+    if (!stageRef.current || isExportingZip) return;
+    if (pendingMediaCount(post)) setPendingExport("zip");
+    else void exportZip();
+  };
+
+  const confirmPendingExport = () => {
+    const format = pendingExport;
+    setPendingExport(null);
+    if (format === "png") exportPng();
+    else if (format === "zip") void exportZip();
   };
 
   const handleAddSlide = () => {
@@ -794,7 +993,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         onResetZoom={() => setZoom(1)}
         onExportPng={handleExportPng}
         onExportZip={handleExportZip}
-        onBackToGallery={onBackToGallery}
+        onBackToGallery={onBackToGallery ? () => onBackToGallery(post) : undefined}
         isSnapEnabled={post.isSnapEnabled !== false}
         onToggleSnap={handleToggleSnap}
         isExportingZip={isExportingZip}
@@ -813,6 +1012,18 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         onAutoSaveChange={handleAutoSaveChange}
         onReplicate={post.slides.length > 1 ? () => setIsReplicationOpen(true) : undefined}
       />
+
+      <GuidedEditor post={post} free={freeEditing}
+        onReplicate={post.slides.length > 1 ? () => setIsReplicationOpen(true) : undefined}
+        onFreeChange={free => { setFreeEditing(free); setIsMobileDrawerOpen(false); setIsEditingBackground(false); setSelectedElementId(null); setRequestedTab(undefined); }}
+        onApply={next => { handleUpdatePost(next, next.slides[next.currentSlideIndex]?.composition); setSelectedElementId(null); }}
+        onImageTools={() => { setFreeEditing(true); setRequestedTab("media"); setIsMobileDrawerOpen(true); }} />
+
+      {freeEditing && selectedElementId && (arsenalComposition?.elements.some(e => e.id === selectedElementId) || (post.slides[post.currentSlideIndex]?.extraImages ?? []).some(e => e.id === selectedElementId) || (post.slides[post.currentSlideIndex]?.extraTexts ?? []).some(e => e.id === selectedElementId)) && (
+        <div className="flex justify-center border-b border-white/10 py-1">
+          <button type="button" className="rounded-lg px-3 py-2 text-xs text-rose-300 hover:bg-white/10" onClick={removeSelectedElement}>Remover elemento selecionado · Del</button>
+        </div>
+      )}
 
       {!isMobileDrawerOpen && (
         <div className={isReplicationOpen ? "invisible" : ""} aria-hidden={isReplicationOpen}>
@@ -838,10 +1049,16 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       {/* 2. Área Central */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* Desktop: Barra Lateral Fixa à Esquerda (Intocada) */}
-        <div className="hidden md:flex h-full">
+        <div className={freeEditing ? "hidden md:flex h-full" : "hidden"}>
           <CanvasSidebar
+            requestedTab={requestedTab}
             post={currentViewPost}
+            composition={arsenalComposition}
+            onUpdateComposition={c => handleUpdatePost({}, c)}
             onUpdatePost={handleUpdatePost}
+            onMediaUpdate={handleMediaUpdate}
+            mediaPreview={mediaPreview}
+            onMediaPreview={setMediaPreview}
             onReplicate={post.slides.length > 1 ? () => setIsReplicationOpen(true) : undefined}
             isEditingBackground={isEditingBackground}
             onToggleBackgroundEdit={() => setIsEditingBackground((v) => !v)}
@@ -852,9 +1069,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
             onUpdateExtraImage={handleUpdateExtraImage}
             onRemoveExtraImage={handleRemoveExtraImage}
             selectedElementId={selectedElementId}
-              onSelectElement={setSelectedElementId}
-            />
-          </div>
+            onSelectElement={setSelectedElementId}
+          />
+        </div>
 
         {/* Palco da Prancheta com Viewport Adaptativo (Mobile & Desktop) */}
         <main
@@ -939,6 +1156,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
             <CanvasPostStage
               ref={stageRef}
               post={post}
+              onUpdateComposition={c=>handleUpdatePost({},c)}
+              isReadOnly={!freeEditing}
               isMobile={isMobile}
               zoom={1}
               selectedElementId={selectedElementId}
@@ -962,8 +1181,14 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         {/* Mobile: Bottom Sheet Drawer Deslizante Nativo */}
         <CanvasMobileDrawer
           post={currentViewPost}
+          composition={arsenalComposition}
+          onUpdateComposition={c => handleUpdatePost({}, c)}
           onUpdatePost={handleUpdatePost}
-          suspended={isReplicationOpen}
+          onMediaUpdate={handleMediaUpdate}
+            mediaPreview={mediaPreview}
+            onMediaPreview={setMediaPreview}
+          requestedTab={requestedTab}
+          suspended={isReplicationOpen || !freeEditing}
           isOpen={isMobileDrawerOpen}
           onToggleOpen={setIsMobileDrawerOpen}
           onReplicate={post.slides.length > 1 ? () => setIsReplicationOpen(true) : undefined}
@@ -974,9 +1199,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
           onUpdateExtraImage={handleUpdateExtraImage}
           onRemoveExtraImage={handleRemoveExtraImage}
           selectedElementId={selectedElementId}
-              onSelectElement={setSelectedElementId}
-            />
-          </div>
+          onSelectElement={setSelectedElementId}
+        />
+      </div>
 
       {/* Mobile: slides visíveis apenas no carrossel e com o painel fechado. Desktop: fita permanente. */}
       <div className={`${post.slides.length > 1 && !isMobileDrawerOpen ? "block" : "hidden"} shrink-0 md:block`}>
@@ -991,9 +1216,18 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         />
       </div>
       {/* Reserva real para o dock: o canvas não fica escondido atrás de um overlay. */}
-      <div className="h-[calc(74px+env(safe-area-inset-bottom))] shrink-0 md:hidden" aria-hidden="true" />
+      {freeEditing && <div className="h-[calc(74px+env(safe-area-inset-bottom))] shrink-0 md:hidden" aria-hidden="true" />}
 
+      <PendingMediaExportDialog
+        format={pendingExport}
+        count={pendingMediaCount(post, pendingExport === "zip")}
+        onConfirm={confirmPendingExport}
+        onCancel={() => setPendingExport(null)}
+      />
       {/* ── Diálogos: Salvar (item 7) e Recomeçar (item 6) ── */}
+      <ConfirmDialog open={Boolean(formatPreview)} title="Aplicar novo formato?" description="Confira a projeção do seu layout. A variante do catálogo é opcional e redefine somente a geometria." confirmLabel="Aplicar formato" onCancel={()=>{formatRequest.current++;setFormatPreview(null);setNativeFormatPreview(null);}} onConfirm={()=>{if(formatPreview)setPost(formatPreview);formatRequest.current++;setFormatPreview(null);setNativeFormatPreview(null);}}>
+        {formatLoading&&<p role="status">Consultando formatos da mesma versão…</p>}{nativeFormatPreview&&nativeFormatPreview!==formatPreview&&<button className="rounded border border-white/20 p-2" onClick={()=>setFormatPreview(nativeFormatPreview)}>Pré-visualizar variante do catálogo · redefinir geometria</button>}{formatPreview&&<div className="my-3 flex justify-center"><CanvasPostStage post={formatPreview} zoom={.4} isReadOnly/></div>}
+      </ConfirmDialog>
       <SaveChoiceDialog
         open={isSaveDialogOpen}
         hasSavedPost={hasSavedPost}

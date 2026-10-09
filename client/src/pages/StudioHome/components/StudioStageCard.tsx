@@ -5,8 +5,8 @@ import type { StudioFamily } from "./studioModels";
 
 interface StudioStageCardProps {
   family: StudioFamily;
-  aspectRatio: "1:1" | "5:6" | "9:16";
-  onAspectRatioChange: (ratio: "1:1" | "5:6" | "9:16") => void;
+  aspectRatio: "1:1" | "4:5" | "5:6" | "9:16";
+  onAspectRatioChange: (ratio: "1:1" | "4:5" | "5:6" | "9:16") => void;
   onSelect: () => void;
 }
 
@@ -24,6 +24,8 @@ export default function StudioStageCard({
   const aspectDimensions =
     aspectRatio === "1:1"
       ? "w-[340px] h-[340px] sm:w-[380px] sm:h-[380px]"
+      : aspectRatio === "4:5"
+      ? "w-[320px] h-[400px] sm:w-[350px] sm:h-[437.5px]"
       : aspectRatio === "5:6"
       ? "w-[320px] h-[384px] sm:w-[350px] sm:h-[420px]"
       : "w-[260px] h-[460px] sm:w-[280px] sm:h-[500px]";
@@ -134,7 +136,7 @@ export default function StudioStageCard({
         <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/4 border border-white/8 backdrop-blur-md">
           {[
             { id: "1:1", label: "1:1", icon: Square },
-            { id: "5:6", label: "5:6", icon: Layers },
+            { id: "4:5", label: "4:5", icon: Layers },
             { id: "9:16", label: "9:16", icon: Smartphone },
           ].map((f) => {
             const Icon = f.icon;

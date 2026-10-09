@@ -9,6 +9,8 @@ import {
   resolveCoverSlide,
   setCurrentSlideBackground,
 } from "./documentCommands";
+import { createArsenalFixtureComposition } from "./arsenalFixture";
+import { addArsenalAuthorialLayer, overrideArsenalElement } from "./arsenalComposition";
 
 function makePost(overrides: Partial<CanvasPostModel> = {}): CanvasPostModel {
   return {
@@ -118,5 +120,79 @@ describe("documentCommands", () => {
   it("resolveCoverSlide always returns the first slide", () => {
     const post = makePost({ currentSlideIndex: 2 });
     expect(resolveCoverSlide(post).headline).toBe("Slide 1");
+  });
+
+  it("duplica slide com composição Arsenal V3 gerando novos IDs para camadas autorais e remapeando overrides", () => {
+    let comp = addArsenalAuthorialLayer(createArsenalFixtureComposition(), {
+      id: "orig-layer-1",
+      kind: "text",
+      text: "Camada Original",
+      zIndex: 1,
+      parentId: null,
+      x: 15,
+      y: 25,
+      width: 120,
+      height: 40,
+      rotation: 0,
+      opacity: 1,
+    });
+    // Add an override to orig-layer-1
+    comp = overrideArsenalElement(comp, "orig-layer-1", { fontSize: 28 });
+
+    const post = makePost({
+      slides: [
+        {
+          id: "s1",
+          step: "SLIDE 01",
+          headline: "Slide 1",
+          subtext: "Corpo 1",
+          composition: comp,
+        },
+      ],
+    });
+
+    const next = duplicateSlide(post, 0);
+    expect(next.slides).toHaveLength(2);
+
+    const s0Comp = next.slides[0].composition!;
+    const s1Comp = next.slides[1].composition!;
+
+    expect(s1Comp).toBeDefined();
+    expect(s1Comp).not.toBe(s0Comp); // deep cloned
+
+    if (s1Comp.version === 3 && s0Comp.version === 3) {
+      expect(s1Comp.authorialLayers[0].id).not.toBe("orig-layer-1");
+      expect(s1Comp.authorialLayers[0].id).toMatch(/^tx-/);
+      expect(s1Comp.authorialLayers[0].text).toBe("Camada Original");
+
+      // Verify that the override was remapped to the new layer ID
+      const newLayerId = s1Comp.authorialLayers[0].id;
+      expect(s1Comp.overrides[newLayerId]).toBeDefined();
+      expect(s1Comp.overrides[newLayerId].fontSize).toBe(28);
+      expect(s1Comp.overrides["orig-layer-1"]).toBeUndefined();
+    }
+  });
+
+  it("opera carrossel misto (slides com e sem composição) preservando integridade em reorder e remove", () => {
+    const comp = createArsenalFixtureComposition();
+    const post = makePost({
+      slides: [
+        { id: "s1", step: "1", headline: "Arsenal", subtext: "A", composition: comp },
+        { id: "s2", step: "2", headline: "Legado 1", subtext: "B" },
+        { id: "s3", step: "3", headline: "Legado 2", subtext: "C" },
+      ],
+    });
+
+    // Reorder: move slide 0 to position 2
+    const reordered = reorderSlides(post, 0, 2);
+    expect(reordered.slides.map(s => s.id)).toEqual(["s2", "s3", "s1"]);
+    expect(reordered.slides[2].composition).toBeDefined();
+    expect(reordered.slides[0].composition).toBeUndefined();
+
+    // Remove slide 1 (which is s3)
+    const removed = removeSlide(reordered, 1);
+    expect(removed.slides.map(s => s.id)).toEqual(["s2", "s1"]);
+    expect(removed.slides[1].composition).toBeDefined();
+    expect(removed.slides[0].composition).toBeUndefined();
   });
 });

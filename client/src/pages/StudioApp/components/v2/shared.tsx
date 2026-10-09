@@ -331,9 +331,9 @@ export function SpecimenCard({
 
 const PRODUCTION_STAGES = [
   { atSec: 0, text: "Analisando intenção e tom de voz" },
-  { atSec: 2.5, text: "Estruturando ganchos e copywriting estratégico" },
-  { atSec: 6.0, text: "Mapeando arquétipos visuais e paletas da marca" },
-  { atSec: 10.5, text: "Sintetizando direção de arte e imagem de fundo" },
+  { atSec: 1.4, text: "Estruturando ganchos e copywriting estratégico" },
+  { atSec: 3.2, text: "Mapeando arquétipos visuais e paletas da marca" },
+  { atSec: 10.5, text: "Organizando direção de arte e espaços visuais" },
   { atSec: 16.0, text: "Calibrando tipografia e contraste inteligente" },
   { atSec: 23.0, text: "Finalizando composições em alta fidelidade" },
 ];
@@ -386,7 +386,7 @@ export function ProductionOverlay({ prompt }: { prompt: string }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.35 }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       role="status"
       aria-live="polite"
       aria-label="Gerando direções de arte"

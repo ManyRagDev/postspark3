@@ -115,3 +115,15 @@ export function patchTouchesContrast(
   }
   return false;
 }
+
+/** WCAG contrast for V2 opaque hex surfaces. Unknown background must be reported separately. */
+export function contrastRatio(background:string,foreground:string):number {
+  const luminance=(hex:string)=>{
+    if(!/^#[0-9a-f]{6}$/i.test(hex))return NaN;
+    const values=hex.slice(1).match(/.{2}/g)!.map(v=>parseInt(v,16)/255)
+      .map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);
+    return values[0]*.2126+values[1]*.7152+values[2]*.0722;
+  };
+  const a=luminance(background),b=luminance(foreground);
+  return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+}

@@ -1,4 +1,5 @@
 import type { PostVariation } from "@shared/postspark";
+import { generationAspectRatios } from "@shared/aspectRatios";
 import {
   STATIC_SECTION_DESCRIPTION_MAX_LENGTH,
   STATIC_SECTION_LABEL_MAX_LENGTH,
@@ -7,7 +8,6 @@ import {
   hasRequiredCopy,
   hasValidStaticSections,
 } from "@shared/validation";
-import { variationsNeedDiversification } from "./variationDiversity";
 import { visualDiversityIssues } from "@shared/creative";
 
 export const POST_VARIATION_TARGET = 3;
@@ -28,17 +28,27 @@ export interface VariationSetValidation {
 
 export function validateVariationSet(
   variations: Partial<PostVariation>[],
-  postMode: "static" | "carousel",
+  postMode: "static" | "carousel"
 ): VariationSetValidation {
   const errors: string[] = [];
 
   if (variations.length !== POST_VARIATION_TARGET) {
     errors.push(
-      `expected ${POST_VARIATION_TARGET} variations, received ${variations.length}`,
+      `expected ${POST_VARIATION_TARGET} variations, received ${variations.length}`
     );
   }
 
   variations.forEach((variation, index) => {
+    if (
+      variation.aspectRatio &&
+      !(generationAspectRatios as readonly string[]).includes(
+        variation.aspectRatio
+      )
+    ) {
+      errors.push(
+        `variation ${index + 1} must use a current format: 1:1, 4:5 or 9:16`
+      );
+    }
     if (!hasRequiredCopy(variation)) {
       errors.push(`variation ${index + 1} is missing required copy fields`);
     }
@@ -47,12 +57,12 @@ export function validateVariationSet(
     }
     if (postMode === "static" && !hasValidStaticSections(variation)) {
       errors.push(
-        `variation ${index + 1} must use no sections for simple templates or exactly ${STATIC_SECTION_TARGET} short sections for structured templates`,
+        `variation ${index + 1} must use no sections for simple templates or exactly ${STATIC_SECTION_TARGET} short sections for structured templates`
       );
     }
     if (postMode === "static" && !hasCoherentStaticItemCount(variation)) {
       errors.push(
-        `variation ${index + 1} headline advertises a different item count than its ${STATIC_SECTION_TARGET} structured sections`,
+        `variation ${index + 1} headline advertises a different item count than its ${STATIC_SECTION_TARGET} structured sections`
       );
     }
     if (
@@ -60,17 +70,10 @@ export function validateVariationSet(
       variation.slides?.length !== CAROUSEL_SLIDE_TARGET
     ) {
       errors.push(
-        `variation ${index + 1} must contain ${CAROUSEL_SLIDE_TARGET} slides`,
+        `variation ${index + 1} must contain ${CAROUSEL_SLIDE_TARGET} slides`
       );
     }
   });
-
-  if (
-    variations.length === POST_VARIATION_TARGET &&
-    variationsNeedDiversification(variations)
-  ) {
-    errors.push("variations are not sufficiently distinct");
-  }
 
   errors.push(...visualDiversityIssues(variations));
 

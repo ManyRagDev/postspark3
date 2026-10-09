@@ -23,6 +23,7 @@ const PLATFORMS: Platform[] = ["instagram", "twitter", "linkedin", "facebook"];
 const RATIO_LABELS: Record<AspectRatio, string> = {
     "1:1": "Quadrado",
     "5:6": "Retrato",
+    "4:5": "Retrato",
     "9:16": "Stories",
 };
 

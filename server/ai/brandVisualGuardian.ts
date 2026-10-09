@@ -93,6 +93,19 @@ function nearestPaletteColor(
  */
 const ACCENT_SNAP_TOLERANCE = 60;
 
+/** Arsenal roles use only explicitly authorized colors. Weak contrast remains a
+ * reported incompatibility; do not invent a brand color to approve the design. */
+export function enforceExplicitBrandPalette(variations:PostVariation[],colors:string[]):PostVariation[]{
+  const palette=colors.filter(hex=>hexToRgb(hex)!==null);
+  if(!palette.length)return variations;
+  return variations.map(v=>{
+    const backgroundColor=nearestPaletteColor(v.backgroundColor,palette)!.hex;
+    const accentColor=nearestPaletteColor(v.accentColor??backgroundColor,palette)!.hex;
+    const textColor=[...palette].sort((a,b)=>wcagContrast(backgroundColor,b)-wcagContrast(backgroundColor,a))[0];
+    return {...v,backgroundColor,accentColor,textColor};
+  });
+}
+
 function snapAccentToPalette(
   candidate: string | undefined,
   palette: string[],

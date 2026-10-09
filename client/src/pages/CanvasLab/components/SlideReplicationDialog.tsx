@@ -10,7 +10,7 @@ const GROUP_LABELS: Record<ReplicationGroup, { title: string; detail: string }> 
   font: { title: "Fonte", detail: "Família tipográfica" },
   headline: { title: "Título", detail: "Alinhamento, tamanho, efeito e cor; sem copiar palavras" },
   body: { title: "Corpo", detail: "Alinhamento, tamanho, efeito e cor; sem copiar palavras" },
-  composition: { title: "Composição", detail: "Família visual; sem copiar conteúdo" },
+  composition: { title: "Composição", detail: "Família visual; layouts guiados reajustam fonte, cores de leitura e posições sem copiar conteúdo" },
 };
 
 interface SlideReplicationDialogProps {

@@ -1,3 +1,16 @@
+import { executionBriefSchema, normalizeExecutionBrief } from "../shared/generationRequest";
+import {deriveVariableContentContract} from "@shared/variableContent";
+import { validateArsenalSaveModel, authorizeArsenalSaveModel } from "./designCatalog/arsenalSave";
+import { retrieveArsenalForGeneration } from "./designCatalog/arsenalRetrieval";
+import { readStudioPreferences } from "./designCatalog/studioPreferences";
+import { defaultStudioPreferences, effectiveStudioPreferences } from "../shared/studioPreferences";
+import { retrieveCompleteDesignCards } from "./designCatalog/completeDesignStore";
+import { generationRouter } from "./routers/generation";
+import { hydrateComponents } from "./designCatalog/componentStore";
+import { generateCompleteDesignVariations } from "./ai/completeDesignGeneration";
+import { arsenalBriefProfile, variableArsenalBriefProfile } from "./designCatalog/arsenalBriefProfile";
+import { persistArsenalOutput } from "./designCatalog/arsenalRun";
+import { hydrateArsenalCandidates } from "./designCatalog/arsenalStore";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -5,6 +18,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { invokeLLM } from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
+import { imagePostContextSchema } from "@shared/imageGeneration";
 import { createBackgroundAsset, createPost, getBrandKitByUser, getGenerationRunById, getPostById, getUserBackgroundAssets, getUserGenerationRuns, getUserPosts, updatePost } from "./db";
 import { storagePut } from "./storage";
 import { analyzeBrandFromUrl, generateCardThemeVariations } from "./chameleon";
@@ -23,17 +37,18 @@ import { ENV } from "./_core/env";
 import { appendOperationalLog } from "./_core/operationalLog";
 import { TRPCError } from "@trpc/server";
 import { compressPostPayload } from "./lib/imageCompress";
+import { normalizeCanvasMediaPayload, saveUserMediaAsset } from "./mediaAssets";
 import { prepareGenerationPlan } from "./ai/generationPipeline";
 import { loadGenerationContext } from "./ai/contextLoader";
 import { routeHighTicketIntent, angleToStrategy } from "./ai/intentRouter";
 import { buildGenerationDebugTrace, finishGenerationTrace, recordGenerationEvent, startGenerationTrace } from "./ai/generationTrace";
 import { buildGenerationFailureDiagnostics, formatGenerationFailureError } from "./ai/generationFailureDiagnostics";
+import { userMessageForGenerationIssues } from "./ai/generationFailurePresentation";
 import { assessSemanticOriginality, persistCandidateFingerprints } from "./ai/semanticOriginality";
 import { classifyGenerationError, toFailureMetadata } from "@shared/generationFailure";
 import { GenerationFailureError } from "./_core/generationError";
-import { hasFormatMismatch } from "@shared/formatIntent";
-import { evaluateSourceCopyGate } from "@shared/sourceCopyGate";
-import type { PostVariation } from "@shared/postspark";
+import { detectFormatIntent, formatMismatchMessage, hasFormatMismatch } from "@shared/formatIntent";
+import { interpretGenerationBrief, interpretedContent } from "./ai/briefInterpretation";
 import { generatePostVariations, type ExecutionBriefContext } from "./ai/generationOrchestrator";
 import { safeJsonParse } from "./ai/llmJson";
 import {
@@ -57,24 +72,6 @@ const logSnippet = (value: unknown, maxLength = 320): string | undefined => {
   if (!text) return undefined;
   return text.length > maxLength ? `${text.slice(0, maxLength)}...[truncated]` : text;
 };
-
-/** Projeta os campos de texto verificáveis pelo gate de similaridade. */
-function outputSnapshotsToSourceFields(
-  snapshots: PostVariation[],
-): Array<{ field: "headline" | "body" | "caption" | "slide_headline" | "slide_body" | "callToAction"; value: string }> {
-  const fields: Array<{ field: "headline" | "body" | "caption" | "slide_headline" | "slide_body" | "callToAction"; value: string }> = [];
-  for (const variation of snapshots) {
-    if (variation.headline?.trim()) fields.push({ field: "headline", value: variation.headline });
-    if (variation.body?.trim()) fields.push({ field: "body", value: variation.body });
-    if (variation.caption?.trim()) fields.push({ field: "caption", value: variation.caption });
-    if (variation.callToAction?.trim()) fields.push({ field: "callToAction", value: variation.callToAction });
-    for (const slide of variation.slides ?? []) {
-      if (slide.headline?.trim()) fields.push({ field: "slide_headline", value: slide.headline });
-      if (slide.body?.trim()) fields.push({ field: "slide_body", value: slide.body });
-    }
-  }
-  return fields;
-}
 
 const summarizeGeneratedVariation = (variation: any, index: number) => ({
   index,
@@ -151,64 +148,6 @@ const summarizeGeneratedVariation = (variation: any, index: number) => ({
       }
     : undefined,
 });
-const CAROUSEL_SLIDE_TARGET = 5;
-const executionSlideInputSchema = z.object({
-  slideNumber: z.number().int().min(1).max(CAROUSEL_SLIDE_TARGET),
-  rawText: z.string(),
-  role: z.enum(["hook", "development", "cta", "custom"]).optional(),
-  locked: z.boolean().optional(),
-});
-
-const executionBrandInputSchema = z.object({
-  websiteUrl: z.string().optional(),
-  logoUrl: z.string().optional(),
-  referenceImageUrl: z.string().optional(),
-  brandColors: z.array(z.string()).optional(),
-  fontHint: z.string().optional(),
-  adaptationMode: z.enum(["strict", "adaptive", "reference_clone"]),
-});
-
-const executionBriefSchema = z.object({
-  creationMode: z.literal("execution"),
-  format: z.enum(["static", "carousel", "story", "ad"]),
-  platform: z.enum(["instagram", "twitter", "linkedin", "facebook"]),
-  objective: z.enum(["educate", "authority", "sell", "engage", "lead"]),
-  tone: z.string().optional(),
-  callToAction: z.string().optional(),
-  interventionLevel: z.enum(["visual_only", "light_optimize", "optimize_structure"]),
-  contentSourceType: z.enum(["freeform", "carousel_topics", "carousel_slides", "caption_ready"]),
-  rawInput: z.string(),
-  slides: z.array(executionSlideInputSchema).optional(),
-  mustKeep: z.array(z.string()).optional(),
-  mustInclude: z.array(z.string()).optional(),
-  forbiddenTerms: z.array(z.string()).optional(),
-  notes: z.string().optional(),
-  brandInput: executionBrandInputSchema.optional(),
-});
-
-function normalizeExecutionBrief(input: any) {
-  const brief = executionBriefSchema.parse(input);
-  const normalizedSlides = Array.isArray(brief.slides)
-    ? brief.slides
-        .filter(slide => slide.rawText.trim().length > 0)
-        .sort((a, b) => a.slideNumber - b.slideNumber)
-        .slice(0, CAROUSEL_SLIDE_TARGET)
-    : [];
-
-  return {
-    ...brief,
-    slides: normalizedSlides,
-    mustKeep: brief.mustKeep || [],
-    mustInclude: brief.mustInclude || [],
-    forbiddenTerms: brief.forbiddenTerms || [],
-    brandInput: brief.brandInput
-      ? {
-          ...brief.brandInput,
-          brandColors: brief.brandInput.brandColors || [],
-        }
-      : undefined,
-  };
-}
 
 function decodeDataUrl(dataUrl: string): {
   buffer: Buffer;
@@ -366,12 +305,18 @@ const billingRouter = router({
 });
 
 import { adminRouter } from "./routers/admin";
+import { designCatalogRouter } from "./routers/designCatalog";
+import { retrieveCatalog } from "./designCatalog/retrieval";
+import { designDnaRouter } from "./routers/designDna";
 import { privacyRouter } from "./routers/privacy";
 
 export const appRouter = router({
+  generation: generationRouter,
   system: systemRouter,
   billing: billingRouter,
   admin: adminRouter,
+  designDna: designDnaRouter,
+  designCatalog: designCatalogRouter,
   privacy: privacyRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -406,6 +351,12 @@ export const appRouter = router({
           imageUrl: z.string().optional(),
           tone: z.string().optional(),
           postMode: z.enum(["static", "carousel"]).default("static"),
+          formatIntentConfirmed: z.boolean().optional(),
+          designContractVersion: z.union([z.literal(2),z.literal(3),z.literal(4)]).optional(),
+          assemblyPilot: z.boolean().optional(),
+          includeDraftDesigns: z.boolean().optional(),
+          slideCount: z.number().int().min(2).max(10).optional(),
+          aspectRatio: z.enum(["1:1", "4:5", "9:16"]).optional(),
           model: z.enum(["gemini", "llama"]).optional(),
           creationMode: z.enum(["ideation", "execution"]).default("ideation"),
           executionBrief: executionBriefSchema.optional(),
@@ -415,19 +366,30 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
+        if(input.designContractVersion===4 && ENV.componentArsenalMode==="off")throw new TRPCError({code:"PRECONDITION_FAILED",message:"O catálogo de composições está desativado neste ambiente."});
+        const componentExperimental=Boolean(input.includeDraftDesigns??input.assemblyPilot);
+        const componentActive=input.designContractVersion === 4 || input.designContractVersion === 3 && (componentExperimental || ENV.componentArsenalMode === "all" || (ENV.componentArsenalMode === "admin" && ctx.user.role === "admin"));
+        if(componentExperimental && (ctx.user.role !== 'admin' || ![3,4].includes(input.designContractVersion??0) || ENV.componentArsenalMode === "off"))
+          throw new TRPCError({code:'FORBIDDEN',message:'Modelos em revisão estão disponíveis apenas na prévia administrativa.'});
         // Etapa 3 §8.2 — validação de intenção de formato ANTES de reservar
         // Sparks: contradição clara entre briefing e seletor retorna
         // `format_mismatch` sem chamada generativa nem reserva (Sparks não
         // são consumidos para incompatibilidade detectável localmente).
-        if (input.inputType === "text" && hasFormatMismatch(input.content, input.postMode)) {
+        if (input.inputType === "text" && !input.formatIntentConfirmed && hasFormatMismatch(input.content, input.postMode)) {
+          const intent = detectFormatIntent(input.content);
           throw new GenerationFailureError({
             code: "BAD_REQUEST",
-            failure: toFailureMetadata({
+            failure: { ...toFailureMetadata({
               generationRunId: "format-check",
               reason: "format_mismatch",
-            }),
+            }), userMessage: formatMismatchMessage(intent, input.postMode) },
           });
         }
+
+        let variableContentContract;
+        try {
+          variableContentContract = input.designContractVersion === 3 && input.postMode === "static" ? deriveVariableContentContract(input.inputType === "text" ? input.content : (input.executionBrief?.rawInput ?? "")) : undefined;
+        } catch(error) {throw new TRPCError({code:"BAD_REQUEST",message:error instanceof Error ? error.message : "Contrato de conteúdo inválido"});}
 
         // Fase C — Billing transacional: reserva Sparks no início (bloqueando
         // saldo), commit só na aprovação final, refund em qualquer falha.
@@ -435,7 +397,7 @@ export const appRouter = router({
         const email = ctx.user.email ?? "dev@local.dev";
         const profile = await getBillingProfile(email);
         const cost = input.postMode === "carousel" ? SPARK_COSTS.CAROUSEL : SPARK_COSTS.GENERATE_TEXT;
-        const idempotencyKey = input.idempotencyKey ?? deriveIdempotencyKey(ctx.user.id, input);
+        const idempotencyKey = input.idempotencyKey ?? deriveIdempotencyKey(ctx.user.id, componentActive ? {...input,content:JSON.stringify([input.content,"complete-design-v1",input.postMode==="carousel"?input.slideCount??5:1,input.aspectRatio??"4:5",componentExperimental])}:input);
         const reservation = await reserveSparks(profile, cost, idempotencyKey, `Geração de post (${input.postMode})`);
         if (!reservation.reservationId) {
           await appendOperationalLog("POST_GENERATION_REJECTED", {
@@ -496,6 +458,13 @@ export const appRouter = router({
             console.warn("[post.generate] Recent post history unavailable:", error);
             return [];
           });
+          let briefInterpretationError: string | null = null;
+          const briefInterpretationPromise = input.inputType === "text"
+            ? interpretGenerationBrief(normalizedExecutionBrief?.rawInput || input.content).catch((error) => {
+                briefInterpretationError = error instanceof Error ? error.message : String(error);
+                return null;
+              })
+            : Promise.resolve(null);
           let contextContent = input.content;
           let brandDnaContext = "";
           let siteIntelligence: SiteIntelligence | null = null;
@@ -526,10 +495,21 @@ export const appRouter = router({
             contextContent = `URL: ${siteUrl}\nTitulo: ${scrapeResult.title}\nDescricao: ${scrapeResult.description}\nConteudo: ${scrapeResult.content}`;
           }
 
+          const briefInterpretation = await briefInterpretationPromise;
+          if (input.inputType === "text") {
+            recordGenerationEvent({
+              stage: "brief_interpretation",
+              status: briefInterpretation && !briefInterpretation.uncertain ? "completed" : "fallback",
+              detail: briefInterpretation && !briefInterpretation.uncertain
+                ? `${briefInterpretation.contentSpans.length} trechos de conteúdo e ${briefInterpretation.instructionSpans.length} instruções classificados.`
+                : `Interpretação ausente ou incerta; briefing original preservado.${briefInterpretationError ? ` Motivo: ${briefInterpretationError}` : ""}`,
+            });
+          }
           const generationPlan = await prepareGenerationPlan({
             sourceContent: contextContent,
             siteIntelligence,
             executionBrief: normalizedExecutionBrief,
+            briefInterpretation,
           });
           recordGenerationEvent({
             stage: "content_strategy",
@@ -543,12 +523,12 @@ export const appRouter = router({
           // o planContentStrategies padrão. O contexto enriquecido (BrandKit +
           // Persona + context budget) alimenta o router. O resto do pipeline
           // (slots, composition, snapshot, QA, captions) é idêntico.
-          if (input.creationMode === "execution" && normalizedExecutionBrief) {
+          if (!componentActive && input.creationMode === "execution" && normalizedExecutionBrief) {
             try {
               const briefing = await loadGenerationContext({
                 userUuid: ctx.user.id,
                 inputType: input.inputType,
-                content: input.content,
+                content: interpretedContent(briefInterpretation) || input.content,
                 platform: input.platform,
                 postMode: input.postMode,
                 creationMode: input.creationMode,
@@ -574,8 +554,45 @@ export const appRouter = router({
             }
           }
 
-          const outcome = await generatePostVariations(
+          const componentStarted=Date.now();
+          let studioPreferences={...defaultStudioPreferences};
+          if(componentActive){
+            try {studioPreferences=effectiveStudioPreferences(await readStudioPreferences(ctx.user.id),[input.content,normalizedExecutionBrief?.rawInput,normalizedExecutionBrief?.notes].filter(Boolean).join("\n"));}
+            catch {recordGenerationEvent({stage:"component.preferences",status:"fallback",detail:"Preferências indisponíveis; briefing atual preservado."});}
+          }
+
+          const componentCards=componentActive?await retrieveCompleteDesignCards({brandColors:normalizedExecutionBrief?.brandInput?.brandColors??(siteIntelligence?[siteIntelligence.brand.colors.background,siteIntelligence.brand.colors.accent]:[]),brandFonts:[normalizedExecutionBrief?.brandInput?.fontHint??siteIntelligence?.brand.typography.headingFont,siteIntelligence?.brand.typography.bodyFont].filter((font):font is string=>Boolean(font)),aspectRatio:input.aspectRatio??"4:5",postMode:input.postMode,text:interpretedContent(briefInterpretation)??contextContent,styleText:input.content,slideCount:input.slideCount??5,experimental:componentExperimental}):undefined;
+          if(componentCards && !componentCards.length)throw new GenerationFailureError({
+            code:"PRECONDITION_FAILED",
+            failure:{...toFailureMetadata({generationRunId:generationTrace.id,reason:"unknown"}),retryable:false,userMessage:"Não há composições publicadas compatíveis com este pedido e formato. O catálogo precisa de revisão ou novos modelos."},
+          });
+          if(componentCards)recordGenerationEvent({stage:"component.retrieve",status:"completed",detail:"Designs completos recuperados do banco; recombinação desativada",data:{source:"server",experimental:componentExperimental,method:"complete-design-catalog-v2",preferences:studioPreferences,cards:componentCards}});
+          const arsenal = componentCards ? {offers:[],availability:{mode:'admin' as const,reason:'ready' as const,candidateCount:componentCards.length,durationMs:Date.now()-componentStarted}} : await retrieveArsenalForGeneration({
+            clientSupportsV2: input.designContractVersion === 2 || input.designContractVersion === 3,
+            role: ctx.user.role, postMode: input.postMode,
+            text: input.inputType === "image" ? (normalizedExecutionBrief?.rawInput ?? "") : contextContent,
+            brandLocked: Boolean(siteIntelligence || normalizedExecutionBrief?.brandInput),
+            profile:{
+              ...arsenalBriefProfile(interpretedContent(briefInterpretation) ?? contextContent, input.content),
+              ...(variableContentContract ? variableArsenalBriefProfile(variableContentContract,interpretedContent(briefInterpretation) ?? contextContent,input.content) : {}),
+              font:normalizedExecutionBrief?.brandInput?.fontHint,
+              fonts:siteIntelligence?[siteIntelligence.brand.typography.headingFont,siteIntelligence.brand.typography.bodyFont].filter(Boolean):[],
+            },
+          });
+          const arsenalBudget={remainingMs:Math.max(0,(componentCards?8000:2000)-arsenal.availability.durationMs)};
+          const catalogCandidates = componentCards || arsenal.offers.length ? [] : await retrieveCatalog({
+            text: input.inputType === "image" ? (normalizedExecutionBrief?.rawInput ?? "") : contextContent,
+            postMode: input.postMode, hasImage: false,
+          }, generationTrace.id, ctx.user.id);
+          const outcome = await (componentCards ? generateCompleteDesignVariations : generatePostVariations)(
             {
+              studioPreferences,
+              contextContent,
+              offered:componentCards??[],
+              resolve:(ids:string[])=>hydrateComponents(ids,componentExperimental),
+              experimental:componentExperimental,
+              slideCount:input.slideCount??5,
+              aspectRatio:input.aspectRatio??"4:5",
               userUuid: ctx.user.id,
               request: {
                 inputType: input.inputType,
@@ -589,10 +606,16 @@ export const appRouter = router({
               },
               siteIntelligence,
               executionBrief: normalizedExecutionBrief,
+              briefInterpretation,
+              catalogCandidates,
+              variableContentContract,
+              arsenalCards: arsenal.offers,
+              arsenalResolve: hydrateArsenalCandidates,
+              arsenalBudgetMs: Math.max(1,2000-arsenal.availability.durationMs),
+              arsenalBudget,
               plan: generationPlan,
-              aiLlmJudgeEnabled: ENV.aiLlmJudgeEnabled,
-              // Cobre chamada principal + reparo (60 s cada em OPENROUTER_TASK_POLICY)
-              // com folga para embeddings, juízes e persistência.
+              // Cobre chamada principal + reparo técnico (60 s cada em OPENROUTER_TASK_POLICY)
+              // com folga para embeddings e persistência.
               deadlineMs: Date.now() + 150_000,
             },
             {
@@ -616,38 +639,6 @@ export const appRouter = router({
               ),
             );
 
-            // Etapa 3 §8.4 — gate de similaridade com o prompt após geração.
-            // Copy literal não autorizada é rejeitada; trechos obrigatórios
-            // (mustKeep) são preservados e não geram violação.
-            if (input.inputType === "text") {
-              const sourceFields = outputSnapshotsToSourceFields(outcome.snapshots);
-              const sourceViolations = evaluateSourceCopyGate({
-                prompt: input.content,
-                requiredTerms: normalizedExecutionBrief?.mustKeep,
-                fields: sourceFields,
-              });
-              if (sourceViolations.length > 0) {
-                recordGenerationEvent({
-                  stage: "source_copy_gate",
-                  status: "rejected",
-                  detail: sourceViolations.map((v) => v.detail).join("; "),
-                  data: sourceViolations,
-                });
-                throw new GenerationFailureError({
-                  code: "BAD_GATEWAY",
-                  failure: toFailureMetadata({
-                    generationRunId: generationTrace.id,
-                    reason: "quality_rejected",
-                    validationIssues: sourceViolations.map((v) => ({
-                      code: v.code,
-                      detail: v.detail,
-                    })),
-                  }),
-                  cause: new Error(sourceViolations.map((v) => v.detail).join("; ")),
-                });
-              }
-            }
-
             await persistCandidateFingerprints({
               userUuid: ctx.user.id,
               generationRunId: generationTrace.id,
@@ -660,11 +651,15 @@ export const appRouter = router({
               status: "completed",
               strategies: outcome.plan,
               evaluations: outcome.evaluations,
+              acceptedCount: outcome.evaluations.length > 0
+                ? outcome.evaluations.filter((e) => e.accepted).length
+                : outcome.snapshots.length,
               revisionCount,
               strategyFallbackUsed: outcome.plan.strategies.fallbackUsed,
               originalityFallbackUsed: outcome.originality.fallbackUsed,
               output: outcome.snapshots,
             });
+            await persistArsenalOutput(generationTrace.id, ctx.user.id, outcome.snapshots,arsenalBudget);
             await appendOperationalLog("POST_GENERATION_COMPLETED", {
               generationRunId: generationTrace.id,
               userUuid: ctx.user.id,
@@ -714,6 +709,7 @@ export const appRouter = router({
             return {
               variations: outcome.snapshots,
               generationRunId: generationTrace.id,
+              ...(ctx.user.role === "admin" ? { arsenalAvailability: arsenal.availability } : {}),
               ...(debugEnabled
                 ? {
                     debug: buildGenerationDebugTrace({
@@ -728,35 +724,28 @@ export const appRouter = router({
           }
 
           // rejected / failed — o catch abaixo é dono único do refund, do
-          // encerramento do trace e do log. A distinção entre rejeição de
-          // qualidade e falha operacional é preservada até a borda.
+          // encerramento do trace e do log. Rejeição aqui é de contrato
+          // objetivo persistente após o reparo, não de nota editorial.
           if (outcome.status === "rejected") {
-            const reason = outcome.issues.some((issue) => issue.type === "diversity")
-              ? "variations_not_distinct"
-              : "quality_rejected";
+            const reason = "invalid_provider_response";
             const validationIssues = outcome.issues.map((issue) => ({
-              code:
-                issue.type === "diversity"
-                  ? "variations_not_distinct"
-                  : issue.type === "quality"
-                    ? "quality_rejected"
-                    : "invalid_set",
+              code: issue.type === "diversity" ? "variations_not_distinct" : "invalid_set",
               slot: issue.slot === "set" ? undefined : (issue.slot as number),
               detail: issue.detail,
             }));
             throw new GenerationFailureError({
               code: "BAD_GATEWAY",
-              failure: toFailureMetadata({
+              failure: { ...toFailureMetadata({
                 generationRunId: generationTrace.id,
                 reason,
                 validationIssues,
-              }),
+              }), userMessage: userMessageForGenerationIssues(outcome.issues) },
               cause: new Error(outcome.issues.map((issue) => issue.detail).join("; ")),
             });
           }
           throw new GenerationFailureError({
             code: outcome.error.kind === "deadline" ? "GATEWAY_TIMEOUT" : "INTERNAL_SERVER_ERROR",
-            failure: toFailureMetadata({
+            failure: {...toFailureMetadata({
               generationRunId: generationTrace.id,
               reason:
                 outcome.error.kind === "deadline"
@@ -767,7 +756,7 @@ export const appRouter = router({
                       ? "invalid_provider_response"
                       : "unknown",
               error: outcome.error.message,
-            }),
+            }),...(componentActive && outcome.error.kind === "internal" ? {userMessage:outcome.error.message}: {})},
             cause: new Error(outcome.error.message),
           });
         } catch (error) {
@@ -796,7 +785,10 @@ export const appRouter = router({
             error instanceof GenerationFailureError
               ? error.failure.reason
               : classifyGenerationError(error);
-          const diagnostics = failureReason === "quality_rejected" || failureReason === "variations_not_distinct"
+          const hasObjectiveIssues = error instanceof GenerationFailureError
+            && failureReason === "invalid_provider_response"
+            && Boolean(error.failure.validationIssues?.length);
+          const diagnostics = failureReason === "quality_rejected" || failureReason === "variations_not_distinct" || hasObjectiveIssues
             ? buildGenerationFailureDiagnostics(
                 generationTrace,
                 error instanceof GenerationFailureError
@@ -855,29 +847,28 @@ export const appRouter = router({
         }
       }),
 
-    /** Generate image for a post */
+    /** Generate only on explicit user action; commit after owner-private media delivery. */
     generateImage: protectedProcedure
-      .input(
-        z.object({
-          prompt: z.string().min(1),
-        })
-      )
+      .input(z.object({
+        prompt: z.string().min(1).max(2000),
+        aspectRatio: z.enum(["1:1", "4:5", "5:6", "9:16"]).optional(),
+        postContext: imagePostContextSchema.optional(),
+        idempotencyKey: z.string().min(1).max(128).optional(),
+      }))
       .mutation(async ({ input, ctx }) => {
-        // Debita Sparks antes de gerar imagem
-        const email = ctx.user.email ?? "dev@local.dev";
-        const profile = await getBillingProfile(email);
-        const debit = await debitSparks(profile.id, SPARK_COSTS.GENERATE_IMAGE, "Geração de imagem IA");
-        if (!debit.success) {
-          throw new TRPCError({
-            code: "PAYMENT_REQUIRED",
-            message: "Sparks insuficientes. Faça upgrade ou adquira um pacote de recarga.",
-          });
+        const profile = await getBillingProfile(ctx.user.email ?? "dev@local.dev");
+        const reservation = await reserveSparks(profile, SPARK_COSTS.GENERATE_IMAGE, input.idempotencyKey ?? deriveIdempotencyKey(ctx.user.id,{inputType:"image",postMode:"image",platform:"canvas",content:JSON.stringify([input.prompt,input.aspectRatio,input.postContext])}), "Geração de imagem IA");
+        if (!reservation.reservationId) throw new TRPCError({code:reservation.reason==="committed"?"CONFLICT":"PAYMENT_REQUIRED",message:reservation.reason==="committed"?"Esta solicitação já foi concluída. Acione uma nova geração no editor.":"Não foi possível reservar Sparks para esta imagem. Verifique seu saldo ou tente novamente."});
+        try {
+          const result = await generateImage({prompt: input.prompt, aspectRatio: input.aspectRatio, postContext: input.postContext, ownerId: ctx.user.id});
+          if (!result.url) throw new Error("Nenhuma imagem retornada");
+          if (!await commitSparkReservation(reservation.reservationId, `image:${input.idempotencyKey ?? reservation.reservationId}`)) throw new Error("Não foi possível confirmar a geração da imagem");
+          return { imageUrl: result.url };
+        } catch(error) {
+          const refunded=await refundSparkReservation(reservation.reservationId,"Falha na geração ou entrega da imagem");
+          if(!refunded) appendOperationalLog("SPARK_REFUND_FAILED", {message: `Imagem: reserva ${reservation.reservationId} não estornada.`});
+          throw error;
         }
-
-        const result = await generateImage({
-          prompt: input.prompt,
-        });
-        return { imageUrl: result.url || "" };
       }),
 
     /** Scrape URL for content extraction */
@@ -920,18 +911,22 @@ export const appRouter = router({
           copyAngle: copyAngleSchema.optional(),
           variationSnapshot: postVisualSnapshotSchema.optional(),
           /** Modelo completo do editor CanvasLab (PostSpark Studio). */
-          canvasModel: z.any().optional(),
+          canvasModel: z.any().superRefine((value, ctx) => {
+            try { validateArsenalSaveModel(value); }
+            catch (error) { ctx.addIssue({ code: "custom", message: error instanceof Error ? error.message : "Composição inválida" }); }
+          }).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
         try {
+          await authorizeArsenalSaveModel(input.canvasModel,ctx.user.id);
           const validatedSnapshot = input.variationSnapshot
             ? postVisualSnapshotSchema.parse(input.variationSnapshot)
             : undefined;
-          const compressedInput = await compressPostPayload({
+          const compressedInput = await compressPostPayload(await normalizeCanvasMediaPayload({
             ...input,
             variationSnapshot: validatedSnapshot,
-          });
+          }, ctx.user.id));
           const postId = await createPost({
             ...compressedInput,
             userUuid: ctx.user.id,
@@ -975,17 +970,21 @@ export const appRouter = router({
           copyAngle: copyAngleSchema.optional(),
           variationSnapshot: postVisualSnapshotSchema.optional(),
           /** Modelo completo do editor CanvasLab (PostSpark Studio). */
-          canvasModel: z.any().optional(),
+          canvasModel: z.any().superRefine((value, ctx) => {
+            try { validateArsenalSaveModel(value); }
+            catch (error) { ctx.addIssue({ code: "custom", message: error instanceof Error ? error.message : "Composição inválida" }); }
+          }).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
         const validatedSnapshot = input.variationSnapshot
           ? postVisualSnapshotSchema.parse(input.variationSnapshot)
           : undefined;
-        const compressedInput = await compressPostPayload({
+        const compressedInput = await compressPostPayload(await normalizeCanvasMediaPayload({
           ...input,
           variationSnapshot: validatedSnapshot,
-        });
+        }, ctx.user.id));
+        await authorizeArsenalSaveModel(input.canvasModel,ctx.user.id);
         await updatePost(input.id, ctx.user.id, compressedInput);
         return { success: true };
       }),
@@ -1051,6 +1050,10 @@ export const appRouter = router({
         const imageData = await generateBackgroundImage(input.prompt, input.provider);
         return { imageData }; // base64 data URI
       }),
+
+    saveMediaAsset: protectedProcedure
+      .input(z.object({ imageData: z.string().min(1).max(12 * 1024 * 1024) }))
+      .mutation(({ input, ctx }) => saveUserMediaAsset(input.imageData, ctx.user.id)),
 
     saveBackgroundAsset: protectedProcedure
       .input(

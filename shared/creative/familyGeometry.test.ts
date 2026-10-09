@@ -4,7 +4,7 @@ import { composeVariation } from "./compose";
 import { createPostVisualSnapshot } from "../variationSnapshot";
 import { DEFAULT_DESIGN_TOKENS, type AspectRatio, type PostVariation } from "../postspark";
 
-const RATIOS: AspectRatio[] = ["1:1", "5:6", "9:16"];
+const RATIOS: AspectRatio[] = ["1:1", "4:5", "5:6", "9:16"];
 
 // Copy nos limites do contrato de `copyRules` (headline 60, body 100).
 const COPY = [

@@ -27,10 +27,10 @@ import type { LayoutPosition } from "../postspark";
 export type TextAlign = "left" | "center" | "right";
 
 /** Chave de proporção para mapas por-ratio (CR-003 — calibração por formato). */
-export type AspectRatioKey = "1:1" | "5:6" | "9:16";
+export type AspectRatioKey = "1:1" | "4:5" | "5:6" | "9:16";
 
 export function aspectOf(ratio: string): AspectRatioKey {
-  return ratio === "5:6" ? "5:6" : ratio === "9:16" ? "9:16" : "1:1";
+  return ratio === "4:5" ? "4:5" : ratio === "5:6" ? "5:6" : ratio === "9:16" ? "9:16" : "1:1";
 }
 
 export interface StackSlots {
@@ -221,7 +221,7 @@ export interface SafeAreaMargins {
  * `height` já usam). Em 9:16 o rodapé ganha margem maior — zona de UI do
  * Instagram em Stories/Reels (like/comment/share sobrepõem a base do vídeo).
  */
-export function safeAreaMarginsPercent(aspectRatio: "1:1" | "5:6" | "9:16"): SafeAreaMargins {
+export function safeAreaMarginsPercent(aspectRatio: "1:1" | "4:5" | "5:6" | "9:16"): SafeAreaMargins {
   if (aspectRatio === "9:16") {
     return { top: 6, bottom: 12, left: 6, right: 6 };
   }

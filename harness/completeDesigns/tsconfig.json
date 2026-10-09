@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.json","include":["./*.ts"],"exclude":[],"compilerOptions":{"incremental":false,"target":"ES2022"}}

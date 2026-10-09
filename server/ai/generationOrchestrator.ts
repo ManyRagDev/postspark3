@@ -1,3 +1,9 @@
+import type {VariableContentContract} from "@shared/variableContent";
+import type { CatalogEntry } from "@shared/designCatalog";
+import type { ArsenalOffer } from "@shared/arsenalGeneration";
+import type { ArsenalSearchHit } from "@shared/arsenalCatalog";
+import { generateArsenalPostVariations } from "./arsenalGenerationOrchestrator";
+import { catalogPrompt, selectCatalogForVariation } from "../designCatalog/retrieval";
 /**
  * SPEC-003 — Orquestrador canônico de geração de variações.
  *
@@ -7,7 +13,7 @@
  * Orçamento de chamadas (parte do contrato):
  * - caminho feliz: exatamente 1 chamada generativa (copy/caption/slides);
  * - caminho com reparo: no máximo 1 chamada generativa adicional, contendo
- *   APENAS os slots rejeitados (estrutura, qualidade ou diversidade);
+ *   APENAS os slots com defeitos objetivos de estrutura ou vazamento literal;
  * - retries de transporte/provider ficam registrados no trace (attempt>1);
  * - embeddings/originalidade rodam em paralelo e nunca reescrevem copy.
  *
@@ -26,7 +32,6 @@ import type {
   GenerationEvaluationSummary,
   Platform,
   PostVariation,
-  PostVisualSnapshot,
   SiteIntelligence,
 } from "@shared/postspark";
 import type { InvokeParams, InvokeResult } from "../_core/llm";
@@ -40,21 +45,15 @@ import {
 import { createPostVisualSnapshot } from "@shared/variationSnapshot";
 import { composeVisualDiversityPlan } from "@shared/creative";
 import { CAROUSEL_SLIDE_TARGET, POST_VARIATION_TARGET, validateVariationSet } from "./generationValidation";
-import { variationsNeedDiversification } from "./variationDiversity";
 import { enforceBrandVisualGuardian } from "./brandVisualGuardian";
 import { synthesizeCaptionDeterministic } from "./captionSynthesis";
-import {
-  applyOriginalityToEvaluations,
-  deterministicEvaluation,
-  evaluateCandidates,
-  summarize,
-} from "./postEvaluation";
 import { validateRevisedCandidate } from "./revisionValidation";
 import type { ContentStrategyPlan } from "./contentStrategy";
 import type { PreparedGenerationPlan } from "./generationPipeline";
 import { siteIntelligenceToDesignTokens, siteIntelligenceToPrompt } from "../siteIntelligence";
 import { extractTextContent, safeJsonParse } from "./llmJson";
 import type { OriginalityResult } from "./semanticOriginality";
+import { briefInterpretationPrompt, findInstructionLeakage, type BriefInterpretation } from "./briefInterpretation";
 import { fontkitMeasurer } from "@shared/typography/fontkitMeasurer";
 import { setTypographyMeasurer } from "@shared/typography/measurer";
 
@@ -72,7 +71,7 @@ export interface GenerationMetrics {
   generativeCalls: number;
   /** Chamadas de reparo (0 ou 1). */
   repairCalls: number;
-  /** Juízes LLM invocados (0 quando aiLlmJudgeEnabled=false). */
+  /** Mantido no contrato de telemetria; zero no fluxo produtivo. */
   evaluationCalls: number;
   /** Chamadas de embedding/originalidade (0 ou 1). */
   embeddingCalls: number;
@@ -106,7 +105,7 @@ export type GenerationOutcome =
   | {
       status: "approved";
       runId: string;
-      snapshots: PostVisualSnapshot[];
+      snapshots: PostVariation[];
       evaluations: GenerationEvaluationSummary[];
       originality: OriginalityResult;
       plan: PreparedGenerationPlan;
@@ -183,12 +182,20 @@ export interface ExecutionBriefContext {
 }
 
 export interface OrchestratorInput {
+  assemblyPilot?: import("../../shared/assemblyPilot").AssemblyRetrieval;
+  variableContentContract?: VariableContentContract;
+  arsenalCards?: ArsenalSearchHit[];
+  arsenalResolve?: (ids: string[], signal: AbortSignal) => Promise<ArsenalOffer[]>;
+  arsenalBudgetMs?: number;
+  arsenalBudget?: {remainingMs:number};
+  arsenalCandidates?: ArsenalOffer[];
+  catalogCandidates?: CatalogEntry[];
   userUuid: string;
   request: GenerationRequest;
   siteIntelligence: SiteIntelligence | null;
   executionBrief: ExecutionBriefContext | null;
+  briefInterpretation?: BriefInterpretation | null;
   plan: PreparedGenerationPlan;
-  aiLlmJudgeEnabled: boolean;
   deadlineMs: number | null;
 }
 
@@ -231,7 +238,7 @@ export function cleanAIFillerFromCaption(caption: string): string {
 
 // ─── Métricas ────────────────────────────────────────────────────────────────
 
-function createMetrics(deadlineMs: number | null, now: number): MutableMetrics {
+export function createMetrics(deadlineMs: number | null, now: number): MutableMetrics {
   return {
     startedAt: now,
     generativeCalls: 0,
@@ -249,14 +256,14 @@ function createMetrics(deadlineMs: number | null, now: number): MutableMetrics {
   };
 }
 
-function addCallMetrics(metrics: MutableMetrics, result: InvokeResult): void {
+export function addCallMetrics(metrics: MutableMetrics, result: InvokeResult): void {
   metrics.promptTokens += result.usage?.prompt_tokens ?? 0;
   metrics.completionTokens += result.usage?.completion_tokens ?? 0;
   metrics.totalTokens += result.usage?.total_tokens ?? 0;
   metrics.estimatedCostUsd += result.usage?.cost ?? 0;
 }
 
-function finishMetrics(metrics: MutableMetrics, now: number): GenerationMetrics {
+export function finishMetrics(metrics: MutableMetrics, now: number): GenerationMetrics {
   const finishedAt = now;
   return {
     ...metrics,
@@ -422,18 +429,21 @@ Gere EXATAMENTE ${POST_VARIATION_TARGET} variações de post para ${input.platfo
 ${core}`;
 }
 
-function buildUserPrompt(input: {
+export function buildUserPrompt(input: {
   request: GenerationRequest;
   executionBrief: ExecutionBriefContext | null;
   contextContent: string;
+  briefInterpretation?: BriefInterpretation | null;
 }): { content: InvokeParams["messages"][number]["content"] } {
+  const interpretationContext = briefInterpretationPrompt(input.briefInterpretation ?? null);
   const userPrompt = input.executionBrief
     ? `Execute este briefing com fidelidade. Otimize apenas no grau permitido.
+${interpretationContext}
 
 ${buildExecutionBriefContext(input.executionBrief)}`
     : input.request.inputType === "image"
       ? `Crie posts baseados nesta imagem: ${input.request.imageUrl || input.request.content}`
-      : `Crie posts baseados neste conteúdo: ${input.contextContent}`;
+      : `Crie posts baseados neste conteúdo: ${input.contextContent}${interpretationContext}`;
 
   if (input.request.inputType === "image") {
     // CR-008: o bloco de imagem só entra quando existe uma URL VÁLIDA — um
@@ -472,8 +482,9 @@ function formatOptimizationSchema() {
   };
 }
 
-function variationSchema(isCarousel: boolean, validAnchorIds?: string[]): Record<string, unknown> {
+function variationSchema(isCarousel: boolean, validAnchorIds?: string[], catalogIds?: string[]): Record<string, unknown> {
   const commonProperties: Record<string, unknown> = {
+    ...(catalogIds?.length ? { designBlueprintId: { type: "string", enum: ["none", ...catalogIds] } } : {}),
     headline: { type: "string", description: "Título principal do post" },
     body: { type: "string", description: "Corpo principal do post" },
     hashtags: {
@@ -504,8 +515,8 @@ function variationSchema(isCarousel: boolean, validAnchorIds?: string[]): Record
     },
     aspectRatio: {
       type: "string",
-      enum: ["1:1", "5:6", "9:16"],
-      description: "Proporção de aspecto: 1:1 quadrado, 5:6 retrato, 9:16 story/reels — varie entre as variações para oferecer diversidade",
+      enum: ["1:1", "4:5", "9:16"],
+      description: "Proporção de aspecto: 1:1 quadrado, 4:5 retrato, 9:16 story/reels — varie entre as variações para oferecer diversidade",
     },
     template: {
       type: "string",
@@ -532,10 +543,10 @@ function variationSchema(isCarousel: boolean, validAnchorIds?: string[]): Record
       type: "object",
       properties: {
         "1:1": { $ref: "#/$defs/formatOptimization" },
-        "5:6": { $ref: "#/$defs/formatOptimization" },
+        "4:5": { $ref: "#/$defs/formatOptimization" },
         "9:16": { $ref: "#/$defs/formatOptimization" },
       },
-      required: ["1:1", "5:6", "9:16"],
+      required: ["1:1", "4:5", "9:16"],
       additionalProperties: false,
     },
     // `badge`/`stickerText` NÃO são gerados pelo LLM: são ornamentos visuais,
@@ -620,6 +631,7 @@ function variationSchema(isCarousel: boolean, validAnchorIds?: string[]): Record
         "aspectRatioOptimizations",
         "copyAngle",
         ...anchorRequired,
+      ...(catalogIds?.length ? ["designBlueprintId"] : []),
       ],
       additionalProperties: false,
     };
@@ -649,6 +661,7 @@ function variationSchema(isCarousel: boolean, validAnchorIds?: string[]): Record
       "aspectRatioOptimizations",
       "copyAngle",
       ...anchorRequired,
+      ...(catalogIds?.length ? ["designBlueprintId"] : []),
     ],
     additionalProperties: false,
   };
@@ -659,6 +672,7 @@ function buildVariationsSchema(
   count: number,
   schemaName: string,
   validAnchorIds?: string[],
+  catalogIds?: string[],
 ): InvokeParams["response_format"] {
   return {
     type: "json_schema",
@@ -672,7 +686,7 @@ function buildVariationsSchema(
             type: "array",
             minItems: count,
             maxItems: count,
-            items: variationSchema(isCarousel, validAnchorIds),
+            items: variationSchema(isCarousel, validAnchorIds, catalogIds),
           },
         },
         required: ["variations"],
@@ -707,7 +721,11 @@ export function stripUnsupportedControlChars(value: unknown): unknown {
   return value;
 }
 
-function collectSlotIssues(variation: ParsedVariation | null, isCarousel: boolean, index: number): string[] {
+function normalizedCopy(value: string): string {
+  return value.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function collectSlotIssues(variation: ParsedVariation | null, isCarousel: boolean, index: number, brief?: ExecutionBriefContext | null): string[] {
   if (!variation) {
     return [`slot ${index + 1} ausente na resposta do modelo`];
   }
@@ -729,38 +747,19 @@ function collectSlotIssues(variation: ParsedVariation | null, isCarousel: boolea
   if (isCarousel && (variation.slides?.length ?? 0) !== CAROUSEL_SLIDE_TARGET) {
     issues.push(`slot ${index + 1} com ${variation.slides?.length ?? 0} slides (esperado ${CAROUSEL_SLIDE_TARGET})`);
   }
-  return issues;
-}
-
-function checkAnchorUsage(
-  variation: ParsedVariation,
-  anchors: NonNullable<SiteIntelligence["anchors"]>,
-): string[] {
-  const issues: string[] = [];
-  const validAnchorIds = anchors.facts.map((f) => f.id);
-
-  if (!variation.anchorUsed || !validAnchorIds.includes(variation.anchorUsed)) {
-    issues.push(`missing_anchor: anchorUsed "${variation.anchorUsed ?? ""}" não está entre os fatos válidos [${validAnchorIds.join(", ")}]`);
+  if (brief) {
+    const visibleFields = [
+      variation.headline, variation.body, variation.caption, variation.callToAction,
+      ...(variation.slides ?? []).flatMap((slide) => [slide.headline, slide.body]),
+    ].filter((value): value is string => typeof value === "string").map(normalizedCopy);
+    for (const term of [...brief.mustKeep, ...brief.mustInclude]) {
+      if (term.trim() && !visibleFields.some((field) => field.includes(normalizedCopy(term)))) issues.push(`termo explicitamente obrigatório ausente: ${term}`);
+    }
+    for (const term of brief.forbiddenTerms) {
+      if (term.trim() && visibleFields.some((field) => field.includes(normalizedCopy(term)))) issues.push(`termo explicitamente proibido presente: ${term}`);
+    }
   }
-
-  const visibleText = `${variation.headline ?? ""} ${variation.body ?? ""} ${variation.caption ?? ""}`.toLowerCase();
-  const matched = (variation.proprietaryTerms ?? []).filter((t) =>
-    visibleText.includes(t.toLowerCase()),
-  );
-  if (matched.length === 0) {
-    issues.push(`missing_proprietary_term: nenhum termo proprietário [${anchors.proprietaryTerms.join(", ")}] aparece no headline, body ou caption`);
-  }
-
   return issues;
-}
-
-function checkAiVices(
-  evaluation: GenerationEvaluationSummary,
-): string[] {
-  if (evaluation.aiViceScore === undefined || evaluation.aiViceScore >= 70) return [];
-  const patterns = evaluation.vicePatterns ?? [];
-  if (patterns.length === 0) return [];
-  return [`ai_vice_detected: ${patterns.join(", ")}`];
 }
 
 function normalizeCarouselSlides(variation: ParsedVariation): Array<Record<string, unknown>> {
@@ -820,38 +819,19 @@ function buildRepairPrompt(input: {
   isCarousel: boolean;
   targets: number[];
   issuesBySlot: Map<number, string[]>;
-  qualityFeedbackBySlot: Map<number, string[]>;
-  diversityDirective: boolean;
   variations: ParsedVariation[];
   contextContent: string;
+  briefInterpretation?: BriefInterpretation | null;
 }): string {
   const reasons = input.targets
     .map((slotIndex) => {
-      const structural = input.issuesBySlot.get(slotIndex) ?? [];
-      const quality = input.qualityFeedbackBySlot.get(slotIndex) ?? [];
-      const allReasons = [...structural, ...quality].map((reason) => {
-        if (reason.startsWith("ai_vice_detected:")) {
-          const patterns = reason.replace("ai_vice_detected:", "").trim();
-          return `Padroes de escrita generica detectados: ${patterns}. Reescreva substituindo por forma positiva (ex: em vez de "nao e X, e Y", escreva "X faz Y").`;
-        }
-        return reason;
-      });
+      const allReasons = input.issuesBySlot.get(slotIndex) ?? [];
       const current = input.variations[slotIndex] ? JSON.stringify(input.variations[slotIndex], null, 2) : "(slot ausente)";
       return `SLOT ${slotIndex + 1}:
-- Motivos da rejeição: ${allReasons.length > 0 ? allReasons.join("; ") : "falha na validação de qualidade"}
+- Defeitos objetivos: ${allReasons.length > 0 ? allReasons.join("; ") : "campos obrigatórios incompletos"}
 - Conteúdo atual: ${current}`;
     })
     .join("\n\n");
-
-  const diversityDirective = input.diversityDirective
-    ? `
-DIVERSIDADE: o conjunto ficou parecido demais. Reescreva os slots listados para que fiquem nitidamente distintos entre si:
-- O headline de cada variação deve ser uma manchete autoral inédita e provocativa, NUNCA a frase do tema.
-- Não repita headline, body, CTA, hashtags, copyAngle, nem a mesma combinação de layout + paleta.
-- Garanta pelo menos 2 layouts diferentes no conjunto final.
-- Garanta ângulos de copy diferentes e facilmente distinguíveis.
-${input.isCarousel ? "- Preserve exatamente 5 slides por variação de carrossel, com narrativa completa." : ""}`
-    : "";
 
   const brandContext = input.siteIntelligence
     ? `REGRA DE MARCA: respeite a identidade visual extraída (cores, paleta e WCAG) já aplicada.`
@@ -860,10 +840,10 @@ ${input.isCarousel ? "- Preserve exatamente 5 slides por variação de carrossel
   const userContent = `Você recebeu ${input.targets.length} variação(ões) rejeitada(s) de um conjunto de ${POST_VARIATION_TARGET} variações do mesmo post.
 
 ${input.executionBrief ? `Execute este briefing com fidelidade. Otimize apenas no grau permitido.\n\n${buildExecutionBriefContext(input.executionBrief)}` : `Tema: ${input.contextContent.slice(0, 3000)}`}
+${briefInterpretationPrompt(input.briefInterpretation ?? null)}
 
 SLOTS REJEITADOS (reescreva SOMENTE estes):
 ${reasons}
-${diversityDirective}
 ${brandContext}
 
 REGRAS:
@@ -970,6 +950,9 @@ export async function generatePostVariations(
   input: OrchestratorInput,
   deps: OrchestratorDeps,
 ): Promise<GenerationOutcome> {
+  // Dispatch before any legacy prompt, copy guard, composition or snapshot.
+  if (input.request.postMode === "static" && (input.variableContentContract || input.arsenalCards?.length || input.arsenalCandidates?.length))
+    return generateArsenalPostVariations(input, deps);
   const metrics = createMetrics(input.deadlineMs, deps.clock());
   const { request, siteIntelligence, executionBrief, plan } = input;
   const isCarousel = request.postMode === "carousel";
@@ -1017,8 +1000,8 @@ export async function generatePostVariations(
       brandDnaContext,
       promptContext: plan.promptContext,
       hasAnchors: validAnchorIds.length > 0,
-    });
-    const { content: userContent } = buildUserPrompt({ request, executionBrief, contextContent });
+    }) + catalogPrompt(input.catalogCandidates ?? []);
+    const { content: userContent } = buildUserPrompt({ request, executionBrief, contextContent, briefInterpretation: input.briefInterpretation });
 
     let mainResponse: InvokeResult;
     try {
@@ -1031,7 +1014,7 @@ export async function generatePostVariations(
           { role: "system", content: systemPrompt },
           { role: "user", content: userContent },
         ],
-        response_format: buildVariationsSchema(isCarousel, POST_VARIATION_TARGET, "post_variations", validAnchorIds),
+        response_format: buildVariationsSchema(isCarousel, POST_VARIATION_TARGET, "post_variations", validAnchorIds, input.catalogCandidates?.map(e => e.id)),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -1056,24 +1039,33 @@ export async function generatePostVariations(
     }
     recordEvent("post_generation", "completed", `Primary generation returned ${variations.filter(Boolean).length} variation(s).`);
 
+    const captionFallbackSlots: number[] = [];
+    variations = variations.map((variation, index) => {
+      if (variation && String(variation.caption ?? "").trim().length < CAPTION_MIN_LENGTH) {
+        captionFallbackSlots.push(index);
+        return { ...variation, caption: synthesizeCaptionDeterministic(variation, request.platform) };
+      }
+      return variation;
+    });
+
     // ── 2. Validação estrutural por slot ────────────────────────────────────
     const issuesBySlot = new Map<number, string[]>();
-    const anchors = siteIntelligence?.anchors;
     variations.forEach((variation, index) => {
-      const structural = collectSlotIssues(variation, isCarousel, index);
-      const semantic = variation && anchors ? checkAnchorUsage(variation, anchors) : [];
-      const all = [...structural, ...semantic];
+      const structural = collectSlotIssues(variation, isCarousel, index, executionBrief);
+      const instructionLeakage = variation
+        ? findInstructionLeakage(variation, input.briefInterpretation ?? null).map((span) => `instruction_leakage: remova o comando de produção "${span}" da copy; preserve o assunto e os fatos.`)
+        : [];
+      const all = [...structural, ...instructionLeakage];
       if (all.length > 0) issuesBySlot.set(index, all);
     });
 
-    // ── 3. Originalidade (paralela) + avaliação de qualidade ────────────────
-    const recentPosts = await deps.loadRecentPosts(input.userUuid, 20).catch(() => [] as PostRecord[]);
-    const originalityPromise = deps
-      .assessOriginality({
+    // ── 3. Originalidade para metadados, sem nota editorial no caminho crítico ──
+    const recentPostsPromise = deps.loadRecentPosts(input.userUuid, 20).catch(() => [] as PostRecord[]);
+    const originalityPromise = recentPostsPromise.then((recentPosts) => deps.assessOriginality({
         candidates: variations.filter((v): v is PostVariation => v !== null) as PostVariation[],
         siteIntelligence,
         recentPosts,
-      })
+      }))
       .catch(
         (error): OriginalityResult => ({
           assessments: variations.filter(Boolean).map(() => ({ score: 50, maxCandidateSimilarity: 0, maxSiteSimilarity: 0, maxHistorySimilarity: 0, closestSource: "none", fallbackUsed: true })),
@@ -1083,71 +1075,8 @@ export async function generatePostVariations(
       );
 
     metrics.embeddingCalls += 1;
-    // Slots ausentes (null) são avaliados como candidatos vazios: a rejeição
-    // estrutural já está registrada; aqui só evitamos crash na avaliação.
-    const evaluatedCandidates = variations.map(
-      (variation) => (variation ?? {}) as PostVariation,
-    );
-    let evaluations = await evaluateCandidates({
-      candidates: evaluatedCandidates,
-      strategies: plan.strategies.selected,
-      siteIntelligence,
-      platform: request.platform,
-      originalityScores: undefined,
-      skipJudgeIndexes: Array.from(issuesBySlot.keys()),
-      meaningPlan: plan.strategies.meaningPlan,
-    });
-    metrics.evaluationCalls += input.aiLlmJudgeEnabled
-      ? variations.length - issuesBySlot.size
-      : 0;
-
-    const originality = await originalityPromise;
-    if (originality.fallbackUsed) metrics.fallbacks.push("originality");
-    const originalityScores = originality.assessments.map((assessment) => assessment.score);
-    evaluations = applyOriginalityToEvaluations(evaluations, originalityScores);
-
-    // Anchor penalty: slots with anchor issues get factuality -15,
-    // which drops them below the gate (factuality >= 65) and triggers repair.
-    if (anchors) {
-      evaluations = evaluations.map((evaluation, index) => {
-        const slotIssues = issuesBySlot.get(index) ?? [];
-        const hasAnchorIssue = slotIssues.some((issue) =>
-          issue.startsWith("missing_anchor") || issue.startsWith("missing_proprietary_term"),
-        );
-        if (!hasAnchorIssue) return evaluation;
-        const dimensions = {
-          ...evaluation.dimensions,
-          factuality: Math.max(0, Math.round(evaluation.dimensions.factuality - 15)),
-        };
-        return summarize(dimensions, evaluation.feedback);
-      });
-    }
-
-    recordEvent("originality", originality.fallbackUsed ? "fallback" : "completed", `Originality assessed (${originality.assessments.length} assessments).`);
-    recordEvent("quality_evaluation", evaluations.every((evaluation) => evaluation.accepted) ? "completed" : "rejected", `Evaluation round: ${evaluations.filter((evaluation) => evaluation.accepted).length}/${evaluations.length} accepted.`);
-
-    // AI vice detection: slots with generic LLM patterns go to repair
-    evaluations.forEach((evaluation, index) => {
-      const viceIssues = checkAiVices(evaluation);
-      if (viceIssues.length > 0) {
-        const existing = issuesBySlot.get(index) ?? [];
-        issuesBySlot.set(index, [...existing, ...viceIssues]);
-      }
-    });
-
-    // ── 4. Alvos de reparo (estrutura ∪ qualidade ∪ diversidade) ────────────
-    const qualityFeedbackBySlot = new Map<number, string[]>();
-    const structuralTargets = Array.from(issuesBySlot.keys());
-    const qualityTargets = evaluations
-      .map((evaluation, index) => (evaluation.accepted ? -1 : index))
-      .filter((index) => index >= 0);
-    qualityTargets.forEach((index) => {
-      qualityFeedbackBySlot.set(index, evaluations[index].feedback.slice(0, 3));
-    });
-    const needsDiversity = variations.every((variation) => variation !== null) && variationsNeedDiversification(variations as PostVariation[]);
-    const repairTargets = needsDiversity
-      ? [0, 1, 2]
-      : Array.from(new Set([...structuralTargets, ...qualityTargets])).sort((a, b) => a - b);
+    // ── 4. Reparo apenas dos slots objetivamente incompletos ───────────────
+    const repairTargets = Array.from(issuesBySlot.keys()).sort((a, b) => a - b);
 
     // ── 5. Reparo único (no máximo 1 chamada generativa) ────────────────────
     const revisedIndexes: number[] = [];
@@ -1185,10 +1114,9 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
         isCarousel,
         targets: repairTargets,
         issuesBySlot,
-        qualityFeedbackBySlot,
-        diversityDirective: needsDiversity,
         variations,
         contextContent,
+        briefInterpretation: input.briefInterpretation,
       });
 
       let repairResponse: InvokeResult | undefined;
@@ -1207,7 +1135,7 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
             { role: "system", content: repairSystemPrompt },
             { role: "user", content: repairUserPrompt },
           ],
-          response_format: buildVariationsSchema(isCarousel, repairTargets.length, "post_variations_repair", validAnchorIds),
+          response_format: buildVariationsSchema(isCarousel, repairTargets.length, "post_variations_repair", validAnchorIds, input.catalogCandidates?.map(e => e.id)),
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -1244,7 +1172,8 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
             postMode: request.postMode,
             siteIntelligence,
           });
-          const stillBroken = collectSlotIssues(validated.candidate as ParsedVariation, isCarousel, slotIndex).length > 0;
+          const stillBroken = collectSlotIssues(validated.candidate as ParsedVariation, isCarousel, slotIndex, executionBrief).length > 0
+            || findInstructionLeakage(validated.candidate, input.briefInterpretation ?? null).length > 0;
           if (validated.errors.length > 0 || stillBroken) {
             recordEvent("repair", "rejected", `Slot ${slotIndex + 1} repair rejected: ${validated.errors.join("; ")}`);
             revisionFailedIndexes.push(slotIndex);
@@ -1257,28 +1186,14 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
         variations = candidateSet;
       }
 
-      // Reavaliação determinística dos slots reparados (sem novo juiz LLM).
-      const repairedSet = variations as PostVariation[];
-      revisedIndexes.forEach((slotIndex) => {
-        evaluations[slotIndex] = deterministicEvaluation({
-          candidate: repairedSet[slotIndex] as PostVariation,
-          allCandidates: repairedSet,
-          strategy: plan.strategies.selected[slotIndex],
-          siteIntelligence,
-          platform: request.platform,
-          originalityScore: originalityScores[slotIndex],
-          meaningPlan: plan.strategies.meaningPlan,
-        });
-      });
         recordEvent("repair", revisedIndexes.length > 0 ? "completed" : "rejected", `Repair applied to ${revisedIndexes.length} slot(s); failed for ${revisionFailedIndexes.length}.`);
       }
     }
 
     // ── 6. Fallback determinístico de caption ───────────────────────────────
-    const captionFallbackSlots: number[] = [];
     variations = variations.map((variation, index) => {
       if (variation && String(variation.caption ?? "").trim().length < CAPTION_MIN_LENGTH) {
-        captionFallbackSlots.push(index);
+        if (!captionFallbackSlots.includes(index)) captionFallbackSlots.push(index);
         return { ...variation, caption: synthesizeCaptionDeterministic(variation, request.platform) };
       }
       return variation;
@@ -1307,6 +1222,9 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
         );
       }
     }
+    const originality = await originalityPromise;
+    if (originality.fallbackUsed) metrics.fallbacks.push("originality");
+    recordEvent("originality", originality.fallbackUsed ? "fallback" : "completed", `Originality assessed (${originality.assessments.length} assessments).`);
     variations = applyBrandGuardian(variations, siteIntelligence);
     const compositionInputs = buildComposition({
       variations,
@@ -1315,7 +1233,7 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
       executionBrief,
       siteIntelligence,
       plan,
-      evaluations,
+      evaluations: [],
       originality,
       revisionCount,
       revisedIndexes,
@@ -1326,7 +1244,10 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
     const visualDiversity = composeVisualDiversityPlan(
       compositionInputs,
       (chameleonDesignTokens ?? {}) as DesignTokens,
-      { brandLocked: Boolean(chameleonDesignTokens) },
+      {
+        brandLocked: Boolean(chameleonDesignTokens),
+        requiredVisibleTerms: executionBrief ? [...executionBrief.mustKeep, ...executionBrief.mustInclude] : [],
+      },
     );
     const generatedVariations = visualDiversity.variations;
     recordEvent("visual_diversity_plan", visualDiversity.plan.issues.length === 0 ? "completed" : "fallback", visualDiversity.plan.issues.length === 0 ? `Composed ${visualDiversity.plan.layouts.length} layouts across ${visualDiversity.plan.familyIds.length} creative families.` : visualDiversity.plan.issues.join("; "));
@@ -1346,25 +1267,16 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
       );
     }
     const finalValidation = validateVariationSet(frozenSnapshots, request.postMode);
-    const rejectedQualitySlots = evaluations
-      .map((evaluation, index) => (
-        evaluation.feedback.some((feedback) =>
-          feedback.includes("fato obrigatorio") || feedback.includes("atribuicao de autoridade")
-        ) ? index : -1
-      ))
+    frozenSnapshots.forEach((snapshot, index) => {
+      finalValidation.errors.push(...collectSlotIssues(snapshot, isCarousel, index, executionBrief));
+    });
+    if (finalValidation.errors.length > 0) finalValidation.valid = false;
+    const leakedInstructionSlots = frozenSnapshots
+      .map((snapshot, index) => findInstructionLeakage(snapshot, input.briefInterpretation ?? null).length > 0 ? index : -1)
       .filter((index) => index >= 0);
-    if (rejectedQualitySlots.length > 0) {
+    if (leakedInstructionSlots.length > 0) {
       finalValidation.valid = false;
-      finalValidation.errors.push(`quality_rejected_slots:${rejectedQualitySlots.map((index) => index + 1).join(",")}`);
-      rejectedQualitySlots.forEach((index) => {
-        const feedback = evaluations[index].feedback;
-        if (feedback.some((item) => item.includes("fato obrigatorio"))) {
-          finalValidation.errors.push(`quality_missing_required_fact_slot:${index + 1}`);
-        }
-        if (feedback.some((item) => item.includes("atribuicao de autoridade"))) {
-          finalValidation.errors.push(`quality_unsupported_authority_slot:${index + 1}`);
-        }
-      });
+      finalValidation.errors.push(`instruction_leakage_slots:${leakedInstructionSlots.map((index) => index + 1).join(",")}`);
     }
     recordEvent("final_validation", finalValidation.valid ? "completed" : "rejected", finalValidation.valid ? "Exactly three complete variations approved." : finalValidation.errors.join("; "));
 
@@ -1379,6 +1291,19 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
       return { status: "rejected", runId: deps.trace.id, issues, metrics: rejectedMetrics };
     }
 
+    // Selection is auxiliary to the legacy snapshot: attach after its validation.
+    // The Studio materializes the exact version in CanvasPostModel before opening the gallery.
+    const usedCatalogVersions: string[] = [];
+    for (const [slot, snapshot] of Array.from(frozenSnapshots.entries())) {
+      const selected = await selectCatalogForVariation({
+        entries: input.catalogCandidates ?? [], requested: variations[slot]?.designBlueprintId, usedVersionIds: usedCatalogVersions,
+        query: { text: `${snapshot.headline} ${snapshot.body}`, postMode: request.postMode,
+          format: snapshot.aspectRatio ?? "1:1", hasImage: false, headline: snapshot.headline, body: snapshot.body },
+        traceId: deps.trace.id, actor: input.userUuid, slot, preserveBrandFonts: Boolean(siteIntelligence),
+      });
+      if (selected) { snapshot.catalogSelection = selected; usedCatalogVersions.push(selected.versionId); }
+    }
+
     recordEvent("orchestrator", "completed", `Generation approved with ${metrics.generativeCalls} generative call(s), ${metrics.repairCalls} repair(s).`);
     const approvedMetrics = finishMetrics(metrics, deps.clock());
     recordEvent("generation_metrics", "completed", `Approved run: ${JSON.stringify(approvedMetrics)}`, approvedMetrics);
@@ -1387,7 +1312,7 @@ COERENCIA DO HEADLINE: em post estatico estruturado, o headline nao pode promete
       status: "approved",
       runId: deps.trace.id,
       snapshots: frozenSnapshots,
-      evaluations,
+      evaluations: [],
       originality,
       plan,
       metrics: approvedMetrics,

@@ -25,7 +25,7 @@ import { PALETTES } from "@shared/creative/palettes";
 import { composeVariation, directCreative } from "@shared/creative";
 import PostCardV2 from "@/components/views/WorkbenchV2/PostCardV2";
 
-const ASPECT_RATIOS: AspectRatio[] = ["1:1", "5:6", "9:16"];
+const ASPECT_RATIOS: AspectRatio[] = ["1:1", "4:5", "9:16"];
 
 const SAMPLE_IMAGE =
   "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&q=70&auto=format&fit=crop";

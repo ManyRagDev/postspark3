@@ -149,8 +149,22 @@ const RPC_PROBE_ARGS: Record<string, Record<string, unknown>> = {
     p_idempotency_key: "__verify_sentinel__",
     p_description: "__verify_sentinel__",
   },
+  next_reserve_sparks_v2: {
+    p_user_uuid: SENTINEL_UUID,
+    p_amount: 0,
+    p_nonce: "__verify_sentinel__",
+  },
   commit_spark_reservation: { p_reservation_id: SENTINEL_UUID, p_generation_run_id: "__verify_sentinel__" },
+  next_commit_reservation_v2: {
+    p_reservation_id: SENTINEL_UUID,
+    p_description: "__verify_sentinel__",
+    p_metadata: {},
+  },
   refund_spark_reservation: { p_reservation_id: SENTINEL_UUID, p_error_detail: "__verify_sentinel__" },
+  next_refund_reservation_v2: {
+    p_reservation_id: SENTINEL_UUID,
+    p_reason: "__verify_sentinel__",
+  },
   debit_sparks: {
     p_user_id: SENTINEL_UUID,
     p_amount: 0,
@@ -202,18 +216,32 @@ export function isColumnNotFound(error: { message?: string; code?: string } | nu
 
 async function probeTable(client: SupabaseClient<any, any>, requirement: RuntimeRequirement): Promise<ProbeResult> {
   const label = `${requirement.schema}.${requirement.name}`;
-  try {
-    const { error } = await client.from(requirement.name).select("*").limit(0);
-    if (isTableNotFound(error)) {
-      return { requirement: label, kind: requirement.kind, critical: requirement.critical, status: "absent", detail: error?.message };
-    }
-    if (error) {
+  const candidates = [requirement.name, ...(requirement.aliases ?? [])];
+  let lastAbsentDetail: string | undefined;
+
+  for (const name of candidates) {
+    try {
+      const { error } = await client.from(name).select("*").limit(0);
+      if (!error) {
+        return {
+          requirement: label,
+          kind: requirement.kind,
+          critical: requirement.critical,
+          status: "present",
+          detail: name !== requirement.name ? `presente via alias remoto '${name}'` : undefined,
+        };
+      }
+      if (isTableNotFound(error)) {
+        lastAbsentDetail = error?.message;
+        continue;
+      }
       return { requirement: label, kind: requirement.kind, critical: requirement.critical, status: "incompatible", detail: error.message };
+    } catch (error) {
+      return { requirement: label, kind: requirement.kind, critical: requirement.critical, status: "not_verifiable", detail: error instanceof Error ? error.message : String(error) };
     }
-    return { requirement: label, kind: requirement.kind, critical: requirement.critical, status: "present" };
-  } catch (error) {
-    return { requirement: label, kind: requirement.kind, critical: requirement.critical, status: "not_verifiable", detail: error instanceof Error ? error.message : String(error) };
   }
+
+  return { requirement: label, kind: requirement.kind, critical: requirement.critical, status: "absent", detail: lastAbsentDetail };
 }
 
 async function probeColumn(client: SupabaseClient<any, any>, requirement: RuntimeRequirement): Promise<ProbeResult> {
@@ -245,20 +273,43 @@ async function probeRpc(client: SupabaseClient<any, any>, requirement: RuntimeRe
       detail: "função auto-ativa acesso (write) — auditoria read-only não a sonda; presença verificada por information_schema na auditoria externa",
     };
   }
-  const args = RPC_PROBE_ARGS[requirement.name] ?? {};
-  try {
-    const { error } = await client.rpc(requirement.name, args);
-    if (isFunctionNotFound(error)) {
-      return { requirement: requirement.name, kind: requirement.kind, critical: requirement.critical, status: "absent", detail: error?.message };
-    }
-    if (error) {
+
+  const candidates = [requirement.name, ...(requirement.aliases ?? [])];
+  let lastAbsentDetail: string | undefined;
+
+  for (const name of candidates) {
+    const args = RPC_PROBE_ARGS[name] ?? RPC_PROBE_ARGS[requirement.name] ?? {};
+    try {
+      const { error } = await client.rpc(name, args);
+      if (!error) {
+        return {
+          requirement: requirement.name,
+          kind: requirement.kind,
+          critical: requirement.critical,
+          status: "present",
+          detail: name !== requirement.name ? `presente via alias remoto '${name}'` : "sentinela aceito; função presente",
+        };
+      }
+      if (isFunctionNotFound(error)) {
+        lastAbsentDetail = error?.message;
+        continue;
+      }
       // Função existe (o erro é de validação de argumentos/perfil sentinela).
-      return { requirement: requirement.name, kind: requirement.kind, critical: requirement.critical, status: "present", detail: `probe com sentinela sem efeito (${error.code ?? "erro"}); função respondeu` };
+      return {
+        requirement: requirement.name,
+        kind: requirement.kind,
+        critical: requirement.critical,
+        status: "present",
+        detail: name !== requirement.name
+          ? `presente via alias remoto '${name}' (probe sentinela respondeu: ${error.code ?? "erro"})`
+          : `probe com sentinela sem efeito (${error.code ?? "erro"}); função respondeu`,
+      };
+    } catch (error) {
+      return { requirement: requirement.name, kind: requirement.kind, critical: requirement.critical, status: "not_verifiable", detail: error instanceof Error ? error.message : String(error) };
     }
-    return { requirement: requirement.name, kind: requirement.kind, critical: requirement.critical, status: "present", detail: "sentinela aceito; função presente" };
-  } catch (error) {
-    return { requirement: requirement.name, kind: requirement.kind, critical: requirement.critical, status: "not_verifiable", detail: error instanceof Error ? error.message : String(error) };
   }
+
+  return { requirement: requirement.name, kind: requirement.kind, critical: requirement.critical, status: "absent", detail: lastAbsentDetail };
 }
 
 export async function probeRemote(): Promise<VerifyReport["remote"]> {
@@ -276,6 +327,13 @@ export async function probeRemote(): Promise<VerifyReport["remote"]> {
     if (requirement.kind === "table") results.push(await probeTable(client, requirement));
     else if (requirement.kind === "column") results.push(await probeColumn(client, requirement));
     else if (requirement.kind === "rpc") results.push(await probeRpc(client, requirement));
+    else if (requirement.kind === "bucket") {
+      const {data,error} = await client.storage.getBucket(requirement.name);
+      results.push({requirement:requirement.name,kind:"bucket",critical:requirement.critical,
+        status:error ? (/not found|does not exist/i.test(error.message) ? "absent" : "not_verifiable") :
+          !data ? "not_verifiable" : data.public ? "incompatible" : "present",
+        detail:error?.message ?? (data?.public ? "O bucket do Arsenal deve ser privado" : undefined)});
+    }
   }
 
   let buckets: string[] = [];

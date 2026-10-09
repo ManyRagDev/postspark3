@@ -3,10 +3,13 @@ import type { AiModel } from "@shared/postspark";
 import type { ProviderModelConfig } from "./providers/modelAdapters";
 
 export type AiTaskRoute =
+  | "brief_interpretation"
   | "content_strategy"
   | "static_generation"
   | "carousel_generation"
   | "vision_analysis"
+  | "design_analysis"
+  | "design_recreation"
   | "microcopy"
   | "fast_vision"
   | "post_evaluation"
@@ -30,6 +33,13 @@ export const GROQ_SCOUT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 export const GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
 
 const MODEL_COSTS: Record<string, ModelCostConfig> = {
+  // Estimativa pelo endpoint DeepSeek no OpenRouter (2026-09-29).
+  // O custo real retornado pelo provedor tem precedência em llm.ts.
+  "deepseek/deepseek-v4.1-flash": {
+    inputCostPerMillion: 0.15,
+    outputCostPerMillion: 0.6,
+    platformFeePercent: ENV.openRouterPlatformFeePercent,
+  },
   "openai/gpt-5-mini": {
     inputCostPerMillion: 0.25,
     outputCostPerMillion: 2,
@@ -92,7 +102,7 @@ export function estimateModelCostUsd(input: {
   return base * (1 + (costs.platformFeePercent ?? 0) / 100);
 }
 
-function openRouterConfig(model: string): ProviderModelConfig {
+function openRouterConfig(model: string, requireParameters = false): ProviderModelConfig {
   if (!ENV.openRouterApiKey) {
     throw new Error("OPENROUTER_API_KEY is required for the selected AI route.");
   }
@@ -109,6 +119,7 @@ function openRouterConfig(model: string): ProviderModelConfig {
     providerOptions: {
       allow_fallbacks: true,
       data_collection: "deny",
+      ...(requireParameters ? { require_parameters: true } : {}),
     },
   };
 }
@@ -159,12 +170,15 @@ export function resolveTaskModelConfig(input: {
   if (route === "fast_vision") return groqConfig(GROQ_SCOUT_MODEL);
   if (route === "fallback_text_or_vision") return resolveGeminiFallbackConfig();
 
+  if (route === "brief_interpretation") return openRouterConfig(ENV.openRouterBriefInterpretationModel);
   if (route === "content_strategy") return openRouterConfig(ENV.openRouterContentStrategyModel);
   if (route === "static_generation") return openRouterConfig(ENV.openRouterStaticModel);
   if (route === "carousel_generation") return openRouterConfig(ENV.openRouterCarouselModel);
   if (route === "quality_revision") return openRouterConfig(ENV.openRouterQualityRevisionModel);
   if (route === "post_evaluation") return openRouterConfig(ENV.openRouterEvaluationModel);
   if (route === "caption_synthesis") return openRouterConfig(ENV.openRouterStaticModel);
+  if (route === "design_analysis") return openRouterConfig(ENV.openRouterDesignAnalysisModel, true);
+  if (route === "design_recreation") return openRouterConfig(ENV.openRouterDesignRecreationModel, true);
 
   // CR-004: rotas high_ticket (intent router / context summary) saíram do
   // caminho síncrono — roteamento de intenção e budget de contexto são

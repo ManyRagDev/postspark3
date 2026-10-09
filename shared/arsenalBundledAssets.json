@@ -1,0 +1,77 @@
+{
+  "font-afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548": {
+    "id": "font-afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548",
+    "kind": "bundled",
+    "sha256": "afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548",
+    "mimeType": "font/woff2",
+    "bytes": 12512,
+    "family": "Arsenal_afec86997fdaf54a",
+    "weight": 400,
+    "license": "open-source",
+    "path": "/arsenal/fonts/afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548.woff2",
+    "sourceFamily": "Press Start 2P",
+    "sourceUrl": "https://fonts.gstatic.com/s/pressstart2p/v16/e3t4euO8T-267oIAQAu6jDQyK3nVivM.woff2"
+  },
+  "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc": {
+    "id": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+    "kind": "bundled",
+    "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+    "mimeType": "font/woff2",
+    "bytes": 23664,
+    "family": "Arsenal_8909904ab6c872eb",
+    "weight": 400,
+    "license": "open-source",
+    "path": "/arsenal/fonts/8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc.woff2",
+    "sourceFamily": "Inter",
+    "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2"
+  },
+  "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491": {
+    "id": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+    "kind": "bundled",
+    "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+    "mimeType": "font/woff2",
+    "bytes": 24356,
+    "family": "Arsenal_6f56409fd3d64bb8",
+    "weight": 700,
+    "license": "open-source",
+    "path": "/arsenal/fonts/6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491.woff2",
+    "sourceFamily": "Inter"
+  },
+  "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30": {
+    "id": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+    "kind": "bundled",
+    "sha256": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+    "mimeType": "font/woff2",
+    "bytes": 18604,
+    "family": "Arsenal_25f33e61cf995abd",
+    "weight": 400,
+    "license": "open-source",
+    "path": "/arsenal/fonts/25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30.woff2",
+    "sourceFamily": "Archivo Black",
+    "sourceUrl": "https://fonts.gstatic.com/s/archivoblack/v23/HTxqL289NzCGg4MzN6KJ7eW6CYyF_g.woff2"
+  },
+  "font-c40f2293766a503bc70cce9e512ef844a4ccb7cbcde792fe2ea31d191917d8d6": {
+    "id": "font-c40f2293766a503bc70cce9e512ef844a4ccb7cbcde792fe2ea31d191917d8d6",
+    "kind": "bundled",
+    "sha256": "c40f2293766a503bc70cce9e512ef844a4ccb7cbcde792fe2ea31d191917d8d6",
+    "mimeType": "font/ttf",
+    "bytes": 300724,
+    "family": "Arsenal_c40f2293766a503b",
+    "weight": 700,
+    "license": "open-source",
+    "path": "/arsenal/fonts/c40f2293766a503bc70cce9e512ef844a4ccb7cbcde792fe2ea31d191917d8d6.ttf",
+    "sourceFamily": "Playfair Display"
+  },
+  "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b": {
+    "id": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+    "kind": "bundled",
+    "sha256": "d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+    "mimeType": "font/woff2",
+    "bytes": 18612,
+    "family": "Arsenal_d0fa07ff63dd60cb",
+    "weight": 400,
+    "license": "open-source",
+    "path": "/arsenal/fonts/d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b.woff2",
+    "sourceFamily": "Anton"
+  }
+}

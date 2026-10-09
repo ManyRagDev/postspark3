@@ -1,3 +1,4 @@
+import { readArsenalMode } from "../designCatalog/arsenalMode";
 const envFlag = (name: string, defaultValue: boolean): boolean => {
   const value = process.env[name];
   if (value === undefined) return defaultValue;
@@ -18,12 +19,17 @@ const envInteger = (
 const isProduction = process.env.NODE_ENV === "production";
 
 export const ENV = {
+  // DEV pilot only until partial pricing and production worker hosting are approved.
+  generationV5Mode: process.env.GENERATION_V5_MODE === "dev" ? "dev" as const : "off" as const,
+  designArsenalV2Mode: readArsenalMode(),
+  componentArsenalMode: readArsenalMode(process.env.COMPONENT_ARSENAL_MODE ?? "admin"),
   isProduction,
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
   groqApiKey: process.env.GROQ_API_KEY ?? "",
   openRouterApiKey: process.env.OPENROUTER_API_KEY ?? "",
+  openRouterDesignSelectionModel: process.env.OPENROUTER_DESIGN_SELECTION_MODEL ?? "typesafe/jev-1.13",
   openRouterSiteUrl: process.env.OPENROUTER_SITE_URL ?? "https://postspark.app",
   openRouterAppName: process.env.OPENROUTER_APP_NAME ?? "PostSpark",
   openRouterTextModel: process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5-mini",
@@ -36,10 +42,18 @@ export const ENV = {
     process.env.OPENROUTER_QUALITY_REVISION_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5.4-mini",
   openRouterContentStrategyModel:
     process.env.OPENROUTER_CONTENT_STRATEGY_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "z-ai/glm-5.3-flash",
+  openRouterBriefInterpretationModel:
+    process.env.OPENROUTER_BRIEF_INTERPRETATION_MODEL ?? "google/gemini-3.8-flash",
   openRouterEvaluationModel:
     process.env.OPENROUTER_EVALUATION_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "z-ai/glm-5.3-flash",
   openRouterVisionModel: process.env.OPENROUTER_VISION_MODEL ?? "google/gemini-3.8-flash",
+  openRouterDesignAnalysisModel:
+    process.env.OPENROUTER_DESIGN_ANALYSIS_MODEL ?? "openai/gpt-4o",
+  openRouterDesignRecreationModel:
+    process.env.OPENROUTER_DESIGN_RECREATION_MODEL ?? "deepseek/deepseek-v4.1-flash",
   openRouterImageModel: process.env.OPENROUTER_IMAGE_MODEL ?? "google/gemini-3.1-flash-image-preview",
+  // V5 uses a separately capability-checked model; legacy/manual keeps its existing route.
+  openRouterV5ImageModel: process.env.OPENROUTER_V5_IMAGE_MODEL ?? "google/gemini-3.1-flash-image",
   openRouterPlatformFeePercent: parseFloat(process.env.OPENROUTER_PLATFORM_FEE_PERCENT || "5.5"),
   llmInputCostPerMillion: parseFloat(process.env.LLM_INPUT_COST_PER_MILLION || "0"),
   llmOutputCostPerMillion: parseFloat(process.env.LLM_OUTPUT_COST_PER_MILLION || "0"),

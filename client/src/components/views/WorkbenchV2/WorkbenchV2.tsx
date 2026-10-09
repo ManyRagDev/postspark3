@@ -1,3 +1,4 @@
+import { aspectRatioHeight } from "@shared/aspectRatios";
 /**
  * WorkbenchV2 — Shell do editor ativo.
  *
@@ -276,7 +277,7 @@ export default function WorkbenchV2({ onBack, onSave, isSaving, onExport, genera
       reader.onload = (ev) => {
         const url = ev.target?.result as string;
         const cardWidth = 360;
-        const cardHeight = aspectRatio === "9:16" ? 640 : aspectRatio === "5:6" ? 432 : 360;
+        const cardHeight = aspectRatioHeight(aspectRatio);
         const newElement = {
           id: `img-${Date.now()}`,
           url,

@@ -1,3 +1,4 @@
+import type { CatalogSelection } from "./designCatalog";
 /** Input type detection */
 export type InputType = "text" | "url" | "image";
 
@@ -194,10 +195,10 @@ export type Platform = "instagram" | "twitter" | "linkedin" | "facebook";
 
 /** Platform aspect ratio options */
 export const PLATFORM_ASPECT_RATIOS: Record<Platform, AspectRatio[]> = {
-  instagram: ["1:1", "5:6", "9:16"], // Feed, Portrait, Stories/Reels
-  twitter: ["1:1", "5:6"], // Feed, Portrait
-  linkedin: ["1:1", "5:6"], // Feed, Portrait
-  facebook: ["1:1", "5:6"], // Feed, Portrait
+  instagram: ["1:1", "4:5", "9:16"], // Feed, Portrait, Stories/Reels
+  twitter: ["1:1", "4:5"], // Feed, Portrait
+  linkedin: ["1:1", "4:5"], // Feed, Portrait
+  facebook: ["1:1", "4:5"], // Feed, Portrait
 };
 
 /** Platform default aspect ratio */
@@ -255,11 +256,12 @@ export const PLATFORM_SPECS: Record<
 };
 
 /** Post aspect ratio (canvas format) */
-export type AspectRatio = "1:1" | "5:6" | "9:16";
+export type AspectRatio = "1:1" | "4:5" | "5:6" | "9:16";
 
 /** Aspect ratio CSS values */
 export const ASPECT_RATIO_VALUES: Record<AspectRatio, string> = {
   "1:1": "1 / 1",
+  "4:5": "4 / 5",
   "5:6": "5 / 6",
   "9:16": "9 / 16",
 };
@@ -267,6 +269,7 @@ export const ASPECT_RATIO_VALUES: Record<AspectRatio, string> = {
 /** Aspect ratio display labels */
 export const ASPECT_RATIO_LABELS: Record<AspectRatio, { label: string }> = {
   "1:1": { label: "1:1" },
+  "4:5": { label: "4:5" },
   "5:6": { label: "5:6" },
   "9:16": { label: "9:16" },
 };
@@ -492,6 +495,12 @@ export interface CreativeDirection {
 
 /** A single generated post variation */
 export interface PostVariation {
+  completeDesignV1?: import("./completeDesignGeneration").CompleteDesignVariationV1;
+  /** Studio V2 document transport; not a legacy PostVisualSnapshot. */
+  catalogSelectionV2?: import("./designArsenal").CatalogBundleV2;
+  componentAssemblyV1?: import("./componentAssembly").AssemblyVariationBundleV1;
+  designBlueprintId?: string;
+  catalogSelection?: CatalogSelection;
   id: string;
   headline: string;
   body: string;

@@ -1,3 +1,5 @@
+import MediaSlotPanel from './MediaSlotPanel';
+import type { MediaUpdate } from '../lib/mediaSlots';
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
@@ -27,6 +29,9 @@ import { toast } from "sonner";
 import type { CanvasPostModel, VisualFamilyId, TextAlignType, OverlayMode, CanvasCustomText, CanvasCustomImage, SplitBgPosition, FitMode, BackgroundPlacement } from "@/pages/CanvasLab/components/types";
 import { OFFICIAL_FAMILIES_META } from "@/pages/CanvasLab/components/types";
 import { applyFamilyPreset } from "../lib/familyPreset";
+import { imageRequestForPost } from "../lib/imageGenerationContext";
+import type { ImageDirectionId } from "../lib/imageGenerationContext";
+import ImageDirectionSuggestions from "./ImageDirectionSuggestions";
 import { duplicateExtraElement, reorderExtraElement } from "../lib/documentCommands";
 import TypographyColorControls from "./TypographyColorControls";
 import PropertyInspector from "./PropertyInspector";
@@ -39,9 +44,17 @@ import BackgroundsDrawer from "./BackgroundsDrawer";
 import RadialTextureSelector from "./RadialTextureSelector";
 import FontPickerDropdown from "./FontPickerDropdown";
 import { applySlideVisualPatch } from "../lib/slideVisualScope";
+import type { ArsenalComposition } from "@shared/designArsenal";
+import ArsenalCompositionInspector from "./ArsenalCompositionInspector";
 
 interface CanvasMobileDrawerProps {
+  requestedTab?: "media";
   post: CanvasPostModel;
+  composition?: ArsenalComposition;
+  onUpdateComposition?: (composition: ArsenalComposition) => void;
+  onMediaUpdate?: MediaUpdate;
+  mediaPreview?: string;
+  onMediaPreview?: (url: string | undefined) => void;
   onUpdatePost: (updates: Partial<CanvasPostModel>) => void;
   suspended?: boolean;
   onReplicate?: () => void;
@@ -50,25 +63,24 @@ interface CanvasMobileDrawerProps {
   onAddExtraText?: () => void;
   onUpdateExtraText?: (id: string, patch: Partial<CanvasCustomText>) => void;
   onRemoveExtraText?: (id: string) => void;
-  onAddExtraImage?: (url: string, naturalWidth?: number, naturalHeight?: number) => void;
+  onAddExtraImage?: (url: string, naturalWidth?: number, naturalHeight?: number, targetSlideId?: string) => void;
   onUpdateExtraImage?: (id: string, patch: Partial<CanvasCustomImage>) => void;
   onRemoveExtraImage?: (id: string) => void;
   selectedElementId?: string | null;
   onSelectElement?: (id: string | null) => void;
 }
 
-type MobileTab = "text" | "style" | "media" | "brand";
-
-const mobileTabs = [
-  { id: "text", label: "Texto", icon: Edit3 },
-  { id: "style", label: "Estilo", icon: Palette },
-  { id: "media", label: "Mídia", icon: ImageIcon },
-  { id: "brand", label: "Logo", icon: Sparkles },
-] as const;
+type MobileTab = "text" | "style" | "media" | "brand" | "design";
 
 export default function CanvasMobileDrawer({
   post,
+  composition,
+  onUpdateComposition,
+  requestedTab,
   onUpdatePost,
+  onMediaUpdate,
+  mediaPreview,
+  onMediaPreview,
   suspended = false,
   onReplicate,
   isOpen: controlledIsOpen,
@@ -94,7 +106,15 @@ export default function CanvasMobileDrawer({
       setInternalIsOpen(nextVal);
     }
   };
+  const mobileTabs = [
+    { id: "text" as MobileTab, label: "Texto", icon: Edit3 },
+    { id: "style" as MobileTab, label: "Estilo", icon: Palette },
+    { id: "media" as MobileTab, label: "Mídia", icon: ImageIcon },
+    { id: "brand" as MobileTab, label: "Logo", icon: Sparkles },
+    ...(composition ? [{ id: "design" as MobileTab, label: "Design", icon: Layers }] : []),
+  ];
   const [activeTab, setActiveTab] = useState<MobileTab>("text");
+  useEffect(() => { if (requestedTab) setActiveTab(requestedTab); }, [requestedTab]);
   const panelHeaderRef = useRef<HTMLDivElement>(null);
   const panelContentRef = useRef<HTMLDivElement>(null);
 
@@ -161,8 +181,9 @@ export default function CanvasMobileDrawer({
   const setShowTips = useStudioTipsStore((s) => s.setShowTips);
 
   // Estado da Mídia / Background
-  const [aiPrompt, setAiPrompt] = useState(post.imagePrompt || "");
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const latestPostRef = useRef(post);
+  latestPostRef.current = post;
   const [isTexturesDrawerOpen, setIsTexturesDrawerOpen] = useState(false);
   const [isTextureStudioOpen, setIsTextureStudioOpen] = useState(false);
   const [manifestData, setManifestData] = useState<any>(null);
@@ -177,13 +198,6 @@ export default function CanvasMobileDrawer({
       .catch((err) => console.warn("Erro ao carregar manifest:", err));
   }, []);
 
-  // Sincroniza prompt de IA
-  useEffect(() => {
-    if (post.imagePrompt) {
-      setAiPrompt(post.imagePrompt);
-    }
-  }, [post.imagePrompt]);
-
   const currentSlide = post.slides[post.currentSlideIndex] || post.slides[0];
   const extraTextsList = currentSlide?.extraTexts || post.extraTexts || [];
   const extraImagesList = currentSlide?.extraImages || post.extraImages || [];
@@ -195,13 +209,14 @@ export default function CanvasMobileDrawer({
   const handleMobileImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const targetSlideId = latestPostRef.current.slides[latestPostRef.current.currentSlideIndex]?.id;
     const reader = new FileReader();
     reader.onload = (evt) => {
       const dataUrl = evt.target?.result as string;
       if (!dataUrl) return;
       const img = new Image();
       img.onload = () => {
-        onAddExtraImage?.(dataUrl, img.naturalWidth, img.naturalHeight);
+        onAddExtraImage?.(dataUrl, img.naturalWidth, img.naturalHeight, targetSlideId);
       };
       img.src = dataUrl;
     };
@@ -243,7 +258,7 @@ export default function CanvasMobileDrawer({
   };
 
   const handleApplyBackground = (url?: string) => {
-    onUpdatePost(applySlideVisualPatch(post, { bgImage: url }, false));
+    onUpdatePost(applySlideVisualPatch(latestPostRef.current, { bgImage: url }, false));
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,19 +273,21 @@ export default function CanvasMobileDrawer({
     reader.readAsDataURL(file);
   };
 
-  const handleGenerateAiImage = async () => {
-    if (!aiPrompt.trim()) {
-      toast.error("Digite uma descrição para a imagem.");
-      return;
-    }
+  const handleGenerateAiImage = async (
+    prompt: string,
+    directionId: ImageDirectionId | "custom",
+    useCompositionGuidance: boolean,
+  ): Promise<string | undefined> => {
+    if (!prompt.trim()) return;
     setIsGeneratingAi(true);
     toast.info("A IA está gerando sua imagem em alta resolução...");
 
     try {
-      const res = await generateImageMutation.mutateAsync({ prompt: aiPrompt.trim() });
+      const res = await generateImageMutation.mutateAsync(
+        {...imageRequestForPost(post, prompt, { directionId, useCompositionGuidance }), idempotencyKey: crypto.randomUUID()},
+      );
       if (res?.imageUrl) {
-        handleApplyBackground(res.imageUrl);
-        toast.success("Foto exclusiva gerada com sucesso pela IA!");
+        return res.imageUrl;
       } else {
         throw new Error("Nenhuma imagem retornada.");
       }
@@ -280,6 +297,11 @@ export default function CanvasMobileDrawer({
     } finally {
       setIsGeneratingAi(false);
     }
+  };
+
+  const handleGeneratedAiImage = (url: string) => {
+    handleApplyBackground(url);
+    toast.success("Foto exclusiva gerada com sucesso pela IA!");
   };
 
   return (
@@ -348,7 +370,7 @@ export default function CanvasMobileDrawer({
           {isOpen && (
             <div ref={panelContentRef} className="flex-1 overflow-y-auto overscroll-y-contain p-4 space-y-4 custom-scrollbar">
               {/* ─── ABA 1: TEXTO ─── */}
-              {activeTab === "text" && (
+              {activeTab === "text" && !composition && (
                 <div className="space-y-3">
                   <TipCallout id="tip-mtext-tab" title="Conteúdo do post" compact>
                     Título, subtexto, alinhamentos, fontes e cores por elemento com contraste garantido.
@@ -827,7 +849,7 @@ export default function CanvasMobileDrawer({
               )}
 
               {/* ─── ABA 2: ESTILO (14 FAMÍLIAS & CORES) ─── */}
-              {activeTab === "style" && (
+              {activeTab === "style" && !composition && (
                 <div className="space-y-4">
                   <TipCallout id="tip-mstyle-tab" title="Estilos mudam a forma, nunca as cores" compact>
                     Trocar de direção de arte altera fontes e composição — suas cores escolhidas continuam as mesmas.
@@ -897,14 +919,17 @@ export default function CanvasMobileDrawer({
               )}
 
               {/* ─── ABA 3: MÍDIA & PLANO DE FUNDO ─── */}
-              {activeTab === "media" && (
+              {onMediaUpdate && <div className={activeTab === "media" ? "" : "hidden"}><MediaSlotPanel post={post} onUpdate={onMediaUpdate} selectedId={selectedElementId} retainedPreview={mediaPreview} onRetainPreview={onMediaPreview} /></div>}
+        {activeTab === "media" && !(composition && onMediaUpdate) && (
                 <div className="space-y-4">
+{composition && <ArsenalCompositionInspector composition={composition} section="media" selectedId={selectedElementId ?? null} onSelect={id => onSelectElement?.(id)} onChange={c => onUpdateComposition?.(c)} />}
+
                   <TipCallout id="tip-mmedia-tab" title="Fundos por IA, texturas ou fotos" compact>
                     Gere fundo com IA, abra o catálogo de texturas ou envie da galeria do celular.
                   </TipCallout>
 
                   {/* Status do Fundo Ativo */}
-                  {activeBg && (() => {
+                  {!composition && activeBg && (() => {
                     const currentPlacement = currentSlide?.bgPlacement || post.bgPlacement;
                     const activeFitMode: FitMode = currentPlacement?.fitMode || "cover";
 
@@ -982,7 +1007,7 @@ export default function CanvasMobileDrawer({
                   })()}
 
                   {/* Posição da Foto no Brutal Split */}
-                  {post.familyId === "brutal-split" && (
+                  {!composition && post.familyId === "brutal-split" && (
                     <div className="p-3 rounded-2xl border border-[oklch(0.78_0.22_48)]/30 bg-[oklch(0.78_0.22_48)]/5 space-y-2">
                       <div className="flex items-center justify-between text-xs uppercase tracking-wider font-semibold text-[oklch(0.78_0.22_48)]">
                         <span>Posição da Foto no Split</span>
@@ -1041,7 +1066,7 @@ export default function CanvasMobileDrawer({
                   </button>
 
                   {/* 2. Controles Completos do Overlay / Scrim (Quando Fundo Ativo) */}
-                  {activeBg && (
+                  {!composition && activeBg && (
                     <div className="p-3.5 rounded-2xl bg-white/4 border border-white/10 space-y-3">
                       <div className="flex items-center justify-between text-xs font-semibold text-white/80">
                         <div className="flex items-center gap-1.5">
@@ -1167,38 +1192,18 @@ export default function CanvasMobileDrawer({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-white">
                         <Wand2 size={14} className="text-[oklch(0.78_0.22_48)]" />
-                        <span>Gerar Foto com IA</span>
+                        <span>Gerar Imagem com IA</span>
                       </div>
-                      <span className="text-[9px] font-mono text-white/40">OpenRouter & Polli HD</span>
                     </div>
-                    <textarea
-                      rows={2}
-                      value={aiPrompt}
-                      onChange={(e) => setAiPrompt(e.target.value)}
-                      placeholder="Descreva o fundo fotográfico desejado..."
-                      className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)] resize-none"
+                    <ImageDirectionSuggestions
+                      post={post}
+                      defaultPrompt={currentSlide?.imagePrompt || post.imagePrompt || ""}
+                      busy={isGeneratingAi}
+                      buttonLabel="Gerar Imagem com IA"
+                      busyLabel="Gerando imagem..."
+                      onGenerate={handleGenerateAiImage}
+                      onGenerated={handleGeneratedAiImage}
                     />
-                    <button
-                      type="button"
-                      onClick={handleGenerateAiImage}
-                      disabled={isGeneratingAi}
-                      className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-black flex items-center justify-center gap-2 shadow-md cursor-pointer active:scale-95 transition-all"
-                      style={{
-                        background: "linear-gradient(135deg, oklch(0.78 0.22 48), oklch(0.65 0.2 28))",
-                      }}
-                    >
-                      {isGeneratingAi ? (
-                        <>
-                          <Loader2 size={13} className="animate-spin" />
-                          <span>Sintetizando Foto...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles size={13} />
-                          <span>Gerar Imagem com IA</span>
-                        </>
-                      )}
-                    </button>
                   </div>
 
                   {/* 4. Upload da Galeria do Celular (Fundo) */}
@@ -1310,6 +1315,17 @@ export default function CanvasMobileDrawer({
                   </div>
                 </div>
               )}
+
+              {/* ─── ABA 5: DESIGN (ARSENAL COMPOSITION) ─── */}
+              {composition && ["text", "style", "design"].includes(activeTab) && (
+                <ArsenalCompositionInspector
+                  composition={composition}
+            section={activeTab === "text" ? "content" : activeTab === "style" ? "style" : "design"}
+                  selectedId={selectedElementId ?? null}
+                  onSelect={(id) => onSelectElement?.(id)}
+                  onChange={(c) => onUpdateComposition?.(c)}
+                />
+              )}
             </div>
           )}
 
@@ -1345,7 +1361,7 @@ export default function CanvasMobileDrawer({
       <div
         role="toolbar"
         aria-label="Ferramentas de edição"
-        className="relative z-40 mx-3 grid h-14 grid-cols-4 gap-1 rounded-2xl border border-white/15 bg-[#11151f]/95 p-1 shadow-[0_12px_35px_rgba(0,0,0,0.55)] backdrop-blur-xl pointer-events-auto"
+        className={`relative z-40 mx-3 grid h-14 ${composition ? "grid-cols-5" : "grid-cols-4"} gap-1 rounded-2xl border border-white/15 bg-[#11151f]/95 p-1 shadow-[0_12px_35px_rgba(0,0,0,0.55)] backdrop-blur-xl pointer-events-auto`}
       >
         {mobileTabs.map(tab => {
           const Icon = tab.icon;

@@ -3,6 +3,7 @@ import type { GenerationTrace } from "./generationTrace";
 
 const DIAGNOSTIC_STAGES = new Set([
   "post_generation",
+  "brief_interpretation",
   "quality_evaluation",
   "repair",
   "caption_synthesis",
@@ -10,7 +11,6 @@ const DIAGNOSTIC_STAGES = new Set([
   "typography_resolution",
   "visual_diversity_plan",
   "final_validation",
-  "source_copy_gate",
 ]);
 
 const SAFE_ISSUE_DETAILS = [
@@ -18,6 +18,7 @@ const SAFE_ISSUE_DETAILS = [
   /^variation \d+ (?:is missing required copy fields|is missing a copy angle|must contain \d+ slides)$/,
   /^quality_rejected_slots:\d+(?:,\d+)*$/,
   /^quality_(?:missing_required_fact|unsupported_authority)_slot:\d+$/,
+  /^instruction_leakage_slots:\d+(?:,\d+)*$/,
   /^variations are not sufficiently distinct$/,
   /^visual diversity requires at least two (?:composed layouts|creative families|composition cells)$/,
   /^(?:headline|body|caption|slide_headline|slide_body|callToAction) (?:reproduz literalmente o prompt|excessivamente semelhante ao prompt \(sobreposição \d+%\)|contém o prompt de forma integral)$/,

@@ -47,7 +47,7 @@ describe("generationFailure taxonomy", () => {
   it("marks only transient reasons as retryable", () => {
     expect(isRetryable("provider_unavailable")).toBe(true);
     expect(isRetryable("provider_timeout")).toBe(true);
-    expect(isRetryable("quality_rejected")).toBe(false);
+    expect(isRetryable("quality_rejected")).toBe(true);
     expect(isRetryable("insufficient_sparks")).toBe(false);
   });
 
@@ -61,7 +61,7 @@ describe("generationFailure taxonomy", () => {
 
     expect(metadata.generationRunId).toBe("run-1");
     expect(metadata.reason).toBe("quality_rejected");
-    expect(metadata.retryable).toBe(false);
+    expect(metadata.retryable).toBe(true);
     expect(metadata.refunded).toBe(true);
     expect(metadata.userMessage).toBe(userMessageFor("quality_rejected"));
     expect(metadata.validationIssues).toHaveLength(1);

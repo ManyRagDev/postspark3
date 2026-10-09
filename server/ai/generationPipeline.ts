@@ -7,6 +7,8 @@ import {
   type ContentStrategyPlan,
 } from "./contentStrategy";
 import { buildStrategyGenerationContext } from "./postGenerator";
+import type { BriefInterpretation } from "./briefInterpretation";
+import { interpretedContent } from "./briefInterpretation";
 
 export interface PreparedGenerationPlan {
   strategies: ContentStrategyPlan;
@@ -22,8 +24,12 @@ export async function prepareGenerationPlan(input: {
   sourceContent: string;
   siteIntelligence?: SiteIntelligence | null;
   executionBrief?: CreativeExecutionBrief | null;
+  briefInterpretation?: BriefInterpretation | null;
 }): Promise<PreparedGenerationPlan> {
-  const strategies = planContentStrategiesDeterministic(input);
+  const strategies = planContentStrategiesDeterministic({
+    ...input,
+    interpretedContent: interpretedContent(input.briefInterpretation ?? null),
+  });
   return {
     strategies,
     promptContext: buildStrategyGenerationContext(strategies.selected, strategies.meaningPlan),

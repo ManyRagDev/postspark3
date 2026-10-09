@@ -22,6 +22,7 @@ export function cloneSlide(slide: CarouselSlideItem): CarouselSlideItem {
   return {
     ...slide,
     id: slide.id ?? freshId("s"),
+    ...(slide.composition ? { composition: structuredClone(slide.composition) } : {}),
     extraTexts: Array.isArray(slide.extraTexts)
       ? slide.extraTexts.map((text) => ({ ...text, id: freshId("tx") }))
       : slide.extraTexts,
@@ -52,9 +53,25 @@ export function freshId(prefix: string): string {
 
 /** Gera novos IDs de slide e de elementos aninhados (nunca compartilha refs). */
 function withFreshIds(slide: CarouselSlideItem): CarouselSlideItem {
+  let composition = slide.composition ? structuredClone(slide.composition) : undefined;
+  if (composition && composition.version === 3 && composition.authorialLayers?.length) {
+    const idMap = new Map<string, string>();
+    composition.authorialLayers = composition.authorialLayers.map(l => {
+      const newId = freshId(l.kind === "text" ? "tx" : l.kind === "image" ? "im" : "layer");
+      idMap.set(l.id, newId);
+      return { ...l, id: newId };
+    });
+    const newOverrides: Record<string, any> = {};
+    for (const [key, val] of Object.entries(composition.overrides)) {
+      const mappedKey = idMap.get(key) || key;
+      newOverrides[mappedKey] = val;
+    }
+    composition.overrides = newOverrides;
+  }
   return {
     ...slide,
     id: freshId("s"),
+    ...(composition ? { composition } : {}),
     extraTexts: Array.isArray(slide.extraTexts)
       ? slide.extraTexts.map((text) => ({ ...text, id: freshId("tx") }))
       : slide.extraTexts,

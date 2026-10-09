@@ -1,3 +1,10 @@
+import type { AssemblyVariationBundleV1 } from "@shared/componentAssembly";
+import type { CompleteDesignVariationV1 } from "@shared/completeDesignGeneration";
+import { compileCompleteDesign } from "@/pages/CanvasLab/lib/completeDesignCompiler";
+import type { CatalogSelection } from "@shared/designCatalog";
+import type { CatalogBundleV2 } from "@shared/designArsenal";
+import { compileArsenalGeneration, compileComponentAssembly } from "@/pages/CanvasLab/lib/arsenalGenerationCompiler";
+import { compileCatalogPost } from "@/pages/CanvasLab/lib/catalogCompiler";
 import {
   ensureDistinctFamilies,
   resolveLegibleTextColor,
@@ -16,6 +23,12 @@ export const CANVAS_MODEL_VERSION = 2;
 
 /** Campos consumidos por `variationToCanvasModel` (entrada tipada — Etapa 5 §10). */
 export interface GeneratedVariationInput {
+  completeDesignV1?: CompleteDesignVariationV1;
+  componentAssemblyV1?: AssemblyVariationBundleV1;
+  catalogSelectionV2?: CatalogBundleV2;
+  catalogSelection?: CatalogSelection;
+  headlineFontFamily?: string;
+  bodyFontFamily?: string;
   familyId?: string;
   creativeDirection?: { familyId?: string };
   backgroundColor?: string;
@@ -181,7 +194,8 @@ export function variationToCanvasModel(
     subtext,
     caption,
     imagePrompt,
-    fontFamily: defaultFont,
+    fontFamily: v.catalogSelection?.preserveBrandFonts ? v.headlineFontFamily || defaultFont : defaultFont,
+    subtextFontFamily: v.catalogSelection?.preserveBrandFonts ? v.bodyFontFamily : undefined,
     overlayOpacity: 0.55,
     logoPosition: "top-right",
     isSnapEnabled: true,
@@ -427,3 +441,105 @@ export function buildExtraFallbackVariations(
 }
 
 export { ensureDistinctFamilies };
+
+export interface CatalogMaterializationFailure {
+  index: number;
+  slot?: number;
+  variation: GeneratedVariationInput;
+  message: string;
+  cause: unknown;
+  recoveryAction: "retry_same_result";
+}
+
+export interface CatalogMaterializationResult {
+  posts: CanvasPostModel[];
+  failures: CatalogMaterializationFailure[];
+  requestedCount: number;
+  materializedCount: number;
+}
+
+/** Estruturado para a UI distinguir falha de compilação de falha da geração paga. */
+export class CatalogMaterializationError extends Error {
+  readonly code = "CATALOG_MATERIALIZATION_FAILED";
+  readonly result: CatalogMaterializationResult;
+
+  constructor(result: CatalogMaterializationResult) {
+    super(`Nenhuma das ${result.requestedCount} variações pôde ser materializada.`);
+    this.name = "CatalogMaterializationError";
+    this.result = result;
+  }
+}
+
+/** One adapter for generation, generate-more and history; no catalog re-query on replay. */
+export async function materializeCatalogVariationsDetailed(
+  variations: GeneratedVariationInput[], prompt: string, provenance?: CanvasPostProvenance, offset = 0,
+  report?: (post: CanvasPostModel, slot: number, durationMs: number) => void,
+): Promise<CatalogMaterializationResult> {
+  const startedAt = performance.now();
+  const results = await Promise.allSettled(
+    variations.map(async (v, index) => {
+      if (v.completeDesignV1) {
+        const post = await compileCompleteDesign(v.completeDesignV1, { assetDeadline: startedAt + 15000, provenance });
+        report?.(post, v.completeDesignV1.slot, Math.round(performance.now() - startedAt));
+        return post;
+      }
+      if (v.componentAssemblyV1) {
+        const post = await compileComponentAssembly(v.componentAssemblyV1, {
+          deadline: startedAt + 15000,
+          assetDeadline: startedAt + 8000,
+          provenance,
+        });
+        post.imagePrompt = v.imagePrompt ?? post.slides[0]?.imagePrompt ?? "";
+        if (v.copyAngle) post.copyAngle = { ...v.copyAngle, badge: v.copyAngle.badge ?? "" };
+        report?.(post, v.componentAssemblyV1.slot, Math.round(performance.now() - startedAt));
+        return post;
+      }
+      if (v.catalogSelectionV2) {
+        const post = await compileArsenalGeneration(v.catalogSelectionV2, {
+          deadline: startedAt + 15000,
+          assetDeadline: startedAt + 8000,
+          provenance,
+          background: v.backgroundColor,
+          text: v.textColor,
+          accent: v.accentColor,
+        });
+        post.imagePrompt = v.imagePrompt ?? "";
+        if (v.copyAngle) post.copyAngle = { ...v.copyAngle, badge: v.copyAngle.badge ?? "" };
+        report?.(post, v.catalogSelectionV2.slot, Math.round(performance.now() - startedAt));
+        return post;
+      }
+      const base = variationToCanvasModel(v, offset + index, prompt, provenance);
+      if (!v.catalogSelection) return base;
+      const started = performance.now();
+      const compiled = await compileCatalogPost(base, v.catalogSelection);
+      report?.(compiled, index, Math.round(performance.now() - started));
+      return compiled;
+    })
+  );
+
+  const posts: CanvasPostModel[] = [];
+  const failures: CatalogMaterializationFailure[] = [];
+  results.forEach((res, index) => {
+    if (res.status === "fulfilled") {
+      posts.push(res.value);
+    } else {
+      const variation = variations[index];
+      const slot = variation.completeDesignV1?.slot ?? variation.componentAssemblyV1?.slot ?? variation.catalogSelectionV2?.slot;
+      const message = res.reason instanceof Error ? res.reason.message : "Falha desconhecida ao montar esta direção.";
+      failures.push({ index, slot, variation, message, cause: res.reason, recoveryAction: "retry_same_result" });
+    }
+  });
+  return { posts, failures, requestedCount: variations.length, materializedCount: posts.length };
+}
+
+/** Compatibilidade para consumidores existentes; materialização total falha explicitamente. */
+export async function materializeCatalogVariations(
+  variations: GeneratedVariationInput[], prompt: string, provenance?: CanvasPostProvenance, offset = 0,
+  report?: (post: CanvasPostModel, slot: number, durationMs: number) => void,
+): Promise<CanvasPostModel[]> {
+  const result = await materializeCatalogVariationsDetailed(variations, prompt, provenance, offset, report);
+  if (variations.length > 0 && result.posts.length === 0) {
+    throw new CatalogMaterializationError(result);
+  }
+  return result.posts;
+}

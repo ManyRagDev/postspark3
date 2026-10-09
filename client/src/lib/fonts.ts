@@ -97,6 +97,9 @@ export function getActiveFontInfo(tokens: { fontFamily: string; customFontUrl: s
 
   // 2. Dropdown selection
   const family = tokens.fontFamily || 'Inter';
+  if (["Arial", "Helvetica", "sans-serif", "serif", "monospace"].includes(family)) {
+    return { name: family, url: "" };
+  }
   return {
     name: family,
     url: buildGoogleFontUrl(family),

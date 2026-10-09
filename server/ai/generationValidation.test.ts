@@ -33,6 +33,13 @@ function variation(
 }
 
 describe("validateVariationSet", () => {
+  it("accepts native 4:5 and rejects historical 5:6 for new generations", () => {
+    const portrait = [variation(1, {aspectRatio: "4:5"}), variation(2), variation(3)];
+    expect(validateVariationSet(portrait, "static").valid).toBe(true);
+    const legacy = validateVariationSet([{...portrait[0], aspectRatio: "5:6"}, ...portrait.slice(1)], "static");
+    expect(legacy.valid).toBe(false);
+    expect(legacy.errors.join(" ")).toContain("current format");
+  });
   it("accepts exactly three complete and distinct variations", () => {
     expect(
       validateVariationSet([variation(1), variation(2), variation(3)], "static"),
@@ -45,14 +52,13 @@ describe("validateVariationSet", () => {
     expect(result.errors.join(" ")).toContain("expected 3");
   });
 
-  it("rejects repeated variations", () => {
+  it("permite a mesma copy quando a diversidade visual será composta depois", () => {
     const repeated = variation(1);
     const result = validateVariationSet(
       [repeated, { ...repeated, id: "variation-2" }, variation(3)],
       "static",
     );
-    expect(result.valid).toBe(false);
-    expect(result.errors).toContain("variations are not sufficiently distinct");
+    expect(result.valid).toBe(true);
   });
 
   it("rejects a composed set that collapses to one visual layout", () => {

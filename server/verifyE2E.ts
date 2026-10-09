@@ -170,7 +170,8 @@ async function executeRun(runId: string, startedAt: number, index: number): Prom
   const events = result.debug?.events ?? [];
   const latencyMs = Date.now() - startedAt;
 
-  const approved = result.variations[0];
+  // This harness exercises the legacy snapshot contract, not CanvasLab V2.
+  const approved = postVisualSnapshotSchema.parse(result.variations[0]);
   const snapshotJson = JSON.stringify(approved, null, 2);
   const snapshotSha = sha256(snapshotJson);
 
@@ -409,7 +410,7 @@ async function runMatrixCell(cell: MatrixCell, index: number): Promise<MatrixCel
       console.warn(`[verify:e2e] matrix ${index + 1}: ${cell.label} — 1ª tentativa falhou (${firstMessage.slice(0, 100)}), repetindo…`);
       result = await generateOnce();
     }
-    const approved = result.variations[0];
+    const approved = postVisualSnapshotSchema.parse(result.variations[0]);
     const snapshotSha = canonicalSnapshotSha(approved);
     fs.writeFileSync(path.join(runDir, "snapshot.json"), JSON.stringify(approved, null, 2), "utf8");
 

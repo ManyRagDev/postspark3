@@ -11,8 +11,8 @@
  *   retornar exit code != 0 (falha cedo e diagnosticável).
  * - `critical: false` → requisito presente no código, mas com degradação
  *   graciosa registrada; é reportado sem derrubar o verificador.
- * - Buckets: o runtime usa o proxy Forge (`server/storage.ts`), não o
- *   storage do Supabase; o manifesto registra zero buckets exigidos.
+ * - Imagens do usuário conservam o proxy Forge; assets do Arsenal V2
+ *   usam o bucket privado design-arsenal no Supabase.
  */
 
 import { createHash } from "node:crypto";
@@ -24,6 +24,7 @@ export interface RuntimeRequirement {
   schema: string;
   table?: string;
   name: string;
+  aliases?: string[];
   critical: boolean;
   consumers: string[];
   note?: string;
@@ -37,6 +38,11 @@ export interface RuntimeManifest {
 export const RUNTIME_MANIFEST: RuntimeManifest = {
   version: 1,
   requirements: [
+    { kind: "table", schema: "postspark", name: "design_catalog_versions", critical: false, consumers: ["designCatalog/store.ts"], note: "ausência usa layout convencional com trace de fallback; migration 0018" },
+    { kind: "table", schema: "postspark", name: "design_catalog_pieces", critical: false, consumers: ["design_catalog_create RPC"] },
+    { kind: "table", schema: "postspark", name: "design_catalog_version_pieces", critical: false, consumers: ["design_catalog_create RPC"] },
+    { kind: "table", schema: "postspark", name: "design_catalog_events", critical: false, consumers: ["designCatalog/trace.ts", "routers/designCatalog.ts"] },
+    ...["design_catalog_assets", "design_catalog_version_assets", "design_catalog_asset_grants", "design_catalog_version_grants", "design_catalog_evidence", "design_catalog_search_documents"].map(name => ({ kind: "table" as const, schema: "postspark", name, critical: false, consumers: ["designCatalog/arsenalStore.ts", "designCatalog/arsenalAssets.ts", "designCatalog/arsenalRetrieval.ts"], note: "Arsenal V2; ausência impede catálogo/grants e usa fallback rastreável" })),
     // ── Tabelas ──────────────────────────────────────────────────────────────
     { kind: "table", schema: "postspark", name: "profiles", critical: true, consumers: ["billing.ts:100,316,329"] },
     { kind: "table", schema: "postspark", name: "posts", critical: true, consumers: ["db.ts:622,638,687,704"] },
@@ -49,7 +55,7 @@ export const RUNTIME_MANIFEST: RuntimeManifest = {
     { kind: "table", schema: "postspark", name: "subscriptions", critical: true, consumers: ["billing.ts:459,488,502"] },
     { kind: "table", schema: "postspark", name: "topup_packages", critical: true, consumers: ["billing.ts:290"] },
     { kind: "table", schema: "postspark", name: "topup_purchases", critical: false, consumers: ["billing.ts:435 (process_topup)"] },
-    { kind: "table", schema: "postspark", name: "spark_reservations", critical: true, consumers: ["drizzle/0014_spark_reservations.sql", "billing.ts:206,236,267"] },
+    { kind: "table", schema: "postspark", name: "spark_reservations", aliases: ["next_spark_reservations"], critical: true, consumers: ["drizzle/0014_spark_reservations.sql", "billing.ts:206,236,267"] },
     { kind: "table", schema: "postspark", name: "spark_transactions", critical: false, consumers: ["billing.ts:133 (debit_sparks legado)"], note: "usada pela RPC debit_sparks legada" },
     { kind: "table", schema: "postspark", name: "trials", critical: false, consumers: ["routers.ts:243 (start_trial)"] },
     { kind: "table", schema: "postspark", name: "founders", critical: false, consumers: ["billing.ts (RPCs de founder)"] },
@@ -77,9 +83,9 @@ export const RUNTIME_MANIFEST: RuntimeManifest = {
     { kind: "column", schema: "postspark", table: "profiles", name: "sparks", critical: true, consumers: ["billing.ts:102", "0014 (commit_spark_reservation)"] },
 
     // ── RPCs ─────────────────────────────────────────────────────────────────
-    { kind: "rpc", schema: "postspark", name: "reserve_sparks", critical: true, consumers: ["billing.ts:206"] },
-    { kind: "rpc", schema: "postspark", name: "commit_spark_reservation", critical: true, consumers: ["billing.ts:236"] },
-    { kind: "rpc", schema: "postspark", name: "refund_spark_reservation", critical: true, consumers: ["billing.ts:267"] },
+    { kind: "rpc", schema: "postspark", name: "reserve_sparks", aliases: ["next_reserve_sparks_v2"], critical: true, consumers: ["billing.ts:206"] },
+    { kind: "rpc", schema: "postspark", name: "commit_spark_reservation", aliases: ["next_commit_reservation_v2"], critical: true, consumers: ["billing.ts:236"] },
+    { kind: "rpc", schema: "postspark", name: "refund_spark_reservation", aliases: ["next_refund_reservation_v2"], critical: true, consumers: ["billing.ts:267"] },
     { kind: "rpc", schema: "postspark", name: "debit_sparks", critical: true, consumers: ["billing.ts:133"] },
     { kind: "rpc", schema: "postspark", name: "process_topup", critical: true, consumers: ["billing.ts:435"] },
     { kind: "rpc", schema: "postspark", name: "start_trial", critical: false, consumers: ["routers.ts:243"] },
@@ -88,8 +94,7 @@ export const RUNTIME_MANIFEST: RuntimeManifest = {
     { kind: "rpc", schema: "postspark", name: "ensure_manylabs_app_access", critical: true, consumers: ["_core/manylabs.ts:57"], note: "auto-ativação de acesso na emissão do cookie" },
 
     // ── Buckets ──────────────────────────────────────────────────────────────
-    // Nenhum bucket do Supabase é usado pelo runtime: uploads passam pelo
-    // proxy Forge (`server/storage.ts`), configurado por BUILT_IN_FORGE_*.
+    { kind: "bucket", schema: "storage", name: "design-arsenal", critical: false, consumers: ["designCatalog/arsenalAssets.ts"], note: "Assets compartilhados privados; não substitui uploads pessoais via Forge" },
   ],
 };
 

@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DesignDnaWorkbench } from "./Admin/DesignDnaWorkbench";
+import { Link } from "wouter";
 
 export default function Admin() {
     const profilesQuery = trpcHooks.admin.listProfiles.useQuery();
@@ -38,7 +41,8 @@ export default function Admin() {
                 <header className="flex justify-between items-end">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-foreground">Painel Admin</h1>
-                        <p className="text-muted-foreground mt-2">Gerenciamento de usuários e plataforma PostSpark.</p>
+                        <p className="text-muted-foreground mt-2">Curadoria visual, telemetria e gerenciamento da plataforma.</p>
+                        <Link href="/admin2" className="mt-3 inline-block text-sm text-cyan-300 underline underline-offset-4">Abrir MVP de recriação →</Link>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-md">
                         <span className="text-xs uppercase text-muted-foreground font-semibold block mb-1">Total de Usuários</span>
@@ -48,6 +52,17 @@ export default function Admin() {
                     </div>
                 </header>
 
+                <Tabs defaultValue="design-dna" className="gap-6">
+                    <TabsList className="h-11 border border-white/10 bg-white/5 p-1">
+                        <TabsTrigger value="design-dna" className="px-4">DNA de composição</TabsTrigger>
+                        <TabsTrigger value="operation" className="px-4">Operação e usuários</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="design-dna">
+                        <DesignDnaWorkbench />
+                    </TabsContent>
+
+                    <TabsContent value="operation" className="space-y-8">
                 <Card className="border-white/10 bg-white/5 backdrop-blur-lg">
                     <CardHeader>
                         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -154,6 +169,9 @@ export default function Admin() {
                         )}
                     </CardContent>
                 </Card>
+
+                    </TabsContent>
+                </Tabs>
             </div>
 
             <style dangerouslySetInnerHTML={{

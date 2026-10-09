@@ -104,6 +104,23 @@ describe("model provider adapters", () => {
     expect(String(adapted.messages[0].content)).toContain("JSON Schema");
   });
 
+  it("forces Google to text-schema mode while retaining local schema validation", () => {
+    const adapted = adaptRequestForProvider({
+      provider: "google",
+      effectiveModel: "gemini-2.5-flash",
+      forceTextSchema: true,
+      messages: [{ role: "user", content: "Gere o resultado" }],
+      responseFormat: { type: "json_schema", json_schema: schema },
+    });
+
+    expect(adapted.responseFormat).toEqual({ type: "json_object" });
+    expect(adapted.structuredOutputMode).toBe("text_schema");
+    expect(adapted.schema).toEqual(schema);
+    expect(String(adapted.messages[0].content)).toContain("JSON Schema");
+    expect(validateStructuredContent('{"title":"ok","items":[]}', adapted.schema!).valid).toBe(true);
+    expect(validateStructuredContent('{"title":2,"items":[]}', adapted.schema!).valid).toBe(false);
+  });
+
   it("validates required fields, nested arrays and extra properties", () => {
     expect(
       validateStructuredContent(

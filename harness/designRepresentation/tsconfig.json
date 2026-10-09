@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["./*.ts", "../designCombinations/*.ts"],
+  "compilerOptions": { "incremental": false, "target": "ES2022" }
+}

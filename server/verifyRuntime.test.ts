@@ -58,8 +58,8 @@ describe("verify:runtime — manifesto cobre o runtime (SPEC-004)", () => {
     expect(names).toContain("process_topup");
   });
 
-  it("nenhum bucket Supabase é exigido pelo runtime (storage via proxy Forge)", () => {
-    expect(RUNTIME_MANIFEST.requirements.some((requirement) => requirement.kind === "bucket")).toBe(false);
+  it("assets Arsenal usam somente seu bucket privado; uploads existentes continuam separados", () => {
+    expect(RUNTIME_MANIFEST.requirements.filter((requirement) => requirement.kind === "bucket").map(requirement => requirement.name)).toEqual(["design-arsenal"]);
   });
 });
 

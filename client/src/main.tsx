@@ -53,11 +53,18 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
-      fetch(input, init) {
-        return globalThis.fetch(input, {
+      async fetch(input, init) {
+        const response = await globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
         });
+        if (!response.headers.get("content-type")?.toLowerCase().includes("json")) {
+          if (response.status === 413) {
+            throw new Error("O envio do post excedeu o limite da produção. Reduza algumas imagens e tente salvar novamente.");
+          }
+          throw new Error(`A API respondeu em formato inesperado (HTTP ${response.status}). Tente novamente em instantes.`);
+        }
+        return response;
       },
     }),
   ],

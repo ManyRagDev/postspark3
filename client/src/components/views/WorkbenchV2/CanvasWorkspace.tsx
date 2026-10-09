@@ -92,6 +92,7 @@ export default function CanvasWorkspace({
 
             let targetHeight = baseWidth;
             if (aspectRatio === '9:16') targetHeight = baseWidth * (16 / 9);
+            if (aspectRatio === '4:5') targetHeight = baseWidth * (5 / 4);
             if (aspectRatio === '5:6') targetHeight = baseWidth * (6 / 5);
 
             const scaleW = availableWidth / baseWidth;
@@ -132,7 +133,7 @@ export default function CanvasWorkspace({
     const dt = activeVariation?.designTokens;
     const accentColor = dt?.colors?.primary ?? activeVariation?.accentColor ?? "#a855f7";
     const mobileCanvasTopPadding = "pt-4";
-    const logicalCardHeight = aspectRatio === "9:16" ? POST_BASE_WIDTH * (16 / 9) : aspectRatio === "5:6" ? POST_BASE_WIDTH * (6 / 5) : POST_BASE_WIDTH;
+    const logicalCardHeight = aspectRatio === "9:16" ? POST_BASE_WIDTH * (16 / 9) : aspectRatio === "4:5" ? POST_BASE_WIDTH * (5 / 4) : aspectRatio === "5:6" ? POST_BASE_WIDTH * (6 / 5) : POST_BASE_WIDTH;
     const scaledCardOverflowY = (logicalCardHeight * Math.max(scale - 1, 0)) / 2;
     const cardMarginTop = isCarousel && !isMobile ? scaledCardOverflowY + 28 : 0;
     const slideNavigatorMarginTop = isMobile
@@ -201,7 +202,7 @@ export default function CanvasWorkspace({
                         marginTop: cardMarginTop,
                         transform: `scale(${scale})`,
                         width: '360px',
-                        aspectRatio: aspectRatio === '9:16' ? '9/16' : aspectRatio === '5:6' ? '5/6' : '1/1',
+                        aspectRatio: aspectRatio === '9:16' ? '9/16' : aspectRatio === '4:5' ? '4/5' : aspectRatio === '5:6' ? '5/6' : '1/1',
                     }}
                 >
                     <CanvasInteractionProvider canvasRef={canvasRef as React.RefObject<HTMLElement | null>}>

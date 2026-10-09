@@ -54,7 +54,7 @@ export interface ComposeContext {
   variation: PostVariation;
   tokens: DesignTokens;
   rand: () => number;
-  aspectRatio: "1:1" | "5:6" | "9:16";
+  aspectRatio: "1:1" | "4:5" | "5:6" | "9:16";
   doc: { width: number; height: number };
   pxX: (pct: number) => number;
   pxY: (pct: number) => number;

@@ -1,3 +1,4 @@
+import { generationAspectRatios } from "@shared/aspectRatios";
 import {
   AlertCircle,
   ArrowDownToLine,
@@ -289,7 +290,7 @@ export default function CanvasTopBar({
                   onAspectRatioChange(value as AspectRatioType)
                 }
               >
-                {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map(
+                {generationAspectRatios.map(
                   id => (
                     <DropdownMenuRadioItem key={id} value={id}>
                       {id} · {ASPECT_RATIO_CAPTIONS[id].caption}

@@ -26,11 +26,12 @@ interface RichTextRendererProps {
   stroke?: string;
   strokeWidth?: number;
   fillAfterStrokeEnabled?: boolean;
+  wordBreak?: "word" | "grapheme";
 }
 
 type LayoutProps = Pick<
   RichTextRendererProps,
-  "text" | "richText" | "width" | "fontSize" | "fontFamily" | "fontStyle" | "fill" | "align" | "lineHeight" | "letterSpacing"
+  "text" | "richText" | "width" | "fontSize" | "fontFamily" | "fontStyle" | "fill" | "align" | "lineHeight" | "letterSpacing" | "wordBreak"
 >;
 
 export function useRichTextLayout({
@@ -44,6 +45,7 @@ export function useRichTextLayout({
   align = "left",
   lineHeight = 1.25,
   letterSpacing = 0,
+  wordBreak,
 }: LayoutProps): RichTextLayout {
   return useMemo(
     () => layoutRichText({
@@ -57,8 +59,9 @@ export function useRichTextLayout({
       align,
       lineHeight,
       letterSpacing,
+      wordBreak,
     }),
-    [text, richText, width, fontSize, fontFamily, fontStyle, fill, align, lineHeight, letterSpacing]
+    [text, richText, width, fontSize, fontFamily, fontStyle, fill, align, lineHeight, letterSpacing, wordBreak]
   );
 }
 
@@ -73,6 +76,7 @@ export default function RichTextRenderer({
   align = "left",
   lineHeight = 1.25,
   letterSpacing = 0,
+  wordBreak,
   opacity = 1,
   x = 0,
   y = 0,
@@ -89,6 +93,7 @@ export default function RichTextRenderer({
     align,
     lineHeight,
     letterSpacing,
+    wordBreak,
   });
 
   return (

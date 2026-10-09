@@ -16,14 +16,14 @@ import { aspectOf, centeredStack, flX, posterBottom, sectionGrid, stack } from "
  */
 const HEADLINE_HEIGHT_PCT: Record<string, Record<string, number>> = {
   // 4 linhas no piso (fontes compactas, largura ~84%)
-  compact: { "1:1": 33, "5:6": 28, "9:16": 19 },
+  compact: { "1:1": 33, "4:5": 28, "5:6": 28, "9:16": 19 },
   // 5 linhas no piso (fontes display largas / larguras menores)
-  display: { "1:1": 41, "5:6": 34, "9:16": 23 },
+  display: { "1:1": 41, "4:5": 34, "5:6": 34, "9:16": 23 },
   // 6 linhas no piso (mono/estreitas)
-  mono: { "1:1": 49, "5:6": 41, "9:16": 28 },
+  mono: { "1:1": 49, "4:5": 41, "5:6": 41, "9:16": 28 },
 };
 const BODY_HEIGHT_PCT: Record<string, Record<string, number>> = {
-  standard: { "1:1": 24, "5:6": 20, "9:16": 14 },
+  standard: { "1:1": 24, "4:5": 20, "5:6": 20, "9:16": 14 },
 };
 // Folga REAL acima de MIN_TEXT_GAP (shared/visualFit.ts = 4), mesma razão do
 // default de `stack()` em layoutArchetypes.ts. Usado tanto entre headline/body
@@ -36,9 +36,9 @@ const GAP_PCT = 6;
  * (safeAreaMarginsPercent, layoutArchetypes.ts: top 5% em 1:1/5:6, 6% em
  * 9:16). Ex.: 1:1 tem height=41 → topo = yCenter - 20.5; precisa yCenter >= 25.5.
  */
-const HEADLINE_TOP_ANCHOR: Record<string, number> = { "1:1": 26, "5:6": 23, "9:16": 20 };
+const HEADLINE_TOP_ANCHOR: Record<string, number> = { "1:1": 26, "4:5": 23, "5:6": 23, "9:16": 20 };
 /** Margem inferior da âncora de rodapé (≥ safe area; 9:16 usa a zona de UI). */
-const BOTTOM_MARGIN_PCT: Record<string, number> = { "1:1": 6, "5:6": 6, "9:16": 13 };
+const BOTTOM_MARGIN_PCT: Record<string, number> = { "1:1": 6, "4:5": 6, "5:6": 6, "9:16": 13 };
 
 /**
  * Overrides parciais aceitos por `createTextElement`: `styles` é

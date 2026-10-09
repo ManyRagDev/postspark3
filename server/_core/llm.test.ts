@@ -25,6 +25,29 @@ afterEach(() => {
 });
 
 describe("resolveModelConfig", () => {
+  it("does not dispatch a cancelled operation", async () => {
+    ENV.openRouterApiKey = "test-openrouter";
+    const controller = new AbortController(); controller.abort(new Error("cancelled"));
+    const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock);
+    await expect(invokeLLM({ messages: [{ role: "user", content: "test" }], signal: controller.signal, disableFallback: true }))
+      .rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("aborts an in-flight transport without another provider attempt", async () => {
+    ENV.openRouterApiKey = "test-openrouter";
+    const controller = new AbortController();
+    let began!: () => void; const started = new Promise<void>(resolve => { began = resolve; });
+    const fetchMock = vi.fn((_url, options) => new Promise((_resolve, reject) => {
+      options.signal.addEventListener("abort", () => reject(options.signal.reason), { once: true });
+      began();
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const pending = invokeLLM({ messages: [{ role: "user", content: "test" }], signal: controller.signal, disableFallback: true, maxTransportAttempts: 1 });
+    const rejection = expect(pending).rejects.toThrow();
+    await started; controller.abort(new Error("cancelled")); await rejection;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
   it("routes compatible default calls to OpenRouter GPT-5 mini", () => {
     ENV.openRouterApiKey = "test-openrouter";
     ENV.openRouterTextModel = "openai/gpt-5-mini";
@@ -273,6 +296,55 @@ describe("invokeLLM resilience", () => {
     };
     expect(geminiRequest.model).toBe("gemini-2.5-flash");
     expect(geminiRequest.response_format).toEqual(structuredFormat);
+  });
+
+  it("applies assembly transport limits and text schema to the fallback without hidden repairs", async () => {
+    ENV.geminiApiKey = "test-gemini";
+    ENV.openRouterApiKey = "test-openrouter";
+    ENV.openRouterTextModel = "openai/gpt-5-mini";
+    ENV.aiModelFallbackEnabled = true;
+    ENV.llmTransientRetries = 2;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response("overloaded", { status: 503 }))
+      .mockResolvedValueOnce(providerResponse("gemini-2.5-flash", '{"unexpected":true}'));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(invokeLLM({
+      messages: [{ role: "user", content: "Responda" }],
+      response_format: structuredFormat,
+      deadlineMs: Date.now() + 150_000,
+      maxTransportAttempts: 1,
+      forceTextSchema: true,
+      disableStructuredRepair: true,
+    })).rejects.toMatchObject({ cause: { name: "StructuredOutputError", failureType: "schema_mismatch" } });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    for (const call of fetchMock.mock.calls) {
+      const request = JSON.parse(String(call[1]?.body));
+      expect(request.response_format).toEqual({ type: "json_object" });
+      expect(request.messages[0].content).toContain("JSON Schema");
+      expect(request.messages[0].content).toContain('"answer"');
+    }
+  });
+
+  it("aborts at the absolute deadline and does not start a fallback request", async () => {
+    ENV.geminiApiKey = "test-gemini";
+    ENV.openRouterApiKey = "test-openrouter";
+    ENV.openRouterTextModel = "openai/gpt-5-mini";
+    ENV.aiModelFallbackEnabled = true;
+    ENV.llmTransientRetries = 2;
+    const fetchMock = vi.fn((_url: string | URL | Request, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(invokeLLM({
+      messages: [{ role: "user", content: "Responda" }],
+      response_format: structuredFormat,
+      deadlineMs: Date.now() + 25,
+    })).rejects.toThrow("deadline exceeded");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("downgrades Groq native json_schema to text schema when the provider rejects the format", async () => {

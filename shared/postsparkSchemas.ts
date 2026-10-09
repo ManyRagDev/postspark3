@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const inputTypeSchema = z.enum(["text", "url", "image"]);
 export const platformSchema = z.enum(["instagram", "twitter", "linkedin", "facebook"]);
-export const aspectRatioSchema = z.enum(["1:1", "5:6", "9:16"]);
+export const aspectRatioSchema = z.enum(["1:1", "4:5", "5:6", "9:16"]);
 export const postModeSchema = z.enum(["static", "carousel"]);
 export const postLayoutSchema = z.enum(["centered", "left-aligned", "split", "minimal"]);
 export const postTemplateSchema = z.enum(["simple", "feature-grid", "numbered-list", "step-by-step"]);

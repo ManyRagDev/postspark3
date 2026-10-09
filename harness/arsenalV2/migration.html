@@ -1,0 +1,57 @@
+<!doctype html><meta charset="utf-8"><title>Migration Arsenal V2 · revisão</title><h1>Migration aditiva Arsenal V2</h1><p>Projeto confirmado: spbuwcwmxlycchuwhfir · postspark</p><p>Arquivo: drizzle/0020_design_arsenal_brand_fonts.sql</p><p>SHA-256: 179d46bbf25468eb75da94ab2fb57dae2088fb339f8b3597aabee47d7fc2f3a3</p><pre id="migration">-- Preserve an explicitly authorized SET of brand fonts (heading/body), before L1 ranking.
+-- Additive correction to 0019; same RPC signature, structural-v1 axes and metric hash.
+BEGIN;
+SET LOCAL lock_timeout='5s';
+DO $install$ DECLARE vs text; BEGIN
+ SELECT n.nspname INTO STRICT vs FROM pg_catalog.pg_extension e JOIN pg_catalog.pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='vector';
+ EXECUTE pg_catalog.format($ddl$
+ CREATE OR REPLACE FUNCTION postspark.design_catalog_search_v2(
+   p_anchor %1$I.vector(48), p_aspect text, p_capabilities text[], p_has_media boolean,
+   p_profile jsonb, p_descriptor text, p_metric text, p_metric_hash text,
+   p_limit integer, p_terms text[] DEFAULT '{}'
+ ) RETURNS TABLE(version_id uuid,blueprint_id uuid,version integer,variant_key text,
+   definition_hash text,variant_hash text,distance double precision,card jsonb)
+ LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $fn$
+ BEGIN
+  IF p_limit NOT BETWEEN 1 AND 20 THEN RAISE EXCEPTION 'Invalid search limit'; END IF;
+  RETURN QUERY
+  WITH eligible AS (
+    SELECT s.*,v.blueprint_id,v.version FROM postspark.design_catalog_search_documents s
+      JOIN postspark.design_catalog_versions v ON v.id=s.version_id
+    WHERE v.status='approved' AND s.definition_hash=v.content_hash
+      AND s.descriptor_version=p_descriptor AND s.metric_version=p_metric AND s.metric_hash=p_metric_hash
+      AND (p_aspect IS NULL OR s.card-&gt;&gt;'aspectRatio'=p_aspect)
+      AND NOT EXISTS(SELECT 1 FROM pg_catalog.jsonb_array_elements_text(s.card-&gt;'capabilities') c WHERE NOT(c.value=ANY(p_capabilities)))
+      AND (p_has_media OR s.card-&gt;&gt;'hasMedia'='false')
+      AND (NOT COALESCE((p_profile-&gt;&gt;'brand')::boolean,false) OR s.card-&gt;'brandPolicy' IS NOT NULL AND s.card-&gt;'brandPolicy'&lt;&gt;'null'::jsonb)
+      AND (jsonb_array_length(COALESCE(p_profile-&gt;'fonts','[]'))=0 OR NOT EXISTS(
+        SELECT 1 FROM pg_catalog.jsonb_array_elements_text(s.card-&gt;'fontFamilies') f
+        WHERE NOT EXISTS(SELECT 1 FROM pg_catalog.jsonb_array_elements_text(p_profile-&gt;'fonts') allowed WHERE lower(allowed.value)=lower(f.value))))
+      AND (s.card-&gt;'brandPolicy'-&gt;&gt;'fonts' IS DISTINCT FROM 'require-brand' OR jsonb_array_length(COALESCE(p_profile-&gt;'fonts','[]'))&gt;0)
+      AND NOT EXISTS(SELECT 1 FROM pg_catalog.jsonb_array_elements_text(COALESCE(p_profile-&gt;'present','[]')) f
+        WHERE NOT EXISTS(SELECT 1 FROM pg_catalog.jsonb_array_elements(s.card-&gt;'fields') b WHERE b-&gt;&gt;'source'=f.value))
+      AND NOT EXISTS(SELECT 1 FROM pg_catalog.jsonb_array_elements(s.card-&gt;'fields') b
+        WHERE b-&gt;&gt;'required'='true' AND b-&gt;&gt;'source' IN ('metric.value','metric.label','attribution.quote','attribution.author','comparison.left.text','comparison.right.text')
+          AND NOT COALESCE(p_profile-&gt;'available','[]') ? (b-&gt;&gt;'source'))
+      AND NOT EXISTS(SELECT 1 FROM pg_catalog.jsonb_array_elements(s.card-&gt;'fields') b
+        WHERE b-&gt;&gt;'kind'='list' AND p_profile ? 'items' AND
+          ((p_profile-&gt;&gt;'items')::integer &lt; (b-&gt;'cardinality'-&gt;&gt;'min')::integer OR (p_profile-&gt;&gt;'items')::integer &gt; (b-&gt;'cardinality'-&gt;&gt;'max')::integer))
+  ), scored AS (
+    SELECT e.*,CASE WHEN p_anchor IS NULL THEN NULL ELSE
+      (SELECT sum(abs(a.value::double precision-b.value::double precision)) FROM
+        pg_catalog.jsonb_array_elements_text(e.projected::text::jsonb) WITH ORDINALITY a(value,i)
+        JOIN pg_catalog.jsonb_array_elements_text(p_anchor::text::jsonb) WITH ORDINALITY b(value,i) USING(i)) END d,
+      (SELECT count(*) FROM pg_catalog.unnest(p_terms) term WHERE lower(e.card::text) LIKE '%%'||lower(term)||'%%') score
+    FROM eligible e
+  ) SELECT s.version_id,s.blueprint_id,s.version,s.variant_key,s.definition_hash,s.variant_hash,s.d,s.card
+    FROM scored s ORDER BY s.d ASC NULLS LAST,
+      CASE WHEN p_anchor IS NULL THEN s.score ELSE 0 END DESC,s.version_id::text||':'||s.variant_key
+    LIMIT p_limit;
+ END $fn$;
+ REVOKE ALL ON FUNCTION postspark.design_catalog_search_v2(%1$I.vector,text,text[],boolean,jsonb,text,text,text,integer,text[]) FROM PUBLIC,anon,authenticated;
+ GRANT EXECUTE ON FUNCTION postspark.design_catalog_search_v2(%1$I.vector,text,text[],boolean,jsonb,text,text,text,integer,text[]) TO service_role;
+ $ddl$,vs);
+END $install$;
+NOTIFY pgrst,'reload schema';
+COMMIT;
+</pre>

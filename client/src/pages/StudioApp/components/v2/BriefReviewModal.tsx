@@ -89,8 +89,8 @@ export default function BriefReviewModal({
           <label className="text-xs font-semibold text-white/70 uppercase tracking-wider">
             Quantidade de slides do carrossel
           </label>
-          <div className="flex items-center gap-1.5 pt-1">
-            {[3, 4, 5, 7, 10].map((num) => (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
               <button
                 key={num}
                 type="button"

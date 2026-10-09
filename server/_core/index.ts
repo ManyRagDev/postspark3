@@ -9,6 +9,8 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { getStripe, handleStripeWebhook } from "../billing";
 import { ENV } from "./env";
+import { startLocalGenerationWorker } from "../ai/workflows/localGenerationWorker";
+import { registerUserMediaRoutes } from "../mediaAssets";
 import {
   appendOperationalLog,
   httpStatusFileLogger,
@@ -179,6 +181,7 @@ app.post("/api/brand-dna", async (req, res) => {
 
 // Supabase Auth bridge (email, Google SSO → PostSpark session cookie)
 registerSupabaseAuthRoutes(app);
+registerUserMediaRoutes(app);
 
 // tRPC API - Support both /api/trpc and /trpc for production robustness
 app.use(
@@ -212,6 +215,8 @@ async function startServer() {
 
     server.listen(port, () => {
       console.log(`Server running on http://localhost:${port}/`);
+      // Start the opt-in local executor only after the server binds successfully.
+      startLocalGenerationWorker();
     });
   }
 }

@@ -18,13 +18,16 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
-type StatusFilter = "all" | "completed" | "failed";
+type StatusFilter = "all" | "completed" | "partial" | "cancelled" | "failed";
 type TimeFilter = "all" | "today" | "week" | "month";
 
 function getStatusIcon(status: string) {
   switch (status) {
     case "completed":
       return <CheckCircle2 size={16} className="text-green-500" />;
+    case "partial":
+    case "cancelled":
+      return <AlertTriangle size={16} className="text-amber-500" />;
     case "failed":
       return <XCircle size={16} className="text-red-500" />;
     default:
@@ -36,6 +39,10 @@ function getStatusLabel(status: string) {
   switch (status) {
     case "completed":
       return "Concluído";
+    case "partial":
+      return "Parcialmente concluído";
+    case "cancelled":
+      return "Cancelado";
     case "failed":
       return "Falhou";
     default:
@@ -146,6 +153,8 @@ export default function History() {
     : [];
 
   const completedCount = generations?.filter((g) => g.status === "completed").length || 0;
+  const partialCount = generations?.filter((g) => g.status === "partial").length || 0;
+  const cancelledCount = generations?.filter((g) => g.status === "cancelled").length || 0;
   const failedCount = generations?.filter((g) => g.status === "failed").length || 0;
 
   const handleRestore = async (generation: any) => {
@@ -161,7 +170,7 @@ export default function History() {
           ? JSON.parse(generation.output_snapshot)
           : generation.output_snapshot;
 
-      const variations = outputData?.variations || outputData;
+      const variations = (outputData?.variations || outputData)?.filter?.(Boolean);
 
       if (!variations || !Array.isArray(variations) || variations.length === 0) {
         toast.error("Nenhuma variação encontrada nesta geração.");
@@ -238,12 +247,15 @@ export default function History() {
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background">
             <Filter size={16} className="text-muted-foreground" />
             <select
+              aria-label="Filtrar por status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
               className="bg-transparent focus:outline-none cursor-pointer"
             >
               <option value="all">Todos os status</option>
               <option value="completed">Concluídos ({completedCount})</option>
+              <option value="partial">Parcialmente concluídos ({partialCount})</option>
+              <option value="cancelled">Cancelados ({cancelledCount})</option>
               <option value="failed">Falharam ({failedCount})</option>
             </select>
           </div>
@@ -298,7 +310,7 @@ export default function History() {
                 typeof generation.output_snapshot === "string"
                   ? JSON.parse(generation.output_snapshot)
                   : generation.output_snapshot;
-              const variationCount = outputData?.variations?.length || 0;
+              const variationCount = (Array.isArray(outputData) ? outputData : outputData?.variations)?.filter?.(Boolean).length || 0;
 
               return (
                 <div
@@ -347,7 +359,7 @@ export default function History() {
                           <Coins size={12} />
                           {generation.total_tokens || 0} tokens
                         </span>
-                        {generation.status === "completed" && variationCount > 0 && (
+                        {variationCount > 0 && (
                           <span className="flex items-center gap-1">
                             <Sparkles size={12} />
                             {variationCount} variaç{variationCount === 1 ? "ão" : "ões"}
@@ -374,7 +386,7 @@ export default function History() {
                     </div>
 
                     {/* Actions */}
-                    {generation.status === "completed" && generation.output_snapshot && (
+                    {variationCount > 0 && (
                       <button
                         onClick={() => handleRestore(generation)}
                         className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium shrink-0"

@@ -113,6 +113,20 @@ temp/
 
 novaStackCaptura.md
 docs/*
+!docs/plano-dnapost-curadoria.md
+!docs/plano-arsenal-pgvector-thevoid.md
+!docs/contratos-arsenal-v2.md
+!docs/relatorio-arsenal-v2.md
+!docs/plano-editor-unificado-canvaslab.md
+!docs/relatorio-auditoria-geracao-editor-unificado-2026-10-02.md
+!docs/implementacao-geracao-arsenal-editor-unificado.md
+!docs/conferencia-geracao-arsenal-editor-unificado.md
+!docs/pipeline-designs-completos.md
+!docs/arquitetura-geracao-por-composicoes.md
+!docs/blueprint-geracao-orquestrada.md
+!docs/contexto-consolidacao-postspark.md
+!docs/revisao-blueprint-preservacao.md
+!docs/conferencia-implementacao-geracao-orquestrada-2026-10-08.md
 !docs/reforma/
 !docs/reforma/**
 !docs/AUDITORIA_IMPLEMENTACAO.md
@@ -153,3 +167,9 @@ chat_kimi_GLM.json
 
 
 .harness/
+
+# Local reference images for assisted whole-design authoring
+designs/inbox/*
+!designs/inbox/.gitkeep
+
+!docs/correcoes-geracao-orquestrada-2026-10-08.md

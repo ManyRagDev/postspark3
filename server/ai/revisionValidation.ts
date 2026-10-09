@@ -1,9 +1,9 @@
 import type { PostVariation, SiteIntelligence } from "@shared/postspark";
-import { applyDeterministicCopyGuards } from "@shared/validation";
+import { applyDeterministicCopyGuards, hasCoherentStaticItemCount, hasRequiredCopy, hasValidStaticSections } from "@shared/validation";
 import { createPostVisualSnapshot } from "@shared/variationSnapshot";
 import { validateVisualFit } from "@shared/visualFit";
 import { enforceBrandVisualGuardian } from "./brandVisualGuardian";
-import { validateVariationSet } from "./generationValidation";
+import { CAROUSEL_SLIDE_TARGET, STATIC_SECTION_TARGET } from "./generationValidation";
 
 export interface RevisionValidationResult<T extends PostVariation> {
   candidate: T;
@@ -25,11 +25,13 @@ export function validateRevisedCandidate<T extends PostVariation>(input: {
         { enforcePalette: true, backgroundSnapTolerance: 40 },
       )[0] as T
     : guardedCopy;
-  const tentativeSet = input.candidates.map((candidate, index) =>
-    index === input.candidateIndex ? guardedBrand : candidate
-  );
-  const schemaValidation = validateVariationSet(tentativeSet, input.postMode);
-  const errors = [...schemaValidation.errors];
+  // Um reparo de slot não depende do estado dos outros slots ainda não reparados.
+  const errors: string[] = [];
+  if (!hasRequiredCopy(guardedBrand)) errors.push(`variation ${input.candidateIndex + 1} is missing required copy fields`);
+  if (!guardedBrand.copyAngle?.type || !guardedBrand.copyAngle.label) errors.push(`variation ${input.candidateIndex + 1} is missing a copy angle`);
+  if (input.postMode === "static" && !hasValidStaticSections(guardedBrand)) errors.push(`variation ${input.candidateIndex + 1} must use no sections for simple templates or exactly ${STATIC_SECTION_TARGET} short sections for structured templates`);
+  if (input.postMode === "static" && !hasCoherentStaticItemCount(guardedBrand)) errors.push(`variation ${input.candidateIndex + 1} headline advertises a different item count than its ${STATIC_SECTION_TARGET} structured sections`);
+  if (input.postMode === "carousel" && guardedBrand.slides?.length !== CAROUSEL_SLIDE_TARGET) errors.push(`variation ${input.candidateIndex + 1} must contain ${CAROUSEL_SLIDE_TARGET} slides`);
 
   try {
     const snapshot = createPostVisualSnapshot(

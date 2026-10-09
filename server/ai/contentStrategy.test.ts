@@ -71,14 +71,24 @@ describe("contentStrategy — planejamento determinístico (SPEC-003/005)", () =
     expect(plan.meaningPlan.sourceFacts.some((fact) => fact.text.includes("Torramos semanalmente"))).toBe(true);
   });
 
-  it("preserva oferta concreta e não inventa papel de autoridade", () => {
+  it("não transforma todo número do texto em condição obrigatória", () => {
     const plan = planContentStrategiesDeterministic({
       sourceContent: "quero um post para anunciar desconto de 20% no dia das mães na clínica de estética",
     });
 
     expect(plan.meaningPlan.semanticVariationBudget).toBe(1);
-    expect(plan.meaningPlan.sourceFacts.some((fact) => fact.required && fact.text.includes("20%"))).toBe(true);
+    expect(plan.meaningPlan.sourceFacts.some((fact) => fact.text.includes("20%"))).toBe(true);
+    expect(plan.meaningPlan.sourceFacts.some((fact) => fact.required)).toBe(false);
     expect(plan.meaningPlan.authoritySource).toBeUndefined();
     expect(plan.selected.every((item) => item.angle !== "authority")).toBe(true);
+  });
+
+  it("preserva números no início do texto e só marca termos explícitos como obrigatórios", () => {
+    const plan = planContentStrategiesDeterministic({
+      sourceContent: "20% de desconto no plano anual.",
+      executionBrief: { rawInput: "20% de desconto no plano anual.", mustKeep: ["20% de desconto"], mustInclude: [] } as never,
+    });
+    expect(plan.meaningPlan.sourceFacts.some((fact) => fact.text.startsWith("20%"))).toBe(true);
+    expect(plan.meaningPlan.sourceFacts.filter((fact) => fact.required).map((fact) => fact.text)).toEqual(["20% de desconto"]);
   });
 });

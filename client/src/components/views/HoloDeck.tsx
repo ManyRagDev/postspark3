@@ -17,7 +17,7 @@ import { useEditorStore } from "@/store/editorStore";
 import { applyDesignTokensToSnapshot, createPostVisualSnapshot } from "@/lib/variationSnapshot";
 import GenerationAuditPanel from "../GenerationAuditPanel";
 
-const RATIOS: AspectRatio[] = ["1:1", "5:6", "9:16"];
+const RATIOS: AspectRatio[] = ["1:1", "4:5", "9:16"];
 
 interface HoloDeckProps {
   variations: PostVisualSnapshot[];
@@ -418,7 +418,7 @@ export default function HoloDeck({
 
   // Card max-width alinhado com as dimensões contidas para o viewport.
   // Na proporção 9:16, evitamos um crescimento horizontal que explode o card fora do `overflow-y`.
-  const cardMaxW = aspectRatio === "9:16" ? "max-w-[200px] md:max-w-[260px]" : aspectRatio === "5:6" ? "max-w-[280px] md:max-w-[320px]" : "max-w-[320px] md:max-w-[360px]";
+  const cardMaxW = aspectRatio === "9:16" ? "max-w-[200px] md:max-w-[260px]" : (aspectRatio === "4:5" || aspectRatio === "5:6") ? "max-w-[280px] md:max-w-[320px]" : "max-w-[320px] md:max-w-[360px]";
 
   const goNext = useCallback(() => {
     if (variationCount <= 1) return;
@@ -757,7 +757,7 @@ export default function HoloDeck({
                 <div
                   className={`relative w-full ${cardMaxW} overflow-visible`}
                   style={{
-                    aspectRatio: aspectRatio === "1:1" ? "1/1" : aspectRatio === "5:6" ? "5/6" : "9/16",
+                    aspectRatio: aspectRatio === "1:1" ? "1/1" : aspectRatio === "4:5" ? "4/5" : aspectRatio === "5:6" ? "5/6" : "9/16",
                   }}
                 >
                   {/* Render de baixo para cima para z-index correto */}

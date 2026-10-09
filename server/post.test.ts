@@ -1,8 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ENV } from "./_core/env";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 import { invokeLLM } from "./_core/llm";
-import { commitSparkReservation, refundSparkReservation } from "./billing";
+import { generateImage } from "./_core/imageGeneration";
+import { commitSparkReservation, refundSparkReservation, reserveSparks } from "./billing";
+import { generateCompleteDesignVariations } from "./ai/completeDesignGeneration";
+import { retrieveCompleteDesignCards } from "./designCatalog/completeDesignStore";
+vi.mock("./designCatalog/componentStore",()=>({retrieveComponentCardsForGeneration:vi.fn().mockResolvedValue([]),hydrateComponents:vi.fn()}));
+vi.mock("./ai/completeDesignGeneration",()=>({generateCompleteDesignVariations:vi.fn().mockRejectedValue(new Error("complete design boundary reached"))}));
+vi.mock("./designCatalog/completeDesignStore",()=>({retrieveCompleteDesignCards:vi.fn().mockResolvedValue([{id:"offered-complete-design"}])}));
 
 // Mock the LLM module
 vi.mock("./_core/llm", () => ({
@@ -141,7 +148,89 @@ describe("post.generate", () => {
     vi.clearAllMocks();
   });
 
-  it("generates 3 post variations from text input with a single generative call", async () => {
+  it("blocks V4 before billing when the catalogue is disabled instead of routing to legacy",async()=>{
+    const old=ENV.componentArsenalMode;ENV.componentArsenalMode="off";
+    try{
+      await expect(appRouter.createCaller(createAuthContext()).post.generate({inputType:"text",content:"Post café",platform:"instagram",designContractVersion:4})).rejects.toMatchObject({code:"PRECONDITION_FAILED"});
+      expect(reserveSparks).not.toHaveBeenCalled();
+      expect(invokeLLM).not.toHaveBeenCalled();
+    }finally{ENV.componentArsenalMode=old;}
+  });
+
+  it("fails and refunds an empty V4 catalogue without generating a generic alternative",async()=>{
+    const old=ENV.componentArsenalMode;ENV.componentArsenalMode="all";
+    vi.mocked(retrieveCompleteDesignCards).mockResolvedValueOnce([]);
+    try{
+      await expect(appRouter.createCaller(createAuthContext()).post.generate({inputType:"text",content:"Post café",platform:"instagram",designContractVersion:4})).rejects.toMatchObject({failure:{reason:"unknown",retryable:false,userMessage:expect.stringContaining("Não há composições publicadas")}});
+      expect(generateCompleteDesignVariations).not.toHaveBeenCalled();
+      expect(refundSparkReservation).toHaveBeenCalled();
+      expect(commitSparkReservation).not.toHaveBeenCalled();
+    }finally{ENV.componentArsenalMode=old;}
+  });
+
+  it('rollback off blocks new experimental selection before billing',async()=>{
+    const old=ENV.componentArsenalMode;ENV.componentArsenalMode='off';
+    try{const ctx=createAuthContext();ctx.user!.role='admin';await expect(appRouter.createCaller(ctx).post.generate({inputType:'text',content:'Post café',platform:'instagram',designContractVersion:3,assemblyPilot:true})).rejects.toMatchObject({code:'FORBIDDEN'});expect(reserveSparks).not.toHaveBeenCalled();}
+    finally{ENV.componentArsenalMode=old;}
+  });
+  it.each(['all','admin'] as const)('V4 uses only published complete designs for ordinary users in mode %s',async(mode)=>{
+    const old=ENV.componentArsenalMode;ENV.componentArsenalMode=mode;
+    try{await expect(appRouter.createCaller(createAuthContext()).post.generate({inputType:'text',content:'Post café',platform:'instagram',designContractVersion:4})).rejects.toThrow('complete design boundary reached');expect(generateCompleteDesignVariations).toHaveBeenCalledWith(expect.objectContaining({experimental:false}),expect.anything());}
+    finally{ENV.componentArsenalMode=old;}
+  });
+  it('blocks experimental assemblies for non-admins before billing or LLM calls',async()=>{
+    const caller=appRouter.createCaller(createAuthContext());
+    await expect(caller.post.generate({inputType:'text',content:'Post sobre café',platform:'instagram',postMode:'static',designContractVersion:3,assemblyPilot:true})).rejects.toMatchObject({code:'FORBIDDEN'});
+    expect(reserveSparks).not.toHaveBeenCalled();expect(invokeLLM).not.toHaveBeenCalled();
+  });
+  it('encaminha carrossel administrativo com quantidade confirmada ao motor de composições completas', async () => {
+    const ctx = createAuthContext();
+    ctx.user!.role = 'admin';
+
+    await expect(appRouter.createCaller(ctx).post.generate({
+      inputType: 'text',
+      content: 'Quero um carrossel sobre café artesanal',
+      platform: 'instagram',
+      postMode: 'carousel',
+      slideCount:10,
+      designContractVersion: 3,
+      assemblyPilot: true,
+      formatIntentConfirmed: true,
+    })).rejects.toThrow('complete design boundary reached');
+    expect(generateCompleteDesignVariations).toHaveBeenCalledWith(expect.objectContaining({slideCount:10,experimental:true,request:expect.objectContaining({postMode:'carousel'})}),expect.anything());
+    expect(reserveSparks).toHaveBeenCalled();
+    expect(refundSparkReservation).toHaveBeenCalled();
+    expect(commitSparkReservation).not.toHaveBeenCalled();
+  });
+  it('encaminha imagem administrativa ao motor e estorna falha operacional',async()=>{
+    const ctx=createAuthContext();ctx.user!.role='admin';
+    await expect(appRouter.createCaller(ctx).post.generate({inputType:'image',content:'https://example.com/image.png',platform:'instagram',postMode:'static',designContractVersion:3,assemblyPilot:true})).rejects.toThrow('complete design boundary reached');
+    expect(generateCompleteDesignVariations).toHaveBeenCalledWith(expect.objectContaining({request:expect.objectContaining({inputType:'image'})}),expect.anything());
+    expect(reserveSparks).toHaveBeenCalled();expect(refundSparkReservation).toHaveBeenCalled();expect(generateImage).not.toHaveBeenCalled();
+  });
+
+  it("pede confirmação específica para formato divergente e respeita a escolha confirmada", async () => {
+    const caller = appRouter.createCaller(createAuthContext());
+    const input = {
+      inputType: "text" as const,
+      content: "Quero um carrossel sobre café artesanal",
+      platform: "instagram" as const,
+      postMode: "static" as const,
+    };
+    await expect(caller.post.generate(input)).rejects.toMatchObject({
+      failure: {
+        reason: "format_mismatch",
+        userMessage: expect.stringContaining("carrossel"),
+      },
+    });
+    expect(vi.mocked(reserveSparks)).not.toHaveBeenCalled();
+
+    const result = await caller.post.generate({ ...input, formatIntentConfirmed: true });
+    expect(result.variations).toHaveLength(3);
+    expect(vi.mocked(commitSparkReservation)).toHaveBeenCalledTimes(1);
+  });
+
+  it("generates 3 post variations from text input with a single main generative call", async () => {
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
 
@@ -200,7 +289,26 @@ describe("post.generate", () => {
     expect(vi.mocked(refundSparkReservation)).not.toHaveBeenCalled();
   });
 
+  it("continua com o briefing original quando a interpretação auxiliar falha", async () => {
+    vi.mocked(invokeLLM).mockRejectedValueOnce(new Error("brief interpreter offline"));
+    const caller = appRouter.createCaller(createAuthContext());
+
+    const result = await caller.post.generate({
+      inputType: "text",
+      content: "Promoção de café artesanal",
+      platform: "instagram",
+    });
+
+    expect(result.variations).toHaveLength(3);
+    expect(vi.mocked(invokeLLM).mock.calls.map(([params]) => params.traceLabel)).toContain("post_generation");
+    expect(vi.mocked(commitSparkReservation)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(refundSparkReservation)).not.toHaveBeenCalled();
+  });
+
   it("falha operacional → refund da reserva e erro discriminado", async () => {
+    vi.mocked(invokeLLM).mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify({ contentSpans: ["café artesanal"], instructionSpans: [], verbatimSpans: [], uncertain: false }) } }],
+    } as Awaited<ReturnType<typeof invokeLLM>>);
     vi.mocked(invokeLLM).mockRejectedValueOnce(new Error("provider offline"));
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
@@ -301,6 +409,9 @@ describe("post.generate", () => {
   });
 
   it("CR-005: refund falso em falha → run termina como falha observável (SPARK_REFUND_FAILED)", async () => {
+    vi.mocked(invokeLLM).mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify({ contentSpans: ["café artesanal"], instructionSpans: [], verbatimSpans: [], uncertain: false }) } }],
+    } as Awaited<ReturnType<typeof invokeLLM>>);
     vi.mocked(invokeLLM).mockRejectedValueOnce(new Error("provider offline"));
     vi.mocked(refundSparkReservation).mockResolvedValueOnce(false);
     const ctx = createAuthContext();
@@ -388,6 +499,15 @@ describe("post.generate", () => {
 });
 
 describe("post.generateImage", () => {
+  it("commits image pricing only after delivery and refunds failed generation",async()=>{
+    const caller=appRouter.createCaller(createAuthContext());
+    vi.mocked(generateImage).mockRejectedValueOnce(new Error("image provider unavailable"));
+    await expect(caller.post.generateImage({prompt:"Scene",idempotencyKey:"image-click-1"})).rejects.toThrow("image provider unavailable");
+    expect(reserveSparks).toHaveBeenCalledWith(expect.anything(),25,"image-click-1","Geração de imagem IA");
+    expect(commitSparkReservation).not.toHaveBeenCalled();
+    expect(refundSparkReservation).toHaveBeenCalledTimes(1);
+  });
+
   it("returns an image URL from a prompt", async () => {
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
@@ -398,6 +518,27 @@ describe("post.generateImage", () => {
 
     expect(result).toHaveProperty("imageUrl");
     expect(result.imageUrl).toBe("https://example.com/generated.png");
+  });
+
+  it("passes the post meaning and canvas proportion to image generation", async () => {
+    const caller = appRouter.createCaller(createAuthContext());
+    await caller.post.generateImage({
+      prompt: "abstract sale tags",
+      aspectRatio: "9:16",
+      postContext: {
+        headline: "O preço subiu antes da promoção",
+        body: "Compare o histórico de preços.",
+        familyName: "Pôster Editorial",
+        backgroundColor: "#101828",
+        accentColor: "#F59E0B",
+      },
+    });
+
+    expect(generateImage).toHaveBeenCalledWith(expect.objectContaining({
+      prompt: "abstract sale tags",
+      aspectRatio: "9:16",
+      postContext: expect.objectContaining({ headline: "O preço subiu antes da promoção" }),
+    }));
   });
 });
 

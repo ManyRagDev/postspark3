@@ -51,6 +51,10 @@ export function getSupabase(): SupabaseClient<any, "postspark"> {
   return _supabase;
 }
 
+export function setSupabaseForTesting(client: SupabaseClient<any, "postspark"> | null): void {
+  _supabase = client;
+}
+
 /**
  * SPEC-004 — wrapper tipado de chamadas RPC. Elimina os casts `as any` das
  * chamadas críticas de billing e normaliza o erro para { message, code }.
@@ -183,13 +187,13 @@ function isSentinelProfile(profileId: string): boolean {
  * BILLING_HANDOFF.md:123). Replicamos o bypass no modelo transacional: a
  * reserva/commit/refund torna-se no-op (handle mock), sem tocar o banco.
  */
-function isUnlimitedPlan(plan: BillingPlan): boolean {
+export function isUnlimitedPlan(plan: BillingPlan): boolean {
   return plan === "FOUNDER" || plan === "DEV";
 }
 
 /** True quando o Supabase não está configurado (dev local). */
-function isBillingDisabled(): boolean {
-  return !ENV.supabaseUrl || !ENV.supabaseServiceRoleKey;
+export function isBillingDisabled(): boolean {
+  return !_supabase && (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey);
 }
 
 /**
@@ -224,15 +228,34 @@ export async function reserveSparks(
   }
 
   try {
-    const { data, error } = await rpcCall<string>("reserve_sparks", {
+    // 1. Tenta a família ativa no banco remoto (next_reserve_sparks_v2)
+    const nextCall = await rpcCall<Array<{ reservation_id: string | null; status: string; available?: number }>>(
+      "next_reserve_sparks_v2",
+      {
+        p_user_uuid: profile.id,
+        p_amount: amount,
+        p_nonce: idempotencyKey,
+      },
+    );
+
+    if (!nextCall.error && Array.isArray(nextCall.data) && nextCall.data.length > 0) {
+      const row = nextCall.data[0];
+      if (row.reservation_id && row.status === "reserved") {
+        return { reservationId: row.reservation_id };
+      }
+      return { reservationId: null, reason: row.status ?? "insufficient_sparks" };
+    }
+
+    // 2. Se a RPC remota não existe (ex: ambiente com migration 0014 canônica ou mock de testes), faz fallback para reserve_sparks
+    const legacy = await rpcCall<string>("reserve_sparks", {
       p_user_id: profile.id,
       p_amount: amount,
       p_idempotency_key: idempotencyKey,
       p_description: description,
     });
-    if (error) return { reservationId: null, reason: error.message };
-    if (!data) return { reservationId: null, reason: "insufficient_sparks" };
-    return { reservationId: data };
+    if (legacy.error) return { reservationId: null, reason: legacy.error.message };
+    if (!legacy.data) return { reservationId: null, reason: "insufficient_sparks" };
+    return { reservationId: legacy.data };
   } catch (err: any) {
     return { reservationId: null, reason: err.message };
   }
@@ -252,15 +275,26 @@ export async function commitSparkReservation(
   }
 
   try {
-    const { data, error } = await rpcCall<boolean>("commit_spark_reservation", {
+    // 1. Tenta next_commit_reservation_v2 ativa no banco remoto
+    const nextCall = await rpcCall<boolean>("next_commit_reservation_v2", {
+      p_reservation_id: reservationId,
+      p_description: generationRunId,
+      p_metadata: {},
+    });
+    if (!nextCall.error && typeof nextCall.data === "boolean") {
+      return nextCall.data;
+    }
+
+    // 2. Fallback para commit_spark_reservation canônica
+    const legacy = await rpcCall<boolean>("commit_spark_reservation", {
       p_reservation_id: reservationId,
       p_generation_run_id: generationRunId,
     });
-    if (error) {
-      console.warn("[billing] commit_spark_reservation failed:", error.message);
+    if (legacy.error) {
+      console.warn("[billing] commit_spark_reservation failed:", legacy.error.message);
       return false;
     }
-    return Boolean(data);
+    return Boolean(legacy.data);
   } catch (err: any) {
     console.warn("[billing] commit_spark_reservation error:", err.message);
     return false;
@@ -281,15 +315,25 @@ export async function refundSparkReservation(
   }
 
   try {
-    const { data, error } = await rpcCall<boolean>("refund_spark_reservation", {
+    // 1. Tenta next_refund_reservation_v2 ativa no banco remoto
+    const nextCall = await rpcCall<boolean>("next_refund_reservation_v2", {
+      p_reservation_id: reservationId,
+      p_reason: errorDetail,
+    });
+    if (!nextCall.error && typeof nextCall.data === "boolean") {
+      return nextCall.data;
+    }
+
+    // 2. Fallback para refund_spark_reservation canônica
+    const legacy = await rpcCall<boolean>("refund_spark_reservation", {
       p_reservation_id: reservationId,
       p_error_detail: errorDetail,
     });
-    if (error) {
-      console.warn("[billing] refund_spark_reservation failed:", error.message);
+    if (legacy.error) {
+      console.warn("[billing] refund_spark_reservation failed:", legacy.error.message);
       return false;
     }
-    return Boolean(data);
+    return Boolean(legacy.data);
   } catch (err: any) {
     console.warn("[billing] refund_spark_reservation error:", err.message);
     return false;
@@ -558,4 +602,131 @@ function mapStripeStatus(
     case "paused": return "paused";
     default: return "active";
   }
+}
+
+// ─── V5 Orchestrated Generation Billing Contracts (Blueprint §11) ───────────
+
+export const V5_SPARK_UNITS = {
+  PREPARATION: 5,        // Preparação compartilhada (contexto, catálogo, seleção)
+  PROPOSAL_STATIC: 10,   // Proposta estática completa (copy + mídia privada)
+  PROPOSAL_CAROUSEL: 20, // Proposta de carrossel completa
+} as const;
+
+export function calculateV5SparkReservation(
+  postMode: "static" | "carousel",
+  proposalCount = 3
+): { totalReservation: number; preparationSparks: number; sparksPerProposal: number } {
+  const preparationSparks = V5_SPARK_UNITS.PREPARATION;
+  const sparksPerProposal =
+    postMode === "carousel"
+      ? V5_SPARK_UNITS.PROPOSAL_CAROUSEL
+      : V5_SPARK_UNITS.PROPOSAL_STATIC;
+  const totalReservation = preparationSparks + sparksPerProposal * proposalCount;
+  return { totalReservation, preparationSparks, sparksPerProposal };
+}
+
+/**
+ * Busca uma reserva ativa de Sparks pela chave de idempotência do usuário.
+ */
+export async function getReservationByIdempotencyKey(
+  userUuid: string,
+  idempotencyKey: string
+): Promise<{ id: string; amount: number; status: string } | null> {
+  if (isBillingDisabled() || userUuid === "dev-mock") return null;
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from("spark_reservations")
+    .select("id, amount, status")
+    .eq("user_uuid", userUuid)
+    .eq("idempotency_key", idempotencyKey)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data;
+}
+
+/**
+ * Liquidação proporcional de geração orquestrada V5.
+ * Se nenhuma proposta foi entregue, estorna a reserva inteira.
+ * Se propostas foram entregues, liquida a preparação e cada proposta 'ready',
+ * ajustando a reserva antes da confirmação para que a RPC debite exatamente o
+ * consumo real e libere automaticamente os sparks restantes.
+ */
+export async function settleV5GenerationReservation(params: {
+  reservationId: string;
+  postMode: "static" | "carousel";
+  deliveredReadyCount: number;
+  totalProposalsCount: number;
+  generationRunId: string;
+  plan?: BillingPlan;
+}): Promise<{ settled: boolean; debitedSparks: number; refundedSparks: number }> {
+  const {
+    reservationId,
+    postMode,
+    deliveredReadyCount,
+    totalProposalsCount,
+    generationRunId,
+    plan,
+  } = params;
+
+  if (isBillingDisabled() || reservationId === "dev-mock" || (plan && isUnlimitedPlan(plan))) {
+    return { settled: true, debitedSparks: 0, refundedSparks: 0 };
+  }
+
+  const { totalReservation, preparationSparks, sparksPerProposal } =
+    calculateV5SparkReservation(postMode, totalProposalsCount);
+
+  if (deliveredReadyCount === 0) {
+    const refunded = await refundSparkReservation(
+      reservationId,
+      "Geração V5 concluída sem nenhuma entrega utilizável"
+    );
+    return {
+      settled: refunded,
+      debitedSparks: 0,
+      refundedSparks: totalReservation,
+    };
+  }
+
+  const actualDebt = preparationSparks + sparksPerProposal * deliveredReadyCount;
+
+  // Ajuste proporcional do saldo reservado antes da efetivação:
+  // Se a entrega foi parcial (ex: 1 pronta de 3 em carrossel), atualiza a reserva para
+  // debitar estritamente o valor real consumido (actualDebt) via commitSparkReservation,
+  // liberando o restante (totalReservation - actualDebt) automaticamente do bloqueio.
+  if (actualDebt < totalReservation) {
+    try {
+      const sb = getSupabase();
+      const { error } = await sb
+        .from("spark_reservations")
+        .update({ amount: actualDebt, updated_at: new Date().toISOString() })
+        .eq("id", reservationId)
+        .eq("status", "reserved");
+      if (error) {
+        console.error("[billing] Failed to adjust reservation amount before commit:", error.message);
+        await refundSparkReservation(reservationId, "Falha no ajuste proporcional").catch(() => null);
+        return {
+          settled: false,
+          debitedSparks: 0,
+          refundedSparks: totalReservation,
+        };
+      }
+    } catch (err: any) {
+      console.error("[billing] Error adjusting reservation amount before commit:", err.message);
+      await refundSparkReservation(reservationId, "Erro no ajuste proporcional").catch(() => null);
+      return {
+        settled: false,
+        debitedSparks: 0,
+        refundedSparks: totalReservation,
+      };
+    }
+  }
+
+  const committed = await commitSparkReservation(reservationId, generationRunId);
+  return {
+    settled: committed,
+    debitedSparks: committed ? actualDebt : 0,
+    refundedSparks: committed
+      ? Math.max(0, totalReservation - actualDebt)
+      : totalReservation,
+  };
 }

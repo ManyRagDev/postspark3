@@ -1,3 +1,4 @@
+import { generationAspectRatios } from "@shared/aspectRatios";
 import { ArrowDownToLine, FileArchive, Loader2, Magnet, Plus, Ratio, RotateCcw, ZoomIn } from "lucide-react";
 import {
   DropdownMenu,
@@ -61,7 +62,7 @@ export default function CanvasMobileQuickActions({
           <DropdownMenuContent align="start" className="w-52 border-white/15 bg-[#10141D] text-white">
             <DropdownMenuLabel>Formato deste post</DropdownMenuLabel>
             <DropdownMenuRadioGroup value={aspectRatio} onValueChange={value => onAspectRatioChange(value as AspectRatioType)}>
-              {(Object.keys(ASPECT_RATIO_CAPTIONS) as AspectRatioType[]).map(id => (
+              {generationAspectRatios.map(id => (
                 <DropdownMenuRadioItem key={id} value={id}>{id} · {ASPECT_RATIO_CAPTIONS[id].caption}</DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>

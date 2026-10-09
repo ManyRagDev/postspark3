@@ -1,4 +1,5 @@
-export type AspectRatioType = "1:1" | "5:6" | "9:16";
+import type { CatalogCompilation } from "@shared/designCatalog";
+export type AspectRatioType = "1:1" | "4:5" | "5:6" | "9:16";
 export type TextAlignType = "left" | "center" | "right";
 export type LogoPositionType = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
@@ -212,7 +213,7 @@ export const ALL_OFFICIAL_FAMILY_IDS: VisualFamilyId[] = Object.keys(OFFICIAL_FA
 
 // Guardrail puro de garantia de famílias distintas
 export function ensureDistinctFamilies<
-  T extends { familyId?: string; creativeDirection?: { familyId?: string } }
+  T extends { familyId?: string; creativeDirection?: { familyId?: string }; catalogSelectionV2?: unknown; componentAssemblyV1?: unknown; completeDesignV1?: unknown }
 >(variations: T[], seed?: string | number): T[] {
   const used = new Set<string>();
 
@@ -230,6 +231,7 @@ export function ensureDistinctFamilies<
   ];
 
   return variations.map((v, index) => {
+    if (v.catalogSelectionV2 || v.componentAssemblyV1 || v.completeDesignV1) return v;
     let rawFamily = v.familyId || v.creativeDirection?.familyId;
     if (rawFamily === "glitch-signal") rawFamily = "cyber-glitch";
 
@@ -265,7 +267,8 @@ export interface BgImageTransform {
 /** Legenda oficial dos formatos (ex.: "1:1 Feed", "9:16 Stories"). */
 export const ASPECT_RATIO_CAPTIONS: Record<AspectRatioType, { short: string; caption: string }> = {
   "1:1": { short: "1:1", caption: "Feed" },
-  "5:6": { short: "5:6", caption: "Feed" },
+  "4:5": { short: "4:5", caption: "Feed" },
+  "5:6": { short: "5:6", caption: "Legado" },
   "9:16": { short: "9:16", caption: "Stories" },
 };
 
@@ -299,7 +302,7 @@ export interface CanvasCustomText {
   width?: number;
   fontSize?: number;
   fontFamily?: string;
-  fontWeight?: "normal" | "bold";
+  fontWeight?: "normal" | "bold" | number;
   fontStyle?: "normal" | "italic";
   color?: string;
   align?: TextAlignType;
@@ -328,6 +331,16 @@ export interface CanvasCustomImage {
   zIndex?: number;
 }
 
+/** Retângulos simples usados por composições determinísticas. */
+export interface CanvasCustomShape {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+}
+
 export type SplitBgPosition = "bottom" | "top" | "full";
 
 /** Modo de enquadramento da imagem de fundo (Etapa 6 §11). */
@@ -346,7 +359,36 @@ export interface BackgroundPlacement {
   transform?: BgImageTransform;
 }
 
+export type GuidedCompositionId = "headline" | "image" | "balanced";
+
+/** Geometria aplicada, em coordenadas canônicas de 360px. */
+export interface GuidedComposition {
+  version: 1;
+  id: GuidedCompositionId;
+  readingArea: { y: number; height: number; color: string };
+}
+
+/** Referência sem textos ou assets: restauração preserva o conteúdo atual. */
+export interface InitialVisualReference {
+  version: 1;
+  aspectRatio: AspectRatioType;
+  visualStyle: NonNullable<CarouselSlideItem["visualStyle"]>;
+  geometry: Pick<CarouselSlideItem,
+    "headlinePos" | "subtextPos" | "headlineWidth" | "subtextWidth" |
+    "headlineScale" | "subtextScale" | "barPos" | "splitBgPosition" |
+    "guidedComposition"
+  >;
+}
+
 export interface CarouselSlideItem {
+  assemblyRole?: (typeof import("@shared/componentAssembly").assemblySlideRoles)[number];
+  assemblyDensity?: (typeof import("@shared/componentAssembly").assemblyDensities)[number];
+  /** Official ordered document; legacy text fields are compatibility projections. */
+  composition?: import("@shared/designArsenal").ArsenalComposition;
+  guidedComposition?: GuidedComposition;
+  suppressFamilyDecorations?: boolean;
+  extraShapes?: CanvasCustomShape[];
+  initialVisual?: InitialVisualReference;
   id: string;
   step: string;
   headline: string;
@@ -371,9 +413,9 @@ export interface CarouselSlideItem {
   splitBgPosition?: SplitBgPosition;
   /** Aparência local; campos ausentes herdam os defaults do documento. */
   visualStyle?: Partial<Pick<CanvasPostModel,
-    | "familyId" | "familyName" | "fontFamily" | "customFontUrl"
+    | "familyId" | "familyName" | "fontFamily" | "subtextFontFamily" | "customFontUrl"
     | "palette" | "overlayOpacity" | "overlayColor" | "overlayMode"
-    | "headlineAlign" | "bodyAlign" | "headlineSizeScale" | "subtextSizeScale"
+    | "headlineAlign" | "bodyAlign" | "headlineSizeScale" | "subtextSizeScale" | "headlineFontWeight" | "subtextFontWeight"
     | "manualHeadlineColor" | "manualSubtextColor"
     | "headlineEffect" | "headlineEffectColor" | "subtextEffect" | "subtextEffectColor"
   >>;
@@ -498,6 +540,13 @@ export interface CanvasCopyAngle {
 }
 
 export interface CanvasPostModel {
+  /** Small provenance; compositions contain the complete pinned editable documents. */
+  componentAssembly?: Pick<import("@shared/componentAssembly").AssemblyVariationBundleV1, "schemaVersion" | "planHash" | "slot" | "runId" | "traceId" | "direction">;
+  completeDesign?: import("zod").infer<typeof import("@shared/completeDesignGeneration").completeDesignProvenanceSchema>;
+  componentCompilationReports?: Array<{ slideId: string; report: import("@shared/arsenalGeneration").ArsenalCompilationReport }>;
+  arsenalCompilation?: import("@shared/arsenalGeneration").ArsenalCompilationReport;
+  /** Proveniência do catálogo; o documento materializado continua autoritativo. */
+  catalogCompilation?: CatalogCompilation;
   id: string;
   /** Versão do contrato do modelo (Etapa 5 §10). Ausente = modelo legado v1. */
   modelVersion?: number;
@@ -528,6 +577,10 @@ export interface CanvasPostModel {
   caption: string;
   imagePrompt?: string;
   fontFamily: string;
+  /** Família opcional do texto de apoio; ausente mantém a regra histórica da família visual. */
+  subtextFontFamily?: string;
+  headlineFontWeight?: number;
+  subtextFontWeight?: number;
   customFontUrl?: string;
   bgImage?: string;
   bgTransform?: BgImageTransform;
