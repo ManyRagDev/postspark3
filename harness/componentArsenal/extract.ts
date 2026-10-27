@@ -13,6 +13,7 @@ import {authorQuietIdentity} from "./quietIdentity";
 import {ornamentComponents} from "./ornamentComponents";
 import {curatedArtComponents} from "./curatedArtComponents";
 import {carouselIdentityComponents} from "./carouselIdentityComponents";
+import { authoredCapabilities, deriveDesignGuidance } from "./designGuidance";
 
 export const EXTRACTOR_VERSION = "recipe-component-arsenal-v4-curated-art";
 export type AssetFile = { manifest: ArsenalAsset; bytes: Buffer; relativePath: string; sourceHash: string; sourceFamily: string; sourceWeight: number; resolvedWeight: number; sourceUrl: string | null; adjustment: string | null };
@@ -24,6 +25,14 @@ export type ComponentPackage = {
   authorship:{version:string;units:ReturnType<typeof authorRecipe>;limitations:string[];semanticSamples?:SemanticPreview[];formatAdaptations?:FormatAdaptation[]};
 };
 const UUID = (seed:string) => { const h=sha256(seed);return `${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-8${h.slice(17,20)}-${h.slice(20,32)}`; };
+export function nativeAspectRatio(width: number, height: number): ResolvedVariantDefinitionV2["aspectRatio"] {
+  const match = (Object.keys(aspectRatioDimensions) as Array<ResolvedVariantDefinitionV2["aspectRatio"]>).find(ratio => {
+    const size = aspectRatioDimensions[ratio];
+    return Math.abs(width - height * size.width / size.height) <= .5;
+  });
+  if (!match) throw new Error(`Proporção nativa não suportada: ${width}×${height}; requer adaptação autorada explícita`);
+  return match;
+}
 /** Definitions are immutable: any authored geometry, font, role or capability change creates a new ID. */
 const authoredComponent=(input:Parameters<typeof createComponentDefinition>[0])=>{
   const {id:ignored,...definition}=input;
@@ -49,8 +58,7 @@ export async function extractRecipeComponents(record:SourceRecord,recipe:Recreat
     fontMap.set(`${f.family}:${f.weight}`,file);if(!assetFiles.some(a=>a.manifest.id===manifest.id))assetFiles.push(file);
   }
   if(record.destination==="font-study") return {package:{format:"postspark.component-arsenal.package",schemaVersion:1,source:{...record,recipeHash:arsenalHash(recipe)},status:"draft",automaticGenerationEligible:false,sourceSnapshot:{recipe:structuredClone(recipe),previewPath:record.previewPath},components:[],assetFiles:assetFiles.map(({bytes,...f})=>f),authorship:{version:AUTHORING_VERSION,units,limitations:["Estudo de fontes preservado; fontes anunciadas não foram identificadas/incorporadas e não entram como template."]}},assetFiles};
-  const ratio=recipe.scene.source.widthPx/recipe.scene.source.heightPx;
-  const aspectRatio:ResolvedVariantDefinitionV2["aspectRatio"]=Math.abs(ratio-1)<.01?"1:1":Math.abs(ratio-.8)<.01?"4:5":Math.abs(ratio-5/6)<.01?"5:6":Math.abs(ratio-9/16)<.01?"9:16":"5:6";
+  const aspectRatio = nativeAspectRatio(recipe.scene.source.widthPx, recipe.scene.source.heightPx);
   const W=recipe.scene.source.widthPx,H=recipe.scene.source.heightPx;
   const pieces:Record<string,PieceDefinitionV2>={},instances:ResolvedVariantDefinitionV2["instances"]=[],bindings:ResolvedVariantDefinitionV2["bindings"]=[],relations:ResolvedVariantDefinitionV2["relations"]=[];
   const groupId=(id:string)=>`g-${id}`;
@@ -67,13 +75,13 @@ export async function extractRecipeComponents(record:SourceRecord,recipe:Recreat
       fontWeight:font?.adjustment?.startsWith("Peso declarado")?font.resolvedWeight:l.fontWeight,align:l.align,lineHeight:l.lineHeight,letterSpacing:l.letterSpacing,
       ...(record.referenceId==="chromatic-block"&&l.id.startsWith("cd-sticker-rot")?{fill:"#9B1F16"}:{}),
       fixedText:l.kind==="text"&&!textIds.has(l.id)?l.text:null,...(l.kind==="text"&&!textIds.has(l.id)?{fixedTextRole:"ornament"}:{}),
-      ...(unit&&unit.layerIds.length>1?{contentFragment:{index:fragmentIndex,count:unit.layerIds.length,unit:"words",weights:unit.weights}}:{}),
+      ...(unit&&unit.kind!=="list"&&unit.layerIds.length>1?{contentFragment:{index:fragmentIndex,count:unit.layerIds.length,unit:"words",weights:unit.weights}}:{}),
       ...(l.extrusion?{extrusion:l.extrusion}:{})});
     const pieceHash=arsenalHash(piece);pieces[pieceHash]=piece;
     instances.push({id:l.id,pieceHash,parentId:group?groupId(group.id):null,zIndex:l.zIndex,x:lx*Math.cos(angle)+ly*Math.sin(angle),y:-lx*Math.sin(angle)+ly*Math.cos(angle),width:Math.max(1,l.width),height:Math.max(1,l.height),rotation:l.rotationDeg-(group?.transform.rotationDeg??0),opacity:l.opacity});
     if(unit)relations.push({id:`fit-${l.id}`,kind:"textFit",version:1,enabled:true,inputs:[],outputs:[{targetId:l.id,properties:["x","width","height","fontSize"]}],parameters:{anchor:l.align,maxWidth:Math.max(1,l.width),maxHeight:Math.max(1,l.height),minFontSize:l.fontSize*unit.minScale}});
   }
-  units.forEach((u,i)=>bindings.push({id:`authored-${i}`,label:`${u.role}: ${u.fields.join(", ")}`,source:u.source,kind:"text",required:u.required,targetIds:u.layerIds,cardinality:null,prefix:"",gap:0}));
+  units.forEach((u,i)=>bindings.push({id:`authored-${i}`,label:`${u.role}: ${u.fields.join(", ")}`,source:u.source,kind:u.kind,required:u.required,targetIds:u.layerIds,cardinality:u.cardinality??null,prefix:u.prefix??"",gap:0,...(u.kind==="list"?{listMode:"native-slots" as const}:{})}));
   for(const m of recipe.matrix.media)bindings.push({id:m.id,label:m.label,source:"media.primary",kind:"media",required:false,targetIds:[m.layerId],cardinality:null,prefix:"",gap:0});
   const variantKey=`${aspectRatio.replace(":","x")}-${record.fileHash.slice(0,12)}`;
   const mediaSlots=recipe.matrix.media.map(m=>({id:m.layerId,label:m.label,function:"user-replaceable-image",prompt:completeDesignOnly?`Imagem para ${m.label}, respeitando a área de mídia do design ${record.title}.`:"",deferred:true,policy:"cover" as const}));
@@ -87,10 +95,11 @@ export async function extractRecipeComponents(record:SourceRecord,recipe:Recreat
   if(completeDesignOnly){
     if(record.destination!=="composition")throw new Error("A referência não é uma composição reutilizável");
     if(!units.some(u=>u.role==="headline"))throw new Error("Design completo sem campo de título autorado");
+    const guidance=deriveDesignGuidance(recipe,units,record.original,record.referenceId),capability=authoredCapabilities(recipe,units);
     const definition=authoredComponent({schemaVersion:1,id:UUID(`${source.recipeHash}:complete`),kind:"content",
-      completeDesign:{family:record.referenceId,colors:Array.from(new Set([full.artboard.background,...Object.values(pieces).map(p=>p.fill)])).filter(c=>/^#[a-f\d]{6}$/i.test(c)).slice(0,100)},label:record.title,
-      description:"Design completo: fundo, fontes, camadas, grupos e slots nativos. Personalizar somente os campos declarados.",
-      source,roles:["static","cover","development","example","closing"],densities:["balanced"],aspectRatios:[aspectRatio],
+      completeDesign:{family:record.referenceId,authorshipRevision:1,designGuidance:guidance,colors:Array.from(new Set([full.artboard.background,...Object.values(pieces).map(p=>p.fill)])).filter(c=>/^#[a-f\d]{6}$/i.test(c)).slice(0,100)},label:record.title,
+      description:guidance.summary.slice(0,800),
+      source,roles:capability.roles,densities:capability.densities,aspectRatios:[aspectRatio],
       fragment:full,pieces,assets:assetFiles.map(f=>f.manifest),
       colorRoles:Object.fromEntries(instances.map(i=>[i.id,"preserve" as const]))});
     const p:ComponentPackage={format:"postspark.component-arsenal.package",schemaVersion:1,source:{...record,recipeHash:source.recipeHash},

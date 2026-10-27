@@ -5,6 +5,7 @@ import {
   hasLegibleTextContrast,
   patchTouchesContrast,
   resolveGuardedPalette,
+  contrastRatio,
 } from "./contrast";
 import { applyFamilyPreset } from "./familyPreset";
 import { INITIAL_POST, type CanvasPostModel } from "../components/types";
@@ -170,4 +171,35 @@ describe("Contrast Guard — cinematic-depth (Pôster de Cinema)", () => {
     expect(guarded.palette.subtextColor).toBe("#FFFFFF");
   });
 });
+
+describe("IC-06: Sonda de medição de contraste e superfícies (D-10 pendente)", () => {
+  it("mede ratio WCAG em superfícies opacas e identifica contraste suficiente (>= 4.5:1)", () => {
+    // Branco sobre preto
+    expect(contrastRatio("#000000", "#FFFFFF")).toBeGreaterThanOrEqual(20);
+    // Texto legível sobre fundo escuro
+    expect(contrastRatio("#120D0A", "#F8F4EE")).toBeGreaterThanOrEqual(14);
+    // Texto sobre fundo claro
+    expect(contrastRatio("#F8F9FA", "#121214")).toBeGreaterThanOrEqual(14);
+    // Baixo contraste detectado
+    expect(contrastRatio("#222222", "#333333")).toBeLessThan(4.5);
+  });
+
+  it("respeita superfícies do brutal-split e overrides manuais", () => {
+    const post = makePost({
+      familyId: "brutal-split",
+      palette: { background: "#171717", text: "#FFFFFF", accent: "#21F1A8" },
+    });
+    const guarded = applyContrastGuard(post);
+    // Metade superior: headlineColor (#FFFFFF) contra background (#171717)
+    expect(contrastRatio(guarded.palette.background, guarded.palette.headlineColor!)).toBeGreaterThanOrEqual(7);
+    // Metade inferior: subtextColor (#171717) contra accent (#21F1A8)
+    expect(contrastRatio(guarded.palette.accent, guarded.palette.subtextColor!)).toBeGreaterThanOrEqual(7);
+  });
+
+  it("retorna NaN para fundos não hexadecimais ou desconhecidos (ex: fotos/gradientes sem hex direto)", () => {
+    expect(Number.isNaN(contrastRatio("url(photo.jpg)", "#FFFFFF"))).toBe(true);
+    expect(Number.isNaN(contrastRatio("", "#FFFFFF"))).toBe(true);
+  });
+});
+
 

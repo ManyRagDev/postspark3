@@ -173,3 +173,7 @@ designs/inbox/*
 !designs/inbox/.gitkeep
 
 !docs/correcoes-geracao-orquestrada-2026-10-08.md
+!docs/local-demand-operations.md
+
+# Local executor identity, catalog cache and diagnostics
+.postspark-local/

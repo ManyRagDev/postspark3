@@ -123,13 +123,14 @@ const cardVariants = {
 };
 
 export default function Billing() {
+  const utils=trpc.useUtils();
   const [, setLocation] = useLocation();
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
-  const { data: profile, isLoading: profileLoading } = trpc.billing.getProfile.useQuery();
+  const { data: profile, isLoading: profileLoading, isFetching: profileRefreshing, refetch:refreshProfile } = trpc.billing.getProfile.useQuery();
   const { data: packages, isLoading: pkgLoading } = trpc.billing.getTopupPackages.useQuery();
   const topupMutation = trpc.billing.createTopupCheckout.useMutation();
   const checkoutMutation = trpc.billing.createCheckout.useMutation();
-  const trialMutation = trpc.billing.startTrial.useMutation();
+  const trialMutation = trpc.billing.startTrial.useMutation({onSuccess:()=>{void utils.billing.getProfile.invalidate();}});
 
   const handleTopup = async (packageId: string) => {
     try {
@@ -193,6 +194,7 @@ export default function Billing() {
       </button>
 
       <div className="w-full max-w-5xl flex flex-col items-center gap-10">
+        <button disabled={profileRefreshing} onClick={()=>void refreshProfile()} className="text-sm text-muted-foreground">{profileRefreshing?'Atualizando saldo…':'Atualizar saldo'}</button>
         {/* --- Card de Plano Atual --- */}
         <motion.div
           className="rounded-2xl border p-6 w-full max-w-lg"

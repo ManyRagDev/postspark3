@@ -99,7 +99,8 @@ describe("proposal media adapter", () => {
     expect(resolver).toHaveBeenCalledWith(
       referenceUrl,
       ownerId,
-      "p1:r1:image:hero"
+      "p1:r1:image:hero",
+      undefined
     );
     expect(generate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -110,6 +111,18 @@ describe("proposal media adapter", () => {
         ],
       })
     );
+  });
+
+  it("aborts a private reference download before any paid image call", async () => {
+    const ownerId="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",controller=new AbortController();
+    const generate=vi.fn() as unknown as typeof generateImage;
+    const resolver=vi.fn(async(_url:string,_actor:string,_operation?:string,signal?:AbortSignal)=>new Promise<{dataUri:string}>((_resolve,reject)=>signal?.addEventListener("abort",()=>reject(signal.reason),{once:true})));
+    const pending=generateProposalMediaForSlot({ownerId,slot,prompt:"Photo",operationId:"cancel-reference",references:[{url:`/api/post-media/${ownerId}/${"1".repeat(64)}`}],signal:controller.signal},{generateImage:generate,resolveOwnedReference:resolver,runIdempotent:async(_key,work)=>work()});
+    const rejected=expect(pending).rejects.toThrow("generation_cancelled");
+    controller.abort(new Error("generation_cancelled"));
+    await rejected;
+    expect(resolver.mock.calls[0][3]).toBe(controller.signal);
+    expect(generate).not.toHaveBeenCalled();
   });
 
   it("rejects arbitrary and cross-owner URLs without fetching them", async () => {

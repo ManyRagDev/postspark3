@@ -1,3 +1,4 @@
+import { publicUrl,publicHtml } from "./publicUrl";
 /**
  * ScreenshotService: Bridge to the Railway Playwright microservice
  *
@@ -11,6 +12,9 @@
  */
 
 const SCREENSHOT_SERVICE_URL = process.env.SCREENSHOT_SERVICE_URL;
+// The remote browser must enforce public destinations for redirects and every subresource.
+// Without that deployment guarantee use safe HTML/CSS extraction and mark vision unavailable.
+const PUBLIC_NETWORK_ONLY=process.env.SCREENSHOT_PUBLIC_NETWORK_ONLY === "true";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const BATCH_TIMEOUT_MS = 90_000;
 
@@ -44,11 +48,12 @@ export async function captureScreenshot(
     type: 'desktop' | 'mobile' = 'desktop',
 ): Promise<ArrayBuffer | null> {
     console.log(`[screenshotService] Capturing ${type} screenshot for: ${url}`);
-    if (!SCREENSHOT_SERVICE_URL) return warnMissing('captureScreenshot');
+    if (!SCREENSHOT_SERVICE_URL || !PUBLIC_NETWORK_ONLY) return warnMissing('captureScreenshot');
 
     const endpoint = type === 'mobile' ? '/screenshot/mobile' : '/screenshot';
 
     try {
+        await publicUrl(url);
         const response = await fetch(serviceUrl(endpoint), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -82,7 +87,7 @@ export async function captureMultipleScreenshots(
     viewport = { width: 1440, height: 900 },
     maxPages = 5,
 ): Promise<Record<string, ArrayBuffer>> {
-    if (!SCREENSHOT_SERVICE_URL) {
+    if (!SCREENSHOT_SERVICE_URL || !PUBLIC_NETWORK_ONLY) {
         warnMissing('captureMultipleScreenshots');
         return {};
     }
@@ -91,6 +96,7 @@ export async function captureMultipleScreenshots(
     console.log(`[screenshotService] Multi-capture: ${urls.length} URL(s)`);
 
     try {
+        await Promise.all(urls.map(url=>publicUrl(url)));
         const response = await fetch(serviceUrl('/screenshot/multi'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -115,7 +121,8 @@ export async function captureMultipleScreenshots(
         // Convert base64 strings back to ArrayBuffer
         const result: Record<string, ArrayBuffer> = {};
         for (const [url, b64] of Object.entries(json.screenshots)) {
-            result[url] = Buffer.from(b64, 'base64').buffer;
+            const bytes=Buffer.from(b64,'base64');
+            result[url]=bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength) as ArrayBuffer;
         }
 
         console.log(`[screenshotService] Multi-capture: ${Object.keys(result).length}/${urls.length} succeeded ✓`);
@@ -136,7 +143,7 @@ export async function captureElements(
     selectors: string[],
     viewport = { width: 1440, height: 900 },
 ): Promise<Record<string, ArrayBuffer>> {
-    if (!SCREENSHOT_SERVICE_URL) {
+    if (!SCREENSHOT_SERVICE_URL || !PUBLIC_NETWORK_ONLY) {
         warnMissing('captureElements');
         return {};
     }
@@ -187,14 +194,15 @@ export async function discoverPages(
     url: string,
     maxLinks = 8,
 ): Promise<DiscoveredPage[]> {
-    if (!SCREENSHOT_SERVICE_URL) {
-        warnMissing('discoverPages');
-        return [];
+    if (!SCREENSHOT_SERVICE_URL || !PUBLIC_NETWORK_ONLY) {
+        try {const page=await publicHtml(url);const root=new URL(page.url);const links=Array.from(page.html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi));const seen=new Set<string>();return links.flatMap(m=>{try{const target=new URL(m[1],root);if(target.origin!==root.origin||seen.has(target.href))return [];seen.add(target.href);return [{url:target.href,label:m[2].replace(/<[^>]+>/g,'').trim(),priority:/about|sobre|produto|product|service|servico|preco|pricing/i.test(target.pathname)?'high' as const:'medium' as const}];}catch{return [];}}).slice(0,maxLinks);}catch{return [];}
+
     }
 
     console.log(`[screenshotService] Discovering pages for: ${url}`);
 
     try {
+        await publicUrl(url);
         const response = await fetch(serviceUrl('/discover'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

@@ -4,11 +4,13 @@ import { resolveSlideAppearance } from "@/pages/CanvasLab/lib/slideReplication";
 import PostDownloadDialog from "@/pages/CanvasLab/components/PostDownloadDialog";
 import StudioMobileFlashcards from "./StudioMobileFlashcards";
 import StudioDirectionFeedback from "./StudioDirectionFeedback";
+import StudioSlideNavigation, { useStudioSlidePreviews } from "./StudioSlideNavigation";
 import StudioGalleryEmptyState from "./StudioGalleryEmptyState";
 import ProposalSkeletonCard from "./ProposalSkeletonCard";
-import { labelV5Status, messageV5ProposalFailure } from "../lib/studioGenerationV5State";
+import { labelGenerationStatus, messageGenerationProposalFailure } from "../lib/studioGenerationState";
 import type { ProposalDelivery } from "@shared/generationContracts";
-import { useState } from "react";
+import type { ProposalProgressValues } from "../lib/useProposalProgress";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Layers, RefreshCw, Smartphone, Square } from "lucide-react";
 import type { AspectRatioType, CanvasPostModel } from "@/pages/CanvasLab/components/types";
 import { ASPECT_RATIO_CAPTIONS } from "@/pages/CanvasLab/components/types";
@@ -24,8 +26,11 @@ interface StudioGalleryViewProps {
   isGeneratingMore?: boolean;
   /** Família declarada como gosto na tela de criação (marca "SEU GOSTO"). */
   declaredFamilyId?: string | null;
-  /** Entregas/propostas individuais do coordenador V5 para acompanhamento granular por slot */
-  v5SnapshotProposals?: ProposalDelivery[];
+  /** Entregas/propostas individuais do coordenador Generation para acompanhamento granular por slot */
+  generationProposals?: ProposalDelivery[];
+  proposalProgress?: ProposalProgressValues;
+  materializedProposalKeys?: string[];
+  materializationFailureKeys?: string[];
   /** Quantidade esperada de direções (padrão 3) */
   expectedCount?: number;
 }
@@ -38,11 +43,24 @@ export default function StudioGalleryView({
   onGenerateMore,
   isGeneratingMore = false,
   declaredFamilyId,
-  v5SnapshotProposals,
+  generationProposals,
+  proposalProgress,
+  materializedProposalKeys,
+  materializationFailureKeys,
   expectedCount = 3,
 }: StudioGalleryViewProps) {
   const [downloadPost, setDownloadPost] = useState<CanvasPostModel | null>(null);
+  const slidePreviews = useStudioSlidePreviews();
   const [aspectRatio, setAspectRatio] = useState<AspectRatioType>(initialAspectRatio || variations[0]?.aspectRatio || "1:1");
+  const userSelectedAspectRatio = useRef(false);
+  useEffect(() => {
+    const deliveredRatio = variations[0]?.aspectRatio ?? initialAspectRatio;
+    if (!userSelectedAspectRatio.current && deliveredRatio) setAspectRatio(deliveredRatio);
+  }, [initialAspectRatio, variations[0]?.aspectRatio]);
+  const chooseAspectRatio = (ratio: AspectRatioType) => {
+    userSelectedAspectRatio.current = true;
+    setAspectRatio(ratio);
+  };
 
   // Dimensões do Card na Galeria para manter proporção 1:1, 4:5 e 9:16 rigorosamente exatas
   const cardScale = 0.72;
@@ -50,14 +68,25 @@ export default function StudioGalleryView({
   const stageHeight =
     aspectRatioHeight(aspectRatio) * cardScale;
 
-  // V5 opens the gallery before the first proposal is materialized.
+  // Slot identity is independent of completion order and of older batches in the gallery.
+  const pendingProposals = generationProposals?.filter(proposal =>
+    !materializedProposalKeys?.includes(`${proposal.proposalId}:${proposal.revision}`)
+  );
+  const skeletonSlots = pendingProposals?.length
+    ? pendingProposals.map(proposal => ({ slot: proposal.slot, proposal }))
+    : isGeneratingMore && !generationProposals?.length
+      ? Array.from({ length: Math.max(0, generationProposals ? expectedCount : expectedCount - variations.length) }, (_, slot) => ({ slot: generationProposals ? slot : variations.length + slot, proposal: undefined as ProposalDelivery | undefined }))
+      : [];
+
+  // Generation opens the gallery before the first proposal is materialized.
   if (variations.length === 0) {
     return (
       <StudioGalleryEmptyState
         isGenerating={isGeneratingMore}
         onBackToCreate={onBackToCreate}
         aspectRatio={aspectRatio}
-        proposals={v5SnapshotProposals}
+        proposals={generationProposals}
+        proposalProgress={proposalProgress}
       />
     );
   }
@@ -70,7 +99,7 @@ export default function StudioGalleryView({
         <StudioMobileFlashcards
           variations={variations}
           aspectRatio={aspectRatio}
-          onAspectRatioChange={setAspectRatio}
+          onAspectRatioChange={chooseAspectRatio}
           onSelectVariation={onSelectVariation}
           onBackToCreate={onBackToCreate}
           onGenerateMore={onGenerateMore}
@@ -109,7 +138,7 @@ export default function StudioGalleryView({
                 <button
                   key={id}
                   type="button"
-                  onClick={() => setAspectRatio(id)}
+                  onClick={() => chooseAspectRatio(id)}
                   aria-label={`Formato ${cap.short} ${cap.caption}`}
                   className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     isSelected
@@ -133,10 +162,12 @@ export default function StudioGalleryView({
       <main className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar flex flex-col items-center justify-start">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 max-w-6xl mx-auto w-full items-start justify-center">
           {variations.map((item, idx) => {
-            const appearance = resolveSlideAppearance(item, item.currentSlideIndex);
+            const previewItem = slidePreviews.preview(item, idx);
+            const appearance = resolveSlideAppearance(previewItem, previewItem.currentSlideIndex);
+            const optionNumber = String((item.completeDesign?.slot ?? idx) + 1).padStart(2, "0");
             // A mesma arte segue para a prévia, personalização e download.
-            const projection = fitPostToAspectRatio(item, aspectRatio);
-            const cleanItem = projection.post || item;
+            const projection = fitPostToAspectRatio(previewItem, aspectRatio);
+            const cleanItem = projection.post || previewItem;
 
             return (
               <div
@@ -156,9 +187,9 @@ export default function StudioGalleryView({
                   </div>
                   <span className="text-[10px] font-mono text-white/40 uppercase">
                     {appearance.familyId === declaredFamilyId ? (
-                      <span className="text-[oklch(0.78_0.22_48)]">✓ Seu gosto · Opção 0{idx + 1}</span>
+                      <span className="text-[oklch(0.78_0.22_48)]">✓ Seu gosto · Opção {optionNumber}</span>
                     ) : (
-                      <>Opção 0{idx + 1}</>
+                      <>Opção {optionNumber}</>
                     )}
                   </span>
                 </div>
@@ -171,6 +202,8 @@ export default function StudioGalleryView({
                   {projection.error ? <p className="p-4 text-sm text-amber-200">{projection.error}</p> : <CanvasPostStage post={cleanItem} zoom={cardScale} isReadOnly={true} />}
                 </div>
 
+                <StudioSlideNavigation count={item.slides.length} index={previewItem.currentSlideIndex}
+                  onChange={index => slidePreviews.navigate(item, idx, index)} />
                 <StudioDirectionFeedback post={item} />
 
                 <button type="button" disabled={!!projection.error} onClick={() => setDownloadPost(cleanItem)} className="mt-4 w-full rounded-xl bg-orange-300 px-4 py-2.5 text-xs font-bold text-black hover:bg-orange-200">Baixar</button>
@@ -195,28 +228,21 @@ export default function StudioGalleryView({
           })}
 
           {/* Skeletons para slots pendentes durante geração progressiva */}
-          {(isGeneratingMore || (v5SnapshotProposals && v5SnapshotProposals.some(p => p.status !== "ready"))) &&
-            Array.from({ length: Math.max(0, expectedCount - variations.length) }).map((_, i) => {
-              const slotIndex = variations.length + i;
-              const proposal = v5SnapshotProposals?.find((p) => p.slot === slotIndex);
-              const status = proposal?.status || "running";
-              const errorReason = proposal?.errorReason
-                ? messageV5ProposalFailure(proposal.errorReason)
-                : undefined;
-              const statusMessage = proposal ? labelV5Status(proposal.status) : undefined;
-
-              return (
-                <ProposalSkeletonCard
-                  key={`skeleton-slot-${slotIndex}`}
-                  slot={slotIndex + 1}
-                  aspectRatio={aspectRatio}
-                  cardScale={cardScale}
-                  status={status}
-                  statusMessage={statusMessage}
-                  errorReason={errorReason}
-                />
-              );
-            })}
+          {skeletonSlots.map(({ slot, proposal }) => {
+            const materializationFailed = proposal && materializationFailureKeys?.includes(`${proposal.proposalId}:${proposal.revision}`);
+            return (
+              <ProposalSkeletonCard
+                key={proposal?.proposalId ?? `skeleton-slot-${slot}`}
+                slot={slot + 1}
+                aspectRatio={aspectRatio}
+                cardScale={cardScale}
+                status={materializationFailed ? "failed" : proposal?.status ?? "running"}
+                progress={proposal ? proposalProgress?.[`${proposal.proposalId}:${proposal.revision}`] : undefined}
+                statusMessage={materializationFailed ? "Falha ao montar a proposta" : proposal ? labelGenerationStatus(proposal.status) : undefined}
+                errorReason={materializationFailed ? messageGenerationProposalFailure("materialization_failed") : proposal?.errorReason ? messageGenerationProposalFailure(proposal.errorReason) : undefined}
+              />
+            );
+          })}
         </div>
 
         {/* Botão para Gerar Mais 3 Opções */}

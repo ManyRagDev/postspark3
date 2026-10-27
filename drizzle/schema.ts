@@ -201,3 +201,20 @@ export const sparkReservations = postsparkSchema.table("spark_reservations", {
 
 export type SparkReservation = typeof sparkReservations.$inferSelect;
 export type InsertSparkReservation = typeof sparkReservations.$inferInsert;
+
+export const brandProjects = postsparkSchema.table("brand_projects", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userUuid: uuid("user_uuid").notNull(),
+  name: varchar("name", { length: 120 }).notNull(),
+  niche: varchar("niche", { length: 120 }).notNull(),
+  sourceType: varchar("source_type", { length: 32 }).notNull().default("form"),
+  structuredData: jsonb("structured_data").$type<Record<string, any>>().notNull().default({}),
+  compiledDocument: text("compiled_document").notNull().default(""),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type BrandProject = typeof brandProjects.$inferSelect;
+export type InsertBrandProject = typeof brandProjects.$inferInsert;
+

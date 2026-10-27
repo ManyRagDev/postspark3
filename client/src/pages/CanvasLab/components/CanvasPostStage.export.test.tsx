@@ -15,7 +15,7 @@ vi.mock("react-konva", async () => {
   const stage = { find: (selector: string) => selector === "Image" ? capture.images : [], getLayers: () => [{ draw() {}, batchDraw() {} }], toDataURL: (options: unknown) => { capture.export(options); return capture.png; } };
   return { Stage: React.forwardRef((props: { children?: React.ReactNode }, ref) => { React.useImperativeHandle(ref, () => stage); return container(props); }), Layer: container, Group: container, Transformer: React.forwardRef((_, ref) => { React.useImperativeHandle(ref, () => ({ nodes() {}, getLayer: () => ({ batchDraw() {} }) })); return null; }), Rect: () => null, Text: () => null, Image: () => null, Line: () => null, Circle: () => null };
 });
-vi.mock("../lib/arsenalAssets", () => ({ ensureArsenalCompositionFonts: vi.fn(async () => {}) }));
+vi.mock("../lib/arsenalAssets", () => ({ ensureArsenalCompositionFonts: vi.fn(async () => {}), ensureArsenalCompositionAssets: vi.fn(async () => {}) }));
 vi.mock("@/hooks/useDynamicFont", () => ({ useDynamicFont: () => {} }));
 vi.mock("./ArsenalCompositionContents", () => ({ ArsenalCompositionContents: () => null }));
 
@@ -50,4 +50,109 @@ it("PNG, thumbnail and ZIP export after hiding a filled catalog slot without del
   expect(thumbnail).toBe(capture.png);
   expect(zip.size).toBeGreaterThan(0);
   expect(capture.export).toHaveBeenCalledTimes(3);
+});
+
+it("CP-31: native font pending prevents synchronous export", async () => {
+  const ref = createRef<CanvasPostStageRef>();
+  const previous = Object.getOwnPropertyDescriptor(document, "fonts");
+  Object.defineProperty(document, "fonts", {
+    configurable: true,
+    value: { ready: new Promise(() => {}), check: () => false, status: "loading" },
+  });
+  const p = {
+    ...structuredClone(INITIAL_POST),
+    bgImage: "",
+    logoUrl: "",
+    slides: [{ id: "n", step: "", headline: "Pending font", subtext: "" }],
+    fontFamily: "AUDIT_PENDING_FONT",
+  };
+  await render(p, ref);
+  try {
+    expect(() => ref.current!.exportPng4K()).toThrow();
+  } finally {
+    if (previous) Object.defineProperty(document, "fonts", previous);
+    else delete (document as any).fonts;
+  }
+});
+
+it("BUG-CL-027: failed body font blocks export even if headline is loaded", async () => {
+  const ref = createRef<CanvasPostStageRef>();
+  const previous = Object.getOwnPropertyDescriptor(document, "fonts");
+  const face = { family: "AuditFailedBody", status: "error" };
+  Object.defineProperty(document, "fonts", {
+    configurable: true,
+    value: {
+      ready: Promise.resolve(),
+      check: (font: string) => !font.includes("AuditFailedBody"),
+      forEach: (cb: any) => cb(face),
+      [Symbol.iterator]: function* () { yield face; },
+      status: "loaded",
+    },
+  });
+  try {
+    const post = structuredClone(INITIAL_POST);
+    post.fontFamily = "Arial";
+    post.subtextFontFamily = "AuditFailedBody";
+    post.slides[0].subtext = "Visible body text";
+    await render(post, ref);
+    expect(() => ref.current!.exportPng4K()).toThrow(/AuditFailedBody/);
+  } finally {
+    if (previous) Object.defineProperty(document, "fonts", previous);
+    else delete (document as any).fonts;
+  }
+});
+
+it("BUG-CL-033: unrelated loading font in DOM does not block export when used fonts are ready", async () => {
+  const ref = createRef<CanvasPostStageRef>();
+  const previous = Object.getOwnPropertyDescriptor(document, "fonts");
+  const unusedFace = { family: "AuditUnused", status: "loading" };
+  Object.defineProperty(document, "fonts", {
+    configurable: true,
+    value: {
+      ready: new Promise(() => {}),
+      check: (font: string) => font.includes("Arial"),
+      forEach: (cb: any) => cb(unusedFace),
+      [Symbol.iterator]: function* () { yield unusedFace; },
+      status: "loading",
+    },
+  });
+  try {
+    const post = structuredClone(INITIAL_POST);
+    post.fontFamily = "Arial";
+    post.subtextFontFamily = "Arial";
+    await render(post, ref);
+    expect(() => ref.current!.exportPng4K()).not.toThrow();
+  } finally {
+    if (previous) Object.defineProperty(document, "fonts", previous);
+    else delete (document as any).fonts;
+  }
+});
+
+it("BUG-CL-033: empty body text allows export even if subtextFontFamily failed to load", async () => {
+  const ref = React.createRef<CanvasPostStageRef>();
+  const failedBodyFace = {
+    family: "FailedBodyFont",
+    status: "error",
+  };
+  const previous = Object.getOwnPropertyDescriptor(document, "fonts");
+  Object.defineProperty(document, "fonts", {
+    configurable: true,
+    value: {
+      check: (font: string) => !font.includes("FailedBodyFont"),
+      [Symbol.iterator]: function* () { yield failedBodyFace; },
+      status: "loaded",
+      ready: Promise.resolve(),
+    },
+  });
+  try {
+    const post = structuredClone(INITIAL_POST);
+    post.fontFamily = "Arial";
+    post.subtextFontFamily = "FailedBodyFont";
+    post.slides[0].subtext = ""; // empty subtext
+    await render(post, ref);
+    expect(() => ref.current!.exportPng4K()).not.toThrow();
+  } finally {
+    if (previous) Object.defineProperty(document, "fonts", previous);
+    else delete (document as any).fonts;
+  }
 });

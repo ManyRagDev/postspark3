@@ -376,7 +376,7 @@ export interface InitialVisualReference {
   geometry: Pick<CarouselSlideItem,
     "headlinePos" | "subtextPos" | "headlineWidth" | "subtextWidth" |
     "headlineScale" | "subtextScale" | "barPos" | "splitBgPosition" |
-    "guidedComposition"
+    "guidedComposition" | "nativeDecorationTransforms"
   >;
 }
 
@@ -408,6 +408,8 @@ export interface CarouselSlideItem {
   subtextWidth?: number;
   headlineScale?: number;
   subtextScale?: number;
+  /** Transformações persistidas de elementos decorativos nativos (D-03). */
+  nativeDecorationTransforms?: Partial<Record<"logo" | "badge" | "bar", { scaleX: number; scaleY: number; rotation: number }>>;
   extraTexts?: CanvasCustomText[];
   extraImages?: CanvasCustomImage[];
   splitBgPosition?: SplitBgPosition;
@@ -618,6 +620,8 @@ export interface CanvasPostModel {
   extraImages?: CanvasCustomImage[];
   /** No estilo brutal-split: metade onde o fundo fotográfico é aplicado ('bottom' | 'top' | 'full'). */
   splitBgPosition?: SplitBgPosition;
+  /** Fontes pessoais do usuário registradas para o documento (D-07). */
+  userFonts?: import("@shared/designArsenal").ArsenalUserFont[];
 }
 
 export const INITIAL_POST: CanvasPostModel = {

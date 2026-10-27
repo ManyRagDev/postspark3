@@ -4,7 +4,7 @@ Atualizado em 9 de outubro de 2026. Registro da intenção do proprietário e da
 
 ## Leitura essencial para retomar o trabalho
 
-**O objetivo é consolidar a arquitetura do PostSpark e concluir a experiência de criação. Integrar Jev é uma parte desse trabalho. O pipeline único ainda não foi entregue.**
+**O objetivo é consolidar a arquitetura do PostSpark e concluir a experiência de criação. Integrar Jev é uma parte desse trabalho. O pipeline único foi implementado em 9 de outubro; publicação do lote curado e implantação externa são decisões operacionais separadas, com estado explícito no documento-mestre.**
 
 1. O usuário fornece uma ideia e recebe três propostas de post ou carrossel prontas para uso. Editar é uma possibilidade rica, não uma obrigação para terminar o trabalho da IA.
 2. A reforma precisa resolver o conjunto: produto, geração, acervo, contratos de IA, execução, persistência, editor e manutenção. Correções isoladas não substituem essa consolidação.
@@ -17,7 +17,7 @@ Atualizado em 9 de outubro de 2026. Registro da intenção do proprietário e da
 9. Aumentar a variedade deve ampliar possibilidades criativas. Rótulos temáticos, funções comunicativas fixas e cortes ocultos não podem estreitar indevidamente a escolha.
 10. A arquitetura deve permanecer proporcional ao problema. Evitar novas versões paralelas, cadastros redundantes e infraestrutura adicionada sem necessidade demonstrada.
 
-**Ponto de retomada:** transformar o fluxo existente em um único motor e revisar a participação do acervo. A última implementação do Jev foi incremental e não encerrou esse objetivo.
+**Ponto de retomada:** o motor único já está implementado, mas os testes reais expuseram lacunas de qualidade editorial e de acervo. Ler §13.86–13.88 do documento-mestre: cafeteria repete motivos; BizuMiner perdeu especificidade e entregou somente uma proposta; a conferência de Downloads encontrou apenas três das 22 referências gráficas com baseline válido. O proprietário concordou com preservar a informação ao longo do fluxo. As correções desse diagnóstico ainda não foram implementadas. Melhorar o fluxo existente, sem reabrir caminhos V4/V5 concorrentes.
 
 ## Como chegamos ao problema atual
 
@@ -42,13 +42,13 @@ Também explicitou a direção estrutural:
 | Assunto | Direção registrada | Situação |
 | --- | --- | --- |
 | Produto | Entregar três propostas utilizáveis a partir da intenção do usuário, com edição ampla e opcional | Objetivo central |
-| Arquitetura | Um único caminho de geração, com responsabilidade clara por etapa | Decidido; consolidação pendente |
-| Base de execução | Aproveitar a execução persistente atual do V5 e absorver capacidades necessárias do V4 | Direção acolhida; migração pendente |
+| Arquitetura | Um único caminho de geração, com responsabilidade clara por etapa | Implementado: generation.start/get/cancel |
+| Base de execução | Aproveitar a execução persistente atual do V5 e absorver capacidades necessárias do V4 | Implementado na base persistente; rota antiga aposentada |
 | Versões | Manter versões de contratos e leitores quando necessárias para compatibilidade, sem manter motores concorrentes indefinidamente | Direção da consolidação |
-| Jev | Pré-seleção de designs para a LLM, sem assumir copy, renderização ou coordenação do aplicativo | Papel delimitado; integração local implementada |
+| Jev | Pré-seleção de designs para a LLM, sem assumir copy, renderização ou coordenação do aplicativo | Integrado e verificado por chamada real |
 | Quantidade de candidatos | Entregar mais de três opções; começar com 12 famílias | Estimativa implementada; qualidade a calibrar |
 | Padronização | Uma ficha comparável para modelos completos e famílias básicas, derivada das fontes existentes | Contrato inicial implementado; enriquecimento e cobertura útil pendentes |
-| Qualidade do acervo | Avaliar os designs derivados antes de decidir o que manter, corrigir ou retirar | Pendente; origem ou volume de JSON não comprovam qualidade |
+| Qualidade do acervo | Avaliar os designs derivados antes de decidir o que manter, corrigir ou retirar | 18 adaptações verificadas anteriormente; agora 24 originais comparados e mais 12 renders de seis designs. Há perdas de fidelidade e cobertura; publicação continua separada |
 | Formatos | Revisar a exclusão precoce por proporção, considerando a liberdade de edição | Preocupação registrada; adaptação automática ainda precisa de definição e prova |
 | Complexidade | Escolher a menor solução que atenda à experiência e à confiabilidade necessárias | Restrição permanente de projeto |
 
@@ -58,22 +58,24 @@ Também explicitou a direção estrutural:
 
 ```mermaid
 flowchart TD
-    A[Pedido do usuário] --> B[Preparação do briefing e contexto]
-    B --> C[Acervo e fichas comparáveis]
-    C --> D[Jev avalia e oferece X opções]
+    A[Pedido do usuário] --> B[Admissão idempotente e preparação persistida]
+    B --> C[Fichas do catálogo elegível]
+    C --> D[Jev oferece até 12 famílias]
     D --> E[LLM escolhe três propostas]
-    E --> P1[Execução da proposta 1]
-    E --> P2[Execução da proposta 2]
-    E --> P3[Execução da proposta 3]
-    P1 --> G[Galeria recebe cada proposta pronta]
-    P2 --> G
-    P3 --> G
-    G --> H[CanvasLab para editar salvar e exportar]
+    E --> F[3 execuções independentes]
+    F --> G[Copy e conferência técnica]
+    G --> H[Mídia nos slots nativos]
+    H --> I[Render real CanvasPostStage]
+    I --> J[Revisor multimodal com briefing e evidências]
+    J -->|aprovado| K[Persistência e entrega progressiva]
+    J -->|reparo comprovado e orçamento disponível| G
+    J -->|falha ou inconclusivo| L[Falha isolada da proposta]
+    K --> M[Galeria CanvasLab salvar reabrir exportar]
 ```
 
 A preparação pode ser compartilhada. Depois da escolha, copy, mídia necessária, verificações e recuperação pertencem a cada proposta. Num carrossel, a unidade entregue é a sequência íntegra. Resultados concluídos devem sobreviver à falha de uma proposta irmã e à retomada da execução.
 
-Na conclusão da migração, o Studio deve ter uma única forma de iniciar e acompanhar a geração. A escolha V4/V5 deixa de fazer parte do uso normal. Compatibilidade histórica pode conservar leitores, adaptadores e versões de schema; isso não exige conservar dois geradores ativos. Criar uma V6 ao lado das anteriores não satisfaz essa decisão.
+O Studio agora tem uma única forma de iniciar e acompanhar a geração. A escolha V4/V5 foi retirada do uso normal. Compatibilidade histórica pode conservar leitores, adaptadores e versões de schema; isso não exige conservar dois geradores ativos. Criar uma V6 ao lado das anteriores não satisfaz essa decisão.
 
 ### Fonte da verdade por responsabilidade
 
@@ -88,7 +90,7 @@ Na conclusão da migração, o Studio deve ter uma única forma de iniciar e aco
 
 ## O que a revisão do acervo precisa resolver
 
-**Qualidade dos modelos derivados.** O proprietário questionou se composições montadas a partir das referências têm qualidade suficiente e se devem permanecer. Essa questão continua aberta. Hierarquia, legibilidade, composição, encaixe real, utilidade e diversidade precisam orientar a avaliação. Não manter um modelo apenas porque ele já existe; não descartá-lo apenas por ter sido derivado artificialmente.
+**Qualidade dos modelos derivados.** O proprietário questionou se composições montadas a partir das referências têm qualidade suficiente e se devem permanecer. Uma amostra de 18 adaptações foi inspecionada com duas copies e o renderer real; isso não certifica os 112 registros do acervo. Hierarquia, legibilidade, composição, encaixe real, utilidade e diversidade precisam orientar a avaliação. Não manter um modelo apenas porque ele já existe; não descartá-lo apenas por ter sido derivado artificialmente.
 
 **Informação desigual.** Designs prontos têm muitos parâmetros; famílias básicas têm descrições mais pobres. Uma ficha com os mesmos campos é o começo da padronização, mas não garante evidência equivalente. Características ausentes precisam ser extraídas das definições, verificadas em renders ou registradas como desconhecidas. Não inventar capacidade para preencher campos.
 
@@ -99,6 +101,10 @@ Na conclusão da migração, o Studio deve ter uma única forma de iniciar e aco
 **Mudança de formato.** O usuário não considera satisfatório organizar a escolha criativa apenas pelo formato inicial, pois a proporção pode mudar no editor. A reforma precisa revisar esse filtro. A existência de edição manual não prova que qualquer design possa ser adaptado automaticamente com qualidade; essa capacidade precisa ser definida e testada antes de ampliar a elegibilidade.
 
 **Crescimento contínuo.** O proprietário continuará adicionando referências. A entrada de um design deve alimentar o mesmo catálogo e o mesmo método de descrição, sem exigir uma nova versão do motor ou um segundo cadastro manual de seleção.
+
+**Conferência dos originais em 9 de outubro.** A pasta `/home/many/Downloads/sources postspark/` contém 22 designs gráficos, uma fotografia e uma imagem de estudo tipográfico; todos os arquivos estão íntegros. Das referências gráficas, somente Why, Grid Systems e Holding têm alguma variante com baseline válido; as outras 19 são bloqueadas antes da escolha. Na cafeteria, nenhuma dessas três referências entrou na shortlist final. Os 59 componentes tecnicamente válidos incluem 40 variantes de presets e 16 derivados. Essa contagem não mede variedade visual independente.
+
+**Fidelidade e informação que precisa continuar útil.** A reconstrução histórica simplificou texturas, tipos, perspectiva e efeitos; o relatório antigo comparava a conversão com o preview da receita, não com o original baixado. Notas úteis sobre fotografia e composição permanecem no snapshot, mas não chegam como requisitos à geração. A lista de benefícios de Why também perdeu seu contrato de itens. Preservar informação significa manter fatos/entidades e progressão narrativa do usuário, além das regras verificadas de cada design, nos contratos consumidos pelas próximas etapas. O proprietário concordou explicitamente com essa direção. Não basta armazenar informação nem enviar todo JSON à LLM. Não considerar todo bloqueio técnico prova de baixa qualidade: o baseline e o runtime divergem, por exemplo, na classificação de sobreposição texto/foto. Ver evidências e limites em §13.87–13.88.
 
 ## Seleção com Jev e alternativas discutidas
 
@@ -111,31 +117,51 @@ O valor inicial de 12 oferece espaço para a LLM escolher três propostas sem ca
 | Bússola SGC ou Compass D0 | Foi proposta uma recuperação inspirada na indexação, sem exigir a suíte completa, difusão de calor ou Dirichlet. Não há experimento comparativo registrado nesta entrega que demonstre sua superioridade ou inferioridade |
 | pgvector | Foi levantado como possível apoio à recuperação e à consciência do acervo. Não foi adotado como requisito da pré-seleção atual nem substitui a necessidade de boas descrições |
 | Harness de IA | Interesse em organizar contratos, execução, persistência, tentativas e avaliação de resultados. Isso não implica construir uma plataforma adicional para a seleção |
-| LangGraph | O proprietário reconheceu flexibilidade e preocupou-se com a complexidade lógica. Já existe no coordenador atual; sua presença não comprova a consolidação dos fluxos |
-| Playwright | Foi perguntado qual seria seu papel e se serviria ao avaliador. O desenho de avaliação visual continua pendente; não registrar a adoção de um agente crítico como decisão já tomada |
+| LangGraph | O proprietário reconheceu flexibilidade e preocupou-se com a complexidade lógica. Foi mantido no coordenador/grafos; a consolidação não adicionou outro framework |
+| Playwright | Foi perguntado qual seria seu papel e se serviria ao avaliador. Agora fornece os pixels do CanvasPostStage ao revisor obrigatório; não é o modelo avaliador nem desenha outra versão do post |
 
 Há liberdade para propor bibliotecas, contratos, fluxos e métodos diferentes. Documentação e regras herdadas descrevem o que existe e podem ser revistas à luz do objetivo do produto. Essa liberdade deve ser usada com evidência e responsabilidade pelos impactos, sem transformar toda possibilidade técnica em requisito.
 
-## Estado concreto ao final desta retomada
+## Estado vigente após implementação
 
-| Item | Estado registrado em 9 de outubro de 2026 |
+**Perícia posterior, 9 de outubro às 21h:** §13.87 do documento-mestre registra repetição na seleção da cafeteria e copy genérica no BizuMiner. As 12 alternativas chegaram à seleção, mas falta memória de resultados anteriores e diversidade visual efetiva; o contrato privilegia preenchimento de caixas sem plano narrativo e o revisor não certifica qualidade editorial. BizuMiner entregou uma de três propostas, com duas falhas de encaixe; uma envolve largura de espaço final. Também foram encontrados rastros agregados vazios apesar de chamadas reais no journal. Esses pontos reabrem a qualidade de produto como trabalho necessário; a implementação técnica e os testes de §13.86 não os resolvem. Nesta perícia foram atualizadas apenas documentação e evidências locais.
+
+| Item | Estado em 9 de outubro de 2026 |
 | --- | --- |
-| Geração V4 | Ainda é o caminho padrão do Studio, via `post.generate`, executando durante a requisição |
-| Geração V5 | Tem preparação, executor separado, estado persistido e propostas independentes; a entrada continua condicionada ao piloto DEV e à disponibilidade do executor |
-| Bifurcação no produto | Continua presente no Studio. O pipeline único ainda não existe |
-| Jev | Etapa compartilhada por V4 e V5, implementada localmente; integrar a ambos não eliminou a bifurcação |
-| Fichas | Projeções de `ComponentCardV1` e das famílias básicas, sem outro catálogo persistido |
-| Elegibilidade | Os filtros anteriores à pré-seleção continuam ativos. A ficha não publica modelos nem reativa famílias legadas |
-| Padronização e qualidade | O contrato inicial existe; a revisão estética, o enriquecimento das lacunas e a disponibilização de todo o repertório desejado continuam pendentes |
-| Validação do Jev | Testes automatizados e simulação local; sem validação do ranking por chamada real nesta entrega |
+| Geração | Um caminho: `generation.start/get/cancel`; `post.generate` aposentado |
+| Execução | Worker separado, journal, deadline, cancelamento, três propostas independentes |
+| Seleção | Fichas derivadas → Jev em lotes → até 12 famílias → LLM; teste real confirmado |
+| Revisão | Obrigatória, todos os slides, com PNG do CanvasLab real e evidências do briefing |
+| Reparo | Um reparo localizado compartilhado com overflow; rerender/recheck; nenhum veto de gosto |
+| Post editável | CanvasPostModel, preservado em `canvas_model` |
+| Billing | Admissão/reserva atômicas; totais 10/40; parcial por proposta; zero entregas sem débito |
+| Catálogo | 112 definições locais, 59 baseline válidas, 53 inválidas; 18 adaptações renderizadas em quatro formatos |
+| Publicação | Lote inspecionado aguarda autorização específica; revisão de agente será identificada, sem simular decisão humana |
+| Operação | Migrações 0036/0037 aplicadas; API/worker locais verificados; implantação externa não realizada |
 
-Na implementação anterior desta conversa, `pnpm check` passou e a suíte registrou 143 arquivos e 1.445 testes aprovados. No inventário local analisado, foram produzidas fichas para 112 modelos completos e 12 famílias básicas. Uma simulação com notas artificiais considerou os 29 modelos elegíveis em 4:5 e reduziu o catálogo para a LLM de aproximadamente 90 KB para 22 KB. Esses números demonstram cobertura do conjunto elegível e redução de payload, não qualidade visual nem disponibilidade atual em produção. Detalhes e limites estão em §13.85 do documento-mestre.
+A revisão cruzada corrigiu perda de formato ao chegar a primeira proposta, mistura de histórico com pedido antigo, cancelamento de fontes/mídia, encerramento do Chromium e sondas de banco que poderiam escrever. Os detalhes estão em §13.86: 1.577 testes aprovados, geração real de três posts e três carrosséis, foto privada salva/reaberta e ZIP 4K verificado. Seleção/shortlist/mídia ainda não conservam todos os IDs externos dos providers; o journal conserva identidade e resultados das operações.
 
-A implementação compartilhada foi uma melhoria parcial. O proprietário apontou que manter V4 e V5 contraria o destino de um pipeline único. A resposta aceita foi encerrar essa bifurcação, aproveitando a base persistente e preservando as capacidades necessárias durante a migração. Esse alinhamento deve orientar a próxima entrega.
+O revisor não pode alterar conteúdo com base em uma citação ambígua: correção numérica automática exige enunciado inteiro do usuário e corroboração literal integral, sem contexto adicional. Essa política foi ampliada em §13.89: perdas editoriais ancoradas na fonte podem acionar uma reescrita localizada; suspeitas sem evidência continuam diagnósticos. `visual_only` conserva o texto fornecido. A aprovação técnica/visual não garante que todo usuário preferirá o design, e não dispensa calibrar a seleção com briefs diversos.
 
-## Próxima entrega estrutural e critérios de conclusão
+## Atualização após a perícia do acervo — 9/10/2026
 
-A próxima entrega deve começar pelo mapa de capacidades e consumidores dos dois caminhos: entrada do pedido, briefing, marca, catálogo, copy, imagem, recuperação, galeria, histórico, editor, persistência e billing. Para cada responsabilidade, estabelecer o módulo que ficará responsável e o caminho que será absorvido ou retirado. Esse mapa deve levar à migração concreta; não abrir mais uma linha de implementação paralela.
+O pedido continua sendo consolidar o produto inteiro: entrada → avaliação dos candidatos → três propostas independentes → revisão → edição opcional. A recuperação do acervo e a preservação editorial fazem parte desse fluxo único.
+
+O diagnóstico §§13.87–13.88 confirmou que os originais estavam íntegros, mas a conversão simplificou elementos visuais e deixou informações fora dos contratos operacionais. A implementação §13.89 transporta autoria específica entre shortlist, seleção, copy, mídia e revisão; acrescenta plano factual/narrativo, recuperação localizada e rastros de custo/uso completos. Memória curta e similaridade visual reduzem repetição entre candidatos de adequação próxima, sem sortear designs nem restringir função comunicativa por tema.
+
+O lote recuperado r4 é **uma revisão do catálogo, não uma nova versão do motor**: 96 definições, 79 baselines técnicos válidos, 34 famílias tecnicamente disponíveis. Há duas restaurações visuais efetivas (papel/computador), 22 fichas específicas e seis referências gráficas diretas com baseline válido, antes três. Ainda existem referências com proporção incompatível, geometria bloqueada ou fidelidade visual insuficiente; o lote não certifica todo o acervo. A imagem baixada voltou a ser a referência real do comparador.
+
+O revisor agora declara cobertura de cada fato e aponta citações conferidas nos campos visíveis; uma resposta sem achados não basta para aprovar uma copy com plano factual. Perdas parciais acionam o mesmo reparo localizado, com novo render/revisão. Isso aumenta a auditabilidade sem criar outro agente e sem prometer uma prova mecânica de equivalência semântica. Redução de fonte só usa limites autorados, é persistida no post e não apaga texto. O limite de uma recuperação por proposta continua valendo após retomadas e mudanças de preflight.
+
+O contexto antigo de 112 definições/59 baselines continua como histórico. Publicação, rascunho elegível para administradores, baseline técnico e aprovação estética são estados distintos. O cadastro remoto do lote novo depende da confirmação específica solicitada após bloqueio de aprovação automática; não confundir artefato local com catálogo já disponível na aplicação.
+
+Os dois testes reais cafeteria/BizuMiner foram autorizados para OpenRouter, com journal local, fonte/render/revisor reais e sem publicação. Uma falha de nome encontrada na cafeteria foi corrigida e retestada sem recomprar seleção/copy. Os resultados e limitações finais devem ser lidos em §13.89 e nos relatórios, não inferidos da passagem dos testes automatizados.
+
+O teste real revelou uma lacuna persistente: o Flash aprovou “promoção real” como se demonstrasse “verificamos promoções”, inclusive com raciocínio maior. O contrato tornou o falso positivo auditável, mas não o eliminou. A comparação única com Pro terminou por timeout e ficou com cobrança incerta; não houve retry nem mudança do modelo padrão. Portanto, o BizuMiner **não está homologado como entrega completa**. Não retomar esta conversa assumindo que a preservação semântica foi concluída só porque testes de contrato passaram. A cafeteria gerou três propostas prontas; a proposta fotográfica do BizuMiner não foi executada pelo harness local. Detalhes, custos e snapshots estão em §13.89.
+
+## Critérios permanentes de conclusão e manutenção
+
+O mapa de responsabilidades foi consolidado em §13.86. Manter entrada, briefing, marca, catálogo, copy, imagem, recuperação, galeria, histórico, editor, persistência e billing coerentes com o mesmo caminho; não abrir outra linha de implementação paralela.
 
 Critérios para considerar a consolidação concluída:
 
@@ -161,4 +187,4 @@ Ao retomar o trabalho, ler primeiro a seção essencial deste arquivo e o estado
 
 Atualizar decisões, estado e pendências nas seções correspondentes quando houver mudança. Não marcar uma intenção como implementada nem uma implementação como validada sem a evidência adequada. Se houver uma nova decisão do proprietário, registrá-la explicitamente e substituir a orientação superada, evitando acumular conclusões incompatíveis.
 
-Esta rodada registra o contexto. Não executa a migração nem altera o funcionamento do aplicativo.
+Esta revisão registra a implementação autorizada pelo proprietário, seus testes e os limites operacionais. As intenções anteriores continuam preservadas como contexto, sem contradizer o estado vigente.

@@ -27,7 +27,7 @@ function getSparkColor(sparks: number, plan: string) {
 export default function SparkBalance() {
   const [, setLocation] = useLocation();
   const { data: profile, isLoading } = trpc.billing.getProfile.useQuery(undefined, {
-    refetchInterval: 30_000, // Atualiza a cada 30s
+    refetchInterval: import.meta.env.DEV ? false : 30_000, // Atualiza a cada 30s
     staleTime: 15_000,
   });
 

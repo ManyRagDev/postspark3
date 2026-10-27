@@ -92,6 +92,38 @@ function normalizePositiveNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
+function normalizeNativeDecorationTransforms(
+  raw: unknown
+): Partial<Record<"logo" | "badge" | "bar", { scaleX: number; scaleY: number; rotation: number }>> | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const obj = raw as Record<string, unknown>;
+  const targets = ["logo", "badge", "bar"] as const;
+  const result: Partial<Record<"logo" | "badge" | "bar", { scaleX: number; scaleY: number; rotation: number }>> = {};
+  let hasValid = false;
+
+  for (const t of targets) {
+    const val = obj[t];
+    if (val && typeof val === "object" && !Array.isArray(val)) {
+      const v = val as Record<string, unknown>;
+      const scaleX = typeof v.scaleX === "number" && Number.isFinite(v.scaleX) && v.scaleX > 0 ? v.scaleX : 1;
+      const scaleY = typeof v.scaleY === "number" && Number.isFinite(v.scaleY) && v.scaleY > 0 ? v.scaleY : 1;
+      const rotation = typeof v.rotation === "number" && Number.isFinite(v.rotation) ? v.rotation : 0;
+      result[t] = { scaleX, scaleY, rotation };
+      hasValid = true;
+    }
+  }
+
+  return hasValid ? result : undefined;
+}
+
+function normalizeUserFonts(raw: unknown): import("@shared/designArsenal").ArsenalUserFont[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const valid = raw.filter((f): f is import("@shared/designArsenal").ArsenalUserFont =>
+    Boolean(f) && typeof f === "object" && typeof f.family === "string" && f.family.trim().length > 0 && typeof f.url === "string" && f.url.trim().length > 0
+  );
+  return valid.length > 0 ? valid : undefined;
+}
+
 /** Constrói o payload de salvamento a partir do modelo do editor. */
 export function canvasModelToSavePayload(
   post: CanvasPostModel,
@@ -239,6 +271,7 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
           subtextWidth: normalizePositiveNumber(s.subtextWidth),
           headlineScale: normalizePositiveNumber(s.headlineScale),
           subtextScale: normalizePositiveNumber(s.subtextScale),
+          nativeDecorationTransforms: normalizeNativeDecorationTransforms(s.nativeDecorationTransforms),
           extraTexts: Array.isArray(s.extraTexts) ? s.extraTexts : undefined,
           extraShapes: Array.isArray(s.extraShapes) ? s.extraShapes : undefined,
           extraImages: Array.isArray(s.extraImages) ? s.extraImages : undefined,
@@ -248,7 +281,13 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
             && Number.isFinite(s.guidedComposition.readingArea?.y) && Number.isFinite(s.guidedComposition.readingArea?.height)
             ? s.guidedComposition : undefined,
           initialVisual: s.initialVisual?.version === 1 && s.initialVisual.visualStyle && s.initialVisual.geometry
-            && ["1:1", "4:5", "5:6", "9:16"].includes(s.initialVisual.aspectRatio) ? s.initialVisual : undefined,
+            && ["1:1", "4:5", "5:6", "9:16"].includes(s.initialVisual.aspectRatio) ? {
+              ...s.initialVisual,
+              geometry: {
+                ...s.initialVisual.geometry,
+                nativeDecorationTransforms: normalizeNativeDecorationTransforms(s.initialVisual.geometry.nativeDecorationTransforms),
+              },
+            } : undefined,
           visualStyle: s.visualStyle && typeof s.visualStyle === "object" ? s.visualStyle : undefined,
         }))
       : [
@@ -265,6 +304,7 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
     extraTexts: Array.isArray(raw.extraTexts) ? raw.extraTexts : undefined,
     extraImages: Array.isArray(raw.extraImages) ? raw.extraImages : undefined,
     splitBgPosition: (typeof raw.splitBgPosition === "string" && ["bottom", "top", "full"].includes(raw.splitBgPosition) ? raw.splitBgPosition : undefined) as SplitBgPosition | undefined,
+    userFonts: normalizeUserFonts(raw.userFonts),
     currentSlideIndex: Math.min(
       Math.max(0, raw.currentSlideIndex ?? 0),
       Math.max(0, (raw.slides?.length ?? 1) - 1),

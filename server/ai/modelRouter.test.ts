@@ -11,6 +11,7 @@ const original = {
   openRouterBriefInterpretationModel: ENV.openRouterBriefInterpretationModel,
   openRouterEvaluationModel: ENV.openRouterEvaluationModel,
   openRouterVisionModel: ENV.openRouterVisionModel,
+  openRouterProposalReviewModel: ENV.openRouterProposalReviewModel,
 };
 
 describe("task model routing", () => {
@@ -36,17 +37,52 @@ describe("task model routing", () => {
     ["post_evaluation", "z-ai/glm-5.3-flash"],
     ["vision_analysis", "google/gemini-3.8-flash"],
   ] as const)("routes %s to %s", (taskRoute, expectedModel) => {
-    expect(resolveTaskModelConfig({ taskRoute }).effectiveModel).toBe(expectedModel);
+    expect(resolveTaskModelConfig({ taskRoute }).effectiveModel).toBe(
+      expectedModel
+    );
   });
+
+  it("routes actual render review to the vision-capable model independently of text-only judges", () => {
+    ENV.openRouterProposalReviewModel = "test/vision-review";
+    expect(
+      resolveTaskModelConfig({
+        taskRoute: "post_evaluation",
+        containsMultimodalContent: true,
+      }).effectiveModel
+    ).toBe("test/vision-review");
+    expect(
+      resolveTaskModelConfig({ taskRoute: "post_evaluation" }).effectiveModel
+    ).toBe("z-ai/glm-5.3-flash");
+  });
+
+  it.each(["llama", "gemini", undefined] as const)(
+    "keeps configured generation models authoritative over the legacy hint %s",
+    requestedModel => {
+      ENV.openRouterCarouselModel = "configured/carousel";
+      ENV.openRouterStaticModel = "configured/static";
+      for (const [taskRoute, expected] of [
+        ["carousel_generation", "configured/carousel"],
+        ["static_generation", "configured/static"],
+      ] as const) {
+        expect(resolveTaskModelConfig({ taskRoute, requestedModel })).toMatchObject({
+          provider: "openrouter",
+          effectiveModel: expected,
+        });
+      }
+    }
+  );
 
   it.each([
     ["google/gemini-3.8-flash-20260902", 0.75, 3.75],
     ["openai/gpt-5.4-mini-20260815", 0.75, 4.5],
     ["z-ai/glm-5.3-flash:exacto", 0.075, 0.25],
-  ] as const)("normalizes versioned model %s for cost telemetry", (model, inputCost, outputCost) => {
-    expect(getModelCostConfig(model)).toMatchObject({
-      inputCostPerMillion: inputCost,
-      outputCostPerMillion: outputCost,
-    });
-  });
+  ] as const)(
+    "normalizes versioned model %s for cost telemetry",
+    (model, inputCost, outputCost) => {
+      expect(getModelCostConfig(model)).toMatchObject({
+        inputCostPerMillion: inputCost,
+        outputCostPerMillion: outputCost,
+      });
+    }
+  );
 });

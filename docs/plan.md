@@ -1,34 +1,29 @@
-# Plano de Implementação — Refatoração de Redimensionamento e UX de Rich Text (CanvasLab)
+# Plano de Implementação — Tolerância Elástica e Resiliência em 3 Camadas na Geração de Posts
 
 ## Visão Geral
-Este plano estrutura a modernização do motor de texto e da interface do editor oficial (`CanvasLabPage`). O foco central é corrigir o comportamento atual de "tecido elástico" nas transformações de texto, unificar os controles de propriedades em um "Inspetor Contextual" e, finalmente, entregar suporte a Rich Text (variabilidade de cor e tamanho inline) no Canvas.
+Este plano implementa a estratégia completa aprovada para garantir que o usuário nunca receba propostas com erro decorrentes de pequenos transbordos de texto ou incompatibilidades de layout. A resolução combina auto-resolução elástica, feedback explicativo no prompt de recuperação e substituição automática de template via shortlist JEV (até 3 tentativas).
 
-## Fonte da Verdade e Invariantes
-- A documentação de contexto obrigatória está em `DOCUMENTO_MESTRE.md`.
-- O modelo autoritativo da edição é o `CanvasPostModel`.
-- O renderizador é o Konva.js em `CanvasPostStage.tsx`.
-- A arquitetura adotada para *Rich Text* no Canvas é a **Divisão Dinâmica de Glifos em Canvas (Caminho B)**, rejeitando a injeção de HTML/SVG via `foreignObject` para preservar a estabilidade de fontes web, alta performance e fidelidade em exportação offscreen.
+---
 
-## Fases da Arquitetura
+## Arquitetura das 3 Camadas
 
-### 1. Etapa 1: A Nova Física da Caixa de Texto (Ajuste Horizontal)
-**Objetivo:** Substituir a deformação elástica (anamórfica) por redimensionamento de caixa com quebra de linha natural (*word wrap* em tempo real).
-- **Alterações:**
-  - Configurar o componente `Transformer` no `CanvasPostStage.tsx` limitando as âncoras para elementos de texto.
-  - Implementar suporte à propriedade de largura (`width`) individual nos elementos `headline` e `subtext` do `CanvasPostModel`.
-  - Capturar o evento `onTransform` (ou `boundBoxFunc`) durante o arrasto das alças laterais, converter a escala instantânea na nova largura da caixa, e forçar o reset de `scaleX` e `scaleY` a 1.
-  - O mesmo tratamento será aplicado para elementos `extraTexts`.
+### Camada 1: Auto-Resolução Elástica na Geometria
+- **Arquivo afetado:** `shared/arsenalGeometry.ts`
+- **Comportamento:**
+  - Quando um token indivisível causar `overflowsTokenWidth()`, permitir que o loop de redução avance até um piso elástico seguro (`p.minFontSize * 0.80`, limitado a `>= 12px`).
+  - Se o texto couber dentro desse piso elástico, considerar o elemento ajustado e não emitir `overflow:token:<id>`.
+  - Cobrir com teste unitário em `shared/arsenalGeometry.test.ts` e `shared/componentAssembly.test.ts`.
 
-### 2. Etapa 2: O Inspetor Contextual (UX Universal)
-**Objetivo:** Eliminar o atrito da hierarquia estática da barra lateral, fazendo com que ela reaja inteligentemente ao elemento focado na tela.
-- **Alterações:**
-  - Refatorar `CanvasSidebar.tsx` (e `CanvasMobileDrawer.tsx`).
-  - **Estado Vazio (Sem Seleção):** Mostrará propriedades globais (Paleta, Fundo, etc).
-  - **Texto Selecionado:** Mostrará o Inspetor de Propriedades de Texto (Fonte, Tamanho, Cores, Opacidade, Efeito de Sombra, Alinhamento, Posição no Z-Index), **seja ele** a Headline, Subtext ou um ExtraText. O painel deve ler do nó selecionado e gravar via `documentCommands.ts` de forma centralizada.
+### Camada 2: Feedback Cirúrgico de Capacidade no Prompt de Recuperação
+- **Arquivo afetado:** `server/ai/workflows/proposalGraph.ts`
+- **Comportamento:**
+  - Enriquecer `recoveryPrompt` quando houver issues do tipo `overflow:token` ou `overflow`.
+  - Indicar explicitamente o limite máximo de caracteres por palavra para a caixa que transbordou, evitando que o LLM troque uma palavra de 5 letras por outra de 5 letras.
+  - Cobrir com teste unitário em `server/ai/workflows/proposalGraph.test.ts`.
 
-### 3. Etapa 3: Rich Text Engine + Mini-Barra Flutuante
-**Objetivo:** Permitir a formatação interna cirúrgica (ex: cores diferentes e tamanhos diferentes em uma mesma linha) com suporte a alinhamento de base.
-- **Alterações:**
-  - **Motor Gráfico (RichTextElement):** Expandir a renderização de texto no `CanvasPostStage` para interpretar marcação interna estruturada (ou array de trechos com `sizeScale` e `color`). O uso de `textBaseline = 'alphabetic'` garantirá o alinhamento na linha de palavras de múltiplos tamanhos.
-  - **UX (Modo Edição e Seleção):** Ao dar duplo-clique no texto, interceptar o cursor dentro do DOM (`contentEditable`).
-  - Criar um componente de Toolbar Flutuante leve com as opções: [Cor do Texto], [Tamanho da Fonte], [Negrito], [Itálico]. Esta barra aparece sobre o texto quando o usuário destaca (highlight) um pedaço dele e reflete a mutação apenas no trecho selecionado.
+### Camada 3: Fallback de Template por Slot via JEV (Até 3x)
+- **Arquivos afetados:** `server/ai/workflows/proposalGraph.ts` e `server/ai/workflows/generationRuntime.ts`
+- **Comportamento:**
+  - Permitir que, se o pré-flight do template inicial persistir com defeito após a recuperação cirúrgica, o executor tente uma oferta alternativa do shortlist avaliado pelo JEV (até 3 substituições por slot).
+  - Preservar integridade dos recibos de auditoria e do billing.
+  - Testar o fluxo de fallback garantindo que o slot entregue um post pronto em vez de falhar.

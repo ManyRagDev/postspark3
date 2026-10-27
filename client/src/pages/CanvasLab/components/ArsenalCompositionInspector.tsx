@@ -23,6 +23,7 @@ import {
 import type { DesignContent } from "@shared/arsenalContent";
 import {
   editArsenalContent,
+  editArsenalElementText,
   disableArsenalRelation,
   overrideArsenalElement,
   resolveArsenalComposition,
@@ -168,6 +169,252 @@ export default function ArsenalCompositionInspector({
           {Array.from(new Set(c.issues.map(issueLabel))).map(s => (
             <p key={s}>{s}</p>
           ))}
+        </div>
+      )}
+      {selected && (
+        <div className="rounded-xl border border-sky-400/40 bg-sky-950/20 p-3.5 space-y-3 shadow-md animate-in fade-in duration-200">
+          <div className="flex items-center justify-between border-b border-sky-400/20 pb-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-sky-300">
+              <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
+              <span>Elemento Selecionado ({("kind" in selected ? selected.kind : "grupo")})</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onSelect("")}
+              className="text-[11px] text-white/50 hover:text-white px-1.5 py-0.5 rounded hover:bg-white/10 transition-colors"
+              title="Desmarcar elemento"
+            >
+              ✕ Fechar
+            </button>
+          </div>
+
+          {"kind" in selected && selected.kind === "text" && (
+            <div className="space-y-3">
+              <label className="block text-xs font-medium text-white/80">
+                Texto da Peça
+                <textarea
+                  className={field + " mt-1 resize-none"}
+                  rows={2}
+                  value={selected.text}
+                  onChange={e => {
+                    onChange(editArsenalElementText(c, selected.id, e.target.value));
+                  }}
+                  placeholder="Texto do elemento..."
+                />
+              </label>
+
+              {section === "style" && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block text-xs font-medium text-white/80">
+                      Cor
+                      <input
+                        aria-label="Cor do texto"
+                        className="block w-full h-8 mt-1 rounded-lg border border-white/15 cursor-pointer bg-transparent"
+                        type="color"
+                        value={selected.fill || "#ffffff"}
+                        onChange={e => patch({ fill: e.target.value })}
+                      />
+                    </label>
+                    <label className="block text-xs font-medium text-white/80">
+                      Tamanho
+                      <input
+                        aria-label="Tamanho da fonte"
+                        className={field + " mt-1"}
+                        type="number"
+                        min={8}
+                        max={200}
+                        value={selected.fontSize}
+                        onChange={e => {
+                          const v = Number(e.target.value);
+                          if (v > 0) patch({ fontSize: v });
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block text-xs font-medium text-white/80">
+                      Alinhamento
+                      <select
+                        aria-label="Alinhamento da peça"
+                        className={field + " mt-1"}
+                        value={selected.align ?? "left"}
+                        onChange={e => patch({ align: e.target.value })}
+                      >
+                        <option value="left">Esquerda</option>
+                        <option value="center">Centro</option>
+                        <option value="right">Direita</option>
+                      </select>
+                    </label>
+                    <label className="block text-xs font-medium text-white/80">
+                      Opacidade
+                      <input
+                        aria-label="Opacidade da peça"
+                        className="w-full mt-2 accent-sky-400"
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={selected.opacity ?? 1}
+                        onChange={e => patch({ opacity: Number(e.target.value) })}
+                      />
+                    </label>
+                  </div>
+
+                  <label className="block text-xs font-medium text-white/80">
+                    Fonte
+                    <select
+                      aria-label="Fonte da peça"
+                      className={field + " mt-1"}
+                      value={selected.fontAssetId ?? "system"}
+                      onChange={async e => {
+                        const request = ++fontRequest.current;
+                        const targetId = selected.id;
+                        const asset = availableFonts.find(a => a.id === e.target.value);
+                        try {
+                          if (asset) {
+                            await ensureArsenalFont(asset);
+                            if (request !== fontRequest.current) return;
+                            const current = latest.current.c;
+                            latest.current.onChange(
+                              overrideArsenalElement(
+                                {
+                                  ...current,
+                                  assets: current.assets.some(a => a.id === asset.id)
+                                    ? current.assets
+                                    : [...current.assets, asset],
+                                },
+                                targetId,
+                                {
+                                  fontAssetId: asset.id,
+                                  fontFamily: asset.family!,
+                                  fontWeight: asset.weight!,
+                                }
+                              )
+                            );
+                          } else {
+                            patch({
+                              fontAssetId: null,
+                              fontFamily: "Arial",
+                              fontWeight: 400,
+                            });
+                          }
+                        } catch (error) {
+                          toast.error(String((error as Error).message));
+                        }
+                      }}
+                    >
+                      <option value="system">Arial · sistema</option>
+                      {availableFonts.map(a => (
+                        <option key={a.id} value={a.id}>
+                          {(manifest as Record<string, { sourceFamily: string }>)[a.id]?.sourceFamily ?? a.family}{" "}
+                          {a.weight}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block text-xs font-medium text-white/80">
+                      Efeito de Legibilidade
+                      <select
+                        aria-label="Efeito da peça"
+                        className={field + " mt-1"}
+                        value={c.version === 3 ? (c.effects[selected.id]?.effect ?? "none") : "none"}
+                        onChange={e =>
+                          onChange(
+                            setArsenalElementEffect(c, selected.id, {
+                              effect: e.target.value as ArsenalElementEffect["effect"],
+                            })
+                          )
+                        }
+                      >
+                        <option value="none">Sem efeito</option>
+                        <option value="shadow">Sombra</option>
+                        <option value="outline">Contorno</option>
+                        <option value="box-card">Caixa</option>
+                        <option value="box-pill">Pílula</option>
+                      </select>
+                    </label>
+                    {(c.version === 3 && c.effects[selected.id]?.effect && c.effects[selected.id]?.effect !== "none") && (
+                      <label className="block text-xs font-medium text-white/80">
+                        Cor do Efeito
+                        <input
+                          aria-label="Cor do efeito"
+                          className="block w-full h-8 mt-1 rounded-lg border border-white/15 cursor-pointer bg-transparent"
+                          type="color"
+                          value={c.effects[selected.id]?.color ?? "#000000"}
+                          onChange={e =>
+                            onChange(
+                              setArsenalElementEffect(c, selected.id, {
+                                effect: c.effects[selected.id]?.effect ?? "shadow",
+                                color: e.target.value,
+                              })
+                            )
+                          }
+                        />
+                      </label>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {"kind" in selected && selected.kind === "rect" && (
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block text-xs">
+                Cor de Preenchimento
+                <input
+                  aria-label="Cor de preenchimento"
+                  className="block w-full h-8 mt-1 rounded-lg border border-white/15 cursor-pointer bg-transparent"
+                  type="color"
+                  value={selected.fill || "#000000"}
+                  onChange={e => patch({ fill: e.target.value })}
+                />
+              </label>
+              <label className="block text-xs">
+                Cantos Arredondados
+                <input
+                  aria-label="Cantos arredondados"
+                  className={field + " mt-1"}
+                  type="number"
+                  min={0}
+                  value={selected.cornerRadius ?? 0}
+                  onChange={e => patch({ cornerRadius: Number(e.target.value) })}
+                />
+              </label>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-sky-400/20" aria-label="Ajustes rápidos de arte">
+            <button className={button} aria-label="Centralizar horizontalmente" onClick={() => onChange(centerArtSelection(c, selected.id, "horizontal"))}>Centralizar ↔</button>
+            <button className={button} aria-label="Centralizar verticalmente" onClick={() => onChange(centerArtSelection(c, selected.id, "vertical"))}>Centralizar ↕</button>
+          </div>
+        </div>
+      )}
+      {section === "content" && !selected && (
+        <div className="space-y-2 rounded-xl border border-white/10 bg-white/3 p-3">
+          <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold block">
+            Elementos de Texto no Slide
+          </label>
+          <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+            {c.elements.filter(e => e.kind === "text").map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                onClick={() => onSelect(e.id)}
+                className="w-full text-left p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/8 hover:border-sky-400/40 transition-all flex items-center justify-between group cursor-pointer"
+              >
+                <div className="truncate mr-2">
+                  <span className="text-xs font-semibold text-white block truncate">{e.text || `(Texto vazio: ${e.id})`}</span>
+                  <span className="text-[10px] text-white/40">{e.fontFamily} · {e.fontSize}px</span>
+                </div>
+                <span className="text-[10px] text-sky-400 opacity-0 group-hover:opacity-100 transition-opacity font-semibold shrink-0">Editar ➔</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
       {section === "content" && (

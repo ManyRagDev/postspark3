@@ -13,6 +13,8 @@ import {
 } from "../../StudioApp/lib/studioGeneration";
 import { normalizeCanvasModel, canvasModelToSavePayload } from "./saveAdapter";
 import { ensureArsenalFont } from "./arsenalAssets";
+import { authorCarouselVisualSequence } from "../../../../../server/designCatalog/carouselVisualVariants";
+import { completeDesignFields } from "@shared/completeDesignGeneration";
 vi.mock("./arsenalAssets", () => ({
   ensureArsenalFont: vi.fn(async () => {}),
 }));
@@ -69,6 +71,109 @@ function fixture(): CompleteDesignVariationV1 {
   };
 }
 describe("complete design delivery in Studio", () => {
+  it("keeps the three visual roles and CTA unchanged through compilation, save and reopening", async () => {
+    const input = fixture(),
+      source = completeDesignTestDefinitions()[0];
+    const definitions = authorCarouselVisualSequence([source, source, source]);
+    input.slides = definitions.map((definition, index) => ({
+      id: `slide-${index}`,
+      role: index === 0 ? "cover" : index === 2 ? "closing" : "development",
+      composition: resolveArsenalGeometry(
+        instantiateCompleteDesign({
+          definition,
+          values: completeDesignFields(definition).map(f => ({
+            fieldId: f.id,
+            value:
+              f.role === "headline"
+                ? "Café artesanal"
+                : f.role === "callToAction"
+                  ? "Conheça nosso café"
+                  : "Uma pausa com sabor.",
+          })),
+          mediaPrompts: [],
+          runId: input.runId,
+          slot: 0,
+          slide: index,
+          planHash: arsenalHash("visual-roles"),
+          experimental: true,
+        }),
+        {
+          measureText: i => ({
+            height: i.fontSize * 1.3,
+            lines: [{ width: i.text.length * i.fontSize * 0.3 }],
+            runs: [],
+          }),
+        }
+      ),
+    }));
+    const hashes = input.slides.map(s => arsenalHash(s.composition));
+    const post = await compileCompleteDesign(input, {
+      assetDeadline: performance.now() + 5000,
+    });
+    const reopened = normalizeCanvasModel(
+      JSON.parse(
+        JSON.stringify(
+          canvasModelToSavePayload(post, {
+            inputType: "text",
+            inputContent: "Café",
+          }).canvasModel
+        )
+      )
+    );
+    expect(reopened.slides.map(s => s.assemblyRole)).toEqual([
+      "cover",
+      "development",
+      "closing",
+    ]);
+    expect(reopened.slides.map(s => arsenalHash(s.composition))).toEqual(
+      hashes
+    );
+    expect(
+      reopened.slides[2].composition?.content.blocks.some(
+        b => b.type === "text" && b.text === "Conheça nosso café"
+      )
+    ).toBe(true);
+    expect(
+      reopened.slides[1].composition?.origin.componentAssembly?.completeDesign
+        ?.designGuidance?.carouselVariant?.role
+    ).toBe("development");
+  });
+  it("keeps literal delivered copy and resolved font overrides across compilation, save, reopening and editor resolution", async () => {
+    const input = fixture(),
+      scene = input.slides[0].composition;
+    const element = scene.elements.find(
+      element => element.kind === "text" && element.text
+    )!;
+    const fontSize = element.fontSize - 4,
+      contentHash = arsenalHash(scene.content),
+      literalText = element.text;
+    scene.overrides[element.id] = { ...scene.overrides[element.id], fontSize };
+    element.fontSize = fontSize;
+    const post = await compileCompleteDesign(input, {
+      assetDeadline: performance.now() + 5000,
+    });
+    const saved = canvasModelToSavePayload(post, {
+      inputType: "text",
+      inputContent: literalText,
+    });
+    const reopened = normalizeCanvasModel(
+      JSON.parse(JSON.stringify(saved.canvasModel))
+    );
+    const restored = reopened.slides[0].composition!;
+    expect(restored.overrides[element.id].fontSize).toBe(fontSize);
+    const resolved = resolveArsenalGeometry(restored, {
+      measureText: input => ({
+        height: input.fontSize,
+        lines: [{ width: 100 }],
+        runs: [],
+      }),
+      allowReduction: false,
+    });
+    expect(
+      resolved.elements.find(item => item.id === element.id)
+    ).toMatchObject({ fontSize, text: literalText });
+    expect(arsenalHash(resolved.content)).toBe(contentHash);
+  });
   it("uses the resolved server scene without adaptation or generic compiler and saves/reopens the same document", async () => {
     const input = fixture(),
       report = vi.fn();
@@ -129,8 +234,12 @@ describe("complete design delivery in Studio", () => {
   });
   it("preserves stable deterministic id across recompilations of the same bundle", async () => {
     const input = fixture();
-    const post1 = await compileCompleteDesign(input, { assetDeadline: performance.now() + 5000 });
-    const post2 = await compileCompleteDesign(input, { assetDeadline: performance.now() + 5000 });
+    const post1 = await compileCompleteDesign(input, {
+      assetDeadline: performance.now() + 5000,
+    });
+    const post2 = await compileCompleteDesign(input, {
+      assetDeadline: performance.now() + 5000,
+    });
     expect(post1.id).toBe(`cd-${input.runId}-${input.slot}`);
     expect(post1.id).toBe(post2.id);
   });

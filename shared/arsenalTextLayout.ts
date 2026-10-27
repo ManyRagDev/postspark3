@@ -242,8 +242,20 @@ export function layoutRichText(config: RichTextLayoutConfig): RichTextLayout {
   let lineMaxHeight = config.fontSize * lineHeight;
 
   const closeLine = () => {
+    // Separators consumed before a soft wrap carry source offsets/caret positions,
+    // but have no visible ink. Keep their glyphs and canonical text; measure the
+    // line up to its last non-whitespace glyph so a trailing space cannot veto art.
+    let visibleWidth = 0;
+    for (let i = glyphs.length - 1; i >= 0; i--) {
+      const glyph = glyphs[i];
+      if (glyph.lineIndex !== lineIndex) break;
+      if (!/\s/.test(glyph.text)) {
+        visibleWidth = glyph.x + glyph.width;
+        break;
+      }
+    }
     lineMeta[lineIndex] = {
-      width: x,
+      width: visibleWidth,
       height: lineMaxHeight,
       start: lineStart,
       end: lineEnd,

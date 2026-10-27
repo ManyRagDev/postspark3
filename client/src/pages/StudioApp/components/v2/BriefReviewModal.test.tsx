@@ -50,4 +50,15 @@ describe("BriefReviewModal", () => {
     act(() => confirmButton?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     expect(onConfirmGenerate).toHaveBeenCalledTimes(1);
   });
+  it("shows the complete project voice separately from piece overrides", () => {
+    const voice = "Uma voz longa, natural e próxima. ".repeat(60).trim();
+    const brief = {...interpretRawBriefing("Carrossel sobre ofertas", {selectedFormat:"carousel"}), projectDossier:`## POSTURA E TOM DE VOZ\n${voice}\n## PÚBLICO-ALVO\nQuem compara preços\n## CHAMADA PARA AÇÃO (CTA PADRÃO)\nConheça o acompanhamento`, tone:"Didático"};
+    act(() => root?.render(<BriefReviewModal brief={brief} onUpdateBrief={vi.fn()} onConfirmGenerate={vi.fn()} onBackToEditPrompt={vi.fn()} isLoading={false} />));
+    expect(container?.querySelector('[aria-label="Padrões do projeto"]')?.textContent).toContain(voice);
+    expect(container?.textContent).toContain("Quem compara preços");
+    expect(container?.textContent).not.toContain("Brand Kit ativo");
+    const advanced = Array.from(container!.querySelectorAll("button")).find(b => b.textContent?.includes("Ajustes desta peça"))!;
+    act(() => advanced.click());
+    expect(Array.from(container!.querySelectorAll("input")).some(i => i.value === "Didático")).toBe(true);
+  });
 });

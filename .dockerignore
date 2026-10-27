@@ -1,0 +1,11 @@
+node_modules
+.git
+.env
+.env.*
+!.env.example
+dist
+dist-server
+artifacts
+.codex
+.agents
+tmp

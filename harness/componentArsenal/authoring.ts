@@ -1,9 +1,10 @@
 import type { RecreationRecipe } from "../../shared/designRecreation";
 import type { SourceRecord } from "./inventory";
 
-export const AUTHORING_VERSION = "component-reference-authoring-v1";
+export const AUTHORING_VERSION = "component-reference-authoring-v2-native-lists";
 type Role = "headline" | "body" | "eyebrow" | "sectionLabel" | "callToAction" | "label";
-export type Unit = { role: Role; fields: string[] };
+export type Unit = { role: Role; fields: string[]; kind?: "text" | "list"; cardinality?: { min: number; max: number }; prefix?: string };
+export type AuthoredUnit = Unit & { kind: "text" | "list"; source: string; layerIds: string[]; weights: number[]; sampleText: string; sampleItems?: string[]; minScale: number; required: boolean };
 const u = (role: Role, fields: string): Unit => ({ role, fields: fields.split(" ") });
 /** Authored per reference: field names alone do not establish semantic responsibility. */
 export const REFERENCES: Record<string, Unit[]> = {
@@ -14,7 +15,7 @@ export const REFERENCES: Record<string, Unit[]> = {
   "19025ac85b33580e27126420174e7514": [u("headline","titulo"),u("body","descricao")],
   "1c2fb00a82a764bab2f4374d03f67886": [u("eyebrow","chamada"),u("headline","titulo"),u("sectionLabel","cabecalho"),u("body","lista"),u("callToAction","cta"),u("label","janela"),u("label","legenda")],
   "481adc75c3b7da8d267aeef293da71a6": [u("headline","linha-internet linha-trouxe linha-muita linha-coisa"),u("body","apoio")],
-  "6da56cf3eb349b1ef42ab98eaf610f05": [u("label","indice"),u("headline","titulo-abertura titulo-enfase titulo-pergunta"),u("body","abertura corpo-1 corpo-2"),u("body","beneficios"),u("body","citacao")],
+  "6da56cf3eb349b1ef42ab98eaf610f05": [u("label","indice"),u("headline","titulo-abertura titulo-enfase titulo-pergunta"),u("body","abertura corpo-1 corpo-2"),{...u("body","beneficios"),kind:"list",cardinality:{min:1,max:3},prefix:"- "},u("body","citacao")],
   "8ecb33ec8e977a91f88f21c4ea5b5271": [u("label","marca"),u("headline","titulo"),u("body","conversao apoio"),u("label","shop about blog"),u("sectionLabel","manifesto-loja"),u("sectionLabel","produto-nome"),u("label","produto-avaliacao"),u("body","produto-descricao"),u("label","preco"),u("callToAction","cta"),u("body","sem-gradientes bordas ruidoso"),u("label","endereco")],
   "94a676e076f6baa3074a34f6dd7d3858": [u("headline","pieces"),u("label","volume")],
   "94e0a100310160059384fb4c6ca5b2c4": [u("eyebrow","intro-one intro-bold intro-tail"),u("headline","shortcut for create content"),u("body","closing-before closing-bold closing-after")],
@@ -40,22 +41,32 @@ export function authorRecipe(record: SourceRecord, recipe: RecreationRecipe, exp
   const claimed = units.flatMap(unit => unit.fields), all = matrix.fields.map(f => f.id);
   if (new Set(claimed).size !== claimed.length || all.some(id => !claimed.includes(id)) || claimed.some(id => !all.includes(id)))
     throw new Error(`Autoria incompleta/divergente: ${record.referenceId}`);
-  const ordinals: Partial<Record<Role, number>> = {};
-  const authored = units.map(unit => {
-    const index = ordinals[unit.role] ?? 0; ordinals[unit.role] = index + 1;
+  const ordinals: Partial<Record<Role | "list", number>> = {};
+  const authored: AuthoredUnit[] = units.map(unit => {
+    const kind = unit.kind ?? "text", sourceRole = kind === "list" ? "list" : unit.role;
+    const index = ordinals[sourceRole] ?? 0; ordinals[sourceRole] = index + 1;
     const fields = unit.fields.map(id => matrix.fields.find(f => f.id === id)!);
     const layerIds = fields.flatMap(f => f.layerIds);
     const layers = layerIds.map(id => recipe.scene.layers.find(l => l.id === id)!);
-    return { ...unit, source: `block:${unit.role}:${index}:text`, layerIds,
+    if (kind === "list" && (fields.length !== 1 || fields[0].kind !== "list" ||
+      !unit.cardinality || unit.cardinality.min < 0 || unit.cardinality.min > unit.cardinality.max ||
+      unit.cardinality.max > layerIds.length || !Number.isInteger(unit.cardinality.max)))
+      throw new Error(`Lista sem autoria/cardinalidade compatível: ${unit.fields.join(",")}`);
+    const prefix = kind === "list" ? unit.prefix ?? fields[0].prefix : "";
+    const sampleItems = kind === "list" ? layers.map(l => {
+      const text = l.text ?? "";
+      return prefix && text.startsWith(prefix) ? text.slice(prefix.length) : text;
+    }) : undefined;
+    return { ...unit, kind, prefix, source: `block:${sourceRole}:${index}:${kind === "list" ? "items" : "text"}`, layerIds,
       weights: layers.map(l => Math.max(1, l.text?.trim().split(/\s+/).length ?? 1)),
       sampleText: layers.map(l => l.text ?? "").join(" "), minScale: Math.min(...fields.map(f => f.minScale)),
-      required: unit.role === "headline" };
+      ...(sampleItems ? {sampleItems} : {}), required: unit.role === "headline" || kind === "list" && (unit.cardinality?.min ?? 0) > 0 };
   });
   const covered = new Set(authored.flatMap(unit => unit.layerIds));
   // Unbound decorative glyphs stay explicit ornament; every other text is authored, never silently copied.
   for (const layer of recipe.scene.layers) if (layer.kind === "text" && layer.text?.trim() && !covered.has(layer.id) && !/^[×✕✖+•●■□▶►→←↗↘↑↓xX"“”‘’]+$/.test(layer.text.trim())) {
     const index = ordinals.label ?? 0; ordinals.label = index + 1;
-    authored.push({role:"label",fields:[],source:`block:label:${index}:text`,layerIds:[layer.id],weights:[1],sampleText:layer.text,minScale:.7,required:false});
+    authored.push({role:"label",kind:"text",fields:[],source:`block:label:${index}:text`,layerIds:[layer.id],weights:[1],sampleText:layer.text,minScale:.7,required:false});
   }
   return authored;
 }

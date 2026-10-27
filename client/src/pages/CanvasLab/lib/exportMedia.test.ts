@@ -9,6 +9,15 @@ beforeAll(() => Object.defineProperty(globalThis, "document", { configurable: tr
 afterAll(() => { if (originalDocument) Object.defineProperty(globalThis, "document", originalDocument); else Reflect.deleteProperty(globalThis, "document"); });
 
 describe("rendered export media", () => {
+  it("waits for immutable raster layers even when they have no user-media URL", () => {
+    const c=createArsenalFixtureComposition();
+    const slot=c.elements.find(element=>element.kind==="media")!;
+    slot.imageAssetId="image-"+"a".repeat(64);
+    delete c.media[slot.id];
+    expect(renderedCompositionImageCount(c)).toBe(1);
+    slot.opacity=0;
+    expect(renderedCompositionImageCount(c)).toBe(0);
+  });
   it("does not wait for historical media after the filled catalog slot is hidden", () => {
     let c = createArsenalFixtureComposition();
     const slot = c.elements.find(element => element.kind === "media")!;

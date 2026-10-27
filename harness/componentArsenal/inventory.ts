@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { loadImage } from "@napi-rs/canvas";
 import { recreationRecipeSchema, type RecreationRecipe } from "../../shared/designRecreation";
 import { OFFICIAL_FAMILIES_META } from "../../client/src/pages/CanvasLab/components/types";
 
@@ -11,12 +12,55 @@ export const SOURCE_MANIFESTS = [
   "artifacts/component-arsenal/editor-extension-sources/manifest.json",
 ] as const;
 export const sha256 = (bytes: string | Buffer) => createHash("sha256").update(bytes).digest("hex");
+export type OriginalReference = { sha256: string; width: number; height: number; fileName: string; mimeType: "image/png" | "image/jpeg" | "image/webp" };
+export const ORIGINAL_INVENTORY = "artifacts/design-recreation/batch-2026-09-30/inventory.json";
 export type SourceRecord = {
   id: string; referenceId: string; category: string; title: string;
   manifestPath: string; recipePath: string; previewPath: string; fileHash: string;
   declaredHash: string | null; sourceApproval: string; sourceFormat: string;
   destination: "composition" | "media-reference" | "font-study";
+  original?: OriginalReference;
 };
+
+/** Resolve by original-byte identity, never by recipe hash or historical render.
+ * Absolute source paths stay in this local loader, outside the design contract. */
+export async function readOriginalReference(recipe: RecreationRecipe, options: {
+  root?: string; originalsDirectory?: string; candidatePath?: string; inventoryPath?: string;
+} = {}): Promise<{ metadata: OriginalReference; bytes: Buffer } | undefined> {
+  const expected = recipe.scene.source.originalHash;
+  if (!expected) return undefined;
+  const root = options.root ?? process.cwd();
+  let candidate = options.candidatePath;
+  if (!candidate && options.originalsDirectory) {
+    const names = await fs.readdir(options.originalsDirectory, { withFileTypes: true });
+    for (const entry of names.filter(e => e.isFile()).sort((a, b) => a.name.localeCompare(b.name))) {
+      const file = path.join(options.originalsDirectory, entry.name);
+      if (sha256(await fs.readFile(file)) === expected) { candidate = file; break; }
+    }
+  }
+  if (!candidate) {
+    try {
+      const inventory = JSON.parse(await fs.readFile(path.resolve(root, options.inventoryPath ?? ORIGINAL_INVENTORY), "utf8")) as { images: Array<{ sha256: string; sourcePath: string }> };
+      candidate = inventory.images.find(image => image.sha256 === expected)?.sourcePath;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  if (!candidate) return undefined;
+  let bytes: Buffer;
+  try { bytes = await fs.readFile(path.resolve(root, candidate)); }
+  catch (error) {
+    if (!options.candidatePath && (error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+  if (sha256(bytes) !== expected) throw new Error("Bytes da imagem original divergem do hash da receita");
+  const mimeType = bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) ? "image/png" :
+    bytes[0] === 255 && bytes[1] === 216 ? "image/jpeg" :
+      bytes.subarray(0, 4).toString() === "RIFF" && bytes.subarray(8, 12).toString() === "WEBP" ? "image/webp" : undefined;
+  if (!mimeType) throw new Error("Original não é PNG/JPEG/WebP verificável");
+  const image = await loadImage(bytes);
+  return { metadata: { sha256: expected, width: image.width, height: image.height, fileName: path.basename(candidate), mimeType }, bytes };
+}
 export async function readCorpus(root = process.cwd()) {
   const records: SourceRecord[] = [];
   for (const manifestPath of SOURCE_MANIFESTS) {

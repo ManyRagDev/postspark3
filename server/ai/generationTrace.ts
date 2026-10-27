@@ -1,3 +1,4 @@
+import {writeLocalDiagnostic,localDiagnosticsEnabled,compactDiagnosticEvents} from "./localDiagnostics";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomUUID } from "node:crypto";
 import type {
@@ -10,6 +11,7 @@ import {
   createGenerationRun,
   createGenerationRunMinimal,
   isSchemaIncompatibilityError,
+  getDb,
 } from "../db";
 import { ENV } from "../_core/env";
 import { appendOperationalLog } from "../_core/operationalLog";
@@ -19,6 +21,7 @@ export interface LlmTraceCall {
   requestedModel: string;
   taskRoute?: string;
   effectiveModel: string;
+  effectiveModelReported?: boolean;
   provider: string;
   promptHash: string;
   messages: unknown[];
@@ -47,6 +50,9 @@ export interface LlmTraceCall {
   structuredFailureType?: string;
   repairedOutput?: boolean;
   error?: string;
+  providerId?: string;
+  costSource?: "provider" | "estimate" | "unknown";
+  operationKey?: string;
 }
 
 export interface GenerationTrace {
@@ -66,8 +72,74 @@ export interface GenerationTrace {
 
 const storage = new AsyncLocalStorage<GenerationTrace>();
 
+/** Scoped worker/operation contexts avoid leaking one request into another. */
+export function runWithGenerationTrace<T>(
+  trace: GenerationTrace,
+  work: () => Promise<T>
+): Promise<T> {
+  return storage.run(trace, work);
+}
+
+/** Completed journal operations own their calls; this preserves receipts from failed operations. */
+export async function loadPersistedGenerationCalls(
+  id: string,
+  ownerId: string
+): Promise<LlmTraceCall[]> {
+  const result = await getDb()
+    .from("generation_runs")
+    .select("prompt_snapshot")
+    .eq("id", id)
+    .eq("user_uuid", ownerId)
+    .maybeSingle();
+  if (result.error) throw new Error("generation_trace_metrics_read_failed");
+  const calls = result.data?.prompt_snapshot?.calls;
+  return Array.isArray(calls) ? calls : [];
+}
+
+/** Update observability only. Canonical history projections/status remain owned by the store. */
+export async function persistGenerationTraceMetrics(
+  trace: GenerationTrace
+): Promise<void> {
+  if(localDiagnosticsEnabled())await writeLocalDiagnostic(trace.id,trace).catch(error=>console.error("[diagnostics] Falha de gravação local",error));
+  const result = await getDb()
+    .from("generation_runs")
+    .update({
+      effective_models: Array.from(
+        new Set(
+          trace.calls
+            .filter(call => call.effectiveModelReported !== false)
+            .map(call => call.effectiveModel)
+            .filter(Boolean)
+        )
+      ),
+      prompt_snapshot: buildPromptSnapshot(trace, !localDiagnosticsEnabled()),
+      events: localDiagnosticsEnabled()?compactDiagnosticEvents(trace.events):trace.events,
+      events_version: 2,
+      prompt_tokens: trace.calls.reduce(
+        (sum, call) => sum + call.promptTokens,
+        0
+      ),
+      completion_tokens: trace.calls.reduce(
+        (sum, call) => sum + call.completionTokens,
+        0
+      ),
+      total_tokens: trace.calls.reduce(
+        (sum, call) => sum + call.totalTokens,
+        0
+      ),
+      estimated_cost_usd: trace.calls.reduce(
+        (sum, call) => sum + call.estimatedCostUsd,
+        0
+      ),
+      latency_ms: Date.now() - trace.startedAt,
+    })
+    .eq("id", trace.id)
+    .eq("user_uuid", trace.userUuid);
+  if (result.error) throw new Error("generation_trace_metrics_persist_failed");
+}
+
 export function startGenerationTrace(
-  input: Omit<GenerationTrace, "id" | "startedAt" | "calls" | "events">,
+  input: Omit<GenerationTrace, "id" | "startedAt" | "calls" | "events">
 ): GenerationTrace {
   const trace: GenerationTrace = {
     ...input,
@@ -89,7 +161,7 @@ export function recordLlmTraceCall(call: LlmTraceCall): void {
 }
 
 export function recordGenerationEvent(
-  event: Omit<GenerationDebugEvent, "at">,
+  event: Omit<GenerationDebugEvent, "at">
 ): void {
   storage.getStore()?.events.push({
     ...event,
@@ -104,16 +176,17 @@ export function buildGenerationDebugTrace(input: {
   output?: PostVariation[];
 }): GenerationDebugTrace {
   const { trace } = input;
+  if(localDiagnosticsEnabled())void writeLocalDiagnostic(trace.id,trace).catch(error=>console.error("[diagnostics] Falha de gravação local",error));
   return {
     runId: trace.id,
     requestedModel: trace.requestedModel,
     effectiveModels: Array.from(
-      new Set(trace.calls.map((call) => call.effectiveModel)),
+      new Set(trace.calls.map(call => call.effectiveModel))
     ),
     startedAt: new Date(trace.startedAt).toISOString(),
     durationMs: Date.now() - trace.startedAt,
     calls: trace.calls,
-    events: trace.events,
+    events: localDiagnosticsEnabled()?compactDiagnosticEvents(trace.events):trace.events,
     strategies: input.strategies,
     evaluations: input.evaluations,
     finalOutput: input.output,
@@ -124,8 +197,16 @@ export function hashPrompt(messages: unknown[]): string {
   return createHash("sha256").update(JSON.stringify(messages)).digest("hex");
 }
 
-function buildPromptSnapshot(trace: GenerationTrace): unknown {
-  const replayable = ENV.aiTraceStoreContent;
+function buildPromptSnapshot(
+  trace: GenerationTrace,
+  requireCompleteReplay = false
+): unknown {
+  const replayable =
+    (ENV.aiTraceStoreContent && !localDiagnosticsEnabled()) &&
+    (!requireCompleteReplay ||
+      trace.calls.every(
+        call => call.messages.length > 0 && call.response !== undefined
+      ));
   return {
     version: 2,
     replayable,
@@ -150,32 +231,35 @@ export async function finishGenerationTrace(input: {
   failureReason?: string;
 }): Promise<void> {
   const { trace } = input;
+  if(localDiagnosticsEnabled())void writeLocalDiagnostic(trace.id,trace).catch(error=>console.error("[diagnostics] Falha de gravação local",error));
   const promptTokens = trace.calls.reduce(
     (sum, call) => sum + call.promptTokens,
-    0,
+    0
   );
   const completionTokens = trace.calls.reduce(
     (sum, call) => sum + call.completionTokens,
-    0,
+    0
   );
   const estimatedCostUsd = trace.calls.reduce(
     (sum, call) => sum + call.estimatedCostUsd,
-    0,
+    0
   );
   const evaluations = input.evaluations ?? [];
   const evaluationsConducted = evaluations.length > 0;
   const averageQualityScore = evaluationsConducted
-    ? evaluations.reduce((sum, evaluation) => sum + evaluation.overallScore, 0) /
-      evaluations.length
+    ? evaluations.reduce(
+        (sum, evaluation) => sum + evaluation.overallScore,
+        0
+      ) / evaluations.length
     : 0;
-  const acceptedCount = input.acceptedCount !== undefined
-    ? input.acceptedCount
-    : evaluationsConducted
-      ? evaluations.filter((evaluation) => evaluation.accepted).length
-      : Array.isArray(input.output)
-        ? input.output.length
-        : 0;
-
+  const acceptedCount =
+    input.acceptedCount !== undefined
+      ? input.acceptedCount
+      : evaluationsConducted
+        ? evaluations.filter(evaluation => evaluation.accepted).length
+        : Array.isArray(input.output)
+          ? input.output.length
+          : 0;
 
   const redactedInput = `[sha256:${createHash("sha256")
     .update(trace.inputContent)
@@ -188,19 +272,25 @@ export async function finishGenerationTrace(input: {
       siteIntelligenceId: trace.siteIntelligenceId,
       status: input.status,
       inputType: trace.inputType,
-      inputContent: ENV.aiTraceStoreContent ? trace.inputContent : redactedInput,
+      inputContent: (ENV.aiTraceStoreContent && !localDiagnosticsEnabled())
+        ? trace.inputContent
+        : redactedInput,
       platform: trace.platform,
       postMode: trace.postMode,
       creationMode: trace.creationMode,
       requestedModel: trace.requestedModel,
       effectiveModels: Array.from(
-        new Set(trace.calls.map((call) => call.effectiveModel)),
+        new Set(trace.calls.map(call => call.effectiveModel))
       ),
       promptSnapshot: buildPromptSnapshot(trace) as any,
-      strategySnapshot: ENV.aiTraceStoreContent ? input.strategies as any : undefined,
+      strategySnapshot: (ENV.aiTraceStoreContent && !localDiagnosticsEnabled())
+        ? (input.strategies as any)
+        : undefined,
       evaluationSnapshot: input.evaluations as any,
-      outputSnapshot: ENV.aiTraceStoreContent ? input.output as any : undefined,
-      events: trace.events,
+      outputSnapshot: (ENV.aiTraceStoreContent && !localDiagnosticsEnabled())
+        ? (input.output as any)
+        : undefined,
+      events: localDiagnosticsEnabled()?compactDiagnosticEvents(trace.events):trace.events,
       // SPEC-004: contrato v2 — eventos do orquestrador canônico (SPEC-003),
       // incluindo `repair`, `generation_metrics` e stages de validação.
       eventsVersion: 2,
@@ -239,13 +329,15 @@ export async function finishGenerationTrace(input: {
           siteIntelligenceId: trace.siteIntelligenceId,
           status: input.status,
           inputType: trace.inputType,
-          inputContent: ENV.aiTraceStoreContent ? trace.inputContent : redactedInput,
+          inputContent: (ENV.aiTraceStoreContent && !localDiagnosticsEnabled())
+            ? trace.inputContent
+            : redactedInput,
           platform: trace.platform,
           postMode: trace.postMode,
           creationMode: trace.creationMode,
           requestedModel: trace.requestedModel,
           effectiveModels: Array.from(
-            new Set(trace.calls.map((call) => call.effectiveModel)),
+            new Set(trace.calls.map(call => call.effectiveModel))
           ),
           revisionCount: input.revisionCount ?? 0,
           candidateCount: Array.isArray(input.output)
@@ -270,7 +362,9 @@ export async function finishGenerationTrace(input: {
         return;
       } catch (fallbackError) {
         const fallbackMessage =
-          fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : String(fallbackError);
         await appendOperationalLog("GENERATION_TRACE_PERSIST_FAILED", {
           generationRunId: trace.id,
           userUuid: trace.userUuid,

@@ -184,4 +184,101 @@ describe("documentCommands - Extra Elements (Etapa 7)", () => {
     expect(transformedText?.scaleX).toBe(1);
     expect(transformedText?.scaleY).toBe(1);
   });
+
+  it("AC-02: isolates slide extras and never leaks to document root or sibling slides", () => {
+    // Documento nativo carrossel de 2 slides sem extras na raiz ou nos slides
+    const post: CanvasPostModel = {
+      ...makePostWithExtras(),
+      extraTexts: undefined,
+      extraImages: undefined,
+      slides: [
+        { id: "s1", step: "SLIDE 01", headline: "Slide 1", subtext: "Body 1" },
+        { id: "s2", step: "SLIDE 02", headline: "Slide 2", subtext: "Body 2" },
+      ],
+    };
+
+    // Atualiza adicionando extra apenas no slide 0
+    const withExtraSlide0: CanvasPostModel = {
+      ...post,
+      slides: post.slides.map((s, i) =>
+        i === 0 ? { ...s, extraTexts: [{ id: "tx-s0", text: "Apenas no slide 0" }] } : s
+      ),
+    };
+
+    // A raiz permanece undefined
+    expect(withExtraSlide0.extraTexts).toBeUndefined();
+    // Slide 0 possui o texto
+    expect(withExtraSlide0.slides[0].extraTexts).toHaveLength(1);
+    expect(withExtraSlide0.slides[0].extraTexts![0].id).toBe("tx-s0");
+    // Slide 1 permanece indefinido / vazio e não enxerga o elemento do slide 0
+    expect(withExtraSlide0.slides[1].extraTexts).toBeUndefined();
+  });
+
+  it("AC-03: legacy inherited extras materialize on active slide without mutating other slides or root", () => {
+    // Documento legado: extras na raiz, slide 0 e 1 undefined (herdam), slide 2 com override explícito []
+    const legacyPost: CanvasPostModel = {
+      ...makePostWithExtras(),
+      extraTexts: [
+        { id: "tx-leg-1", text: "Legado 1" },
+        { id: "tx-leg-2", text: "Legado 2" },
+      ],
+      currentSlideIndex: 0,
+      slides: [
+        { id: "s1", step: "SLIDE 01", headline: "Capa", subtext: "Corpo", extraTexts: undefined },
+        { id: "s2", step: "SLIDE 02", headline: "Slide 2", subtext: "Corpo 2", extraTexts: undefined },
+        { id: "s3", step: "SLIDE 03", headline: "Slide 3", subtext: "Corpo 3", extraTexts: [] },
+      ],
+    };
+
+    // Ao remover tx-leg-1 no slide 0:
+    const afterRemove1 = removeExtraElement(legacyPost, "tx-leg-1");
+    // Slide 0 materializou apenas [tx-leg-2]
+    expect(afterRemove1.slides[0].extraTexts).toEqual([{ id: "tx-leg-2", text: "Legado 2" }]);
+    // Raiz não foi alterada!
+    expect(afterRemove1.extraTexts).toHaveLength(2);
+    // Slide 1 continua com undefined (mantém herança íntegra)
+    expect(afterRemove1.slides[1].extraTexts).toBeUndefined();
+    // Slide 2 continua com []
+    expect(afterRemove1.slides[2].extraTexts).toEqual([]);
+
+    // Agora remover tx-leg-2 no slide 0: o array vira [] (não undefined, evitando ressurgência de tx-leg-1 e tx-leg-2)
+    const afterRemoveBoth = removeExtraElement(afterRemove1, "tx-leg-2");
+    expect(afterRemoveBoth.slides[0].extraTexts).toEqual([]);
+    // Raiz permanece com os 2 itens para os demais slides legados
+    expect(afterRemoveBoth.extraTexts).toHaveLength(2);
+  });
+
+  it("RC-01: duplicateExtraElement e duplicateExtraText clonam profundamente textRich", () => {
+    const post: CanvasPostModel = {
+      ...makePostWithExtras(),
+      currentSlideIndex: 0,
+      slides: [
+        {
+          id: "s1",
+          step: "1",
+          headline: "H",
+          subtext: "S",
+          extraTexts: [
+            {
+              id: "tx-rich",
+              text: "Original Text",
+              textRich: [{ text: "Original", bold: true }],
+            },
+          ],
+        },
+      ],
+    };
+
+    const { post: next, newElementId } = duplicateExtraElement(post, "tx-rich");
+    expect(newElementId).toBeDefined();
+
+    const origText = post.slides[0].extraTexts![0];
+    const dupText = next.slides[0].extraTexts!.find((t) => t.id === newElementId)!;
+
+    expect(dupText.textRich).not.toBe(origText.textRich);
+    expect(dupText.textRich![0]).not.toBe(origText.textRich![0]);
+
+    dupText.textRich![0].text = "Mutado";
+    expect(origText.textRich![0].text).toBe("Original");
+  });
 });

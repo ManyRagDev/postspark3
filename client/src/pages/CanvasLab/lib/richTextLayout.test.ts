@@ -18,6 +18,18 @@ describe("richTextLayout", () => {
     expect(narrow.height).toBeGreaterThanOrEqual(wide.height);
   });
 
+  it("measures visible text at soft wraps while preserving separators and source offsets", () => {
+    const input = { ...config, text: "ab cd", width: 24, wordBreak: "word" as const,
+      measureGlyph: (text: string) => text === " " ? 6 : 10 };
+    const layout = layoutRichText(input);
+    expect(layout.lines.map(line => line.width)).toEqual([20, 20]);
+    expect(layout.glyphs.map(g => g.text).join("")).toBe(input.text);
+    expect(layout.glyphs.find(g => g.text === " ")?.start).toBe(2);
+    expect(layout.glyphs.find(g => g.text === "c")?.lineIndex).toBe(1);
+    expect(layoutRichText({ ...input, text: "abcd" }).lines[0].width).toBe(40);
+    expect(layoutRichText({ ...input, text: "ab   cd", width: 100 }).lines[0].width).toBe(58);
+  });
+
   it("uses the same geometry for hit testing, selection and caret", () => {
     const layout = layoutRichText(config);
     const first = layout.glyphs[0];

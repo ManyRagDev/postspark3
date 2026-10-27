@@ -604,53 +604,34 @@ function mapStripeStatus(
   }
 }
 
-// ─── V5 Orchestrated Generation Billing Contracts (Blueprint §11) ───────────
-
-export const V5_SPARK_UNITS = {
-  PREPARATION: 5,        // Preparação compartilhada (contexto, catálogo, seleção)
-  PROPOSAL_STATIC: 10,   // Proposta estática completa (copy + mídia privada)
-  PROPOSAL_CAROUSEL: 20, // Proposta de carrossel completa
+// Durable generation admission and settlement run atomically in PostgreSQL.
+// The per-proposal prices are pinned into each admitted request by migration
+// 0036. Clients never choose the reservation ID or the number of charged units.
+export const GENERATION_SPARK_UNITS = {
+  PREPARATION_STATIC: 1,
+  PREPARATION_CAROUSEL: 4,
+  PROPOSAL_STATIC: 3,
+  PROPOSAL_CAROUSEL: 12,
 } as const;
 
-export function calculateV5SparkReservation(
+export function calculateGenerationSparkReservation(
   postMode: "static" | "carousel",
   proposalCount = 3
-): { totalReservation: number; preparationSparks: number; sparksPerProposal: number } {
-  const preparationSparks = V5_SPARK_UNITS.PREPARATION;
+) {
+  const preparationSparks = postMode === "carousel" ? GENERATION_SPARK_UNITS.PREPARATION_CAROUSEL : GENERATION_SPARK_UNITS.PREPARATION_STATIC;
   const sparksPerProposal =
     postMode === "carousel"
-      ? V5_SPARK_UNITS.PROPOSAL_CAROUSEL
-      : V5_SPARK_UNITS.PROPOSAL_STATIC;
-  const totalReservation = preparationSparks + sparksPerProposal * proposalCount;
-  return { totalReservation, preparationSparks, sparksPerProposal };
+      ? GENERATION_SPARK_UNITS.PROPOSAL_CAROUSEL
+      : GENERATION_SPARK_UNITS.PROPOSAL_STATIC;
+  return {
+    totalReservation: preparationSparks + sparksPerProposal * proposalCount,
+    preparationSparks,
+    sparksPerProposal,
+  };
 }
 
-/**
- * Busca uma reserva ativa de Sparks pela chave de idempotência do usuário.
- */
-export async function getReservationByIdempotencyKey(
-  userUuid: string,
-  idempotencyKey: string
-): Promise<{ id: string; amount: number; status: string } | null> {
-  if (isBillingDisabled() || userUuid === "dev-mock") return null;
-  const sb = getSupabase();
-  const { data, error } = await sb
-    .from("spark_reservations")
-    .select("id, amount, status")
-    .eq("user_uuid", userUuid)
-    .eq("idempotency_key", idempotencyKey)
-    .maybeSingle();
-  if (error || !data) return null;
-  return data;
-}
-
-/**
- * Liquidação proporcional de geração orquestrada V5.
- * Se nenhuma proposta foi entregue, estorna a reserva inteira.
- * Se propostas foram entregues, liquida a preparação e cada proposta 'ready',
- * ajustando a reserva antes da confirmação para que a RPC debite exatamente o
- * consumo real e libere automaticamente os sparks restantes.
- */
+/** Compatibility export for historical callers; settlement trusts stored deliveries only. */
+export const calculateV5SparkReservation = calculateGenerationSparkReservation;
 export async function settleV5GenerationReservation(params: {
   reservationId: string;
   postMode: "static" | "carousel";
@@ -658,75 +639,21 @@ export async function settleV5GenerationReservation(params: {
   totalProposalsCount: number;
   generationRunId: string;
   plan?: BillingPlan;
-}): Promise<{ settled: boolean; debitedSparks: number; refundedSparks: number }> {
-  const {
-    reservationId,
-    postMode,
-    deliveredReadyCount,
-    totalProposalsCount,
-    generationRunId,
-    plan,
-  } = params;
-
-  if (isBillingDisabled() || reservationId === "dev-mock" || (plan && isUnlimitedPlan(plan))) {
+}): Promise<{
+  settled: boolean;
+  debitedSparks: number;
+  refundedSparks: number;
+}> {
+  if (params.reservationId === "dev-mock" || isBillingDisabled())
     return { settled: true, debitedSparks: 0, refundedSparks: 0 };
-  }
-
-  const { totalReservation, preparationSparks, sparksPerProposal } =
-    calculateV5SparkReservation(postMode, totalProposalsCount);
-
-  if (deliveredReadyCount === 0) {
-    const refunded = await refundSparkReservation(
-      reservationId,
-      "Geração V5 concluída sem nenhuma entrega utilizável"
+  const { data, error } = await rpcCall<{
+    settled: boolean;
+    debitedSparks: number;
+    refundedSparks: number;
+  }>("generation_settle", { p_id: params.generationRunId });
+  if (error || !data)
+    throw new Error(
+      error?.message ?? "Generation financial settlement unavailable"
     );
-    return {
-      settled: refunded,
-      debitedSparks: 0,
-      refundedSparks: totalReservation,
-    };
-  }
-
-  const actualDebt = preparationSparks + sparksPerProposal * deliveredReadyCount;
-
-  // Ajuste proporcional do saldo reservado antes da efetivação:
-  // Se a entrega foi parcial (ex: 1 pronta de 3 em carrossel), atualiza a reserva para
-  // debitar estritamente o valor real consumido (actualDebt) via commitSparkReservation,
-  // liberando o restante (totalReservation - actualDebt) automaticamente do bloqueio.
-  if (actualDebt < totalReservation) {
-    try {
-      const sb = getSupabase();
-      const { error } = await sb
-        .from("spark_reservations")
-        .update({ amount: actualDebt, updated_at: new Date().toISOString() })
-        .eq("id", reservationId)
-        .eq("status", "reserved");
-      if (error) {
-        console.error("[billing] Failed to adjust reservation amount before commit:", error.message);
-        await refundSparkReservation(reservationId, "Falha no ajuste proporcional").catch(() => null);
-        return {
-          settled: false,
-          debitedSparks: 0,
-          refundedSparks: totalReservation,
-        };
-      }
-    } catch (err: any) {
-      console.error("[billing] Error adjusting reservation amount before commit:", err.message);
-      await refundSparkReservation(reservationId, "Erro no ajuste proporcional").catch(() => null);
-      return {
-        settled: false,
-        debitedSparks: 0,
-        refundedSparks: totalReservation,
-      };
-    }
-  }
-
-  const committed = await commitSparkReservation(reservationId, generationRunId);
-  return {
-    settled: committed,
-    debitedSparks: committed ? actualDebt : 0,
-    refundedSparks: committed
-      ? Math.max(0, totalReservation - actualDebt)
-      : totalReservation,
-  };
+  return data;
 }

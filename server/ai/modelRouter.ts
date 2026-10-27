@@ -175,7 +175,7 @@ export function resolveTaskModelConfig(input: {
   if (route === "static_generation") return openRouterConfig(ENV.openRouterStaticModel);
   if (route === "carousel_generation") return openRouterConfig(ENV.openRouterCarouselModel);
   if (route === "quality_revision") return openRouterConfig(ENV.openRouterQualityRevisionModel);
-  if (route === "post_evaluation") return openRouterConfig(ENV.openRouterEvaluationModel);
+  if (route === "post_evaluation") return openRouterConfig(input.containsMultimodalContent ? ENV.openRouterProposalReviewModel : ENV.openRouterEvaluationModel, Boolean(input.containsMultimodalContent));
   if (route === "caption_synthesis") return openRouterConfig(ENV.openRouterStaticModel);
   if (route === "design_analysis") return openRouterConfig(ENV.openRouterDesignAnalysisModel, true);
   if (route === "design_recreation") return openRouterConfig(ENV.openRouterDesignRecreationModel, true);

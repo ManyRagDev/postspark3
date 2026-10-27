@@ -77,8 +77,7 @@ function fallbackSynthesis(
 ): BusinessSynthesis {
   const combined = content.pages
     .map((page) => `${page.title} ${page.description} ${page.content}`)
-    .join(" ")
-    .slice(0, 20_000);
+    .join(" ");
   const topics = uniqueWords(combined, 8);
   const summary =
     content.pages[0]?.description ||
@@ -122,8 +121,7 @@ async function synthesizeBusiness(
       (item) =>
         `[${item.id}] ${item.kind} ${item.sourceUrl}\n${item.text}`,
     )
-    .join("\n\n")
-    .slice(0, 28_000);
+    .join("\n\n");
 
   if (!evidenceText.trim()) {
     return fallbackSynthesis(content);
@@ -295,7 +293,7 @@ function calculateQuality(
     semantic,
     evidenceCoverage,
     fallbackUsed,
-    warnings: synthesis.warnings,
+    warnings: [...synthesis.warnings,...(!brand.metadata.visionUsed?["A identidade visual foi estimada por HTML/CSS; a leitura visual não estava disponível. Confirme as preferências."]:[])],
   };
 }
 
@@ -326,11 +324,12 @@ export async function loadSiteIntelligence(
 export async function analyzeSiteIntelligence(
   rawUrl: string,
   userUuid: string,
-  options: { persist?: boolean } = {},
+  options: { persist?: boolean; requirePersistence?: boolean; operation?: <T>(key:string,work:()=>Promise<T>)=>Promise<T> } = {},
 ): Promise<SiteIntelligenceResult> {
   const shouldPersist = options.persist !== false;
   const normalizedUrl = normalizeSiteUrl(rawUrl);
-  const content = await collectSiteContent(normalizedUrl);
+  const operation=options.operation??(async<T>(_key:string,work:()=>Promise<T>)=>work());
+  const content = await operation("collect",()=>collectSiteContent(normalizedUrl));
 
   if (shouldPersist) {
     try {
@@ -354,10 +353,10 @@ export async function analyzeSiteIntelligence(
   }
 
   const [brand, synthesis] = await Promise.all([
-    extractBrandDNA(normalizedUrl, {
+    operation("visual",()=>extractBrandDNA(normalizedUrl, {
       discoveredPages: content.discoveredPages,
-    }),
-    synthesizeBusiness(content),
+    })),
+    operation("semantic",()=>synthesizeBusiness(content)),
   ]);
 
   // Validate anchors quality: only persist if extraction was complete
@@ -391,18 +390,19 @@ export async function analyzeSiteIntelligence(
 
   if (shouldPersist) {
     try {
-      const record = await upsertSiteIntelligence({
+      const record = await operation("persist",()=>upsertSiteIntelligence({
         id: siteIntelligence.id,
         userUuid,
         sourceUrl: rawUrl,
         normalizedUrl,
         fingerprint: content.fingerprint,
         snapshot: siteIntelligence as any,
-      });
+      }));
       if (record.id !== siteIntelligence.id) {
         siteIntelligence.id = record.id;
       }
     } catch (error) {
+      if(options.requirePersistence)throw error;
       console.warn("[siteIntelligence] Persistence unavailable:", error);
       siteIntelligence.quality.warnings.push(
         "Snapshot nao persistido; a migration de site_intelligence pode estar pendente.",

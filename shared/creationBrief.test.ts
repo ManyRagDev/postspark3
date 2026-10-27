@@ -85,5 +85,63 @@ describe("creationBrief - Etapa 4", () => {
       expect(exec.contentSourceType).toBe("carousel_topics");
       expect(exec.brandInput?.websiteUrl).toBe("https://site.com/artigo");
     });
+
+    it("preserva público e essência da marca vindos do Brand Kit ou edição", () => {
+      const brandKit = {
+        brand_name: "Startup Alpha",
+        brand_essence: "Tecnologia acessível para pequenas empresas",
+        target_audience: "Empreendedores B2B iniciantes",
+        tone: "Pragmático e encorajador",
+      };
+      const brief = interpretRawBriefing("Post sobre gestão financeira", {
+        selectedFormat: "static",
+        brandKit,
+      });
+      expect(brief.audience).toBe("Empreendedores B2B iniciantes");
+      expect(brief.brandEssence).toBe("Tecnologia acessível para pequenas empresas");
+      expect(brief.tone).toBe("Pragmático e encorajador");
+
+      const exec = creationBriefToExecutionBrief(brief);
+      expect(exec.audience).toBe("Empreendedores B2B iniciantes");
+      expect(exec.brandEssence).toBe("Tecnologia acessível para pequenas empresas");
+      expect(exec.tone).toBe("Pragmático e encorajador");
+
+      // Edição prevalece sobre o Kit
+      const editedBrief = {
+        ...brief,
+        audience: "Diretores financeiros de scale-ups",
+      };
+      const editedExec = creationBriefToExecutionBrief(editedBrief);
+      expect(editedExec.audience).toBe("Diretores financeiros de scale-ups");
+      expect(editedExec.brandEssence).toBe("Tecnologia acessível para pequenas empresas");
+    });
+
+    it("não inventa público ou essência quando ausentes", () => {
+      const brief = interpretRawBriefing("Post simples sem kit", {
+        selectedFormat: "static",
+      });
+      expect(brief.audience).toBeUndefined();
+      expect(brief.brandEssence).toBeUndefined();
+
+      const exec = creationBriefToExecutionBrief(brief);
+      expect(exec.audience).toBeUndefined();
+      expect(exec.brandEssence).toBeUndefined();
+    });
+
+    it("converte briefing no formato antigo sem audience/brandEssence sem erro", () => {
+      const legacyBrief = {
+        version: 1,
+        format: "static" as const,
+        objective: "engage" as const,
+        interventionLevel: "optimize_structure" as const,
+        contentSourceType: "freeform" as const,
+        rawInput: "Texto legado sem campos de marca",
+      };
+      const exec = creationBriefToExecutionBrief(legacyBrief as any);
+      expect(exec.audience).toBeUndefined();
+      expect(exec.brandEssence).toBeUndefined();
+      expect(exec.rawInput).toBe("Texto legado sem campos de marca");
+    });
   });
 });
+

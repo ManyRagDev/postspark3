@@ -1,3 +1,6 @@
+// Configuration owns its bootstrap so every server entry point and transitive
+// consumer sees the same values, regardless of the importing route's order.
+import "dotenv/config";
 import { readArsenalMode } from "../designCatalog/arsenalMode";
 const envFlag = (name: string, defaultValue: boolean): boolean => {
   const value = process.env[name];
@@ -19,8 +22,11 @@ const envInteger = (
 const isProduction = process.env.NODE_ENV === "production";
 
 export const ENV = {
-  // DEV pilot only until partial pricing and production worker hosting are approved.
-  generationV5Mode: process.env.GENERATION_V5_MODE === "dev" ? "dev" as const : "off" as const,
+  generationAdmissionPaused: envFlag("GENERATION_ADMISSION_PAUSED", false),
+  generationWorkerMode: process.env.NODE_ENV === "development" && !process.env.VERCEL && process.env.GENERATION_WORKER_MODE !== "external" ? "local-demand" as const : "external" as const,
+  localDemandEnabled: !isProduction && !process.env.VERCEL && process.env.GENERATION_WORKER_MODE !== "external" && process.env.GENERATION_LOCAL_DEMAND_ENABLED === "true",
+  reviewRendererBundle: process.env.REVIEW_RENDERER_BUNDLE ?? "dist/review-renderer/renderer.js",
+  reviewChromiumExecutablePath: process.env.REVIEW_CHROMIUM_EXECUTABLE_PATH ?? "",
   designArsenalV2Mode: readArsenalMode(),
   componentArsenalMode: readArsenalMode(process.env.COMPONENT_ARSENAL_MODE ?? "admin"),
   isProduction,
@@ -29,6 +35,7 @@ export const ENV = {
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
   groqApiKey: process.env.GROQ_API_KEY ?? "",
   openRouterApiKey: process.env.OPENROUTER_API_KEY ?? "",
+  openRouterReconciliationKey: process.env.OPENROUTER_RECONCILIATION_KEY ?? "",
   openRouterDesignSelectionModel: process.env.OPENROUTER_DESIGN_SELECTION_MODEL ?? "typesafe/jev-1.13",
   openRouterSiteUrl: process.env.OPENROUTER_SITE_URL ?? "https://postspark.app",
   openRouterAppName: process.env.OPENROUTER_APP_NAME ?? "PostSpark",
@@ -47,6 +54,8 @@ export const ENV = {
   openRouterEvaluationModel:
     process.env.OPENROUTER_EVALUATION_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "z-ai/glm-5.3-flash",
   openRouterVisionModel: process.env.OPENROUTER_VISION_MODEL ?? "google/gemini-3.8-flash",
+  openRouterProposalReviewModel: process.env.OPENROUTER_PROPOSAL_REVIEW_MODEL ?? process.env.OPENROUTER_VISION_MODEL ?? "google/gemini-3.8-flash",
+  proposalReviewTimeoutMs: envInteger("PROPOSAL_REVIEW_TIMEOUT_MS", 45_000, 5_000, 120_000),
   openRouterDesignAnalysisModel:
     process.env.OPENROUTER_DESIGN_ANALYSIS_MODEL ?? "openai/gpt-4o",
   openRouterDesignRecreationModel:

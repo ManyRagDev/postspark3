@@ -2,6 +2,32 @@ import React from "react";
 import { aspectRatioHeight } from "@shared/aspectRatios";
 import type { AspectRatioType } from "@/pages/CanvasLab/components/types";
 import { Sparkles, AlertCircle, RotateCw } from "lucide-react";
+import { estimateProposalProgress } from "../lib/useProposalProgress";
+
+export function ProposalProgress({ slot, status, value }: { slot: number; status: string; value?: number }) {
+  if(status==="awaiting_reconciliation")return <p className="mt-3 text-xs text-amber-200">Aguardando confirmação da revisão</p>;
+  if (["failed", "cancelled", "expired"].includes(status)) return null;
+  const progress = Math.min(98, Math.max(0, value ?? estimateProposalProgress(status)));
+  return (
+    <div className="mt-3 w-full">
+      <div className="mb-1.5 flex items-center justify-between gap-2 text-[10px] text-white/55">
+        <span>Progresso estimado</span>
+        <span className="tabular-nums text-orange-200">{progress}%</span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label={`Progresso estimado da opção ${slot}`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress}
+        aria-valuetext={`${progress}% estimado; aguardando a proposta ficar disponível`}
+        className="h-1.5 overflow-hidden rounded-full bg-white/10"
+      >
+        <div className="h-full rounded-full transition-[width] duration-1000 ease-out motion-reduce:transition-none" style={{ width: `${progress}%`, background: "linear-gradient(90deg, #ea580c, #fcd34d)" }} />
+      </div>
+    </div>
+  );
+}
 
 export interface ProposalSkeletonCardProps {
   slot: number;
@@ -9,6 +35,7 @@ export interface ProposalSkeletonCardProps {
   cardScale?: number;
   status?: "queued" | "running" | "ready" | "failed" | "cancelled" | "expired" | string;
   statusMessage?: string;
+  progress?: number;
   errorReason?: string;
   onRetry?: () => void;
   disableShimmer?: boolean;
@@ -21,6 +48,7 @@ export default function ProposalSkeletonCard({
   cardScale = 0.72,
   status = "running",
   statusMessage,
+  progress,
   errorReason,
   onRetry,
   disableShimmer = false,
@@ -31,7 +59,7 @@ export default function ProposalSkeletonCard({
 
   const isFailed = status === "failed" || status === "cancelled" || status === "expired";
   // O brilho cessa imediatamente quando ocorre falha ou quando disableShimmer é solicitado
-  const isShimmering = !isFailed && !disableShimmer;
+  const isShimmering = !isFailed && status!=="awaiting_reconciliation" && !disableShimmer;
   const shimmerClass = isShimmering ? "skeleton-shimmer" : "";
 
   const defaultStatusMessage = isFailed
@@ -43,6 +71,7 @@ export default function ProposalSkeletonCard({
   return (
     <div
       role="status"
+      aria-live="off"
       aria-label={`Opção 0${slot}: ${statusMessage || defaultStatusMessage}`}
       className={`group relative flex flex-col items-center bg-white/[0.03] ${
         isFailed ? "border-red-500/20" : "border-white/10"
@@ -126,8 +155,11 @@ export default function ProposalSkeletonCard({
         )}
       </div>
 
+      <ProposalProgress slot={slot} status={status} value={progress} />
+
       {/* Status da Proposta */}
       <div
+        role="status"
         className={`w-full mt-2 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl ${
           isFailed
             ? "bg-red-500/10 border-red-500/20 text-red-200/90"

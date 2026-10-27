@@ -95,11 +95,12 @@ const cardVariants = {
 };
 
 export default function Pricing() {
+  const utils=trpc.useUtils();
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const [, setLocation] = useLocation();
   const { data: profile } = trpc.billing.getProfile.useQuery();
   const checkoutMutation = trpc.billing.createCheckout.useMutation();
-  const trialMutation = trpc.billing.startTrial.useMutation();
+  const trialMutation = trpc.billing.startTrial.useMutation({onSuccess:()=>{void utils.billing.getProfile.invalidate();}});
 
   const handleCheckout = async (plan: PaidPlan) => {
     try {

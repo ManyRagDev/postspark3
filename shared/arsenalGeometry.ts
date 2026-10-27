@@ -37,6 +37,7 @@ export type ArsenalTextMeasurer = (
 export type ArsenalGeometryOptions = {
   measureText: ArsenalTextMeasurer;
   allowReduction?: boolean;
+  elasticReduction?: boolean;
 };
 export function measureArsenalElement(
   e: ArsenalElement,
@@ -115,7 +116,7 @@ export function resolveArsenalGeometry(
   source: ArsenalComposition,
   options: ArsenalGeometryOptions
 ): ArsenalComposition {
-  const { measureText, allowReduction = false } = options;
+  const { measureText, allowReduction = false, elasticReduction = false } = options;
   const c = structuredClone(source),
     issues: string[] = [];
   const hidden = new Set(c.version === 3 ? (c.hiddenInstanceIds ?? []) : []);
@@ -201,11 +202,31 @@ export function resolveArsenalGeometry(
       b.source as Parameters<typeof readContentSource>[1]
     );
     if (b.kind === "list" && Array.isArray(value)) {
+      if (b.listMode === "native-slots") {
+        if (!b.cardinality || (value.length < b.cardinality.min && (b.required || value.length > 0)) ||
+          value.length > b.cardinality.max || value.length > b.targetIds.length)
+          issues.push(`cardinality:${b.id}`);
+        if (b.required && value.some(item => !item.text.trim()))
+          issues.push(`content_coverage:${b.id}`);
+        for (let index = 0; index < b.targetIds.length; index++) {
+          const target = b.targetIds[index];
+          const element = c.elements.find(e => e.id === target);
+          if (!element) continue;
+          const item = value[index];
+          element.bindingId = b.id;
+          element.itemId = item?.id ?? null;
+          const overrideText = c.overrides[element.id]?.text;
+          element.text = typeof overrideText === "string" ? overrideText : (item ? `${b.prefix}${item.text}` : "");
+          if ((!item || hidden.has(target)) && !c.overrides[element.id]) element.opacity = 0;
+          element.richText = c.richText[element.id];
+        }
+        continue;
+      }
       const original = c.elements.find(e => e.id === b.targetIds[0]);
       if (!original) continue;
       if (
         b.cardinality &&
-        (value.length < b.cardinality.min || value.length > b.cardinality.max)
+        ((value.length < b.cardinality.min && (b.required || value.length > 0)) || value.length > b.cardinality.max)
       )
         issues.push(`cardinality:${b.id}`);
       c.elements = c.elements.filter(e => e !== original);
@@ -232,14 +253,17 @@ export function resolveArsenalGeometry(
         if (hidden.has(target)) continue;
         const e = c.elements.find(e => e.id === target);
         if (!e) continue;
-        e.text = fragmentContentText(
-          typeof value === "string" ? value : "",
-          e.contentFragment
-        );
+        const overrideText = c.overrides[e.id]?.text;
+        e.text = typeof overrideText === "string"
+          ? overrideText
+          : fragmentContentText(
+              typeof value === "string" ? value : "",
+              e.contentFragment
+            );
         if (!c.richText[e.id] && e.textFragments)
           e.richText = textFragmentRuns(e.text, e.textFragments);
         e.bindingId = b.id;
-        if (!e.text) e.opacity = 0;
+        if (!e.text && !c.overrides[e.id]) e.opacity = 0;
         // A short canonical title can leave one authored fragment empty. Its
         // siblings still display the complete title; require the source, not each slice.
         if (b.required && (typeof value !== "string" || !value.trim()))
@@ -291,15 +315,25 @@ export function resolveArsenalGeometry(
           );
           write(id, o.properties, { width: requestedWidth });
           let layout = measureArsenalElement(e, measureText);
+          // An indivisible token may overflow horizontally while its one-line
+          // height still fits. The authored font-size interval covers both axes.
+          const overflowsTokenWidth = () => e.text.split(/\s+/).some(token => {
+            const measured = measureText({
+              text: token, width: 1000000, fontSize: e.fontSize,
+              fontFamily: e.fontFamily, fontStyle: String(e.fontWeight),
+              fill: e.fill, letterSpacing: e.letterSpacing,
+            });
+            return measured.lines.some(line => line.width > e.width + 0.01);
+          });
           if (
             allowReduction &&
             o.properties.includes("fontSize") &&
             !("fontSize" in (c.overrides[id] ?? {}))
-          )
+          ) {
             for (
               let attempt = 0;
               attempt < 64 &&
-              layout.height > p.maxHeight &&
+              (layout.height > p.maxHeight || layout.lines.some(line => line.width > e.width + 0.01) || overflowsTokenWidth()) &&
               e.fontSize > p.minFontSize;
               attempt++
             ) {
@@ -313,20 +347,33 @@ export function resolveArsenalGeometry(
               layout = measureArsenalElement(e, measureText);
               reduced = true;
             }
+            // Camada 1: tolerância elástica segura (até 20% abaixo do minFontSize, piso de 12px)
+            // para salvar o layout quando um token indivisível estiver apenas ligeiramente além da largura.
+            const elasticFloor = Math.max(12, Math.floor(p.minFontSize * 0.8));
+            if (elasticReduction && overflowsTokenWidth() && e.fontSize > elasticFloor) {
+              for (
+                let attempt = 0;
+                attempt < 32 &&
+                overflowsTokenWidth() &&
+                layout.height <= p.maxHeight &&
+                e.fontSize > elasticFloor;
+                attempt++
+              ) {
+                const next = Math.max(
+                  elasticFloor,
+                  e.fontSize -
+                    Math.max(0.5, (e.fontSize - elasticFloor) / (32 - attempt))
+                );
+                if (next >= e.fontSize) break;
+                e.fontSize = next;
+                layout = measureArsenalElement(e, measureText);
+                reduced = true;
+              }
+            }
+          }
           if (layout.height > p.maxHeight) issues.push(`overflow:${id}`);
           // The layout engine can wrap graphemes; a wide indivisible token is still an explicit warning.
-          const wide = e.text.split(/\s+/).some(token => {
-            const measured = measureText({
-              text: token,
-              width: 1000000,
-              fontSize: e.fontSize,
-              fontFamily: e.fontFamily,
-              fontStyle: String(e.fontWeight),
-              fill: e.fill,
-              letterSpacing: e.letterSpacing,
-            });
-            return measured.lines.some(l => l.width > e.width + 0.01);
-          });
+          const wide = overflowsTokenWidth();
           if (wide) issues.push(`overflow:token:${id}`);
           const x =
             p.anchor === "center"
@@ -401,7 +448,7 @@ export function resolveArsenalGeometry(
       const layout = measureArsenalElement(e, measureText);
       if (layout.height > e.height + 0.01) issues.push(`overflow:${e.id}`);
     }
-    if (e.kind === "media" && !c.media[e.id] && !e.mediaSlot?.deferred)
+    if (e.kind === "media" && !c.media[e.id] && !e.imageAssetId && !e.mediaSlot?.deferred)
       issues.push(`missing_media:${e.id}`);
     if (e.opacity === 0) continue;
     const w = arsenalWorldGeometry(e, c.groups),
@@ -653,7 +700,7 @@ export function auditArsenalGeometry(
       .sort(
         (a, b) => (paintOrder.get(b.id) ?? -1) - (paintOrder.get(a.id) ?? -1)
       )[0];
-    if (behind?.kind === "media" && c.media[behind.id]) {
+    if (behind?.kind === "media" && (c.media[behind.id] || behind.imageAssetId)) {
       issues.push(`contrast:unknown:${e.id}`);
       continue;
     }

@@ -45,7 +45,8 @@ export interface ProposalMediaDeps {
   resolveOwnedReference?: (
     url: string,
     ownerId: string,
-    operationId?: string
+    operationId?: string,
+    signal?: AbortSignal
   ) => Promise<{ dataUri: string }>;
 }
 
@@ -104,12 +105,15 @@ export async function resolveProposalMediaReferences(
   references: ProposalMediaReference[] | undefined,
   ownerId: string,
   operationId: string | undefined,
-  deps: ProposalMediaDeps
+  deps: ProposalMediaDeps,
+  signal?: AbortSignal
 ): Promise<NonNullable<GenerateImageOptions["originalImages"]>> {
+  signal?.throwIfAborted();
   if (!references?.length) return [];
 
   const resolved = await Promise.all(
     references.map(async reference => {
+      signal?.throwIfAborted();
       if ("dataUri" in reference) {
         return { url: await normalizeInlineReference(reference.dataUri) };
       }
@@ -135,8 +139,9 @@ export async function resolveProposalMediaReferences(
       }
       const resolver =
         deps.resolveOwnedReference ??
-        ((url: string, actor: string) => loadOwnedMediaReference(url, actor));
-      const authorized = await resolver(reference.url, ownerId, operationId);
+        ((url: string, actor: string, _operation?:string, stop?:AbortSignal) => loadOwnedMediaReference(url, actor, stop));
+      const authorized = await resolver(reference.url, ownerId, operationId, signal);
+      signal?.throwIfAborted();
       return { url: await normalizeInlineReference(authorized.dataUri) };
     })
   );
@@ -168,10 +173,12 @@ export async function generateProposalMediaForSlot(
     request.references,
     request.ownerId,
     request.operationId,
-    deps
+    deps,
+    request.signal
   );
-  const generate = () =>
-    (deps.generateImage ?? generateImage)({
+  const generate = () => {
+    request.signal?.throwIfAborted();
+    return (deps.generateImage ?? generateImage)({
       prompt: request.prompt,
       ownerId: request.ownerId,
       aspectRatio: aspectRatioForProposalSlot(
@@ -184,6 +191,7 @@ export async function generateProposalMediaForSlot(
       routePolicy: "strict",
       signal: request.signal,
     });
+  };
   const generated = await deps.runIdempotent!(request.operationId, generate);
 
   const savedPath = generated.url && PRIVATE_RESULT_PATH.exec(generated.url);

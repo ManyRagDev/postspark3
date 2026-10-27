@@ -21,6 +21,10 @@ import { applySlideVisualPatch } from "../lib/slideVisualScope";
 import { imageRequestForPost } from "../lib/imageGenerationContext";
 import type { ImageDirectionId } from "../lib/imageGenerationContext";
 import ImageDirectionSuggestions from "./ImageDirectionSuggestions";
+import { validateFontFile, validateTotalFontPayload, registerUserFont } from "../lib/fontResources";
+import { fitSavePayload } from "../lib/fitSavePayload";
+import { preflightSavePayload } from "../lib/savePreflight";
+import type { ArsenalUserFont } from "@shared/designArsenal";
 
 interface CanvasSidebarProps {
   requestedTab?: "media";
@@ -70,6 +74,8 @@ export default function CanvasSidebar({
   onSelectElement,
 }: CanvasSidebarProps) {
   const [activeTab, setActiveTab] = useState<TabType>("content");
+  const postRef = useRef(post);
+  postRef.current = post;
   useEffect(() => { if (requestedTab) setActiveTab(requestedTab); }, [requestedTab]);
   const [copiedCaption, setCopiedCaption] = useState(false);
   const showTips = useStudioTipsStore((s) => s.showTips);
@@ -77,6 +83,13 @@ export default function CanvasSidebar({
   const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
   const [customFontInput, setCustomFontInput] = useState(post.customFontUrl || "");
   const [uploadedFontName, setUploadedFontName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedElementId) return;
+    if (composition && activeTab === "brand") {
+      setActiveTab("design");
+    }
+  }, [selectedElementId, composition, activeTab]);
 
   const sidebarImageInputRef = useRef<HTMLInputElement>(null);
   const latestPostRef = useRef(post);
@@ -196,24 +209,84 @@ export default function CanvasSidebar({
     reader.readAsDataURL(file);
   };
 
-  const handleFontFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFontFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const fontName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const fontDataUrl = event.target?.result as string;
-      const newFontFace = new FontFace(fontName, `url(${fontDataUrl})`);
-      newFontFace.load().then((loadedFace) => {
-        (document.fonts as any).add(loadedFace);
-        setUploadedFontName(fontName);
-        onUpdatePost({ fontFamily: fontName });
-        toast.success(`Fonte "${fontName}" carregada com sucesso!`);
-      }).catch(() => {
-        toast.error("Não foi possível processar o arquivo de fonte.");
+    const targetPostId = post.id;
+    const targetSlideIndex = post.currentSlideIndex;
+    const targetSlideId = post.slides[post.currentSlideIndex]?.id;
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const currentSlide = postRef.current?.slides[postRef.current?.currentSlideIndex];
+      if (
+        postRef.current?.id !== targetPostId ||
+        postRef.current?.currentSlideIndex !== targetSlideIndex ||
+        currentSlide?.id !== targetSlideId
+      ) {
+        return;
+      }
+      const bytes = new Uint8Array(buffer);
+      if (bytes.byteLength > 1024 * 1024) {
+        toast.error("O arquivo de fonte não pode exceder 1MB.");
+        return;
+      }
+      const validation = validateFontFile(bytes, file.name);
+      if (!validation.valid || !validation.format) {
+        toast.error(validation.error || "Formato de fonte inválido.");
+        return;
+      }
+      const fontName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9]/g, "_");
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binary);
+      const dataUrl = `data:font/${validation.format};base64,${base64}`;
+      const newUserFont: ArsenalUserFont = {
+        family: fontName,
+        url: dataUrl,
+        format: validation.format,
+      };
+
+      const existingFonts = (postRef.current?.userFonts || []).filter(f => f.family !== fontName);
+      const candidateUserFonts = [...existingFonts, newUserFont];
+      const candidatePost = {
+        ...postRef.current,
+        fontFamily: fontName,
+        userFonts: candidateUserFonts,
+      };
+
+      const preflight = await preflightSavePayload(candidatePost);
+      if (!preflight.ok) {
+        toast.error("O tamanho total do documento com a nova fonte excede o limite permitido (3.5MB).");
+        return;
+      }
+
+      const registered = await registerUserFont(newUserFont);
+      const currentSlideAfter = postRef.current?.slides[postRef.current?.currentSlideIndex];
+      if (
+        postRef.current?.id !== targetPostId ||
+        postRef.current?.currentSlideIndex !== targetSlideIndex ||
+        currentSlideAfter?.id !== targetSlideId
+      ) {
+        return;
+      }
+      if (!registered) {
+        toast.error("Não foi possível decodificar ou carregar o arquivo de fonte.");
+        return;
+      }
+      setUploadedFontName(fontName);
+      onUpdatePost({
+        fontFamily: fontName,
+        userFonts: candidateUserFonts,
       });
-    };
-    reader.readAsDataURL(file);
+      toast.success(`Fonte "${fontName}" carregada com sucesso!`);
+    } catch {
+      toast.error("Não foi possível processar o arquivo de fonte.");
+    } finally {
+      e.target.value = "";
+    }
   };
 
   const handleGenerateAiImage = async (
@@ -258,9 +331,97 @@ export default function CanvasSidebar({
     toast.success("Fonte do Google Fonts aplicada!");
   };
 
+  const sidebarFontInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSidebarFontFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const targetPostId = post.id;
+    const targetSlideIndex = post.currentSlideIndex;
+    const targetSlideId = post.slides[post.currentSlideIndex]?.id;
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const currentSlide = postRef.current?.slides[postRef.current?.currentSlideIndex];
+      if (
+        postRef.current?.id !== targetPostId ||
+        postRef.current?.currentSlideIndex !== targetSlideIndex ||
+        currentSlide?.id !== targetSlideId
+      ) {
+        return;
+      }
+      const bytes = new Uint8Array(buffer);
+      if (bytes.byteLength > 1024 * 1024) {
+        toast.error("O arquivo de fonte não pode exceder 1MB.");
+        return;
+      }
+      const validation = validateFontFile(bytes, file.name);
+      if (!validation.valid || !validation.format) {
+        toast.error(validation.error || "Formato de fonte inválido.");
+        return;
+      }
+
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binary);
+      const dataUrl = `data:font/${validation.format};base64,${base64}`;
+
+      const fontName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+      const newUserFont: ArsenalUserFont = {
+        family: fontName,
+        url: dataUrl,
+        format: validation.format,
+      };
+
+      const existingFonts = (postRef.current?.userFonts || []).filter(f => f.family !== fontName);
+      const candidateUserFonts = [...existingFonts, newUserFont];
+      const candidatePost = {
+        ...postRef.current,
+        fontFamily: fontName,
+        userFonts: candidateUserFonts,
+      };
+
+      const preflight = await preflightSavePayload(candidatePost);
+      if (!preflight.ok) {
+        toast.error("O tamanho total do documento com a nova fonte excede o limite permitido (3.5MB).");
+        return;
+      }
+
+      const registered = await registerUserFont(newUserFont);
+      const currentSlideAfter = postRef.current?.slides[postRef.current?.currentSlideIndex];
+      if (
+        postRef.current?.id !== targetPostId ||
+        postRef.current?.currentSlideIndex !== targetSlideIndex ||
+        currentSlideAfter?.id !== targetSlideId
+      ) {
+        return;
+      }
+      if (!registered) {
+        toast.error("Não foi possível decodificar ou carregar o arquivo de fonte.");
+        return;
+      }
+
+      const updatedUserFonts = [...(postRef.current?.userFonts || []).filter(f => f.family !== fontName), newUserFont];
+      onUpdatePost({
+        userFonts: updatedUserFonts,
+        fontFamily: fontName,
+      });
+      setUploadedFontName(fontName);
+      toast.success(`Fonte "${fontName}" carregada e aplicada com sucesso!`);
+    } catch (err) {
+      console.error("Erro ao carregar fonte do usuário:", err);
+      toast.error("Falha ao processar arquivo de fonte.");
+    } finally {
+      e.target.value = "";
+    }
+  };
+
   return (
     <aside className="w-80 h-full border-r border-white/10 bg-black/50 backdrop-blur-xl flex flex-col shrink-0 select-none z-20">
       <input ref={sidebarImageInputRef} type="file" accept="image/*" className="hidden" onChange={handleSidebarImageFile} />
+      <input ref={sidebarFontInputRef} type="file" accept=".ttf,.otf,.woff,.woff2" className="hidden" onChange={handleSidebarFontFile} />
       {/* Abas Principais (5 abas se houver composição do Arsenal) */}
       <div className={`grid ${composition ? "grid-cols-5" : "grid-cols-4"} p-2 gap-1 border-b border-white/10 bg-white/4`}>
         {[
@@ -294,7 +455,16 @@ export default function CanvasSidebar({
 
       {/* Conteúdo da Aba Ativa */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar">
-        {/* ─── ABA 1: CONTEÚDO ─── */}
+        {!composition && selectedElementId && (selectedElementId === "headline" || selectedElementId === "subtext" || selectedElementId === "badge" || extraTextsList.some(t => t.id === selectedElementId)) ? (
+          <PropertyInspector
+            post={post}
+            selectedId={selectedElementId}
+            onUpdatePost={onUpdatePost}
+            onClose={() => onSelectElement?.(null)}
+          />
+        ) : (
+          <>
+            {/* ─── ABA 1: CONTEÚDO ─── */}
         {activeTab === "content" && !composition && (
           <div className="space-y-4">
             {/* Dica contextual (item 9) */}
@@ -779,6 +949,7 @@ export default function CanvasSidebar({
                   value={post.fontFamily}
                   onChange={(font) => onUpdatePost({ fontFamily: font })}
                   uploadedFontName={uploadedFontName}
+                  userFonts={post.userFonts}
                 />
               </div>
 
@@ -815,6 +986,26 @@ export default function CanvasSidebar({
                     OK
                   </button>
                 </div>
+              </div>
+
+              <div className="space-y-1.5 p-2.5 rounded-xl bg-white/3 border border-white/8">
+                <label className="text-[10px] uppercase tracking-wider text-white/50 font-semibold flex items-center gap-1">
+                  <Upload size={11} />
+                  <span>Fonte Pessoal (TTF, OTF, WOFF, WOFF2)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => sidebarFontInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-1.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-medium cursor-pointer"
+                >
+                  <Upload size={12} className="text-[oklch(0.78_0.22_48)]" />
+                  <span>Enviar Fonte Pessoal (≤ 1 MiB)</span>
+                </button>
+                {post.userFonts && post.userFonts.length > 0 && (
+                  <div className="text-[10px] text-white/40 font-mono">
+                    {post.userFonts.length} fonte(s) pessoal(is) instalada(s)
+                  </div>
+                )}
               </div>
             </div>
 
@@ -939,7 +1130,7 @@ export default function CanvasSidebar({
 
         {/* ─── ABA 3: MÍDIA & FUNDOS PRÉ-DEFINIDOS ─── */}
         {onMediaUpdate && <div className={activeTab === "media" ? "" : "hidden"}><MediaSlotPanel post={post} onUpdate={onMediaUpdate} selectedId={selectedElementId} retainedPreview={mediaPreview} onRetainPreview={onMediaPreview} /></div>}
-        {activeTab === "media" && !(composition && onMediaUpdate) && (
+        {activeTab === "media" && (
           <div className="space-y-4">
 {composition && <ArsenalCompositionInspector composition={composition} section="media" selectedId={selectedElementId ?? null} onSelect={id => onSelectElement?.(id)} onChange={c => onUpdateComposition?.(c)} />}
 
@@ -951,7 +1142,7 @@ export default function CanvasSidebar({
             {onAddExtraImage && <button type="button" onClick={() => sidebarImageInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-orange-400/35 bg-orange-400/10 px-3 py-2.5 text-xs font-semibold text-orange-300 hover:bg-orange-400/20"><ImagePlus size={15} /> Inserir imagem sobreposta</button>}
 
             {/* CARD DO PLANO DE FUNDO ATIVO (AJUSTE ESTILO CANVA + DOWNLOAD) */}
-            {!composition && Boolean(post.slides[post.currentSlideIndex]?.bgImage ?? post.bgImage) && (() => {
+            {Boolean(post.slides[post.currentSlideIndex]?.bgImage ?? post.bgImage) && (() => {
               const currentSlide = post.slides[post.currentSlideIndex];
               const currentPlacement = currentSlide?.bgPlacement || post.bgPlacement;
               const activeFitMode: FitMode = currentPlacement?.fitMode || "cover";
@@ -1166,7 +1357,7 @@ export default function CanvasSidebar({
             </button>
 
             {/* 5. CONTROLES DO OVERLAY / SCRIM */}
-            {!composition && <div className="space-y-3 pt-3 border-t border-white/8">
+            <div className="space-y-3 pt-3 border-t border-white/8">
               <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-white/50 font-semibold">
                 <span>Camada de Sobreposição (Overlay)</span>
                 <span>{Math.round((post.overlayOpacity ?? 0.55) * 100)}%</span>
@@ -1282,7 +1473,7 @@ export default function CanvasSidebar({
                   className="w-full accent-[oklch(0.78_0.22_48)] cursor-pointer"
                 />
               </div>
-            </div>}
+            </div>
           </div>
         )}
 
@@ -1354,6 +1545,8 @@ export default function CanvasSidebar({
             onSelect={(id) => onSelectElement?.(id)}
             onChange={(c) => onUpdateComposition?.(c)}
           />
+        )}
+          </>
         )}
       </div>
 

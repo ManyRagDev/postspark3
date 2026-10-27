@@ -1,6 +1,8 @@
 import { expect, it, vi } from "vitest";
 import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.fixture";
 import { executeProposalWorkflow } from "../ai/workflows/proposalGraph";
+// Required review is exercised by proposalGraphReview; this suite verifies grants/reporting.
+vi.mock("../ai/workflows/proposalReview", () => ({reviewProposal: async () => ({policyVersion: 1, round: "initial", inputHash: "a".repeat(64), status: "passed", reviewedSlides: [0], findings: [], limitation: ""})}));
 const owner = "00000000-0000-4000-8000-000000000001",
   runId = "00000000-0000-4000-8000-000000000002";
 const h = vi.hoisted(() => ({
@@ -38,6 +40,12 @@ it("accepts compilation reports for a committed partial slot and rejects mismatc
               message: {
                 content: JSON.stringify({
                   caption: "Café",
+                  editorialPlan: {
+                    version: 1, mode: "compose", centralMessage: "Apresentar café",
+                    facts: [{id: "cafe", sourceQuote: "Café", meaning: "Tema fornecido"}],
+                    protectedEntities: [],
+                    slides: [{slideIndex: 0, purpose: "Apresentar café", factIds: ["cafe"]}],
+                  },
                   hashtags: [],
                   slides: [
                     {

@@ -114,6 +114,13 @@ export default function CanvasMobileDrawer({
     ...(composition ? [{ id: "design" as MobileTab, label: "Design", icon: Layers }] : []),
   ];
   const [activeTab, setActiveTab] = useState<MobileTab>("text");
+
+  useEffect(() => {
+    if (!selectedElementId) return;
+    if (composition && activeTab === "brand") {
+      setActiveTab("design");
+    }
+  }, [selectedElementId, composition, activeTab]);
   useEffect(() => { if (requestedTab) setActiveTab(requestedTab); }, [requestedTab]);
   const panelHeaderRef = useRef<HTMLDivElement>(null);
   const panelContentRef = useRef<HTMLDivElement>(null);
@@ -369,7 +376,17 @@ export default function CanvasMobileDrawer({
           {/* Conteúdo da Aba (Apenas quando aberta) */}
           {isOpen && (
             <div ref={panelContentRef} className="flex-1 overflow-y-auto overscroll-y-contain p-4 space-y-4 custom-scrollbar">
-              {/* ─── ABA 1: TEXTO ─── */}
+              {!composition && selectedElementId && (selectedElementId === "headline" || selectedElementId === "subtext" || selectedElementId === "badge" || extraTextsList.some(t => t.id === selectedElementId)) ? (
+                <PropertyInspector
+                  post={post}
+                  selectedId={selectedElementId}
+                  onUpdatePost={onUpdatePost}
+                  onClose={() => onSelectElement?.(null)}
+                  isMobile
+                />
+              ) : (
+                <>
+                  {/* ─── ABA 1: TEXTO ─── */}
               {activeTab === "text" && !composition && (
                 <div className="space-y-3">
                   <TipCallout id="tip-mtext-tab" title="Conteúdo do post" compact>
@@ -1325,6 +1342,8 @@ export default function CanvasMobileDrawer({
                   onSelect={(id) => onSelectElement?.(id)}
                   onChange={(c) => onUpdateComposition?.(c)}
                 />
+              )}
+                </>
               )}
             </div>
           )}

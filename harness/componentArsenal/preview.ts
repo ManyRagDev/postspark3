@@ -3,19 +3,27 @@ import { readArsenalComposition,type ArsenalComposition } from "../../shared/des
 import { resolveArsenalGeometry,type ArsenalTextMeasurer,arsenalWorldGeometry } from "../../shared/arsenalGeometry";
 import type { ComponentPackage } from "./extract";
 import type { ReferenceReconstructionSpecV2 } from "../../shared/referenceReconstruction";
+import type { VariableContent } from "../../shared/variableContent";
 
-export function buildDraftPreview(p:ComponentPackage,mode:"original"|"quiet",measureText:ArsenalTextMeasurer,texts:Record<string,string>={},componentId?:string) {
+export function buildDraftPreview(p:ComponentPackage,mode:"original"|"quiet",measureText:ArsenalTextMeasurer,texts:Record<string,string|string[]>={},componentId?:string) {
   const content=p.components.find(c=>c.kind==="content"&&(componentId?c.id===componentId:mode==="quiet"?c.fragment.variantKey.endsWith("-quiet"):!c.fragment.variantKey.endsWith("-quiet")));
   if(!content)throw new Error("Este registro não é uma composição gráfica.");
   const sources=new Set(content.fragment.bindings.map(b=>b.source));
   const units=p.authorship.units.filter(u=>sources.has(u.source));
-  const blocks=units.map((u,i)=>({id:`draft-${i}`,type:"text" as const,role:u.role,text:texts[u.source]??u.sampleText}));
-  if(content.fragment.bindings.some(b=>b.source==="block:body:0:text")&&!units.some(u=>u.role==="body"))blocks.push({id:"authored-body",type:"text",role:"body",text:texts["block:body:0:text"]??"Uma ideia clara ajuda a organizar as informações e escolher o próximo passo."});
-  if(content.fragment.bindings.some(b=>b.source==="block:callToAction:0:text")&&!units.some(u=>u.role==="callToAction"))blocks.push({id:"authored-cta",type:"text",role:"callToAction",text:texts["block:callToAction:0:text"]??"Conheça as opções e escolha o próximo passo."});
+  const textOverride=(source:string,fallback:string)=>{const value=texts[source];if(Array.isArray(value))throw new Error(`Campo textual recebeu lista: ${source}`);return value??fallback;};
+  const blocks:VariableContent["blocks"]=units.map((u,i)=>{
+    if(u.kind==="list"){
+      const value=texts[u.source],items=Array.isArray(value)?value:typeof value==="string"?value.split(/\r?\n/):u.sampleItems??[];
+      return{id:`draft-${i}`,type:"list",items:items.map((text,index)=>({id:`item-${index}`,text}))};
+    }
+    return{id:`draft-${i}`,type:"text",role:u.role,text:textOverride(u.source,u.sampleText)};
+  });
+  if(content.fragment.bindings.some(b=>b.source==="block:body:0:text")&&!units.some(u=>u.role==="body"&&u.kind!=="list"))blocks.push({id:"authored-body",type:"text",role:"body",text:textOverride("block:body:0:text","Uma ideia clara ajuda a organizar as informações e escolher o próximo passo.")});
+  if(content.fragment.bindings.some(b=>b.source==="block:callToAction:0:text")&&!units.some(u=>u.role==="callToAction"))blocks.push({id:"authored-cta",type:"text",role:"callToAction",text:textOverride("block:callToAction:0:text","Conheça as opções e escolha o próximo passo.")});
   const selected:ComponentDefinitionV1[]=mode==="quiet"?[content]:p.components.filter(c=>c.fragment.aspectRatio===content.fragment.aspectRatio&&c.fragment.variantKey.endsWith("-portrait4x5")===content.fragment.variantKey.endsWith("-portrait4x5")&&c.kind!=="typography"&&c.kind!=="ornament"&&(c.kind!=="content"||c.id===content.id));
   const contentDoc={schemaVersion:3 as const,blocks,caption:"Prévia de curadoria, não publicada.",hashtags:[]};
   const palette={background:p.sourceSnapshot.recipe.scene.artboard.background,text:Object.values(content.pieces).find(p=>p.kind==="text")?.fill??"#171717",accent:"#5740B4"};
-  const variations=[0,1,2].map(i=>({id:`draft-${i}`,direction:{label:"Prévia de conversão",palette,typographyComponentId:null},caption:contentDoc.caption,hashtags:[],slides:[{id:`slide-${i}`,role:"static" as const,density:"balanced" as const,content:contentDoc,components:selected.map(c=>({id:c.id,hash:c.hash})),mediaPrompts:[]}]}));
+  const variations=[0,1,2].map(i=>({id:`draft-${i}`,direction:{label:"Prévia de conversão",palette,typographyComponentId:null},caption:contentDoc.caption,hashtags:[],slides:[{id:`slide-${i}`,role:"static" as const,density:content.densities[0],content:contentDoc,components:selected.map(c=>({id:c.id,hash:c.hash})),mediaPrompts:[]}]}));
   const bundle=materializeAssemblyPlan({schemaVersion:1,postMode:"static",aspectRatio:content.fragment.aspectRatio,variations},selected,{traceId:assemblyIdentity([p.source.fileHash,"local-preview-trace"]),runId:assemblyIdentity([p.source.fileHash,"local-preview-run"]),experimental:true}).variations[0].slides[0].bundle;
   const composition=readArsenalComposition(resolveArsenalGeometry(compositionFromAssemblyBundle(bundle),{measureText,allowReduction:false}));
   return {composition,selected,units};
@@ -42,7 +50,7 @@ export function buildSemanticPreview(p:ComponentPackage,componentId:string,measu
 /** A diagnostic Stage scene of the compiled result; does not claim product save/reopen validation. */
 export function diagnosticFromComposition(p:ComponentPackage,c:ArsenalComposition):ReferenceReconstructionSpecV2 {
   const source=p.sourceSnapshot.recipe.scene;
-  const fonts=p.assetFiles.map(f=>{
+  const fonts=p.assetFiles.filter(f=>f.manifest.family).map(f=>{
     const original=source.fonts.find(font=>font.sha256===f.manifest.sha256)!;
     return {...original,family:f.manifest.family!,weight:f.manifest.weight!,dataUrl:original.dataUrl};
   });

@@ -6,8 +6,9 @@ import { verifyArsenalAsset } from "./designCatalog/arsenalAssets";
 
 export const USER_MEDIA_BUCKET = "postspark-media";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const storage = () => createClient(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
+const storage = (signal?: AbortSignal) => createClient(ENV.supabaseUrl, ENV.supabaseServiceRoleKey, {
   auth: { persistSession: false },
+  global: signal ? {fetch: (url, init) => fetch(url, {...init, signal: init?.signal ? AbortSignal.any([signal, init.signal]) : signal})} : undefined,
 }).storage;
 
 /** Content-addressed, owner-private media. The saved URL never embeds expiring credentials. */
@@ -24,7 +25,7 @@ export async function saveUserMediaAsset(
   const checked = await verifyArsenalAsset(bytes, {});
   if (!checked.manifest.mimeType.startsWith("image/")) throw new Error("Arquivo não é uma imagem");
   if (signal?.aborted) throw signal.reason ?? new Error("Operação de mídia cancelada");
-  const client = storage(), bucket = await client.getBucket(USER_MEDIA_BUCKET);
+  const client = storage(signal), bucket = await client.getBucket(USER_MEDIA_BUCKET);
   if (!bucket.data) {
     if (!bucket.error || !/not found|does not exist/i.test(bucket.error.message)) throw bucket.error;
     const created = await client.createBucket(USER_MEDIA_BUCKET, {
@@ -53,7 +54,7 @@ export async function loadOwnedMediaReference(
   const match = /^\/api\/post-media\/([^/]+)\/([a-f0-9]{64})$/i.exec(url);
   if (!match || match[1] !== actor) throw new Error("Referência privada não pertence ao proprietário");
 
-  const client = storage();
+  const client = storage(signal);
   const bucket = await client.getBucket(USER_MEDIA_BUCKET);
   if (bucket.error || !bucket.data) throw bucket.error ?? new Error("Bucket de mídia não encontrado");
   if (bucket.data.public) throw new Error("O bucket de mídia deve permanecer privado");

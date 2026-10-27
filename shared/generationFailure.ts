@@ -154,3 +154,61 @@ export function toFailureMetadata(input: {
     validationIssues: input.validationIssues,
   };
 }
+
+import { z } from "zod";
+export const generationFailureSchema = z.object({
+  code: z.enum([
+    "catalog_variant_unavailable",
+    "catalog_component_ineligible",
+    "catalog_coverage_incomplete",
+    "preparation_contract_incompatible",
+    "preparation_context_too_large",
+    "review_evidence_invalid",
+    "review_inconclusive",
+    "review_content_rejected",
+    "review_deadline_exceeded",
+    "provider_unavailable",
+    "provider_timeout",
+    "materialization_failed",
+    "execution_failed",
+    "review_response_truncated",
+    "review_response_invalid",
+    "review_reconciliation_required",
+    "content_requirement_unmet",
+    "source_conflict",
+    "source_limitation",
+    "artwork_unusable",
+    "review_render_failed",
+  ]),
+  stage: z.enum(["catalog", "selection", "copy", "media", "review", "delivery", "execution"]), retryable: z.boolean(),
+}).strict();
+export type GenerationFailure = z.infer<typeof generationFailureSchema>;
+export class GenerationFailureError extends Error {
+  readonly failure: GenerationFailure;
+  constructor(code: GenerationFailure["code"], stage: GenerationFailure["stage"], retryable = false) { super(code); this.failure = { code, stage, retryable }; }
+}
+/** Explicit compatibility adapter, never a general provider-message classifier. */
+export function historicalGenerationFailure(reason?: string): GenerationFailure | undefined {
+  const known: Record<string, GenerationFailure> = {
+    "generated component provenance is not eligible": {code:"catalog_component_ineligible",stage:"delivery",retryable:false},
+    "Perda factual/editorial fundamentada; limite único de correção esgotado.": {code:"review_content_rejected",stage:"review",retryable:false},
+    "proposal_review_invalid_fact_evidence": {code:"review_evidence_invalid",stage:"review",retryable:false},
+    "proposal_review_source_invalid_fact_evidence": {code:"review_evidence_invalid",stage:"review",retryable:false},
+    "proposal_review_unexpected_narrative_checks": {code:"review_evidence_invalid",stage:"review",retryable:false},
+    "proposal_review_response_truncated": {code:"review_response_truncated",stage:"review",retryable:false},
+    "proposal_review_response_invalid": {code:"review_response_invalid",stage:"review",retryable:false},
+    "proposal_review_malformed_response": {code:"review_response_invalid",stage:"review",retryable:false},
+    "proposal_review_reconciliation_required": {code:"review_reconciliation_required",stage:"review",retryable:false},
+    "proposal_review_evidence_repair_exhausted": {code:"review_evidence_invalid",stage:"review",retryable:false},
+    "generation_deadline_exceeded": {code:"provider_timeout",stage:"execution",retryable:true},
+  };
+  return reason ? known[reason] : undefined;
+}
+export function failureFromError(error: unknown, stage: GenerationFailure["stage"] = "execution"): GenerationFailure {
+  if (error instanceof GenerationFailureError) return error.failure;
+  if((error as {name?:string})?.name==="SourceContextLimitError")return {code:"source_limitation",stage,retryable:false};
+  const e=error as {name?:string;code?:string;cause?:{name?:string}};
+  if (e?.name === "LlmDeadlineExceededError" || e?.code === "TIMEOUT") return {code:"provider_timeout",stage,retryable:true};
+  if (e?.name === "ProviderRequestError" || e?.cause?.name === "ProviderRequestError" || e?.code === "BAD_GATEWAY" || e?.code === "TOO_MANY_REQUESTS") return {code:"provider_unavailable",stage,retryable:true};
+  return historicalGenerationFailure(error instanceof Error ? error.message : undefined) ?? { code: "execution_failed", stage, retryable: false };
+}

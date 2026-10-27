@@ -28,16 +28,17 @@ O estado real atual mistura:
 - deploy/serverless build em [`api/index.js`](./api/index.js);
 - migrações e schema declarativo em [`drizzle/`](./drizzle).
 
-## Documento-mestre obrigatório
+## Contexto e documentação permanente
 
-`DOCUMENTO_MESTRE.md` é a principal fonte de contexto funcional e técnico deste repositório.
+`DOCUMENTO_MESTRE.md` é uma referência de arquitetura e comportamento. Consulte as seções pertinentes quando ajudarem a tarefa e confronte afirmações com o código atual; não releia o documento inteiro por rotina.
 
-Todo agente deve:
+Atualize-o apenas quando houver uma mudança duradoura relevante de arquitetura, regra de negócio, integração ou operação que precisará ser consultada. Correções pequenas, testes, hipóteses e andamento de tarefas não exigem atualização nem relato de que o documento foi revisado.
 
-1. ler `DOCUMENTO_MESTRE.md` antes de mudanças relevantes;
-2. usá-lo como referência primária para arquitetura, fluxos, integrações e riscos;
-3. atualizá-lo sempre que houver mudança funcional, estrutural, arquitetural, contratual ou de integração;
-4. registrar nele também comportamentos implícitos descobertos durante manutenção.
+## Continuidade do trabalho
+
+Interprete o pedido pelo resultado desejado e planeje consequências relevantes, sem exigir três documentos, contrato ou lista fechada de arquivos. Na execução autorizada, ajuste o plano ao código e prossiga até integrar e verificar o fluxo. Peça uma decisão somente quando ela mudar o resultado ou faltar autorização; continue nas partes independentes.
+
+Workflows em `.agent/` são apoios opcionais. A ausência de `docs/tasks.md` não bloqueia uma tarefa clara, e uma etapa ou arquivo concluído não exige pedir confirmação para continuar. Preserve requisitos técnicos e de produto, dados e alterações locais.
 
 ## Forma de trabalhar neste projeto
 
@@ -66,7 +67,7 @@ Ao analisar qualquer mudança, procure responder:
 4. quais dados são lidos, transformados e escritos;
 5. quais integrações externas entram no fluxo;
 6. quais fluxos de usuário ou backend podem ser impactados;
-7. se a mudança exige atualização do `DOCUMENTO_MESTRE.md`.
+7. se existe conhecimento duradouro relevante que precisa ser atualizado na documentação.
 
 Checklist prático para este repositório:
 
@@ -75,20 +76,6 @@ Checklist prático para este repositório:
 - persistência: `server/db.ts`, `drizzle/schema.ts`, `drizzle/*.sql`;
 - fluxo principal do produto (ativo): rota `/thevoid` (e `/studio`) montando `client/src/pages/StudioApp/StudioAppV2BPage.tsx` (etapas Criação ➔ Galeria StudioGalleryView/StudioMobileFlashcards ➔ Editor CanvasLab em `client/src/pages/CanvasLab/`); componentes `Home.tsx` e `WorkbenchV2` são legado órfão sem rota montada (ver §3.2 do `DOCUMENTO_MESTRE.md`);
 - contratos compartilhados: `shared/postspark.ts`, `shared/const.ts`, `shared/types.ts`.
-
-## Quando atualizar o documento-mestre
-
-Atualize `DOCUMENTO_MESTRE.md` quando houver:
-
-1. criação, remoção ou reestruturação de módulo relevante;
-2. mudança de comportamento funcional do produto;
-3. alteração de rotas HTTP, procedimentos tRPC, webhooks, autenticação ou contratos;
-4. alteração de jobs, eventos, automações ou qualquer mecanismo assíncrono;
-5. mudança de integração externa ou de variáveis de ambiente relevantes;
-6. mudança de persistência, schema, tabelas, RPCs, storage ou modelo de dados;
-7. alteração de fluxo do usuário;
-8. descoberta de comportamento implícito ainda não documentado;
-9. confirmação ou invalidação de hipótese registrada como lacuna.
 
 ## Restrições e cuidados
 
@@ -121,12 +108,8 @@ Regras para manutenção no legado:
 4. Testes de contrato residem em `variationSnapshot.test.ts`. Alterações exigem incremento de `snapshotVersion`.
 
 
-## Entregas esperadas em mudanças futuras
+## Entrega compreensível
 
-Sempre que possível, o agente deve:
+Explique primeiro o que o usuário agora consegue fazer, o comportamento corrigido e as condições ou limitações relevantes. Depois resuma a verificação realizada e o que ficou pendente. Arquivos e comandos são apoio à evidência.
 
-1. implementar a alteração pedida;
-2. revisar impactos diretos e colaterais;
-3. atualizar `DOCUMENTO_MESTRE.md` se a mudança afetar contexto permanente;
-4. informar na resposta final se o documento-mestre foi revisado ou atualizado;
-5. registrar dúvidas, hipóteses ou validações pendentes quando o código não permitir confirmação completa.
+Verifique o fluxo afetado, incluindo persistência e reabertura quando pertinentes. Suíte aprovada, montagem de componente ou retorno zero de um harness não demonstram sozinhos o resultado de uma jornada. Não declare capacidade real a partir de uma simulação sem explicitar essa limitação.

@@ -10,7 +10,7 @@ const button='rounded-lg border border-white/20 px-3 py-2 text-sm disabled:opaci
 type ComponentKind='background'|'content'|'media'|'ornament'|'typography';
 type ComponentStatus='draft'|'approved'|'archived';
 type FilterStatus=ComponentStatus|'all';
-type ReviewEntry={id:string;status:string;definition:unknown;source_key:string;review?:{decision:string;created_at:string}|null};
+type ReviewEntry={id:string;status:string;definition:unknown;source_key:string;review?:{kind?:string;decision:string;created_at:string}|null};
 function briefingHash(preview:Awaited<ReturnType<typeof previewComponentDefinition>>) {
   return arsenalHash({targetId:preview.component.id,targetHash:preview.component.hash,targetRole:preview.targetRole,targetSlide:preview.post.slides[preview.targetSlideIndex]?.id,sample:preview.sample,content:preview.content,contextSlides:preview.post.slides.map(s=>({id:s.id,origin:s.composition?.origin,contentHash:s.composition?.userContentHash})),contextLabel:preview.contextLabel});
 }
@@ -73,7 +73,7 @@ export default function ComponentArsenalPanel() {
         <label htmlFor="component-search">Busca por nome</label><div className="mt-1 flex gap-2"><input id="component-search" className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/30 p-2" maxLength={120} value={searchInput} onChange={e=>setSearchInput(e.target.value)} /><button className={button} type="submit">Buscar</button></div>
       </form>
     </div>
-    <p className="text-xs text-slate-500">“Publicado” representa o status do catálogo. “Revisão humana” é a evidência de avaliação e não publica o componente.</p>
+    <p className="text-xs text-slate-500">“Publicado” representa o status do catálogo. “Revisão visual” identifica a avaliação humana ou por agente e não publica o componente.</p>
     {(error||library.error)&&<p role="alert" className="text-sm text-red-300">{error||library.error?.message}</p>}
     <label className="block text-sm text-slate-300">Importar componente ou pacote revisado como rascunho
       <input type="file" accept="application/json,.json" disabled={busy} className="mt-1 block text-xs" onChange={e=>{
@@ -94,9 +94,9 @@ export default function ComponentArsenalPanel() {
     <p className="text-xs text-slate-400">Uma prévia sequencial usa capa, desenvolvimento e encerramento. Campos incompatíveis permanecem visíveis como issues; não há fallback de conteúdo.</p>
     {library.isLoading&&<p>Carregando componentes do banco…</p>}
     {library.data?.total===0&&<p className="text-sm text-slate-400">Nenhum componente corresponde aos filtros atuais.</p>}
-    <div className="max-h-80 overflow-auto rounded-lg border border-white/10"><table className="w-full text-left text-sm"><thead><tr className="border-b border-white/10"><th className="p-2">Componente</th><th className="p-2">Publicação</th><th className="p-2">Revisão humana</th><th className="p-2">Ações</th></tr></thead><tbody>{(library.data?.entries??[]).map((entry:ReviewEntry)=>{
+    <div className="max-h-80 overflow-auto rounded-lg border border-white/10"><table className="w-full text-left text-sm"><thead><tr className="border-b border-white/10"><th className="p-2">Componente</th><th className="p-2">Publicação</th><th className="p-2">Revisão visual</th><th className="p-2">Ações</th></tr></thead><tbody>{(library.data?.entries??[]).map((entry:ReviewEntry)=>{
       const parsed=componentDefinitionV1Schema.safeParse(entry.definition);if(!parsed.success)return <tr key={entry.id}><td className="p-2">Definição inválida · {entry.id}</td><td>{entry.status}</td><td>Sem leitura</td><td>Corrigir pacote</td></tr>;
-      const c=parsed.data,reviewText=entry.review?`${entry.review.decision==='approved'?'Aprovado':'Correção solicitada'} · ${new Date(entry.review.created_at).toLocaleString('pt-BR')}`:'Sem revisão humana';
+      const c=parsed.data,reviewText=entry.review?`${entry.review.kind==='human'?'Humana':entry.review.kind==='agent_visual'?'Agente':'Origem não informada'} · ${entry.review.decision==='approved'?'Aprovado':'Correção solicitada'} · ${new Date(entry.review.created_at).toLocaleString('pt-BR')}`:'Sem revisão visual';
       const publication=entry.status==='approved'?'Publicado':entry.status==='archived'?'Arquivado':'Rascunho';
       return <tr className="border-b border-white/5" key={c.id}><td className="p-2"><strong>{c.label}</strong><p className="text-xs text-slate-400">{c.kind} · {c.aspectRatios.join(', ')} · {c.densities.join(', ')}</p><p className="text-xs text-slate-500" title={c.hash}>{entry.source_key} · {c.hash.slice(0,12)}</p></td><td className="p-2">{publication}</td><td className="p-2 text-xs">{reviewText}</td><td className="p-2">{entry.status==='archived'?<span className="text-xs text-slate-500" title="Componentes arquivados não podem ser pré-visualizados por este endpoint; os documentos já entregues continuam preservados.">Preservado; sem prévia</span>:<button type="button" className={button} disabled={busy} onClick={()=>open(c.id)}>Conferir</button>}{entry.status==='approved'&&<button type="button" className={`${button} ml-1`} disabled={busy} onClick={()=>void action(async()=>{await arsenalApi.designCatalog.publishComponent.mutate({id:c.id,status:'archived'});await library.refetch();})}>Arquivar</button>}</td></tr>;
     })}</tbody></table></div>

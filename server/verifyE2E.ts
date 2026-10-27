@@ -1,4 +1,7 @@
 /**
+ * @deprecated Historical synchronous post.generate harness; not the active pipeline.
+ * Use pnpm verify:e2e --id UUID [--post-id INTEGER] for read-only persisted evidence.
+ * Studio/browser verification is a separate explicit task.
  * SPEC-006 — `verify:e2e`: verificação de ponta a ponta com evidência derivada.
  *
  * Para cada execução autorizada:
@@ -752,17 +755,6 @@ async function runMatrix(): Promise<number> {
 }
 
 if (isMainModule) {
-  main()
-    .then(async (code) => {
-      if (process.argv.includes("--matrix")) {
-        const matrixCode = await runMatrix();
-        process.exitCode = Math.max(code, matrixCode);
-      } else {
-        process.exitCode = code;
-      }
-    })
-    .catch((error) => {
-      console.error("verify:e2e failed:", error instanceof Error ? error.message : error);
-      process.exitCode = 2;
-    });
+  console.error("Deprecated harness. Use pnpm verify:e2e --id UUID [--post-id INTEGER]. No generation was started.");
+  process.exitCode = 2;
 }

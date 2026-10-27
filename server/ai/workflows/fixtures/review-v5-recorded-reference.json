@@ -1,0 +1,294 @@
+{
+  "origin": "Sanitized healthy V5 response from the 2026-10-13 audit; provider id and private operational metadata omitted.",
+  "limitation": "Representation fixture only; not a V6 provider verdict, token measurement or semantic homologation.",
+  "anchors": [
+    {
+      "anchorId": "d3dbe1fd58eb2cf8cd86f5acc5a208ed5e1b30aab1f3db079a5e083306e177d8",
+      "slideIndex": 0,
+      "fieldId": "field-0",
+      "itemIndex": null,
+      "start": 0,
+      "end": 10,
+      "quote": "Conheça o ",
+      "textHash": "fd6bc3b62829a188238369e96ace31b535f6a8aa437942bd09dcebfb49e34739"
+    },
+    {
+      "anchorId": "531f3c0398c879a9c838b419a912277d7081c9737e72e12f5b428c4393e3f662",
+      "slideIndex": 0,
+      "fieldId": "field-0",
+      "itemIndex": null,
+      "start": 10,
+      "end": 19,
+      "quote": "BizuMiner",
+      "textHash": "714f329daebf312b7046176d9afb28f2214f54a4b521e780ab7f80f103faab6c"
+    },
+    {
+      "anchorId": "852847b7c8ec8b51b28852eef9648eb7c846ee7d67e9952cd188a458703f42d6",
+      "slideIndex": 0,
+      "fieldId": "field-1",
+      "itemIndex": null,
+      "start": 0,
+      "end": 20,
+      "quote": "Preços reais em foco",
+      "textHash": "8478278960dc24d1f1e2c9314b90c22903ab2fbec18766c933584424606a99bd"
+    },
+    {
+      "anchorId": "d6eb00d848ae03fc51ee8925c47b872f1a4ab346a5d5608d7a3342690c35b957",
+      "slideIndex": 1,
+      "fieldId": "field-0",
+      "itemIndex": null,
+      "start": 0,
+      "end": 32,
+      "quote": "As melhores lojas em um só lugar",
+      "textHash": "bfa08a7908a5ed7e7832f0e69df9ddebdd4edb9b7c21ff4ffb77ec29bd9dcca9"
+    },
+    {
+      "anchorId": "70b8d90b620788e7ba7fdfaf8e9dea2242b51ffd0e1e463cd10488c31dbf7cd9",
+      "slideIndex": 1,
+      "fieldId": "field-1",
+      "itemIndex": null,
+      "start": 0,
+      "end": 140,
+      "quote": "Reunimos os preços das principais plataformas de compra e verificamos cada promoção ativa para você não perder tempo comparando manualmente.",
+      "textHash": "8a1c64ad6e0599d036eb2689bea6477f30d700478ca0f2998a13d0eb528f7965"
+    },
+    {
+      "anchorId": "2f51b0ea5d318f9bd313db5bb8ba180040e4ee6f71f49e88e31203d6ce22c360",
+      "slideIndex": 2,
+      "fieldId": "field-0",
+      "itemIndex": null,
+      "start": 0,
+      "end": 31,
+      "quote": "Monitoramento diário de verdade",
+      "textHash": "d35a0efbb79cf0be998e4127e85724aff2744cf64a06f42dc41780fe64f0fbf4"
+    },
+    {
+      "anchorId": "9b949287d2a5d4f05c3253ef5b87befde04e5cb72d9867c148f373a7044a09dc",
+      "slideIndex": 2,
+      "fieldId": "field-1",
+      "itemIndex": null,
+      "start": 0,
+      "end": 153,
+      "quote": "Mais do que listar descontos, acompanhamos as oscilações todos os dias. Assim, você sempre sabe o momento exato em que o produto atinge seu melhor valor.",
+      "textHash": "7c236a6072ce338bc217ac0f8c10007fc45495e3f5f6db81e9bcd49eaf62e939"
+    },
+    {
+      "anchorId": "f84fac6e317770c1477e6dce21f1ac8c927b7707436c5bf4de80a36ca3c43599",
+      "slideIndex": 3,
+      "fieldId": "field-0",
+      "itemIndex": null,
+      "start": 0,
+      "end": 20,
+      "quote": "Compre na hora certa",
+      "textHash": "a52d90ed13c5c95b41ee43d2605975af388c2ce84456e9fcf5e67f6006818681"
+    },
+    {
+      "anchorId": "9cb5a3a41a7979c86fccaf49f884b038a185b49306eadda971b4aa756aaf0470",
+      "slideIndex": 3,
+      "fieldId": "field-1",
+      "itemIndex": null,
+      "start": 0,
+      "end": 99,
+      "quote": "Tenha clareza sobre o histórico dos produtos e tome decisões com base em dados diários atualizados.",
+      "textHash": "c56bfc25eb73afb3f4d2e9296fd8d1449ffafff720d6a72d3cd12ad2eb7af4ae"
+    },
+    {
+      "anchorId": "ec27edd05476b2f51ee586547f3b09120ba38647f47ddc4d6325c957d1348bef",
+      "slideIndex": 3,
+      "fieldId": "field-2",
+      "itemIndex": null,
+      "start": 0,
+      "end": 21,
+      "quote": "Acompanhe e economize",
+      "textHash": "3d7b380daa1f0f91da63f71577e4435171997d648717fdbb005ee94e29e151ea"
+    }
+  ],
+  "response": {
+    "outcome": "reviewed",
+    "reviewedSlides": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "findings": [],
+    "limitation": "",
+    "factCoverage": [
+      {
+        "factId": "fact-1",
+        "status": "covered",
+        "missingSourceQuote": "",
+        "explanation": "Apresentado no slide 1 ao destacar a centralização dos preços das principais plataformas de compra e melhores lojas em um só lugar.",
+        "evidenceIds": [
+          "d6eb00d848ae03fc51ee8925c47b872f1a4ab346a5d5608d7a3342690c35b957",
+          "70b8d90b620788e7ba7fdfaf8e9dea2242b51ffd0e1e463cd10488c31dbf7cd9"
+        ],
+        "materiality": "essential",
+        "materialityReason": "A função central do BizuMiner é reunir os melhores preços de múltiplas plataformas."
+      },
+      {
+        "factId": "fact-2",
+        "status": "covered",
+        "missingSourceQuote": "",
+        "explanation": "A verificação das promoções está expressa textualmente no slide 1 ao afirmar que verificam cada promoção ativa.",
+        "evidenceIds": [
+          "70b8d90b620788e7ba7fdfaf8e9dea2242b51ffd0e1e463cd10488c31dbf7cd9"
+        ],
+        "materiality": "essential",
+        "materialityReason": "A checagem ativa das ofertas diferencia a plataforma de meros agregadores sem validação."
+      },
+      {
+        "factId": "fact-3",
+        "status": "covered",
+        "missingSourceQuote": "",
+        "explanation": "A frequência diária de acompanhamento é destacada no título e corpo do slide 2, além de reforçada no slide 3.",
+        "evidenceIds": [
+          "2f51b0ea5d318f9bd313db5bb8ba180040e4ee6f71f49e88e31203d6ce22c360",
+          "9b949287d2a5d4f05c3253ef5b87befde04e5cb72d9867c148f373a7044a09dc",
+          "9cb5a3a41a7979c86fccaf49f884b038a185b49306eadda971b4aa756aaf0470"
+        ],
+        "materiality": "essential",
+        "materialityReason": "A periodicidade diária é elemento nuclear do mecanismo de monitoramento descrito no briefing."
+      },
+      {
+        "factId": "fact-4",
+        "status": "covered",
+        "missingSourceQuote": "",
+        "explanation": "O benefício de identificar quando o produto atinge seu melhor valor é contemplado diretamente no slide 2.",
+        "evidenceIds": [
+          "9b949287d2a5d4f05c3253ef5b87befde04e5cb72d9867c148f373a7044a09dc"
+        ],
+        "materiality": "essential",
+        "materialityReason": "Define a finalidade e o valor gerado para o usuário ao usar o monitoramento diário."
+      }
+    ],
+    "sourceCoverage": [
+      {
+        "factId": "source-fact-1",
+        "status": "covered",
+        "missingSourceQuote": "",
+        "explanation": "O nome da plataforma e o objetivo de apresentar a solução aparecem na capa.",
+        "evidenceIds": [
+          "d3dbe1fd58eb2cf8cd86f5acc5a208ed5e1b30aab1f3db079a5e083306e177d8",
+          "531f3c0398c879a9c838b419a912277d7081c9737e72e12f5b428c4393e3f662"
+        ],
+        "materiality": "essential",
+        "materialityReason": "Entidade principal e convite inicial informados no briefing.",
+        "sourceQuote": "Conheça o BizuMiner",
+        "meaning": "Apresentação da ferramenta BizuMiner."
+      },
+      {
+        "factId": "source-fact-2",
+        "status": "covered",
+        "missingSourceQuote": "",
+        "explanation": "Explicado no slide 1 através da reunião de preços das principais plataformas de compra.",
+        "evidenceIds": [
+          "d6eb00d848ae03fc51ee8925c47b872f1a4ab346a5d5608d7a3342690c35b957",
+          "70b8d90b620788e7ba7fdfaf8e9dea2242b51ffd0e1e463cd10488c31dbf7cd9"
+        ],
+        "materiality": "essential",
+        "materialityReason": "Mecanismo nuclear de agregação de preços entre lojas.",
+        "sourceQuote": "uma plataforma onde você encontra os melhores preços das melhores plataformas de compra",
+        "meaning": "Ambiente que reúne os preços mais vantajosos entre as maiores lojas do mercado."
+      },
+      {
+        "factId": "source-fact-3",
+        "status": "covered",
+        "missingSourceQuote": "",
+        "explanation": "O ato de verificar promoções está explícito no slide 1.",
+        "evidenceIds": [
+          "70b8d90b620788e7ba7fdfaf8e9dea2242b51ffd0e1e463cd10488c31dbf7cd9"
+        ],
+        "materiality": "essential",
+        "materialityReason": "Ação explícita de conferência das ofertas informada na fonte.",
+        "sourceQuote": "Verificamos as promoções",
+        "meaning": "Validação ativa das condições promocionais."
+      },
+      {
+        "factId": "source-fact-4",
+        "status": "covered",
+        "missingSourceQuote": "",
+        "explanation": "O monitoramento diário é detalhado no slide 2 com menção textual a acompanhar as oscilações todos os dias.",
+        "evidenceIds": [
+          "2f51b0ea5d318f9bd313db5bb8ba180040e4ee6f71f49e88e31203d6ce22c360",
+          "9b949287d2a5d4f05c3253ef5b87befde04e5cb72d9867c148f373a7044a09dc"
+        ],
+        "materiality": "essential",
+        "materialityReason": "Frequência essencial que qualifica o acompanhamento contínuo.",
+        "sourceQuote": "acompanhamos os preços diariamente",
+        "meaning": "Acompanhamento contínuo com periodicidade diária."
+      },
+      {
+        "factId": "source-fact-5",
+        "status": "covered",
+        "missingSourceQuote": "",
+        "explanation": "O resultado de identificar o melhor momento e valor está contemplado com exatidão no slide 2.",
+        "evidenceIds": [
+          "9b949287d2a5d4f05c3253ef5b87befde04e5cb72d9867c148f373a7044a09dc"
+        ],
+        "materiality": "essential",
+        "materialityReason": "Objetivo final de compra informando quando o preço está no menor patamar.",
+        "sourceQuote": "para sempre saber quando um produto está com seu melhor valor",
+        "meaning": "Capacidade de identificar quando o item alcançou seu menor preço histórico."
+      }
+    ],
+    "narrativeChecks": [
+      {
+        "criterion": "cover_hook",
+        "status": "met",
+        "revisionSlides": [],
+        "instructionQuote": "",
+        "explanation": "A capa introduz a marca BizuMiner e delimita o tema de preços reais sem antecipar prematuramente os detalhes técnicos.",
+        "effect": "advisory",
+        "evidenceIds": [
+          "d3dbe1fd58eb2cf8cd86f5acc5a208ed5e1b30aab1f3db079a5e083306e177d8",
+          "531f3c0398c879a9c838b419a912277d7081c9737e72e12f5b428c4393e3f662",
+          "852847b7c8ec8b51b28852eef9648eb7c846ee7d67e9952cd188a458703f42d6"
+        ]
+      },
+      {
+        "criterion": "progression",
+        "status": "met",
+        "revisionSlides": [],
+        "instructionQuote": "",
+        "explanation": "O carrossel avança de forma lógica: primeiro apresenta a centralização e verificação de promoções (slide 1) e em seguida aprofunda o diferencial do histórico diário contínuo (slide 2).",
+        "effect": "advisory",
+        "evidenceIds": [
+          "d6eb00d848ae03fc51ee8925c47b872f1a4ab346a5d5608d7a3342690c35b957",
+          "70b8d90b620788e7ba7fdfaf8e9dea2242b51ffd0e1e463cd10488c31dbf7cd9",
+          "2f51b0ea5d318f9bd313db5bb8ba180040e4ee6f71f49e88e31203d6ce22c360",
+          "9b949287d2a5d4f05c3253ef5b87befde04e5cb72d9867c148f373a7044a09dc"
+        ]
+      },
+      {
+        "criterion": "cohesion",
+        "status": "met",
+        "revisionSlides": [],
+        "instructionQuote": "",
+        "explanation": "O vocabulário, o tom informativo e os conceitos de plataformas, dados diários e economia mantêm perfeita consistência ao longo de todos os slides.",
+        "effect": "advisory",
+        "evidenceIds": [
+          "531f3c0398c879a9c838b419a912277d7081c9737e72e12f5b428c4393e3f662",
+          "852847b7c8ec8b51b28852eef9648eb7c846ee7d67e9952cd188a458703f42d6",
+          "70b8d90b620788e7ba7fdfaf8e9dea2242b51ffd0e1e463cd10488c31dbf7cd9",
+          "9b949287d2a5d4f05c3253ef5b87befde04e5cb72d9867c148f373a7044a09dc",
+          "9cb5a3a41a7979c86fccaf49f884b038a185b49306eadda971b4aa756aaf0470",
+          "ec27edd05476b2f51ee586547f3b09120ba38647f47ddc4d6325c957d1348bef"
+        ]
+      },
+      {
+        "criterion": "closing",
+        "status": "met",
+        "revisionSlides": [],
+        "instructionQuote": "",
+        "explanation": "O slide final sintetiza a tomada de decisão inteligente na hora certa e propõe um CTA claro e pertinente com o objetivo da plataforma.",
+        "effect": "advisory",
+        "evidenceIds": [
+          "f84fac6e317770c1477e6dce21f1ac8c927b7707436c5bf4de80a36ca3c43599",
+          "9cb5a3a41a7979c86fccaf49f884b038a185b49306eadda971b4aa756aaf0470",
+          "ec27edd05476b2f51ee586547f3b09120ba38647f47ddc4d6325c957d1348bef"
+        ]
+      }
+    ]
+  }
+}

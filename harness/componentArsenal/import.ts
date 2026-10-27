@@ -1,3 +1,4 @@
+import {withCatalogPublication} from "../../server/designCatalog/versionedCatalog";
 /** Explicit deployment command: immutable drafts and verified private assets, never publication. */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -36,10 +37,12 @@ if(process.argv.includes("--missing-only")){
   }
 }
 const pending=Array.from(components.values()).filter(c=>!existing.has(c.id));
+await withCatalogPublication(async()=>{
 for(let i=0;i<pending.length;i+=4){
   results.push(...await Promise.all(pending.slice(i,i+4).map(c=>prepareComponentDraft(c,actor))));
   console.log(JSON.stringify({stage:"component-drafts",processed:results.length,total:components.size,imported:results.length-existing.size}));
 }
+});
 const report={schemaVersion:1,createdAt:new Date().toISOString(),actor,sourceCount:packages.length,assets:assets.size,components:results.length,idempotent:results.filter(r=>r.idempotent).length,published:0,automaticGenerationEligible:false,results};
 await fs.writeFile(path.join(root,"import-report.json"),JSON.stringify(report,null,2)+"\n");
 console.log(JSON.stringify({stage:"complete",...report,results:undefined}));

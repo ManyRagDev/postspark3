@@ -335,7 +335,14 @@ export function restoreInitialVisual(
   const post = captureInitialVisuals(source);
   const slide = post.slides[post.currentSlideIndex];
   if (slide?.composition) {
-    const restored = restoreArsenalVariant(slide.composition);
+    let restored = restoreArsenalVariant(slide.composition, post.aspectRatio);
+    restored = editArsenalContent(
+      restored,
+      applyContentText(restored.content, {
+        headline: slide.headline || undefined,
+        subtext: slide.subtext || undefined,
+      })
+    );
     return { post: putArsenalComposition(post, restored) };
   }
   if (!slide?.initialVisual)

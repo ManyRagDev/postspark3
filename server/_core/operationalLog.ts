@@ -1,3 +1,4 @@
+import {localDiagnosticsEnabled,writeLocalDiagnostic} from "../ai/localDiagnostics";
 import type { NextFunction, Request, Response } from "express";
 import { appendFile, stat, writeFile } from "fs/promises";
 import path from "path";
@@ -64,6 +65,10 @@ export async function appendOperationalLog(
   event: string,
   details: OperationalLogDetails = {},
 ): Promise<void> {
+  if(localDiagnosticsEnabled()){
+    await writeLocalDiagnostic('operational',{at:new Date().toISOString(),event,details}).catch(()=>process.stderr.write('[diagnostics] Falha ao gravar diagnóstico operacional local.\n'));
+    return;
+  }
   const lines = [
     `[${new Date().toISOString()}] ${event}`,
     ...Object.entries(details).map(([key, value]) => `${key}: ${serialize(value)}`),

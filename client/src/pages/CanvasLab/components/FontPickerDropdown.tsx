@@ -6,6 +6,7 @@ interface FontPickerDropdownProps {
   value: string;
   onChange: (fontName: string) => void;
   uploadedFontName?: string | null;
+  userFonts?: import("@shared/designArsenal").ArsenalUserFont[];
   className?: string;
 }
 
@@ -23,6 +24,7 @@ export default function FontPickerDropdown({
   value,
   onChange,
   uploadedFontName,
+  userFonts,
   className = "",
 }: FontPickerDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -86,7 +88,18 @@ export default function FontPickerDropdown({
   const allFonts = useMemo(() => {
     const list: Array<FontEntry & { category: CategoryTab; categoryLabel: string }> = [];
 
-    if (uploadedFontName) {
+    if (userFonts && userFonts.length > 0) {
+      userFonts.forEach((uf) => {
+        if (!list.some((existing) => existing.name === uf.family)) {
+          list.push({
+            name: uf.family,
+            label: uf.family,
+            category: "upload",
+            categoryLabel: "Própria",
+          });
+        }
+      });
+    } else if (uploadedFontName) {
       list.push({
         name: uploadedFontName,
         label: uploadedFontName,
@@ -109,7 +122,7 @@ export default function FontPickerDropdown({
     );
 
     return list;
-  }, [uploadedFontName]);
+  }, [userFonts, uploadedFontName]);
 
   // Current font info
   const currentFontInfo = useMemo(() => {
@@ -143,11 +156,11 @@ export default function FontPickerDropdown({
   };
 
   const tabs = useMemo(() => {
-    if (uploadedFontName) {
+    if ((userFonts && userFonts.length > 0) || uploadedFontName) {
       return [...CATEGORY_TABS, { id: "upload" as CategoryTab, label: "Próprias" }];
     }
     return CATEGORY_TABS;
-  }, [uploadedFontName]);
+  }, [userFonts, uploadedFontName]);
 
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>

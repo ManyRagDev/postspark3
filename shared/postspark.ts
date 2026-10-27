@@ -151,6 +151,8 @@ export interface CreativeExecutionBrief {
   objective: "educate" | "authority" | "sell" | "engage" | "lead";
   tone?: string;
   callToAction?: string;
+  audience?: string;
+  brandEssence?: string;
   interventionLevel: ExecutionInterventionLevel;
   contentSourceType: ExecutionContentSourceType;
   rawInput: string;
@@ -158,6 +160,7 @@ export interface CreativeExecutionBrief {
   mustKeep?: string[];
   mustInclude?: string[];
   forbiddenTerms?: string[];
+  contentRequirements?: import("./contentRequirements").ContentRequirement[];
   notes?: string;
   brandInput?: ExecutionBrandInput;
 }

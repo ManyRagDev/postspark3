@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ENV } from "./env";
 import { invokeLLM, resolveModelConfig } from "./llm";
+import { runWithGenerationTrace } from "../ai/generationTrace";
 
 const original = {
   geminiApiKey: ENV.geminiApiKey,
@@ -25,6 +26,21 @@ afterEach(() => {
 });
 
 describe("resolveModelConfig", () => {
+  it("dispatches the validated pinned model instead of the current route default", async () => {
+    ENV.openRouterApiKey = "test-openrouter";
+    const pinnedModel = "provider/pinned-historical-model";
+    const fetchMock = vi.fn().mockResolvedValue(providerResponse(pinnedModel,"Conteúdo controlado"));
+    vi.stubGlobal("fetch",fetchMock);
+    await invokeLLM({taskRoute:"static_generation",pinnedModel,messages:[{role:"user",content:"Teste de retomada"}],disableFallback:true,maxTransportAttempts:1});
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).model).toBe(pinnedModel);
+  });
+  it("refuses a pinned identity when fallback could change it", async () => {
+    ENV.openRouterApiKey = "test-openrouter";
+    const fetchMock = vi.fn(); vi.stubGlobal("fetch",fetchMock);
+    await expect(invokeLLM({taskRoute:"static_generation",pinnedModel:"provider/pinned-model",messages:[{role:"user",content:"Teste"}]})).rejects.toThrow("pinned_model_requires_openrouter_without_fallback");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
   it("does not dispatch a cancelled operation", async () => {
     ENV.openRouterApiKey = "test-openrouter";
     const controller = new AbortController(); controller.abort(new Error("cancelled"));
@@ -549,5 +565,149 @@ describe("invokeLLM resilience", () => {
     };
     expect(visionRequest.model).toBe("google/gemini-3.8-flash");
     expect(geminiRequest.model).toBe("gemini-2.5-flash");
+  });
+});
+
+describe("explicit review transport budget", () => {
+  it.each([undefined, 30000])("allows a longer review but respects the absolute deadline (%s)", async remaining => {
+    vi.useFakeTimers();
+    ENV.openRouterApiKey = "test-openrouter";
+    const fetchMock = vi.fn((_url, options) => new Promise((_resolve, reject) => {
+      options.signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      let settled = false;
+      const pending = invokeLLM({
+        messages: [{ role: "user", content: "test" }], taskRoute: "post_evaluation",
+        transportTimeoutMs: 45000, deadlineMs: remaining ? Date.now() + remaining : undefined,
+        disableFallback: true, maxTransportAttempts: 1,
+      }).catch(error => { settled = true; return error; });
+      await vi.advanceTimersByTimeAsync(20001);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(settled).toBe(false); // the old route's 20s cap must not apply
+      await vi.advanceTimersByTimeAsync((remaining ?? 45000) - 20000);
+      expect(await pending).toBeInstanceOf(Error);
+      expect(settled).toBe(true);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally { vi.useRealTimers(); }
+  });
+});
+
+describe("structuredValidationOwner caller mode", () => {
+  it("keeps absent usage/cost unknown rather than presenting a zero-cost receipt",async()=>{
+    ENV.openRouterApiKey="test-openrouter";
+    const fetch=vi.fn(async()=>new Response(JSON.stringify({id:"known-receipt",model:"google/gemini-3.8-flash",choices:[{message:{role:"assistant",content:"{}"},finish_reason:"stop"}]}),{status:200}));vi.stubGlobal("fetch",fetch);
+    const trace:any={id:"fixture",startedAt:Date.now(),calls:[],events:[]};
+    await runWithGenerationTrace(trace,()=>invokeLLM({taskRoute:"post_evaluation",messages:[{role:"user",content:"fixture"}],structuredValidationOwner:"caller",maxTransportAttempts:1,disableFallback:true,disableStructuredRepair:true}));
+    expect(trace.calls).toHaveLength(1);expect(trace.calls[0].costSource).toBe("unknown");
+  });
+  it("does not turn an unusable HTTP 200 envelope into a known receipt",async()=>{
+    ENV.openRouterApiKey="test-openrouter";
+    const fetch=vi.fn(async()=>new Response(JSON.stringify({error:"bad envelope"}),{status:200}));vi.stubGlobal("fetch",fetch);
+    await expect(invokeLLM({taskRoute:"post_evaluation",messages:[{role:"user",content:"fixture"}],structuredValidationOwner:"caller",maxTransportAttempts:1,disableFallback:true,disableStructuredRepair:true})).rejects.toThrow();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it("returns a fully received caller receipt when cancellation arrives during JSON decoding",async()=>{
+    ENV.openRouterApiKey="test-openrouter";
+    const controller=new AbortController();
+    const response=providerResponse("google/gemini-3.8-flash",'{}');
+    const json=response.json.bind(response);
+    vi.spyOn(response,"json").mockImplementation(async()=>{const result=await json();controller.abort(new Error("after-receipt"));return result;});
+    const fetch=vi.fn(async()=>response);vi.stubGlobal("fetch",fetch);
+    const result=await invokeLLM({taskRoute:"post_evaluation",messages:[{role:"user",content:"fixture"}],structuredValidationOwner:"caller",maxTransportAttempts:1,disableFallback:true,disableStructuredRepair:true,signal:controller.signal});
+    expect(result.id).toBeTruthy();expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it("rejects implicit retry settings before any HTTP dispatch", async () => {
+    const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
+    await expect(invokeLLM({ taskRoute: "post_evaluation", messages: [{role:"user",content:"fixture"}], structuredValidationOwner:"caller", disableFallback:true, disableStructuredRepair:true }))
+      .rejects.toThrow("exactly 1 transport attempt");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it("enforces required options for caller mode", async () => {
+    ENV.openRouterApiKey = "test-openrouter";
+    // Missing post_evaluation
+    await expect(
+      invokeLLM({
+        messages: [{ role: "user", content: "test" }],
+        structuredValidationOwner: "caller",
+        disableFallback: true,
+        disableStructuredRepair: true,
+        maxTransportAttempts: 1,
+      })
+    ).rejects.toThrow("structuredValidationOwner 'caller' requires post_evaluation route");
+
+    // Missing disableFallback
+    await expect(
+      invokeLLM({
+        messages: [{ role: "user", content: "test" }],
+        taskRoute: "post_evaluation",
+        structuredValidationOwner: "caller",
+        disableFallback: false,
+        disableStructuredRepair: true,
+        maxTransportAttempts: 1,
+      })
+    ).rejects.toThrow("structuredValidationOwner 'caller' requires post_evaluation route");
+
+    // maxTransportAttempts > 1
+    await expect(
+      invokeLLM({
+        messages: [{ role: "user", content: "test" }],
+        taskRoute: "post_evaluation",
+        structuredValidationOwner: "caller",
+        disableFallback: true,
+        disableStructuredRepair: true,
+        maxTransportAttempts: 2,
+      })
+    ).rejects.toThrow("structuredValidationOwner 'caller' requires post_evaluation route");
+  });
+
+  it("returns truncated or invalid JSON result without throwing StructuredOutputError in caller mode", async () => {
+    ENV.openRouterApiKey = "test-openrouter";
+    ENV.openRouterProposalReviewModel = "google/gemini-3.8-flash";
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        providerResponse("google/gemini-3.8-flash", '{"answer":', {
+          finishReason: "length",
+          nativeFinishReason: "MAX_TOKENS",
+        })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await invokeLLM({
+      taskRoute: "post_evaluation",
+      messages: [{ role: "user", content: "Analise" }],
+      response_format: structuredFormat,
+      structuredValidationOwner: "caller",
+      disableFallback: true,
+      disableStructuredRepair: true,
+      maxTransportAttempts: 1,
+    });
+
+    expect(result.model).toBe("google/gemini-3.8-flash");
+    expect(result.choices[0].finish_reason).toBe("length");
+    expect(result.choices[0].native_finish_reason).toBe("MAX_TOKENS");
+    expect(result.choices[0].message.content).toBe('{"answer":');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("still throws network errors in caller mode", async () => {
+    ENV.openRouterApiKey = "test-openrouter";
+    const fetchMock = vi.fn().mockRejectedValueOnce(new Error("Network failure"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      invokeLLM({
+        taskRoute: "post_evaluation",
+        messages: [{ role: "user", content: "Analise" }],
+        response_format: structuredFormat,
+        structuredValidationOwner: "caller",
+        disableFallback: true,
+        disableStructuredRepair: true,
+        maxTransportAttempts: 1,
+      })
+    ).rejects.toThrow();
   });
 });

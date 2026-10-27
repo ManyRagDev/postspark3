@@ -4,7 +4,7 @@ import type { ArsenalComposition } from "@shared/designArsenal";
 export function renderedCompositionImageCount(composition: ArsenalComposition): number {
   const groups = new Map(composition.groups.map(group => [group.id, group]));
   const images = composition.elements.filter(element => {
-    if (element.kind !== "media" || !composition.media[element.id]?.url || element.opacity <= 0) return false;
+    if (element.kind !== "media" || !(composition.media[element.id]?.url || element.imageAssetId) || element.opacity <= 0) return false;
     const visited = new Set<string>();
     let parentId = element.parentId;
     while (parentId) {

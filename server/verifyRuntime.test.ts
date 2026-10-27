@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   listMigrationFiles,
   validateMigrations,
   probeRemote,
+  probeRpc,
   type ProbeResult,
 } from "./verifyRuntime";
 import { RUNTIME_MANIFEST } from "./runtimeManifest";
@@ -64,6 +65,14 @@ describe("verify:runtime — manifesto cobre o runtime (SPEC-004)", () => {
 });
 
 describe("verify:runtime — classificação de sondas remotas (SPEC-004)", () => {
+  it.each(["generation_admit","generation_settle","generation_reconcile"])("never invokes mutating durable RPC %s during a read-only audit", async name => {
+    const rpc=vi.fn();
+    const requirement=RUNTIME_MANIFEST.requirements.find(item=>item.kind==="rpc"&&item.name===name)!;
+    expect(requirement).toBeDefined();
+    const result=await probeRpc({rpc} as any,requirement);
+    expect(result.status).toBe("not_verifiable");
+    expect(rpc).not.toHaveBeenCalled();
+  });
   it("sem credenciais, o modo remoto é not_configured sem erro", async () => {
     const remote = await probeRemote();
     expect(remote.mode).toBe("not_configured");

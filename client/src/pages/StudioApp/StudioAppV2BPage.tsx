@@ -1,10 +1,19 @@
+import { isStandaloneHttpUrl } from "@shared/generationSources";
+import type { CreationInputOptions } from "./components/v2/StudioCreateViewV2B";
+import { freezeGenerationProject } from "@shared/projectEditorial";
+import {cachedCatalog} from "@/lib/catalogCache";
+import {useGenerationEvents} from "@/hooks/useGenerationEvents";
 import StudioArtPreferences from "./components/StudioArtPreferences";
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import StudioCreateViewV2B from "./components/v2/StudioCreateViewV2B";
 import StudioGalleryView from "./components/StudioGalleryView";
+import { ProductionOverlay } from "./components/v2/shared";
+import { ProposalProgress } from "./components/ProposalSkeletonCard";
+import { useProposalProgress } from "./lib/useProposalProgress";
 import CanvasLabPage from "@/pages/CanvasLab/CanvasLabPage";
 import { INITIAL_POST, ensureDistinctFamilies, type CanvasPostModel, type CanvasPostProvenance } from "@/pages/CanvasLab/components/types";
 import { normalizeCanvasModel } from "@/pages/CanvasLab/lib/saveAdapter";
@@ -40,22 +49,24 @@ import {
   hasRecoverableBriefDraft,
 } from "./lib/briefDraftStorage";
 import { shouldReviewBriefBeforeGeneration } from "./lib/briefReviewPolicy";
+import { getSelectedProjectId, setSelectedProjectId, getLocalProjectById } from "./lib/projectStorage";
 import type { OrchestratedGenerationInput } from "@shared/generationRequest";
 import type { GenerationCoordinatorSnapshot, ProposalDelivery } from "@shared/generationContracts";
 import {
   claimProposalDelivery,
-  clearActiveV5RequestId,
-  clearPendingV5Start,
-  labelV5CapabilityReason,
-  labelV5Status,
-  messageV5ProposalFailure,
-  newV5IdempotencyKey,
-  persistActiveV5RequestId,
-  persistPendingV5Start,
-  readPendingV5Start,
-  readActiveV5RequestId,
-  type PendingV5Start,
-} from "./lib/studioGenerationV5State";
+  clearActiveGenerationRequestId,
+  clearPendingGenerationStart,
+  labelGenerationCapabilityReason,
+  labelGenerationStatus,
+  messageGenerationProposalFailure,
+  newGenerationIdempotencyKey,
+  persistActiveGenerationRequestId,
+  persistPendingGenerationStart,
+  readPendingGenerationStart,
+  readActiveGenerationRequestId,
+  sameGenerationAdmissionBody,
+  type PendingGenerationStart,
+} from "./lib/studioGenerationState";
 
 type ScreenStage = "create" | "gallery" | "editor";
 
@@ -73,14 +84,13 @@ interface GenerationFailureState {
   mode: "static" | "carousel";
   source: "create" | "more";
   formatConfirmed: boolean;
-  pipeline: "v4" | "v5";
 }
 
-type ReadyV5Proposal = Extract<ProposalDelivery, { status: "ready" }>;
+type ReadyProposal = Extract<ProposalDelivery, { status: "ready" }>;
 
-interface V5MaterializationFailure {
+interface ProposalMaterializationFailure {
   key: string;
-  delivery: ReadyV5Proposal;
+  delivery: ReadyProposal;
   message: string;
 }
 
@@ -95,9 +105,9 @@ interface MaterializationIssueState {
 
 /** Extrai os metadados estruturados de uma falha tRPC, com fallback local. */
 function extractFailureMetadata(err: unknown): GenerationFailureMetadata {
-  const data = (err as { data?: { generationFailure?: GenerationFailureMetadata } } | undefined)?.data;
+  const data = (err as { data?: { generationFailure?: GenerationFailureMetadata; code?: string } } | undefined)?.data;
   if (data?.generationFailure) return data.generationFailure;
-  const reason = classifyGenerationError(err);
+  const reason = classifyGenerationError(data?.code ? { code: data.code, message: err instanceof Error ? err.message : "" } : err);
   return {
     generationRunId: "client-unclassified",
     reason,
@@ -106,65 +116,93 @@ function extractFailureMetadata(err: unknown): GenerationFailureMetadata {
   };
 }
 
-/**
- * Rota experimental `/studio-v2b` — mesma máquina de estados do fluxo Studio,
- * com a tela de criação regularizada (StudioCreateViewV2B) e a "direção de
- * gosto": a família declarada na prateleira viaja como instrução dentro do
- * `content` do `post.generate` (apenas para input de texto — em URL, a
- * identidade extraída do site prevalece). O motor não é alterado.
- */
-function showArsenalAvailability(state?: { reason: string }) {
-  if (!state || state.reason === "ready" || state.reason === "unsupported_post_mode") return;
-  const messages: Record<string, string> = {
-    disabled: "A seleção do novo arsenal está desligada. Esta geração usou os designs atuais.",
-    catalog_not_installed: "O catálogo do novo arsenal ainda não foi instalado. Esta geração usou os designs atuais.",
-    no_eligible_candidate: "Nenhum design publicado do arsenal é compatível com este pedido. Foram usados os designs atuais.",
-    catalog_unavailable: "O arsenal está indisponível nesta geração. Foram usados os designs atuais.",
-    brand_contract_pending: "Esta identidade de marca foi preservada usando os designs atuais.",
-  };
-  // The backend sends this diagnostic only to the authenticated administrator.
-  if (messages[state.reason]) toast.info(messages[state.reason], { duration: 8000 });
-}
-
+/** Studio: admission, durable progress and independent proposal delivery. */
 export default function StudioAppV2BPage() {
+  const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
-  const [pendingV5Start, setPendingV5Start] = useState<PendingV5Start | null>(() => {
-    try { return readPendingV5Start(window.sessionStorage); } catch { return null; }
+  // An explicit History navigation owns this opening. Do not auto-resume an
+  // unrelated session request (or admission) over the selected historical run.
+  const [historyRestore] = useState(() => {
+    try {
+      const payload = JSON.parse(sessionStorage.getItem("postspark.restore_generation") ?? "null") as {
+        inputType?: string;
+        inputContent?: string;
+        postMode?: "static" | "carousel";
+        variations?: unknown[];
+      } | null;
+      return Array.isArray(payload?.variations) && payload.variations.length ? payload : null;
+    } catch { return null; }
   });
-  const [pendingV5StartError, setPendingV5StartError] = useState<string | null>(null);
-  const [activeV5RequestId, setActiveV5RequestId] = useState<string | null>(() => {
-    try { return readPendingV5Start(window.sessionStorage) ? null : readActiveV5RequestId(window.sessionStorage); } catch { return null; }
+  const [pendingGenerationStart, setPendingGenerationStart] = useState<PendingGenerationStart | null>(() => {
+    try { return historyRestore ? null : readPendingGenerationStart(window.sessionStorage); } catch { return null; }
   });
-  const [useGenerationV5, setUseGenerationV5] = useState(Boolean(activeV5RequestId || pendingV5Start));
-  const [v5Snapshot, setV5Snapshot] = useState<GenerationCoordinatorSnapshot | null>(null);
-  const [v5MaterializationFailures, setV5MaterializationFailures] = useState<V5MaterializationFailure[]>([]);
-  const [retryingV5Keys, setRetryingV5Keys] = useState<Set<string>>(() => new Set());
-  const retryingV5KeysRef = useRef(new Set<string>());
-  const processedV5Deliveries = useRef(new Set<string>());
+  const [pendingGenerationStartError, setPendingGenerationStartError] = useState<string | null>(null);
+  const [activeGenerationRequestId, setActiveGenerationRequestId] = useState<string | null>(() => {
+    try { return historyRestore || readPendingGenerationStart(window.sessionStorage) ? null : readActiveGenerationRequestId(window.sessionStorage); } catch { return null; }
+  });
+  const [generationSnapshot, setGenerationSnapshot] = useState<GenerationCoordinatorSnapshot | null>(null);
+  const proposalProgress = useProposalProgress(generationSnapshot?.proposals);
+  const [materializedProposalKeys, setMaterializedProposalKeys] = useState<string[]>([]);
+  const [proposalMaterializationFailures, setProposalMaterializationFailures] = useState<ProposalMaterializationFailure[]>([]);
+  const [retryingGenerationKeys, setRetryingGenerationKeys] = useState<Set<string>>(() => new Set());
+  const retryingGenerationKeysRef = useRef(new Set<string>());
+  const processedGenerationDeliveries = useRef(new Set<string>());
   const pendingAdmissionAttempt = useRef<string | null>(null);
+  const admissionPromises = useRef(new Map<string, Promise<Awaited<ReturnType<typeof generationStart.mutateAsync>>>>());
   const generationEpoch = useRef(0);
-  const restoredV5ContextRequestId = useRef<string | null>(null);
-  const lastAppliedV5QueryData = useRef<typeof activeV5Query.data>(undefined);
-  const activeRequestEpoch = useRef<Map<string, number>>(new Map(activeV5RequestId ? [[activeV5RequestId, 0]] : []));
-  const v5InputMetaByRunId = useRef(new Map<string, { inputType: SaveInputType; inputContent: string }>());
+  const restoredGenerationContextRequestId = useRef<string | null>(null);
+  const lastBillingRefresh=useRef<string|null>(null);
+  const lastAppliedGenerationQueryData = useRef<typeof activeGenerationQuery.data>(undefined);
+  const currentRequestId = useRef(activeGenerationRequestId);
+  const activeRequestEpoch = useRef<Map<string, number>>(new Map(activeGenerationRequestId ? [[activeGenerationRequestId, 0]] : []));
+  const lastGenerationInput = useRef<Partial<OrchestratedGenerationInput> | null>(null);
+  const inputMetaByRunId = useRef(new Map<string, { inputType: SaveInputType; inputContent: string }>());
   const generationCapabilities = trpc.generation.capabilities.useQuery(undefined, {
     retry: false,
     staleTime: 5000,
-    refetchInterval: useGenerationV5 ? 5000 : false,
+    refetchInterval: query => query.state.data && 'progressTransport' in query.state.data && query.state.data?.progressTransport==='events' ? false : import.meta.env.DEV&&!query.state.data ? false : 5000,
   });
-  const generationStart = trpc.generation.start.useMutation();
-  const generationCancel = trpc.generation.cancel.useMutation();
-  const activeV5Query = trpc.generation.get.useQuery(
-    { requestId: activeV5RequestId ?? "00000000-0000-0000-0000-000000000000" },
+  const generationStart = trpc.generation.start.useMutation({onSuccess:()=>{void utils.billing.getProfile.invalidate();}});
+  const sourceUpload=trpc.post.saveMediaAsset.useMutation();
+  const generationReconcile=trpc.generation.reconcile.useMutation({onSuccess:()=>{void activeGenerationQuery.refetch();}});
+  const generationResume=trpc.generation.resume.useMutation({onSuccess:()=>{void activeGenerationQuery.refetch();}});
+  const generationCancel = trpc.generation.cancel.useMutation({onSuccess:()=>{void utils.billing.getProfile.invalidate();}});
+  const activeGenerationQuery = trpc.generation.get.useQuery(
+    { requestId: activeGenerationRequestId ?? "00000000-0000-0000-0000-000000000000" },
     {
-      enabled: Boolean(activeV5RequestId),
-      refetchInterval: (query) => query.state.data?.snapshot.overallStatus === "running" ? 1500 : false,
+      enabled: Boolean(activeGenerationRequestId),
+      refetchInterval: query => ['running','awaiting_reconciliation'].includes(query.state.data?.snapshot.overallStatus??'') && (query.state.data?.progressTransport==='poll'||(!import.meta.env.DEV&&query.state.data?.progressTransport!=='events')) ? 1500 : false,
       retry: false,
     },
   );
+  const generationEvents = useGenerationEvents(activeGenerationRequestId,
+    (activeGenerationQuery.data?.progressTransport==='events'||Boolean(generationCapabilities.data&&'progressTransport' in generationCapabilities.data&&generationCapabilities.data.progressTransport==='events'&&activeGenerationQuery.data?.progressTransport!=='poll')) && Boolean(activeGenerationRequestId) && (['running','awaiting_reconciliation'].includes(generationSnapshot?.overallStatus ?? 'running')||activeGenerationQuery.data?.billingPending===true),
+    event=>{
+      const hasDelivery=event.proposals.some(p=>p.status==='ready'&&!generationSnapshot?.proposals.some(old=>old.proposalId===p.proposalId&&old.status==='ready'&&old.revision===p.revision));
+      if(hasDelivery||event.error||activeGenerationQuery.data?.dispatchError||!['queued','running'].includes(event.status)){void activeGenerationQuery.refetch();}
+      else setGenerationSnapshot(previous=>previous?{...previous,proposals:previous.proposals.map(p=>{
+        const next=event.proposals.find(n=>n.proposalId===p.proposalId);
+        return next&&p.status!=='ready'&&next.status!=='ready'?{...p,status:next.status as typeof p.status}:p;
+      })} as typeof previous:previous);
+    },()=>{void activeGenerationQuery.refetch();});
   const arsenalReadiness = trpc.designCatalog.generationReadiness.useQuery(undefined, { retry: false, staleTime: 30000 });
-  const [reviewModelChoice, setAssemblyPilot] = useState<boolean | undefined>(undefined);
-  const assemblyPilot = reviewModelChoice ?? Boolean(arsenalReadiness.data?.draftCandidateCount && !arsenalReadiness.data?.candidateCount);
+  const [catalogChoice, setCatalogChoice] = useState<{ownerId:string;includeDrafts:boolean}|null>(() => {
+    try { const saved=JSON.parse(window.sessionStorage.getItem("postspark.catalog-mode.v1")??"null");return typeof saved?.ownerId==="string"&&typeof saved?.includeDrafts==="boolean"?saved:null; } catch { return null; }
+  });
+  const catalogOwnerId = generationCapabilities.data?.ownerId;
+  // Incorporado: acervo completo ativo por padrão para administradores (assemblyPilot = true)
+  const assemblyPilot = Boolean(
+    arsenalReadiness.data &&
+      catalogOwnerId &&
+      (catalogChoice?.ownerId === catalogOwnerId ? catalogChoice.includeDrafts : true)
+  );
+  const setAssemblyPilot = (includeDrafts:boolean) => { if (catalogOwnerId) {
+    const choice={ownerId:catalogOwnerId,includeDrafts};setCatalogChoice(choice);
+    try { window.sessionStorage.setItem("postspark.catalog-mode.v1",JSON.stringify(choice)); } catch { /* In-memory preference still works. */ }
+  } };
+  useEffect(() => {
+    if(catalogOwnerId && catalogChoice && catalogChoice.ownerId!==catalogOwnerId) {setCatalogChoice(null);try{window.sessionStorage.removeItem("postspark.catalog-mode.v1");}catch{}}
+  }, [catalogOwnerId, catalogChoice]);
   const [assemblyAspectRatio, setAssemblyAspectRatio] = useState<"1:1"|"4:5"|"9:16">("4:5");
   const compilationReport = trpc.designCatalog.reportCompilation.useMutation();
   const arsenalReport = trpc.designCatalog.reportArsenalCompilation.useMutation();
@@ -190,6 +228,12 @@ export default function StudioAppV2BPage() {
   };
   const [stage, setStage] = useState<ScreenStage>("create");
   const [isLoading, setIsLoading] = useState(false);
+  const [productionIntro, setProductionIntro] = useState<{ prompt: string; startedAt: number } | null>(null);
+  useEffect(() => {
+    if (!productionIntro || isLoading) return;
+    const timer = window.setTimeout(() => setProductionIntro(null), Math.max(0, 5000 - (Date.now() - productionIntro.startedAt)));
+    return () => window.clearTimeout(timer);
+  }, [productionIntro, isLoading]);
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastPrompt, setLastPrompt] = useState("");
@@ -202,8 +246,30 @@ export default function StudioAppV2BPage() {
   const [materializationIssue, setMaterializationIssue] = useState<MaterializationIssueState | null>(null);
   const [selectedPost, setSelectedPost] = useState<CanvasPostModel>(INITIAL_POST);
   const [declaredFamilyId, setDeclaredFamilyId] = useState<string | null>(null);
+  const [selectedProjectId, setLocalSelectedProjectId] = useState<string | null>(() => getSelectedProjectId());
+  const handleSelectProjectId = (id: string | null) => {
+    setLocalSelectedProjectId(id);
+    setSelectedProjectId(id);
+  };
+  const brandProjectsQuery = (trpc as any).brandProjects?.list?.useQuery
+    ? (trpc as any).brandProjects.list.useQuery(undefined, {
+        retry: false,
+        staleTime: 60_000,
+      })
+    : { data: [] };
   /** Item 7: mapa de ids de posts salvos indexados por post.id/proposta (evita colisão cruzada entre propostas). */
   const [savedPostIdsByDocId, setSavedPostIdsByDocId] = useState<Record<string, number>>({});
+  const savedPostIdsRef = useRef<Record<string, number>>({});
+  savedPostIdsRef.current = savedPostIdsByDocId;
+  const inFlightSavePromiseRef = useRef<Promise<boolean> | null>(null);
+  const saveQueueRef = useRef<Array<{
+    post: CanvasPostModel;
+    mode: "new" | "update";
+    source: "manual" | "auto";
+    galleryPreview?:string;
+    resolvers: Array<(ok: boolean) => void>;
+  }>>([]);
+  const isProcessingQueueRef = useRef(false);
 
   // Etapa 3 — estado dos bloqueios de UX (confirmação de formato e falha explícita).
   const [formatConfirm, setFormatConfirm] = useState<FormatConfirmState | null>(null);
@@ -214,29 +280,30 @@ export default function StudioAppV2BPage() {
   const [activeBrief, setActiveBrief] = useState<CreationBrief | null>(null);
   const [hasSavedDraft, setHasSavedDraft] = useState(false);
   const [isReviewingBrief, setIsReviewingBrief] = useState(false);
-  const brandKitQuery = trpc.brandKit.get.useQuery();
 
-  const acceptV5Admission = (pending: PendingV5Start, admitted: Awaited<ReturnType<typeof generationStart.mutateAsync>>, epoch: number) => {
+  const acceptGenerationAdmission = (pending: PendingGenerationStart, admitted: Awaited<ReturnType<typeof generationStart.mutateAsync>>, epoch: number) => {
     if (epoch !== generationEpoch.current) return;
-    clearPendingV5Start(window.sessionStorage);
-    setPendingV5Start(null);
-    setPendingV5StartError(null);
+    clearPendingGenerationStart(window.sessionStorage);
+    setPendingGenerationStart(null);
+    setPendingGenerationStartError(null);
     pendingAdmissionAttempt.current = null;
-    persistActiveV5RequestId(window.sessionStorage, admitted.snapshot.requestId);
+    persistActiveGenerationRequestId(window.sessionStorage, admitted.snapshot.requestId);
     activeRequestEpoch.current.set(admitted.snapshot.requestId, epoch);
-    restoredV5ContextRequestId.current = admitted.snapshot.requestId;
-    setActiveV5RequestId(admitted.snapshot.requestId);
-    setV5Snapshot(admitted.snapshot);
-    setUseGenerationV5(true);
+    restoredGenerationContextRequestId.current = admitted.snapshot.requestId;
+    currentRequestId.current = admitted.snapshot.requestId;
+    setActiveGenerationRequestId(admitted.snapshot.requestId);
+    setGenerationSnapshot(admitted.snapshot);
     if (stage !== "editor") setStage("gallery");
+    lastGenerationInput.current = pending.input;
     setLastPrompt(pending.promptText);
     setLastMode(pending.mode);
-    v5InputMetaByRunId.current.set(admitted.snapshot.runId, { inputType: pending.inputType, inputContent: pending.promptText });
+    inputMetaByRunId.current.set(admitted.snapshot.runId, { inputType: pending.inputType, inputContent: pending.promptText });
     if (stage !== "editor") setLastInputMeta({ inputType: pending.inputType, inputContent: pending.promptText });
     if (pending.source === "create") {
       setGeneratedVariations([]);
-      setV5MaterializationFailures([]);
-      processedV5Deliveries.current.clear();
+      setProposalMaterializationFailures([]);
+      setMaterializedProposalKeys([]);
+      processedGenerationDeliveries.current.clear();
       setMaterializationIssue(null);
     }
     setFailure(null);
@@ -244,45 +311,40 @@ export default function StudioAppV2BPage() {
     else toast.info("Retomando a geração já admitida.");
   };
 
-  const submitPendingV5Start = async (pending: PendingV5Start, epoch: number) => {
+  const submitPendingGenerationStart = async (pending: PendingGenerationStart, epoch: number) => {
     if (!generationCapabilities.data?.ownerId || pending.input.ownerId !== generationCapabilities.data.ownerId) {
       throw new Error("O pedido pendente pertence a outra sessão.");
     }
     const key = pending.input.idempotencyKey;
-    if (pendingAdmissionAttempt.current === key) return;
-    pendingAdmissionAttempt.current = key;
+    let admission = admissionPromises.current.get(key);
+    if (!admission) {
+      if (pendingAdmissionAttempt.current === key) return;
+      pendingAdmissionAttempt.current = key;
+      admission = generationStart.mutateAsync(pending.input);
+      admissionPromises.current.set(key, admission);
+    }
     try {
-      const startTime = Date.now();
-      const admitted = await generationStart.mutateAsync(pending.input);
-
-      // Calibragem da sensibilidade estética: quando a geração parte da tela de criação,
-      // permite que a animação de preparação, barra de corrida e microetapas sejam apreciadas
-      // com cadência orgânica antes de transicionar para a galeria de propostas.
-      // Em ambiente de teste (NODE_ENV === "test"), roda instantaneamente sem timers.
-      const isTestEnv = typeof process !== "undefined" && process.env?.NODE_ENV === "test";
-      const minTransitionMs = isTestEnv ? 0 : 2600;
-      const elapsed = Date.now() - startTime;
-      if (pending.source === "create" && elapsed < minTransitionMs) {
-        await new Promise((resolve) => setTimeout(resolve, minTransitionMs - elapsed));
-      }
-
-      acceptV5Admission(pending, admitted, epoch);
+      const admitted = await admission;
+      acceptGenerationAdmission(pending, admitted, epoch);
       return admitted;
     } catch (error) {
-      if (pendingAdmissionAttempt.current === key) pendingAdmissionAttempt.current = null;
-      if (epoch === generationEpoch.current) setPendingV5StartError("Não foi possível confirmar o início agora. Tente retomar a mesma solicitação.");
+      if (admissionPromises.current.get(key) === admission) admissionPromises.current.delete(key);
+      // Keep this attempt claimed until an explicit retry; the restore effect must not repeat a failed fresh start.
+      if (epoch === generationEpoch.current) setPendingGenerationStartError("Não foi possível confirmar o início agora. Tente retomar a mesma solicitação.");
       throw error;
     }
   };
 
-  const retryPendingV5Admission = async () => {
-    const pending = pendingV5Start ?? readPendingV5Start(window.sessionStorage);
+  const retryPendingGenerationAdmission = async () => {
+    const pending = pendingGenerationStart ?? readPendingGenerationStart(window.sessionStorage);
     if (!pending) return;
-    setPendingV5StartError(null);
-    try { await submitPendingV5Start(pending, generationEpoch.current); } catch { /* the exact pending request stays available */ }
+    setPendingGenerationStartError(null);
+    pendingAdmissionAttempt.current = null;
+    try { await submitPendingGenerationStart(pending, generationEpoch.current); } catch { /* the exact pending request stays available */ }
   };
 
-  const startV5Generation = async (
+  const creationInputOptions=useRef<CreationInputOptions>({platform:"instagram",imagePurpose:"content"});
+  const startGeneration = async (
     promptText: string,
     mode: "static" | "carousel",
     brief: CreationBrief | null | undefined,
@@ -291,84 +353,123 @@ export default function StudioAppV2BPage() {
     retryAdmission: boolean,
     epoch: number,
   ) => {
-    if (!generationCapabilities.data?.enabled) {
-      throw new Error(labelV5CapabilityReason(generationCapabilities.data?.reason));
-    }
-    const previousPending = retryAdmission ? pendingV5Start ?? readPendingV5Start(window.sessionStorage) : null;
+    const previousPending = retryAdmission ? pendingGenerationStart ?? readPendingGenerationStart(window.sessionStorage) : null;
     if (previousPending) {
-      setPendingV5StartError(null);
-      await submitPendingV5Start(previousPending, epoch);
+      setPendingGenerationStartError(null);
+      pendingAdmissionAttempt.current = null;
+      await submitPendingGenerationStart(previousPending, epoch);
       return;
     }
-    clearPendingV5Start(window.sessionStorage);
-    setPendingV5Start(null);
-    setPendingV5StartError(null);
-    const executionBrief = brief ? creationBriefToExecutionBrief(brief) : undefined;
-    const isUrl = promptText.startsWith("http://") || promptText.startsWith("https://");
+    const capabilities=(await generationCapabilities.refetch()).data;
+    if (!capabilities?.enabled)throw new Error(labelGenerationCapabilityReason(capabilities?.reason));
+    if('catalogRevision' in capabilities&&capabilities.catalogRevision&&capabilities.catalogScope&&capabilities.catalogProject){
+      const revision=capabilities.catalogRevision;
+      await cachedCatalog(capabilities.catalogProject,capabilities.ownerId,capabilities.catalogScope,revision,()=>utils.catalog.snapshot.fetch({revision}));
+    }
+    const previousInput = source === "more" ? lastGenerationInput.current : null;
+    const executionBrief = previousInput?.executionBrief ?? (brief ? {...creationBriefToExecutionBrief(brief),platform:brief.platform??creationInputOptions.current.platform} : undefined);
+    const isUrl = isStandaloneHttpUrl(promptText);
     const tasteInstruction = !isUrl && declaredFamilyId ? buildTasteInstruction(declaredFamilyId) : "";
     const content = source === "more" && !isUrl
       ? `Crie 3 novos ganchos criativos e direções de arte alternativas sobre: ${promptText}${tasteInstruction}`
       : `${promptText}${tasteInstruction}`;
+    const activeProjId = previousInput ? previousInput.projectId : brief ? brief.projectId : selectedProjectId ?? undefined;
+    let projectDossier = previousInput?.projectDossier ?? brief?.projectDossier;
+    let projectSnapshot = previousInput?.projectSnapshot ?? brief?.projectSnapshot;
+    if (!projectDossier && !projectSnapshot && activeProjId) {
+      const fromRemote = (brandProjectsQuery.data ?? []).find((p: any) => p.id === activeProjId);
+      if (fromRemote?.compiledDocument?.trim()) {
+        projectDossier = fromRemote.compiledDocument.trim();
+        projectSnapshot = freezeGenerationProject(fromRemote);
+      } else {
+        const fromLocal = getLocalProjectById(activeProjId);
+        if (fromLocal?.compiledDocument?.trim()) {
+          projectDossier = fromLocal.compiledDocument.trim();
+          projectSnapshot = freezeGenerationProject(fromLocal);
+        }
+      }
+    }
+
     const input: OrchestratedGenerationInput = {
-      ownerId: generationCapabilities.data.ownerId,
-      inputType: isUrl ? "url" : "text",
+      ownerId: capabilities.ownerId,
+      inputType: previousInput?.inputType ?? ((brief?.sources?.some(s=>s.kind==="image"&&s.purpose==="content")||creationInputOptions.current.image&&creationInputOptions.current.imagePurpose==="content")?"image":isUrl ? "url" : "text"),
+      sources:previousInput?.sources??brief?.sources??(creationInputOptions.current.image?[{id:"image-1",kind:"image",purpose:creationInputOptions.current.imagePurpose,value:creationInputOptions.current.image}]:undefined),
+      imageUrl: previousInput?.imageUrl,
+      siteIntelligenceId: previousInput?.siteIntelligenceId,
+      tone: previousInput?.tone,
       content,
-      platform: "instagram",
+      platform: previousInput?.platform ?? brief?.platform ?? creationInputOptions.current.platform,
       postMode: mode,
       formatIntentConfirmed: formatConfirmed,
-      includeDraftDesigns: assemblyPilot,
-      aspectRatio: assemblyAspectRatio,
-      slideCount: mode === "carousel" ? brief?.slideCount ?? 5 : undefined,
-      model: "llama",
+      includeDraftDesigns: previousInput?.includeDraftDesigns ?? assemblyPilot,
+      aspectRatio: previousInput?.aspectRatio ?? assemblyAspectRatio,
+      slideCount: mode === "carousel" ? previousInput?.slideCount ?? brief?.slideCount ?? 5 : undefined,
+      ...(previousInput?.model ? { model: previousInput.model } : {}),
       creationMode: executionBrief ? "execution" : "ideation",
       executionBrief,
-      idempotencyKey: newV5IdempotencyKey(),
+      projectId: activeProjId,
+      projectDossier,
+      projectSnapshot,
+      idempotencyKey: newGenerationIdempotencyKey(),
     };
-    const pending: PendingV5Start = {
+    const unacknowledged = pendingGenerationStart ?? readPendingGenerationStart(window.sessionStorage);
+    if (unacknowledged && sameGenerationAdmissionBody(unacknowledged.input, input)) {
+      pendingAdmissionAttempt.current = null;
+      setPendingGenerationStartError(null);
+      await submitPendingGenerationStart(unacknowledged, epoch);
+      return;
+    }
+    // A changed briefing/options is an intentional new request. Its fresh key
+    // must never replay the older pending content; epoch guards ignore late replies.
+    const pending: PendingGenerationStart = {
       input,
       source,
       promptText,
       mode,
       inputType: input.inputType,
     };
-    persistPendingV5Start(window.sessionStorage, pending);
-    setPendingV5Start(pending);
-    setPendingV5StartError(null);
-    await submitPendingV5Start(pending, epoch);
+    persistPendingGenerationStart(window.sessionStorage, pending);
+    setPendingGenerationStart(pending);
+    setPendingGenerationStartError(null);
+    await submitPendingGenerationStart(pending, epoch);
   };
 
-  const generateMutation = trpc.post.generate.useMutation();
   const saveMutation = trpc.post.save.useMutation();
   const updateMutation = trpc.post.update.useMutation();
 
   useEffect(() => {
     const ownerId = generationCapabilities.data?.ownerId;
-    if (!pendingV5Start || !ownerId) return;
-    if (pendingV5Start.input.ownerId !== ownerId) {
+    if (!pendingGenerationStart || !ownerId) return;
+    if (pendingGenerationStart.input.ownerId !== ownerId) {
       generationEpoch.current += 1;
-      clearPendingV5Start(window.sessionStorage);
-      setPendingV5Start(null);
-      setPendingV5StartError(null);
+      clearPendingGenerationStart(window.sessionStorage);
+      setPendingGenerationStart(null);
+      setPendingGenerationStartError(null);
       pendingAdmissionAttempt.current = null;
       toast.info("O pedido pendente pertence a outra conta. Inicie uma nova geração nesta sessão.");
       return;
     }
-    void submitPendingV5Start(pendingV5Start, generationEpoch.current).catch(() => {});
-  }, [pendingV5Start, generationCapabilities.data?.ownerId]);
+    void submitPendingGenerationStart(pendingGenerationStart, generationEpoch.current).catch(() => {});
+  }, [pendingGenerationStart, generationCapabilities.data?.ownerId]);
 
   useEffect(() => {
-    const response = activeV5Query.data;
-    if (!response || response.snapshot.requestId !== activeV5RequestId || lastAppliedV5QueryData.current === response) return;
+    const response = activeGenerationQuery.data;
+    if (!response || response.snapshot.requestId !== activeGenerationRequestId || lastAppliedGenerationQueryData.current === response) return;
     const requestEpoch = activeRequestEpoch.current.get(response.snapshot.requestId);
     if (requestEpoch !== undefined && requestEpoch !== generationEpoch.current) return;
-    lastAppliedV5QueryData.current = response;
+    lastAppliedGenerationQueryData.current = response;
     activeRequestEpoch.current.set(response.snapshot.requestId, requestEpoch ?? generationEpoch.current);
-    setV5Snapshot(response.snapshot);
-    setUseGenerationV5(true);
+    setGenerationSnapshot(response.snapshot);
+    if(response.snapshot.overallStatus!=='running'){
+      const key=`${response.snapshot.requestId}:${response.snapshot.overallStatus}:${Boolean(response.billingPending)}`;
+      if(lastBillingRefresh.current!==key){lastBillingRefresh.current=key;void utils.billing.getProfile.invalidate();}
+    }
     // Restore the gallery once on refresh, while later deliveries leave the user's current editor/stage alone.
-    if (!v5Snapshot && stage !== "editor") setStage("gallery");
-    if (response.input && restoredV5ContextRequestId.current !== response.snapshot.requestId) {
-      restoredV5ContextRequestId.current = response.snapshot.requestId;
+    if (!generationSnapshot && stage !== "editor") setStage("gallery");
+    if (response.input && restoredGenerationContextRequestId.current !== response.snapshot.requestId) {
+      restoredGenerationContextRequestId.current = response.snapshot.requestId;
+      lastGenerationInput.current = response.input as Partial<OrchestratedGenerationInput>;
+      if (catalogOwnerId) setAssemblyPilot(Boolean(response.input.includeDraftDesigns));
       const restoredPrompt = response.input.executionBrief?.rawInput
         ?? (response.input.inputType === "url"
           ? response.input.content
@@ -377,63 +478,64 @@ export default function StudioAppV2BPage() {
               .replace(/\n\n\[INSTRUÇÃO DE DIREÇÃO DE ARTE[\s\S]*$/, ""));
       setLastPrompt(restoredPrompt);
       setLastMode(response.input.postMode);
-      v5InputMetaByRunId.current.set(response.snapshot.runId, { inputType: response.input.inputType, inputContent: restoredPrompt });
+      inputMetaByRunId.current.set(response.snapshot.runId, { inputType: response.input.inputType, inputContent: restoredPrompt });
       // Keep saved-document metadata intact while its editor is open.
       if (stage !== "editor") setLastInputMeta({ inputType: response.input.inputType, inputContent: restoredPrompt });
     }
-  }, [activeV5Query.data, activeV5RequestId, stage, v5Snapshot]);
+  }, [activeGenerationQuery.data, activeGenerationRequestId, stage, generationSnapshot, catalogOwnerId]);
 
   useEffect(() => {
-    if (!activeV5Query.error || !activeV5RequestId) return;
-    const code = (activeV5Query.error as { data?: { code?: string } }).data?.code;
+    if (!activeGenerationQuery.error || !activeGenerationRequestId) return;
+    const code = (activeGenerationQuery.error as { data?: { code?: string } }).data?.code;
     if (code === "NOT_FOUND" || code === "UNAUTHORIZED") {
       generationEpoch.current += 1;
-      clearActiveV5RequestId(window.sessionStorage);
-      setActiveV5RequestId(null);
-      setV5Snapshot(null);
-      setUseGenerationV5(false);
+      clearActiveGenerationRequestId(window.sessionStorage);
+      setActiveGenerationRequestId(null);
+      currentRequestId.current = null;
+      setGenerationSnapshot(null);
       toast.info("Esta geração não está disponível nesta sessão. Você pode iniciar uma nova.");
       return;
     }
     toast.error("Não foi possível atualizar o progresso agora. Tente novamente para retomar o mesmo pedido.");
-  }, [activeV5Query.error, activeV5RequestId]);
+  }, [activeGenerationQuery.error, activeGenerationRequestId]);
 
   useEffect(() => {
-    if (!v5Snapshot) return;
-    const snapshotToMaterialize = v5Snapshot;
+    if (!generationSnapshot) return;
+    const snapshotToMaterialize = generationSnapshot;
     for (const delivery of snapshotToMaterialize.proposals) {
-      if (delivery.status !== "ready" || !claimProposalDelivery(processedV5Deliveries.current, delivery.proposalId, delivery.revision)) continue;
+      if (delivery.status !== "ready" || !claimProposalDelivery(processedGenerationDeliveries.current, delivery.proposalId, delivery.revision)) continue;
       const epoch = activeRequestEpoch.current.get(snapshotToMaterialize.requestId) ?? generationEpoch.current;
       activeRequestEpoch.current.set(snapshotToMaterialize.requestId, epoch);
       if (epoch !== generationEpoch.current) continue;
       const key = `${delivery.proposalId}:${delivery.revision}`;
       void materializeCatalogVariationsDetailed(
         [{ completeDesignV1: delivery.bundle }],
-        lastPrompt || "Geração orquestrada V5",
+        lastPrompt || "Geração de posts",
         aiGenerationProvenance(delivery.runId),
         delivery.slot,
         reportCompilation,
       ).then((result) => {
         if (epoch !== generationEpoch.current) return;
         if (result.posts.length) {
+          setMaterializedProposalKeys(previous => [...previous.filter(item => item !== key), key]);
           setGeneratedVariations((previous) => {
             const knownIds = new Set(previous.map((post) => post.id));
             return [...previous, ...result.posts.filter((post) => !knownIds.has(post.id))];
           });
         }
         if (result.failures.length) {
-          setV5MaterializationFailures((previous) => previous.some((failure) => failure.key === key)
+          setProposalMaterializationFailures((previous) => previous.some((failure) => failure.key === key)
             ? previous
             : [...previous, { key, delivery, message: result.failures[0]?.message ?? "Falha ao montar a proposta." }]);
         }
       }).catch((error) => {
         if (epoch !== generationEpoch.current) return;
-        setV5MaterializationFailures((previous) => previous.some((failure) => failure.key === key)
+        setProposalMaterializationFailures((previous) => previous.some((failure) => failure.key === key)
           ? previous
           : [...previous, { key, delivery, message: error instanceof Error ? error.message : "Falha ao montar a proposta." }]);
       });
     }
-  }, [v5Snapshot]);
+  }, [generationSnapshot]);
 
   const persistBriefDraft = (brief: CreationBrief, stage: "create" | "gallery") => {
     saveBriefDraft(brief, declaredFamilyId, stage);
@@ -451,6 +553,7 @@ export default function StudioAppV2BPage() {
         setDeclaredFamilyId(draft.declaredFamilyId);
       }
       setActiveBrief(draft.brief);
+      const image=draft.brief.sources?.find(s=>s.kind==="image");creationInputOptions.current={platform:draft.brief.platform??"instagram",image:image?.value,imagePurpose:image?.purpose==="visual_reference"?"visual_reference":"content"};
     }
   }, []);
 
@@ -493,17 +596,14 @@ export default function StudioAppV2BPage() {
   // versionado `postspark.restore_generation` → reconstrói as variações no
   // fluxo oficial (create → gallery → editor), sem depender do legado.
   useEffect(() => {
-    const raw = sessionStorage.getItem("postspark.restore_generation");
-    if (!raw) return;
+    const payload = historyRestore;
+    if (!payload) return;
     const restoreEpoch = generationEpoch.current;
     try {
-      const payload = JSON.parse(raw) as {
-        version?: number;
-        inputType?: string;
-        inputContent?: string;
-        postMode?: "static" | "carousel";
-        variations?: unknown[];
-      };
+      clearActiveGenerationRequestId(window.sessionStorage);
+      lastGenerationInput.current = null;
+      setActiveBrief(null);
+      setDeclaredFamilyId(null);
       if (Array.isArray(payload.variations) && payload.variations.length > 0) {
         setLastPrompt(payload.inputContent || "");
         setLastMode(payload.postMode === "carousel" ? "carousel" : "static");
@@ -539,87 +639,23 @@ export default function StudioAppV2BPage() {
     mode: "static" | "carousel",
     brief?: CreationBrief | null,
     formatConfirmed = false,
-    pipelineOverride?: "v4" | "v5",
     retryAdmission = false,
   ) => {
     const requestEpoch = retryAdmission ? generationEpoch.current : ++generationEpoch.current;
+    setProductionIntro({ prompt: promptText, startedAt: Date.now() });
     setIsLoading(true);
     setLastPrompt(promptText);
     setLastMode(mode);
-    const isUrl = promptText.startsWith("http://") || promptText.startsWith("https://");
+    const isUrl = isStandaloneHttpUrl(promptText);
     setLastInputMeta({ inputType: isUrl ? "url" : "text", inputContent: promptText });
     setSavedPostIdsByDocId({});
 
     try {
-      if (pipelineOverride === "v5" || useGenerationV5) {
-        await startV5Generation(promptText, mode, brief, formatConfirmed, "create", retryAdmission, requestEpoch);
-        return;
-      }
-      // A instrução de gosto só é injetada em texto livre: em URL, o `content`
-      // é usado pelo backend como endereço a raspar — nunca contaminar.
-      const tasteInstruction =
-        !isUrl && declaredFamilyId ? buildTasteInstruction(declaredFamilyId) : "";
-
-      const executionBrief = brief ? creationBriefToExecutionBrief(brief) : undefined;
-      const creationMode = executionBrief ? "execution" : "ideation";
-
-      const result = await generateMutation.mutateAsync({
-        inputType: isUrl ? "url" : "text",
-        content: `${promptText}${tasteInstruction}`,
-        platform: "instagram",
-        postMode: mode,
-        formatIntentConfirmed: formatConfirmed,
-        designContractVersion: 4,
-        idempotencyKey: crypto.randomUUID(),
-        includeDraftDesigns: assemblyPilot,
-        aspectRatio: assemblyAspectRatio,
-        slideCount: mode === "carousel" ? brief?.slideCount ?? 5 : undefined,
-        model: "llama",
-        creationMode,
-        executionBrief,
-      });
-
-      if (result?.variations && result.variations.length > 0) {
-        showArsenalAvailability(result.arsenalAvailability);
-        const provenance = aiGenerationProvenance(result.generationRunId);
-        const distinctVars = ensureDistinctFamilies(result.variations as any[], promptText);
-        const materialized = await materializeCatalogVariationsDetailed(distinctVars, promptText, provenance, 0, reportCompilation);
-        if (requestEpoch !== generationEpoch.current) return;
-        if (!materialized.posts.length) {
-          setGeneratedVariations([]);
-          setMaterializationIssue({ failures: materialized.failures, requestedCount: materialized.requestedCount, materializedCount: materialized.materializedCount, prompt: promptText, offset: 0, provenance });
-          setStage("gallery");
-          throw new Error("MATERIALIZATION_ONLY");
-        }
-        const mapped = materialized.posts;
-        setMaterializationIssue(materialized.failures.length
-          ? { failures: materialized.failures, requestedCount: materialized.requestedCount, materializedCount: materialized.materializedCount, prompt: promptText, offset: 0, provenance }
-          : null);
-
-        if (declaredFamilyId && !isUrl) {
-          const tasteMatched = mapped.some((v) => v.familyId === declaredFamilyId);
-          if (!tasteMatched) {
-            toast.info("A IA explorou outras direções; seu gosto foi considerado, mas não prevaleceu.");
-          }
-        }
-
-        if (brief) {
-          persistBriefDraft(brief, "gallery");
-        }
-
-        setGeneratedVariations(mapped);
-        setStage("gallery");
-        if (materialized.failures.length) {
-          toast.warning(`${mapped.length} de ${materialized.requestedCount} direções foram montadas. Os resultados prontos foram preservados; você pode tentar montar as restantes novamente.`);
-        } else {
-          toast.success(`${mapped.length} direções de arte criadas com IA!`);
-        }
-      } else {
-        throw new Error("Nenhuma variação gerada.");
-      }
+      await startGeneration(promptText, mode, brief, formatConfirmed, "create", retryAdmission, requestEpoch);
+      if (brief) persistBriefDraft(brief, "gallery");
     } catch (err: any) {
       if (requestEpoch !== generationEpoch.current) return;
-      if (err?.message === "MATERIALIZATION_ONLY") return;
+      setProductionIntro(null);
       // Etapa 3 §8.3 — falha explícita: NUNCA gerar fallback automático.
       const meta = extractFailureMetadata(err);
       setFailure({
@@ -630,7 +666,6 @@ export default function StudioAppV2BPage() {
         mode,
         source: "create",
         formatConfirmed,
-        pipeline: pipelineOverride ?? (useGenerationV5 ? "v5" : "v4"),
       });
     } finally {
       if (requestEpoch === generationEpoch.current) {
@@ -645,7 +680,6 @@ export default function StudioAppV2BPage() {
     mode: "static" | "carousel",
     brief?: CreationBrief | null,
     formatConfirmed = formatChoiceConfirmed,
-    pipelineOverride?: "v4" | "v5",
     retryAdmission = false,
   ) => {
     const requestEpoch = generationEpoch.current;
@@ -653,56 +687,9 @@ export default function StudioAppV2BPage() {
     toast.info("A IA está criando 3 novos ângulos criativos...");
 
     try {
-      const isUrl = promptText.startsWith("http://") || promptText.startsWith("https://");
-      if (pipelineOverride === "v5" || useGenerationV5) {
-        await startV5Generation(promptText, mode, brief, formatConfirmed, "more", retryAdmission, requestEpoch);
-        return;
-      }
-      const executionBrief = brief ? creationBriefToExecutionBrief(brief) : undefined;
-      const creationMode = executionBrief ? "execution" : "ideation";
-
-      const result = await generateMutation.mutateAsync({
-        inputType: isUrl ? "url" : "text",
-        content: isUrl ? promptText : `Crie 3 novos ganchos criativos e direções de arte alternativas sobre: ${promptText}`,
-        platform: "instagram",
-        postMode: mode,
-        formatIntentConfirmed: formatConfirmed,
-        designContractVersion: 4,
-        idempotencyKey: crypto.randomUUID(),
-        includeDraftDesigns: assemblyPilot,
-        aspectRatio: assemblyAspectRatio,
-        slideCount: mode === "carousel" ? brief?.slideCount ?? 5 : undefined,
-        model: "llama",
-        creationMode,
-        executionBrief,
-      });
-
-      if (result?.variations && result.variations.length > 0) {
-        showArsenalAvailability(result.arsenalAvailability);
-        const offset = generatedVariations.length;
-        const provenance = aiGenerationProvenance(result.generationRunId);
-        const distinctVars = ensureDistinctFamilies(result.variations as any[], `${promptText}:${offset}`);
-        const materialized = await materializeCatalogVariationsDetailed(distinctVars, promptText, provenance, offset, reportCompilation);
-        if (requestEpoch !== generationEpoch.current) return;
-        if (!materialized.posts.length) {
-          setMaterializationIssue({ failures: materialized.failures, requestedCount: materialized.requestedCount, materializedCount: materialized.materializedCount, prompt: promptText, offset, provenance });
-          throw new Error("MATERIALIZATION_ONLY");
-        }
-        setGeneratedVariations((prev) => [...prev, ...materialized.posts]);
-        setMaterializationIssue(materialized.failures.length
-          ? { failures: materialized.failures, requestedCount: materialized.requestedCount, materializedCount: materialized.materializedCount, prompt: promptText, offset, provenance }
-          : null);
-        if (materialized.failures.length) {
-          toast.warning(`${materialized.posts.length} de ${materialized.requestedCount} novas direções foram montadas. As prontas estão disponíveis e as restantes podem ser recuperadas sem gerar novamente.`);
-        } else {
-          toast.success(`${materialized.posts.length} novas direções de arte criadas com IA!`);
-        }
-      } else {
-        throw new Error("Sem resposta da IA");
-      }
+      await startGeneration(promptText, mode, brief, formatConfirmed, "more", retryAdmission, requestEpoch);
     } catch (err: any) {
       if (requestEpoch !== generationEpoch.current) return;
-      if (err?.message === "MATERIALIZATION_ONLY") return;
       // Etapa 3 §8.3 — "Gerar mais" também não pode exibir fallback como sucesso de IA.
       const meta = extractFailureMetadata(err);
       setFailure({
@@ -713,7 +700,6 @@ export default function StudioAppV2BPage() {
         mode,
         source: "more",
         formatConfirmed,
-        pipeline: pipelineOverride ?? (useGenerationV5 ? "v5" : "v4"),
       });
     } finally {
       if (requestEpoch === generationEpoch.current) setIsGeneratingMore(false);
@@ -730,10 +716,19 @@ export default function StudioAppV2BPage() {
     formatConfirmed = false,
   ) => {
     setFormatChoiceConfirmed(formatConfirmed);
-    const interpreted = interpretRawBriefing(promptText, {
-      selectedFormat: mode,
-      brandKit: brandKitQuery.data,
-    });
+    const project = selectedProjectId
+      ? (brandProjectsQuery.data ?? []).find((p: any) => p.id === selectedProjectId) ?? getLocalProjectById(selectedProjectId)
+      : null;
+    const interpreted: CreationBrief = {
+      ...interpretRawBriefing(promptText, { selectedFormat: mode }),
+      platform:creationInputOptions.current.platform,
+      sources:[...interpretRawBriefing(promptText,{selectedFormat:mode}).sourceUrls?.map((url,index)=>({id:`page-${index+1}`,kind:"url" as const,purpose:"content" as const,value:url}))??[],...(creationInputOptions.current.image?[{id:"image-1",kind:"image" as const,purpose:creationInputOptions.current.imagePurpose,value:creationInputOptions.current.image}]:[])],
+      ...(project ? {
+        projectId: project.id,
+        projectDossier: project.compiledDocument?.trim() ?? "",
+        projectSnapshot: freezeGenerationProject(project),
+      } : {}),
+    };
     setActiveBrief(interpreted);
     persistBriefDraft(interpreted, "create");
 
@@ -746,7 +741,9 @@ export default function StudioAppV2BPage() {
     void doGenerate(promptText, mode, interpreted, formatConfirmed);
   };
 
-  const handleCreateSubmit = (promptText: string, mode: "static" | "carousel") => {
+  const handleCreateSubmit = (promptText: string, mode: "static" | "carousel",options?:CreationInputOptions) => {
+    if(options?.image?.startsWith("data:")){const selected=options;void sourceUpload.mutateAsync({imageData:options.image}).then(saved=>handleCreateSubmit(promptText,mode,{...selected,image:saved.url})).catch(()=>toast.error("Não foi possível guardar a imagem fonte. Tente novamente."));return;}
+    creationInputOptions.current=options??{platform:"instagram",imagePurpose:"content"};
     setFormatChoiceConfirmed(false);
     // Etapa 3 §8.2 — divergência de formato detectável localmente: interrompe
     // e pede confirmação antes de qualquer chamada/reserva de Sparks.
@@ -799,15 +796,15 @@ export default function StudioAppV2BPage() {
     }
   };
 
-  const retryV5Materialization = async (failure: V5MaterializationFailure) => {
-    if (retryingV5KeysRef.current.has(failure.key)) return;
-    retryingV5KeysRef.current.add(failure.key);
-    setRetryingV5Keys(new Set(retryingV5KeysRef.current));
+  const retryGenerationMaterialization = async (failure: ProposalMaterializationFailure) => {
+    if (retryingGenerationKeysRef.current.has(failure.key)) return;
+    retryingGenerationKeysRef.current.add(failure.key);
+    setRetryingGenerationKeys(new Set(retryingGenerationKeysRef.current));
     const epoch = generationEpoch.current;
     try {
       const result = await materializeCatalogVariationsDetailed(
         [{ completeDesignV1: failure.delivery.bundle }],
-        lastPrompt || "Geração orquestrada V5",
+        lastPrompt || "Geração de posts",
         aiGenerationProvenance(failure.delivery.runId),
         failure.delivery.slot,
         reportCompilation,
@@ -815,7 +812,7 @@ export default function StudioAppV2BPage() {
       if (epoch !== generationEpoch.current) return;
       if (!result.posts.length) {
         const message = result.failures[0]?.message ?? "Falha ao montar a proposta.";
-        setV5MaterializationFailures((previous) => previous.map((item) => item.key === failure.key ? { ...item, message } : item));
+        setProposalMaterializationFailures((previous) => previous.map((item) => item.key === failure.key ? { ...item, message } : item));
         toast.error(`A proposta ${failure.delivery.slot + 1} ainda não pôde ser montada.`);
         return;
       }
@@ -823,42 +820,46 @@ export default function StudioAppV2BPage() {
         const knownIds = new Set(previous.map((post) => post.id));
         return [...previous, ...result.posts.filter((post) => !knownIds.has(post.id))];
       });
-      setV5MaterializationFailures((previous) => previous.filter((item) => item.key !== failure.key));
+      setMaterializedProposalKeys(previous => [...previous.filter(item => item !== failure.key), failure.key]);
+      setProposalMaterializationFailures((previous) => previous.filter((item) => item.key !== failure.key));
       toast.success(`Proposta ${failure.delivery.slot + 1} recuperada da mesma geração.`);
     } catch (error) {
       if (epoch !== generationEpoch.current) return;
-      toast.error("Não foi possível montar a proposta. O bundle V5 continua disponível para tentar novamente.");
-      console.error("[generation.v5.materialization] retry failed", error);
+      toast.error("Não foi possível montar a proposta. O resultado gerado continua disponível para tentar novamente.");
+      console.error("[generation.materialization] retry failed", error);
     } finally {
-      retryingV5KeysRef.current.delete(failure.key);
-      if (epoch === generationEpoch.current) setRetryingV5Keys(new Set(retryingV5KeysRef.current));
+      retryingGenerationKeysRef.current.delete(failure.key);
+      if (epoch === generationEpoch.current) setRetryingGenerationKeys(new Set(retryingGenerationKeysRef.current));
     }
   };
 
-  const cancelActiveV5Generation = async () => {
-    if (!activeV5RequestId || v5Snapshot?.overallStatus !== "running") return;
+  const cancelActiveGeneration = async () => {
+    if (!activeGenerationRequestId || !["running","awaiting_reconciliation"].includes(generationSnapshot?.overallStatus??"")) return;
+    const epoch = generationEpoch.current;
+    const requestId = activeGenerationRequestId;
     try {
-      const result = await generationCancel.mutateAsync({ requestId: activeV5RequestId });
-      setV5Snapshot(result.snapshot);
+      const result = await generationCancel.mutateAsync({ requestId });
+      if (epoch !== generationEpoch.current || currentRequestId.current !== requestId) return;
+      setGenerationSnapshot(result.snapshot);
       toast.info("O cancelamento foi solicitado. Resultados já prontos continuam disponíveis.");
     } catch {
-      toast.error("Não foi possível cancelar o pedido V5 agora.");
+      toast.error("Não foi possível cancelar o pedido agora.");
     }
   };
 
-  const stopResumingV5 = () => {
-    if (v5Snapshot?.overallStatus === "running") return;
-    clearActiveV5RequestId(window.sessionStorage);
-    setActiveV5RequestId(null);
-    setV5Snapshot(null);
-    setUseGenerationV5(false);
+  const stopResumingGeneration = () => {
+    if (generationSnapshot?.overallStatus === "running") return;
+    clearActiveGenerationRequestId(window.sessionStorage);
+    setActiveGenerationRequestId(null);
+    currentRequestId.current = null;
+    setGenerationSnapshot(null);
     setStage("create");
   };
 
   const handleSelectVariation = (post: CanvasPostModel) => {
     setSelectedPost(post);
     const runId = post.provenance?.generationRunId;
-    const generationInput = runId ? v5InputMetaByRunId.current.get(runId) : undefined;
+    const generationInput = runId ? inputMetaByRunId.current.get(runId) : undefined;
     if (generationInput) setLastInputMeta(generationInput);
     setStage("editor");
   };
@@ -880,13 +881,16 @@ export default function StudioAppV2BPage() {
   };
 
   // ─── Item 7: salvar / atualizar ───
-  const handleSavePost = async (post: CanvasPostModel, mode: "new" | "update", source: "manual" | "auto"): Promise<boolean> => {
-    if (isSaving) return false;
+  const executeSingleSave = async (post: CanvasPostModel, mode: "new" | "update", source: "manual" | "auto", galleryPreview?:string): Promise<boolean> => {
     setIsSaving(true);
-    const existingSavedId = post.id ? savedPostIdsByDocId[post.id] : undefined;
+    const docId = post.id;
+    const existingSavedId = docId ? (savedPostIdsRef.current[docId] ?? savedPostIdsByDocId[docId]) : undefined;
+    const isExplicitCopy = source === "manual" && mode === "new";
+    const shouldUpdate = !isExplicitCopy && Boolean(existingSavedId);
+
     try {
-      if (mode === "update" && existingSavedId) {
-        const payload = await fitSavePayload({ id: existingSavedId, ...canvasModelToUpdatePayload(post) });
+      if (shouldUpdate && existingSavedId) {
+        const payload = await fitSavePayload({ id: existingSavedId, ...canvasModelToUpdatePayload(post),galleryPreview });
         await updateMutation.mutateAsync(payload);
         if (source === "manual") {
           toast.success("Post atualizado na sua biblioteca!", {
@@ -894,10 +898,11 @@ export default function StudioAppV2BPage() {
           });
         }
       } else {
-        const payload = await fitSavePayload(canvasModelToSavePayload(post, lastInputMeta));
+        const payload = await fitSavePayload({...canvasModelToSavePayload(post, lastInputMeta),galleryPreview});
         const result = await saveMutation.mutateAsync(payload);
-        if (post.id) {
-          setSavedPostIdsByDocId(prev => ({ ...prev, [post.id]: result.id }));
+        if (docId) {
+          savedPostIdsRef.current[docId] = result.id;
+          setSavedPostIdsByDocId(prev => ({ ...prev, [docId]: result.id }));
         }
         if (source === "manual") {
           toast.success("Post salvo na sua biblioteca!", {
@@ -905,6 +910,13 @@ export default function StudioAppV2BPage() {
           });
         }
       }
+      // Refresh both the library and account count after either INSERT or UPDATE.
+      // A cache refresh failure must not turn a successful persisted save into a failure.
+      await Promise.allSettled([
+        utils.post.list.invalidate(),
+        utils.post.listSummary.invalidate(),
+        utils.billing.getProfile.invalidate(),
+      ]);
       return true;
     } catch (err: any) {
       const message = err?.message || "Não foi possível salvar o post agora.";
@@ -915,22 +927,82 @@ export default function StudioAppV2BPage() {
     }
   };
 
+  const processSaveQueue = async () => {
+    if (isProcessingQueueRef.current) return;
+    isProcessingQueueRef.current = true;
+
+    try {
+      while (saveQueueRef.current.length > 0) {
+        const item = saveQueueRef.current.shift()!;
+        const promise = executeSingleSave(item.post, item.mode, item.source,item.galleryPreview);
+        inFlightSavePromiseRef.current = promise;
+        let success = false;
+        try {
+          success = await promise;
+        } finally {
+          if (inFlightSavePromiseRef.current === promise) {
+            inFlightSavePromiseRef.current = null;
+          }
+        }
+        for (const resolver of item.resolvers) {
+          resolver(success);
+        }
+      }
+    } finally {
+      isProcessingQueueRef.current = false;
+    }
+  };
+
+  const handleSavePost = async (post: CanvasPostModel, mode: "new" | "update", source: "manual" | "auto", galleryPreview?:string): Promise<boolean> => {
+    return new Promise<boolean>((resolve) => {
+      const isExplicitCopy = source === "manual" && mode === "new";
+      const queue = saveQueueRef.current;
+
+      // Se não for cópia explícita e houver um item pendente na fila para o mesmo doc que seja update, coalescemos
+      if (!isExplicitCopy && queue.length > 0) {
+        const last = queue[queue.length - 1];
+        if (last.post.id === post.id && last.mode === "update") {
+          last.post = post;
+          last.galleryPreview=galleryPreview;
+          if (source === "manual") last.source = "manual";
+          last.resolvers.push(resolve);
+          void processSaveQueue();
+          return;
+        }
+      }
+
+      queue.push({
+        post,
+        mode,
+        source,
+        galleryPreview,
+        resolvers: [resolve],
+      });
+      void processSaveQueue();
+    });
+  };
+
   // ─── Item 6: recomeçar do zero ───
   const handleRestart = () => {
     generationEpoch.current += 1;
-    clearPendingV5Start(window.sessionStorage);
-    clearActiveV5RequestId(window.sessionStorage);
-    setPendingV5Start(null);
-    setPendingV5StartError(null);
+    clearPendingGenerationStart(window.sessionStorage);
+    clearActiveGenerationRequestId(window.sessionStorage);
+    setPendingGenerationStart(null);
+    setPendingGenerationStartError(null);
     pendingAdmissionAttempt.current = null;
-    setActiveV5RequestId(null);
-    setV5Snapshot(null);
-    setV5MaterializationFailures([]);
-    processedV5Deliveries.current.clear();
+    setActiveGenerationRequestId(null);
+    currentRequestId.current = null;
+    setGenerationSnapshot(null);
+    setProposalMaterializationFailures([]);
+    setMaterializedProposalKeys([]);
+    setIsLoading(false);
+    setIsGeneratingMore(false);
+    processedGenerationDeliveries.current.clear();
     clearBriefDraft();
     setHasSavedDraft(false);
     setLastPrompt("");
     setLastMode("static");
+    lastGenerationInput.current = null;
     setActiveBrief(null);
     setIsReviewingBrief(false);
     setStage("create");
@@ -959,48 +1031,46 @@ export default function StudioAppV2BPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#0B0A08] text-white flex flex-col overflow-hidden font-sans">
-      {stage === "create" && (
+    <>
+    <AnimatePresence>{productionIntro && <ProductionOverlay prompt={productionIntro.prompt} />}</AnimatePresence>
+    <div inert={productionIntro ? true : undefined} className="min-h-screen w-full bg-[#0B0A08] text-white flex flex-col overflow-hidden font-sans">
+      {activeGenerationQuery.data?.dispatchError && (activeGenerationQuery.data.snapshot.overallStatus==='running'||activeGenerationQuery.data.billingPending) && activeGenerationRequestId && <div role="alert">O executor não conseguiu continuar. <button disabled={generationResume.isPending} onClick={()=>generationResume.mutate({requestId:activeGenerationRequestId})}>Retomar geração</button></div>}
+      {generationEvents.error && <div role="alert">A conexão com a geração foi interrompida. O trabalho pode continuar no servidor. <button onClick={generationEvents.reconnect}>Reconectar</button></div>}
+      {stage === "create" && (!generationCapabilities.data?.enabled || activeGenerationQuery.error || pendingGenerationStart) && (
         <div className="mx-auto mt-4 w-[min(92%,64rem)] rounded-lg border border-violet-300/25 bg-violet-300/5 p-4 text-sm text-violet-100">
-          <label className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              aria-label="Usar geração progressiva V5"
-              className="mt-1"
-              checked={useGenerationV5}
-              disabled={!generationCapabilities.data?.selectable || v5Snapshot?.overallStatus === "running" || (Boolean(activeV5RequestId) && !v5Snapshot)}
-              onChange={(event) => event.target.checked ? setUseGenerationV5(true) : stopResumingV5()}
-            />
-            <span>
-              <strong>Usar geração progressiva V5</strong><br />
-              {generationCapabilities.data?.enabled
-                ? "As propostas aparecerão na galeria conforme ficarem prontas."
-                : labelV5CapabilityReason(generationCapabilities.data?.reason)}
-            </span>
-          </label>
-          {activeV5Query.error && activeV5RequestId && (
+          {!generationCapabilities.data?.enabled && (
+            <p role="status">{labelGenerationCapabilityReason(generationCapabilities.data?.reason)}</p>
+          )}
+          {activeGenerationQuery.error && activeGenerationRequestId && (
             <div className="mt-3 flex items-center justify-between gap-3 text-amber-100">
-              <span>O pedido V5 salvo na sessão não pôde ser consultado agora.</span>
-              <button type="button" onClick={() => void activeV5Query.refetch()} className="rounded border border-violet-200/40 px-3 py-2">Retomar pedido</button>
+              <span>O pedido salvo na sessão não pôde ser consultado agora.</span>
+              <button type="button" onClick={() => void activeGenerationQuery.refetch()} className="rounded border border-violet-200/40 px-3 py-2">Retomar pedido</button>
             </div>
           )}
-          {pendingV5Start && (
+          {pendingGenerationStart && (
             <div role="status" className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-violet-100/15 pt-3 text-amber-100">
-              <span>{pendingV5StartError ?? "Confirmando o início da solicitação salva. Uma nova tentativa reutiliza o mesmo briefing e a mesma chave."}</span>
-              <button type="button" disabled={generationStart.isPending} onClick={() => void retryPendingV5Admission()} className="rounded border border-violet-200/40 px-3 py-2 disabled:opacity-50">
+              <span>{pendingGenerationStartError ?? "Confirmando o início da solicitação salva. Uma nova tentativa reutiliza o mesmo briefing e a mesma chave."}</span>
+              <button type="button" disabled={generationStart.isPending} onClick={() => void retryPendingGenerationAdmission()} className="rounded border border-violet-200/40 px-3 py-2 disabled:opacity-50">
                 {generationStart.isPending ? "Confirmando…" : "Retomar solicitação"}
               </button>
             </div>
           )}
         </div>
       )}
+      {/* Mensagem e controle de inclusão de modelos em revisão comentados conforme incorporação (preservados para digestão futura de novos designs) */}
+      {/*
       {stage === "create" && arsenalReadiness.data && (
         <label className="mx-auto mt-4 flex w-[min(92%,64rem)] items-start gap-3 rounded-lg border border-cyan-300/30 bg-cyan-300/5 p-4 text-sm text-cyan-100">
           <input type="checkbox" className="mt-1" checked={assemblyPilot} onChange={e=>setAssemblyPilot(e.target.checked)} />
-          <span><strong>Incluir modelos em revisão</strong><br />Prévia administrativa com designs completos ainda em curadoria. A copy é personalizada no modelo; as imagens podem ser preenchidas depois no editor.</span>
+          <span><strong>Incluir modelos em revisão</strong><br />Prévia administrativa com designs completos ainda em curadoria. As propostas passam pelo mesmo processo de geração e revisão.
+            <span className="mt-1 block text-xs text-cyan-100/70">Ofertas em 4:5: {assemblyPilot ? arsenalReadiness.data.draftCandidateCount : arsenalReadiness.data.candidateCount} para post único e {assemblyPilot ? (arsenalReadiness.data.draftCarouselCandidateCount ?? 0) : (arsenalReadiness.data.carouselCandidateCount ?? 0)} para carrossel de três slides. A compatibilidade final depende do pedido.</span>
+          </span>
         </label>
       )}
+      {/* Bloco "Seu jeito de criar" (preferências visuais) comentado para simplificar a interface do Studio */}
+      {/*
       {stage === "create" && assemblyPilot && <div className="mx-auto mt-3 w-[min(92%,64rem)]"><StudioArtPreferences /></div>}
+      */}
       {stage === "create" && arsenalReadiness.data && (
         <label className="mx-auto mt-2 flex items-center gap-3 text-sm text-cyan-100">
           Formato das propostas
@@ -1009,6 +1079,7 @@ export default function StudioAppV2BPage() {
           </select>
         </label>
       )}
+      {/*
       {stage === "create" && !assemblyPilot && arsenalReadiness.data && arsenalReadiness.data.reason !== "ready" && (
         <div role="status" className="mx-auto mt-4 w-[min(92%,64rem)] rounded-lg border border-amber-300/20 bg-amber-300/5 px-4 py-3 text-sm text-amber-100">
           <strong>Novos designs em catálogo ainda indisponíveis.</strong>{" "}
@@ -1020,54 +1091,63 @@ export default function StudioAppV2BPage() {
           {arsenalReadiness.data.draftCandidateCount ? "Ative Incluir modelos em revisão para conferir o acervo completo antes da publicação." : "Importe e revise designs completos no Admin2. Aviso exibido apenas para administradores."}
         </div>
       )}
+      */}
       {stage === "create" && (
         <StudioCreateViewV2B
           onSubmit={handleCreateSubmit}
-          isLoading={isLoading}
+          isLoading={isLoading||sourceUpload.isPending}
+          initialPlatform={activeBrief?.platform}
+          initialImage={activeBrief?.sources?.find(s=>s.kind==="image")?.value}
+          initialImagePurpose={activeBrief?.sources?.find(s=>s.kind==="image")?.purpose}
           declaredFamilyId={declaredFamilyId}
           onDeclareFamily={setDeclaredFamilyId}
           initialPrompt={lastPrompt}
           initialMode={lastMode}
           hasSavedDraft={hasSavedDraft}
           onDiscardDraft={handleDiscardDraft}
+          selectedProjectId={selectedProjectId}
+          onSelectProjectId={handleSelectProjectId}
         />
       )}
 
       {stage === "gallery" && (
         <>
-          {v5Snapshot && (
+          {generationSnapshot && (
             <section role="status" className="mx-auto mt-4 w-[min(92%,64rem)] rounded-xl border border-violet-300/30 bg-violet-300/10 p-4 text-violet-50">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <strong>Geração progressiva · {labelV5Status(v5Snapshot.overallStatus)}</strong>
+                  <strong>Geração progressiva · {labelGenerationStatus(generationSnapshot.overallStatus)}</strong>
                   <p className="mt-1 text-sm text-violet-100/80">
-                    {v5Snapshot.proposals.filter((proposal) => proposal.status === "ready").length} prontas de {v5Snapshot.proposals.length} propostas.
-                    {v5Snapshot.overallStatus === "running" ? " A galeria será atualizada conforme cada proposta terminar." : ""}
+                    {generationSnapshot.proposals.filter((proposal) => proposal.status === "ready").length} prontas de {generationSnapshot.proposals.length} propostas.
+                    {generationSnapshot.overallStatus === "running" ? " A galeria será atualizada conforme cada proposta terminar." : ""}
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  {activeV5Query.error && <button type="button" onClick={() => void activeV5Query.refetch()} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm">Atualizar progresso</button>}
-                  {v5Snapshot.overallStatus === "running" && (
-                    <button type="button" disabled={generationCancel.isPending} onClick={() => void cancelActiveV5Generation()} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm disabled:opacity-50">{generationCancel.isPending ? "Cancelando…" : "Cancelar geração"}</button>
+                  {generationSnapshot.overallStatus==="awaiting_reconciliation"&&<><p>O resultado da revisão ainda precisa ser confirmado. O pedido mantém o prazo original.</p><button disabled={generationReconcile.isPending} onClick={()=>activeGenerationRequestId&&generationReconcile.mutate({requestId:activeGenerationRequestId})}>Conferir resultado existente</button></>}
+                  {activeGenerationQuery.error && <button type="button" onClick={() => void activeGenerationQuery.refetch()} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm">Atualizar progresso</button>}
+                  {["running","awaiting_reconciliation"].includes(generationSnapshot.overallStatus) && (
+                    <button type="button" disabled={generationCancel.isPending} onClick={() => void cancelActiveGeneration()} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm disabled:opacity-50">{generationCancel.isPending ? "Cancelando…" : "Cancelar geração"}</button>
                   )}
-                  {v5Snapshot.overallStatus !== "running" && (
-                    <button type="button" onClick={stopResumingV5} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm">Voltar à criação</button>
+                  {generationSnapshot.overallStatus !== "running" && (
+                    <button type="button" onClick={stopResumingGeneration} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm">Voltar à criação</button>
                   )}
                 </div>
               </div>
+              {!!activeGenerationQuery.data?.sourceWarnings?.length&&<div className="mt-3 text-sm text-amber-200"><strong>Limitações das fontes</strong>{activeGenerationQuery.data.sourceWarnings.map((warning,index)=><p key={index}>{warning}</p>)}</div>}
               <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {v5Snapshot.proposals.map((proposal) => {
+                {generationSnapshot.proposals.map((proposal) => {
                   const key = `${proposal.proposalId}:${proposal.revision}`;
-                  const failed = v5MaterializationFailures.find((item) => item.key === key);
+                  const failed = proposalMaterializationFailures.find((item) => item.key === key);
                   return (
                     <li key={key} className="rounded-lg border border-violet-100/15 bg-black/15 p-3 text-xs">
-                      <div className="font-semibold">Proposta {proposal.slot + 1} · {labelV5Status(proposal.status)}</div>
-                      {proposal.status === "failed" && <div className="mt-1 text-rose-200">{messageV5ProposalFailure(proposal.errorReason)}</div>}
+                      <div className="font-semibold">Proposta {proposal.slot + 1} · {labelGenerationStatus(proposal.status)}</div>
+                      {proposal.status !== "ready" && !failed && <div className="md:hidden"><ProposalProgress slot={proposal.slot + 1} status={proposal.status} value={proposalProgress[key]} /></div>}
+                      {proposal.status === "failed" && <div className="mt-1 text-rose-200">{messageGenerationProposalFailure(proposal.errorReason, proposal.failure)}</div>}
                       {failed && (
                         <div className="mt-2 text-amber-200">
                           {failed.message}
-                          <button type="button" disabled={retryingV5Keys.has(failed.key)} onClick={() => void retryV5Materialization(failed)} className="ml-2 underline disabled:opacity-50">
-                            {retryingV5Keys.has(failed.key) ? "Montando…" : "Tentar montar este resultado"}
+                          <button type="button" disabled={retryingGenerationKeys.has(failed.key)} onClick={() => void retryGenerationMaterialization(failed)} className="ml-2 underline disabled:opacity-50">
+                            {retryingGenerationKeys.has(failed.key) ? "Montando…" : "Tentar montar este resultado"}
                           </button>
                         </div>
                       )}
@@ -1097,16 +1177,19 @@ export default function StudioAppV2BPage() {
           )}
           <StudioGalleryView
             variations={generatedVariations}
-            initialAspectRatio={generatedVariations[0]?.aspectRatio ?? selectedPost.aspectRatio}
+            initialAspectRatio={generatedVariations[0]?.aspectRatio ?? lastGenerationInput.current?.aspectRatio ?? assemblyAspectRatio}
             onSelectVariation={handleSelectVariation}
             onBackToCreate={() => {
               setStage("create");
               setDeclaredFamilyId(null);
             }}
             onGenerateMore={handleGenerateMore}
-            isGeneratingMore={isGeneratingMore || (useGenerationV5 && v5Snapshot?.overallStatus === "running")}
+            isGeneratingMore={isGeneratingMore || (generationSnapshot?.overallStatus === "running")}
             declaredFamilyId={declaredFamilyId}
-            v5SnapshotProposals={v5Snapshot?.proposals}
+            generationProposals={generationSnapshot?.proposals}
+            proposalProgress={proposalProgress}
+            materializedProposalKeys={materializedProposalKeys}
+            materializationFailureKeys={proposalMaterializationFailures.map(item => item.key)}
             expectedCount={3}
           />
         </>
@@ -1124,7 +1207,7 @@ export default function StudioAppV2BPage() {
           }}
           onRestart={handleRestart}
           onSave={handleSavePost}
-          hasSavedPost={Boolean(selectedPost.id && savedPostIdsByDocId[selectedPost.id])}
+          hasSavedPost={Boolean(selectedPost.id && (savedPostIdsRef.current[selectedPost.id] || savedPostIdsByDocId[selectedPost.id]))}
           isSaving={isSaving}
         />
       )}
@@ -1134,7 +1217,6 @@ export default function StudioAppV2BPage() {
         {isReviewingBrief && activeBrief?.format === "carousel" && (
           <BriefReviewModal
             brief={activeBrief}
-            brandKit={brandKitQuery.data}
             onUpdateBrief={(updated) => {
               setActiveBrief(updated);
               persistBriefDraft(updated, "create");
@@ -1178,12 +1260,12 @@ export default function StudioAppV2BPage() {
             userMessage={failure.userMessage}
             retryable={failure.retryable}
             onRetry={() => {
-              const { prompt, mode, source, formatConfirmed, pipeline } = failure;
+              const { prompt, mode, source, formatConfirmed } = failure;
               setFailure(null);
               if (source === "more") {
-                void doGenerateMore(prompt, mode, activeBrief, formatConfirmed, pipeline, pipeline === "v5");
+                void doGenerateMore(prompt, mode, activeBrief, formatConfirmed, true);
               } else {
-                void doGenerate(prompt, mode, activeBrief, formatConfirmed, pipeline, pipeline === "v5");
+                void doGenerate(prompt, mode, activeBrief, formatConfirmed, true);
               }
             }}
             onReviewBriefing={() => {
@@ -1197,5 +1279,6 @@ export default function StudioAppV2BPage() {
         )}
       </CreationGuardsHost>
     </div>
+    </>
   );
 }

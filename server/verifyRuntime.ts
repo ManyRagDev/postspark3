@@ -183,6 +183,8 @@ const RPC_PROBE_ARGS: Record<string, Record<string, unknown>> = {
     p_ip_address: "0.0.0.0",
     p_plan: "PRO",
   },
+  generation_admit: { p_id: SENTINEL_UUID, p_owner: SENTINEL_UUID, p_idempotency_key: "__verify_sentinel__", p_input_hash: "0".repeat(64), p_input: {ownerId: SENTINEL_UUID,idempotencyKey:"__verify_sentinel__"}, p_experimental: false, p_deadline_at: new Date(Date.now()+60000).toISOString() },
+  generation_settle: { p_id: SENTINEL_UUID },
   get_billing_profile: { p_user_id: SENTINEL_UUID },
   has_manylabs_app_access: { p_user_id: SENTINEL_UUID },
   // ensure_manylabs_app_access NÃO é sondado: a função auto-ativa acesso
@@ -263,14 +265,14 @@ async function probeColumn(client: SupabaseClient<any, any>, requirement: Runtim
   }
 }
 
-async function probeRpc(client: SupabaseClient<any, any>, requirement: RuntimeRequirement): Promise<ProbeResult> {
-  if (requirement.name === "ensure_manylabs_app_access") {
+export async function probeRpc(client: SupabaseClient<any, any>, requirement: RuntimeRequirement): Promise<ProbeResult> {
+  if (["ensure_manylabs_app_access", "generation_admit", "generation_settle", "generation_reconcile", "generation_v5_claim", "generation_v5_worker_heartbeat", "generation_v5_lease_update", "generation_v5_operation", "generation_v5_finish", "generation_v5_cancel"].includes(requirement.name)) {
     return {
       requirement: requirement.name,
       kind: requirement.kind,
       critical: requirement.critical,
       status: "not_verifiable",
-      detail: "função auto-ativa acesso (write) — auditoria read-only não a sonda; presença verificada por information_schema na auditoria externa",
+      detail: "função altera estado (write) — auditoria read-only não a sonda; presença exige verificação de metadata na auditoria externa",
     };
   }
 

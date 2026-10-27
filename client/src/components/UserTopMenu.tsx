@@ -58,9 +58,9 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
   const { data: billing } = trpc.billing.getProfile.useQuery(undefined, {
     enabled: isAuthenticated,
     staleTime: 15_000,
-    refetchInterval: 30_000,
+    refetchInterval: import.meta.env.DEV ? false : 30_000,
   });
-  const { data: savedPosts } = trpc.post.list.useQuery(undefined, {
+  const { data: savedPosts } = trpc.post.listSummary.useQuery(undefined, {
     enabled: isAuthenticated,
     staleTime: 15_000,
   });
@@ -208,7 +208,7 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
                 <Bookmark size={14} />
                 Posts salvos
               </span>
-              <span className="text-xs font-semibold">{savedPosts?.length ?? 0}</span>
+              <span className="text-xs font-semibold">{savedPosts?.total ?? 0}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setLocation("/history")} className="flex items-center justify-between">
               <span className="flex items-center gap-2">

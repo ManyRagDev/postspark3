@@ -4,6 +4,7 @@ import type {
   CanvasPostModel,
   CarouselSlideItem,
 } from "../components/types";
+import { cloneArsenalComposition } from "./arsenalComposition";
 
 /**
  * Comandos canônicos do documento `CanvasPostModel` (Etapa 2 §7.2).
@@ -17,20 +18,6 @@ import type {
  * root global ao mesmo tempo. O root global guarda apenas defaults de
  * documento; propriedades por slide vivem exclusivamente em `slides[i]`.
  */
-
-export function cloneSlide(slide: CarouselSlideItem): CarouselSlideItem {
-  return {
-    ...slide,
-    id: slide.id ?? freshId("s"),
-    ...(slide.composition ? { composition: structuredClone(slide.composition) } : {}),
-    extraTexts: Array.isArray(slide.extraTexts)
-      ? slide.extraTexts.map((text) => ({ ...text, id: freshId("tx") }))
-      : slide.extraTexts,
-    extraImages: Array.isArray(slide.extraImages)
-      ? slide.extraImages.map((image) => ({ ...image, id: freshId("im") }))
-      : slide.extraImages,
-  };
-}
 
 export function freshUUID(prefix?: string): string {
   let uuid: string;
@@ -51,34 +38,110 @@ export function freshId(prefix: string): string {
   return freshUUID(prefix);
 }
 
-/** Gera novos IDs de slide e de elementos aninhados (nunca compartilha refs). */
-function withFreshIds(slide: CarouselSlideItem): CarouselSlideItem {
-  let composition = slide.composition ? structuredClone(slide.composition) : undefined;
-  if (composition && composition.version === 3 && composition.authorialLayers?.length) {
-    const idMap = new Map<string, string>();
-    composition.authorialLayers = composition.authorialLayers.map(l => {
-      const newId = freshId(l.kind === "text" ? "tx" : l.kind === "image" ? "im" : "layer");
-      idMap.set(l.id, newId);
-      return { ...l, id: newId };
-    });
-    const newOverrides: Record<string, any> = {};
-    for (const [key, val] of Object.entries(composition.overrides)) {
-      const mappedKey = idMap.get(key) || key;
-      newOverrides[mappedKey] = val;
-    }
-    composition.overrides = newOverrides;
+/**
+ * Clona um slide gerando IDs novos para o slide e suas camadas autorais e livres,
+ * remapeando overrides, richText, effects e media, e reconciliando projeções.
+ * Texto/imagem extras N herdados são resolvidos a partir de postContext.
+ */
+export function cloneSlide(
+  slide: CarouselSlideItem,
+  postContext?: CanvasPostModel,
+  slideIndex?: number,
+): CarouselSlideItem {
+  const clonedSlide = structuredClone(slide);
+  clonedSlide.id = freshId("s");
+
+  let idMap = new Map<string, string>();
+  if (clonedSlide.composition) {
+    const cloned = cloneArsenalComposition(clonedSlide.composition, freshId);
+    clonedSlide.composition = cloned.composition;
+    idMap = cloned.idMap;
   }
-  return {
-    ...slide,
-    id: freshId("s"),
-    ...(composition ? { composition } : {}),
-    extraTexts: Array.isArray(slide.extraTexts)
-      ? slide.extraTexts.map((text) => ({ ...text, id: freshId("tx") }))
-      : slide.extraTexts,
-    extraImages: Array.isArray(slide.extraImages)
-      ? slide.extraImages.map((image) => ({ ...image, id: freshId("im") }))
-      : slide.extraImages,
-  };
+
+  let extraTexts: CanvasCustomText[] | undefined;
+  if (clonedSlide.composition && clonedSlide.composition.version === 3) {
+    if (Array.isArray(clonedSlide.extraTexts)) {
+      extraTexts = clonedSlide.extraTexts.map((text) => ({
+        ...text,
+        id: idMap.get(text.id) ?? freshId("tx"),
+      }));
+    } else if (clonedSlide.composition.authorialLayers?.length) {
+      extraTexts = clonedSlide.composition.authorialLayers
+        .filter((l) => l.kind === "text")
+        .map((l) => ({
+          id: l.id,
+          text: l.text ?? "",
+          x: l.x,
+          y: l.y,
+          width: l.width,
+          fontSize: l.fontSize,
+          fontFamily: l.fontFamily,
+          color: l.fill,
+          align: l.align ?? "left",
+          rotation: l.rotation,
+        }));
+    } else {
+      extraTexts = clonedSlide.extraTexts;
+    }
+  } else if (Array.isArray(clonedSlide.extraTexts)) {
+    extraTexts = clonedSlide.extraTexts.map((text) => ({ ...text, id: freshId("tx") }));
+  } else if (postContext && slideIndex !== undefined && Array.isArray(postContext.extraTexts)) {
+    extraTexts = resolveSlideExtraTexts(postContext, slideIndex).map((text) => ({
+      ...structuredClone(text),
+      id: freshId("tx"),
+    }));
+  } else {
+    extraTexts = clonedSlide.extraTexts;
+  }
+
+  let extraImages: CanvasCustomImage[] | undefined;
+  if (clonedSlide.composition && clonedSlide.composition.version === 3) {
+    if (Array.isArray(clonedSlide.extraImages)) {
+      extraImages = clonedSlide.extraImages.map((image) => ({
+        ...image,
+        id: idMap.get(image.id) ?? freshId("im"),
+      }));
+    } else if (clonedSlide.composition.authorialLayers?.length) {
+      extraImages = clonedSlide.composition.authorialLayers
+        .filter((l) => l.kind === "image")
+        .map((l) => ({
+          id: l.id,
+          url: l.url || "",
+          x: l.x,
+          y: l.y,
+          width: l.width,
+          height: l.height,
+          rotation: l.rotation,
+          opacity: l.opacity ?? 1,
+          cornerRadius: l.cornerRadius ?? 0,
+        }));
+    } else {
+      extraImages = clonedSlide.extraImages;
+    }
+  } else if (Array.isArray(clonedSlide.extraImages)) {
+    extraImages = clonedSlide.extraImages.map((image) => ({ ...image, id: freshId("im") }));
+  } else if (postContext && slideIndex !== undefined && Array.isArray(postContext.extraImages)) {
+    extraImages = resolveSlideExtraImages(postContext, slideIndex).map((image) => ({
+      ...structuredClone(image),
+      id: freshId("im"),
+    }));
+  } else {
+    extraImages = clonedSlide.extraImages;
+  }
+
+  if (extraTexts !== undefined) {
+    clonedSlide.extraTexts = extraTexts;
+  } else {
+    delete clonedSlide.extraTexts;
+  }
+
+  if (extraImages !== undefined) {
+    clonedSlide.extraImages = extraImages;
+  } else {
+    delete clonedSlide.extraImages;
+  }
+
+  return clonedSlide;
 }
 
 function clampIndex(post: CanvasPostModel, index: number): number {
@@ -145,27 +208,45 @@ export function setCurrentSlideBackgroundPlacement(
   return applyPatchToCurrentSlide(post, { bgPlacement: placement });
 }
 
-/** Duplica um slide gerando IDs internos novos e limpa seleção transitória. */
+/** Duplica um slide gerando IDs internos novos e seleciona a cópia imediatamente após a origem. */
 export function duplicateSlide(post: CanvasPostModel, index: number): CanvasPostModel {
-  const target = post.slides[clampIndex(post, index)];
+  if (index < 0 || index >= post.slides.length) return post;
+  const target = post.slides[index];
   if (!target) return post;
   const nextSlides = [...post.slides];
-  nextSlides.splice(index + 1, 0, withFreshIds(target));
+  const duplicated = cloneSlide(target, post, index);
+  const nextIndex = index + 1;
+  nextSlides.splice(nextIndex, 0, duplicated);
   return {
     ...post,
     slides: nextSlides,
-    currentSlideIndex: clampIndex(post, index + 1),
+    currentSlideIndex: nextIndex,
   };
 }
 
-/** Remove um slide, nunca permitindo ficar sem nenhum. */
+/** Remove um slide, nunca permitindo ficar sem nenhum. Mantém o slide ativo previsível. */
 export function removeSlide(post: CanvasPostModel, index: number): CanvasPostModel {
   if (post.slides.length <= 1) return post;
+  if (index < 0 || index >= post.slides.length) return post;
+
   const nextSlides = post.slides.filter((_, i) => i !== index);
+  const activeSlide = post.slides[post.currentSlideIndex];
+  const activeId = activeSlide?.id;
+
+  let nextActiveIndex: number;
+  if (index === post.currentSlideIndex) {
+    // O ativo foi excluído: escolher o sucessor no mesmo índice, ou o anterior quando não há sucessor.
+    nextActiveIndex = Math.min(index, nextSlides.length - 1);
+  } else {
+    // Slide anterior ou posterior ao ativo foi excluído: mantém o ID ativo
+    const found = activeId ? nextSlides.findIndex((slide) => slide.id === activeId) : -1;
+    nextActiveIndex = found >= 0 ? found : Math.min(index, nextSlides.length - 1);
+  }
+
   return {
     ...post,
     slides: nextSlides,
-    currentSlideIndex: clampIndex(post, post.currentSlideIndex),
+    currentSlideIndex: Math.max(0, nextActiveIndex),
   };
 }
 
@@ -176,35 +257,41 @@ export function reorderSlides(
   targetIndex: number,
 ): CanvasPostModel {
   const length = post.slides.length;
-  const from = Math.min(length - 1, Math.max(0, sourceIndex));
-  const to = Math.min(length - 1, Math.max(0, targetIndex));
-  if (from === to) return post;
+  if (
+    sourceIndex < 0 ||
+    sourceIndex >= length ||
+    targetIndex < 0 ||
+    targetIndex >= length ||
+    sourceIndex === targetIndex
+  ) {
+    return post;
+  }
 
   const slides = [...post.slides];
-  const [moved] = slides.splice(from, 1);
-  slides.splice(to, 0, moved);
+  const [moved] = slides.splice(sourceIndex, 1);
+  slides.splice(targetIndex, 0, moved);
 
   // Mantém o acompanhamento do slide ativo pelo ID estável movido.
   const activeId = post.slides[post.currentSlideIndex]?.id;
   const newActiveIndex = activeId
     ? slides.findIndex((slide) => slide.id === activeId)
-    : post.currentSlideIndex;
+    : targetIndex;
 
   return {
     ...post,
     slides,
-    currentSlideIndex: newActiveIndex >= 0 ? newActiveIndex : to,
+    currentSlideIndex: newActiveIndex >= 0 ? newActiveIndex : targetIndex,
   };
 }
 
 /** Regenera IDs de um texto extra (isola referências de objeto). */
 export function duplicateExtraText(text: CanvasCustomText): CanvasCustomText {
-  return { ...text, id: freshId("tx") };
+  return { ...structuredClone(text), id: freshId("tx") };
 }
 
 /** Regenera IDs de uma imagem extra (isola referências de objeto). */
 export function duplicateExtraImage(image: CanvasCustomImage): CanvasCustomImage {
-  return { ...image, id: freshId("im") };
+  return { ...structuredClone(image), id: freshId("im") };
 }
 
 /**
@@ -222,6 +309,38 @@ export function resolveCoverSlide(post: CanvasPostModel): CarouselSlideItem {
 }
 
 /**
+ * Resolve os textos extras de um slide de forma imutável e defensiva:
+ * - Se o slide tem array local (inclusive []), usa o array local;
+ * - Se o slide tem campo ausente (undefined), herda do root global;
+ * - Nunca retorna undefined (sempre array).
+ */
+export function resolveSlideExtraTexts(
+  post: CanvasPostModel,
+  slideIndex: number,
+): CanvasCustomText[] {
+  const slide = post.slides[clampIndex(post, slideIndex)];
+  if (!slide) return [];
+  if (Array.isArray(slide.extraTexts)) return slide.extraTexts;
+  return Array.isArray(post.extraTexts) ? post.extraTexts : [];
+}
+
+/**
+ * Resolve as imagens extras de um slide de forma imutável e defensiva:
+ * - Se o slide tem array local (inclusive []), usa o array local;
+ * - Se o slide tem campo ausente (undefined), herda do root global;
+ * - Nunca retorna undefined (sempre array).
+ */
+export function resolveSlideExtraImages(
+  post: CanvasPostModel,
+  slideIndex: number,
+): CanvasCustomImage[] {
+  const slide = post.slides[clampIndex(post, slideIndex)];
+  if (!slide) return [];
+  if (Array.isArray(slide.extraImages)) return slide.extraImages;
+  return Array.isArray(post.extraImages) ? post.extraImages : [];
+}
+
+/**
  * Duplica um elemento livre (texto ou imagem) no slide atual gerando um UUID
  * novo e deslocando levemente a posição para feedback visual claro.
  */
@@ -234,13 +353,13 @@ export function duplicateExtraElement(
   if (!currentSlide) return { post };
 
   // Verifica se é texto extra
-  const extraTexts = currentSlide.extraTexts || [];
+  const extraTexts = resolveSlideExtraTexts(post, index);
   const textIndex = extraTexts.findIndex((t) => t.id === elementId);
   if (textIndex >= 0) {
     const orig = extraTexts[textIndex];
     const newId = freshId("tx");
     const duplicatedText: CanvasCustomText = {
-      ...orig,
+      ...structuredClone(orig),
       id: newId,
       x: (orig.x ?? 40) + 24,
       y: (orig.y ?? 40) + 24,
@@ -252,13 +371,13 @@ export function duplicateExtraElement(
   }
 
   // Verifica se é imagem extra
-  const extraImages = currentSlide.extraImages || [];
+  const extraImages = resolveSlideExtraImages(post, index);
   const imgIndex = extraImages.findIndex((img) => img.id === elementId);
   if (imgIndex >= 0) {
     const orig = extraImages[imgIndex];
     const newId = freshId("im");
     const duplicatedImage: CanvasCustomImage = {
-      ...orig,
+      ...structuredClone(orig),
       id: newId,
       x: orig.x + 24,
       y: orig.y + 24,
@@ -281,10 +400,17 @@ export function removeExtraElement(
   const currentSlide = post.slides[index];
   if (!currentSlide) return post;
 
-  const extraTexts = (currentSlide.extraTexts || []).filter((t) => t.id !== elementId);
-  const extraImages = (currentSlide.extraImages || []).filter((img) => img.id !== elementId);
+  const extraTexts = resolveSlideExtraTexts(post, index);
+  const extraImages = resolveSlideExtraImages(post, index);
 
-  return applyPatchToCurrentSlide(post, { extraTexts, extraImages });
+  const hasText = extraTexts.some((t) => t.id === elementId);
+  const hasImage = extraImages.some((img) => img.id === elementId);
+  if (!hasText && !hasImage) return post;
+
+  const nextTexts = extraTexts.filter((t) => t.id !== elementId);
+  const nextImages = extraImages.filter((img) => img.id !== elementId);
+
+  return applyPatchToCurrentSlide(post, { extraTexts: nextTexts, extraImages: nextImages });
 }
 
 /**
@@ -300,7 +426,7 @@ export function reorderExtraElement(
   const currentSlide = post.slides[index];
   if (!currentSlide) return post;
 
-  const extraTexts = [...(currentSlide.extraTexts || [])];
+  const extraTexts = [...resolveSlideExtraTexts(post, index)];
   const textIdx = extraTexts.findIndex((t) => t.id === elementId);
   if (textIdx >= 0) {
     const [item] = extraTexts.splice(textIdx, 1);
@@ -318,7 +444,7 @@ export function reorderExtraElement(
     return applyPatchToCurrentSlide(post, { extraTexts });
   }
 
-  const extraImages = [...(currentSlide.extraImages || [])];
+  const extraImages = [...resolveSlideExtraImages(post, index)];
   const imgIdx = extraImages.findIndex((img) => img.id === elementId);
   if (imgIdx >= 0) {
     const [item] = extraImages.splice(imgIdx, 1);
@@ -349,8 +475,9 @@ export function updateExtraElement(
   const currentSlide = post.slides[index];
   if (!currentSlide) return post;
 
+  const currentTexts = resolveSlideExtraTexts(post, index);
   let hasText = false;
-  const extraTexts = (currentSlide.extraTexts || []).map((t) => {
+  const extraTexts = currentTexts.map((t) => {
     if (t.id === elementId) {
       hasText = true;
       return { ...t, ...patch };
@@ -362,14 +489,21 @@ export function updateExtraElement(
     return applyPatchToCurrentSlide(post, { extraTexts });
   }
 
-  const extraImages = (currentSlide.extraImages || []).map((img) => {
+  const currentImages = resolveSlideExtraImages(post, index);
+  let hasImage = false;
+  const extraImages = currentImages.map((img) => {
     if (img.id === elementId) {
+      hasImage = true;
       return { ...img, ...patch };
     }
     return img;
   });
 
-  return applyPatchToCurrentSlide(post, { extraImages });
+  if (hasImage) {
+    return applyPatchToCurrentSlide(post, { extraImages });
+  }
+
+  return post;
 }
 
 /** Aplica opacidade a um elemento livre (entre 0.05 e 1.0). */

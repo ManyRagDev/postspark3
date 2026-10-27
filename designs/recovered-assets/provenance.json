@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "restorations": [
+    {
+      "originalFileName": "0623fb1c14937cd1e67e980b566710ba.jpg",
+      "originalSha256": "c662545a8a5bde43f29f2d40ffa43dc4fe18ac65afef27a75799595f94c3229e",
+      "restoredAsset": "paper-stack-background.png",
+      "restoredSha256": "52ddd836c8808514bb217ef1e4982ba499fbf3a59cd3e10e3da5a109b525797f",
+      "method": "Edição assistida por imagegen do original: remover letras/marcas e preservar decoração; textos recriados como camadas editáveis.",
+      "limitations": [
+        "Pequenas diferenças locais de textura e objetos; não é reprodução pixel a pixel.",
+        "Fontes de aproximação; textos e realces permanecem em camadas editáveis."
+      ]
+    },
+    {
+      "originalFileName": "481adc75c3b7da8d267aeef293da71a6.jpg",
+      "originalSha256": "30457c0466e12ee702f927e1f63aa17ff983ab89157d18336bd2126fd136f836",
+      "restoredAsset": "retro-computer-background.png",
+      "restoredSha256": "db14ce3ad696a1f5141f0241a310314a1a6db0c79fe92b58acb38ab3ffda6ef1",
+      "method": "Edição assistida por imagegen do original: remover letras/marcas e preservar decoração; textos recriados como camadas editáveis.",
+      "limitations": [
+        "Pequenas diferenças locais de textura e objetos; não é reprodução pixel a pixel.",
+        "Fontes de aproximação; no computador não há perspectiva tipográfica."
+      ]
+    }
+  ]
+}

@@ -19,13 +19,29 @@ export function useDynamicFont(fontFamily: string, customFontUrl: string = ''): 
 
     if (typeof document !== 'undefined' && document.fonts) {
       let active = true;
-      document.fonts.ready.then(() => {
+      const timer = setTimeout(() => {
         if (active) {
-          setReady((prev) => !prev);
+          setReady(true);
         }
-      });
+      }, 3000);
+
+      document.fonts.ready
+        .then(() => {
+          if (active) {
+            clearTimeout(timer);
+            setReady((prev) => !prev);
+          }
+        })
+        .catch(() => {
+          if (active) {
+            clearTimeout(timer);
+            setReady(true);
+          }
+        });
+
       return () => {
         active = false;
+        clearTimeout(timer);
       };
     }
   }, [name, url]);

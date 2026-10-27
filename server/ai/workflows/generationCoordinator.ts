@@ -1,3 +1,5 @@
+import { recoveryAction } from "./generationRecovery";
+import { failureFromError } from "@shared/generationFailure";
 import { Annotation, StateGraph, START, END } from "@langchain/langgraph";
 import type { ComponentDefinitionV1 } from "@shared/componentAssembly";
 import {
@@ -19,9 +21,12 @@ export interface GenerationCoordinatorInput
   > {
   offeredDefinitions?: ComponentDefinitionV1[];
   selectedDefinitions?: ComponentDefinitionV1[][];
+  alternativeDefinitions?: ComponentDefinitionV1[][][];
   actor: string;
   savedProposals?: ProposalDelivery[];
   selectionReasons?: string[];
+  editorialApproaches?: Array<string | null>;
+  perProposalImageObligations?: ProposalExecutionInput["imageObligation"][];
 }
 export interface GenerationCoordinatorDeps extends ProposalGraphDeps {
   persistUpdate?: (delivery: ProposalDelivery) => Promise<void>;
@@ -29,6 +34,8 @@ export interface GenerationCoordinatorDeps extends ProposalGraphDeps {
   deliver?: (
     delivery: Extract<ProposalDelivery, { status: "ready" }>
   ) => Promise<void>;
+  uncertainOperations?:(proposalId:string)=>Promise<boolean>;
+  expectationForProposal?:(proposalId:string,key:string,expectation:unknown)=>Promise<void>;
   operationForProposal?: (
     proposalId: string
   ) => NonNullable<ProposalGraphDeps["executeOperation"]>;
@@ -39,6 +46,7 @@ const terminal = new Set([
   "cancelled",
   "expired",
   "waiting_input",
+  "awaiting_reconciliation",
 ]);
 
 /** LangGraph fan-out. The database store, rather than process listeners, owns durable state. */
@@ -79,13 +87,14 @@ export class GenerationCoordinator {
       (a, b) => a.slot - b.slot
     );
     const active = proposals.some(p => !terminal.has(p.status));
+    const pending = proposals.some(p=>p.status==="awaiting_reconciliation");
     const ready = proposals.filter(p => p.status === "ready").length;
     return generationCoordinatorSnapshotSchema.parse({
       requestId: this.input.requestId,
       runId: this.input.runId,
       overallStatus: active
         ? "running"
-        : ready === proposals.length
+        : pending ? "awaiting_reconciliation" : ready === proposals.length
           ? "completed"
           : ready
             ? "partial"
@@ -131,41 +140,85 @@ export class GenerationCoordinator {
     ) => {
       await this.deps.checkpoint?.(stage, context);
       const state =
-        stage.includes("check") || stage.includes("validation")
-          ? "checking"
-          : "running";
+        stage === "recovering"
+          ? "recovering"
+          : stage.includes("check") || stage.includes("validation")
+            ? "checking"
+            : "running";
       await this.update(
         proposalDeliverySchema.parse({ ...identity, status: state })
       );
     };
-    let result: ProposalDelivery;
-    try {
-      result = await executeProposalWorkflow(
-        {
-          ...this.input,
-          selectedDefinitions: this.definitions[slot],
-          selectionReason: this.input.selectionReasons?.[slot],
+    let result: ProposalDelivery = proposalDeliverySchema.parse({
+      ...identity,
+      status: "planned",
+    });
+    const candidates = [
+      this.definitions[slot],
+      ...(this.input.alternativeDefinitions?.[slot] ?? []).slice(0, 3),
+    ];
+    let attemptIndex = saved.attempt?.index ?? 0;
+    while (attemptIndex < candidates.length) {
+      const currentDefs = candidates[attemptIndex];
+      const attemptSuffix = attemptIndex === 0 ? "" : `-fb${attemptIndex}`;
+      const effectiveProposalId = `${saved.proposalId}${attemptSuffix}`;
+      const attempt = {index:attemptIndex,id:effectiveProposalId};
+      await this.update(proposalDeliverySchema.parse({...identity,status:attemptIndex?"recovering":"running",attempt}));
+      try {
+        result = await executeProposalWorkflow(
+          {
+            ...this.input,
+            selectedDefinitions: currentDefs,
+            selectionReason: this.input.selectionReasons?.[slot],
+            editorialApproach: this.input.editorialApproaches?.[slot],
+            imageObligation:
+              this.input.perProposalImageObligations?.[slot] ??
+              this.input.imageObligation,
+            proposalId: saved.proposalId,
+            slot,
+            revision: saved.revision,
+          },
+          {
+            ...this.deps,
+            checkpoint: async(stage,context)=>{await checkpoint?.(stage,context);await this.update(proposalDeliverySchema.parse({...identity,status:stage==="recovering"?"recovering":"running",attempt}));},
+            recoveryOperationKeys:this.deps.recoveryOperationKeys ? ()=>this.deps.recoveryOperationKeys!(saved.proposalId,effectiveProposalId) : undefined,
+            persistReviewExpectation:this.deps.expectationForProposal ? (key,expectation)=>this.deps.expectationForProposal!(effectiveProposalId,key,expectation) : undefined,
+            reviewOperations: this.deps.reviewOperations ? ()=>this.deps.reviewOperations!(effectiveProposalId) : undefined,
+            executeOperation:
+              this.deps.operationForProposal?.(effectiveProposalId) ??
+              this.deps.executeOperation,
+          }
+        );
+        // Garantir que a entrega final preserve o proposalId canônico registrado para o slot
+        result = proposalDeliverySchema.parse({
+          ...result,
           proposalId: saved.proposalId,
-          slot,
-          revision: saved.revision,
-        },
-        {
-          ...this.deps,
-          checkpoint,
-          executeOperation:
-            this.deps.operationForProposal?.(saved.proposalId) ??
-            this.deps.executeOperation,
-        }
-      );
-    } catch (error) {
-      result = proposalDeliverySchema.parse({
-        ...identity,
-        status: "failed",
-        errorReason:
-          error instanceof Error ? error.message : "Falha operacional",
-      });
+          attempt,
+        });
+      } catch (error) {
+        result = proposalDeliverySchema.parse({
+          ...identity,
+          status: "failed",
+          failure: failureFromError(error),
+          errorReason: failureFromError(error).code,
+        });
+      }
+
+      // Se a proposta ficou pronta, encerra o loop com sucesso
+      if (result.status === "ready") {
+        break;
+      }
+
+      const action=recoveryAction({uncertain:await this.deps.uncertainOperations?.(saved.proposalId),failure:result.failure,remainingMs:(this.input.deadlineMs??Infinity)-Date.now(),templateAttempts:attemptIndex+1,textRecoveries:1,formalRepairs:1,cancelled:result.status==="cancelled"||result.status==="expired"});
+      if(action==="await_reconciliation" && this.input.reviewPolicyVersion===9){
+        result=proposalDeliverySchema.parse({...result,status:"awaiting_reconciliation",attempt,completedAt:undefined});
+        break;
+      }
+      if((action==="next_template" || this.input.reviewPolicyVersion!==9 && result.status==="failed" && !["proposal_cancelled","generation_deadline_exceeded"].includes(result.errorReason??"")) && attemptIndex+1<candidates.length){attemptIndex++;continue;}
+      break;
     }
-    if (result.status === "ready" && this.deps.deliver) {
+    const finalResult = result;
+    if (finalResult.status === "ready" && this.deps.deliver) {
       await this.update(
         proposalDeliverySchema.parse({
           ...identity,
@@ -173,7 +226,7 @@ export class GenerationCoordinator {
         })
       );
       try {
-        await this.deps.deliver(result);
+        await this.deps.deliver(finalResult);
       } catch (error) {
         if (
           ["22023", "23503", "23514"].includes(
@@ -182,19 +235,17 @@ export class GenerationCoordinator {
         ) {
           await this.update(
             proposalDeliverySchema.parse({
-              ...identity,
+              ...(({bundle, ...delivery}) => delivery)(finalResult as Extract<ProposalDelivery,{status:"ready"}>),
               status: "failed",
-              errorReason:
-                error instanceof Error
-                  ? error.message
-                  : "Composição não elegível para entrega",
+              failure: {code:"catalog_component_ineligible",stage:"delivery",retryable:false},
+              errorReason: "catalog_component_ineligible",
             })
           );
           return;
         }
         await this.update(
           proposalDeliverySchema.parse({
-            ...identity,
+            ...(({bundle, ...delivery}) => delivery)(finalResult as Extract<ProposalDelivery,{status:"ready"}>),
             status: "delivery_pending",
             errorReason:
               error instanceof Error ? error.message : "Entrega pendente",
@@ -204,8 +255,8 @@ export class GenerationCoordinator {
       }
     }
     await this.update(
-      result,
-      !(result.status === "ready" && this.deps.deliver)
+      finalResult,
+      !(finalResult.status === "ready" && this.deps.deliver)
     );
   }
   start(): Promise<GenerationCoordinatorSnapshot> {

@@ -136,10 +136,12 @@ export function creationBriefToExecutionBrief(brief: CreationBrief) {
   return {
     creationMode: "execution" as const,
     format: brief.format,
-    platform: "instagram" as const,
+    platform: brief.platform ?? "instagram" as const,
     objective: "engage" as const,
     tone: brief.tone,
     callToAction: brief.callToAction,
+    audience: brief.audience,
+    brandEssence: brief.brandEssence,
     interventionLevel: "optimize_structure" as const,
     contentSourceType: brief.format === "carousel" ? "carousel_topics" as const : "freeform" as const,
     rawInput: brief.rawInput,

@@ -5,6 +5,7 @@ import type { Request } from "express";
 import { createClient } from "@supabase/supabase-js";
 import { ENV } from "./env";
 import { hasPostSparkAccess } from "./manylabs";
+import { recordLocalAuth } from "./localAuthDiagnostic";
 
 export type AuthenticatedUser = {
   id: string;
@@ -51,6 +52,7 @@ class SDKServer {
     const accessToken = cookies.get(COOKIE_NAME);
 
     if (!accessToken) {
+      recordLocalAuth(req, "request.cookie_missing");
       throw ForbiddenError("Missing session token");
     }
 
@@ -61,6 +63,7 @@ class SDKServer {
     } = await supabase.auth.getUser(accessToken);
 
     if (error || !user) {
+      recordLocalAuth(req, "request.invalid_session");
       throw ForbiddenError("Invalid or expired session");
     }
 
@@ -68,9 +71,12 @@ class SDKServer {
     if (!(process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true")) {
       const hasAccess = await hasPostSparkAccess(user.id);
       if (!hasAccess) {
+        recordLocalAuth(req, "request.access_denied");
         throw ForbiddenError("PostSpark access required");
       }
     }
+
+    recordLocalAuth(req, "request.authenticated");
 
     const metadata = user.user_metadata ?? {};
     const nameFromMetadata =

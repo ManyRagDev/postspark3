@@ -1,3 +1,4 @@
+import {readLocalDiagnosticRecords} from "../../server/ai/localDiagnostics";
 /** Deterministic replay of the recorded 97e1 assembly pins; no model/image/billing calls. */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -37,8 +38,9 @@ if (error || !run) throw new Error(`run_read_failed:${error?.code ?? "missing"}`
 if (run.status !== "completed" || !Array.isArray(run.output_snapshot))
   throw new Error("completed_output_snapshot_missing");
 
-const events = run.events as Array<{ stage: string; data?: Record<string, any> }>;
-const offeredEvent = events.find(e => e.stage === "component.retrieve");
+const localRecords=await readLocalDiagnosticRecords(run.id);
+const events = [...(run.events??[]),...localRecords.filter(record=>record.id===run.id).flatMap(record=>record.events??[])] as Array<{ stage: string; data?: Record<string, any> }>;
+const offeredEvent = events.find(e => e.stage === "component.retrieve"&&e.data?.cards?.length);
 const offered = offeredEvent?.data?.cards as ComponentCardV1[] | undefined;
 if (!offered?.length) throw new Error("component_retrieve_cards_missing");
 const outputs = run.output_snapshot as Array<Record<string, any>>;
@@ -144,7 +146,7 @@ for (const [slot, variation] of plan.variations.entries()) {
     const requested = originalPin.resolution?.requestedComponentIds ?? [];
     const originalContentIds = requested.filter((id: string) => offeredById.get(id)?.kind === "content");
     const deliveredContentIds = (originalPin.componentIds as string[]).filter(id => offeredById.get(id)?.kind === "content");
-    const originalSources = new Set(originalContentIds.map((id: string) => offeredById.get(id)?.visualTraits?.sourceKey ?? id));
+    const originalSources = new Set<string>(originalContentIds.map((id: string) => offeredById.get(id)?.visualTraits?.sourceKey ?? id));
     const deliveredSources = new Set(deliveredContentIds.map(id => offeredById.get(id)?.visualTraits?.sourceKey ?? id));
     const originalIdentityStillDelivered = originalContentIds.length === 0 || [...originalSources].some(source => deliveredSources.has(source));
     let bundle: any, resolved: any, coverageIssues: string[] = [];

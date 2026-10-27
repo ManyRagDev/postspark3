@@ -1,3 +1,5 @@
+> **Referência histórica:** o estado vigente foi consolidado em 2026-10-09. Leia [DOCUMENTO_MESTRE §13.86](../DOCUMENTO_MESTRE.md#1386-consolidação-do-pipeline-e-revisor-obrigatório-2026-10-09); as descrições abaixo de V4 padrão/V5 piloto foram superadas.
+
 # Conferência independente da geração orquestrada
 
 > Atualização posterior: os achados desta conferência foram tratados em [correcoes-geracao-orquestrada-2026-10-08.md](./correcoes-geracao-orquestrada-2026-10-08.md) e DOCUMENTO_MESTRE §13.74. Este arquivo preserva a fotografia anterior às correções.

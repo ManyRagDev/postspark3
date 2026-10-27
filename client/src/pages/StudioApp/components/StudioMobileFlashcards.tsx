@@ -10,6 +10,7 @@ import { ASPECT_RATIO_CAPTIONS } from "@/pages/CanvasLab/components/types";
 import { CanvasPostStage } from "@/pages/CanvasLab/components/CanvasPostStage";
 import UserTopMenu from "@/components/UserTopMenu";
 import StudioDirectionFeedback from "./StudioDirectionFeedback";
+import StudioSlideNavigation, { useStudioSlidePreviews } from "./StudioSlideNavigation";
 import StudioGalleryEmptyState from "./StudioGalleryEmptyState";
 
 interface StudioMobileFlashcardsProps {
@@ -36,6 +37,7 @@ export default function StudioMobileFlashcards({
 }: StudioMobileFlashcardsProps) {
   const [selectedIndex, setCurrentIndex] = useState(0);
   const [downloadPost, setDownloadPost] = useState<CanvasPostModel | null>(null);
+  const slidePreviews = useStudioSlidePreviews();
   /** Guarda o estado de drag para não selecionar quando o usuário só navega. */
   const isDraggingCard = useRef(false);
 
@@ -49,7 +51,7 @@ export default function StudioMobileFlashcards({
     return <StudioGalleryEmptyState isGenerating={isGeneratingMore} onBackToCreate={onBackToCreate} aspectRatio={aspectRatio} />;
   }
 
-  const currentPost = variations[currentIndex];
+  const currentPost = slidePreviews.preview(variations[currentIndex], currentIndex);
   const currentProjection = fitPostToAspectRatio(currentPost, aspectRatio);
   const currentAppearance = resolveSlideAppearance(currentPost, currentPost.currentSlideIndex);
 
@@ -113,9 +115,9 @@ export default function StudioMobileFlashcards({
       </header>
 
       {/* ─── 2. ÁREA DOS FLASHCARDS 3D EMPILHADOS ─── */}
-      <main className="flex-1 flex flex-col items-center justify-center relative px-4 min-h-0 overflow-hidden">
+      <main className="flex-1 flex flex-col items-center justify-start relative px-4 py-4 min-h-0 overflow-y-auto">
         {/* Nome da Família Visual & Badge */}
-        <div className="flex items-center gap-2 mb-3 z-20">
+        <div className="flex items-center gap-2 mb-3 z-20 shrink-0">
           <span
             className="w-2.5 h-2.5 rounded-full shadow-sm"
             style={{ backgroundColor: currentAppearance.palette.accent }}
@@ -131,15 +133,16 @@ export default function StudioMobileFlashcards({
         </div>
 
         {/* Palco dos Cards 3D com Arraste Tátil (Framer Motion) */}
-        <div className="relative flex items-center justify-center w-full max-w-sm h-[380px]">
+        <div className="relative flex items-center justify-center w-full max-w-sm shrink-0" style={{ height: stageHeight + 32 }}>
           {variations.map((item, idx) => {
             const offset = idx - currentIndex;
             // Mostra o card atual e até 2 cards atrás/frente
             if (Math.abs(offset) > 1) return null;
 
             const isCenter = offset === 0;
-            const projection = fitPostToAspectRatio(item, aspectRatio);
-            const cleanItem = projection.post || item;
+            const previewItem = slidePreviews.preview(item, idx);
+            const projection = fitPostToAspectRatio(previewItem, aspectRatio);
+            const cleanItem = projection.post || previewItem;
 
             return (
               <motion.div
@@ -186,11 +189,15 @@ export default function StudioMobileFlashcards({
           })}
         </div>
 
+        <div className="z-20 w-full max-w-sm shrink-0">
+          <StudioSlideNavigation count={currentPost.slides.length} index={currentPost.currentSlideIndex}
+            onChange={index => slidePreviews.navigate(currentPost, currentIndex, index)} />
+        </div>
         {/* Fora do cartão arrastável para que o botão de preferência não navegue os flashcards. */}
-        {currentPost ? <div className="z-20 mt-3 w-full max-w-sm"><StudioDirectionFeedback key={`${currentPost.completeDesign?.runId ?? currentPost.componentAssembly?.runId}:${currentPost.completeDesign?.slot ?? currentPost.componentAssembly?.slot}`} post={currentPost} /></div> : null}
+        {currentPost ? <div className="z-20 mt-3 w-full max-w-sm shrink-0"><StudioDirectionFeedback key={`${currentPost.completeDesign?.runId ?? currentPost.componentAssembly?.runId}:${currentPost.completeDesign?.slot ?? currentPost.componentAssembly?.slot}`} post={currentPost} /></div> : null}
 
         {/* Dots de Paginação e Setas Rápidas */}
-        <div className="flex items-center gap-4 mt-4 z-20">
+        <div className="flex items-center gap-4 mt-4 z-20 shrink-0">
           <button
             type="button"
             onClick={handlePrev}

@@ -1,5 +1,5 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { motion } from "framer-motion";
+import { type CSSProperties, type ReactNode } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { VisualFamilyId } from "@/pages/CanvasLab/components/types";
 import LoadingTutorial from "./LoadingTutorial";
 
@@ -329,54 +329,8 @@ export function SpecimenCard({
   );
 }
 
-const PRODUCTION_STAGES = [
-  { atSec: 0, text: "Analisando intenção e tom de voz" },
-  { atSec: 1.4, text: "Estruturando ganchos e copywriting estratégico" },
-  { atSec: 3.2, text: "Mapeando arquétipos visuais e paletas da marca" },
-  { atSec: 10.5, text: "Organizando direção de arte e espaços visuais" },
-  { atSec: 16.0, text: "Calibrando tipografia e contraste inteligente" },
-  { atSec: 23.0, text: "Finalizando composições em alta fidelidade" },
-];
-
-export function calculateRealisticProgress(elapsedSeconds: number): number {
-  const s = Math.max(0, elapsedSeconds);
-  if (s <= 3) {
-    // 0s -> 3s: 12% -> 32% (rápido feedback tátil inicial)
-    return Math.round(12 + (s / 3) * 20);
-  }
-  if (s <= 8) {
-    // 3s -> 8s: 32% -> 62% (redação das variações e ganchos)
-    return Math.round(32 + ((s - 3) / 5) * 30);
-  }
-  if (s <= 16) {
-    // 8s -> 16s: 62% -> 84% (direção de arte e imagem de fundo)
-    return Math.round(62 + ((s - 8) / 8) * 22);
-  }
-  if (s <= 28) {
-    // 16s -> 28s: 84% -> 94% (acabamento e tokens de design)
-    return Math.round(84 + ((s - 16) / 12) * 10);
-  }
-  // 28s+: avança assintoticamente até 98%, ganhando ~1% a cada 3s sem nunca congelar
-  const extra = Math.min(4, Math.floor((s - 28) / 3));
-  return Math.min(98, 94 + extra);
-}
-
 export function ProductionOverlay({ prompt }: { prompt: string }) {
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  // Temporizador contínuo sem travamento artificial em 96%
-  useEffect(() => {
-    const startTime = Date.now();
-    const timer = window.setInterval(() => {
-      setElapsedSeconds((Date.now() - startTime) / 1000);
-    }, 100);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const progress = calculateRealisticProgress(elapsedSeconds);
-  const visibleStages = PRODUCTION_STAGES.filter((st) => elapsedSeconds >= st.atSec);
-  const recentStages = visibleStages.slice(-3);
-
+  const reducedMotion = useReducedMotion();
   const cropMark = "absolute h-5 w-5 border-[rgba(242,237,228,0.4)]";
 
   return (
@@ -389,7 +343,7 @@ export function ProductionOverlay({ prompt }: { prompt: string }) {
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       role="status"
       aria-live="polite"
-      aria-label="Gerando direções de arte"
+      aria-label="Preparando suas direções de arte"
     >
       <div className={`${cropMark} left-5 top-5 border-l border-t`} />
       <div className={`${cropMark} right-5 top-5 border-r border-t`} />
@@ -401,7 +355,7 @@ export function ProductionOverlay({ prompt }: { prompt: string }) {
           <motion.span
             className="inline-block h-1.5 w-1.5 rounded-full"
             style={{ background: STUDIO.accent }}
-            animate={{ opacity: [1, 0.25, 1] }}
+            animate={reducedMotion ? undefined : { opacity: [1, 0.25, 1] }}
             transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
           />
           Em produção
@@ -420,42 +374,20 @@ export function ProductionOverlay({ prompt }: { prompt: string }) {
           {prompt}
         </p>
 
-        {/* Barra de corrida com trilha e preenchimento fluido */}
-        <div className="mt-8 w-64 max-w-full">
-          <div className="flex justify-between items-center mb-1.5 px-0.5">
-            <span style={{ ...MONO, color: STUDIO.ink40, fontSize: 8.5, letterSpacing: "0.14em" }}>
-              Progresso
-            </span>
-            <span style={{ ...MONO, color: STUDIO.accent, fontSize: 9, fontWeight: 700 }}>
-              {progress}%
-            </span>
-          </div>
-          <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/10 border border-white/10">
+        <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/65">
+          Criamos e revisamos três propostas. Esse cuidado pode levar alguns minutos.
+        </p>
+        <div className="mt-7 w-64 max-w-full">
+          <p className="mb-2 text-[10px] uppercase tracking-widest text-white/45">Preparando o acompanhamento</p>
+          <div role="progressbar" aria-label="Preparando o acompanhamento das propostas" className="h-1.5 overflow-hidden rounded-full bg-white/10">
             <motion.div
-              className="absolute top-0 bottom-0 left-0 rounded-full"
-              style={{
-                width: `${progress}%`,
-                background: "linear-gradient(90deg, oklch(0.7 0.22 40), oklch(0.8 0.24 60))",
-                boxShadow: "0 0 12px oklch(0.7 0.22 40 / 60%)",
-              }}
-              transition={{ ease: "easeOut", duration: 0.1 }}
+              className="h-full w-1/3 rounded-full"
+              style={{ background: "linear-gradient(90deg, #ea580c, #fcd34d)" }}
+              animate={reducedMotion ? undefined : { x: ["-100%", "300%"] }}
+              transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
             />
           </div>
-        </div>
-
-        {/* Microetapas sincronizadas */}
-        <div className="mt-6 space-y-1.5 min-h-[54px]">
-          {recentStages.map((st) => (
-            <motion.p
-              key={st.text}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{ ...MONO, color: STUDIO.ink40, fontSize: 9.5, letterSpacing: "0.14em" }}
-            >
-              {st.text}
-            </motion.p>
-          ))}
+          <p className="mt-3 text-xs leading-relaxed text-white/50">A seguir, acompanhe o progresso de cada opção.</p>
         </div>
 
         {/* Mini-tutorial visual durante a espera (item 11) */}

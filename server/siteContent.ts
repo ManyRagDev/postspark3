@@ -1,4 +1,6 @@
+import { publicHtml } from "./publicUrl";
 import { createHash } from "node:crypto";
+import { completeSourceContext, SourceContextLimitError } from "@shared/sourceContext";
 import type { ScrapeResult, SiteEvidence } from "@shared/postspark";
 import { discoverPages, type DiscoveredPage } from "./screenshotService";
 
@@ -53,7 +55,7 @@ function extractMeta(html: string, property: string): string {
   return "";
 }
 
-export function extractReadablePage(url: string, html: string): ScrapedSitePage {
+export function extractReadablePage(url: string, html: string, options?: { requireComplete?: boolean }): ScrapedSitePage {
   const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   const title =
     extractMeta(html, "og:title") ||
@@ -70,26 +72,17 @@ export function extractReadablePage(url: string, html: string): ScrapedSitePage 
       .replace(/<[^>]+>/g, " "),
   )
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 12_000);
+    .trim();
 
-  return { url, title, description, content };
+  return { url, title, description, content: options?.requireComplete ? completeSourceContext(content) : content.slice(0, 12_000) };
 }
 
-export async function scrapeUrl(url: string): Promise<ScrapedSitePage> {
+export async function scrapeUrl(url: string, options?: { requireComplete?: boolean }): Promise<ScrapedSitePage> {
   try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; PostSpark/2.0)",
-        Accept: "text/html",
-      },
-      signal: AbortSignal.timeout(12_000),
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    return extractReadablePage(url, await response.text());
+    const response = await publicHtml(url);
+    return extractReadablePage(response.url, response.html, options);
   } catch (error) {
+    if (error instanceof SourceContextLimitError) throw error;
     console.warn("[siteContent] Failed to scrape URL:", url, error);
     return { url, title: "", description: "", content: "" };
   }
@@ -105,7 +98,7 @@ function buildEvidence(pages: ScrapedSitePage[]): SiteEvidence[] {
         id: `page-${pageIndex + 1}-title`,
         sourceUrl: page.url,
         kind: "title",
-        text: page.title.slice(0, 300),
+        text: page.title,
       });
     }
     if (page.description) {
@@ -113,7 +106,7 @@ function buildEvidence(pages: ScrapedSitePage[]): SiteEvidence[] {
         id: `page-${pageIndex + 1}-description`,
         sourceUrl: page.url,
         kind: "description",
-        text: page.description.slice(0, 500),
+        text: page.description,
       });
     }
     if (page.content) {
@@ -121,7 +114,7 @@ function buildEvidence(pages: ScrapedSitePage[]): SiteEvidence[] {
         id: `page-${pageIndex + 1}-body`,
         sourceUrl: page.url,
         kind: "body",
-        text: page.content.slice(0, 2_500),
+        text: page.content,
       });
     }
   }
@@ -136,7 +129,9 @@ export async function collectSiteContent(rawUrl: string): Promise<SiteContentSna
     .filter((page) => page.priority !== "low")
     .map((page) => page.url);
   const urls = Array.from(new Set([normalizedUrl, ...prioritized])).slice(0, 5);
-  const pages = await Promise.all(urls.map(scrapeUrl));
+  const pages = await Promise.all(urls.map(url => scrapeUrl(url,{requireComplete:true})));
+  completeSourceContext(pages.map(p=>`${p.title}\n${p.description}\n${p.content}`).join("\n"));
+  if(!pages.some(p=>p.content.trim()))throw new Error("A página não forneceu conteúdo legível.");
   const evidence = buildEvidence(pages);
   const fingerprint = createHash("sha256")
     .update(

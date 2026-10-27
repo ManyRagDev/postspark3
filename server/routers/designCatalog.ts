@@ -1,3 +1,5 @@
+import {readCatalogManifest,versionedCatalogEnabled} from "../designCatalog/versionedCatalog";
+import { resolveCompleteDesignOffers } from "@shared/completeDesignOffers";
 import { z } from "zod";
 import { componentDefinitionV1Schema, assemblyVariationBundleV1Schema } from "../../shared/componentAssembly";
 import { completeDesignVariationV1Schema } from "../../shared/completeDesignGeneration";
@@ -319,12 +321,18 @@ export const designCatalogRouter = router({
     }),
   generationReadiness: protectedProcedure.query(async ({ ctx }) => {
     if (ctx.user.role !== "admin") return null;
+    if(versionedCatalogEnabled()) {
+      const m=await readCatalogManifest();
+      return {mode:ENV.componentArsenalMode,reason:'ready' as const,candidateCount:m.summary.approved.staticOfferCount,draftCandidateCount:m.summary.experimental.staticOfferCount,carouselCandidateCount:m.summary.approved.carouselOfferCount,draftCarouselCandidateCount:m.summary.experimental.carouselOfferCount,durationMs:0,pipeline:'complete-designs' as const};
+    }
     const started=Date.now();
     if(ENV.componentArsenalMode==="off")return {mode:"off" as const,reason:"disabled" as const,candidateCount:0,draftCandidateCount:0,durationMs:0,pipeline:"complete-designs" as const};
     try{
-      const query={aspectRatio:"4:5",postMode:"static" as const,text:"",slideCount:1};
+      const query={aspectRatio:"4:5",postMode:"carousel" as const,text:"",slideCount:3};
       const [approved,preview]=await Promise.all([retrieveCompleteDesignCards({...query,experimental:false}),retrieveCompleteDesignCards({...query,experimental:true})]);
-      return {mode:ENV.componentArsenalMode,reason:approved.length?"ready" as const:"no_eligible_candidate" as const,candidateCount:approved.length,draftCandidateCount:preview.length,durationMs:Date.now()-started,pipeline:"complete-designs" as const};
+      const normalStatic=resolveCompleteDesignOffers(approved,{slideCount:1,contentMode:"compose"}).length, previewStatic=resolveCompleteDesignOffers(preview,{slideCount:1,contentMode:"compose"}).length;
+      const normalCarousel=resolveCompleteDesignOffers(approved,{slideCount:3,contentMode:"compose"}).length, previewCarousel=resolveCompleteDesignOffers(preview,{slideCount:3,contentMode:"compose"}).length;
+      return {mode:ENV.componentArsenalMode,carouselCandidateCount:normalCarousel,draftCarouselCandidateCount:previewCarousel,reason:normalStatic?"ready" as const:"no_eligible_candidate" as const,candidateCount:normalStatic,draftCandidateCount:previewStatic,durationMs:Date.now()-started,pipeline:"complete-designs" as const};
     }catch{return {mode:ENV.componentArsenalMode,reason:"catalog_unavailable" as const,candidateCount:0,draftCandidateCount:0,durationMs:Date.now()-started,pipeline:"complete-designs" as const};}
   }),
   reportArsenalCompilation: protectedProcedure

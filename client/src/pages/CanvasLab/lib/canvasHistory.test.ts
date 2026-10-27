@@ -6,6 +6,7 @@ import {
   redoHistory,
   canUndo,
   canRedo,
+  setHistoryPresent,
 } from "./canvasHistory";
 
 describe("canvasHistory", () => {
@@ -104,5 +105,22 @@ describe("canvasHistory", () => {
     expect(history.past.length).toBe(3);
     expect(history.past).toEqual([{ n: 7 }, { n: 8 }, { n: 9 }]);
     expect(history.present).toEqual({ n: 10 });
+  });
+
+  it("setHistoryPresent updates present without altering past or future", () => {
+    let history = createHistory({ val: "A" });
+    history = pushHistory(history, { val: "B" });
+    history = undoHistory(history); // past: [], present: A, future: [B]
+    expect(canRedo(history)).toBe(true);
+
+    const updated = setHistoryPresent(history, { val: "A_navigated" });
+    expect(updated.present).toEqual({ val: "A_navigated" });
+    expect(updated.past).toEqual([]);
+    expect(updated.future).toEqual([{ val: "B" }]);
+    expect(canRedo(updated)).toBe(true);
+    expect(canUndo(updated)).toBe(false);
+
+    // Mesma referência é no-op
+    expect(setHistoryPresent(updated, updated.present)).toBe(updated);
   });
 });

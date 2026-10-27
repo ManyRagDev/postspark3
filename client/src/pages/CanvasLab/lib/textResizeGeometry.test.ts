@@ -79,4 +79,98 @@ describe("textResizeGeometry", () => {
 
     expect(repeated).toEqual(direct);
   });
+
+  describe("four corner proportional resizing", () => {
+    const cornerSession: TextResizeSession = {
+      anchor: "bottom-right",
+      pointerStartX: 224,
+      pointerStartY: 180,
+      initialX: 24,
+      initialY: 80,
+      initialWidth: 200,
+      initialHeight: 100,
+      initialScale: 1.0,
+      initialFontSize: 30,
+      minWidth: 40,
+    };
+
+    it("proportionally scales width, height, scale, and fontSize from bottom-right handle keeping top-left fixed", () => {
+      // 1.5x expansion: factor = 1.5 -> width=300, height=150, scale=1.5, fontSize=45
+      // top-left fixed at (24, 80)
+      const res = computeTextResizeGeometry(cornerSession, 324);
+      expect(res.x).toBe(24);
+      expect(res.y).toBe(80);
+      expect(res.width).toBe(300);
+      expect(res.height).toBe(150);
+      expect(res.scale).toBe(1.5);
+      expect(res.fontSize).toBe(45);
+    });
+
+    it("proportionally scales from top-left handle keeping bottom-right fixed", () => {
+      // initial bottom-right is (24 + 200, 80 + 100) = (224, 180)
+      const session: TextResizeSession = {
+        ...cornerSession,
+        anchor: "top-left",
+        pointerStartX: 24,
+        pointerStartY: 80,
+      };
+      // Moving left by 100px (factor = 1.5)
+      const res = computeTextResizeGeometry(session, -76);
+      expect(res.width).toBe(300);
+      expect(res.height).toBe(150);
+      expect(res.x).toBe(-76);
+      expect(res.y).toBe(30);
+      // Verify bottom-right remains exactly (224, 180)
+      expect(res.x + res.width).toBe(224);
+      expect((res.y ?? 0) + (res.height ?? 0)).toBe(180);
+      expect(res.scale).toBe(1.5);
+      expect(res.fontSize).toBe(45);
+    });
+
+    it("proportionally scales from top-right handle keeping bottom-left fixed", () => {
+      // initial bottom-left is (24, 80 + 100) = (24, 180)
+      const session: TextResizeSession = {
+        ...cornerSession,
+        anchor: "top-right",
+        pointerStartX: 224,
+        pointerStartY: 80,
+      };
+      // Moving right by 100px (factor = 1.5)
+      const res = computeTextResizeGeometry(session, 324);
+      expect(res.width).toBe(300);
+      expect(res.height).toBe(150);
+      expect(res.x).toBe(24); // left edge unchanged
+      expect((res.y ?? 0) + (res.height ?? 0)).toBe(180); // bottom edge unchanged
+      expect(res.scale).toBe(1.5);
+      expect(res.fontSize).toBe(45);
+    });
+
+    it("proportionally scales from bottom-left handle keeping top-right fixed", () => {
+      // initial top-right is (24 + 200, 80) = (224, 80)
+      const session: TextResizeSession = {
+        ...cornerSession,
+        anchor: "bottom-left",
+        pointerStartX: 24,
+        pointerStartY: 180,
+      };
+      // Moving left by 100px (factor = 1.5)
+      const res = computeTextResizeGeometry(session, -76);
+      expect(res.width).toBe(300);
+      expect(res.height).toBe(150);
+      expect(res.x + res.width).toBe(224); // right edge unchanged
+      expect(res.y).toBe(80); // top edge unchanged
+      expect(res.scale).toBe(1.5);
+      expect(res.fontSize).toBe(45);
+    });
+
+    it("clamps corner resize at minimum width without moving fixed corner", () => {
+      const res = computeTextResizeGeometry(cornerSession, -500); // extreme shrink
+      expect(res.width).toBe(40);
+      expect(res.height).toBe(20); // 40 / 200 * 100
+      expect(res.x).toBe(24);
+      expect(res.y).toBe(80);
+      expect(res.scale).toBe(0.2);
+      expect(res.fontSize).toBe(6);
+    });
+  });
 });

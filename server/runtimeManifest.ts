@@ -36,13 +36,67 @@ export interface RuntimeManifest {
 }
 
 export const RUNTIME_MANIFEST: RuntimeManifest = {
-  version: 1,
+  version: 2,
   requirements: [
     { kind: "table", schema: "postspark", name: "design_catalog_versions", critical: false, consumers: ["designCatalog/store.ts"], note: "ausência usa layout convencional com trace de fallback; migration 0018" },
     { kind: "table", schema: "postspark", name: "design_catalog_pieces", critical: false, consumers: ["design_catalog_create RPC"] },
     { kind: "table", schema: "postspark", name: "design_catalog_version_pieces", critical: false, consumers: ["design_catalog_create RPC"] },
     { kind: "table", schema: "postspark", name: "design_catalog_events", critical: false, consumers: ["designCatalog/trace.ts", "routers/designCatalog.ts"] },
     ...["design_catalog_assets", "design_catalog_version_assets", "design_catalog_asset_grants", "design_catalog_version_grants", "design_catalog_evidence", "design_catalog_search_documents"].map(name => ({ kind: "table" as const, schema: "postspark", name, critical: false, consumers: ["designCatalog/arsenalStore.ts", "designCatalog/arsenalAssets.ts", "designCatalog/arsenalRetrieval.ts"], note: "Arsenal V2; ausência impede catálogo/grants e usa fallback rastreável" })),
+    // Single durable generation pipeline. V5 names are historical SQL identities.
+    ...[
+      "generation_v5_requests",
+      "generation_v5_operations",
+      "generation_v5_workers",
+    ].map(name => ({
+      kind: "table" as const,
+      schema: "postspark",
+      name,
+      critical: true,
+      consumers: ["ai/workflows/generationStore.ts"],
+      note: "durable generation; migrations 0034–0036",
+    })),
+    ...[
+      "billing_reservation_id",
+      "billing_ledger",
+      "billing_reserved",
+      "billing_preparation",
+      "billing_per_proposal",
+      "billing_settled_at",
+      "billing_retry_at",
+    ].map(name => ({
+      kind: "column" as const,
+      schema: "postspark",
+      table: "generation_v5_requests",
+      name,
+      critical: true,
+      consumers: [
+        "generation_admit",
+        "generation_settle",
+        "generation_reconcile",
+      ],
+      note: "atomic linked financial ledger; migration 0036",
+    })),
+    ...[
+      "generation_admit",
+      "generation_settle",
+      "generation_reconcile",
+      "generation_catalog_availability",
+      "generation_v5_claim",
+      "generation_v5_worker_heartbeat",
+      "generation_v5_is_available",
+      "generation_v5_lease_update",
+      "generation_v5_operation",
+      "generation_v5_finish",
+      "generation_v5_cancel",
+    ].map(name => ({
+      kind: "rpc" as const,
+      schema: "postspark",
+      name,
+      critical: true,
+      consumers: ["ai/workflows/generationStore.ts"],
+      note: "state-changing worker RPCs require read-only metadata verification, never execution by the runtime audit",
+    })),
     // ── Tabelas ──────────────────────────────────────────────────────────────
     { kind: "table", schema: "postspark", name: "profiles", critical: true, consumers: ["billing.ts:100,316,329"] },
     { kind: "table", schema: "postspark", name: "posts", critical: true, consumers: ["db.ts:622,638,687,704"] },

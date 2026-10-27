@@ -1,0 +1,121 @@
+{
+  "origin": "Frozen synthetic historical journal operations and selection payloads prior to context handoff reform (C-01); sanitizada, sem tokens privados nem credenciais.",
+  "limitation": "Fixture para testes determinísticos de contrato de retomada e compatibilidade retroativa; não representa gravação de provedor real nem homologação semântica.",
+  "historicalOperationsWithoutSelectionInput": {
+    "jevCompleted": [
+      {
+        "operationKey": "prepare:context",
+        "state": "completed",
+        "result": "Fonte clínica histórica"
+      },
+      {
+        "operationKey": "prepare:preferences",
+        "state": "completed",
+        "result": { "primaryFamily": "modern-clean" }
+      },
+      {
+        "operationKey": "prepare:catalog",
+        "state": "completed",
+        "result": {
+          "selectionProfileVersion": 2,
+          "cards": [],
+          "coverage": {
+            "version": 1,
+            "receiptHash": "0000000000000000000000000000000000000000000000000000000000000001",
+            "scopeHash": "0000000000000000000000000000000000000000000000000000000000000002",
+            "entries": [],
+            "indexed": [],
+            "issues": []
+          }
+        }
+      },
+      {
+        "operationKey": "prepare:design-shortlist:0:36c1c6a8d7c88aa207f5bfed54e4e289aa245eead552edfaf0b66186557afe62",
+        "state": "completed",
+        "result": {
+          "model": "google/gemini-2.5-flash",
+          "answers": {
+            "offer-1": { "type": "score", "score": 3.2, "confidence": 0.85 }
+          },
+          "usage": { "input_tokens": 100, "output_tokens": 20 }
+        }
+      }
+    ],
+    "jevUncertain": [
+      {
+        "operationKey": "prepare:context",
+        "state": "completed",
+        "result": "Fonte clínica histórica"
+      },
+      {
+        "operationKey": "prepare:design-shortlist:0:36c1c6a8d7c88aa207f5bfed54e4e289aa245eead552edfaf0b66186557afe62",
+        "state": "uncertain",
+        "result": null
+      }
+    ],
+    "selectionCompleted": [
+      {
+        "operationKey": "prepare:context",
+        "state": "completed",
+        "result": "Fonte histórica"
+      },
+      {
+        "operationKey": "prepare:selection",
+        "state": "completed",
+        "result": {
+          "version": 2,
+          "options": [
+            { "offerId": "offer-1", "reason": "Adequado ao objetivo" },
+            { "offerId": "offer-2", "reason": "Boa clareza" },
+            { "offerId": "offer-3", "reason": "Destaque visual" }
+          ]
+        }
+      }
+    ]
+  },
+  "validSelectionInputReceipt": {
+    "brief": "Prompt de usuário e instruções editoriais normalizadas",
+    "sourceEvidence": "Evidência sentinela de teste de histórico",
+    "complementaryInstruction": "Instrução complementar sentinela",
+    "requirements": [
+      {
+        "id": "r-sentinel-01",
+        "kind": "literal",
+        "value": "Sentinela Obrigatória",
+        "scope": "art",
+        "caseSensitive": true
+      },
+      {
+        "id": "r-sentinel-02",
+        "kind": "forbidden",
+        "value": "Termo Proibido",
+        "scope": "either",
+        "caseSensitive": false,
+        "match": "word_or_phrase"
+      }
+    ],
+    "reviewExecutionConfig": {
+      "version": 2,
+      "policyVersion": 7,
+      "resolvedModel": "google/gemini-3.8-flash",
+      "editorialGuidanceVersion": 5,
+      "configurationHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contractHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reasoningEffort": "medium",
+      "temperature": 0.1,
+      "timeoutMs": 60000,
+      "profiles": {
+        "standard": {
+          "maxCompletionTokens": 9216,
+          "maxSlides": 4,
+          "maxRequirements": 8,
+          "maxTextUnits": 20
+        },
+        "extended": {
+          "maxCompletionTokens": 12288
+        }
+      }
+    },
+    "jevModel": "google/gemini-2.5-flash"
+  }
+}

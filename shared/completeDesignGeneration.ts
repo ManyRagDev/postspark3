@@ -128,7 +128,7 @@ export function instantiateCompleteDesign(input: {
     if (f.kind === "list") {
       if (
         !Array.isArray(value) ||
-        value.length < (f.cardinality?.min ?? 0) ||
+        (value.length < (f.cardinality?.min ?? 0) && (f.required || value.length > 0)) ||
         value.length > (f.cardinality?.max ?? 10000)
       )
         throw new Error(`Lista incompatível: ${f.id}`);

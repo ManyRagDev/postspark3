@@ -155,7 +155,7 @@ export default function PropertyInspector({ post, selectedId, onUpdatePost, onCl
                <FontPickerDropdown
                   value={fontFamily}
                   onChange={updateFontFamily}
-                  
+                  userFonts={post.userFonts}
                />
             </div>
             <div className="flex bg-white/5 border border-white/10 rounded-lg overflow-hidden shrink-0">

@@ -1,3 +1,4 @@
+import {publishCatalogIfEnabled} from "../../server/designCatalog/versionedCatalog";
 /** Idempotently refresh derived search cards, preserving canonical definitions and descriptors. */
 import fs from "node:fs/promises";
 import { getDb } from "../../server/db";
@@ -35,3 +36,5 @@ const report={checked,updated,definitionChanges:0,descriptorChanges:0,actor,crea
 await fs.mkdir("artifacts/component-arsenal/art-direction",{recursive:true});
 await fs.writeFile("artifacts/component-arsenal/art-direction/CARD_REFRESH.json",JSON.stringify(report,null,2)+"\n");
 console.log(JSON.stringify(report));
+
+await publishCatalogIfEnabled();

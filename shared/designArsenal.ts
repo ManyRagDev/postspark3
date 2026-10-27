@@ -3,6 +3,7 @@ import {
   validateVariableContent,
 } from "./variableContent";
 import { z } from "zod";
+import { designGuidanceSchema } from "./designGuidance";
 import {
   arsenalHash,
   designContentDocumentSchema,
@@ -166,6 +167,8 @@ export const arsenalPieceSchema = z
     letterSpacing: n,
     fixedText: z.string().nullable(),
     fixedTextRole: z.literal("ornament").optional(),
+    /** Verified immutable raster layer, distinct from a generated photo slot. */
+    imageAssetId: id.optional(),
     contentFragment: arsenalContentFragmentSchema.optional(),
     textFragments: z.array(arsenalTextFragmentSchema).max(100).optional(),
     extrusion: z.object({ color, offsetX: n, offsetY: n, steps: n.int().min(1).max(100) }).strict().optional(),
@@ -198,6 +201,7 @@ export const arsenalBindingSchema = z
     id,
     label: z.string().max(120),
     kind: z.enum(["text", "list", "media"]),
+    listMode: z.literal("native-slots").optional(),
     source: arsenalContentSourceSchema,
     required: z.boolean(),
     targetIds: z.array(id).min(1).max(20),
@@ -222,13 +226,17 @@ export const arsenalBindingSchema = z
     if (
       b.kind === "list" &&
       (!b.cardinality ||
-        b.targetIds.length !== 1 ||
+        (b.listMode === "native-slots"
+          ? b.cardinality.max > b.targetIds.length || new Set(b.targetIds).size !== b.targetIds.length
+          : b.targetIds.length !== 1) ||
         b.cardinality.min > b.cardinality.max)
     )
       ctx.addIssue({
         code: "custom",
-        message: "Lista exige uma peça repetível e cardinalidade válida",
+        message: "Lista exige slots nativos suficientes ou uma peça repetível e cardinalidade válida",
       });
+    if (b.listMode && b.kind !== "list")
+      ctx.addIssue({ code: "custom", message: "Modo de lista incompatível com binding" });
   });
 export type ArsenalBinding = z.infer<typeof arsenalBindingSchema>;
 
@@ -539,7 +547,7 @@ export const arsenalOriginSchema = z
       experimental: z.literal(true),
     }).strict().optional(),
     componentAssembly: z.object({
-      completeDesign: z.object({family:z.string().min(1).max(160),baselineVerified:z.boolean().optional(),colors:z.array(z.string().regex(/^#[a-f\d]{6}$/i)).max(100).optional()}).strict().optional(),
+      completeDesign: z.object({family:z.string().min(1).max(160),authorshipRevision:z.number().int().min(1).optional(),baselineVerified:z.boolean().optional(),colors:z.array(z.string().regex(/^#[a-f\d]{6}$/i)).max(100).optional(),designGuidance:designGuidanceSchema.optional()}).strict().optional(),
       version: z.literal(1),
       planHash: hash,
       componentIds: z.array(z.string().uuid()).min(1).max(12),
@@ -875,6 +883,14 @@ export function readArsenalComposition(value: unknown): ArsenalComposition {
     );
     const piece = c.pieces[instance.pieceHash];
     if (binding?.kind === "list") {
+      if (binding.listMode === "native-slots") {
+        const item = contentListItems(c.content, binding.source)[binding.targetIds.indexOf(instance.id)];
+        expected.set(instance.id, {
+          parentId: instance.parentId, kind: piece.kind, bindingId: binding.id,
+          itemId: item?.id ?? null, text: item ? `${binding.prefix}${item.text}` : "",
+        });
+        continue;
+      }
       for (const item of contentListItems(c.content, binding.source))
         expected.set(`${instance.id}~${arsenalHash(item.id).slice(0, 16)}`, {
           parentId: instance.parentId,
@@ -948,6 +964,14 @@ export function readArsenalComposition(value: unknown): ArsenalComposition {
   for (const assetId of c.base.assetIds)
     if (!c.assets.some(a => a.id === assetId))
       throw new Error("Asset da variante ausente");
+  for (const e of c.elements) {
+    const instance = c.base.instances.find(i => i.id === e.id);
+    const authoredImage = instance && c.pieces[instance.pieceHash]?.imageAssetId;
+    if (e.imageAssetId !== authoredImage)
+      throw new Error("Imagem imutável diverge da definição");
+    if (e.imageAssetId && (e.kind !== "media" || !c.assets.some(a => a.id === e.imageAssetId && /^image\/(png|jpeg|webp)$/.test(a.mimeType))))
+      throw new Error("Imagem imutável sem manifesto correspondente");
+  }
   // Repair old saved resolved boxes as well: base/overrides remain pinned and only derived points change.
   resolveArsenalShapePoints(c);
   return c;

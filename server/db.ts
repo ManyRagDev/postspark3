@@ -45,6 +45,7 @@ export type PostRecord = {
   copy_angle: CopyAngleValue | null;
   variation_snapshot: JsonValue | null;
   canvas_model: JsonValue | null;
+  gallery_preview?: string | null;
   exported: boolean | null;
   createdAt: string;
   updatedAt: string;
@@ -77,6 +78,7 @@ export type CreatePostInput = {
   copyAngle?: CopyAngleValue;
   variationSnapshot?: JsonValue;
   /** Modelo completo do editor CanvasLab (PostSpark Studio) — reabertura com fidelidade. */
+  galleryPreview?: string | null;
   canvasModel?: JsonValue;
 };
 
@@ -236,6 +238,34 @@ export type PersonaRecord = {
   updated_at: string;
 };
 
+export type BrandProjectRecord = {
+  id: string;
+  user_uuid: string;
+  name: string;
+  niche: string;
+  source_type: string;
+  capture?: import("@shared/brandProjects").BrandProjectRecord["capture"];
+  visual_preferences?: import("@shared/brandProjects").BrandProjectRecord["visualPreferences"];
+  structured_data: Record<string, any>;
+  compiled_document: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UpsertBrandProjectInput = {
+  id?: string;
+  userUuid: string;
+  name: string;
+  niche: string;
+  sourceType?: string;
+  capture?: import("@shared/brandProjects").BrandProjectRecord["capture"];
+  visualPreferences?: import("@shared/brandProjects").BrandProjectRecord["visualPreferences"];
+  structuredData?: Record<string, any>;
+  compiledDocument?: string;
+  isDefault?: boolean;
+};
+
 export type UpdateGenerationRunInput = {
   status?: string;
   graphState?: JsonValue;
@@ -348,6 +378,7 @@ export async function createPost(post: CreatePostInput): Promise<number> {
     copy_angle: post.copyAngle ?? null,
     variation_snapshot: post.variationSnapshot ?? null,
     canvas_model: post.canvasModel ?? null,
+    ...(ENV.localDemandEnabled ? {gallery_preview:post.galleryPreview??null}:{}),
   };
 
   const { data, error } = await db
@@ -410,6 +441,7 @@ export async function updatePost(
     copy_angle: data.copyAngle,
     variation_snapshot: data.variationSnapshot,
     canvas_model: data.canvasModel,
+    ...(ENV.localDemandEnabled&&data.canvasModel!==undefined ? {gallery_preview:data.galleryPreview??null}:{}),
   });
 
   if (Object.keys(payload).length === 0) {
@@ -721,6 +753,73 @@ export async function getPersonaByUser(
   return (data ?? undefined) as PersonaRecord | undefined;
 }
 
+export async function getBrandProjectsByUser(
+  userUuid: string,
+): Promise<BrandProjectRecord[]> {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db
+    .from("brand_projects")
+    .select("*")
+    .eq("user_uuid", userUuid)
+    .order("is_default", { ascending: false })
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.warn(`[Database] getBrandProjectsByUser warning: ${error.message}`);
+    return [];
+  }
+
+  return (data ?? []) as BrandProjectRecord[];
+}
+
+export async function getBrandProjectById(
+  id: string,
+  userUuid: string,
+): Promise<BrandProjectRecord | undefined> {
+  const db = getSupabaseDbClient();
+  const { data, error } = await db
+    .from("brand_projects")
+    .select("*")
+    .eq("id", id)
+    .eq("user_uuid", userUuid)
+    .maybeSingle();
+
+  if (error) {
+    console.warn(`[Database] getBrandProjectById warning: ${error.message}`);
+    return undefined;
+  }
+
+  return (data ?? undefined) as BrandProjectRecord | undefined;
+}
+
+export async function upsertBrandProject(
+  input: UpsertBrandProjectInput,
+): Promise<BrandProjectRecord> {
+  const db = getSupabaseDbClient();
+  const {userUuid,...project}=input;
+  const {data,error}=await db.rpc("brand_project_upsert",{p_owner:userUuid,p_project:project});
+  if(error||!data)throw new Error(`[Database] upsertBrandProject failed: ${error?.message??"unknown error"}`);
+  return data as BrandProjectRecord;
+}
+
+export async function deleteBrandProject(
+  id: string,
+  userUuid: string,
+): Promise<boolean> {
+  const db = getSupabaseDbClient();
+  const { error } = await db
+    .from("brand_projects")
+    .delete()
+    .eq("id", id)
+    .eq("user_uuid", userUuid);
+
+  if (error) {
+    throw new Error(`[Database] deleteBrandProject failed: ${error.message}`);
+  }
+
+  return true;
+}
+
 export async function createContentFingerprints(
   inputs: CreateContentFingerprintInput[],
 ): Promise<void> {
@@ -880,4 +979,13 @@ export async function getGenerationRunById(
   }
 
   return data as GenerationRunRecord;
+}
+
+/** Small gallery projection; full CanvasPostModel remains behind owner-scoped get. */
+export async function getUserPostSummaries(userUuid:string,limit=20,offset=0) {
+ const {data,error,count}=await getSupabaseDbClient().from('posts')
+  .select('id,headline,platform,postMode,layout,createdAt'+(ENV.localDemandEnabled?',gallery_preview':''),{count:'exact'})
+  .eq('user_uuid',userUuid).order('createdAt',{ascending:false}).order('id',{ascending:false}).range(offset,offset+limit-1);
+ if(error)throw error;
+ return {items:(data??[]) as Array<{id:number;headline:string;gallery_preview?:string|null;platform:string;postMode:string;layout:string;createdAt:string}>,total:count??0};
 }

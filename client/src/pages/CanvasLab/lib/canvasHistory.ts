@@ -80,3 +80,15 @@ export function canUndo<T>(history: HistoryState<T>): boolean {
 export function canRedo<T>(history: HistoryState<T>): boolean {
   return history.future.length > 0;
 }
+
+/**
+ * Atualiza o presente da sessão (ex: navegação de slide) sem criar entrada de
+ * arte, preservando integralmente o passado e o futuro de Undo/Redo.
+ */
+export function setHistoryPresent<T>(history: HistoryState<T>, nextPresent: T): HistoryState<T> {
+  if (history.present === nextPresent) return history;
+  return {
+    ...history,
+    present: nextPresent,
+  };
+}

@@ -1,0 +1,64 @@
+{
+  "origin": "Frozen synthetic baseline of editorial guidance contracts, hashes, and review receipts across profiles (undefined/1, 2, 3, 4, 5) and policies V5/V6/V7; sanitizada, sem segredos ou credenciais.",
+  "limitation": "Fixture congelada para verificação determinística de compatibilidade retroativa e integridade de hashes contratuais; não substitui modelo LLM real nem auditoria de design.",
+  "reviewContractHashes": {
+    "v1": "caaa057fcc28a0e6c34408bcf946afd1ccd9f7a0695aea490458c01f183c05d8",
+    "v2": "011a07590a5e8f5210964ba972f4942214cbbd815277f1a9a40478690fc2d628",
+    "v3": "f8d4c0667857dfbaeee6f9fdb135d81c91b902898010741a3debf5a0bba21407",
+    "v4": "1c326f04feaa4a973dbd85296c14543c5fe0ecce014799686344a627356b9bd3",
+    "v5": "552e2288c0ec94b64534e96f5d79fcd323f98bcef6ae7e3d924f5c7a50181ef2"
+  },
+  "editorialContextHashes": {
+    "baseWithoutBrand": {
+      "input": {
+        "prompt": "Café artesanal",
+        "contextContent": "Origem: grãos selecionados"
+      },
+      "hashes": {
+        "v1": "85572cdecf9a34fe502434862ca326fe1e67a00beae56a31e8cc48384650a28e",
+        "v2": "85572cdecf9a34fe502434862ca326fe1e67a00beae56a31e8cc48384650a28e",
+        "v3": "85572cdecf9a34fe502434862ca326fe1e67a00beae56a31e8cc48384650a28e",
+        "v4": "85572cdecf9a34fe502434862ca326fe1e67a00beae56a31e8cc48384650a28e",
+        "v5": "85572cdecf9a34fe502434862ca326fe1e67a00beae56a31e8cc48384650a28e"
+      }
+    },
+    "withBrandBrief": {
+      "input": {
+        "prompt": "Café artesanal",
+        "contextContent": "Origem: grãos",
+        "executionBrief": {
+          "creationMode": "execution",
+          "format": "static",
+          "platform": "instagram",
+          "objective": "engage",
+          "interventionLevel": "optimize_structure",
+          "contentSourceType": "freeform",
+          "rawInput": "Café artesanal",
+          "audience": "Amantes de café",
+          "brandEssence": "Café sustentável"
+        }
+      },
+      "hashes": {
+        "v1": "b5e24a72073b3bf607335c19a21ae0067b048bf2a8b48756c25bc88ec4938832",
+        "v2": "b5e24a72073b3bf607335c19a21ae0067b048bf2a8b48756c25bc88ec4938832",
+        "v3": "b5e24a72073b3bf607335c19a21ae0067b048bf2a8b48756c25bc88ec4938832",
+        "v4": "b5e24a72073b3bf607335c19a21ae0067b048bf2a8b48756c25bc88ec4938832",
+        "v5": "29235a899811b86a3e16793cd55c9fcd00ec4d45a248838c4dfdb1351d54c2c9"
+      }
+    }
+  },
+  "reviewPolicies": {
+    "v5": {
+      "policyVersion": 5,
+      "route": "post_evaluation"
+    },
+    "v6": {
+      "policyVersion": 6,
+      "route": "post_evaluation"
+    },
+    "v7": {
+      "policyVersion": 7,
+      "defaultEditorialGuidanceVersion": 5
+    }
+  }
+}

@@ -1,17 +1,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ENV } from "../_core/env";
-import { createGenerationRun, createGenerationRunMinimal, isSchemaIncompatibilityError } from "../db";
+import {
+  createGenerationRun,
+  createGenerationRunMinimal,
+  isSchemaIncompatibilityError,
+  getDb,
+} from "../db";
 import {
   finishGenerationTrace,
   recordGenerationEvent,
   recordLlmTraceCall,
   startGenerationTrace,
+  persistGenerationTraceMetrics,
 } from "./generationTrace";
 
 vi.mock("../db", () => ({
   createGenerationRun: vi.fn().mockResolvedValue(undefined),
   createGenerationRunMinimal: vi.fn().mockResolvedValue(undefined),
   isSchemaIncompatibilityError: vi.fn().mockReturnValue(false),
+  getDb: vi.fn(),
 }));
 
 const originalTraceContent = ENV.aiTraceStoreContent;
@@ -22,6 +29,58 @@ afterEach(() => {
 });
 
 describe("generationTrace", () => {
+  it("updates only trace columns of the existing owner run, preserving canonical output and state", async () => {
+    ENV.aiTraceStoreContent = true;
+    const query: any = {
+      update: vi.fn(() => query),
+      eq: vi.fn(() => query),
+      then: (resolve: any) => Promise.resolve({ error: null }).then(resolve),
+    };
+    vi.mocked(getDb).mockReturnValue({ from: vi.fn(() => query) } as any);
+    const trace = startGenerationTrace({
+      userUuid: "owner",
+      inputType: "text",
+      inputContent: "Private brief",
+      platform: "instagram",
+      postMode: "static",
+      creationMode: "execution",
+      requestedModel: "requested",
+    });
+    recordLlmTraceCall({
+      label: "copy",
+      requestedModel: "requested",
+      effectiveModel: "effective",
+      provider: "fixture",
+      promptHash: "hash",
+      messages: [],
+      promptTokens: 5,
+      completionTokens: 10,
+      totalTokens: 15,
+      latencyMs: 1,
+      estimatedCostUsd: 0.2,
+    });
+    await persistGenerationTraceMetrics(trace);
+    const payload = query.update.mock.calls[0][0];
+    expect(payload).toMatchObject({
+      effective_models: ["effective"],
+      total_tokens: 15,
+      estimated_cost_usd: 0.2,
+      prompt_snapshot: { replayable: false },
+    });
+    for (const key of [
+      "status",
+      "output_snapshot",
+      "input_content",
+      "graph_state",
+      "completed_at",
+    ])
+      expect(payload).not.toHaveProperty(key);
+    expect(query.eq.mock.calls).toEqual([
+      ["id", trace.id],
+      ["user_uuid", "owner"],
+    ]);
+    expect(createGenerationRun).not.toHaveBeenCalled();
+  });
   it("persists failed calls and redacts content by default", async () => {
     ENV.aiTraceStoreContent = false;
     const trace = startGenerationTrace({
@@ -71,7 +130,7 @@ describe("generationTrace", () => {
         candidateCount: 0,
         acceptedCount: 0,
         errorMessage: "generation failed",
-      }),
+      })
     );
   });
 
@@ -105,7 +164,7 @@ describe("generationTrace", () => {
             at: expect.any(String),
           }),
         ],
-      }),
+      })
     );
   });
 
@@ -168,15 +227,17 @@ describe("generationTrace", () => {
         revisionCount: 1,
         strategyFallbackUsed: true,
         originalityFallbackUsed: false,
-      }),
+      })
     );
   });
 
   it("falls back to a minimal compatible record on schema incompatibility", async () => {
     (createGenerationRun as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-      new Error("column generation_runs.events does not exist"),
+      new Error("column generation_runs.events does not exist")
     );
-    (isSchemaIncompatibilityError as ReturnType<typeof vi.fn>).mockReturnValueOnce(true);
+    (
+      isSchemaIncompatibilityError as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(true);
 
     const trace = startGenerationTrace({
       userUuid: "00000000-0000-0000-0000-000000000001",
@@ -195,7 +256,7 @@ describe("generationTrace", () => {
         id: trace.id,
         status: "failed",
         errorMessage: "boom",
-      }),
+      })
     );
   });
 
@@ -211,7 +272,7 @@ describe("generationTrace", () => {
       requestedModel: "gemini",
     });
     const messages = [{ role: "user", content: "gere um post" }];
-    const response = { choices: [{ message: { content: "{\"ok\":true}" } }] };
+    const response = { choices: [{ message: { content: '{"ok":true}' } }] };
 
     recordLlmTraceCall({
       label: "post_generation",
@@ -247,7 +308,7 @@ describe("generationTrace", () => {
             }),
           ],
         },
-      }),
+      })
     );
   });
 });

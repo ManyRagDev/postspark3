@@ -1,3 +1,4 @@
+import {publishCatalogIfEnabled} from "../../server/designCatalog/versionedCatalog";
 /** Reversible withdrawal of superseded drafts; retained pinned documents remain immutable. */
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -18,3 +19,5 @@ for(let i=0;i<archive.length;i+=100){
 }
 await fs.writeFile(path.join(root,'archive-report.json'),JSON.stringify(report,null,2)+'\n');
 console.log(JSON.stringify({...report,archived:report.archived.length}));
+
+await publishCatalogIfEnabled();

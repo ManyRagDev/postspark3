@@ -1,4 +1,6 @@
+import { generationSourceSchema } from "./generationSources";
 import { z } from "zod";
+import { generationProjectSnapshotSchema } from "./projectEditorial";
 
 export const inputTypeSchema = z.enum(["text", "url", "image"]);
 export const platformSchema = z.enum(["instagram", "twitter", "linkedin", "facebook"]);
@@ -455,6 +457,8 @@ export const postVisualSnapshotSchema = z.object({
 export const CREATION_BRIEF_VERSION = 1;
 
 export const creationBriefSchema = z.object({
+  platform:z.enum(["instagram","twitter","linkedin","facebook"]).optional(),
+  sources:z.array(generationSourceSchema).max(8).optional(),
   version: z.number().default(CREATION_BRIEF_VERSION),
   rawInput: z.string(),
   format: z.enum(["static", "carousel"]),
@@ -463,6 +467,9 @@ export const creationBriefSchema = z.object({
   audience: z.string().optional(),
   brandEssence: z.string().optional(),
   positioning: z.string().optional(),
+  projectId: z.string().max(64).optional(),
+  projectDossier: z.string().max(24000).optional(),
+  projectSnapshot: generationProjectSnapshotSchema.optional(),
   tone: z.string().optional(),
   keyMessage: z.string().optional(),
   proofPoints: z.array(z.string()).optional(),

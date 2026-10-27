@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowLeft, Check, Layers3, X } from "lucide-react";
 import type { CanvasPostModel } from "./types";
-import { REPLICATION_GROUPS, type ReplicationGroup } from "../lib/slideReplication";
+import { REPLICATION_GROUPS, type ReplicationGroup, validateReplication } from "../lib/slideReplication";
 
 const GROUP_LABELS: Record<ReplicationGroup, { title: string; detail: string }> = {
   background: { title: "Fundo", detail: "Imagem, enquadramento e divisão" },
@@ -26,6 +26,10 @@ export default function SlideReplicationDialog({ open, post, onOpenChange, onApp
   const [targets, setTargets] = useState<number[]>([]);
   const sourceIndex = post.currentSlideIndex;
   const availableTargets = post.slides.map((_, index) => index).filter(index => index !== sourceIndex);
+
+  const validation = step === "targets" && targets.length > 0
+    ? validateReplication(post, sourceIndex, targets, groups)
+    : { ok: true, issues: [] };
 
   useEffect(() => {
     if (!open) return;
@@ -92,12 +96,22 @@ export default function SlideReplicationDialog({ open, post, onOpenChange, onApp
                   );
                 })}
               </div>
+              {!validation.ok && (
+                <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">
+                  <p className="font-semibold">Incompatibilidade detectada:</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-red-200/80">
+                    {validation.issues.map((issue, idx) => (
+                      <li key={idx}>{issue.reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
           <div className="shrink-0 border-t border-white/10 bg-[#0d111b] px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-3 sm:pb-4">
             {step === "targets" && <p className="mb-2 text-[11px] text-white/55">{groups.map(group => GROUP_LABELS[group].title).join(" + ")} · {targets.length} slide{targets.length === 1 ? "" : "s"} selecionado{targets.length === 1 ? "" : "s"}</p>}
-            <button type="button" disabled={step === "properties" ? groups.length === 0 : targets.length === 0} onClick={() => step === "properties" ? setStep("targets") : onApply(groups, targets)} className="flex min-h-11 w-full items-center justify-center rounded-xl bg-orange-400 px-4 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" disabled={step === "properties" ? groups.length === 0 : (targets.length === 0 || !validation.ok)} onClick={() => step === "properties" ? setStep("targets") : onApply(groups, targets)} className="flex min-h-11 w-full items-center justify-center rounded-xl bg-orange-400 px-4 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-40">
               {step === "properties" ? "Escolher slides" : `Aplicar ${targets.length === 1 ? "ao" : "aos"} ${targets.length} slide${targets.length === 1 ? "" : "s"}`}
             </button>
           </div>

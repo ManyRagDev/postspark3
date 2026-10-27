@@ -8,5 +8,10 @@
  */
 import { fontkitMeasurer } from "./shared/typography/fontkitMeasurer";
 import { setTypographyMeasurer } from "./shared/typography/measurer";
+import { resolve } from "node:path";
+
+// Server modules load their own configuration. Tests must not inherit a
+// developer's credentials, executor activation, or diagnostics from .env.
+process.env.DOTENV_CONFIG_PATH ??= resolve(process.cwd(), "scripts/testing/isolated-env.fixture");
 
 setTypographyMeasurer(fontkitMeasurer);

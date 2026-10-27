@@ -26,7 +26,7 @@ import {
   type ArsenalElement,
   type ArsenalGroup,
 } from "@shared/designArsenal";
-import type { CanvasPostModel, CanvasRichTextChunk } from "../components/types";
+import { INITIAL_POST, type CanvasPostModel, type CanvasRichTextChunk } from "../components/types";
 import { layoutRichText } from "./richTextLayout";
 
 export function arsenalTextLayout(e: ArsenalElement) {
@@ -120,10 +120,24 @@ export function editArsenalElementText(
   const content = structuredClone(c.content),
     richText = { ...c.richText, [id]: chunks ?? [] };
   if (binding) {
-    if (binding.source !== "media.primary")
-      setContentSource(content, binding.source, text, element.itemId);
+    if (binding.source !== "media.primary") {
+      let textToSet = text;
+      if (binding.prefix && textToSet.startsWith(binding.prefix)) {
+        textToSet = textToSet.slice(binding.prefix.length);
+      }
+      if (binding.targetIds.length > 1) {
+        const siblings = binding.targetIds.map(tid => c.elements.find(e => e.id === tid)).filter(Boolean) as ArsenalElement[];
+        if (siblings.length > 1) {
+          textToSet = siblings.map(s => s.id === id ? text : s.text).join(" ");
+        }
+      }
+      setContentSource(content, binding.source, textToSet, element.itemId);
+    }
     const next = editArsenalContent({ ...c, richText }, content);
-    return resolveArsenalComposition(next);
+    return resolveArsenalComposition({
+      ...next,
+      overrides: { ...next.overrides, [id]: { ...next.overrides[id], text } },
+    });
   }
   if (c.version === 3 && c.authorialLayers.some(l => l.id === id)) {
     const authorialLayers = c.authorialLayers.map(l =>
@@ -282,12 +296,14 @@ export function putArsenalComposition(
     slides,
     headline: cover.headline,
     subtext: cover.subtext,
-    caption: c.content.caption,
-    hashtags: c.content.hashtags,
-    extraTexts: authorialExtraTexts,
-    extraImages: authorialExtraImages,
-    bgImage: bgImage ?? "",
-    logoUrl: logoUrl ?? "",
+    caption: (post.slides[post.currentSlideIndex]?.composition !== undefined)
+      ? (post.caption !== undefined ? post.caption : (c.content.caption ?? ""))
+      : (c.content.caption ?? post.caption ?? ""),
+    hashtags: post.hashtags !== undefined ? post.hashtags : c.content.hashtags,
+    extraTexts: slides.length <= 1 ? authorialExtraTexts : post.extraTexts,
+    extraImages: slides.length <= 1 ? authorialExtraImages : post.extraImages,
+    bgImage: cover.bgImage ?? post.bgImage ?? "",
+    logoUrl: post.logoUrl ?? "",
   };
 }
 
@@ -333,7 +349,8 @@ export const hasArsenalGeometryOverrides = (c: ArsenalComposition) =>
     ["x", "y", "width", "height", "rotation", "scale"].some(k => k in p)
   ) || c.relations.some(r => !r.enabled);
 export function restoreArsenalVariant(
-  c: ArsenalComposition
+  c: ArsenalComposition,
+  targetAspectRatio?: CanvasPostModel["aspectRatio"]
 ): ArsenalComposition {
   const geometry = new Set(["x", "y", "width", "height", "rotation", "scale"]);
   const overrides = Object.fromEntries(
@@ -344,7 +361,7 @@ export function restoreArsenalVariant(
       ),
     ])
   );
-  return resolveArsenalComposition({
+  const baseRestored = resolveArsenalComposition({
     ...c,
     overrides,
     relations: structuredClone(c.base.relations),
@@ -353,6 +370,10 @@ export function restoreArsenalVariant(
     layoutOrigin: "catalog-variant",
     effectiveAspectRatio: c.base.aspectRatio,
   });
+  const ratio = targetAspectRatio ?? c.effectiveAspectRatio ?? c.base.aspectRatio;
+  return ratio && ratio !== baseRestored.effectiveAspectRatio
+    ? projectArsenalFormat(baseRestored, ratio)
+    : baseRestored;
 }
 
 export { readArsenalComposition } from "@shared/designArsenal";
@@ -558,4 +579,89 @@ export function releaseArsenalPropertyRelation(
     patch[property] = (current as any)[property];
   }
   return overrideArsenalElement(source, elementId, patch);
+}
+
+function makeFreshId(prefix: string): string {
+  let uuid: string;
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    uuid = crypto.randomUUID();
+  } else {
+    uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+  return prefix ? `${prefix}-${uuid}` : uuid;
+}
+
+/**
+ * Clona uma composição Arsenal V3 gerando novos IDs para as camadas autorais,
+ * remapeando overrides, richText, effects e media, e reconciliando os elementos
+ * via resolveArsenalComposition.
+ */
+export function cloneArsenalComposition(
+  source: ArsenalComposition,
+  createId: (prefix: string) => string = makeFreshId
+): { composition: ArsenalComposition; idMap: Map<string, string> } {
+  const cloned = structuredClone(source);
+  const idMap = new Map<string, string>();
+
+  if (cloned.version === 3 && cloned.authorialLayers?.length) {
+    cloned.authorialLayers = cloned.authorialLayers.map((layer) => {
+      const newId = createId(layer.kind === "text" ? "tx" : layer.kind === "image" ? "im" : "layer");
+      idMap.set(layer.id, newId);
+      return {
+        ...layer,
+        id: newId,
+        richText: Array.isArray(layer.richText) ? structuredClone(layer.richText) : layer.richText,
+      };
+    });
+
+    // Traduz parentId somente se apontar para outra camada autoral presente no idMap
+    cloned.authorialLayers = cloned.authorialLayers.map((layer) => {
+      if (layer.parentId && idMap.has(layer.parentId)) {
+        return { ...layer, parentId: idMap.get(layer.parentId)! };
+      }
+      return layer;
+    });
+
+    // Remapeia overrides das camadas autorais preservando as de catálogo
+    const nextOverrides: Record<string, any> = {};
+    for (const [key, val] of Object.entries(cloned.overrides)) {
+      const mappedKey = idMap.get(key) || key;
+      nextOverrides[mappedKey] = structuredClone(val);
+    }
+    cloned.overrides = nextOverrides;
+
+    // Remapeia richText das camadas autorais
+    const nextRichText: Record<string, any> = {};
+    for (const [key, val] of Object.entries(cloned.richText)) {
+      const mappedKey = idMap.get(key) || key;
+      nextRichText[mappedKey] = structuredClone(val);
+    }
+    cloned.richText = nextRichText;
+
+    // Remapeia effects das camadas autorais
+    const nextEffects: Record<string, any> = {};
+    for (const [key, val] of Object.entries(cloned.effects || {})) {
+      const mappedKey = idMap.get(key) || key;
+      nextEffects[mappedKey] = structuredClone(val);
+    }
+    cloned.effects = nextEffects;
+
+    // Remapeia media das camadas autorais
+    const nextMedia: Record<string, any> = {};
+    for (const [key, val] of Object.entries(cloned.media || {})) {
+      const mappedKey = idMap.get(key) || key;
+      nextMedia[mappedKey] = structuredClone(val);
+    }
+    cloned.media = nextMedia;
+
+    // Materializa e reconcilia elements e groups através do resolver existente
+    const resolved = resolveArsenalComposition(cloned);
+    return { composition: resolved, idMap };
+  }
+
+  return { composition: cloned, idMap };
 }

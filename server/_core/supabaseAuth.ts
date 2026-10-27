@@ -4,6 +4,7 @@ import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./cookies";
 import { ENV } from "./env";
 import { ensurePostSparkAccess } from "./manylabs";
+import { recordLocalAuth } from "./localAuthDiagnostic";
 
 function getSupabaseAdmin() {
   if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
@@ -28,6 +29,8 @@ export function registerSupabaseAuthRoutes(app: Express) {
       return;
     }
 
+    recordLocalAuth(req, "bridge.received", access_token);
+
     try {
       const supabase = getSupabaseAdmin();
       const {
@@ -36,6 +39,7 @@ export function registerSupabaseAuthRoutes(app: Express) {
       } = await supabase.auth.getUser(access_token);
 
       if (error || !user) {
+        recordLocalAuth(req, "bridge.invalid_session", access_token);
         res.status(401).json({ error: "Invalid or expired token" });
         return;
       }
@@ -53,6 +57,7 @@ export function registerSupabaseAuthRoutes(app: Express) {
         const hasAccess = await ensurePostSparkAccess(user.id, user.email ?? null, name);
 
         if (!hasAccess) {
+          recordLocalAuth(req, "bridge.access_denied", access_token);
           res.status(403).json({ error: "postspark_access_required" });
           return;
         }
@@ -60,6 +65,7 @@ export function registerSupabaseAuthRoutes(app: Express) {
 
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, access_token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      recordLocalAuth(req, "bridge.cookie_set", access_token);
 
       const metadata = user.user_metadata ?? {};
       const name =

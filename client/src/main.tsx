@@ -1,3 +1,5 @@
+import {AuthProvider} from "./_core/hooks/useAuth";
+import {ensureSessionForRequest,clearBridgeMarker} from "./lib/authBridge";
 import { trpc } from "@/lib/trpc";
 import { UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -32,7 +34,8 @@ queryClient.getQueryCache().subscribe(event => {
     const error = event.query.state.error;
     if (error instanceof TRPCClientError && error.message === UNAUTHED_ERR_MSG) {
       // Invalida a query de auth para forçar o AuthGate a aparecer
-      queryClient.invalidateQueries({ queryKey: [["auth", "me"]] });
+      clearBridgeMarker();
+      if(event.query.queryKey?.[0]?.toString()!=="auth,me")queryClient.invalidateQueries({ queryKey: [["auth", "me"]] });
     }
     console.error("[API Query Error]", error);
   }
@@ -54,8 +57,12 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       async fetch(input, init) {
+        if(import.meta.env.DEV)await ensureSessionForRequest();
         const response = await globalThis.fetch(input, {
           ...(init ?? {}),
+          headers: import.meta.env.DEV
+            ? { ...Object.fromEntries(new Headers(init?.headers).entries()), "X-PostSpark-Auth-Bridge": "shared" }
+            : init?.headers,
           credentials: "include",
         });
         if (!response.headers.get("content-type")?.toLowerCase().includes("json")) {
@@ -73,7 +80,7 @@ const trpcClient = trpc.createClient({
 createRoot(document.getElementById("root")!).render(
   <trpc.Provider client={trpcClient} queryClient={queryClient}>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <AuthProvider><App /></AuthProvider>
     </QueryClientProvider>
   </trpc.Provider>
 );

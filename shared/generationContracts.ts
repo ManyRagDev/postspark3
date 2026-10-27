@@ -1,4 +1,6 @@
+import { generationFailureSchema } from "./generationFailure";
 import { z } from "zod";
+import { proposalReviewRecordSchema } from "./proposalReview";
 import {
   completeDesignVariationV1Schema,
   type CompleteDesignVariationV1,
@@ -16,6 +18,7 @@ export const proposalStateSchema = z.enum([
   "checking",
   "recovering",
   "delivery_pending",
+  "awaiting_reconciliation",
   "ready",
   "failed",
   "cancelled",
@@ -69,9 +72,7 @@ export const imageTaskContractSchema = z.object({
       materials: z.string().optional(),
     })
     .optional(),
-  requiredCapabilities: z
-    .array(z.string())
-    .default(["image-output"]),
+  requiredCapabilities: z.array(z.string()).default(["image-output"]),
   status: z.enum(["pending", "fulfilled", "failed"]).default("pending"),
 });
 export type ImageTaskContract = z.infer<typeof imageTaskContractSchema>;
@@ -94,8 +95,12 @@ const proposalDeliveryBase = z.object({
   runId: z.string().uuid(),
   slot: z.number().int().min(0).max(2),
   revision: z.number().int().min(1).default(1),
+  attempt: z.object({index:z.number().int().min(0).max(3),id:z.string().min(1)}).strict().optional(),
   findings: z.array(technicalFindingSchema).default([]),
   diagnostics: z.array(proposalDiagnosticSchema).default([]),
+  /** Absent on historical deliveries; canonical generation always records its required review. */
+  reviews: z.array(proposalReviewRecordSchema).max(2).optional(),
+  failure: generationFailureSchema.optional(),
   errorReason: z.string().optional(),
   completedAt: z.number().finite().optional(),
 });
@@ -109,6 +114,7 @@ export const proposalDeliverySchema = z
         bundle: completeDesignVariationV1Schema,
       })
       .strict(),
+    proposalDeliveryBase.extend({ status: z.literal("awaiting_reconciliation") }).strict(),
     proposalDeliveryBase.extend({ status: z.literal("planned") }).strict(),
     proposalDeliveryBase.extend({ status: z.literal("running") }).strict(),
     proposalDeliveryBase
@@ -125,6 +131,27 @@ export const proposalDeliverySchema = z
   ])
   .superRefine((delivery, ctx) => {
     if (delivery.status !== "ready") return;
+    if (delivery.reviews && delivery.reviews.at(-1)?.status !== "passed")
+      ctx.addIssue({
+        code: "custom",
+        path: ["reviews"],
+        message: "Revisão exigida não concluída",
+      });
+    const lastReview = delivery.reviews?.at(-1);
+    if (
+      lastReview &&
+      (lastReview.reviewedSlides.length !== delivery.bundle.slides.length ||
+        new Set(lastReview.reviewedSlides).size !==
+          delivery.bundle.slides.length ||
+        lastReview.reviewedSlides.some(
+          index => index >= delivery.bundle.slides.length
+        ))
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["reviews"],
+        message: "Revisão não cobre todos os slides da entrega",
+      });
     if (delivery.bundle.runId !== delivery.runId)
       ctx.addIssue({
         code: "custom",
@@ -153,6 +180,7 @@ export const generationCoordinatorSnapshotSchema = z.object({
   runId: z.string().uuid(),
   overallStatus: z.enum([
     "running",
+    "awaiting_reconciliation",
     "completed",
     "partial",
     "failed",

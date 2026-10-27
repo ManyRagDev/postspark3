@@ -163,6 +163,8 @@ export interface ExecutionBriefContext {
   objective: string;
   tone?: string;
   callToAction?: string;
+  audience?: string;
+  brandEssence?: string;
   interventionLevel: "visual_only" | "light_optimize" | "optimize_structure";
   contentSourceType: string;
   rawInput: string;
@@ -310,6 +312,8 @@ function buildExecutionBriefContext(brief: ExecutionBriefContext): string {
 - Objetivo: ${brief.objective}
 - Tom desejado: ${brief.tone || "não informado"}
 - CTA obrigatório: ${brief.callToAction || "não informado"}
+- Público-alvo: ${brief.audience || "não informado"}
+- Essência da marca: ${brief.brandEssence || "não informada"}
 - Nível de intervenção: ${brief.interventionLevel}
 - Tipo de insumo: ${brief.contentSourceType}
 

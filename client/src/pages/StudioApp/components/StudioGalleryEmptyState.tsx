@@ -3,13 +3,15 @@ import { ArrowLeft } from "lucide-react";
 import type { AspectRatioType } from "@/pages/CanvasLab/components/types";
 import type { ProposalDelivery } from "@shared/generationContracts";
 import ProposalSkeletonCard from "./ProposalSkeletonCard";
-import { labelV5Status, messageV5ProposalFailure } from "../lib/studioGenerationV5State";
+import { labelGenerationStatus, messageGenerationProposalFailure } from "../lib/studioGenerationState";
+import type { ProposalProgressValues } from "../lib/useProposalProgress";
 
 export interface StudioGalleryEmptyStateProps {
   isGenerating: boolean;
   onBackToCreate: () => void;
   aspectRatio?: AspectRatioType;
   proposals?: ProposalDelivery[];
+  proposalProgress?: ProposalProgressValues;
 }
 
 export default function StudioGalleryEmptyState({
@@ -17,6 +19,7 @@ export default function StudioGalleryEmptyState({
   onBackToCreate,
   aspectRatio = "1:1",
   proposals,
+  proposalProgress,
 }: StudioGalleryEmptyStateProps) {
   const allProposalsFailed = Boolean(
     proposals &&
@@ -66,9 +69,9 @@ export default function StudioGalleryEmptyState({
               const proposal = proposals?.find((p) => p.slot === slotIdx);
               const status = proposal?.status || "running";
               const errorReason = proposal?.errorReason
-                ? messageV5ProposalFailure(proposal.errorReason)
+                ? messageGenerationProposalFailure(proposal.errorReason, proposal.failure)
                 : undefined;
-              const statusMessage = proposal ? labelV5Status(proposal.status) : undefined;
+              const statusMessage = proposal ? labelGenerationStatus(proposal.status) : undefined;
 
               return (
                 <ProposalSkeletonCard
@@ -77,6 +80,7 @@ export default function StudioGalleryEmptyState({
                   aspectRatio={aspectRatio}
                   cardScale={0.72}
                   status={status}
+                  progress={proposal ? proposalProgress?.[`${proposal.proposalId}:${proposal.revision}`] : undefined}
                   statusMessage={statusMessage}
                   errorReason={errorReason}
                 />

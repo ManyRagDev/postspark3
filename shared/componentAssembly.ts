@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { designGuidanceSchema } from "./designGuidance";
+export { designGuidanceSchema, type DesignGuidance } from "./designGuidance";
 import { arsenalHash, contentCoverageIssues } from "./arsenalContent";
 import { bindAssemblyContent, bindCompleteDesignClosingContent } from "./assemblyContentBindings";
 import {
@@ -104,7 +106,7 @@ export const componentSourceV1Schema = z.discriminatedUnion("kind", [
 ]);
 const componentDefinitionFields = {
   schemaVersion: z.literal(1),
-  completeDesign: z.object({ family: z.string().min(1).max(160), baselineVerified:z.boolean().optional(), colors:z.array(z.string().regex(/^#[a-f\d]{6}$/i)).max(100).optional() }).strict().optional(),
+  completeDesign: z.object({ family: z.string().min(1).max(160), authorshipRevision:z.number().int().min(1).optional(), baselineVerified:z.boolean().optional(), colors:z.array(z.string().regex(/^#[a-f\d]{6}$/i)).max(100).optional(), designGuidance:designGuidanceSchema.optional() }).strict().optional(),
   id: uuid,
   kind: z.enum(componentKinds),
   label: z.string().min(1).max(160),
@@ -143,6 +145,14 @@ export const componentDefinitionV1Schema = z
     for (const p of Object.values(c.pieces))
       if (p.fontAssetId && !c.assets.some(a => arsenalFontMatches(a, p)))
         issue("component_font_manifest_mismatch");
+    for (const p of Object.values(c.pieces))
+      if (p.imageAssetId && (p.kind !== "media" || !c.assets.some(a => a.id === p.imageAssetId && /^image\/(png|jpeg|webp)$/.test(a.mimeType))))
+        issue("component_image_manifest_mismatch");
+    for (const id of c.completeDesign?.designGuidance?.requiredTextTargets ?? []) {
+      const target = c.fragment.instances.find(i => i.id === id);
+      if (!target || c.pieces[target.pieceHash]?.kind !== "text")
+        issue("component_required_text_target_invalid");
+    }
     for (const id of [
       ...Object.keys(c.colorRoles ?? {}),
       ...(c.removableElementIds ?? []),

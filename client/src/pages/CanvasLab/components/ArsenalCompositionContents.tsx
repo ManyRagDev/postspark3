@@ -18,6 +18,7 @@ import {
   type RichTextLayout,
 } from "../lib/richTextLayout";
 import RichTextRenderer from "./RichTextRenderer";
+import { loadArsenalImage } from "../lib/arsenalAssets";
 
 type Event = any;
 export interface ArsenalTextBridge {
@@ -44,21 +45,23 @@ function SlotImage({
   interactive: boolean;
 }) {
   const slot = c.media[e.id];
+  const asset = e.imageAssetId ? c.assets.find(a=>a.id===e.imageAssetId) : undefined;
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   useEffect(() => {
     let active = true;
     setImage(null);
-    if (!slot) return;
+    if (!slot && !asset) return;
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
       if (active) setImage(img);
     };
-    img.src = slot.url;
+    if (slot) img.src = slot.url;
+    else if (asset) void loadArsenalImage(asset).then(url=>{if(active)img.src=url;}).catch(()=>{if(active)setImage(null);});
     return () => {
       active = false;
     };
-  }, [slot?.url]);
+  }, [slot?.url, asset?.id, asset?.sha256]);
   const scale = image
     ? Math.max(e.width / image.naturalWidth, e.height / image.naturalHeight)
     : 1;
@@ -313,6 +316,9 @@ export function ArsenalCompositionContents({
   register,
   onSelect,
   onTransform,
+  createSnapBoundFunc,
+  onDragMove,
+  onDragEnd,
 }: {
   composition: ArsenalComposition;
   interactive: boolean;
@@ -320,6 +326,9 @@ export function ArsenalCompositionContents({
   register: (id: string, node: any, isText: boolean) => void;
   onSelect: (id: string) => void;
   onTransform: (id: string, patch: Record<string, number>) => void;
+  createSnapBoundFunc?: (width: number, height: number) => (pos: { x: number; y: number }) => { x: number; y: number };
+  onDragMove?: () => void;
+  onDragEnd?: () => void;
 }) {
   const render = (node: ArsenalElement | ArsenalGroup): React.ReactNode => {
     const isGroup = !("kind" in node),
@@ -335,20 +344,30 @@ export function ArsenalCompositionContents({
       if (event.target !== event.currentTarget) return;
       event.cancelBubble = true;
       const target = event.target;
-      const patch = {
-        x: target.x(),
-        y: target.y(),
-        rotation: target.rotation(),
+      const patch: Record<string, any> = {
+        x: Math.round(target.x()),
+        y: Math.round(target.y()),
+        rotation: Math.round(target.rotation()),
       };
       if (isGroup) {
-        Object.assign(patch, { scale: target.scaleX() });
+        Object.assign(patch, { scale: Number(target.scaleX().toFixed(4)) });
       } else if (target.scaleX() !== 1 || target.scaleY() !== 1) {
-        Object.assign(patch, {
-          width: Math.max(20, node.width * target.scaleX()),
-          ...(e.kind === "text"
-            ? {}
-            : { height: Math.max(20, node.height * target.scaleY()) }),
-        });
+        if (e.kind === "text") {
+          const scaleX = target.scaleX();
+          const scaleY = target.scaleY();
+          const isLateral = Math.abs(scaleY - 1) < 0.005;
+          const factor = isLateral ? scaleX : (Math.abs(scaleX - 1) > Math.abs(scaleY - 1) ? scaleX : scaleY);
+          const newWidth = Math.max(20, Math.round(node.width * (isLateral ? scaleX : factor)));
+          patch.width = newWidth;
+          if (!isLateral) {
+            patch.fontSize = Math.max(8, Math.round(e.fontSize * factor));
+          }
+        } else {
+          Object.assign(patch, {
+            width: Math.max(20, Math.round(node.width * target.scaleX())),
+            height: Math.max(20, Math.round(node.height * target.scaleY())),
+          });
+        }
       }
       target.scaleX(
         isGroup ? (patch as typeof patch & { scale: number }).scale : 1
@@ -370,15 +389,22 @@ export function ArsenalCompositionContents({
         scaleX={isGroup ? (node as ArsenalGroup).scale : 1}
         scaleY={isGroup ? (node as ArsenalGroup).scale : 1}
         draggable={interactive && !editing}
+        dragBoundFunc={
+          createSnapBoundFunc
+            ? createSnapBoundFunc(
+                isGroup ? ((node as ArsenalGroup).width ?? 100) : (e.width ?? 100),
+                isGroup ? ((node as ArsenalGroup).height ?? 100) : (e.height ?? 100)
+              )
+            : undefined
+        }
         listening={interactive}
-        onDragEnd={commit}
+        onDragMove={onDragMove}
+        onDragEnd={(event) => {
+          onDragEnd?.();
+          commit(event);
+        }}
         onTransformEnd={commit}
         onClick={event => {
-          if (
-            event.target?.getParent() !== event.currentTarget &&
-            event.target !== event.currentTarget
-          )
-            return;
           event.cancelBubble = true;
           if (layout && !event.evt?.shiftKey)
             bridge.click(event, node.id, layout);
@@ -386,9 +412,11 @@ export function ArsenalCompositionContents({
         }}
         onTap={choose}
         onDblClick={event => {
+          event.cancelBubble = true;
           if (layout) bridge.doubleClick(event, node.id, layout);
         }}
         onDblTap={event => {
+          event.cancelBubble = true;
           if (layout) bridge.doubleClick(event, node.id, layout);
         }}
         onMouseDown={event => {

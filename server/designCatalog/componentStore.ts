@@ -1,7 +1,9 @@
+import {publishCatalogIfEnabled} from "./versionedCatalog";
 import { componentDefinitionV1Schema, compactComponentCard, componentCardV1Schema, componentKinds, type ComponentDefinitionV1, type ComponentCardV1 } from "../../shared/componentAssembly";
 import type { StudioPreferences } from "../../shared/studioPreferences";
 import { arsenalHash } from "../../shared/arsenalContent";
 import { getDb } from "../db";
+import { z } from "zod";
 
 export const COMPONENT_DESCRIPTOR_VERSION = "component-structural-v1";
 /** Explicit normalized geometric features; no embeddings, training or approximate index. */
@@ -42,7 +44,7 @@ export async function prepareComponentDraft(value:unknown,actor:string) {
   if(stored.error)throw stored.error;
   const actual=await db.from("design_components").select("definition_hash,status").eq("id",definition.id).single();
   if(actual.error||actual.data.definition_hash!==definition.hash)throw new Error("Componente existente diverge do pacote");
-  if(actual.data.status!=="draft")return {id:definition.id,hash:definition.hash,idempotent:true};
+  if(actual.data.status!=="draft"){await publishCatalogIfEnabled();return {id:definition.id,hash:definition.hash,idempotent:true};}
   if(definition.assets.length){
     const links=await db.from("design_component_assets").upsert(definition.assets.map(a=>({component_id:definition.id,asset_id:a.id})),{onConflict:"component_id,asset_id",ignoreDuplicates:true});if(links.error)throw links.error;
   }
@@ -50,6 +52,7 @@ export async function prepareComponentDraft(value:unknown,actor:string) {
   const index=await db.from("design_component_search_documents").upsert({component_id:definition.id,definition_hash:definition.hash,descriptor_version:COMPONENT_DESCRIPTOR_VERSION,projected:JSON.stringify(descriptor.structure),descriptor,card},{onConflict:"component_id",ignoreDuplicates:true});if(index.error)throw index.error;
   const previous=await db.from("design_component_evidence").select("id").eq("component_id",definition.id).eq("definition_hash",definition.hash).eq("kind","technical").limit(1);if(previous.error)throw previous.error;
   if(!previous.data?.length){const evidence=await db.from("design_component_evidence").insert({component_id:definition.id,definition_hash:definition.hash,kind:"technical",decision:"verified",actor_id:actor,metrics:{descriptorVersion:COMPONENT_DESCRIPTOR_VERSION,piecesVerified:true,assetsVerified:true,graphVerified:true}});if(evidence.error)throw evidence.error;}
+  await publishCatalogIfEnabled();
   return {id:definition.id,hash:definition.hash,idempotent:!stored.data?.length};
 }
 export async function hydrateComponents(ids:string[],experimental=false):Promise<ComponentDefinitionV1[]> {
@@ -144,6 +147,13 @@ export async function retrieveComponentCardsForGeneration(input:ComponentQuery):
 export async function retrieveComponentsForGeneration(input:ComponentQuery):Promise<ComponentDefinitionV1[]> {
   return hydrateComponents((await retrieveComponentCardsForGeneration(input)).map(c=>c.id),input.experimental);
 }
+type ComponentVisualReview={component_id:string;definition_hash:string;kind:"human"|"agent_visual";decision:"approved"|"rejected";created_at:string;id:string};
+/** Mirrors the database publication rule; a human decision takes precedence. */
+export function effectiveComponentReview(reviews:ComponentVisualReview[],id:string,hash:string) {
+  const current=reviews.filter(e=>e.component_id===id&&e.definition_hash===hash)
+    .sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id));
+  return current.find(e=>e.kind==="human")??current.find(e=>e.kind==="agent_visual")??null;
+}
 export async function listComponents(offset=0,includeArchived=false,filters:{kind?:string;status?:string;search?:string}={}) {
   let query=getDb().from("design_components").select("id,definition_hash,definition,status,source_key,created_at",{count:"exact"});
   if(filters.status)query=query.eq("status",filters.status);
@@ -152,16 +162,26 @@ export async function listComponents(offset=0,includeArchived=false,filters:{kin
   if(filters.search?.trim())query=query.ilike("definition->>label",`%${filters.search.trim().replace(/[\\%_]/g,"\\$&")}%`);
   const r=await query.order("source_key").order("id").range(offset,offset+49);if(r.error)throw r.error;
   const ids=(r.data??[]).map((row:{id:string})=>row.id);
-  const reviews=ids.length?await getDb().from("design_component_evidence").select("component_id,definition_hash,decision,created_at").eq("kind","human").in("component_id",ids).order("created_at",{ascending:false}):{data:[],error:null};
+  const reviews=ids.length?await getDb().from("design_component_evidence").select("id,component_id,definition_hash,kind,decision,created_at").in("kind",["human","agent_visual"]).in("component_id",ids).order("created_at",{ascending:false}).order("id",{ascending:false}):{data:[],error:null};
   if(reviews.error)throw reviews.error;
-  return {entries:(r.data??[]).map((row:{id:string;definition_hash:string})=>({...row,review:reviews.data?.find((e:{component_id:string;definition_hash:string})=>e.component_id===row.id&&e.definition_hash===row.definition_hash)??null})),total:r.count??0};
+  return {entries:(r.data??[]).map((row:{id:string;definition_hash:string})=>({...row,review:effectiveComponentReview(reviews.data??[],row.id,row.definition_hash)})),total:r.count??0};
 }
 export async function reviewComponent(input:{id:string;hash:string;pngHash:string;briefingHash:string;decision:"approved"|"rejected";notes:string},actor:string) {
   const r=await getDb().from("design_components").select("definition_hash").eq("id",input.id).single();if(r.error||r.data.definition_hash!==input.hash)throw new Error("Prévia não corresponde ao componente");
   const e=await getDb().from("design_component_evidence").insert({component_id:input.id,definition_hash:input.hash,kind:"human",decision:input.decision,png_hash:input.pngHash,briefing_hash:input.briefingHash,actor_id:actor,metrics:{notes:input.notes,source:"admin_review"}});if(e.error)throw e.error;
 }
+const sha256=z.string().regex(/^[a-f0-9]{64}$/);
+const agentComponentReviewSchema=z.object({id:z.string().uuid(),hash:sha256,pngHash:sha256,briefingHash:sha256,decision:z.enum(["approved","rejected"]),reviewer:z.string().trim().min(1).max(200),notes:z.string().max(4000)}).strict();
+/** Internal service operation for an actual PNG/brief review, never exposed as a public LLM tool. */
+export async function recordAgentComponentReview(value:z.input<typeof agentComponentReviewSchema>,actor:string) {
+  const input=agentComponentReviewSchema.parse(value),actorId=z.string().uuid().parse(actor);
+  const r=await getDb().from("design_components").select("definition_hash").eq("id",input.id).single();
+  if(r.error||r.data.definition_hash!==input.hash)throw new Error("Prévia não corresponde ao componente");
+  const e=await getDb().from("design_component_evidence").insert({component_id:input.id,definition_hash:input.hash,kind:"agent_visual",decision:input.decision,png_hash:input.pngHash,briefing_hash:input.briefingHash,actor_id:actorId,metrics:{notes:input.notes,source:"agent_visual_review",reviewer:input.reviewer}});
+  if(e.error)throw e.error;
+}
 export async function publishComponent(id:string,status:"approved"|"archived") {
-  const r=await getDb().from("design_components").update({status}).eq("id",id).select("id").single();if(r.error)throw r.error;return r.data;
+  const r=await getDb().from("design_components").update({status}).eq("id",id).select("id").single();if(r.error)throw r.error;await publishCatalogIfEnabled();return r.data;
 }
 
 /** Admin review context independent of pagination/filters; no aesthetic approval is inferred. */

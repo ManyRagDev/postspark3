@@ -8,7 +8,16 @@
  */
 import { ENV } from "./_core/env";
 import { appendOperationalLog } from "./_core/operationalLog";
-import { imageDimensions, openRouterImageRatio, type ImageAspectRatio } from "@shared/imageGeneration";
+import {
+  hashPrompt,
+  recordLlmTraceCall,
+  recordGenerationEvent,
+} from "./ai/generationTrace";
+import {
+  imageDimensions,
+  openRouterImageRatio,
+  type ImageAspectRatio,
+} from "@shared/imageGeneration";
 
 export type ImageProvider = "pollinations_fast" | "pollinations_hd";
 
@@ -44,28 +53,50 @@ export type StrictImageModelCapabilities = {
 };
 
 /** Explicitly verified capabilities for strict V5 image models. */
-export const strictImageModelCapabilities: Readonly<Record<string, StrictImageModelCapabilities>> = {
+export const strictImageModelCapabilities: Readonly<
+  Record<string, StrictImageModelCapabilities>
+> = {
   "google/gemini-3.1-flash-image": {
     inputReferences: true,
     aspectRatios: ["1:1", "4:5", "5:6", "9:16"],
-    supportedPurposes: ["editorial-photo", "product", "illustration", "series", "conceptual"],
+    supportedPurposes: [
+      "editorial-photo",
+      "product",
+      "illustration",
+      "series",
+      "conceptual",
+    ],
   },
   "bytedance-seed/seedream-5-0-pro": {
     inputReferences: true,
     aspectRatios: ["1:1", "4:5", "5:6", "9:16"],
-    supportedPurposes: ["product", "editorial-photo", "illustration", "series", "conceptual"],
+    supportedPurposes: [
+      "product",
+      "editorial-photo",
+      "illustration",
+      "series",
+      "conceptual",
+    ],
   },
   // Alias retrocompatível com ponto
   "bytedance-seed/seedream-5.0-pro": {
     inputReferences: true,
     aspectRatios: ["1:1", "4:5", "5:6", "9:16"],
-    supportedPurposes: ["product", "editorial-photo", "illustration", "series", "conceptual"],
+    supportedPurposes: [
+      "product",
+      "editorial-photo",
+      "illustration",
+      "series",
+      "conceptual",
+    ],
   },
 };
 
 /** Purpose-based model priority and verified fallback candidates (Blueprint §7) */
-export const PURPOSE_MODEL_ROUTING: Readonly<Record<string, { primary: string; fallbacks: readonly string[] }>> = {
-  "product": {
+export const PURPOSE_MODEL_ROUTING: Readonly<
+  Record<string, { primary: string; fallbacks: readonly string[] }>
+> = {
+  product: {
     primary: "bytedance-seed/seedream-5-0-pro",
     fallbacks: ["google/gemini-3.1-flash-image"],
   },
@@ -73,15 +104,15 @@ export const PURPOSE_MODEL_ROUTING: Readonly<Record<string, { primary: string; f
     primary: "google/gemini-3.1-flash-image",
     fallbacks: ["bytedance-seed/seedream-5-0-pro"],
   },
-  "illustration": {
+  illustration: {
     primary: "bytedance-seed/seedream-5-0-pro",
     fallbacks: ["google/gemini-3.1-flash-image"],
   },
-  "series": {
+  series: {
     primary: "google/gemini-3.1-flash-image",
     fallbacks: ["bytedance-seed/seedream-5-0-pro"],
   },
-  "conceptual": {
+  conceptual: {
     primary: "google/gemini-3.1-flash-image",
     fallbacks: ["bytedance-seed/seedream-5-0-pro"],
   },
@@ -103,10 +134,14 @@ function candidateFromImageNode(value: unknown): ImageCandidate | null {
   const inlineData = node.inline_data ?? node.inlineData;
   if (inlineData && typeof inlineData === "object") {
     const data = (inlineData as Record<string, unknown>).data;
-    const mimeType = (inlineData as Record<string, unknown>).mime_type
-      ?? (inlineData as Record<string, unknown>).mimeType;
+    const mimeType =
+      (inlineData as Record<string, unknown>).mime_type ??
+      (inlineData as Record<string, unknown>).mimeType;
     if (typeof data === "string") {
-      return { value: data, mimeType: typeof mimeType === "string" ? mimeType : undefined };
+      return {
+        value: data,
+        mimeType: typeof mimeType === "string" ? mimeType : undefined,
+      };
     }
   }
 
@@ -145,7 +180,8 @@ function collectImageCandidates(response: unknown): ImageCandidate[] {
       for (const part of messageRecord.content) {
         if (!part || typeof part !== "object") continue;
         const type = (part as Record<string, unknown>).type;
-        if (type !== "image" && type !== "image_url" && type !== "output_image") continue;
+        if (type !== "image" && type !== "image_url" && type !== "output_image")
+          continue;
         const candidate = candidateFromImageNode(part);
         if (candidate) output.push(candidate);
       }
@@ -156,16 +192,33 @@ function collectImageCandidates(response: unknown): ImageCandidate[] {
 }
 
 function detectImageMimeType(buffer: Buffer): string | null {
-  if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+  if (
+    buffer.length >= 8 &&
+    buffer
+      .subarray(0, 8)
+      .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+  ) {
     return "image/png";
   }
-  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+  if (
+    buffer.length >= 3 &&
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8 &&
+    buffer[2] === 0xff
+  ) {
     return "image/jpeg";
   }
-  if (buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP") {
+  if (
+    buffer.length >= 12 &&
+    buffer.toString("ascii", 0, 4) === "RIFF" &&
+    buffer.toString("ascii", 8, 12) === "WEBP"
+  ) {
     return "image/webp";
   }
-  if (buffer.length >= 6 && ["GIF87a", "GIF89a"].includes(buffer.toString("ascii", 0, 6))) {
+  if (
+    buffer.length >= 6 &&
+    ["GIF87a", "GIF89a"].includes(buffer.toString("ascii", 0, 6))
+  ) {
     return "image/gif";
   }
   return null;
@@ -180,23 +233,32 @@ function validatedDataUri(base64: string, declaredMimeType?: string): string {
   const buffer = Buffer.from(normalized, "base64");
   const detectedMimeType = detectImageMimeType(buffer);
   if (!detectedMimeType) {
-    throw new Error(`Image payload has an invalid binary signature${declaredMimeType ? ` (declared ${declaredMimeType})` : ""}`);
+    throw new Error(
+      `Image payload has an invalid binary signature${declaredMimeType ? ` (declared ${declaredMimeType})` : ""}`
+    );
   }
 
   return `data:${detectedMimeType};base64,${buffer.toString("base64")}`;
 }
 
 async function toDataUri(candidate: ImageCandidate): Promise<string> {
-  const dataUri = /^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]+)$/.exec(candidate.value);
+  const dataUri = /^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]+)$/.exec(
+    candidate.value
+  );
   if (dataUri) return validatedDataUri(dataUri[2], dataUri[1]);
 
   if (/^https?:\/\//i.test(candidate.value)) {
     const response = await fetch(candidate.value);
     if (!response.ok) {
-      throw new Error(`Image URL fetch failed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Image URL fetch failed: ${response.status} ${response.statusText}`
+      );
     }
     const buffer = Buffer.from(await response.arrayBuffer());
-    return validatedDataUri(buffer.toString("base64"), response.headers.get("content-type") ?? undefined);
+    return validatedDataUri(
+      buffer.toString("base64"),
+      response.headers.get("content-type") ?? undefined
+    );
   }
 
   return validatedDataUri(candidate.value, candidate.mimeType);
@@ -209,10 +271,12 @@ async function generateWithOpenRouter(
   model: string,
   strictRoute: boolean,
   references: string[] = [],
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<string> {
   if (!ENV.openRouterApiKey) {
-    throw new Error("OPENROUTER_API_KEY is not configured for image generation");
+    throw new Error(
+      "OPENROUTER_API_KEY is not configured for image generation"
+    );
   }
 
   console.info("[ImageGen] Calling image service", {
@@ -226,48 +290,76 @@ async function generateWithOpenRouter(
     model === "bytedance-seed/seedream-5.0-pro"
       ? "bytedance-seed/seedream-5-0-pro"
       : model;
+  const startedAt = Date.now();
+  const recordUnknownAttempt = (reason: string) =>
+    recordLlmTraceCall({
+      label: "proposal_image",
+      taskRoute: "image_generation",
+      requestedModel: normalizedModel,
+      effectiveModel: "unknown",
+      effectiveModelReported: false,
+      provider: "openrouter",
+      promptHash: hashPrompt([
+        { prompt, aspectRatio, references: references.length },
+      ]),
+      messages: [],
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      latencyMs: Date.now() - startedAt,
+      estimatedCostUsd: 0,
+      costSource: "unknown",
+      error: reason,
+    });
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${ENV.openRouterApiKey}`,
-      "HTTP-Referer": ENV.openRouterSiteUrl,
-      "X-Title": ENV.openRouterAppName,
-    },
-    body: JSON.stringify({
-      model: normalizedModel,
-      image_config: { aspect_ratio: nativeRatio },
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `${wrapPrompt(prompt)}
+  let response: Response;
+  try {
+    response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${ENV.openRouterApiKey}`,
+        "HTTP-Referer": ENV.openRouterSiteUrl,
+        "X-Title": ENV.openRouterAppName,
+      },
+      body: JSON.stringify({
+        model: normalizedModel,
+        image_config: { aspect_ratio: nativeRatio },
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `${wrapPrompt(prompt)}
 
 Output requirements:
 - Compose for a ${aspectRatio} social media canvas using the requested ${nativeRatio} native image ratio. Keep important scene elements comfortably within the canvas when practical; do not force a centered subject or reserve blank crop bands.
 - Quality level: ${provider === "pollinations_hd" ? "high detail" : "fast production quality"}.
 - Return the image result; do not return explanatory text.`,
-            },
-            ...references.map((url) => ({
-              type: "image_url" as const,
-              image_url: { url },
-            })),
-          ],
+              },
+              ...references.map(url => ({
+                type: "image_url" as const,
+                image_url: { url },
+              })),
+            ],
+          },
+        ],
+        modalities: ["image", "text"],
+        provider: {
+          allow_fallbacks: !strictRoute,
+          data_collection: "deny",
         },
-      ],
-      modalities: ["image", "text"],
-      provider: {
-        allow_fallbacks: !strictRoute,
-        data_collection: "deny",
-      },
-    }),
-    signal,
-  });
+      }),
+      signal,
+    });
+  } catch (error) {
+    recordUnknownAttempt("image_provider_transport_failed");
+    throw error;
+  }
 
   if (!response.ok) {
+    recordUnknownAttempt(`image_provider_http_${response.status}`);
     const body = (await response.text()).slice(0, 500);
     void appendOperationalLog("IMAGE_PROVIDER_NON_200", {
       provider: "openrouter",
@@ -276,14 +368,69 @@ Output requirements:
       statusText: response.statusText,
       body,
     });
-    throw new Error(`OpenRouter image generation failed: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `OpenRouter image generation failed: ${response.status} ${response.statusText}`
+    );
   }
 
   const json = await response.json();
+  const usage = json.usage ?? {};
+  const metric = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value) && value >= 0
+      ? value
+      : 0;
+  const knownCost =
+    typeof usage.cost === "number" &&
+    Number.isFinite(usage.cost) &&
+    usage.cost >= 0;
+  recordLlmTraceCall({
+    label: "proposal_image",
+    taskRoute: "image_generation",
+    requestedModel: normalizedModel,
+    effectiveModel:
+      typeof json.model === "string" && json.model.trim()
+        ? json.model
+        : "unknown",
+    effectiveModelReported:
+      typeof json.model === "string" && Boolean(json.model.trim()),
+    provider: "openrouter",
+    providerId: typeof json.id === "string" ? json.id : undefined,
+    promptHash: hashPrompt([
+      { prompt, aspectRatio, references: references.length },
+    ]),
+    messages: [
+      { role: "user", content: prompt, referenceImageCount: references.length },
+    ],
+    response: { id: json.id, model: json.model, usage: json.usage },
+    promptTokens: metric(usage.prompt_tokens),
+    completionTokens: metric(usage.completion_tokens),
+    totalTokens:
+      metric(usage.total_tokens) ||
+      metric(usage.prompt_tokens) + metric(usage.completion_tokens),
+    latencyMs: Date.now() - startedAt,
+    estimatedCostUsd: knownCost ? usage.cost : 0,
+    costSource: knownCost ? "provider" : "unknown",
+  });
+  recordGenerationEvent({
+    stage: "image_provider_response",
+    status: "completed",
+    detail: "provider_evidence",
+    data: {
+      modelReported: typeof json.model === "string",
+      providerIdReported: typeof json.id === "string",
+      usageReported: Boolean(json.usage),
+      costKnown: knownCost,
+    },
+  });
   const candidates = collectImageCandidates(json);
-  console.log('[ImageGen] Collected structured image candidates:', candidates.length);
+  console.log(
+    "[ImageGen] Collected structured image candidates:",
+    candidates.length
+  );
   if (candidates.length === 0) {
-    throw new Error("OpenRouter image response did not contain an image payload");
+    throw new Error(
+      "OpenRouter image response did not contain an image payload"
+    );
   }
 
   let image: string | null = null;
@@ -297,9 +444,12 @@ Output requirements:
     }
   }
   if (!image) {
-    throw new Error("OpenRouter image response contained no valid image payload", {
-      cause: lastValidationError,
-    });
+    throw new Error(
+      "OpenRouter image response contained no valid image payload",
+      {
+        cause: lastValidationError,
+      }
+    );
   }
 
   console.info("[ImageGen] Image service succeeded", {
@@ -314,9 +464,10 @@ async function generateWithPollinations(
   prompt: string,
   provider: ImageProvider,
   aspectRatio: ImageAspectRatio,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<string> {
-  const modelId = provider === "pollinations_hd" ? "nanobanana-pro" : "nanobanana";
+  const modelId =
+    provider === "pollinations_hd" ? "nanobanana-pro" : "nanobanana";
   const { width, height } = imageDimensions[aspectRatio];
   const encodedPrompt = encodeURIComponent(wrapPrompt(prompt));
   const url = `https://gen.pollinations.ai/image/${encodedPrompt}?model=${modelId}&nologo=true&width=${width}&height=${height}&enhance=true`;
@@ -346,7 +497,9 @@ async function generateWithPollinations(
       statusText: response.statusText,
       body: errorText.slice(0, 500),
     });
-    throw new Error(`Pollinations API failed: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Pollinations API failed: ${response.status} ${response.statusText}`
+    );
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
@@ -363,7 +516,7 @@ export async function generateBackgroundImage(
   prompt: string,
   provider: ImageProvider = "pollinations_fast",
   aspectRatio: ImageAspectRatio = "1:1",
-  routeOptions: ImageGenerationRouteOptions = {},
+  routeOptions: ImageGenerationRouteOptions = {}
 ): Promise<string> {
   const strict = routeOptions.routePolicy === "strict";
   const references = strict
@@ -377,7 +530,9 @@ export async function generateBackgroundImage(
     };
     const configuredModel = ENV.openRouterV5ImageModel;
     if (configuredModel && !strictImageModelCapabilities[configuredModel]) {
-      throw new Error(`Modelo strict '${configuredModel}' com capabilities não verificadas`);
+      throw new Error(
+        `Modelo strict '${configuredModel}' com capabilities não verificadas`
+      );
     }
     const candidateModels = Array.from(
       new Set([
@@ -427,11 +582,14 @@ export async function generateBackgroundImage(
         return image;
       } catch (error) {
         lastError = error;
-        console.warn("[ImageGen] Strict route model failed, attempting verified fallback", {
-          failedModel: candidate,
-          purpose,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        console.warn(
+          "[ImageGen] Strict route model failed, attempting verified fallback",
+          {
+            failedModel: candidate,
+            purpose,
+            error: error instanceof Error ? error.message : String(error),
+          }
+        );
         void appendOperationalLog("IMAGE_PROVIDER_STRICT_FALLBACK", {
           provider: "openrouter",
           failedModel: candidate,
@@ -456,7 +614,15 @@ export async function generateBackgroundImage(
   });
 
   try {
-    const image = await generateWithOpenRouter(prompt, provider, aspectRatio, model, strict, references, routeOptions.signal);
+    const image = await generateWithOpenRouter(
+      prompt,
+      provider,
+      aspectRatio,
+      model,
+      strict,
+      references,
+      routeOptions.signal
+    );
     void appendOperationalLog("IMAGE_PROVIDER_200", {
       provider: "openrouter",
       model,
@@ -479,36 +645,50 @@ export async function generateBackgroundImage(
     });
   }
 
-  return generateWithPollinations(prompt, provider, aspectRatio, routeOptions.signal);
+  return generateWithPollinations(
+    prompt,
+    provider,
+    aspectRatio,
+    routeOptions.signal
+  );
 }
 
 async function resolveStrictReferences(
-  references: NonNullable<ImageGenerationRouteOptions["originalImages"]>,
+  references: NonNullable<ImageGenerationRouteOptions["originalImages"]>
 ): Promise<string[]> {
-  if (references.length > 10) throw new Error("Modelo strict aceita no máximo 10 imagens de referência");
-  return Promise.all(references.map(async (reference) => {
-    let value: string;
-    let mimeType = reference.mimeType;
-    if (reference.url) {
-      if (!reference.url.startsWith("data:image/")) {
-        throw new Error("Referência strict deve conter bytes autorizados; URLs externas não são buscadas");
+  if (references.length > 10)
+    throw new Error("Modelo strict aceita no máximo 10 imagens de referência");
+  return Promise.all(
+    references.map(async reference => {
+      let value: string;
+      let mimeType = reference.mimeType;
+      if (reference.url) {
+        if (!reference.url.startsWith("data:image/")) {
+          throw new Error(
+            "Referência strict deve conter bytes autorizados; URLs externas não são buscadas"
+          );
+        }
+        value = reference.url;
+      } else if (reference.b64Json) {
+        value = reference.b64Json;
+      } else {
+        throw new Error("Referência strict sem bytes de imagem");
       }
-      value = reference.url;
-    } else if (reference.b64Json) {
-      value = reference.b64Json;
-    } else {
-      throw new Error("Referência strict sem bytes de imagem");
-    }
 
-    const dataUri = /^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]+)$/.exec(value);
-    if (dataUri) {
-      if (dataUri[2].length > 11_200_000) throw new Error("Referência de imagem strict excede 8 MiB");
-      return toDataUri({ value });
-    }
-    if (!mimeType || !/^image\/(?:png|jpeg|webp)$/i.test(mimeType)) {
-      throw new Error("MIME type da referência strict inválido");
-    }
-    if (value.length > 11_200_000) throw new Error("Referência de imagem strict excede 8 MiB");
-    return toDataUri({ value, mimeType });
-  }));
+      const dataUri = /^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]+)$/.exec(
+        value
+      );
+      if (dataUri) {
+        if (dataUri[2].length > 11_200_000)
+          throw new Error("Referência de imagem strict excede 8 MiB");
+        return toDataUri({ value });
+      }
+      if (!mimeType || !/^image\/(?:png|jpeg|webp)$/i.test(mimeType)) {
+        throw new Error("MIME type da referência strict inválido");
+      }
+      if (value.length > 11_200_000)
+        throw new Error("Referência de imagem strict excede 8 MiB");
+      return toDataUri({ value, mimeType });
+    })
+  );
 }

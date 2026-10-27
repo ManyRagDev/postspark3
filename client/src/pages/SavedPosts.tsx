@@ -1,3 +1,4 @@
+import {toast} from "sonner";
 import { aspectRatioHeight } from "@shared/aspectRatios";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -126,11 +127,28 @@ function SavedPostPreview({ post }: { post: any }) {
   );
 }
 
+function GalleryPreview({post}:{post:{id:number;headline:string;gallery_preview?:string|null}}){
+ const [requested,setRequested]=useState(false);
+ const preview=trpc.post.get.useQuery({id:post.id},{enabled:requested&&!post.gallery_preview,staleTime:Infinity,retry:false});
+ if(post.gallery_preview)return <div className="flex h-52 justify-center bg-black/25 p-3"><img src={post.gallery_preview} alt={`Prévia: ${post.headline}`} className="object-contain" /></div>;
+ if(preview.data)return <SavedPostPreview post={preview.data}/>;
+ return <div className="flex h-52 flex-col items-center justify-center gap-3 bg-black/25 p-4"><p>{post.headline}</p><button disabled={preview.isFetching} onClick={()=>{setRequested(true);if(requested)void preview.refetch();}}>{preview.isFetching?'Carregando…':preview.error?'Tentar prévia novamente':'Carregar prévia'}</button></div>;
+}
+
 export default function SavedPosts() {
   const [, setLocation] = useLocation();
-  const { data: posts, isLoading, error, refetch } = trpc.post.list.useQuery();
+  const utils=trpc.useUtils();
+  const [page,setPage]=useState(0);
+  const [opening,setOpening]=useState<number|null>(null);
+  const { data, isLoading, error, refetch } = trpc.post.listSummary.useQuery({limit:20,offset:page*20});
+  const posts=data?.items;
 
-  const openSavedPost = (post: any) => {
+  const openSavedPost = async (summary: {id:number}) => {
+    if(opening!==null)return;
+    setOpening(summary.id);
+    try{
+    const post=await utils.post.get.fetch({id:summary.id});
+    if(!post)throw new Error("Post indisponível");
     // Item 7: reabre o post no editor oficial CanvasLab (rota /thevoid).
     // O modelo completo (canvas_model ou reconstrução heurística) viaja pelo
     // sessionStorage e é lido pelo StudioAppV2BPage no mount.
@@ -147,6 +165,7 @@ export default function SavedPosts() {
     );
 
     setLocation("/thevoid");
+    }catch{toast.error("Não foi possível abrir o post. Tente novamente.");}finally{setOpening(null);}
   };
 
   return (
@@ -184,11 +203,12 @@ export default function SavedPosts() {
               }}
             >
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Total</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">{posts?.length ?? 0}</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{data?.total ?? 0}</p>
             </div>
           </div>
         </motion.div>
 
+        <div className="mb-4 flex items-center gap-4"><button disabled={page===0} onClick={()=>setPage(p=>p-1)}>Anterior</button><span>Página {page+1}</span><button disabled={(page+1)*20>=(data?.total??0)} onClick={()=>setPage(p=>p+1)}>Próxima</button></div>
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {[1, 2, 3, 4].map(item => (
@@ -238,7 +258,7 @@ export default function SavedPosts() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <SavedPostPreview post={post} />
+                <GalleryPreview post={post}/>
 
                 <div className="space-y-4 p-3 sm:p-5">
                   <div className="space-y-2">
@@ -255,7 +275,6 @@ export default function SavedPosts() {
                       <span className="text-[11px] text-muted-foreground">{formatDate(post.createdAt)}</span>
                     </div>
                     <h2 className="line-clamp-2 break-words text-base font-semibold tracking-tight text-foreground sm:text-lg">{post.headline || "Sem título"}</h2>
-                    <p className="line-clamp-3 break-words text-sm text-muted-foreground">{post.body || post.inputContent}</p>
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/6 pt-4">
@@ -264,7 +283,7 @@ export default function SavedPosts() {
                       {post.layout || "layout livre"}
                     </div>
                     <button
-                      onClick={() => openSavedPost(post)}
+                      disabled={opening!==null} onClick={() => void openSavedPost(post)}
                       className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-semibold text-thermal-orange transition-colors hover:bg-thermal-orange/10"
                       style={{ borderColor: "oklch(0.7 0.22 40 / 35%)" }}
                     >

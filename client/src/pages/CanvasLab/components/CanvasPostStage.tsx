@@ -1,7 +1,7 @@
 import { aspectRatioHeight } from "@shared/aspectRatios";
 import { ArsenalCompositionContents } from "./ArsenalCompositionContents";
 import { editArsenalElementText, overrideArsenalElement, arsenalWorldGeometry } from "../lib/arsenalComposition";
-import { ensureArsenalCompositionFonts } from "../lib/arsenalAssets";
+import { ensureArsenalCompositionAssets } from "../lib/arsenalAssets";
 import { renderedCompositionImageCount, visibleExportImageNodes, exportImageNodeReady } from "../lib/exportMedia";
 import type { ArsenalComposition } from "@shared/designArsenal";
 import { ensureCatalogPostFonts } from "../lib/catalogCompiler";
@@ -29,14 +29,20 @@ import { wordRangeAt, type TextRange } from "../lib/textSelection";
 import {
   computeTextResizeGeometry,
   finalizeTextResizeGeometry,
+  type TextResizeAnchor,
   type TextResizeGeometry,
   type TextResizeSession,
 } from "../lib/textResizeGeometry";
+import { registerUserFont } from "../lib/fontResources";
+import { collectUsedFontsForSlide, collectUsedFontsForDocument, assertFontsReady } from "../lib/exportReadiness";
 
 export interface CanvasPostStageRef {
-  exportPng4K: () => string;
+  exportPng4K: (maxDimension?: number) => string;
   exportZip4K: (onProgress?: (current: number, total: number) => void) => Promise<Blob>;
   exportThumbnail: () => Promise<string>;
+  commitDraft: () => void;
+  cancelDraft: () => void;
+  hasActiveDraft: () => boolean;
 }
 
 interface CanvasPostStageProps {
@@ -56,6 +62,11 @@ interface CanvasPostStageProps {
     elementKey: "headline" | "subtext",
     props: { x?: number; y?: number; width?: number; scale?: number },
     layoutPositions?: { headlinePos: ElementPosition; subtextPos: ElementPosition; barPos: ElementPosition }
+  ) => void;
+  onUpdateDecorationTransform?: (
+    target: "logo" | "badge" | "bar",
+    transform: { scaleX: number; scaleY: number; rotation: number },
+    pos?: ElementPosition
   ) => void;
   onSelectElement?: (elementId: string | null) => void;
   selectedElementId?: string | null;
@@ -457,6 +468,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       zoom,
       onUpdateElementPosition,
       onUpdateTextTransform,
+      onUpdateDecorationTransform,
       onSelectElement,
       selectedElementId,
       isReadOnly = false,
@@ -495,14 +507,16 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     // o mesmo motor renderiza cada slide de forma determinística, em vez de
     // capturar repetidamente o slide visível (Etapa 2 §7.6).
     const [exportSlideIndex, setExportSlideIndex] = useState<number | null>(null);
-    const post = resolveSlideAppearance(documentPost, exportSlideIndex ?? documentPost.currentSlideIndex);
+    const [exportFrozenPost, setExportFrozenPost] = useState<CanvasPostModel | null>(null);
+    const activeDocument = exportFrozenPost ?? documentPost;
+    const post = resolveSlideAppearance(activeDocument, exportSlideIndex ?? activeDocument.currentSlideIndex);
     const composition = post.slides[exportSlideIndex ?? post.currentSlideIndex]?.composition;
     const [arsenalFonts, setArsenalFonts] = useState<{key: string; ready: boolean; error?: string}>({key:"",ready:false});
-    const arsenalFontKey = composition ? JSON.stringify(composition.elements.filter(e=>e.kind === "text").map(e=>[e.fontAssetId,e.fontFamily,e.fontWeight])) : "";
+    const arsenalFontKey = composition ? JSON.stringify(composition.elements.filter(e=>e.kind === "text" || e.imageAssetId).map(e=>[e.fontAssetId,e.fontFamily,e.fontWeight,e.imageAssetId])) : "";
     useEffect(() => {
       if (!composition) return;
       let active=true;setArsenalFonts({key:arsenalFontKey,ready:false});
-      void ensureArsenalCompositionFonts(composition).then(()=>{if(active)setArsenalFonts({key:arsenalFontKey,ready:true});})
+      void ensureArsenalCompositionAssets(composition).then(()=>{if(active)setArsenalFonts({key:arsenalFontKey,ready:true});})
         .catch(error=>{if(active)setArsenalFonts({key:arsenalFontKey,ready:false,error:String(error.message || error)});});
       return()=>{active=false;};
     },[arsenalFontKey]);
@@ -537,6 +551,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const displayComposition = React.useMemo(()=>composition && editingTarget && composition.elements.some(e=>e.id===editingTarget) ? editArsenalElementText(composition,editingTarget,editingText,editingRichText) : composition,[composition,editingTarget,editingText,editingRichText]);
     const editingRichTextRef = useRef(editingRichText);
     editingRichTextRef.current = editingRichText;
+    const handleCommitTextRef = useRef<() => void>(() => {});
+    const handleCancelTextRef = useRef<() => void>(() => {});
     const stageContainerRef = useRef<HTMLDivElement>(null);
     const editorWrapperRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -555,11 +571,19 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     useDynamicFont(composition ? "Arial" : post.fontFamily, composition ? undefined : post.customFontUrl);
     useDynamicFont(composition ? "Arial" : post.subtextFontFamily ?? "Inter");
 
+    useEffect(() => {
+      if (post.userFonts && post.userFonts.length > 0) {
+        post.userFonts.forEach((font) => {
+          registerUserFont(font);
+        });
+      }
+    }, [post.userFonts]);
+
     // Redesenho reativo quando as fontes web terminam de carregar no navegador
     useEffect(() => {
       if (typeof document !== "undefined" && document.fonts) {
         let isMounted = true;
-        document.fonts.ready.then(() => {
+        document.fonts.ready?.then?.(() => {
           if (isMounted && stageRef.current) {
             stageRef.current.getLayers().forEach((layer: any) => layer.batchDraw());
           }
@@ -574,6 +598,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const [localSubtextWidth, setLocalSubtextWidth] = useState<number | null>(null);
     const [localHeadlinePosition, setLocalHeadlinePosition] = useState<ElementPosition | null>(null);
     const [localSubtextPosition, setLocalSubtextPosition] = useState<ElementPosition | null>(null);
+    const [localHeadlineScale, setLocalHeadlineScale] = useState<number | null>(null);
+    const [localSubtextScale, setLocalSubtextScale] = useState<number | null>(null);
     const [textLayoutSnapshot, setTextLayoutSnapshot] = useState<{
       headlinePos: ElementPosition;
       subtextPos: ElementPosition;
@@ -684,7 +710,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       exportThumbnail: async () => {
         const stage = stageRef.current;
         if (!stage) return "";
-        if (composition) { try { await ensureArsenalCompositionFonts(composition); } catch { return ""; } }
+        if (composition) { try { await ensureArsenalCompositionAssets(composition); } catch { return ""; } }
 
         // Capture the same 360px composition used by the editor, after its
         // font and image nodes have finished loading into Konva.
@@ -715,9 +741,22 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         }
         return "";
       },
-      exportPng4K: () => {
+      exportPng4K: (maxDimension = 3840) => {
         if (!stageRef.current) return "";
-        if (composition && (!arsenalReady || editingTarget || renderedCompositionImageCount(composition) > visibleExportImageNodes(stageRef.current.find("Image")).filter(exportImageNodeReady).length)) throw new Error("Conclua a edição e aguarde o carregamento das fontes e da foto antes de exportar.");
+        const expectedImages = composition
+          ? renderedCompositionImageCount(composition)
+          : Number(Boolean(activeBg)) + Number(Boolean(post.logoUrl)) + activeExtraImages.filter(item => Boolean(item.url) && (item.opacity ?? 1) > 0).length;
+        const readyImages = visibleExportImageNodes(stageRef.current.find("Image")).filter(exportImageNodeReady).length;
+        if (editingTarget || (composition && !arsenalReady) || readyImages < expectedImages) {
+          throw new Error("Conclua a edição e aguarde o carregamento das fontes e da foto antes de exportar.");
+        }
+
+        // Validação estrita de fontes usadas (BUG-CL-027, BUG-CL-033, CP-31)
+        if (currentSlide) {
+          const usedFonts = collectUsedFontsForSlide(currentSlide, post);
+          assertFontsReady(usedFonts);
+        }
+
         setSelectedId(null);
         transformerRef.current?.nodes([]);
         bgTransformerRef.current?.nodes([]);
@@ -726,12 +765,15 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         mediaGuides.forEach((node: any) => node.hide());
         stageRef.current.getLayers().forEach((layer: any) => layer.draw());
         try { return stageRef.current.toDataURL({
-          pixelRatio: diagnosticScene ? diagnosticScene.source.widthPx / baseWidth : 3840 / Math.max(baseWidth, baseHeight),
+          pixelRatio: diagnosticScene ? diagnosticScene.source.widthPx / baseWidth : Math.min(3840, Math.max(256, maxDimension)) / Math.max(baseWidth, baseHeight),
           mimeType: "image/png",
         }); } finally { mediaGuides.forEach((node: any) => node.show()); stageRef.current.getLayers().forEach((layer: any) => layer.draw()); }
       },
       exportZip4K: async (onProgress) => {
-        if (composition && editingTarget) throw new Error("Conclua a edição do texto antes de exportar.");
+        if (editingTarget) throw new Error("Conclua a edição do texto antes de exportar.");
+        // Validação estrita de fontes usadas no documento
+        const usedFonts = collectUsedFontsForDocument(documentPost);
+        assertFontsReady(usedFonts);
         const zip = new JSZip();
         const stage = stageRef.current;
         if (!stage) return new Blob();
@@ -754,9 +796,13 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
           throw new Error("Uma imagem do carrossel não carregou. Aguarde e tente baixar novamente.");
         };
 
+        const frozenPost = structuredClone(documentPost);
+        setExportFrozenPost(frozenPost);
+        const slidesSnapshot = frozenPost.slides.map(s => ({ ...s }));
+
         try {
-          for (let i = 0; i < post.slides.length; i++) {
-            if (onProgress) onProgress(i + 1, post.slides.length);
+          for (let i = 0; i < slidesSnapshot.length; i++) {
+            if (onProgress) onProgress(i + 1, slidesSnapshot.length);
             // Renderiza o slide i no mesmo motor e aguarda composição + assets.
             setExportSlideIndex(i);
             await awaitFrame();
@@ -769,10 +815,10 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
             } catch {
               /* fontes não disponíveis — segue com o fallback do motor */
             }
-            const slide = post.slides[i];
-            if (slide.composition) { await ensureArsenalCompositionFonts(slide.composition); await awaitFrame(); }
-            const expected = slide.composition ? renderedCompositionImageCount(slide.composition) : Number(Boolean(slide.bgImage ?? post.bgImage)) + Number(Boolean(post.logoUrl))
-              + (slide.extraImages ?? post.extraImages ?? []).filter(image => Boolean(image.url)).length;
+            const slide = slidesSnapshot[i];
+            if (slide.composition) { await ensureArsenalCompositionAssets(slide.composition); await awaitFrame(); }
+            const expected = slide.composition ? renderedCompositionImageCount(slide.composition) : Number(Boolean(slide.bgImage ?? frozenPost.bgImage)) + Number(Boolean(frozenPost.logoUrl))
+              + (slide.extraImages ?? frozenPost.extraImages ?? []).filter(image => Boolean(image.url) && (image.opacity ?? 1) > 0).length;
             await awaitStageImagesLoaded(4000, expected);
 
             const mediaGuides = stage.find(".editor-media-guide");
@@ -790,10 +836,22 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
           return await zip.generateAsync({ type: "blob" });
         } finally {
           setExportSlideIndex(null);
+          setExportFrozenPost(null);
           await awaitFrame();
           stage.getLayers().forEach((l: any) => l.batchDraw());
         }
       },
+      commitDraft: () => {
+        if (editingTargetRef.current) {
+          handleCommitTextRef.current();
+        }
+      },
+      cancelDraft: () => {
+        if (editingTargetRef.current) {
+          handleCancelTextRef.current();
+        }
+      },
+      hasActiveDraft: () => Boolean(editingTargetRef.current),
     }));
 
     const activeHeadline = currentSlide ? currentSlide.headline : post.headline;
@@ -845,12 +903,14 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const contentWidth = baseWidth - (isGlass ? 56 : 48);
     const activeHeadlineWidth = Math.max(40, localHeadlineWidth ?? currentSlide?.headlineWidth ?? contentWidth);
     const activeSubtextWidth = Math.max(40, localSubtextWidth ?? currentSlide?.subtextWidth ?? contentWidth);
-    const activeHeadlineScale = currentSlide?.headlineScale ?? 1;
-    const activeSubtextScale = currentSlide?.subtextScale ?? 1;
+    const activeHeadlineScale = localHeadlineScale ?? currentSlide?.headlineScale ?? 1;
+    const activeSubtextScale = localSubtextScale ?? currentSlide?.subtextScale ?? 1;
 
-    const pointerXForNode = (node: any): number | null => {
+    const pointerPosForNode = (node: any): { x: number; y: number } | null => {
       const pointer = node?.getStage?.()?.getPointerPosition?.();
-      return pointer && Number.isFinite(pointer.x) ? pointer.x : null;
+      return pointer && Number.isFinite(pointer.x) && Number.isFinite(pointer.y)
+        ? { x: pointer.x, y: pointer.y }
+        : null;
     };
 
     const handleTextTransformStart = (
@@ -858,30 +918,39 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       elementKey: "headline" | "subtext",
       initialWidth: number,
       initialPosition: ElementPosition,
-      layoutPositions: { headlinePos: ElementPosition; subtextPos: ElementPosition; barPos: ElementPosition }
+      layoutPositions: { headlinePos: ElementPosition; subtextPos: ElementPosition; barPos: ElementPosition },
+      initialHeight: number,
+      initialScale: number,
+      initialFontSize: number
     ) => {
-      const anchor = transformerRef.current?.getActiveAnchor();
-      const pointerStartX = pointerXForNode(e.target);
-      if ((anchor !== "middle-left" && anchor !== "middle-right") || pointerStartX === null) {
+      const anchor = transformerRef.current?.getActiveAnchor() as TextResizeAnchor | undefined;
+      const pointer = pointerPosForNode(e.target);
+      if (!anchor || !pointer) {
         textResizeSessionRef.current = null;
         textResizeDraftRef.current = null;
         return;
       }
 
-      const session = {
-        elementKey,
+      const session: TextResizeSession = {
         anchor,
-        pointerStartX,
+        pointerStartX: pointer.x,
+        pointerStartY: pointer.y,
         initialX: initialPosition.x,
         initialY: initialPosition.y,
         initialWidth,
+        initialHeight,
+        initialScale,
+        initialFontSize,
         minWidth: 40,
       };
-      textResizeSessionRef.current = session;
+      (session as any).elementKey = elementKey;
+      textResizeSessionRef.current = session as any;
       textResizeDraftRef.current = {
         x: initialPosition.x,
         y: initialPosition.y,
         width: initialWidth,
+        scale: initialScale,
+        fontSize: initialFontSize,
       };
       textLayoutSnapshotRef.current = layoutPositions;
       setTextLayoutSnapshot(layoutPositions);
@@ -898,13 +967,14 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       e: any,
       elementKey: "headline" | "subtext",
       setLocalWidth: React.Dispatch<React.SetStateAction<number | null>>,
-      setLocalPosition: React.Dispatch<React.SetStateAction<ElementPosition | null>>
+      setLocalPosition: React.Dispatch<React.SetStateAction<ElementPosition | null>>,
+      setLocalScale?: React.Dispatch<React.SetStateAction<number | null>>
     ) => {
       const session = textResizeSessionRef.current;
-      const pointerX = pointerXForNode(e.target);
-      if (!session || session.elementKey !== elementKey || pointerX === null) return;
+      const pointer = pointerPosForNode(e.target);
+      if (!session || (session as any).elementKey !== elementKey || !pointer) return;
 
-      const geometry = computeTextResizeGeometry(session, pointerX);
+      const geometry = computeTextResizeGeometry(session, pointer.x, pointer.y);
       textResizeDraftRef.current = geometry;
       e.target.setAttrs({
         x: geometry.x,
@@ -915,13 +985,17 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       });
       setLocalPosition({ x: geometry.x, y: geometry.y });
       setLocalWidth(geometry.width);
+      if (setLocalScale && geometry.scale !== undefined) {
+        setLocalScale(geometry.scale);
+      }
     };
 
     const handleTextTransformEnd = (
       e: any,
       elementKey: "headline" | "subtext",
       setLocalWidth: React.Dispatch<React.SetStateAction<number | null>>,
-      setLocalPosition: React.Dispatch<React.SetStateAction<ElementPosition | null>>
+      setLocalPosition: React.Dispatch<React.SetStateAction<ElementPosition | null>>,
+      setLocalScale?: React.Dispatch<React.SetStateAction<number | null>>
     ) => {
       const node = e.target;
       const session = textResizeSessionRef.current;
@@ -929,10 +1003,12 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         x: session.initialX,
         y: session.initialY,
         width: session.initialWidth,
+        scale: session.initialScale,
       } : {
         x: node.x(),
         y: node.y(),
         width: node.width(),
+        scale: 1,
       });
       const finalGeometry = finalizeTextResizeGeometry(liveGeometry);
       node.setAttrs({
@@ -944,6 +1020,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       const snapshot = textLayoutSnapshotRef.current;
       onUpdateTextTransform?.(elementKey, {
         width: finalGeometry.width,
+        scale: finalGeometry.scale,
         ...transformedPosition,
       }, snapshot ? {
         ...snapshot,
@@ -954,7 +1031,24 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       textLayoutSnapshotRef.current = null;
       setLocalWidth(null);
       setLocalPosition(null);
+      if (setLocalScale) setLocalScale(null);
       setTextLayoutSnapshot(null);
+    };
+
+    const handleDecorationTransformEnd = (
+      e: any,
+      target: "logo" | "badge" | "bar",
+      posKey: "logoPos" | "badgePos" | "barPos"
+    ) => {
+      const node = e.target;
+      const rawScaleX = node.scaleX();
+      const rawScaleY = node.scaleY();
+      const scaleX = typeof rawScaleX === "number" && Number.isFinite(rawScaleX) && rawScaleX > 0 ? Number(rawScaleX.toFixed(4)) : 1;
+      const scaleY = typeof rawScaleY === "number" && Number.isFinite(rawScaleY) && rawScaleY > 0 ? Number(rawScaleY.toFixed(4)) : 1;
+      const rotation = typeof node.rotation() === "number" && Number.isFinite(node.rotation()) ? Math.round(node.rotation()) : 0;
+      const x = Math.round(node.x());
+      const y = Math.round(node.y());
+      onUpdateDecorationTransform?.(target, { scaleX, scaleY, rotation }, { x, y });
     };
 
     // ─── TAMANHOS BASE POR FAMÍLIA × ESCALA DO USUÁRIO (item 2) ───
@@ -1262,10 +1356,10 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const caretIndexFromEvent = (event: any, target: string, layout?: RichTextLayout): number => {
       if (!layout) return editingTextRef.current.length;
       const node = target === "headline"
-        ? headlineRef.current
+        ? (headlineRef.current ?? compositionNodeRefs.current[target])
         : target === "subtext"
-        ? subtextRef.current
-        : extraTextRefs.current[target];
+        ? (subtextRef.current ?? compositionNodeRefs.current[target])
+        : (extraTextRefs.current[target] ?? compositionNodeRefs.current[target]);
       const point = pointerInNode(event, node);
       return point ? hitTestRichText(layout, point.x, point.y) : layout.glyphs.at(-1)?.end ?? 0;
     };
@@ -1278,7 +1372,14 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       let initialText = "";
       let initialChunks: CanvasRichTextChunk[] | undefined;
       let caretIndex = 0;
-      if (target === "headline") {
+      const compElement = composition?.elements.find(e => e.id === target);
+      if (compElement) {
+        initialText = compElement.text ?? "";
+        initialChunks = compElement.richText;
+        caretIndex = targetLayout
+          ? caretIndexFromEvent(event, target, targetLayout)
+          : initialText.length;
+      } else if (target === "headline") {
         initialText = activeHeadline;
         initialChunks = applyRichTextFormat(activeHeadline, activeHeadlineChunks, {}, 0, 0);
         caretIndex = caretIndexFromEvent(event, target, headlineMetrics);
@@ -1355,6 +1456,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       selectionAnchorRef.current = null;
       activeSelectionHandleRef.current = null;
     };
+    handleCommitTextRef.current = handleCommitText;
+    handleCancelTextRef.current = handleCancelText;
 
     useEffect(() => {
       if (!editingTarget) return;
@@ -1390,10 +1493,14 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     };
 
     const handleTextClick = (event: any, target: string, layout: RichTextLayout) => {
+      const wasSelected = selectedId === target;
       handleSelect(target);
-      if ((event.evt?.detail ?? 0) < 3) return;
-      if (editingTargetRef.current === target) syncNativeSelection(0, editingTextRef.current.length);
-      else startEditing(target, undefined, layout);
+      if ((event.evt?.detail ?? 0) >= 3) {
+        if (editingTargetRef.current === target) syncNativeSelection(0, editingTextRef.current.length);
+        else startEditing(target, undefined, layout);
+      } else if (wasSelected && editingTargetRef.current !== target) {
+        startEditing(target, event, layout);
+      }
     };
 
     const handleTextDoubleClick = (event: any, target: string, layout: RichTextLayout) => {
@@ -1484,13 +1591,13 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       // que seleção visual e alvo do teclado fiquem apontando para objetos distintos.
       if (editingTarget) {
         const editingNode = editingTarget === "headline"
-          ? headlineRef.current
+          ? (headlineRef.current ?? compositionNodeRefs.current[editingTarget])
           : editingTarget === "subtext"
-          ? subtextRef.current
+          ? (subtextRef.current ?? compositionNodeRefs.current[editingTarget])
           : editingTarget === "badge"
           ? badgeRef.current
-          : extraTextRefs.current[editingTarget];
-        if (!isDescendantOf(e.target, editingNode)) handleCommitText();
+          : (extraTextRefs.current[editingTarget] ?? compositionNodeRefs.current[editingTarget]);
+        if (editingNode && !isDescendantOf(e.target, editingNode)) handleCommitText();
       }
 
       const isComposition = Object.values(compositionNodeRefs.current).some(node=>isDescendantOf(e.target,node));
@@ -1556,6 +1663,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
             <Layer listening={isInteractive}>
               {diagnosticScene ? <ReferenceSceneContents scene={diagnosticScene} stageWidth={baseWidth} textMode={diagnosticTextMode} layerStyles={diagnosticLayerStyles} mediaImages={diagnosticMediaImages} /> : composition ? (arsenalReady ? <ArsenalCompositionContents composition={displayComposition!}
                 interactive={isInteractive && arsenalReady}
+                createSnapBoundFunc={createSnapBoundFunc}
+                onDragMove={handleDragMove}
+                onDragEnd={() => setSnapLines({})}
                 register={(id,node,isText)=>{ if(node)compositionNodeRefs.current[id]=node;else delete compositionNodeRefs.current[id];if(isText){if(node)extraTextRefs.current[id]=node;else delete extraTextRefs.current[id];} }}
                 onSelect={handleSelect} onTransform={(id,patch)=>onUpdateComposition?.(overrideArsenalElement(composition,id,patch))}
                 bridge={{target:editingTarget,selection:editingSelection,click:handleTextClick,doubleClick:handleTextDoubleClick,down:handleEditingPointerDown,move:handleEditingPointerMove,touchStart:handleTextTouchStart,touchMove:handleTextTouchMove,up:handleEditingPointerUp,selectionHandles:isMobile ? (id,layout)=><TextSelectionHandles layout={layout} start={editingSelection.start} end={editingSelection.end} touchScale={touchScale*composition.artboard.width/360/composition.projection.scale} onStart={(event,edge,metrics)=>handleSelectionHandleStart(event,id,edge,metrics)} /> : undefined}} /> : null) : (<React.Fragment>
@@ -1879,7 +1989,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     ref={badgeRef}
                     x={badgePos.x}
                     y={badgePos.y}
-                    rotation={-4}
+                    scaleX={currentSlide?.nativeDecorationTransforms?.badge?.scaleX ?? 1}
+                    scaleY={currentSlide?.nativeDecorationTransforms?.badge?.scaleY ?? 1}
+                    rotation={currentSlide?.nativeDecorationTransforms?.badge?.rotation ?? -4}
                     draggable={isInteractive}
                     dragBoundFunc={isInteractive ? createSnapBoundFunc(Math.max(95, primaryBadgeText.length * 8 + 20), 26) : undefined}
                     onClick={() => handleSelect("badge")}
@@ -1887,6 +1999,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     onDblTap={() => startEditing("badge")}
                     onDragMove={handleDragMove}
                     onDragEnd={(e) => handleDragEnd(e, "badgePos")}
+                    onTransformEnd={(e) => handleDecorationTransformEnd(e, "badge", "badgePos")}
                   >
                     <Rect
                       x={0}
@@ -1920,6 +2033,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     ref={badgeRef}
                     x={badgePos.x}
                     y={badgePos.y}
+                    scaleX={currentSlide?.nativeDecorationTransforms?.badge?.scaleX ?? 1}
+                    scaleY={currentSlide?.nativeDecorationTransforms?.badge?.scaleY ?? 1}
+                    rotation={currentSlide?.nativeDecorationTransforms?.badge?.rotation ?? 0}
                     draggable={isInteractive}
                     dragBoundFunc={isInteractive ? createSnapBoundFunc(primaryBadgeText.length * 7 + 16, 22) : undefined}
                     onClick={() => handleSelect("badge")}
@@ -1927,6 +2043,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     onDblTap={() => startEditing("badge")}
                     onDragMove={handleDragMove}
                     onDragEnd={(e) => handleDragEnd(e, "badgePos")}
+                    onTransformEnd={(e) => handleDecorationTransformEnd(e, "badge", "badgePos")}
                   >
                     <Rect x={0} y={0} width={primaryBadgeText.length * 7 + 16} height={22} fill="#FFFFFF" stroke="#000000" strokeWidth={1.5} />
                     <Text text={primaryBadgeText.toUpperCase()} x={8} y={6} fontSize={8.5} fontFamily="monospace" fontStyle="bold" fill="#000000" letterSpacing={1} opacity={1} onDblClick={() => startEditing("badge")} onDblTap={() => startEditing("badge")} />
@@ -1937,6 +2054,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     ref={badgeRef}
                     x={badgePos.x}
                     y={badgePos.y}
+                    scaleX={currentSlide?.nativeDecorationTransforms?.badge?.scaleX ?? 1}
+                    scaleY={currentSlide?.nativeDecorationTransforms?.badge?.scaleY ?? 1}
+                    rotation={currentSlide?.nativeDecorationTransforms?.badge?.rotation ?? 0}
                     draggable={isInteractive}
                     dragBoundFunc={isInteractive ? createSnapBoundFunc(primaryBadgeText.length * 7 + 22, 22) : undefined}
                     onClick={() => handleSelect("badge")}
@@ -1944,6 +2064,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     onDblTap={() => startEditing("badge")}
                     onDragMove={handleDragMove}
                     onDragEnd={(e) => handleDragEnd(e, "badgePos")}
+                    onTransformEnd={(e) => handleDecorationTransformEnd(e, "badge", "badgePos")}
                   >
                     <Rect x={0} y={0} width={primaryBadgeText.length * 7 + 22} height={22} fill="rgba(0, 240, 255, 0.08)" stroke="#00F0FF" strokeWidth={1} cornerRadius={2} />
                     <Text text={`[ ${primaryBadgeText.toUpperCase()} ]`} x={8} y={6} fontSize={8.5} fontFamily="Space Mono" fontStyle="bold" fill="#00F0FF" letterSpacing={1} opacity={1} onDblClick={() => startEditing("badge")} onDblTap={() => startEditing("badge")} />
@@ -1954,6 +2075,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     ref={badgeRef}
                     x={badgePos.x}
                     y={badgePos.y}
+                    scaleX={currentSlide?.nativeDecorationTransforms?.badge?.scaleX ?? 1}
+                    scaleY={currentSlide?.nativeDecorationTransforms?.badge?.scaleY ?? 1}
+                    rotation={currentSlide?.nativeDecorationTransforms?.badge?.rotation ?? 0}
                     draggable={isInteractive}
                     dragBoundFunc={isInteractive ? createSnapBoundFunc(primaryBadgeText.length * 7 + 18, 22) : undefined}
                     onClick={() => handleSelect("badge")}
@@ -1961,6 +2085,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     onDblTap={() => startEditing("badge")}
                     onDragMove={handleDragMove}
                     onDragEnd={(e) => handleDragEnd(e, "badgePos")}
+                    onTransformEnd={(e) => handleDecorationTransformEnd(e, "badge", "badgePos")}
                   >
                     <Rect
                       x={0}
@@ -2032,6 +2157,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   image={logoImgElement}
                   x={logoPos.x}
                   y={logoPos.y}
+                  scaleX={currentSlide?.nativeDecorationTransforms?.logo?.scaleX ?? 1}
+                  scaleY={currentSlide?.nativeDecorationTransforms?.logo?.scaleY ?? 1}
+                  rotation={currentSlide?.nativeDecorationTransforms?.logo?.rotation ?? 0}
                   width={46}
                   height={24}
                   draggable={isInteractive}
@@ -2039,6 +2167,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   onClick={() => handleSelect("logo")}
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "logoPos")}
+                  onTransformEnd={(e) => handleDecorationTransformEnd(e, "logo", "logoPos")}
                 />
               )}
 
@@ -2057,19 +2186,24 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   "headline",
                   activeHeadlineWidth,
                   headlinePos,
-                  { headlinePos, subtextPos, barPos }
+                  { headlinePos, subtextPos, barPos },
+                  Math.max(headlineHeight, headlineFontSize),
+                  activeHeadlineScale,
+                  headlineFontSize
                 )}
                 onTransform={(e) => handleTextTransform(
                   e,
                   "headline",
                   setLocalHeadlineWidth,
-                  setLocalHeadlinePosition
+                  setLocalHeadlinePosition,
+                  setLocalHeadlineScale
                 )}
                 onTransformEnd={(e) => handleTextTransformEnd(
                   e,
                   "headline",
                   setLocalHeadlineWidth,
-                  setLocalHeadlinePosition
+                  setLocalHeadlinePosition,
+                  setLocalHeadlineScale
                 )}
               />
               <Group
@@ -2160,19 +2294,24 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   "subtext",
                   activeSubtextWidth,
                   subtextPos,
-                  { headlinePos, subtextPos, barPos }
+                  { headlinePos, subtextPos, barPos },
+                  Math.max(subtextHeight, subtextFontSize),
+                  activeSubtextScale,
+                  subtextFontSize
                 )}
                 onTransform={(e) => handleTextTransform(
                   e,
                   "subtext",
                   setLocalSubtextWidth,
-                  setLocalSubtextPosition
+                  setLocalSubtextPosition,
+                  setLocalSubtextScale
                 )}
                 onTransformEnd={(e) => handleTextTransformEnd(
                   e,
                   "subtext",
                   setLocalSubtextWidth,
-                  setLocalSubtextPosition
+                  setLocalSubtextPosition,
+                  setLocalSubtextScale
                 )}
               />
               <Group
@@ -2253,6 +2392,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   ref={barRef}
                   x={barPos.x}
                   y={barPos.y}
+                  scaleX={currentSlide?.nativeDecorationTransforms?.bar?.scaleX ?? 1}
+                  scaleY={currentSlide?.nativeDecorationTransforms?.bar?.scaleY ?? 1}
+                  rotation={currentSlide?.nativeDecorationTransforms?.bar?.rotation ?? 0}
                   width={isEditorial ? 48 : 36}
                   height={isEditorial ? 2 : 3}
                   cornerRadius={2}
@@ -2262,6 +2404,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   onClick={() => handleSelect("bar")}
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "barPos")}
+                  onTransformEnd={(e) => handleDecorationTransformEnd(e, "bar", "barPos")}
                 />
               )}
 
@@ -2364,11 +2507,18 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     onTransformEnd={(e) => {
                       const node = e.target;
                       const scaleX = node.scaleX();
+                      const scaleY = node.scaleY();
+                      const anchor = transformerRef.current?.getActiveAnchor() as TextResizeAnchor | undefined;
+                      const isCorner = anchor === "top-left" || anchor === "top-right" || anchor === "bottom-left" || anchor === "bottom-right";
                       const currentWidth = item.width || contentWidth;
                       const newWidth = Math.max(40, Math.round(currentWidth * scaleX));
                       const newRotation = Math.round(node.rotation());
                       const newX = Math.round(node.x());
                       const newY = Math.round(node.y());
+                      const currentFontSize = item.fontSize || 24;
+                      const newFontSize = isCorner
+                        ? Math.max(10, Math.round(currentFontSize * Math.max(scaleX, scaleY)))
+                        : currentFontSize;
                       // Invariante Konva: reseta escalas para 1 para não acumular distorções
                       node.scaleX(1);
                       node.scaleY(1);
@@ -2377,6 +2527,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                           x: newX,
                           y: newY,
                           width: newWidth,
+                          fontSize: newFontSize,
                           rotation: newRotation,
                         });
                       } else if (onUpdateExtraTextPosition) {
@@ -2555,8 +2706,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   enabledAnchors={
                     selectedId && extraImageRefs.current[selectedId]
                       ? ["top-left", "top-right", "bottom-left", "bottom-right"]
-                      : (selectedId === "headline" || selectedId === "subtext" || composition?.elements.some(e=>e.id===selectedId && e.kind==="text"))
-                      ? ["middle-left", "middle-right"]
+                      : (selectedId === "headline" || selectedId === "subtext" || (selectedId && extraTextRefs.current[selectedId]) || composition?.elements.some(e=>e.id===selectedId && e.kind==="text"))
+                      ? ["top-left", "top-right", "bottom-left", "bottom-right", "middle-left", "middle-right"]
                       : ["top-left", "top-right", "bottom-left", "bottom-right"]
                   }
                   boundBoxFunc={(oldBox, newBox) => Math.abs(newBox.width) < 40 ? oldBox : newBox}
@@ -2583,31 +2734,40 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
           const isHeadline = editingTarget === "headline";
           const isSubtext = editingTarget === "subtext";
           const isBadge = editingTarget === "badge";
-          const extraItem = !isHeadline && !isSubtext && !isBadge
+          const compElement = composition?.elements.find(e => e.id === editingTarget);
+          const compNode = compElement ? (compositionNodeRefs.current[editingTarget] ?? extraTextRefs.current[editingTarget]) : null;
+          const compBox = compNode && stageRef.current ? compNode.getClientRect({ relativeTo: stageRef.current }) : null;
+          const extraItem = !isHeadline && !isSubtext && !isBadge && !compElement
             ? activeExtraTexts.find(item => item.id === editingTarget)
             : null;
-          const targetX = isHeadline
+          const targetX = compBox
+            ? compBox.x
+            : isHeadline
             ? headlinePos.x
             : isSubtext
             ? subtextPos.x
             : isBadge
             ? badgePos.x
             : (extraItem?.x ?? Math.round(baseWidth * 0.1));
-          const targetY = isHeadline
+          const targetY = compBox
+            ? compBox.y
+            : isHeadline
             ? headlinePos.y
             : isSubtext
             ? subtextPos.y
             : isBadge
             ? badgePos.y
             : (extraItem?.y ?? Math.round(baseHeight * 0.65));
-          const targetWidth = isBadge
+          const targetWidth = compBox
+            ? compBox.width
+            : isBadge
             ? Math.max(130, primaryBadgeText.length * 8 + 36)
             : isHeadline
             ? activeHeadlineWidth
             : isSubtext
             ? activeSubtextWidth
             : (extraItem?.width ?? contentWidth);
-          const targetHeight = isHeadline ? headlineHeight : isSubtext ? subtextHeight : 28;
+          const targetHeight = compBox ? compBox.height : (isHeadline ? headlineHeight : isSubtext ? subtextHeight : 28);
 
           return (
             <div
@@ -2667,15 +2827,15 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 document.getElementById("canvas-mobile-text-actions-slot")!
               )}
 
-              {(isHeadline || isSubtext || extraItem) && (
+              {(isHeadline || isSubtext || extraItem || Boolean(compElement)) && (
                 <RichTextFloatingToolbar
                   selection={editingSelection}
                   anchorRef={editorWrapperRef}
                   palette={post.palette}
-                  baseColor={isHeadline ? headlineColor : isSubtext ? subtextColor : extraItem?.color || post.palette.text}
+                  baseColor={isHeadline ? headlineColor : isSubtext ? subtextColor : (compElement?.fill ?? extraItem?.color ?? post.palette.text)}
                   richText={editingRichText}
-                  baseBold={isHeadline || extraItem?.fontWeight === "bold" || (typeof extraItem?.fontWeight === "number" && extraItem.fontWeight >= 600)}
-                  baseItalic={extraItem?.fontStyle === "italic"}
+                  baseBold={isHeadline || (compElement ? (typeof compElement.fontWeight === "number" ? compElement.fontWeight >= 600 : compElement.fontWeight === "bold") : (extraItem?.fontWeight === "bold" || (typeof extraItem?.fontWeight === "number" && extraItem.fontWeight >= 600)))}
+                  baseItalic={compElement ? false : extraItem?.fontStyle === "italic"}
                   onRestoreFocus={() => window.requestAnimationFrame(() => {
                     if (editingTargetRef.current) textareaRef.current?.focus({ preventScroll: true });
                   })}
@@ -2699,7 +2859,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 value={editingText}
                 onChange={event => {
                   const nextText = event.target.value;
-                  if (isHeadline || isSubtext || extraItem) {
+                  if (isHeadline || isSubtext || extraItem || Boolean(compElement)) {
                     setEditingRichText(
                       reconcileRichTextChange(editingTextRef.current, nextText, editingRichTextRef.current)
                     );

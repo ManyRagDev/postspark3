@@ -1,4 +1,7 @@
+import { generationSourceSchema } from "./generationSources";
+import { contentRequirementSchema } from "./contentRequirements";
 import { z } from "zod";
+import { generationProjectSnapshotSchema } from "./projectEditorial";
 
 /** Shared by the batch and orchestrated endpoints; execution controls cannot drift. */
 export const executionBriefSchema = z
@@ -9,6 +12,8 @@ export const executionBriefSchema = z
     objective: z.enum(["educate", "authority", "sell", "engage", "lead"]),
     tone: z.string().max(160).optional(),
     callToAction: z.string().max(2000).optional(),
+    audience: z.string().max(2000).optional(),
+    brandEssence: z.string().max(2000).optional(),
     interventionLevel: z.enum([
       "visual_only",
       "light_optimize",
@@ -35,6 +40,7 @@ export const executionBriefSchema = z
     mustKeep: z.array(z.string().max(4000)).max(50).optional(),
     mustInclude: z.array(z.string().max(4000)).max(50).optional(),
     forbiddenTerms: z.array(z.string().max(4000)).max(50).optional(),
+    contentRequirements: z.array(contentRequirementSchema).max(50).optional(),
     notes: z.string().max(8000).optional(),
     brandInput: z
       .object({
@@ -51,10 +57,13 @@ export const executionBriefSchema = z
     const text = [
       brief.rawInput,
       brief.notes ?? "",
+      brief.audience ?? "",
+      brief.brandEssence ?? "",
       ...(brief.slides ?? []).map(s => s.rawText),
       ...(brief.mustKeep ?? []),
       ...(brief.mustInclude ?? []),
       ...(brief.forbiddenTerms ?? []),
+      ...(brief.contentRequirements ?? []).map(r => r.value),
     ];
     if (text.reduce((total, value) => total + value.length, 0) > 96000)
       ctx.addIssue({
@@ -75,6 +84,7 @@ export const orchestratedGenerationInputSchema = z
     /** Binds locally persisted admission retries to the authenticated account. */
     ownerId: z.string().uuid(),
     inputType: z.enum(["text", "url", "image"]),
+    sources: z.array(generationSourceSchema).max(8).optional(),
     content: z.string().min(1).max(24000),
     platform: z.enum(["instagram", "twitter", "linkedin", "facebook"]),
     imageUrl: z.string().max(12_000_000).optional(),
@@ -88,10 +98,14 @@ export const orchestratedGenerationInputSchema = z
     creationMode: z.enum(["ideation", "execution"]).default("ideation"),
     executionBrief: executionBriefSchema.optional(),
     siteIntelligenceId: z.string().uuid().optional(),
+    projectId: z.string().max(64).optional(),
+    projectDossier: z.string().max(24000).optional(),
+    projectSnapshot: generationProjectSnapshotSchema.optional(),
     idempotencyKey: z.string().min(1).max(128),
   })
   .strict()
   .superRefine((v, ctx) => {
+    if(v.inputType==="image"&&!v.imageUrl&&!v.sources?.some(s=>s.kind==="image"&&s.purpose==="content"))ctx.addIssue({code:"custom",path:["imageUrl"],message:"Inclua a imagem fonte do pedido."});
     if (v.creationMode === "execution" && !v.executionBrief)
       ctx.addIssue({
         code: "custom",

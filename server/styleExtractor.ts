@@ -1,3 +1,4 @@
+import { publicHtml } from "./publicUrl";
 /**
  * StyleExtractor: Extract visual styles from websites
  * Parses HTML/CSS to extract colors, typography, spacing, and effects
@@ -138,17 +139,7 @@ async function fetchExternalStylesheets(html: string, baseUrl: string): Promise<
     // Fetch up to 5 stylesheets in parallel
     const cssPromises = Array.from(urls).slice(0, 5).map(async (cssUrl) => {
         try {
-            const res = await fetch(cssUrl, {
-                signal: AbortSignal.timeout(5000),
-                headers: {
-                    "User-Agent": "Mozilla/5.0 (compatible; PostSpark Style Extractor/1.0)",
-                    "Accept": "text/css,*/*",
-                },
-            });
-            if (!res.ok) return "";
-            const text = await res.text();
-            // Cap at 500KB per file to avoid memory issues
-            return text.slice(0, 500_000);
+            return (await publicHtml(cssUrl,{css:true,maxBytes:500000,timeoutMs:5000})).html;
         } catch {
             return "";
         }
@@ -678,17 +669,7 @@ export async function extractStyleFromUrlWithMeta(url: string): Promise<Extracti
 /** HTML-only extraction pass (Phase 1 improvements) */
 async function extractFromHTML(url: string): Promise<ExtractedStyleData> {
     try {
-        const response = await fetch(url, {
-            headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-            },
-            signal: AbortSignal.timeout(15000),
-        });
-
-        console.log("[styleExtractor] Response status:", response.status);
-        const html = await response.text();
+        const {html}=await publicHtml(url,{timeoutMs:15000});
         console.log("[styleExtractor] HTML length:", html.length, "characters");
 
         // Step 1: Fetch external CSS stylesheets

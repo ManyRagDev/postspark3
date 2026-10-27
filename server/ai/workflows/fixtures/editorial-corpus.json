@@ -1,0 +1,459 @@
+{
+  "version": 1,
+  "scope": "factual preservation, not aesthetic quality",
+  "cases": [
+    {
+      "id": "bizuminer-cinematic-omission",
+      "origin": "recorded-case",
+      "mode": "compose",
+      "source": "Conheça o BizuMiner: uma plataforma onde você encontra os melhores preços das melhores plataformas de compra. Verificamos as promoções mas acompanhamos os preços diariamente para sempre saber quando um produto está com seu melhor valor",
+      "renderedSlides": [
+        "BIZUMINER\nSua plataforma para economizar em compras",
+        "MELHORES LOJAS\nReunimos os melhores preços das plataformas",
+        "CONTROLE DIÁRIO\nAcompanhamos os preços todos os dias",
+        "MELHOR VALOR\nSaiba a hora certa da promoção real"
+      ],
+      "caption": "O BizuMiner acompanha os preços diariamente nas principais plataformas de compra para você saber a hora exata em que um produto atinge seu melhor valor.",
+      "expectedVerdict": "correction_required",
+      "rationale": "A atividade de verificar promoções desapareceu da arte e legenda; o acompanhamento diário não a substitui.",
+      "recordedReview": {
+        "status": "passed",
+        "policyVersion": 2,
+        "model": "google/gemini-3.8-flash",
+        "evidenceKind": "provider_record",
+        "inputHash": "36c1c6a8d7c88aa207f5bfed54e4e289aa245eead552edfaf0b66186557afe62"
+      }
+    },
+    {
+      "id": "cafeteria-preserved-0",
+      "origin": "recorded-case",
+      "mode": "compose",
+      "source": "Crie um carrossel tipográfico de 3 slides, sem fotos, para uma cafeteria artesanal: Café da Tarde é o nome do local; desenvolvimento Uma pausa para conversar; fechamento Venha nos visitar, das 8h às 18h. Texto curto e legível. Adicione mais detalhes interessantes se conseguir",
+      "renderedSlides": [
+        "Café da Tarde\nCafé da Tarde cafeteria\nSeja bem-vindo\nCafeteria artesanal",
+        "Uma pausa\nUma pausa para conversar\nAproveite o momento\nMomento especial",
+        "Venha nos\nVenha nos visitar\nEsperamos por você\nDas 8h às 18h"
+      ],
+      "caption": "Uma pausa para conversar e saborear o momento no Café da Tarde. Venha nos visitar das 8h às 18h!",
+      "expectedVerdict": "passed",
+      "rationale": "Nome, convite/pausa e horário preservados na arte. Avaliação factual, sem certificar beleza ou redação excelente.",
+      "recordedReview": {
+        "status": "passed",
+        "policyVersion": 1,
+        "model": "google/gemini-3.8-flash",
+        "evidenceKind": "provider_record",
+        "inputHash": "a8ce140aa361dbacdffb58c392ddfca8fd9f8192b1d96b1abe11f91345c0482e"
+      }
+    },
+    {
+      "id": "cafeteria-preserved-1",
+      "origin": "recorded-case",
+      "mode": "compose",
+      "source": "Crie um carrossel tipográfico de 3 slides, sem fotos, para uma cafeteria artesanal: Café da Tarde é o nome do local; desenvolvimento Uma pausa para conversar; fechamento Venha nos visitar, das 8h às 18h. Texto curto e legível. Adicione mais detalhes interessantes se conseguir",
+      "renderedSlides": [
+        "Café da Tarde\nCafeteria artesanal\nCafeteria artesanal",
+        "Pausa para conversar\nUm café com calma\nCafé da Tarde",
+        "Venha nos visitar\nDas 8h às 18h\nCafé da Tarde"
+      ],
+      "caption": "Café da Tarde: uma pausa pensada para conversar e desacelerar a sua rotina. Venha nos visitar das 8h às 18h.",
+      "expectedVerdict": "passed",
+      "rationale": "Nome, convite/pausa e horário preservados na arte. Avaliação factual, sem certificar beleza ou redação excelente.",
+      "recordedReview": {
+        "status": "passed",
+        "policyVersion": 1,
+        "model": "google/gemini-3.8-flash",
+        "evidenceKind": "provider_record",
+        "inputHash": "b64e1e7c6ea6c178748185ddd93e91864e48c311f473cc29cbdbffd5319e9fee"
+      }
+    },
+    {
+      "id": "cafeteria-preserved-2",
+      "origin": "recorded-case",
+      "mode": "compose",
+      "source": "Crie um carrossel tipográfico de 3 slides, sem fotos, para uma cafeteria artesanal: Café da Tarde é o nome do local; desenvolvimento Uma pausa para conversar; fechamento Venha nos visitar, das 8h às 18h. Texto curto e legível. Adicione mais detalhes interessantes se conseguir",
+      "renderedSlides": [
+        "Café da Tarde\nCafeteria artesanal\nConheça nosso espaço\nBEM-VINDO",
+        "Pausa Boa\nUma pausa para conversar\nAproveite o momento\nSINTA O TEMPO",
+        "Venha Cá\nVenha nos visitar\nDas 8h às 18h\nHORÁRIO DE ATENDIMENTO"
+      ],
+      "caption": "Um convite para desacelerar: conheça o Café da Tarde e faça uma pausa no seu dia. Funcionamos das 8h às 18h. Venha nos visitar!",
+      "expectedVerdict": "passed",
+      "rationale": "Nome, convite/pausa e horário preservados na arte. Avaliação factual, sem certificar beleza ou redação excelente.",
+      "recordedReview": {
+        "status": "passed",
+        "policyVersion": 1,
+        "model": "google/gemini-3.8-flash",
+        "evidenceKind": "provider_record",
+        "inputHash": "482023044deec91815757c2d4b27b17bad317dcdffcfd00d257e212912d7e679"
+      }
+    },
+    {
+      "id": "faithful-paraphrase",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "O BizuMiner verifica promoções e acompanha os preços diariamente.",
+      "renderedSlides": [
+        "BizuMiner",
+        "Checamos as ofertas e monitoramos os preços todos os dias."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Paráfrase fiel das duas ações; não exigir igualdade lexical."
+    },
+    {
+      "id": "negated-action",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Verificamos promoções.",
+      "renderedSlides": [
+        "Não verificamos promoções."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "Mesmas palavras com negação invertem a afirmação."
+    },
+    {
+      "id": "lost-condition",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Frete grátis, mas somente acima de R$ 100.",
+      "renderedSlides": [
+        "Frete grátis para todos os pedidos."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "A condição monetária é parte inseparável da oferta."
+    },
+    {
+      "id": "preserved-condition",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Frete grátis, mas somente acima de R$ 100.",
+      "renderedSlides": [
+        "Entrega sem custo em compras acima de R$ 100."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "A paráfrase preserva a condição."
+    },
+    {
+      "id": "wrong-agent",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "O BizuMiner verifica promoções.",
+      "renderedSlides": [
+        "Você verifica promoções com o BizuMiner."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "A ação foi atribuída ao usuário, em vez de ao serviço."
+    },
+    {
+      "id": "unsupported-guarantee",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Acompanhamos preços diariamente para identificar bons momentos de compra.",
+      "renderedSlides": [
+        "Garantimos o menor preço do mercado."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "Acompanhamento não sustenta garantia absoluta de menor preço."
+    },
+    {
+      "id": "literal-no-new-cta",
+      "origin": "synthetic",
+      "mode": "literal",
+      "source": "Uma pausa para conversar",
+      "renderedSlides": [
+        "Uma pausa para conversar"
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Modo literal não autoriza criar desenvolvimento ou CTA."
+    },
+    {
+      "id": "qualifier-preserved-sequence",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Serviço Z acompanha preços diariamente, verifica promoções e ajuda a encontrar melhores preços.",
+      "renderedSlides": [
+        "Serviço Z: preços das grandes lojas",
+        "Acompanhamos preços diariamente e verificamos promoções para encontrar bons preços.",
+        "Conheça o serviço Z."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Qualificador promocional melhores ausente, mas mecanismo, frequência e benefício preservados na sequência. Rótulo manual independente, sem novo parecer de provedor."
+    },
+    {
+      "id": "absolute-guarantee-after-name-fix",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Serviço Z acompanha preços diariamente e verifica promoções.",
+      "renderedSlides": [
+        "Conheça Serviço Z",
+        "Você sempre compra pelo menor preço."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "Corrigir grafia não autoriza a garantia absoluta sem suporte. Rótulo manual independente, sem novo parecer de provedor."
+    },
+    {
+      "id": "conditional-negation-preserved",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Não oferecemos frete grátis; verificamos promoções diariamente.",
+      "renderedSlides": [
+        "Verificamos promoções diariamente",
+        "Não oferecemos frete grátis."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "A negação e frequência permanecem na sequência. Rótulo manual independente, sem novo parecer de provedor."
+    },
+    {
+      "id": "conditional-negation-lost",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Não oferecemos frete grátis; verificamos promoções diariamente.",
+      "renderedSlides": [
+        "Promoções todos os dias",
+        "Frete grátis para você."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "A segunda arte contradiz uma negação explícita da fonte. Rótulo manual independente, sem novo parecer de provedor."
+    },
+    {
+      "id": "mechanism-omitted",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Serviço Z verifica promoções e acompanha os preços diariamente.",
+      "renderedSlides": [
+        "Encontre bons preços",
+        "Acompanhamos preços todos os dias."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "A ação independente de verificar promoções foi perdida. Rótulo manual independente, sem novo parecer de provedor."
+    },
+    {
+      "id": "literal-brief-no-narrative",
+      "origin": "synthetic",
+      "mode": "literal",
+      "source": "Texto literal: Café de hoje.",
+      "renderedSlides": [
+        "Café de hoje."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Literal não recebe obrigação nova de gancho, desenvolvimento ou CTA. Rótulo manual independente, sem novo parecer de provedor."
+    },
+    {
+      "id": "v6-qualifier-preserved",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "BizuMiner verifica promoções e acompanha preços diariamente nas melhores plataformas para encontrar os melhores preços.",
+      "renderedSlides": [
+        "BizuMiner — Preços das melhores plataformas.",
+        "Verificamos promoções e acompanhamos os preços diariamente.",
+        "Compare os valores e encontre boas oportunidades."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Rótulo do agente, independente do parecer histórico: as ações e a frequência estão explícitas; o qualificador promocional pode variar sem criar garantia. Não certifica estética."
+    },
+    {
+      "id": "v6-historical-superlative-unsupported",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "BizuMiner acompanha os preços diariamente para saber quando um produto está com seu melhor valor.",
+      "renderedSlides": [
+        "BizuMiner acompanha preços diariamente.",
+        "Aqui você encontra o menor preço histórico."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "Rótulo do agente: a fonte não estabelece o superlativo histórico. A arte adiciona uma afirmação mais forte; existência de uma âncora literal não prova suporte na fonte."
+    },
+    {
+      "id": "v6-compact-static-mechanism-omitted",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "BizuMiner compara plataformas, verifica promoções e acompanha os preços diariamente.",
+      "renderedSlides": [
+        "BizuMiner — Preços de diversas plataformas, monitorados diariamente."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "Rótulo do agente: o mecanismo de verificar promoções desapareceu; acompanhamento diário não o substitui."
+    },
+    {
+      "id": "v6-literal-preserved",
+      "origin": "synthetic",
+      "mode": "literal",
+      "source": "Café Horizonte: café coado na hora, de segunda a sexta, das 8h às 18h. Venha conhecer.",
+      "renderedSlides": [
+        "Café Horizonte: café coado na hora, de segunda a sexta, das 8h às 18h. Venha conhecer."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Rótulo do agente: texto literal preservado. Nenhum CTA novo ou desenvolvimento narrativo é exigido."
+    },
+    {
+      "id": "v6-two-slide-factual-sequence",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Café Horizonte serve café coado na hora, de segunda a sexta, das 8h às 18h. Convide para conhecer.",
+      "renderedSlides": [
+        "Café Horizonte — Café coado na hora.",
+        "Venha conhecer: segunda a sexta, das 8h às 18h."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Rótulo factual do agente: nome, serviço, dias, horário e convite preservados em dois slides. Sem certificado de qualidade narrativa do provedor."
+    },
+    {
+      "id": "v6-ten-slide-factual-sequence",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Café Horizonte serve café coado na hora, de segunda a sexta, das 8h às 18h. Convide para conhecer.",
+      "renderedSlides": [
+        "Café Horizonte — Café coado na hora.",
+        "Uma pausa para o café.",
+        "Coado na hora.",
+        "Conheça nossa cafeteria.",
+        "De segunda a sexta.",
+        "A partir das 8h.",
+        "Até as 18h.",
+        "Café para a sua pausa.",
+        "Venha conhecer o Café Horizonte.",
+        "Esperamos sua visita: segunda a sexta, 8h às 18h."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Rótulo factual do agente: condições completas ao longo de dez slides. A expansão não foi medida pela LLM nem rotulada como aprovação humana/estética."
+    },
+    {
+      "id": "v7-creative-paraphrase",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Reúne questões e permite filtrar por assunto.",
+      "renderedSlides": [
+        "Encontre questões do assunto que você quer estudar."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Paráfrase preserva a capacidade sem promessa nova."
+    },
+    {
+      "id": "v7-rhetorical-hook",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Reúne questões e permite filtrar por assunto.",
+      "renderedSlides": [
+        "Seu próximo estudo começa com uma boa escolha."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Gancho retórico não afirma resultado nem condição comercial."
+    },
+    {
+      "id": "v7-invented-discount",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Reúne questões e permite filtrar por assunto.",
+      "renderedSlides": [
+        "Assine hoje com 50% de desconto."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "Desconto inexistente nas fontes fornecidas."
+    },
+    {
+      "id": "v7-invented-result",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Reúne questões e permite filtrar por assunto.",
+      "renderedSlides": [
+        "Aumente sua nota em 30%."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "Resultado mensurável inventado."
+    },
+    {
+      "id": "v7-used-free-condition",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Teste gratuito somente por sete dias.",
+      "renderedSlides": [
+        "Gratuito para sempre."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "Altera condição material da gratuidade anunciada."
+    },
+    {
+      "id": "v7-focus-no-free-claim",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Teste gratuito somente por sete dias.",
+      "renderedSlides": [
+        "Conheça a ferramenta."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Convite neutro não precisa introduzir uma oferta de gratuidade."
+    },
+    {
+      "id": "v7-omitted-qualifier-especial",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Café fresco especial, preparado diariamente.",
+      "renderedSlides": [
+        "Café fresco preparado diariamente."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Elogio periférico omitido; serviço/frequência preservados."
+    },
+    {
+      "id": "v7-omitted-qualifier-maravilhoso",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Café fresco maravilhoso, preparado diariamente.",
+      "renderedSlides": [
+        "Café fresco preparado diariamente."
+      ],
+      "caption": "",
+      "expectedVerdict": "passed",
+      "rationale": "Mesmo julgamento material que o sinônimo, sem whitelist."
+    },
+    {
+      "id": "v7-caption-discount",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "Conheça o produto.",
+      "renderedSlides": [
+        "Conheça o produto."
+      ],
+      "caption": "50% de desconto",
+      "expectedVerdict": "correction_required",
+      "rationale": "A legenda também pertence à publicação e inventa oferta."
+    },
+    {
+      "id": "v7-fictional-testimonial",
+      "origin": "synthetic",
+      "mode": "compose",
+      "source": "A ferramenta organiza questões por assunto.",
+      "renderedSlides": [
+        "Ana passou no concurso usando a ferramenta."
+      ],
+      "caption": "",
+      "expectedVerdict": "correction_required",
+      "rationale": "Depoimento/cliente/resultado não fornecidos pela fonte."
+    }
+  ]
+}

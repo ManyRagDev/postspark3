@@ -1,11 +1,11 @@
 import { useState } from "react";
+import { projectEditorialDefaults } from "@shared/projectEditorial";
 import { motion } from "framer-motion";
-import { Sparkles, Globe, CheckCircle2, ChevronDown, ChevronUp, X, ArrowLeft } from "lucide-react";
-import type { CreationBrief, BrandKitSummaryInput } from "@shared/postspark";
+import { Sparkles, Globe, ChevronDown, ChevronUp, X, ArrowLeft } from "lucide-react";
+import type { CreationBrief } from "@shared/postspark";
 
 interface BriefReviewModalProps {
   brief: CreationBrief;
-  brandKit?: BrandKitSummaryInput | null;
   onUpdateBrief: (updated: CreationBrief) => void;
   onConfirmGenerate: () => void;
   onBackToEditPrompt: () => void;
@@ -14,13 +14,13 @@ interface BriefReviewModalProps {
 
 export default function BriefReviewModal({
   brief,
-  brandKit,
   onUpdateBrief,
   onConfirmGenerate,
   onBackToEditPrompt,
   isLoading,
 }: BriefReviewModalProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const project = projectEditorialDefaults(brief.projectDossier, brief.projectSnapshot);
   const [newUrlInput, setNewUrlInput] = useState("");
 
   const handleSlideCountChange = (count: number) => {
@@ -162,21 +162,14 @@ export default function BriefReviewModal({
           </div>
         </div>
 
-        {/* INTELIGÊNCIA DE MARCA / BRAND KIT */}
-        {brandKit && (
-          <div className="flex flex-col gap-1.5 bg-amber-500/[0.05] p-3 rounded-xl border border-amber-500/20 text-xs">
-            <div className="flex items-center gap-1.5 font-semibold text-amber-300">
-              <CheckCircle2 size={14} />
-              <span>Brand Kit Ativo: {brandKit.brand_name || "Sua Marca"}</span>
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-white/60 text-[11px] mt-1">
-              {brandKit.tone && <span>Tom: <strong className="text-white/80">{brandKit.tone}</strong></span>}
-              {brandKit.font_family && <span>Tipografia: <strong className="text-white/80">{brandKit.font_family}</strong></span>}
-              {Array.isArray(brandKit.must_include) && brandKit.must_include.length > 0 && (
-                <span>Termos obrigatórios: <strong className="text-white/80">{brandKit.must_include.join(", ")}</strong></span>
-              )}
-            </div>
-          </div>
+        {(brief.projectDossier || brief.projectSnapshot) && (
+          <section aria-label="Padrões do projeto" className="rounded-xl border border-white/10 p-3 text-xs text-white/80">
+            <p className="font-medium">Padrões do projeto: {project.name || "Projeto selecionado"}</p>
+            {project.structuredData.voiceTone && <p className="mt-2 whitespace-pre-wrap"><strong>Voz:</strong> {project.structuredData.voiceTone}</p>}
+            {project.structuredData.targetAudience && <p className="mt-2 whitespace-pre-wrap"><strong>Público:</strong> {project.structuredData.targetAudience}</p>}
+            {project.structuredData.defaultCta && <p className="mt-2 whitespace-pre-wrap"><strong>CTA padrão:</strong> {project.structuredData.defaultCta}</p>}
+            <p className="mt-2">Os ajustes desta peça prevalecem sobre esses padrões de comunicação.</p>
+          </section>
         )}
 
         {/* PROGRESSIVE DISCLOSURE: CAMPOS ESTRUTURADOS OPCIONAIS */}
@@ -184,17 +177,20 @@ export default function BriefReviewModal({
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
+            aria-expanded={showAdvanced}
+            aria-controls="brief-piece-adjustments"
             className="w-full flex items-center justify-between p-3 bg-white/[0.02] hover:bg-white/[0.05] text-xs font-semibold text-white/70 transition-colors"
           >
-            <span>Ajustes avançados de copy & direcionamento (opcional)</span>
+            <span>Ajustes desta peça (opcional)</span>
             {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
 
           {showAdvanced && (
-            <div className="p-3.5 flex flex-col gap-3 bg-black/20 border-t border-white/5 text-xs">
+            <div id="brief-piece-adjustments" className="p-3.5 flex flex-col gap-3 bg-black/20 border-t border-white/5 text-xs">
               <div>
-                <label className="block text-white/60 mb-1">Chamada para Ação (CTA sugerido):</label>
+                <label htmlFor="brief-cta" className="block text-white/60 mb-1">Chamada para Ação (CTA sugerido):</label>
                 <input
+                  id="brief-cta"
                   type="text"
                   value={brief.callToAction || ""}
                   onChange={(e) => onUpdateBrief({ ...brief, callToAction: e.target.value || undefined })}
@@ -204,8 +200,9 @@ export default function BriefReviewModal({
               </div>
 
               <div>
-                <label className="block text-white/60 mb-1">Tom de Voz:</label>
+                <label htmlFor="brief-tone" className="block text-white/60 mb-1">Tom de Voz:</label>
                 <input
+                  id="brief-tone"
                   type="text"
                   value={brief.tone || ""}
                   onChange={(e) => onUpdateBrief({ ...brief, tone: e.target.value || undefined })}
@@ -215,8 +212,9 @@ export default function BriefReviewModal({
               </div>
 
               <div>
-                <label className="block text-white/60 mb-1">Público-alvo / Persona:</label>
+                <label htmlFor="brief-audience" className="block text-white/60 mb-1">Público-alvo / Persona:</label>
                 <input
+                  id="brief-audience"
                   type="text"
                   value={brief.audience || ""}
                   onChange={(e) => onUpdateBrief({ ...brief, audience: e.target.value || undefined })}

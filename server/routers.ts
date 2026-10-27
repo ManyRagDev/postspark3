@@ -1,16 +1,9 @@
-import { executionBriefSchema, normalizeExecutionBrief } from "../shared/generationRequest";
-import {deriveVariableContentContract} from "@shared/variableContent";
+import { legacyCapture } from "./brandCapture";
+import {catalogRouter} from "./routers/catalog";
+import { executionBriefSchema } from "../shared/generationRequest";
 import { validateArsenalSaveModel, authorizeArsenalSaveModel } from "./designCatalog/arsenalSave";
-import { retrieveArsenalForGeneration } from "./designCatalog/arsenalRetrieval";
-import { readStudioPreferences } from "./designCatalog/studioPreferences";
-import { defaultStudioPreferences, effectiveStudioPreferences } from "../shared/studioPreferences";
-import { retrieveCompleteDesignCards } from "./designCatalog/completeDesignStore";
+import type { retrieveArsenalForGeneration } from "./designCatalog/arsenalRetrieval";
 import { generationRouter } from "./routers/generation";
-import { hydrateComponents } from "./designCatalog/componentStore";
-import { generateCompleteDesignVariations } from "./ai/completeDesignGeneration";
-import { arsenalBriefProfile, variableArsenalBriefProfile } from "./designCatalog/arsenalBriefProfile";
-import { persistArsenalOutput } from "./designCatalog/arsenalRun";
-import { hydrateArsenalCandidates } from "./designCatalog/arsenalStore";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -19,7 +12,7 @@ import { z } from "zod";
 import { invokeLLM } from "./_core/llm";
 import { generateImage } from "./_core/imageGeneration";
 import { imagePostContextSchema } from "@shared/imageGeneration";
-import { createBackgroundAsset, createPost, getBrandKitByUser, getGenerationRunById, getPostById, getUserBackgroundAssets, getUserGenerationRuns, getUserPosts, updatePost } from "./db";
+import { getUserPostSummaries, createBackgroundAsset, createPost, getBrandKitByUser, getGenerationRunById, getPostById, getUserBackgroundAssets, getUserGenerationRuns, getUserPosts, updatePost } from "./db";
 import { storagePut } from "./storage";
 import { analyzeBrandFromUrl, generateCardThemeVariations } from "./chameleon";
 import { generateBackgroundImage } from "./imageGenerateBackground";
@@ -38,18 +31,7 @@ import { appendOperationalLog } from "./_core/operationalLog";
 import { TRPCError } from "@trpc/server";
 import { compressPostPayload } from "./lib/imageCompress";
 import { normalizeCanvasMediaPayload, saveUserMediaAsset } from "./mediaAssets";
-import { prepareGenerationPlan } from "./ai/generationPipeline";
-import { loadGenerationContext } from "./ai/contextLoader";
-import { routeHighTicketIntent, angleToStrategy } from "./ai/intentRouter";
-import { buildGenerationDebugTrace, finishGenerationTrace, recordGenerationEvent, startGenerationTrace } from "./ai/generationTrace";
-import { buildGenerationFailureDiagnostics, formatGenerationFailureError } from "./ai/generationFailureDiagnostics";
-import { userMessageForGenerationIssues } from "./ai/generationFailurePresentation";
-import { assessSemanticOriginality, persistCandidateFingerprints } from "./ai/semanticOriginality";
-import { classifyGenerationError, toFailureMetadata } from "@shared/generationFailure";
-import { GenerationFailureError } from "./_core/generationError";
-import { detectFormatIntent, formatMismatchMessage, hasFormatMismatch } from "@shared/formatIntent";
-import { interpretGenerationBrief, interpretedContent } from "./ai/briefInterpretation";
-import { generatePostVariations, type ExecutionBriefContext } from "./ai/generationOrchestrator";
+import { buildGenerationDebugTrace, recordGenerationEvent, startGenerationTrace } from "./ai/generationTrace";
 import { safeJsonParse } from "./ai/llmJson";
 import {
   advancedLayoutSettingsSchema,
@@ -66,88 +48,7 @@ import {
   textElementSchema,
 } from "@shared/postsparkSchemas";
 
-const logSnippet = (value: unknown, maxLength = 320): string | undefined => {
-  if (value === undefined || value === null) return undefined;
-  const text = String(value).replace(/\s+/g, " ").trim();
-  if (!text) return undefined;
-  return text.length > maxLength ? `${text.slice(0, maxLength)}...[truncated]` : text;
-};
 
-const summarizeGeneratedVariation = (variation: any, index: number) => ({
-  index,
-  id: variation?.id,
-  layout: variation?.layout,
-  platform: variation?.platform,
-  postMode: variation?.postMode,
-  familyId: variation?.creativeDirection?.familyId,
-  typographyResolved: Boolean(variation?.resolvedTypography),
-  typographyResolutionError: variation?.typographyResolutionError,
-  visualFitIssues: Array.isArray(variation?.visualFitIssues)
-    ? variation.visualFitIssues.map((issue: any) => issue?.type)
-    : [],
-  headline: logSnippet(variation?.headline),
-  body: logSnippet(variation?.body),
-  caption: logSnippet(variation?.caption, 500),
-  callToAction: logSnippet(variation?.callToAction),
-  hashtags: Array.isArray(variation?.hashtags) ? variation.hashtags.slice(0, 8) : [],
-  colors: {
-    backgroundColor: variation?.backgroundColor,
-    textColor: variation?.textColor,
-    accentColor: variation?.accentColor,
-  },
-  copyAngle: variation?.copyAngle
-    ? {
-        type: variation.copyAngle.type,
-        label: logSnippet(variation.copyAngle.label),
-        badge: logSnippet(variation.copyAngle.badge),
-        stickerText: logSnippet(variation.copyAngle.stickerText),
-      }
-    : undefined,
-  sections: Array.isArray(variation?.sections)
-    ? variation.sections.map((section: any, sectionIndex: number) => ({
-        index: sectionIndex,
-        id: section?.id,
-        number: section?.number,
-        icon: section?.icon,
-        label: logSnippet(section?.label),
-        description: logSnippet(section?.description),
-      }))
-    : [],
-  slides: Array.isArray(variation?.slides)
-    ? variation.slides.map((slide: any, slideIndex: number) => ({
-        index: slideIndex,
-        headline: logSnippet(slide?.headline),
-        body: logSnippet(slide?.body),
-        slideNumber: slide?.slideNumber,
-        isTitleSlide: slide?.isTitleSlide,
-        isCtaSlide: slide?.isCtaSlide,
-      }))
-    : [],
-  generationMeta: variation?.generationMeta
-    ? {
-        creationMode: variation.generationMeta.creationMode,
-        fidelity: variation.generationMeta.fidelity,
-        interventionLevel: variation.generationMeta.interventionLevel,
-        siteIntelligenceId: variation.generationMeta.siteIntelligenceId,
-        strategyId: variation.generationMeta.strategyId,
-        revisionCount: variation.generationMeta.revisionCount,
-        evaluation: variation.generationMeta.evaluation
-          ? {
-              accepted: variation.generationMeta.evaluation.accepted,
-              overallScore: variation.generationMeta.evaluation.overallScore,
-              reasons: variation.generationMeta.evaluation.reasons,
-            }
-          : undefined,
-        originality: variation.generationMeta.originality
-          ? {
-              score: variation.generationMeta.originality.score,
-              verdict: variation.generationMeta.originality.verdict,
-              reason: variation.generationMeta.originality.reason,
-            }
-          : undefined,
-      }
-    : undefined,
-});
 
 function decodeDataUrl(dataUrl: string): {
   buffer: Buffer;
@@ -309,15 +210,18 @@ import { designCatalogRouter } from "./routers/designCatalog";
 import { retrieveCatalog } from "./designCatalog/retrieval";
 import { designDnaRouter } from "./routers/designDna";
 import { privacyRouter } from "./routers/privacy";
+import { brandProjectsRouter } from "./routers/brandProjects";
 
 export const appRouter = router({
   generation: generationRouter,
+  catalog: catalogRouter,
   system: systemRouter,
   billing: billingRouter,
   admin: adminRouter,
   designDna: designDnaRouter,
   designCatalog: designCatalogRouter,
   privacy: privacyRouter,
+  brandProjects: brandProjectsRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -365,486 +269,16 @@ export const appRouter = router({
           debug: z.boolean().optional(),
         })
       )
-      .mutation(async ({ input, ctx }) => {
-        if(input.designContractVersion===4 && ENV.componentArsenalMode==="off")throw new TRPCError({code:"PRECONDITION_FAILED",message:"O catálogo de composições está desativado neste ambiente."});
-        const componentExperimental=Boolean(input.includeDraftDesigns??input.assemblyPilot);
-        const componentActive=input.designContractVersion === 4 || input.designContractVersion === 3 && (componentExperimental || ENV.componentArsenalMode === "all" || (ENV.componentArsenalMode === "admin" && ctx.user.role === "admin"));
-        if(componentExperimental && (ctx.user.role !== 'admin' || ![3,4].includes(input.designContractVersion??0) || ENV.componentArsenalMode === "off"))
-          throw new TRPCError({code:'FORBIDDEN',message:'Modelos em revisão estão disponíveis apenas na prévia administrativa.'});
-        // Etapa 3 §8.2 — validação de intenção de formato ANTES de reservar
-        // Sparks: contradição clara entre briefing e seletor retorna
-        // `format_mismatch` sem chamada generativa nem reserva (Sparks não
-        // são consumidos para incompatibilidade detectável localmente).
-        if (input.inputType === "text" && !input.formatIntentConfirmed && hasFormatMismatch(input.content, input.postMode)) {
-          const intent = detectFormatIntent(input.content);
-          throw new GenerationFailureError({
-            code: "BAD_REQUEST",
-            failure: { ...toFailureMetadata({
-              generationRunId: "format-check",
-              reason: "format_mismatch",
-            }), userMessage: formatMismatchMessage(intent, input.postMode) },
-          });
-        }
-
-        let variableContentContract;
-        try {
-          variableContentContract = input.designContractVersion === 3 && input.postMode === "static" ? deriveVariableContentContract(input.inputType === "text" ? input.content : (input.executionBrief?.rawInput ?? "")) : undefined;
-        } catch(error) {throw new TRPCError({code:"BAD_REQUEST",message:error instanceof Error ? error.message : "Contrato de conteúdo inválido"});}
-
-        // Fase C — Billing transacional: reserva Sparks no início (bloqueando
-        // saldo), commit só na aprovação final, refund em qualquer falha.
-        // idempotencyKey derivada do input impede double-charge no duplo-click.
-        const email = ctx.user.email ?? "dev@local.dev";
-        const profile = await getBillingProfile(email);
-        const cost = input.postMode === "carousel" ? SPARK_COSTS.CAROUSEL : SPARK_COSTS.GENERATE_TEXT;
-        const idempotencyKey = input.idempotencyKey ?? deriveIdempotencyKey(ctx.user.id, componentActive ? {...input,content:JSON.stringify([input.content,"complete-design-v1",input.postMode==="carousel"?input.slideCount??5:1,input.aspectRatio??"4:5",componentExperimental])}:input);
-        const reservation = await reserveSparks(profile, cost, idempotencyKey, `Geração de post (${input.postMode})`);
-        if (!reservation.reservationId) {
-          await appendOperationalLog("POST_GENERATION_REJECTED", {
-            reason: reservation.reason ?? "INSUFFICIENT_SPARKS",
-            userUuid: ctx.user.id,
-            profileId: profile.id,
-            inputType: input.inputType,
-            platform: input.platform,
-            postMode: input.postMode,
-            creationMode: input.creationMode,
-            requestedModel: input.model ?? "llama",
-            siteIntelligenceId: input.siteIntelligenceId,
-            contentLength: input.content.length,
-            contentPreview: logSnippet(input.content, 500),
-            sparkCost: cost,
-            idempotencyKey,
-          });
-          throw new TRPCError({
-            code: "PAYMENT_REQUIRED",
-            message: "Sparks insuficientes. Faça upgrade ou adquira um pacote de recarga.",
-          });
-        }
-        const generationTrace = startGenerationTrace({
-          userUuid: ctx.user.id,
-          inputType: input.inputType,
-          inputContent: input.content,
-          platform: input.platform,
-          postMode: input.postMode,
-          creationMode: input.creationMode,
-          requestedModel: input.model ?? "llama",
-          siteIntelligenceId: input.siteIntelligenceId,
+      .mutation(async (): Promise<{
+        variations: import("@shared/postspark").PostVariation[];
+        generationRunId: string;
+        debug?: ReturnType<typeof buildGenerationDebugTrace>;
+        arsenalAvailability?: Awaited<ReturnType<typeof retrieveArsenalForGeneration>>["availability"];
+      }> => {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Esta entrada de geração foi substituída. Abra o Studio e use generation.start para iniciar e acompanhar suas três propostas.",
         });
-        const debugEnabled = Boolean(input.debug && ENV.aiUiDebugEnabled);
-        await appendOperationalLog("POST_GENERATION_STARTED", {
-          generationRunId: generationTrace.id,
-          userUuid: ctx.user.id,
-          inputType: input.inputType,
-          platform: input.platform,
-          postMode: input.postMode,
-          creationMode: input.creationMode,
-          requestedModel: input.model ?? "llama",
-          siteIntelligenceId: input.siteIntelligenceId,
-          contentLength: input.content.length,
-          contentPreview: logSnippet(input.content, 500),
-          hasImageUrl: Boolean(input.imageUrl),
-          hasExecutionBrief: Boolean(input.executionBrief),
-          debugEnabled,
-          sparkCost: cost,
-        });
-        try {
-          recordGenerationEvent({
-            stage: "generation",
-            status: "started",
-            detail: "Generation pipeline started.",
-          });
-          const normalizedExecutionBrief = input.creationMode === "execution" && input.executionBrief ? normalizeExecutionBrief(input.executionBrief) : null;
-          const recentPostsPromise = getUserPosts(ctx.user.id, 20).catch(error => {
-            console.warn("[post.generate] Recent post history unavailable:", error);
-            return [];
-          });
-          let briefInterpretationError: string | null = null;
-          const briefInterpretationPromise = input.inputType === "text"
-            ? interpretGenerationBrief(normalizedExecutionBrief?.rawInput || input.content).catch((error) => {
-                briefInterpretationError = error instanceof Error ? error.message : String(error);
-                return null;
-              })
-            : Promise.resolve(null);
-          let contextContent = input.content;
-          let brandDnaContext = "";
-          let siteIntelligence: SiteIntelligence | null = null;
-
-          const siteUrl = input.inputType === "url" ? input.content : normalizedExecutionBrief?.brandInput?.websiteUrl;
-
-          if (ENV.aiSiteIntelligenceEnabled && input.siteIntelligenceId) {
-            siteIntelligence = await loadSiteIntelligence(input.siteIntelligenceId, ctx.user.id);
-          }
-
-          if (ENV.aiSiteIntelligenceEnabled && siteUrl && !siteIntelligence) {
-            try {
-              const result = await analyzeSiteIntelligence(siteUrl, ctx.user.id);
-              siteIntelligence = result.siteIntelligence;
-            } catch (error) {
-              console.warn("[post.generate] Site intelligence unavailable:", error);
-            }
-          }
-
-          if (siteIntelligence) {
-            contextContent = siteIntelligence.evidence
-              .map(item => `[${item.kind}] ${item.text}`)
-              .join("\n")
-              .slice(0, 24_000);
-            brandDnaContext = siteIntelligenceToPrompt(siteIntelligence);
-          } else if (siteUrl) {
-            const scrapeResult = await scrapeSiteUrl(siteUrl);
-            contextContent = `URL: ${siteUrl}\nTitulo: ${scrapeResult.title}\nDescricao: ${scrapeResult.description}\nConteudo: ${scrapeResult.content}`;
-          }
-
-          const briefInterpretation = await briefInterpretationPromise;
-          if (input.inputType === "text") {
-            recordGenerationEvent({
-              stage: "brief_interpretation",
-              status: briefInterpretation && !briefInterpretation.uncertain ? "completed" : "fallback",
-              detail: briefInterpretation && !briefInterpretation.uncertain
-                ? `${briefInterpretation.contentSpans.length} trechos de conteúdo e ${briefInterpretation.instructionSpans.length} instruções classificados.`
-                : `Interpretação ausente ou incerta; briefing original preservado.${briefInterpretationError ? ` Motivo: ${briefInterpretationError}` : ""}`,
-            });
-          }
-          const generationPlan = await prepareGenerationPlan({
-            sourceContent: contextContent,
-            siteIntelligence,
-            executionBrief: normalizedExecutionBrief,
-            briefInterpretation,
-          });
-          recordGenerationEvent({
-            stage: "content_strategy",
-            status: generationPlan.strategies.fallbackUsed ? "fallback" : "completed",
-            detail: `${generationPlan.strategies.selected.length} strategies selected.`,
-            data: generationPlan.strategies,
-          });
-
-          // Fase D — modo "execution" usa o intent router (3 ângulos ortogonais
-          // story/authority/objection) como fonte de estratégias, substituindo
-          // o planContentStrategies padrão. O contexto enriquecido (BrandKit +
-          // Persona + context budget) alimenta o router. O resto do pipeline
-          // (slots, composition, snapshot, QA, captions) é idêntico.
-          if (!componentActive && input.creationMode === "execution" && normalizedExecutionBrief) {
-            try {
-              const briefing = await loadGenerationContext({
-                userUuid: ctx.user.id,
-                inputType: input.inputType,
-                content: interpretedContent(briefInterpretation) || input.content,
-                platform: input.platform,
-                postMode: input.postMode,
-                creationMode: input.creationMode,
-                executionBrief: normalizedExecutionBrief,
-                siteIntelligenceId: input.siteIntelligenceId,
-              });
-              const routing = await routeHighTicketIntent(briefing);
-              const intentStrategies = routing.angles.map(angleToStrategy);
-              // Substitui as estratégias selecionadas pelas do intent router.
-              generationPlan.strategies.selected = intentStrategies;
-              recordGenerationEvent({
-                stage: "intent_router",
-                status: routing.fallbackUsed ? "fallback" : "completed",
-                detail: `Intent router produced ${intentStrategies.length} orthogonal angles.`,
-                data: { intent: routing.intent, fallbackUsed: routing.fallbackUsed },
-              });
-            } catch (error) {
-              recordGenerationEvent({
-                stage: "intent_router",
-                status: "fallback",
-                detail: `Intent router failed, using planContentStrategies: ${error instanceof Error ? error.message : String(error)}`,
-              });
-            }
-          }
-
-          const componentStarted=Date.now();
-          let studioPreferences={...defaultStudioPreferences};
-          if(componentActive){
-            try {studioPreferences=effectiveStudioPreferences(await readStudioPreferences(ctx.user.id),[input.content,normalizedExecutionBrief?.rawInput,normalizedExecutionBrief?.notes].filter(Boolean).join("\n"));}
-            catch {recordGenerationEvent({stage:"component.preferences",status:"fallback",detail:"Preferências indisponíveis; briefing atual preservado."});}
-          }
-
-          const componentCards=componentActive?await retrieveCompleteDesignCards({brandColors:normalizedExecutionBrief?.brandInput?.brandColors??(siteIntelligence?[siteIntelligence.brand.colors.background,siteIntelligence.brand.colors.accent]:[]),brandFonts:[normalizedExecutionBrief?.brandInput?.fontHint??siteIntelligence?.brand.typography.headingFont,siteIntelligence?.brand.typography.bodyFont].filter((font):font is string=>Boolean(font)),aspectRatio:input.aspectRatio??"4:5",postMode:input.postMode,text:interpretedContent(briefInterpretation)??contextContent,styleText:input.content,slideCount:input.slideCount??5,experimental:componentExperimental}):undefined;
-          if(componentCards && !componentCards.length)throw new GenerationFailureError({
-            code:"PRECONDITION_FAILED",
-            failure:{...toFailureMetadata({generationRunId:generationTrace.id,reason:"unknown"}),retryable:false,userMessage:"Não há composições publicadas compatíveis com este pedido e formato. O catálogo precisa de revisão ou novos modelos."},
-          });
-          if(componentCards)recordGenerationEvent({stage:"component.retrieve",status:"completed",detail:"Designs completos recuperados do banco; recombinação desativada",data:{source:"server",experimental:componentExperimental,method:"complete-design-catalog-v2",preferences:studioPreferences,cards:componentCards}});
-          const arsenal = componentCards ? {offers:[],availability:{mode:'admin' as const,reason:'ready' as const,candidateCount:componentCards.length,durationMs:Date.now()-componentStarted}} : await retrieveArsenalForGeneration({
-            clientSupportsV2: input.designContractVersion === 2 || input.designContractVersion === 3,
-            role: ctx.user.role, postMode: input.postMode,
-            text: input.inputType === "image" ? (normalizedExecutionBrief?.rawInput ?? "") : contextContent,
-            brandLocked: Boolean(siteIntelligence || normalizedExecutionBrief?.brandInput),
-            profile:{
-              ...arsenalBriefProfile(interpretedContent(briefInterpretation) ?? contextContent, input.content),
-              ...(variableContentContract ? variableArsenalBriefProfile(variableContentContract,interpretedContent(briefInterpretation) ?? contextContent,input.content) : {}),
-              font:normalizedExecutionBrief?.brandInput?.fontHint,
-              fonts:siteIntelligence?[siteIntelligence.brand.typography.headingFont,siteIntelligence.brand.typography.bodyFont].filter(Boolean):[],
-            },
-          });
-          const arsenalBudget={remainingMs:Math.max(0,(componentCards?8000:2000)-arsenal.availability.durationMs)};
-          const catalogCandidates = componentCards || arsenal.offers.length ? [] : await retrieveCatalog({
-            text: input.inputType === "image" ? (normalizedExecutionBrief?.rawInput ?? "") : contextContent,
-            postMode: input.postMode, hasImage: false,
-          }, generationTrace.id, ctx.user.id);
-          const outcome = await (componentCards ? generateCompleteDesignVariations : generatePostVariations)(
-            {
-              studioPreferences,
-              contextContent,
-              offered:componentCards??[],
-              resolve:(ids:string[])=>hydrateComponents(ids,componentExperimental),
-              experimental:componentExperimental,
-              slideCount:input.slideCount??5,
-              aspectRatio:input.aspectRatio??"4:5",
-              userUuid: ctx.user.id,
-              request: {
-                inputType: input.inputType,
-                content: input.content,
-                platform: input.platform,
-                imageUrl: input.imageUrl,
-                tone: input.tone,
-                postMode: input.postMode,
-                model: input.model,
-                creationMode: input.creationMode,
-              },
-              siteIntelligence,
-              executionBrief: normalizedExecutionBrief,
-              briefInterpretation,
-              catalogCandidates,
-              variableContentContract,
-              arsenalCards: arsenal.offers,
-              arsenalResolve: hydrateArsenalCandidates,
-              arsenalBudgetMs: Math.max(1,2000-arsenal.availability.durationMs),
-              arsenalBudget,
-              plan: generationPlan,
-              // Cobre chamada principal + reparo técnico (60 s cada em OPENROUTER_TASK_POLICY)
-              // com folga para embeddings e persistência.
-              deadlineMs: Date.now() + 150_000,
-            },
-            {
-              generate: (params) => invokeLLM(params),
-              clock: () => Date.now(),
-              assessOriginality: assessSemanticOriginality,
-              // Reaproveita a busca já disparada no início do handler.
-              loadRecentPosts: () => recentPostsPromise,
-              trace: {
-                id: generationTrace.id,
-                recordEvent: (event) => recordGenerationEvent(event),
-              },
-            },
-          );
-
-          if (outcome.status === "approved") {
-            const revisionCount = Math.max(
-              0,
-              ...outcome.snapshots.map(
-                (snapshot) => snapshot.generationMeta?.revisionCount ?? 0,
-              ),
-            );
-
-            await persistCandidateFingerprints({
-              userUuid: ctx.user.id,
-              generationRunId: generationTrace.id,
-              candidates: outcome.snapshots,
-              embeddings: outcome.originality.embeddings,
-              assessments: outcome.originality.assessments,
-            });
-            await finishGenerationTrace({
-              trace: generationTrace,
-              status: "completed",
-              strategies: outcome.plan,
-              evaluations: outcome.evaluations,
-              acceptedCount: outcome.evaluations.length > 0
-                ? outcome.evaluations.filter((e) => e.accepted).length
-                : outcome.snapshots.length,
-              revisionCount,
-              strategyFallbackUsed: outcome.plan.strategies.fallbackUsed,
-              originalityFallbackUsed: outcome.originality.fallbackUsed,
-              output: outcome.snapshots,
-            });
-            await persistArsenalOutput(generationTrace.id, ctx.user.id, outcome.snapshots,arsenalBudget);
-            await appendOperationalLog("POST_GENERATION_COMPLETED", {
-              generationRunId: generationTrace.id,
-              userUuid: ctx.user.id,
-              durationMs: Date.now() - generationTrace.startedAt,
-              inputType: input.inputType,
-              platform: input.platform,
-              postMode: input.postMode,
-              creationMode: input.creationMode,
-              requestedModel: input.model ?? "llama",
-              effectiveModels: Array.from(
-                new Set(generationTrace.calls.map((call) => call.effectiveModel)),
-              ),
-              siteIntelligenceId: siteIntelligence?.id,
-              variationCount: outcome.snapshots.length,
-              revisionCount,
-              strategyFallbackUsed: outcome.plan.strategies.fallbackUsed,
-              originalityFallbackUsed: outcome.originality.fallbackUsed,
-              generativeCalls: outcome.metrics.generativeCalls,
-              repairCalls: outcome.metrics.repairCalls,
-              llmCalls: generationTrace.calls.map((call) => ({
-                label: call.label,
-                provider: call.provider,
-                effectiveModel: call.effectiveModel,
-                attempt: call.attempt,
-                fallbackFrom: call.fallbackFrom,
-                promptHash: call.promptHash,
-                promptTokens: call.promptTokens,
-                completionTokens: call.completionTokens,
-                totalTokens: call.totalTokens,
-                latencyMs: call.latencyMs,
-                estimatedCostUsd: call.estimatedCostUsd,
-                error: call.error,
-              })),
-              outputSummary: outcome.snapshots.map(summarizeGeneratedVariation),
-            });
-            // Fase C — commit da reserva: débito definitivo apenas após a
-            // aprovação final e a persistência. Idempotente.
-            // CR-005: `false` é falha OPERACIONAL TERMINAL — a reserva não
-            // virou débito, mas o run precisa terminar com estado explícito
-            // (refund + trace failed + log), nunca como "aprovado sem cobrar".
-            const committed = await commitSparkReservation(reservation.reservationId, generationTrace.id);
-            if (!committed) {
-              throw new Error(
-                `commitSparkReservation(${reservation.reservationId}) retornou false — reserva não confirmada; run terminado como falha terminal (refund aplicado no catch).`,
-              );
-            }
-            return {
-              variations: outcome.snapshots,
-              generationRunId: generationTrace.id,
-              ...(ctx.user.role === "admin" ? { arsenalAvailability: arsenal.availability } : {}),
-              ...(debugEnabled
-                ? {
-                    debug: buildGenerationDebugTrace({
-                      trace: generationTrace,
-                      strategies: outcome.plan,
-                      evaluations: outcome.evaluations,
-                      output: outcome.snapshots,
-                    }),
-                  }
-                : {}),
-            };
-          }
-
-          // rejected / failed — o catch abaixo é dono único do refund, do
-          // encerramento do trace e do log. Rejeição aqui é de contrato
-          // objetivo persistente após o reparo, não de nota editorial.
-          if (outcome.status === "rejected") {
-            const reason = "invalid_provider_response";
-            const validationIssues = outcome.issues.map((issue) => ({
-              code: issue.type === "diversity" ? "variations_not_distinct" : "invalid_set",
-              slot: issue.slot === "set" ? undefined : (issue.slot as number),
-              detail: issue.detail,
-            }));
-            throw new GenerationFailureError({
-              code: "BAD_GATEWAY",
-              failure: { ...toFailureMetadata({
-                generationRunId: generationTrace.id,
-                reason,
-                validationIssues,
-              }), userMessage: userMessageForGenerationIssues(outcome.issues) },
-              cause: new Error(outcome.issues.map((issue) => issue.detail).join("; ")),
-            });
-          }
-          throw new GenerationFailureError({
-            code: outcome.error.kind === "deadline" ? "GATEWAY_TIMEOUT" : "INTERNAL_SERVER_ERROR",
-            failure: {...toFailureMetadata({
-              generationRunId: generationTrace.id,
-              reason:
-                outcome.error.kind === "deadline"
-                  ? "provider_timeout"
-                  : outcome.error.kind === "provider"
-                    ? "provider_unavailable"
-                    : outcome.error.kind === "parse"
-                      ? "invalid_provider_response"
-                      : "unknown",
-              error: outcome.error.message,
-            }),...(componentActive && outcome.error.kind === "internal" ? {userMessage:outcome.error.message}: {})},
-            cause: new Error(outcome.error.message),
-          });
-        } catch (error) {
-          // Fase C — refund cobre qualquer falha terminal: LLM, schema, fit,
-          // persistência, timeout e exceções não tipadas. A reserva apenas
-          // bloqueava saldo; refund muda status sem precisar devolver débito.
-          // CR-005: se o refund também falhar (`false`), o run NUNCA fica em
-          // silêncio — registra SPARK_REFUND_FAILED e encerra o trace como
-          // falha com detalhe observável.
-          const refunded = await refundSparkReservation(
-            reservation.reservationId,
-            error instanceof Error ? error.message : "Generation failed",
-          );
-          const refundNote = refunded
-            ? ""
-            : ` [SPARK_REFUND_FAILED: refundSparkReservation(${reservation.reservationId}) retornou false — reserva pode ter ficado pendente; ação manual necessária]`;
-          if (!refunded) {
-            await appendOperationalLog("SPARK_REFUND_FAILED", {
-              reservationId: reservation.reservationId,
-              generationRunId: generationTrace.id,
-              userUuid: ctx.user.id,
-              originalError: error instanceof Error ? error.message : "Generation failed",
-            });
-          }
-          const failureReason =
-            error instanceof GenerationFailureError
-              ? error.failure.reason
-              : classifyGenerationError(error);
-          const hasObjectiveIssues = error instanceof GenerationFailureError
-            && failureReason === "invalid_provider_response"
-            && Boolean(error.failure.validationIssues?.length);
-          const diagnostics = failureReason === "quality_rejected" || failureReason === "variations_not_distinct" || hasObjectiveIssues
-            ? buildGenerationFailureDiagnostics(
-                generationTrace,
-                error instanceof GenerationFailureError
-                  ? error.failure
-                  : toFailureMetadata({ generationRunId: generationTrace.id, reason: failureReason }),
-                error instanceof GenerationFailureError ? "typed" : "inferred",
-              )
-            : null;
-          if (diagnostics) {
-            // O log de arquivo é best-effort (e pode ser efêmero em serverless).
-            // A linha JSON também torna a causa consultável nos logs do runtime.
-            console.error(JSON.stringify({ event: "POST_GENERATION_REJECTED", ...diagnostics }));
-            await appendOperationalLog("POST_GENERATION_REJECTED", diagnostics);
-            recordGenerationEvent({
-              stage: "generation_failure_diagnostic",
-              status: "rejected",
-              detail: `Rejeição registrada: ${failureReason}; ${diagnostics.validationIssues.length} motivo(s).`,
-              data: diagnostics,
-            });
-          }
-          await finishGenerationTrace({
-            trace: generationTrace,
-            status: "failed",
-            error: diagnostics
-              ? formatGenerationFailureError(`${error instanceof Error ? error.message : "Generation failed"}${refundNote}`, diagnostics)
-              : `${error instanceof Error ? error.message : "Generation failed"}${refundNote}`,
-            failureReason,
-          });
-          await appendOperationalLog("POST_GENERATION_FAILED", {
-            generationRunId: generationTrace.id,
-            userUuid: ctx.user.id,
-            durationMs: Date.now() - generationTrace.startedAt,
-            inputType: input.inputType,
-            platform: input.platform,
-            postMode: input.postMode,
-            creationMode: input.creationMode,
-            requestedModel: input.model ?? "llama",
-            siteIntelligenceId: generationTrace.siteIntelligenceId,
-            llmCalls: generationTrace.calls.map((call) => ({
-              label: call.label,
-              provider: call.provider,
-              effectiveModel: call.effectiveModel,
-              attempt: call.attempt,
-              fallbackFrom: call.fallbackFrom,
-              promptHash: call.promptHash,
-              promptTokens: call.promptTokens,
-              completionTokens: call.completionTokens,
-              totalTokens: call.totalTokens,
-              latencyMs: call.latencyMs,
-              estimatedCostUsd: call.estimatedCostUsd,
-              error: call.error,
-            })),
-            error,
-          });
-          throw error;
-        }
       }),
 
     /** Generate only on explicit user action; commit after owner-private media delivery. */
@@ -911,6 +345,7 @@ export const appRouter = router({
           copyAngle: copyAngleSchema.optional(),
           variationSnapshot: postVisualSnapshotSchema.optional(),
           /** Modelo completo do editor CanvasLab (PostSpark Studio). */
+          galleryPreview:z.string().max(100000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/).nullish(),
           canvasModel: z.any().superRefine((value, ctx) => {
             try { validateArsenalSaveModel(value); }
             catch (error) { ctx.addIssue({ code: "custom", message: error instanceof Error ? error.message : "Composição inválida" }); }
@@ -970,6 +405,7 @@ export const appRouter = router({
           copyAngle: copyAngleSchema.optional(),
           variationSnapshot: postVisualSnapshotSchema.optional(),
           /** Modelo completo do editor CanvasLab (PostSpark Studio). */
+          galleryPreview:z.string().max(100000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/).nullish(),
           canvasModel: z.any().superRefine((value, ctx) => {
             try { validateArsenalSaveModel(value); }
             catch (error) { ctx.addIssue({ code: "custom", message: error instanceof Error ? error.message : "Composição inválida" }); }
@@ -989,6 +425,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    listSummary: protectedProcedure.input(z.object({limit:z.number().int().min(1).max(50).default(20),offset:z.number().int().min(0).default(0)}).optional()).query(({ctx,input})=>getUserPostSummaries(ctx.user.id,input?.limit,input?.offset)),
     /** List user's posts */
     list: protectedProcedure.query(async ({ ctx }) => {
       return getUserPosts(ctx.user.id);
@@ -1333,50 +770,7 @@ Devolva as sugestões respeitando estritamente os IDs recebidos. Não invente no
           });
         }
 
-        const email = ctx.user.email ?? "dev@local.dev";
-        const profile = await getBillingProfile(email);
-        const debit = await debitSparks(profile.id, 20, "Brand DNA — extração multi-página + análise visual");
-        if (!debit.success) {
-          throw new TRPCError({
-            code: "PAYMENT_REQUIRED",
-            message: "Sparks insuficientes. Faça upgrade ou adquira um pacote de recarga.",
-          });
-        }
-
-        const extractionTrace = startGenerationTrace({
-          userUuid: ctx.user.id,
-          inputType: "url",
-          inputContent: input.url,
-          platform: "site-intelligence",
-          postMode: "analysis",
-          creationMode: "site-intelligence",
-          requestedModel: "gemini",
-        });
-        recordGenerationEvent({
-          stage: "site_collection",
-          status: "started",
-          detail: "Shared site collection and specialist analysis started.",
-        });
-        const result = await analyzeSiteIntelligence(input.url, ctx.user.id);
-        recordGenerationEvent({
-          stage: "site_compilation",
-          status: result.fallbackUsed ? "fallback" : "completed",
-          detail: "Semantic and visual analyses compiled into SiteIntelligence.",
-          data: {
-            siteIntelligenceId: result.siteIntelligence.id,
-            quality: result.siteIntelligence.quality,
-          },
-        });
-        return {
-          ...result,
-          ...(input.debug && ENV.aiUiDebugEnabled
-            ? {
-                debug: buildGenerationDebugTrace({
-                  trace: extractionTrace,
-                }),
-              }
-            : {}),
-        };
+        return legacyCapture(ctx.user.id,input.url);
       }),
 
     /**

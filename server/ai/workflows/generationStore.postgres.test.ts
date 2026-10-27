@@ -15,6 +15,15 @@ const assetManifest = {
   mimeType: "image/png",
   bytes: 42,
 };
+const operationSignature =
+  "postspark.generation_v5_operation(uuid,uuid,text,text,jsonb)";
+const recentSelectionsMigration = readFileSync(
+  new URL(
+    "../../../drizzle/0038_generation_recent_selections_replay.sql",
+    import.meta.url
+  ),
+  "utf8"
+);
 
 const input = {
   inputType: "text",
@@ -247,9 +256,13 @@ beforeEach(async () => {
   for (const migration of [
     "0034_orchestrated_generation.sql",
     "0035_generation_lease_conflict.sql",
+    "0038_generation_recent_selections_replay.sql",
   ]) {
     await pg.exec(
-      readFileSync(new URL(`../../../drizzle/${migration}`, import.meta.url), "utf8")
+      readFileSync(
+        new URL(`../../../drizzle/${migration}`, import.meta.url),
+        "utf8"
+      )
     );
   }
 });
@@ -259,6 +272,174 @@ afterEach(async () => {
 });
 
 describe("generation V5 PostgreSQL state", () => {
+  it("needs the replay migration to recover a recent read interrupted under the legacy fallback", async () => {
+    const definition = await scalar<string>(
+      "SELECT pg_get_functiondef($1::regprocedure) AS value",
+      [operationSignature]
+    );
+    await pg.exec(definition.replace(",'prepare:recent_selections'", ""));
+    const request = await admit();
+    const lease = await claim();
+    const begin = (action: string) =>
+      serviceScalar<any>(
+        "SELECT postspark.generation_v5_operation($1::uuid,$2::uuid,'prepare:recent_selections',$3,NULL) AS value",
+        [request.id, lease.leaseToken, action]
+      );
+    await expect(begin("begin_safe")).rejects.toThrow(
+      "Only unpaid preparation reads"
+    );
+    expect(await begin("begin")).toMatchObject({ state: "new" });
+    expect(await begin("begin")).toMatchObject({ state: "uncertain" });
+    await pg.exec(recentSelectionsMigration);
+    expect(await begin("begin_safe")).toMatchObject({ state: "new" });
+  });
+
+  it("recovers recent reads after lease takeover, reuses completed results and keeps paid effects uncertain", async () => {
+    const request = await admit();
+    const original = await claim();
+    const operation = (
+      token: string,
+      key: string,
+      action: string,
+      result?: unknown
+    ) =>
+      serviceScalar<any>(
+        "SELECT postspark.generation_v5_operation($1::uuid,$2::uuid,$3,$4,$5::jsonb) AS value",
+        [
+          request.id,
+          token,
+          key,
+          action,
+          result === undefined ? null : JSON.stringify(result),
+        ]
+      );
+    await operation(
+      original.leaseToken,
+      "prepare:recent_selections",
+      "begin_safe"
+    );
+    await operation(original.leaseToken, "proposal-0:copy", "begin");
+    await pg.query(
+      "UPDATE postspark.generation_v5_requests SET lease_until=now()-interval '1 second' WHERE id=$1",
+      [request.id]
+    );
+    const reclaimed = await claim();
+    expect(reclaimed.leaseToken).not.toBe(original.leaseToken);
+    expect(
+      await operation(
+        reclaimed.leaseToken,
+        "prepare:recent_selections",
+        "begin_safe"
+      )
+    ).toMatchObject({ state: "new" });
+    expect(
+      await operation(reclaimed.leaseToken, "proposal-0:copy", "begin")
+    ).toMatchObject({ state: "uncertain" });
+    await expect(
+      operation(reclaimed.leaseToken, "proposal-0:copy", "begin_safe")
+    ).rejects.toThrow("Only unpaid preparation reads");
+    const recent = [{ requestId: "previous", selections: [] }];
+    await operation(
+      reclaimed.leaseToken,
+      "prepare:recent_selections",
+      "complete",
+      recent
+    );
+    expect(
+      await operation(
+        reclaimed.leaseToken,
+        "prepare:recent_selections",
+        "begin_safe"
+      )
+    ).toEqual({ state: "completed", result: recent });
+    expect(
+      await operation(reclaimed.leaseToken, "proposal-0:copy", "begin")
+    ).toMatchObject({ state: "uncertain" });
+  });
+
+  it("patches only the replay allowlist, preserves deployed rules and attributes, and is idempotent", async () => {
+    const definition = await scalar<string>(
+      "SELECT pg_get_functiondef($1::regprocedure) AS value",
+      [operationSignature]
+    );
+    await pg.exec(
+      definition
+        .replace(",'prepare:recent_selections'", "")
+        .replace(
+          "BEGIN\n",
+          "BEGIN\n  -- Existing deployment rule must survive.\n"
+        )
+    );
+    await pg.exec(
+      `ALTER FUNCTION ${operationSignature} COST 123 SET statement_timeout = '2s'`
+    );
+    const before = await scalar<string>(
+      "SELECT pg_get_functiondef($1::regprocedure) AS value",
+      [operationSignature]
+    );
+    const metadataQuery = `SELECT jsonb_build_object(
+      'oid', p.oid::text, 'owner', p.proowner::text,
+      'definer', p.prosecdef, 'config', p.proconfig, 'cost', p.procost,
+      'anonExecute', has_function_privilege('anon', p.oid, 'EXECUTE'),
+      'authenticatedExecute', has_function_privilege('authenticated', p.oid, 'EXECUTE'),
+      'serviceExecute', has_function_privilege('service_role', p.oid, 'EXECUTE')
+    ) AS value FROM pg_proc p WHERE p.oid = $1::regprocedure`;
+    const metadataBefore = await scalar(metadataQuery, [operationSignature]);
+    await pg.exec(recentSelectionsMigration);
+    const after = await scalar<string>(
+      "SELECT pg_get_functiondef($1::regprocedure) AS value",
+      [operationSignature]
+    );
+    expect(after).toBe(
+      before.replace(
+        "'prepare:definitions') THEN",
+        "'prepare:definitions','prepare:recent_selections') THEN"
+      )
+    );
+    expect(after).toContain("'PT409'");
+    expect(await scalar(metadataQuery, [operationSignature])).toEqual(
+      metadataBefore
+    );
+    expect(metadataBefore).toMatchObject({
+      definer: true,
+      anonExecute: false,
+      authenticatedExecute: false,
+      serviceExecute: true,
+    });
+    await pg.exec(recentSelectionsMigration);
+    expect(
+      await scalar("SELECT pg_get_functiondef($1::regprocedure) AS value", [
+        operationSignature,
+      ])
+    ).toBe(after);
+  });
+
+  it("rejects an unknown deployed allowlist without overwriting it", async () => {
+    const definition = await scalar<string>(
+      "SELECT pg_get_functiondef($1::regprocedure) AS value",
+      [operationSignature]
+    );
+    await pg.exec(
+      definition.replace(
+        "'prepare:recent_selections'",
+        "'prepare:other_unpaid_read'"
+      )
+    );
+    const before = await scalar<string>(
+      "SELECT pg_get_functiondef($1::regprocedure) AS value",
+      [operationSignature]
+    );
+    await expect(pg.exec(recentSelectionsMigration)).rejects.toThrow(
+      "Unexpected generation replay allowlist"
+    );
+    await pg.exec("ROLLBACK");
+    expect(
+      await scalar("SELECT pg_get_functiondef($1::regprocedure) AS value", [
+        operationSignature,
+      ])
+    ).toBe(before);
+  });
+
   it("can repeat unpaid reads after interruption but never paid selection or copy", async () => {
     const request = await admit();
     const lease = await claim();
@@ -275,6 +456,13 @@ describe("generation V5 PostgreSQL state", () => {
       [request.id, lease.leaseToken]
     );
     expect(resumed.state).toBe("new");
+
+    const recentResumed = await serviceScalar<any>(
+      "SELECT postspark.generation_v5_operation($1::uuid,$2::uuid,'prepare:recent_selections','begin_safe',NULL) AS value",
+      [request.id, lease.leaseToken]
+    );
+    expect(recentResumed.state).toBe("new");
+
     await expect(
       serviceScalar(
         "SELECT postspark.generation_v5_operation($1::uuid,$2::uuid,'prepare:selection','begin_safe',NULL) AS value",
@@ -346,19 +534,28 @@ describe("generation V5 PostgreSQL state", () => {
     const original = await claim();
     await expect(
       leaseUpdate(request.id, otherOwner, "heartbeat", null)
-    ).rejects.toMatchObject({ code: "PT409", message: "Generation lease lost" });
+    ).rejects.toMatchObject({
+      code: "PT409",
+      message: "Generation lease lost",
+    });
     await expect(
       serviceScalar(
         "SELECT postspark.generation_v5_operation($1::uuid,$2::uuid,'probe','begin',NULL) AS value",
         [request.id, otherOwner]
       )
-    ).rejects.toMatchObject({ code: "PT409", message: "Generation lease lost" });
+    ).rejects.toMatchObject({
+      code: "PT409",
+      message: "Generation lease lost",
+    });
     await expect(
       serviceScalar(
         "SELECT postspark.generation_v5_finish($1::uuid,$2::uuid,'completed',NULL) AS value",
         [request.id, otherOwner]
       )
-    ).rejects.toMatchObject({ code: "PT409", message: "Generation lease lost" });
+    ).rejects.toMatchObject({
+      code: "PT409",
+      message: "Generation lease lost",
+    });
     const started = await serviceScalar<any>(
       "SELECT postspark.generation_v5_operation($1::uuid,$2::uuid,'selection:0','begin',NULL) AS value",
       [request.id, original.leaseToken]
@@ -599,4 +796,75 @@ describe("generation V5 PostgreSQL state", () => {
       "expired",
     ]);
   });
+
+  it("AC-5: persists and reuses prepare:selection_input via normal begin without whitelist migration and keeps existing receipts intact across resume", async () => {
+    const request = await admit();
+    const lease = await claim();
+
+    const op = (action: string, result?: unknown) =>
+      serviceScalar<any>(
+        "SELECT postspark.generation_v5_operation($1::uuid,$2::uuid,'prepare:selection_input',$3,$4::jsonb) AS value",
+        [request.id, lease.leaseToken, action, result === undefined ? null : JSON.stringify(result)]
+      );
+
+    // 1. begin_safe fails because selection_input is not on the unpaid reads whitelist (no migration done)
+    await expect(op("begin_safe")).rejects.toThrow("Only unpaid preparation reads");
+
+    // 2. Normal begin succeeds and records new operation
+    const beginRes = await op("begin");
+    expect(beginRes).toMatchObject({ state: "new" });
+
+    // 3. Complete the operation with sample receipt
+    const receipt = {
+      brief: "Test brief for AC-5",
+      sourceEvidence: "Test evidence",
+      requirements: [{ id: "req-1", kind: "literal", value: "Test" }],
+      jevModel: "google/gemini-2.5-flash",
+    };
+    await op("complete", receipt);
+
+    // 4. Capture journal state
+    const journalBefore = (
+      await pg.query(
+        "SELECT operation_key, state, result FROM postspark.generation_v5_operations WHERE request_id = $1 ORDER BY operation_key",
+        [request.id]
+      )
+    ).rows;
+    expect(journalBefore).toHaveLength(1);
+    expect(journalBefore[0]).toMatchObject({
+      operation_key: "prepare:selection_input",
+      state: "completed",
+    });
+
+    // 5. Simulate lease expiration & takeover
+    await pg.query(
+      "UPDATE postspark.generation_v5_requests SET lease_until=now()-interval '1 second' WHERE id=$1",
+      [request.id]
+    );
+    const reclaimed = await claim();
+    expect(reclaimed.leaseToken).not.toBe(lease.leaseToken);
+
+    // 6. On resumption with new worker lease, calling begin on prepare:selection_input reuses the completed receipt
+    const resumeOp = (action: string) =>
+      serviceScalar<any>(
+        "SELECT postspark.generation_v5_operation($1::uuid,$2::uuid,'prepare:selection_input',$3,NULL) AS value",
+        [request.id, reclaimed.leaseToken, action]
+      );
+
+    const resumedResult = await resumeOp("begin");
+    expect(resumedResult).toMatchObject({
+      state: "completed",
+      result: receipt,
+    });
+
+    // 7. Verify journal comparison before and after resume: receipts remain intact
+    const journalAfter = (
+      await pg.query(
+        "SELECT operation_key, state, result FROM postspark.generation_v5_operations WHERE request_id = $1 ORDER BY operation_key",
+        [request.id]
+      )
+    ).rows;
+    expect(journalAfter).toEqual(journalBefore);
+  });
 });
+

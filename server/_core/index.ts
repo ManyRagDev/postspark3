@@ -1,4 +1,8 @@
 import "dotenv/config";
+import { registerBrandCaptureRoutes } from "./brandCaptureRoutes";
+import {installNetworkDiagnostics,withNetworkDiagnosticScope} from "./networkDiagnostics";
+import {registerGenerationStream} from "./generationStream";
+import {stopDemandSupervisor} from "../ai/workflows/localDemandSupervisor";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -91,39 +95,10 @@ app.post(
 // Configure body parser with larger size limit for file uploads
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
+const networkDiagnostics=installNetworkDiagnostics("backend",app);
 
-// NEW: Endpoint Validator / Screenshot Orchestrator
-import { captureScreenshot } from "../screenshotService";
-import { analyzeSiteIntelligence } from "../siteIntelligence";
-
-app.post("/api/extract", async (req, res) => {
-  const { url } = req.body;
-
-  if (!url || typeof url !== 'string') {
-    res.status(400).json({ success: false, error: "Missing or invalid URL" });
-    return;
-  }
-
-  try {
-    const [desktopBuffer, mobileBuffer] = await Promise.all([
-      captureScreenshot(url, 'desktop'),
-      captureScreenshot(url, 'mobile')
-    ]);
-
-    const desktopSizeKB = desktopBuffer ? (desktopBuffer.byteLength / 1024).toFixed(2) : 0;
-    const mobileSizeKB = mobileBuffer ? (mobileBuffer.byteLength / 1024).toFixed(2) : 0;
-
-    res.json({
-      success: true,
-      url,
-      desktopSizeKB: Number(desktopSizeKB),
-      mobileSizeKB: Number(mobileSizeKB)
-    });
-  } catch (error: any) {
-    console.error("[/api/extract] Error:", error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+// Legacy routes share the same protected, durable free capture service.
+registerBrandCaptureRoutes(app);
 
 // Analytics endpoints (LGPD-compliant, no personal data)
 import { trackPageView, trackEvent } from "./analytics";
@@ -150,37 +125,9 @@ app.post("/api/analytics/event", async (req, res) => {
   }
 });
 
-// REST endpoint for Brand DNA (direct, bypassing tRPC)
-app.post("/api/brand-dna", async (req, res) => {
-  if (!ENV.aiSiteIntelligenceEnabled) {
-    return res.status(503).json({ error: "Site intelligence is temporarily disabled" });
-  }
-
-  const { url } = req.body;
-
-  if (!url || typeof url !== 'string') {
-    return res.status(400).json({ error: "Missing or invalid URL" });
-  }
-
-  try {
-    const result = await analyzeSiteIntelligence(
-      url,
-      "00000000-0000-0000-0000-000000000000",
-      { persist: false },
-    );
-
-    res.json({
-      success: true,
-      ...result,
-    });
-  } catch (error: any) {
-    console.error("[/api/brand-dna] Error:", error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // Supabase Auth bridge (email, Google SSO → PostSpark session cookie)
 registerSupabaseAuthRoutes(app);
+registerGenerationStream(app);
 registerUserMediaRoutes(app);
 
 // tRPC API - Support both /api/trpc and /trpc for production robustness
@@ -193,7 +140,12 @@ app.use(
 );
 
 async function startServer() {
+  await networkDiagnostics.ready;
   const server = createServer(app);
+  if(!process.env.VERCEL){
+    const shutdown=()=>{networkDiagnostics.stop();stopDemandSupervisor();server.close(()=>process.exit(0));setTimeout(()=>process.exit(0),5000).unref();};
+    process.once('SIGTERM',shutdown);process.once('SIGINT',shutdown);
+  }
 
   // On Vercel, static files are served by @vercel/static-build — skip entirely
   if (!process.env.VERCEL) {
@@ -215,8 +167,8 @@ async function startServer() {
 
     server.listen(port, () => {
       console.log(`Server running on http://localhost:${port}/`);
-      // Start the opt-in local executor only after the server binds successfully.
-      startLocalGenerationWorker();
+      // Start the configured local executor only after the server binds successfully.
+      withNetworkDiagnosticScope({source:"startup-recovery"},()=>startLocalGenerationWorker());
     });
   }
 }

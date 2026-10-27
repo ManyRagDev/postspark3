@@ -1,90 +1,30 @@
-# Especificação Técnica (Specs) - Experiência Inteligente
+# Especificação Técnica — Resiliência de Layout e Recuperação em 3 Camadas
 
-Este documento consolida as interfaces e contratos necessários para as próximas implementações no ecossistema do PostSpark (Etapas 4 a 8).
+## 1. Contexto e Objetivo
+Evitar que propostas de geração de posts (V5) retornem com status `failed` ao usuário devido a estouros pontuais de geometria ou caixas de texto incompatíveis.
+O sistema deve operar uma política em 3 camadas de resiliência:
+1. **Auto-resolução elástica:** ajuste fino de tamanho de fonte quando um token indivisível estiver prestes a caber na caixa autorada (até 20% de tolerância abaixo do `minFontSize`).
+2. **Revisão cirúrgica explicativa (Prompt Feedback):** fornecer métricas reais de largura/caracteres no prompt de `copy_recovery` para o modelo gerar palavras compatíveis com a caixa.
+3. **Substituição de Template via JEV (Fallback até 3x):** se o template persistir inviável após recuperação, trocar o template por outra oferta compatível do shortlist do JEV em vez de falhar a proposta.
 
-## 1. Contrato de Briefing (Etapa 4)
-Este contrato define o estado persistido das intenções do usuário antes da geração final, separando o "o que ele pediu" do "o que a IA entendeu e estruturou".
+---
 
-```typescript
-// Local: shared/postsparkSchemas.ts (Tipos inferidos do Zod)
+## 2. Contratos e Parâmetros
 
-export interface CreationBrief {
-  version: number; // Controle de migração
-  rawInput: string; // Texto original digitado
-  format: "static" | "carousel";
-  slideCount?: number;
-  objective?: string;
-  audience?: string;
-  brandEssence?: string;
-  positioning?: string;
-  tone?: string;
-  keyMessage?: string;
-  proofPoints?: string[];
-  requiredTerms?: string[];
-  forbiddenTerms?: string[];
-  callToAction?: string;
-  sourceUrls?: string[]; // URLs identificadas e validadas
-}
-```
+### 2.1. Camada 1: Resiliência Elástica Geométrica (`shared/arsenalGeometry.ts`)
+- **Parâmetro de tolerância de token:** `TOKEN_OVERFLOW_ELASTICITY_FACTOR = 0.80` (permite que `fontSize` chegue a até 80% de `minFontSize`, desde que `fontSize >= 12px` para garantir legibilidade WCAG).
+- Se a redução elástica acomodar o token indivisível (`!overflowsTokenWidth()` e `layout.height <= p.maxHeight`), a relação `textFit` é considerada bem-sucedida e **nenhum issue fatal é emitido**.
 
-## 2. Controle de Fundo e Crop (Etapa 6)
-O `CanvasPostModel` precisa deixar de assumir preenchimentos absolutos ou base64 diretos, e passar a usar intenções de enquadramento em imagens fornecidas via URI/Storage.
+### 2.2. Camada 2: Prompt Diagnóstico de Recuperação (`server/ai/workflows/proposalGraph.ts`)
+- Ao detectar `overflow:token:<targetId>` ou `overflow:<targetId>`, o prompt de `copy_recovery` calcula:
+  - Largura autorada da caixa (`width` em pixels).
+  - Comprimento da palavra gerada vs. limite recomendado de caracteres (`Math.floor(boxWidth / charWidthEstimate)`).
+- O prompt injeta uma instrução explícita:  
+  `"O fragmento <id> da caixa possui largura restrita. Use palavras de no máximo <N> caracteres neste trecho."`
 
-```typescript
-// Local: client/src/pages/CanvasLab/components/types.ts
-
-export type FitMode = "cover" | "contain" | "original" | "custom";
-
-export interface BackgroundPlacement {
-  fitMode: FitMode;
-  focalPoint?: { x: number; y: number }; // Centro semântico (hotspot)
-  crop?: { 
-    x: number; 
-    y: number; 
-    width: number; 
-    height: number 
-  };
-  transform?: {
-    scaleX: number;
-    scaleY: number;
-    rotation: number;
-    x: number;
-    y: number;
-  };
-}
-
-// Em CanvasPostModel.slides[]:
-export interface CanvasSlideOverride {
-   // ...
-   bgPlacement?: BackgroundPlacement;
-   // ...
-}
-```
-
-## 3. Paridade de Elementos Livres (Etapa 7)
-Qualquer novo `extraText` ou `extraImage` injetado pelo usuário deve persistir suas transformações finais de maneira isolada e determinística, evitando degradação de estado ao recarregar.
-
-```typescript
-export interface CanvasExtraElement {
-  id: string; // DEVE ser um UUID novo a cada clone/duplicação
-  zIndex: number; // Para gestão via 'bring to front' e 'send to back'
-  opacity?: number;
-  rotation?: number;
-  scaleX?: number;
-  scaleY?: number;
-  x: number;
-  y: number;
-}
-```
-
-## 4. Autosave e Editor Assistido (Etapa 8)
-A máquina de estado local para salvar deve garantir lock no documento para não corromper submissões paralelas ao Supabase, nem enfileirar promises que sobrescrevam a mais recente.
-
-```typescript
-export type AutoSaveState = "idle" | "dirty" | "saving" | "saved" | "error";
-
-// Regras de Implementação para o Debouncer de AutoSave
-// 1. Mutação em documento dispara state = 'dirty'.
-// 2. Após 1000ms de inatividade, state = 'saving' e requisição API inicia.
-// 3. Se nova mutação ocorrer durante 'saving', o payload pendente é atualizado, mas uma nova request só acontece quando a anterior terminar ou falhar.
-```
+### 2.3. Camada 3: Substituição de Template por Slot (`server/ai/workflows/generationRuntime.ts` / `proposalGraph.ts`)
+- Se após a etapa de recuperação a proposta ainda registrar defeito fatal insuperável:
+  - O slot não é imediatamente marcado como `failed`.
+  - O coordenador seleciona a próxima oferta compatível do shortlist do JEV (`selectedOffers` ou `electionReceipt.choices` alternativas).
+  - O loop permite até **3 tentativas de substituição de template (3x)** por slot antes de emitir erro final ao usuário.
+  - Toda a liquidação e integridade de ledger transacional são mantidas.

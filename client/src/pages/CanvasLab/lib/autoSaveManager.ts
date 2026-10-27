@@ -25,6 +25,7 @@ export class AutoSaveManager<T> {
   private paused = false;
   private timer: any = null;
   private lastSavedAt: Date | null = null;
+  private activeSavePromise: Promise<boolean> | null = null;
 
   private onSave: (doc: T) => Promise<boolean | void>;
   private debounceMs: number;
@@ -38,6 +39,10 @@ export class AutoSaveManager<T> {
 
   public getState(): AutoSaveState {
     return this.state;
+  }
+
+  public get saving(): boolean {
+    return this.isSaving;
   }
 
   public getLastSavedAt(): Date | null {
@@ -101,71 +106,91 @@ export class AutoSaveManager<T> {
 
   /** Força o salvamento imediato sem esperar o tempo de debounce. */
   public async flushNow(): Promise<boolean> {
+    if (this.destroyed) return false;
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
+    }
+    if (this.isSaving) {
+      if (this.latestDoc) {
+        this.queuedDoc = this.latestDoc;
+      }
+      return (await this.activeSavePromise) ?? false;
+    }
+    const docToSave = this.queuedDoc ?? this.latestDoc;
+    if (!docToSave) {
+      return this.state !== "error";
     }
     return this.executeSave();
   }
 
   private async executeSave(): Promise<boolean> {
+    if (this.destroyed) return false;
     if (this.isSaving) {
       // Já existe um save em voo; marca queuedDoc para rodar assim que terminar
       if (this.latestDoc) {
         this.queuedDoc = this.latestDoc;
       }
-      return false;
+      return (await this.activeSavePromise) ?? false;
     }
 
     const docToSave = this.queuedDoc ?? this.latestDoc;
     if (!docToSave) {
-      return true;
+      return this.state !== "error";
     }
 
     this.queuedDoc = null;
+    this.latestDoc = null;
     this.isSaving = true;
     this.setState("saving");
 
-    try {
-      const result = await this.onSave(docToSave);
-      const success = result !== false;
+    const currentExecution = (async (): Promise<boolean> => {
+      let finalSuccess = false;
+      try {
+        const result = await this.onSave(docToSave);
+        finalSuccess = result !== false;
 
-      if (this.destroyed) {
-        this.isSaving = false;
-        return success;
-      }
+        if (this.destroyed) {
+          this.isSaving = false;
+          return finalSuccess;
+        }
 
-      if (success) {
-        const now = new Date();
-        this.setState("saved", now);
-      } else {
+        if (finalSuccess) {
+          const now = new Date();
+          this.setState("saved", now);
+        } else {
+          this.setState("error");
+          // Conserva a versão falha para retry se nenhuma edição mais recente foi enfileirada
+          this.latestDoc = this.latestDoc ?? docToSave;
+        }
+      } catch {
+        if (this.destroyed) {
+          this.isSaving = false;
+          return false;
+        }
         this.setState("error");
+        finalSuccess = false;
+        // Conserva a versão falha para retry se nenhuma edição mais recente foi enfileirada
+        this.latestDoc = this.latestDoc ?? docToSave;
+      } finally {
+        this.isSaving = false;
       }
 
       // Se durante este salvamento houve novas alterações, processa a mais recente
-      if (this.queuedDoc) {
-        const nextInQueue = this.queuedDoc;
-        this.queuedDoc = null;
-        this.isSaving = false;
-        // Dispara o próximo save imediatamente para sincronizar
+      if (this.queuedDoc && !this.destroyed) {
         return this.executeSave();
       }
 
-      this.isSaving = false;
-      return success;
-    } catch {
-      if (this.destroyed) {
-        this.isSaving = false;
-        return false;
-      }
-      this.setState("error");
-      this.isSaving = false;
+      return finalSuccess;
+    })();
 
-      // Mesmo em erro, se houver alterações acumuladas na fila, permite nova tentativa
-      if (this.queuedDoc) {
-        return this.executeSave();
+    this.activeSavePromise = currentExecution;
+    try {
+      return await currentExecution;
+    } finally {
+      if (this.activeSavePromise === currentExecution) {
+        this.activeSavePromise = null;
       }
-      return false;
     }
   }
 

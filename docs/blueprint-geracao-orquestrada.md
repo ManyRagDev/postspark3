@@ -1,3 +1,5 @@
+> **Referência histórica:** o estado vigente foi consolidado em 2026-10-09. Leia [DOCUMENTO_MESTRE §13.86](../DOCUMENTO_MESTRE.md#1386-consolidação-do-pipeline-e-revisor-obrigatório-2026-10-09); as descrições abaixo de V4 padrão/V5 piloto foram superadas.
+
 # Blueprint da geração orquestrada do PostSpark
 
 Revisão de 2026-10-07, incluindo auditoria de encaixe e preservação do código ativo. Destinatários: proprietário do produto e responsáveis pela implementação.

@@ -1,8 +1,14 @@
+import { isStandaloneHttpUrl } from "@shared/generationSources";
+import BrandCaptureModal from "./BrandCaptureModal";
+import { toast } from "sonner";
+export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference"};
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Loader2, Sparkles, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { loadFontByName } from "@/lib/fonts";
 import SparkLogo from "@/components/SparkLogo";
+import ProjectSelectorDropdown from "./ProjectSelectorDropdown";
+import ProjectCalibrationModal from "./ProjectCalibrationModal";
 import UserTopMenu from "@/components/UserTopMenu";
 import {
   STUDIO,
@@ -12,7 +18,6 @@ import {
   FormatSelector,
   buildSpecimens,
   SpecimenCard,
-  ProductionOverlay,
   type Specimen,
 } from "./shared";
 
@@ -23,14 +28,19 @@ import {
  */
 
 interface StudioCreateViewV2BProps {
-  onSubmit: (prompt: string, mode: "static" | "carousel") => void;
+  onSubmit: (prompt: string, mode: "static" | "carousel",options?:CreationInputOptions) => void;
   isLoading: boolean;
   declaredFamilyId: string | null;
   onDeclareFamily: (familyId: string | null) => void;
+  initialPlatform?:CreationInputOptions["platform"];
+  initialImage?:string;
+  initialImagePurpose?:CreationInputOptions["imagePurpose"];
   initialPrompt?: string;
   initialMode?: "static" | "carousel";
   hasSavedDraft?: boolean;
   onDiscardDraft?: () => void;
+  selectedProjectId?: string | null;
+  onSelectProjectId?: (id: string | null) => void;
 }
 
 export default function StudioCreateViewV2B({
@@ -38,11 +48,20 @@ export default function StudioCreateViewV2B({
   isLoading,
   declaredFamilyId,
   onDeclareFamily,
+  initialPlatform="instagram",initialImage,initialImagePurpose="content",
   initialPrompt = "",
   initialMode = "static",
   hasSavedDraft = false,
   onDiscardDraft,
+  selectedProjectId = null,
+  onSelectProjectId,
 }: StudioCreateViewV2BProps) {
+  const [captureUrl,setCaptureUrl]=useState<string>();
+  const [urlAsContent,setUrlAsContent]=useState(false);
+  const [options,setOptions]=useState<CreationInputOptions>({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose});
+  useEffect(()=>setOptions({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose}),[initialPlatform,initialImage,initialImagePurpose]);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<any>(null);
   const [prompt, setPrompt] = useState(initialPrompt);
   const [postMode, setPostMode] = useState<"static" | "carousel">(initialMode);
 
@@ -63,7 +82,6 @@ export default function StudioCreateViewV2B({
   const [isSpecimensOpen, setIsSpecimensOpen] = useState(false);
   // Estado para a Lente de Inspeção Rápida no Desktop
   const [hoveredSpecimenIndex, setHoveredSpecimenIndex] = useState<number | null>(null);
-  const [lastSubmittedPrompt, setLastSubmittedPrompt] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const specimens = buildSpecimens();
 
@@ -80,14 +98,14 @@ export default function StudioCreateViewV2B({
   }, [prompt]);
 
   const isEmpty = prompt.trim().length === 0;
-  const isUrl = URL_REGEX.test(prompt.trim());
+  const isUrl = isStandaloneHttpUrl(prompt);
   const canSubmit = !isEmpty && !isLoading;
   const declaredSpecimen = specimens.find((s) => s.id === declaredFamilyId) ?? null;
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    setLastSubmittedPrompt(prompt.trim());
-    onSubmit(prompt.trim(), postMode);
+    if(isUrl&&!urlAsContent){setCaptureUrl(prompt.trim());return;}
+    onSubmit(prompt.trim(), postMode,options);
   };
 
   const handleDiscardDraft = () => {
@@ -122,6 +140,22 @@ export default function StudioCreateViewV2B({
 
       {/* MENU DO USUÁRIO NO CANTO SUPERIOR DIREITO (SPARKS, SALVOS, PERFIL) */}
       <UserTopMenu />
+
+      {captureUrl&&<BrandCaptureModal url={captureUrl} projectId={selectedProjectId} onClose={()=>setCaptureUrl(undefined)} onSaved={id=>{onSelectProjectId?.(id);setCaptureUrl(undefined);setPrompt("");setUrlAsContent(false);toast.success("Projeto salvo. Agora informe o pedido do post.");}}/>}
+      {/* MODAL DE CALIBRAGEM DE PROJETO */}
+      {isProjectModalOpen && (
+        <ProjectCalibrationModal
+          isOpen={isProjectModalOpen}
+          onClose={() => {
+            setIsProjectModalOpen(false);
+            setEditingProject(null);
+          }}
+          editingProject={editingProject}
+          onSuccess={(id) => {
+            onSelectProjectId?.(id);
+          }}
+        />
+      )}
 
       {/* ÁREA PRINCIPAL CENTRALIZADA VERTICALMENTE */}
       <main className="min-h-0 flex-1 flex flex-col justify-center px-4 py-4 md:px-8 md:py-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -173,8 +207,14 @@ export default function StudioCreateViewV2B({
                 boxShadow: isFocused ? "0 0 24px rgba(255,92,0,0.18), inset 0 -1.5px 0 #FF5C00" : "none",
               }}
             >
-              <div className="flex items-end gap-1 p-1.5">
-                <textarea
+              <div className="flex flex-col p-1.5">
+                <div className="flex flex-wrap items-center gap-3 px-3 pt-2 text-xs">
+                <label>Plataforma <select aria-label="Plataforma" className="rounded bg-black/30 p-2" value={options.platform} onChange={e=>setOptions({...options,platform:e.target.value as CreationInputOptions["platform"]})}>{["instagram","twitter","linkedin","facebook"].map(p=><option key={p} value={p}>{p}</option>)}</select></label>
+                <label className="cursor-pointer underline">{options.image?"Trocar imagem":"Adicionar imagem"}<input aria-label="Imagem do pedido" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>8_000_000){toast.error("Use uma imagem de até 8 MB.");return;}const r=new FileReader();r.onload=()=>setOptions({...options,image:String(r.result)});r.readAsDataURL(f);}}/></label>
+                {options.image&&<><select aria-label="Finalidade da imagem" value={options.imagePurpose} className="bg-black/30 p-2" onChange={e=>setOptions({...options,imagePurpose:e.target.value as CreationInputOptions["imagePurpose"]})}><option value="content">Imagem como fonte de conteúdo</option><option value="visual_reference">Referência visual</option></select><button onClick={()=>setOptions({...options,image:undefined})}>Remover imagem</button></>}
+                {isUrl&&<label><input type="checkbox" checked={urlAsContent} onChange={e=>setUrlAsContent(e.target.checked)}/> Usar página como conteúdo do post</label>}
+              </div>
+              <div className="flex items-end gap-1"><textarea
                   ref={textareaRef}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
@@ -204,7 +244,7 @@ export default function StudioCreateViewV2B({
                   type="button"
                   onClick={handleSubmit}
                   disabled={!canSubmit}
-                  aria-label={declaredSpecimen ? "Criar com este gosto" : "Criar direções de arte"}
+                  aria-label={isUrl&&!urlAsContent?"Capturar marca gratuitamente":declaredSpecimen ? "Criar com este gosto" : "Criar direções de arte"}
                   className="mb-1.5 mr-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 active:scale-95 cursor-pointer"
                   style={{
                     background: canSubmit ? "#FF5C00" : "rgba(242,237,228,0.06)",
@@ -214,7 +254,7 @@ export default function StudioCreateViewV2B({
                   }}
                 >
                   {isLoading ? <Loader2 size={16} className="animate-spin text-white" /> : <ArrowRight size={16} />}
-                </button>
+                </button></div>
               </div>
             </div>
 
@@ -249,8 +289,8 @@ export default function StudioCreateViewV2B({
               >
                 {isUrl
                   ? declaredSpecimen
-                    ? "Fonte — Site ↗ a identidade do site prevalece sobre o gosto"
-                    : "Fonte — Site ↗ a identidade visual será extraída"
+                    ? urlAsContent?"Fonte — página de conteúdo":"Marca — revisão antes de salvar"
+                    : urlAsContent?"Fonte — página de conteúdo":"Marca — análise gratuita e revisão"
                   : "Fonte — Texto livre"}
               </span>
               <span
@@ -268,9 +308,26 @@ export default function StudioCreateViewV2B({
             </div>
           </section>
 
-          {/* 3. SELETOR DE FORMATO (POST ÚNICO / CARROSSEL) */}
-          <section>
-            <FormatSelector value={postMode} onChange={setPostMode} />
+          {/* 3. SELETORES: PROJETO DE MARCA & FORMATO */}
+          <section className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <ProjectSelectorDropdown
+                selectedProjectId={selectedProjectId}
+                onSelectProject={(id) => onSelectProjectId?.(id)}
+                onOpenNewProjectModal={() => {
+                  setEditingProject(null);
+                  setIsProjectModalOpen(true);
+                }}
+                onEditProjectModal={(proj) => {
+                  setEditingProject(proj);
+                  setIsProjectModalOpen(true);
+                }}
+                disabled={isLoading}
+              />
+            </div>
+            <div className="shrink-0">
+              <FormatSelector value={postMode} onChange={setPostMode} />
+            </div>
           </section>
 
           {/* 4. PAINEL DE SUGESTÕES (INICIA RECOLHIDO COM DESTAQUE DISCRETO E NOBRE) */}
@@ -421,10 +478,6 @@ export default function StudioCreateViewV2B({
         </div>
       </main>
 
-      {/* OVERLAY DE CARREGAMENTO COM BARRA DE CORRIDA */}
-      <AnimatePresence>
-        {isLoading && <ProductionOverlay prompt={lastSubmittedPrompt || prompt} />}
-      </AnimatePresence>
     </div>
   );
 }

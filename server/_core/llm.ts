@@ -76,6 +76,8 @@ export type ToolChoice =
   | ToolChoiceExplicit;
 
 export type InvokeParams = {
+  /** Internal model identity from a validated durable configuration; never client input. */
+  pinnedModel?: string;
   model?: AiModel;
   taskRoute?: AiTaskRoute;
   traceLabel?: string;
@@ -98,10 +100,13 @@ export type InvokeParams = {
   response_format?: ResponseFormat;
   disableFallback?: boolean;
   deadlineMs?: number;
+  /** Internal per-call transport budget; never extends the absolute deadline. */
+  transportTimeoutMs?: number;
   signal?: AbortSignal;
   maxTransportAttempts?: number;
   forceTextSchema?: boolean;
   disableStructuredRepair?: boolean;
+  structuredValidationOwner?: "transport" | "caller";
 };
 
 export type ToolCall = {
@@ -480,6 +485,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     maxTransportAttempts,
     forceTextSchema = false,
     disableStructuredRepair = false,
+    structuredValidationOwner = "transport",
   } = params;
   const ensureBeforeDeadline = () => {
     signal?.throwIfAborted();
@@ -491,6 +497,19 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const containsMultimodalContent = hasMultimodalContent(normalizedMessages);
   const requestedModel = taskRoute ?? model ?? (containsMultimodalContent ? "vision_analysis" : "static_generation");
   const effectiveTaskRoute = taskRoute ?? (isAiTaskRoute(requestedModel) ? requestedModel : undefined);
+
+  if (structuredValidationOwner === "caller") {
+    if (
+      effectiveTaskRoute !== "post_evaluation" ||
+      maxTransportAttempts !== 1 ||
+      !disableFallback ||
+      !disableStructuredRepair
+    ) {
+      throw new Error(
+        "structuredValidationOwner 'caller' requires post_evaluation route, exactly 1 transport attempt, disableFallback: true, and disableStructuredRepair: true"
+      );
+    }
+  }
   const configurationStartedAt = Date.now();
   let primaryConfig: ProviderModelConfig;
   try {
@@ -499,6 +518,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       requestedModel: model,
       containsMultimodalContent,
     });
+    if (params.pinnedModel) {
+      if (primaryConfig.provider !== "openrouter" || !params.disableFallback)
+        throw new Error("pinned_model_requires_openrouter_without_fallback");
+      primaryConfig = {...primaryConfig, effectiveModel:params.pinnedModel};
+    }
   } catch (error) {
     recordLlmTraceCall({
       label: traceLabel,
@@ -654,6 +678,12 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       totalTokens,
       latencyMs,
       estimatedCostUsd,
+      ...(structuredValidationOwner === "caller" ? {
+        costSource: typeof input.result?.usage?.cost === "number" && Number.isFinite(input.result.usage.cost) && input.result.usage.cost >= 0
+          ? "provider" as const
+          : Number.isFinite(input.result?.usage?.prompt_tokens) && Number.isFinite(input.result?.usage?.completion_tokens)
+            ? "estimate" as const : "unknown" as const,
+      } : {}),
       attempt: input.attempt,
       fallbackFrom: input.fallbackFrom,
       translatedSchema: input.translatedSchema,
@@ -703,7 +733,9 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     const controller = new AbortController();
     const onAbort = () => controller.abort(signal?.reason);
     signal?.addEventListener("abort", onAbort, { once: true });
-    const routeTimeoutMs = timeoutForTaskRoute(effectiveTaskRoute);
+    const routeTimeoutMs = Number.isFinite(params.transportTimeoutMs) && params.transportTimeoutMs! > 0
+      ? Math.min(params.transportTimeoutMs!, 180_000)
+      : timeoutForTaskRoute(effectiveTaskRoute);
     const remainingMs = deadlineMs === undefined ? Infinity : deadlineMs - Date.now();
     const deadlineIsLimiting = remainingMs <= routeTimeoutMs;
     let deadlineTimerFired = false;
@@ -741,6 +773,14 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         );
       }
       const result = (await response.json()) as InvokeResult;
+      if (structuredValidationOwner === "caller") {
+        // A known receipt must reach the journal even if cancellation/deadline
+        // arrived while its already-completed HTTP body was being decoded.
+        if (!result || typeof result.id !== "string" || !result.id || typeof result.model !== "string" || !result.model ||
+          !Array.isArray(result.choices) || !result.choices.length || !result.choices[0]?.message || typeof result.choices[0].message !== "object")
+          throw new ProviderRequestError(config.provider, response.status, "Unusable provider receipt");
+        return result;
+      }
       ensureBeforeDeadline();
       return result;
     } catch (error) {
@@ -882,6 +922,21 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
               result,
               validation.errors,
             );
+            if (structuredValidationOwner === "caller") {
+              estimateAndRecord({
+                config,
+                result,
+                adaptedMessages: adapted.messages,
+                startedAt,
+                attempt,
+                fallbackFrom,
+                translatedSchema: adapted.structuredOutputMode === "text_schema",
+                structuredOutputMode: adapted.structuredOutputMode,
+                payloadOptions: extractPayloadOptions(payload),
+                structuredFailureType,
+              });
+              return result;
+            }
             estimateAndRecord({
               config,
               result,
@@ -926,21 +981,23 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         return result;
       } catch (error) {
         lastError = error;
-        estimateAndRecord({
-          config,
-          adaptedMessages: adapted.messages,
-          startedAt,
-          attempt,
-          fallbackFrom,
-          translatedSchema: adapted.structuredOutputMode === "text_schema",
-          structuredOutputMode: adapted.structuredOutputMode,
-          payloadOptions: extractPayloadOptions(payload),
-          structuredFailureType:
-            error instanceof StructuredOutputError
-              ? error.failureType
-              : undefined,
-          error,
-        });
+        if (!(error instanceof StructuredOutputError)) {
+          estimateAndRecord({
+            config,
+            adaptedMessages: adapted.messages,
+            startedAt,
+            attempt,
+            fallbackFrom,
+            translatedSchema: adapted.structuredOutputMode === "text_schema",
+            structuredOutputMode: adapted.structuredOutputMode,
+            payloadOptions: extractPayloadOptions(payload),
+            structuredFailureType:
+              error instanceof StructuredOutputError
+                ? error.failureType
+                : undefined,
+            error,
+          });
+        }
         if (
           shouldDowngradeGroqSchema(error, config, adapted) &&
           !downgradedNativeSchema

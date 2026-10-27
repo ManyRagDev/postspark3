@@ -21,7 +21,7 @@ import {
 import GuidedEditor from "./components/GuidedEditor";
 import { captureInitialVisuals, composePost, fitPostToAspectRatio } from "./lib/guidedComposition";
 import CanvasMobileDrawer from "./components/CanvasMobileDrawer";
-import { useRef, useState, useEffect, useLayoutEffect, useMemo } from "react";
+import { useRef, useState, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RotateCcw, Check, Crop } from "lucide-react";
 import { toast } from "sonner";
@@ -49,6 +49,8 @@ import {
   removeSlide,
   reorderSlides,
   freshId,
+  resolveSlideExtraTexts,
+  resolveSlideExtraImages,
 } from "./lib/documentCommands";
 import {
   createHistory,
@@ -57,9 +59,20 @@ import {
   redoHistory,
   canUndo,
   canRedo,
+  setHistoryPresent,
 } from "./lib/canvasHistory";
 import { AutoSaveManager, type AutoSaveState } from "./lib/autoSaveManager";
 import { applyCurrentSlideAppearancePatch, replicateSlideAppearance, resolveSlideAppearance, replicateCarouselComposition, type ReplicationGroup } from "./lib/slideReplication";
+
+export type PostUpdateAction =
+  | { kind: "document"; document: CanvasPostModel; composition?: ArsenalComposition }
+  | { kind: "patch"; patch: Partial<CanvasPostModel>; composition?: ArsenalComposition }
+  | { kind: "updater"; update: (prev: CanvasPostModel) => CanvasPostModel };
+
+export type PostUpdateInput =
+  | PostUpdateAction
+  | Partial<CanvasPostModel>
+  | ((prev: CanvasPostModel) => CanvasPostModel);
 
 interface CanvasLabPageProps {
   initialPost?: CanvasPostModel;
@@ -67,7 +80,7 @@ interface CanvasLabPageProps {
   /** Item 6: recomeçar do zero — limpa a sessão e volta à tela de criação. */
   onRestart?: () => void;
   /** Item 7: persiste o post ("new" = INSERT, "update" = UPDATE do salvo). */
-  onSave?: (post: CanvasPostModel, mode: "new" | "update", source: "manual" | "auto") => Promise<boolean>;
+  onSave?: (post: CanvasPostModel, mode: "new" | "update", source: "manual" | "auto", galleryPreview?:string) => Promise<boolean>;
   /** Existe um post salvo vinculado à sessão (habilita "Atualizar"). */
   hasSavedPost?: boolean;
   isSaving?: boolean;
@@ -78,10 +91,30 @@ const AUTO_SAVE_PREF_KEY = "postspark.canvasAutoSaveEnabled";
 
 function readAutoSavePreference(): boolean {
   try {
-    return window.localStorage.getItem(AUTO_SAVE_PREF_KEY) === "true";
+    const val = window.localStorage.getItem(AUTO_SAVE_PREF_KEY);
+    return val !== "false";
   } catch {
-    return false;
+    return true;
   }
+}
+
+function syncPostCaptionWithCompositions(post: CanvasPostModel): CanvasPostModel {
+  if (typeof post.caption !== "string") return post;
+  let changed = false;
+  const slides = post.slides.map(slide => {
+    if (slide.composition && slide.composition.content.caption !== post.caption) {
+      changed = true;
+      return {
+        ...slide,
+        composition: editArsenalContent(slide.composition, {
+          ...slide.composition.content,
+          caption: post.caption,
+        }),
+      };
+    }
+    return slide;
+  });
+  return changed ? { ...post, slides } : post;
 }
 
 export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart, onSave, hasSavedPost = false, isSaving = false }: CanvasLabPageProps = {}) {
@@ -94,7 +127,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const [mediaPreview, setMediaPreview] = useState<string>();
   const [requestedTab, setRequestedTab] = useState<"media" | undefined>();
   const [isEditingBackground, setIsEditingBackground] = useState(false);
-  const [history, setHistory] = useState(() => createHistory<CanvasPostModel>(captureInitialVisuals(initialPost || INITIAL_POST)));
+  const [history, setHistory] = useState(() => createHistory<CanvasPostModel>(captureInitialVisuals(syncPostCaptionWithCompositions(initialPost || INITIAL_POST))));
   const post = history.present;
   const arsenalComposition = post.slides[post.currentSlideIndex]?.composition;
   const currentViewPost = useMemo(() => resolveSlideAppearance(post, post.currentSlideIndex), [post]);
@@ -102,6 +135,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(readAutoSavePreference);
+  const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false);
+  const isExitingRef = useRef(false);
   const autoSaveManagerRef = useRef<AutoSaveManager<CanvasPostModel> | null>(null);
   const onSaveRef = useRef(onSave);
   const hasSavedPostRef = useRef(hasSavedPost);
@@ -116,7 +151,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     const manager = new AutoSaveManager<CanvasPostModel>({
       onSave: async (docToSave) => {
         const mode = hasSavedPostRef.current ? "update" : "new";
-        return onSaveRef.current?.(docToSave, mode, "auto") ?? false;
+        const preview=await captureSavePreview(docToSave);
+        return (preview?onSaveRef.current?.(docToSave,mode,"auto",preview):onSaveRef.current?.(docToSave,mode,"auto")) ?? false;
       },
       debounceMs: 1000,
       onStateChange: (state, savedAt) => {
@@ -147,35 +183,77 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
 
   // Função centralizadora de mutações com histórico de Undo/Redo e agendamento de AutoSave
   const setPost = (updater: CanvasPostModel | ((prev: CanvasPostModel) => CanvasPostModel)) => {
+    const current = postRef.current;
+    const proposed = typeof updater === "function" ? updater(current) : updater;
+    const next = captureInitialVisuals(syncPostCaptionWithCompositions(proposed));
+    if (next === current) return;
+    postRef.current = next;
     setHistory((prevHistory) => {
-      const current = prevHistory.present;
-      const proposed = typeof updater === "function" ? updater(current) : updater;
-      const next = captureInitialVisuals(proposed);
-      if (next === current) return prevHistory;
-      const nextHistory = pushHistory(prevHistory, next);
-      autoSaveManagerRef.current?.triggerChange(next);
-      if (!autoSaveManagerRef.current) setAutoSaveState("dirty");
-      return nextHistory;
+      if (next === prevHistory.present) return prevHistory;
+      return pushHistory(prevHistory, next);
     });
+    autoSaveManagerRef.current?.triggerChange(next);
+    if (!autoSaveManagerRef.current) setAutoSaveState("dirty");
   };
 
   const handleUndo = () => {
     setHistory((prev) => {
       if (!canUndo(prev)) return prev;
-      const next = undoHistory(prev);
-      autoSaveManagerRef.current?.triggerChange(next.present);
+      const currentActiveId = prev.present.slides[prev.present.currentSlideIndex]?.id;
+      const nextHistory = undoHistory(prev);
+      let doc = nextHistory.present;
+      const preservedIndex = currentActiveId
+        ? doc.slides.findIndex((s) => s.id === currentActiveId)
+        : -1;
+      if (preservedIndex >= 0) {
+        doc = { ...doc, currentSlideIndex: preservedIndex };
+      } else {
+        doc = {
+          ...doc,
+          currentSlideIndex: Math.min(Math.max(0, doc.currentSlideIndex), Math.max(0, doc.slides.length - 1)),
+        };
+      }
+      const finalHistory = { ...nextHistory, present: doc };
+      autoSaveManagerRef.current?.triggerChange(doc);
       if (!autoSaveManagerRef.current) setAutoSaveState("dirty");
-      return next;
+      return finalHistory;
     });
   };
 
   const handleRedo = () => {
     setHistory((prev) => {
       if (!canRedo(prev)) return prev;
-      const next = redoHistory(prev);
-      autoSaveManagerRef.current?.triggerChange(next.present);
+      const currentActiveId = prev.present.slides[prev.present.currentSlideIndex]?.id;
+      const nextHistory = redoHistory(prev);
+      let doc = nextHistory.present;
+      const preservedIndex = currentActiveId
+        ? doc.slides.findIndex((s) => s.id === currentActiveId)
+        : -1;
+      if (preservedIndex >= 0) {
+        doc = { ...doc, currentSlideIndex: preservedIndex };
+      } else {
+        doc = {
+          ...doc,
+          currentSlideIndex: Math.min(Math.max(0, doc.currentSlideIndex), Math.max(0, doc.slides.length - 1)),
+        };
+      }
+      const finalHistory = { ...nextHistory, present: doc };
+      autoSaveManagerRef.current?.triggerChange(doc);
       if (!autoSaveManagerRef.current) setAutoSaveState("dirty");
-      return next;
+      return finalHistory;
+    });
+  };
+
+  const handleSelectSlide = (index: number) => {
+    if (index === post.currentSlideIndex) return;
+    if (index < 0 || index >= post.slides.length) return;
+    setSelectedElementId(null);
+    setHistory((prev) => {
+      if (index === prev.present.currentSlideIndex) return prev;
+      return setHistoryPresent(prev, {
+        ...prev.present,
+        currentSlideIndex: index,
+      });
     });
   };
 
@@ -205,7 +283,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   }, []);
 
   const handleReorderSlide = (sourceIndex: number, targetIndex: number) => {
-    setPost((prev) => reorderSlides(prev, sourceIndex, targetIndex));
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => reorderSlides(prev, sourceIndex, targetIndex),
+    });
   };
 
   const [zoom, setZoom] = useState(1);
@@ -215,8 +296,62 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isRestartConfirmOpen, setIsRestartConfirmOpen] = useState(false);
   const [isReplicationOpen, setIsReplicationOpen] = useState(false);
-  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const stageRef = useRef<CanvasPostStageRef>(null);
+  const captureSavePreview=async(doc:CanvasPostModel):Promise<string|undefined>=>{
+    if(!import.meta.env.DEV||doc.currentSlideIndex!==0||postRef.current!==doc)return;
+    try{const image=await stageRef.current?.exportThumbnail();if(postRef.current===doc&&image&&image.length<=100000)return image;}catch{/* Save the document even when preview capture fails. */}
+  };
+
+  const [selectedElementTarget, setSelectedElementTarget] = useState<{ slideId: string; elementId: string } | null>(null);
+
+  const curActiveSlide = post.slides[post.currentSlideIndex];
+
+  const isElementInCurrentSlide = useMemo(() => {
+    if (!selectedElementTarget || !curActiveSlide || curActiveSlide.id !== selectedElementTarget.slideId) {
+      return false;
+    }
+    const elementId = selectedElementTarget.elementId;
+    const inComp =
+      Boolean(curActiveSlide.composition?.elements.some((e) => e.id === elementId)) ||
+      Boolean(
+        curActiveSlide.composition?.version === 3 &&
+          curActiveSlide.composition.authorialLayers.some((l) => l.id === elementId)
+      );
+    const inTexts = resolveSlideExtraTexts(post, post.currentSlideIndex).some(
+      (t) => t.id === elementId
+    );
+    const inImages = resolveSlideExtraImages(post, post.currentSlideIndex).some(
+      (i) => i.id === elementId
+    );
+    const isLogo =
+      elementId === "logo" &&
+      (Boolean(curActiveSlide.composition?.version === 3 ? curActiveSlide.composition.logo?.url : false) || Boolean(post.logoUrl));
+    return inComp || inTexts || inImages || isLogo;
+  }, [post, selectedElementTarget, curActiveSlide]);
+
+  const selectedElementId = isElementInCurrentSlide ? selectedElementTarget!.elementId : null;
+
+  const freeEditingRef = useRef(freeEditing);
+  useEffect(() => {
+    freeEditingRef.current = freeEditing;
+  }, [freeEditing]);
+
+  const setSelectedElementId = useCallback(
+    (elementIdOrUpdater: string | null | ((prev: string | null) => string | null)) => {
+      setSelectedElementTarget((prevTarget) => {
+        const curSlide = postRef.current.slides[postRef.current.currentSlideIndex];
+        const curSlideId = curSlide?.id;
+        const prevId = prevTarget && curSlideId && prevTarget.slideId === curSlideId ? prevTarget.elementId : null;
+        const nextId = typeof elementIdOrUpdater === "function" ? elementIdOrUpdater(prevId) : elementIdOrUpdater;
+        if (nextId && freeEditingRef.current && typeof window !== "undefined" && window.innerWidth < 768) {
+          setIsMobileDrawerOpen(true);
+        }
+        if (!nextId || !curSlideId) return null;
+        return { slideId: curSlideId, elementId: nextId };
+      });
+    },
+    []
+  );
   const mobileStageAreaRef = useRef<HTMLElement>(null);
   const [measuredStageHeight, setMeasuredStageHeight] = useState<number | null>(null);
 
@@ -274,11 +409,11 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     return Math.min(availableWidth / baseWidth, visibleHeight / baseHeight, 0.98);
   }, [isMobile, isMobileDrawerOpen, windowDimensions.width, windowDimensions.height, baseWidth, baseHeight, mobileQuickActionsHeight, mobileFilmstripHeight, mobilePanelHeight, measuredStageHeight]);
 
-  const handleUpdatePost = (patch: Partial<CanvasPostModel>, composition?: ArsenalComposition) => {
-    if (composition) {
+  const applyPatchCommit = (patch: Partial<CanvasPostModel>, comp?: ArsenalComposition) => {
+    if (comp) {
       setPost(prev => ({
-        ...putArsenalComposition({ ...prev, ...patch }, composition),
-        aspectRatio: composition.effectiveAspectRatio,
+        ...putArsenalComposition({ ...prev, ...patch }, comp),
+        aspectRatio: comp.effectiveAspectRatio,
       }));
       return;
     }
@@ -287,8 +422,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       const currentSlide = prev.slides[curIdx];
       let next = applyCurrentSlideAppearancePatch(prev, patch);
       if (currentSlide?.composition) {
-        const comp = applyCompositionAppearancePatch(prev, patch)!;
-        next = putArsenalComposition(next, comp);
+        const c = applyCompositionAppearancePatch(prev, patch);
+        if (c) next = putArsenalComposition(next, c);
       }
       if (patch.familyId && patch.familyId !== currentViewPost.familyId) {
         return { ...next, slides: next.slides.map((slide, index) => index === next.currentSlideIndex ? { ...slide, guidedComposition: undefined } : slide) };
@@ -297,9 +432,72 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     });
   };
 
+  const handleUpdatePost = (
+    input: PostUpdateInput,
+    composition?: ArsenalComposition
+  ) => {
+    if (typeof input === "function") {
+      setPost(input);
+      return;
+    }
+
+    if (input && typeof input === "object" && "kind" in input) {
+      if (input.kind === "document") {
+        const doc = input.document;
+        const comp = input.composition ?? composition ?? doc.slides[doc.currentSlideIndex]?.composition;
+        if (comp) {
+          setPost(() => ({
+            ...putArsenalComposition(doc, comp),
+            aspectRatio: comp.effectiveAspectRatio,
+          }));
+        } else {
+          setPost(doc);
+        }
+        return;
+      }
+      if (input.kind === "updater") {
+        setPost(input.update);
+        return;
+      }
+      if (input.kind === "patch") {
+        applyPatchCommit(input.patch, input.composition ?? composition);
+        return;
+      }
+    }
+
+    const isFullDocument =
+      input &&
+      typeof input === "object" &&
+      typeof (input as any).id === "string" &&
+      Array.isArray((input as any).slides) &&
+      typeof (input as any).aspectRatio === "string" &&
+      typeof (input as any).currentSlideIndex === "number" &&
+      (input as any).palette &&
+      typeof (input as any).familyId === "string";
+
+    if (isFullDocument) {
+      const doc = input as CanvasPostModel;
+      const comp = composition ?? doc.slides[doc.currentSlideIndex]?.composition;
+      if (comp) {
+        setPost(() => ({
+          ...putArsenalComposition(doc, comp),
+          aspectRatio: comp.effectiveAspectRatio,
+        }));
+      } else {
+        setPost(doc);
+      }
+      return;
+    }
+
+    applyPatchCommit(input as Partial<CanvasPostModel>, composition);
+  };
+
   const handleMediaUpdate: MediaUpdate = (target, operation) => {
     if (operation.kind === 'apply' && !targetExists(postRef.current, target)) setMediaPreview(operation.url);
-    setPost(prev => applyMediaOperation(prev, target, operation) ?? prev);
+    handleUpdatePost({
+      kind: "updater",
+      update: prev => applyMediaOperation(prev, target, operation) ?? prev,
+    });
   };
 
   const handleReplicate = (groups: ReplicationGroup[], targets: number[]) => {
@@ -320,7 +518,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     } else if (groups.includes("composition")) {
       next = { ...next, slides: next.slides.map((slide, index) => targets.includes(index) ? { ...slide, guidedComposition: undefined, composition: undefined } : slide) };
     }
-    setPost(next);
+    handleUpdatePost({ kind: "document", document: next });
     setIsReplicationOpen(false);
     toast.success(`Formatação aplicada em ${targets.length} slide${targets.length === 1 ? "" : "s"}.`);
   };
@@ -340,28 +538,34 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       finally{if(request===formatRequest.current)setFormatLoading(false);}
       return;
     }
-    setPost(proposal.post);
+    handleUpdatePost({ kind: "document", document: proposal.post });
   };
 
   const handleToggleSnap = () => {
-    setPost((prev) => {
-      const next = prev.isSnapEnabled === false ? true : false;
-      return { ...prev, isSnapEnabled: next };
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const next = prev.isSnapEnabled === false ? true : false;
+        return { ...prev, isSnapEnabled: next };
+      },
     });
   };
 
   // Salva posições individuais arrastadas no slide ativo
   const handleUpdateRichText = (field: "headline" | "subtext", chunks: any[]) => {
-    setPost((prev) => {
-      const curIdx = prev.currentSlideIndex;
-      const currentSlide = prev.slides[curIdx];
-      const updatedSlides = [...prev.slides];
-      if (currentSlide) {
-        updatedSlides[curIdx] = { ...currentSlide, [`${field}Rich`]: chunks };
-      }
-      return currentSlide
-        ? { ...prev, slides: updatedSlides }
-        : { ...prev, [`${field}Rich`]: chunks };
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const curIdx = prev.currentSlideIndex;
+        const currentSlide = prev.slides[curIdx];
+        const updatedSlides = [...prev.slides];
+        if (currentSlide) {
+          updatedSlides[curIdx] = { ...currentSlide, [`${field}Rich`]: chunks };
+        }
+        return currentSlide
+          ? { ...prev, slides: updatedSlides }
+          : { ...prev, [`${field}Rich`]: chunks };
+      },
     });
   };
 
@@ -370,30 +574,33 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     props: { x?: number; y?: number; width?: number; scale?: number },
     layoutPositions?: { headlinePos: ElementPosition; subtextPos: ElementPosition; barPos: ElementPosition }
   ) => {
-    setPost((prev) => {
-      const currentSlide = prev.slides[prev.currentSlideIndex];
-      if (!currentSlide) return prev;
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const currentSlide = prev.slides[prev.currentSlideIndex];
+        if (!currentSlide) return prev;
 
-      const updatedSlide = { ...currentSlide };
+        const updatedSlide = { ...currentSlide };
 
-      if (props.x !== undefined && props.y !== undefined) {
-         (updatedSlide as any)[`${elementKey}Pos`] = { x: props.x, y: props.y };
-      }
-      if (props.width !== undefined) {
-         (updatedSlide as any)[`${elementKey}Width`] = props.width;
-      }
-      if (props.scale !== undefined) {
-         (updatedSlide as any)[`${elementKey}Scale`] = props.scale;
-      }
-      if (layoutPositions) {
-        updatedSlide.headlinePos = layoutPositions.headlinePos;
-        updatedSlide.subtextPos = layoutPositions.subtextPos;
-        updatedSlide.barPos = layoutPositions.barPos;
-      }
+        if (props.x !== undefined && props.y !== undefined) {
+          (updatedSlide as any)[`${elementKey}Pos`] = { x: props.x, y: props.y };
+        }
+        if (props.width !== undefined) {
+          (updatedSlide as any)[`${elementKey}Width`] = props.width;
+        }
+        if (props.scale !== undefined) {
+          (updatedSlide as any)[`${elementKey}Scale`] = props.scale;
+        }
+        if (layoutPositions) {
+          updatedSlide.headlinePos = layoutPositions.headlinePos;
+          updatedSlide.subtextPos = layoutPositions.subtextPos;
+          updatedSlide.barPos = layoutPositions.barPos;
+        }
 
-      const updatedSlides = [...prev.slides];
-      updatedSlides[prev.currentSlideIndex] = updatedSlide;
-      return { ...prev, slides: updatedSlides };
+        const updatedSlides = [...prev.slides];
+        updatedSlides[prev.currentSlideIndex] = updatedSlide;
+        return { ...prev, slides: updatedSlides };
+      },
     });
   };
 
@@ -401,21 +608,54 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     elementKey: "headlinePos" | "subtextPos" | "badgePos" | "barPos" | "logoPos",
     pos: ElementPosition
   ) => {
-    setPost((prev) => {
-      const curIdx = prev.currentSlideIndex;
-      const currentSlide = prev.slides[curIdx];
-      if (!currentSlide) return prev;
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const curIdx = prev.currentSlideIndex;
+        const currentSlide = prev.slides[curIdx];
+        if (!currentSlide) return prev;
 
-      const updatedSlides = [...prev.slides];
-      updatedSlides[curIdx] = {
-        ...currentSlide,
-        [elementKey]: pos,
-      };
+        const updatedSlides = [...prev.slides];
+        updatedSlides[curIdx] = {
+          ...currentSlide,
+          [elementKey]: pos,
+        };
 
-      return {
-        ...prev,
-        slides: updatedSlides,
-      };
+        return {
+          ...prev,
+          slides: updatedSlides,
+        };
+      },
+    });
+  };
+
+  const handleUpdateDecorationTransform = (
+    target: "logo" | "badge" | "bar",
+    transform: { scaleX: number; scaleY: number; rotation: number }
+  ) => {
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const curIdx = prev.currentSlideIndex;
+        const currentSlide = prev.slides[curIdx];
+        if (!currentSlide) return prev;
+
+        const updatedTransforms = {
+          ...(currentSlide.nativeDecorationTransforms || {}),
+          [target]: transform,
+        };
+
+        const updatedSlides = [...prev.slides];
+        updatedSlides[curIdx] = {
+          ...currentSlide,
+          nativeDecorationTransforms: updatedTransforms,
+        };
+
+        return {
+          ...prev,
+          slides: updatedSlides,
+        };
+      },
     });
   };
 
@@ -423,7 +663,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   // slide atual (Etapa 2 §7.3): nunca vaza para o default global nem para
   // outros slides.
   const handleUpdateBgTransform = (transform: BgImageTransform) => {
-    setPost((prev) => applyPatchToCurrentSlide(prev, { bgTransform: transform }));
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => applyPatchToCurrentSlide(prev, { bgTransform: transform }),
+    });
   };
 
   const handleResetBgTransform = () => {
@@ -439,30 +682,33 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
 
   // Edição direta no canvas (duplo clique / duplo toque)
   const handleUpdateText = (field: "headline" | "subtext" | "badgeText", value: string) => {
-    setPost((prev) => {
-      const curIdx = prev.currentSlideIndex;
-      const currentSlide = prev.slides[curIdx];
-      const updatedSlides = [...prev.slides];
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const curIdx = prev.currentSlideIndex;
+        const currentSlide = prev.slides[curIdx];
+        const updatedSlides = [...prev.slides];
 
-      if (currentSlide) {
-        if (field === "headline") {
-          updatedSlides[curIdx] = { ...currentSlide, headline: value };
-        } else if (field === "subtext") {
-          updatedSlides[curIdx] = { ...currentSlide, subtext: value };
-        } else if (field === "badgeText") {
-          if (!prev.showBadge && prev.showStep) {
-            updatedSlides[curIdx] = { ...currentSlide, step: value };
-            return {
-              ...prev,
-              slides: updatedSlides,
-            };
+        if (currentSlide) {
+          if (field === "headline") {
+            updatedSlides[curIdx] = { ...currentSlide, headline: value };
+          } else if (field === "subtext") {
+            updatedSlides[curIdx] = { ...currentSlide, subtext: value };
+          } else if (field === "badgeText") {
+            if (!prev.showBadge && prev.showStep) {
+              updatedSlides[curIdx] = { ...currentSlide, step: value };
+              return {
+                ...prev,
+                slides: updatedSlides,
+              };
+            }
           }
         }
-      }
 
-      return currentSlide && field !== "badgeText"
-        ? { ...prev, slides: updatedSlides }
-        : { ...prev, [field]: value, slides: updatedSlides };
+        return currentSlide && field !== "badgeText"
+          ? { ...prev, slides: updatedSlides }
+          : { ...prev, [field]: value, slides: updatedSlides };
+      },
     });
   };
 
@@ -474,24 +720,27 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     chunks: CanvasRichTextChunk[],
     layoutPositions?: { headlinePos: ElementPosition; subtextPos: ElementPosition; barPos: ElementPosition }
   ) => {
-    setPost((prev) => {
-      const curIdx = prev.currentSlideIndex;
-      const currentSlide = prev.slides[curIdx];
-      const richField = `${field}Rich` as "headlineRich" | "subtextRich";
-      const updatedSlides = [...prev.slides];
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const curIdx = prev.currentSlideIndex;
+        const currentSlide = prev.slides[curIdx];
+        const richField = `${field}Rich` as "headlineRich" | "subtextRich";
+        const updatedSlides = [...prev.slides];
 
-      if (currentSlide) {
-        updatedSlides[curIdx] = {
-          ...currentSlide,
-          [field]: value,
-          [richField]: chunks,
-          ...(layoutPositions || {}),
-        };
-      }
+        if (currentSlide) {
+          updatedSlides[curIdx] = {
+            ...currentSlide,
+            [field]: value,
+            [richField]: chunks,
+            ...(layoutPositions || {}),
+          };
+        }
 
-      return currentSlide
-        ? { ...prev, slides: updatedSlides }
-        : { ...prev, [field]: value, [richField]: chunks };
+        return currentSlide
+          ? { ...prev, slides: updatedSlides }
+          : { ...prev, [field]: value, [richField]: chunks };
+      },
     });
   };
 
@@ -504,26 +753,20 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       handleUpdatePost({}, updatedComp);
       return;
     }
-    setPost((prev) => {
-      const currentSlide = prev.slides[curIdx];
-      const slideExtra = currentSlide?.extraTexts || prev.extraTexts || [];
-      const updatedExtra = slideExtra.map((item) =>
-        item.id === id ? { ...item, x: pos.x, y: pos.y } : item
-      );
-
-      const updatedSlides = [...prev.slides];
-      if (currentSlide) {
-        updatedSlides[curIdx] = {
-          ...currentSlide,
-          extraTexts: updatedExtra,
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const curTexts = resolveSlideExtraTexts(prev, curIdx);
+        const updatedExtra = curTexts.map((item) =>
+          item.id === id ? { ...item, x: pos.x, y: pos.y } : item
+        );
+        return {
+          ...prev,
+          slides: prev.slides.map((s, i) =>
+            i === curIdx ? { ...s, extraTexts: updatedExtra } : s
+          ),
         };
-      }
-
-      return {
-        ...prev,
-        extraTexts: updatedExtra,
-        slides: updatedSlides,
-      };
+      },
     });
   };
 
@@ -536,26 +779,20 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       handleUpdatePost({}, updatedComp);
       return;
     }
-    setPost((prev) => {
-      const currentSlide = prev.slides[curIdx];
-      const slideExtra = currentSlide?.extraTexts || prev.extraTexts || [];
-      const updatedExtra = slideExtra.map((item) =>
-        item.id === id ? { ...item, text: value } : item
-      );
-
-      const updatedSlides = [...prev.slides];
-      if (currentSlide) {
-        updatedSlides[curIdx] = {
-          ...currentSlide,
-          extraTexts: updatedExtra,
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const curTexts = resolveSlideExtraTexts(prev, curIdx);
+        const updatedExtra = curTexts.map((item) =>
+          item.id === id ? { ...item, text: value } : item
+        );
+        return {
+          ...prev,
+          slides: prev.slides.map((s, i) =>
+            i === curIdx ? { ...s, extraTexts: updatedExtra } : s
+          ),
         };
-      }
-
-      return {
-        ...prev,
-        extraTexts: updatedExtra,
-        slides: updatedSlides,
-      };
+      },
     });
   };
 
@@ -563,7 +800,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const handleAddExtraText = () => {
     const curIdx = post.currentSlideIndex;
     const currentSlide = post.slides[curIdx];
-    const slideExtra = currentSlide?.extraTexts || post.extraTexts || [];
+    const slideExtra = resolveSlideExtraTexts(post, curIdx);
     const count = slideExtra.length + 1;
     const newId = freshId("tx");
     const newExtraText: CanvasCustomText = {
@@ -602,20 +839,19 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       return;
     }
 
-    const updatedExtra = [...slideExtra, newExtraText];
-    const updatedSlides = [...post.slides];
-    if (currentSlide) {
-      updatedSlides[curIdx] = {
-        ...currentSlide,
-        extraTexts: updatedExtra,
-      };
-    }
-
-    setPost((prev) => ({
-      ...prev,
-      extraTexts: updatedExtra,
-      slides: updatedSlides,
-    }));
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const curTexts = resolveSlideExtraTexts(prev, prev.currentSlideIndex);
+        const updatedExtra = [...curTexts, newExtraText];
+        return {
+          ...prev,
+          slides: prev.slides.map((s, i) =>
+            i === prev.currentSlideIndex ? { ...s, extraTexts: updatedExtra } : s
+          ),
+        };
+      },
+    });
 
     setSelectedElementId(newId);
     toast.success("Nova caixa de texto adicionada! Dê dois cliques para editar no palco.");
@@ -640,26 +876,21 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       handleUpdatePost({}, updatedComp);
       return;
     }
-    setPost((prev) => {
-      const currentSlide = prev.slides[curIdx];
-      const slideExtra = currentSlide?.extraTexts || prev.extraTexts || [];
-      const updatedExtra = slideExtra.map((item) =>
-        item.id === id ? { ...item, ...patch } : item
-      );
-
-      const updatedSlides = [...prev.slides];
-      if (currentSlide) {
-        updatedSlides[curIdx] = {
-          ...currentSlide,
-          extraTexts: updatedExtra,
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const activeIdx = prev.currentSlideIndex;
+        const curTexts = resolveSlideExtraTexts(prev, activeIdx);
+        const updatedExtra = curTexts.map((item) =>
+          item.id === id ? { ...item, ...patch } : item
+        );
+        return {
+          ...prev,
+          slides: prev.slides.map((s, i) =>
+            i === activeIdx ? { ...s, extraTexts: updatedExtra } : s
+          ),
         };
-      }
-
-      return {
-        ...prev,
-        extraTexts: updatedExtra,
-        slides: updatedSlides,
-      };
+      },
     });
   };
 
@@ -674,27 +905,24 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       toast.info("Caixa de texto removida.");
       return;
     }
-    setPost((prev) => {
-      const currentSlide = prev.slides[curIdx];
-      const slideExtra = currentSlide?.extraTexts || prev.extraTexts || [];
-      const updatedExtra = slideExtra.filter((item) => item.id !== id);
-
-      const updatedSlides = [...prev.slides];
-      if (currentSlide) {
-        updatedSlides[curIdx] = {
-          ...currentSlide,
-          extraTexts: updatedExtra,
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const activeIdx = prev.currentSlideIndex;
+        const curTexts = resolveSlideExtraTexts(prev, activeIdx);
+        const updatedExtra = curTexts.filter((item) => item.id !== id);
+        return {
+          ...prev,
+          slides: prev.slides.map((s, i) =>
+            i === activeIdx ? { ...s, extraTexts: updatedExtra } : s
+          ),
         };
-      }
-
-      toast.info("Caixa de texto removida.");
-
-      return {
-        ...prev,
-        extraTexts: updatedExtra,
-        slides: updatedSlides,
-      };
+      },
     });
+    if (selectedElementId === id) {
+      setSelectedElementId(null);
+    }
+    toast.info("Caixa de texto removida.");
   };
 
   // ─── GERENCIAMENTO DE IMAGENS LIVRES ADICIONAIS (FOTOS / ADESIVOS) ───
@@ -711,26 +939,32 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       return;
     }
     const newId = freshId('im');
-    setPost(prev => {
-      const index = prev.slides.findIndex(s => s.id === slideId);
-      if (prev.id !== sourcePostId || index < 0) return prev;
-      const slide = prev.slides[index];
-      let width = 140, height = 140;
-      if (naturalWidth && naturalHeight && naturalWidth > 0 && naturalHeight > 0) {
-        const ratio = naturalWidth / naturalHeight;
-        if (ratio >= 1) { width = Math.min(180, Math.round(baseWidth * 0.45)); height = Math.round(width / ratio); }
-        else { height = Math.min(180, Math.round(baseHeight * 0.45)); width = Math.round(height * ratio); }
-      }
-      const image: CanvasCustomImage = { id: newId, url, x: Math.round((baseWidth - width) / 2), y: Math.round((baseHeight - height) / 2), width, height, rotation: 0, opacity: 1, cornerRadius: 0 };
-      if (slide.composition) {
-        const c = slide.composition, factor = c.artboard.width / baseWidth;
-        const zIndex = Math.max(0, ...[...c.elements, ...c.groups].filter(e => !e.parentId).map(e => e.zIndex)) + 1;
-        const next = addArsenalAuthorialLayer(c, { ...image, rotation: 0, opacity: 1, cornerRadius: 0, kind: 'image', zIndex, parentId: null, x: image.x * factor, y: image.y * factor, width: width * factor, height: height * factor });
-        const projected = putArsenalComposition({ ...prev, currentSlideIndex: index }, next);
-        return index === prev.currentSlideIndex ? { ...projected, caption: prev.caption, hashtags: prev.hashtags } : { ...prev, slides: projected.slides };
-      }
-      const images = [...(slide.extraImages ?? []), image];
-      return { ...prev, ...(index === prev.currentSlideIndex ? { extraImages: images } : {}), slides: prev.slides.map((s, i) => i === index ? { ...s, extraImages: images } : s) };
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const index = prev.slides.findIndex(s => s.id === slideId);
+        if (prev.id !== sourcePostId || index < 0) return prev;
+        const slide = prev.slides[index];
+        let width = 140, height = 140;
+        if (naturalWidth && naturalHeight && naturalWidth > 0 && naturalHeight > 0) {
+          const ratio = naturalWidth / naturalHeight;
+          if (ratio >= 1) { width = Math.min(180, Math.round(baseWidth * 0.45)); height = Math.round(width / ratio); }
+          else { height = Math.min(180, Math.round(baseHeight * 0.45)); width = Math.round(height * ratio); }
+        }
+        const image: CanvasCustomImage = { id: newId, url, x: Math.round((baseWidth - width) / 2), y: Math.round((baseHeight - height) / 2), width, height, rotation: 0, opacity: 1, cornerRadius: 0 };
+        if (slide.composition) {
+          const c = slide.composition, factor = c.artboard.width / baseWidth;
+          const zIndex = Math.max(0, ...[...c.elements, ...c.groups].filter(e => !e.parentId).map(e => e.zIndex)) + 1;
+          const next = addArsenalAuthorialLayer(c, { ...image, rotation: 0, opacity: 1, cornerRadius: 0, kind: 'image', zIndex, parentId: null, x: image.x * factor, y: image.y * factor, width: width * factor, height: height * factor });
+          const projected = putArsenalComposition({ ...prev, currentSlideIndex: index }, next);
+          return index === prev.currentSlideIndex ? { ...projected, caption: prev.caption, hashtags: prev.hashtags } : { ...prev, slides: projected.slides };
+        }
+        const images = [...resolveSlideExtraImages(prev, index), image];
+        return {
+          ...prev,
+          slides: prev.slides.map((s, i) => i === index ? { ...s, extraImages: images } : s),
+        };
+      },
     });
     if (postRef.current.slides[postRef.current.currentSlideIndex]?.id === slideId) setSelectedElementId(newId);
     toast.success('Imagem adicionada ao post! Use as alças para redimensionar ou mover.');
@@ -753,26 +987,21 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       handleUpdatePost({}, updatedComp);
       return;
     }
-    setPost((prev) => {
-      const currentSlide = prev.slides[curIdx];
-      const slideImages = currentSlide?.extraImages || prev.extraImages || [];
-      const updatedImages = slideImages.map((item) =>
-        item.id === id ? { ...item, ...patch } : item
-      );
-
-      const updatedSlides = [...prev.slides];
-      if (currentSlide) {
-        updatedSlides[curIdx] = {
-          ...currentSlide,
-          extraImages: updatedImages,
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const activeIdx = prev.currentSlideIndex;
+        const slideImages = resolveSlideExtraImages(prev, activeIdx);
+        const updatedImages = slideImages.map((item) =>
+          item.id === id ? { ...item, ...patch } : item
+        );
+        return {
+          ...prev,
+          slides: prev.slides.map((s, i) =>
+            i === activeIdx ? { ...s, extraImages: updatedImages } : s
+          ),
         };
-      }
-
-      return {
-        ...prev,
-        extraImages: updatedImages,
-        slides: updatedSlides,
-      };
+      },
     });
   };
 
@@ -786,31 +1015,24 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       toast.info("Imagem removida do post.");
       return;
     }
-    setPost((prev) => {
-      const currentSlide = prev.slides[curIdx];
-      const slideImages = currentSlide?.extraImages || prev.extraImages || [];
-      const updatedImages = slideImages.filter((item) => item.id !== id);
-
-      const updatedSlides = [...prev.slides];
-      if (currentSlide) {
-        updatedSlides[curIdx] = {
-          ...currentSlide,
-          extraImages: updatedImages,
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const activeIdx = prev.currentSlideIndex;
+        const slideImages = resolveSlideExtraImages(prev, activeIdx);
+        const updatedImages = slideImages.filter((item) => item.id !== id);
+        return {
+          ...prev,
+          slides: prev.slides.map((s, i) =>
+            i === activeIdx ? { ...s, extraImages: updatedImages } : s
+          ),
         };
-      }
-
-      if (selectedElementId === id) {
-        setSelectedElementId(null);
-      }
-
-      toast.info("Imagem removida do post.");
-
-      return {
-        ...prev,
-        extraImages: updatedImages,
-        slides: updatedSlides,
-      };
+      },
     });
+    if (selectedElementId === id) {
+      setSelectedElementId(null);
+    }
+    toast.info("Imagem removida do post.");
   };
 
   const removeSelectedElement = () => {
@@ -819,9 +1041,11 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       if (selectedElementId === "logo") handleUpdatePost({ logoUrl: undefined });
       else handleUpdatePost({}, hideArsenalInstance(arsenalComposition, selectedElementId));
     } else {
-      const slide = post.slides[post.currentSlideIndex];
-      if ((slide?.extraImages ?? post.extraImages ?? []).some(e => e.id === selectedElementId)) handleRemoveExtraImage(selectedElementId);
-      else if ((slide?.extraTexts ?? post.extraTexts ?? []).some(e => e.id === selectedElementId)) handleRemoveExtraText(selectedElementId);
+      const activeIdx = post.currentSlideIndex;
+      const curImages = resolveSlideExtraImages(post, activeIdx);
+      const curTexts = resolveSlideExtraTexts(post, activeIdx);
+      if (curImages.some(e => e.id === selectedElementId)) handleRemoveExtraImage(selectedElementId);
+      else if (curTexts.some(e => e.id === selectedElementId)) handleRemoveExtraText(selectedElementId);
     }
     setSelectedElementId(null);
   };
@@ -835,14 +1059,25 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     return () => window.removeEventListener("keydown", handler);
   }, [post, selectedElementId, freeEditing]);
 
+  // Limpa a seleção quando o elemento selecionado deixar de existir no slide ativo ou o slide mudar
+  useEffect(() => {
+    if (selectedElementTarget && !isElementInCurrentSlide) {
+      setSelectedElementTarget(null);
+    }
+  }, [selectedElementTarget, isElementInCurrentSlide]);
+
   // ─── Item 7: fluxo de salvamento com decisão memorizável ───
   const saveManually = async (mode: "new" | "update") => {
     if (!onSave) return;
-    const docToSave = post;
+    if (stageRef.current?.hasActiveDraft?.()) {
+      stageRef.current.commitDraft?.();
+    }
+    const docToSave = postRef.current;
     const manager = autoSaveManagerRef.current;
     manager?.pauseForManualSave();
     try {
-      const saved = await onSave(docToSave, mode, "manual");
+      const preview=await captureSavePreview(docToSave);
+      const saved = await (preview?onSave(docToSave,mode,"manual",preview):onSave(docToSave,mode,"manual"));
       if (saved && postRef.current === docToSave) {
         setAutoSaveState("saved");
         setLastSavedAt(new Date());
@@ -856,6 +1091,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     if (!onSave) {
       toast.error("Salvamento indisponível nesta tela.");
       return;
+    }
+    if (stageRef.current?.hasActiveDraft?.()) {
+      stageRef.current.commitDraft?.();
     }
     const pref = readSavePreference();
     if (pref === "new") {
@@ -895,6 +1133,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
 
   const exportPng = () => {
     if (!stageRef.current) return;
+    if (stageRef.current.hasActiveDraft?.()) {
+      stageRef.current.commitDraft?.();
+    }
     let dataUrl: string;
     try { dataUrl = stageRef.current.exportPng4K(); } catch(error) { toast.error((error as Error).message); return; }
     if (!dataUrl) {
@@ -910,6 +1151,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
 
   const exportZip = async () => {
     if (!stageRef.current || isExportingZip) return;
+    if (stageRef.current.hasActiveDraft?.()) {
+      stageRef.current.commitDraft?.();
+    }
     setIsExportingZip(true);
     toast.info("Compilando todos os slides em arquivo ZIP de alta resolução...");
 
@@ -953,22 +1197,28 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   const handleAddSlide = () => {
-    setPost((prev) => {
-      const nextIdx = prev.slides.length + 1;
-      const newSlide = {
-        id: `s-${Date.now()}`,
-        step: `SLIDE 0${nextIdx} // CONTINUAÇÃO`,
-        headline: "Novo ponto importante da narrativa",
-        subtext: "Explique este conceito com clareza para manter o público engajado até a chamada para ação.",
-        visualStyle: prev.slides[prev.currentSlideIndex]?.visualStyle,
-      };
-      return { ...prev, slides: [...prev.slides, newSlide], currentSlideIndex: prev.slides.length };
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => {
+        const nextIdx = prev.slides.length + 1;
+        const newSlide = {
+          id: `s-${Date.now()}`,
+          step: `SLIDE 0${nextIdx} // CONTINUAÇÃO`,
+          headline: "Novo ponto importante da narrativa",
+          subtext: "Explique este conceito com clareza para manter o público engajado até a chamada para ação.",
+          visualStyle: prev.slides[prev.currentSlideIndex]?.visualStyle,
+        };
+        return { ...prev, slides: [...prev.slides, newSlide], currentSlideIndex: prev.slides.length };
+      },
     });
   };
 
   const handleDuplicateSlide = (index: number) => {
     if (!post.slides[index]) return;
-    setPost((prev) => duplicateSlide(prev, index));
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => duplicateSlide(prev, index),
+    });
     setSelectedElementId(null);
   };
 
@@ -977,9 +1227,75 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       toast.error("O carrossel precisa ter no mínimo 1 slide.");
       return;
     }
-    setPost((prev) => removeSlide(prev, index));
+    handleUpdatePost({
+      kind: "updater",
+      update: (prev) => removeSlide(prev, index),
+    });
     setSelectedElementId(null);
   };
+
+  const handleBackToGallery = async () => {
+    if (isExitingRef.current) return;
+
+    const hadActiveDraft = stageRef.current?.hasActiveDraft?.() ?? false;
+    if (hadActiveDraft) {
+      stageRef.current?.commitDraft?.();
+    }
+
+    const isDirty = hadActiveDraft || autoSaveState === "dirty" || autoSaveState === "error" || autoSaveState === "saving";
+
+    if (!isAutoSaveEnabled) {
+      if (isDirty) {
+        setIsExitConfirmOpen(true);
+        return;
+      }
+      onBackToGallery?.(postRef.current);
+      return;
+    }
+
+    if (autoSaveManagerRef.current) {
+      isExitingRef.current = true;
+      try {
+        const ok = await autoSaveManagerRef.current.flushNow();
+        if (!ok) {
+          toast.error("Não foi possível salvar o post antes de sair.");
+          return;
+        }
+        onBackToGallery?.(postRef.current);
+      } finally {
+        isExitingRef.current = false;
+      }
+    } else {
+      onBackToGallery?.(postRef.current);
+    }
+  };
+
+  const handleRestartClick = () => {
+    if (stageRef.current?.hasActiveDraft?.()) {
+      stageRef.current.commitDraft?.();
+    }
+    setIsRestartConfirmOpen(true);
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (stageRef.current?.hasActiveDraft?.()) {
+        stageRef.current.commitDraft?.();
+      }
+      const isPending =
+        autoSaveState === "dirty" ||
+        autoSaveState === "saving" ||
+        autoSaveState === "error" ||
+        isSaving ||
+        Boolean(autoSaveManagerRef.current?.saving) ||
+        Boolean(stageRef.current?.hasActiveDraft?.());
+      if (isPending) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [autoSaveState, isSaving]);
 
   return (
     <div className="h-[100dvh] w-full bg-[#07090E] text-white flex flex-col overflow-hidden select-none font-sans">
@@ -993,13 +1309,13 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         onResetZoom={() => setZoom(1)}
         onExportPng={handleExportPng}
         onExportZip={handleExportZip}
-        onBackToGallery={onBackToGallery ? () => onBackToGallery(post) : undefined}
+        onBackToGallery={onBackToGallery ? handleBackToGallery : undefined}
         isSnapEnabled={post.isSnapEnabled !== false}
         onToggleSnap={handleToggleSnap}
         isExportingZip={isExportingZip}
         slideCount={post.slides.length}
         onAddSlide={handleAddSlide}
-        onRestart={onRestart ? () => setIsRestartConfirmOpen(true) : undefined}
+        onRestart={onRestart ? handleRestartClick : undefined}
         onSave={onSave ? handleSaveClick : undefined}
         isSaving={isSaving}
         onUndo={handleUndo}
@@ -1016,10 +1332,17 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       <GuidedEditor post={post} free={freeEditing}
         onReplicate={post.slides.length > 1 ? () => setIsReplicationOpen(true) : undefined}
         onFreeChange={free => { setFreeEditing(free); setIsMobileDrawerOpen(false); setIsEditingBackground(false); setSelectedElementId(null); setRequestedTab(undefined); }}
-        onApply={next => { handleUpdatePost(next, next.slides[next.currentSlideIndex]?.composition); setSelectedElementId(null); }}
+        onApply={next => {
+          handleUpdatePost({
+            kind: "document",
+            document: next,
+            composition: next.slides[next.currentSlideIndex]?.composition,
+          });
+          setSelectedElementId(null);
+        }}
         onImageTools={() => { setFreeEditing(true); setRequestedTab("media"); setIsMobileDrawerOpen(true); }} />
 
-      {freeEditing && selectedElementId && (arsenalComposition?.elements.some(e => e.id === selectedElementId) || (post.slides[post.currentSlideIndex]?.extraImages ?? []).some(e => e.id === selectedElementId) || (post.slides[post.currentSlideIndex]?.extraTexts ?? []).some(e => e.id === selectedElementId)) && (
+      {freeEditing && selectedElementId && (arsenalComposition?.elements.some(e => e.id === selectedElementId) || resolveSlideExtraImages(post, post.currentSlideIndex).some(e => e.id === selectedElementId) || resolveSlideExtraTexts(post, post.currentSlideIndex).some(e => e.id === selectedElementId)) && (
         <div className="flex justify-center border-b border-white/10 py-1">
           <button type="button" className="rounded-lg px-3 py-2 text-xs text-rose-300 hover:bg-white/10" onClick={removeSelectedElement}>Remover elemento selecionado · Del</button>
         </div>
@@ -1038,7 +1361,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
             onResetZoom={() => setZoom(1)}
             isSnapEnabled={post.isSnapEnabled !== false}
             onToggleSnap={handleToggleSnap}
-            onRestart={onRestart ? () => setIsRestartConfirmOpen(true) : undefined}
+            onRestart={onRestart ? handleRestartClick : undefined}
             onExportPng={handleExportPng}
             onExportZip={handleExportZip}
             isExportingZip={isExportingZip}
@@ -1163,6 +1486,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
               selectedElementId={selectedElementId}
               onSelectElement={setSelectedElementId}
               onUpdateElementPosition={handleUpdateElementPosition}
+              onUpdateDecorationTransform={handleUpdateDecorationTransform}
               onUpdateTextTransform={handleUpdateTextTransform}
               isEditingBackground={isEditingBackground}
               onUpdateBgTransform={handleUpdateBgTransform}
@@ -1208,7 +1532,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         <CarouselFilmstrip
           slides={post.slides}
           currentIndex={post.currentSlideIndex}
-          onSelectSlide={(index) => setPost((p) => ({ ...p, currentSlideIndex: index }))}
+          onSelectSlide={handleSelectSlide}
           onAddSlide={handleAddSlide}
           onDuplicateSlide={handleDuplicateSlide}
           onRemoveSlide={handleDeleteSlide}
@@ -1225,7 +1549,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         onCancel={() => setPendingExport(null)}
       />
       {/* ── Diálogos: Salvar (item 7) e Recomeçar (item 6) ── */}
-      <ConfirmDialog open={Boolean(formatPreview)} title="Aplicar novo formato?" description="Confira a projeção do seu layout. A variante do catálogo é opcional e redefine somente a geometria." confirmLabel="Aplicar formato" onCancel={()=>{formatRequest.current++;setFormatPreview(null);setNativeFormatPreview(null);}} onConfirm={()=>{if(formatPreview)setPost(formatPreview);formatRequest.current++;setFormatPreview(null);setNativeFormatPreview(null);}}>
+      <ConfirmDialog open={Boolean(formatPreview)} title="Aplicar novo formato?" description="Confira a projeção do seu layout. A variante do catálogo é opcional e redefine somente a geometria." confirmLabel="Aplicar formato" onCancel={()=>{formatRequest.current++;setFormatPreview(null);setNativeFormatPreview(null);}} onConfirm={()=>{if(formatPreview)handleUpdatePost({ kind: "document", document: formatPreview });formatRequest.current++;setFormatPreview(null);setNativeFormatPreview(null);}}>
         {formatLoading&&<p role="status">Consultando formatos da mesma versão…</p>}{nativeFormatPreview&&nativeFormatPreview!==formatPreview&&<button className="rounded border border-white/20 p-2" onClick={()=>setFormatPreview(nativeFormatPreview)}>Pré-visualizar variante do catálogo · redefinir geometria</button>}{formatPreview&&<div className="my-3 flex justify-center"><CanvasPostStage post={formatPreview} zoom={.4} isReadOnly/></div>}
       </ConfirmDialog>
       <SaveChoiceDialog
@@ -1241,12 +1565,68 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         title="Recomeçar do zero?"
         description="Este post atual será descartado e você voltará à tela de criação para gerar novas direções de arte."
         confirmLabel="Recomeçar"
-        onConfirm={() => {
-          setIsRestartConfirmOpen(false);
-          onRestart?.();
+        onConfirm={async () => {
+          if (isExitingRef.current) return;
+          isExitingRef.current = true;
+          try {
+            if (stageRef.current?.hasActiveDraft?.()) {
+              stageRef.current.commitDraft?.();
+            }
+            if (isAutoSaveEnabled && autoSaveManagerRef.current) {
+              const ok = await autoSaveManagerRef.current.flushNow();
+              if (ok === false) {
+                toast.error("Não foi possível salvar o post antes de recomeçar.");
+                return;
+              }
+            }
+            setIsRestartConfirmOpen(false);
+            onRestart?.();
+          } finally {
+            isExitingRef.current = false;
+          }
         }}
         onCancel={() => setIsRestartConfirmOpen(false)}
       />
+      <ConfirmDialog
+        open={isExitConfirmOpen}
+        title="Sair sem salvar?"
+        description="Você possui alterações não salvas e o salvamento automático está desativado. Deseja salvar antes de sair, sair mantendo o rascunho na galeria ou cancelar para continuar editando?"
+        confirmLabel="Sair sem salvar"
+        onConfirm={() => {
+          setIsExitConfirmOpen(false);
+          onBackToGallery?.(postRef.current);
+        }}
+        onCancel={() => setIsExitConfirmOpen(false)}
+      >
+        {onSave && (
+          <div className="mb-3">
+            <button
+              type="button"
+              onClick={async () => {
+                if (isExitingRef.current) return;
+                isExitingRef.current = true;
+                try {
+                  const mode = hasSavedPost ? "update" : "new";
+                  const ok = await onSave(postRef.current, mode, "manual");
+                  if (ok !== false) {
+                    setIsExitConfirmOpen(false);
+                    onBackToGallery?.(postRef.current);
+                  } else {
+                    toast.error("Falha ao salvar o post.");
+                  }
+                } catch {
+                  toast.error("Falha ao salvar o post.");
+                } finally {
+                  isExitingRef.current = false;
+                }
+              }}
+              className="w-full py-2.5 px-4 rounded-2xl bg-[oklch(0.78_0.22_48)] hover:bg-[oklch(0.82_0.22_48)] text-black text-xs font-bold transition-all active:scale-[0.98] cursor-pointer"
+            >
+              Salvar e sair
+            </button>
+          </div>
+        )}
+      </ConfirmDialog>
       <SlideReplicationDialog
         open={isReplicationOpen}
         post={post}

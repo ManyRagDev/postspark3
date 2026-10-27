@@ -11,11 +11,13 @@ import { assemblyBrandPalette } from '../ai/assemblyBrandPalette';
 import { preferDeliveredDirection } from './studioPreferences';
 import { executeProposalWorkflow } from '../ai/workflows/proposalGraph';
 import { completeDesignTestDefinitions } from '../../shared/completeDesignGeneration.fixture';
+// These tests cover ownership/feedback for an already reviewed delivery.
+vi.mock('../ai/workflows/proposalReview',()=>({reviewProposal:async()=>({policyVersion:1,round:'initial',inputHash:'a'.repeat(64),status:'passed',reviewedSlides:[0],findings:[],limitation:''})}));
 describe('explicit studio preferences',()=>{
  it('accepts an owned complete design from a partial run by its slot rather than array position',async()=>{
   const owner='00000000-0000-4000-8000-000000000001',runId='00000000-0000-4000-8000-000000000002';
   const prefs={enabled:true,language:'graphic' as const,intensity:'expressive' as const};
-  const result=await executeProposalWorkflow({requestId:runId,runId,proposalId:'p-1',slot:1,prompt:'Café',selectedDefinition:completeDesignTestDefinitions()[0],visualPreference:prefs},{actor:owner,measureText:()=>({height:20,lines:[{width:100}],runs:[]}),generateText:async()=>({choices:[{message:{content:JSON.stringify({caption:'Café',hashtags:[],slides:[{values:[{fieldId:'field-0',value:'Café'},{fieldId:'field-1',value:'Hoje'}],mediaPrompts:[]}]})}}]}) as any});
+  const result=await executeProposalWorkflow({requestId:runId,runId,proposalId:'p-1',slot:1,prompt:'Café',selectedDefinition:completeDesignTestDefinitions()[0],visualPreference:prefs},{actor:owner,measureText:()=>({height:20,lines:[{width:100}],runs:[]}),generateText:async()=>({choices:[{message:{content:JSON.stringify({caption:'Café',editorialPlan:{version:1,mode:'compose',centralMessage:'Apresentar café',facts:[{id:'cafe',sourceQuote:'Café',meaning:'Tema fornecido'}],protectedEntities:[],slides:[{slideIndex:0,purpose:'Apresentar café',factIds:['cafe']}]},hashtags:[],slides:[{values:[{fieldId:'field-0',value:'Café'},{fieldId:'field-1',value:'Hoje'}],mediaPrompts:[]}]})}}]}) as any});
   if(result.status!=='ready')throw new Error(result.errorReason);
   state.writes=[];
   state.run={status:'partial',output_snapshot:[{completeDesignV1:result.bundle}]};

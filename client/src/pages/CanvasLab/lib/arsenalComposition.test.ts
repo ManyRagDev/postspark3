@@ -854,7 +854,7 @@ describe("editor composition image and layer commands", () => {
     const c = addImage();
     const initial = makePost(c);
     const changed = putArsenalComposition(initial, hideArsenalInstance(c, "editor-photo"));
-    expect(changed.extraImages).toEqual([]); expect(changed.slides[0].extraImages).toEqual([]);
+    expect(changed.extraImages ?? []).toEqual([]); expect(changed.slides[0].extraImages).toEqual([]);
     expect(changed.slides[0].composition?.media["editor-photo"]).toBeUndefined();
     const history = pushHistory(createHistory(initial), changed);
     expect(undoHistory(history).present.slides[0].composition?.media["editor-photo"]?.url).toBe("https://example.com/photo.png");
@@ -889,3 +889,184 @@ it("guided image/color preview preserves the composition and recovers former sli
   const restored = captureInitialVisuals(legacy).slides[0].composition!;
   expect(restored.version === 3 && restored.customBackground?.imageUrl).toBe(legacy.slides[0].bgImage);
 });
+
+it("AC-04 (BUG-CL-008): putArsenalComposition preserves explicit root caption and hashtags", () => {
+  const initial = makePost();
+  // Usuário alterou a legenda global do documento
+  const postWithCustomCaption: CanvasPostModel = {
+    ...initial,
+    caption: "Legenda customizada pelo usuário no Inspector",
+    hashtags: ["#exclusivo", "#customizado"],
+  };
+
+  const comp = createArsenalFixtureComposition();
+  // A composição possui caption default na chave content diferente da do post
+  expect(comp.content.caption).toBe("Uma sequência para organizar seu próximo conteúdo.");
+  expect(comp.content.caption).not.toBe(postWithCustomCaption.caption);
+
+  // Ao realizar uma operação visual que passa por putArsenalComposition (ex: drag, color, slide secundário)
+  const projected = putArsenalComposition(postWithCustomCaption, comp);
+
+  // A legenda e hashtags do documento raiz NÃO são sobrescritas pela cópia da composição
+  expect(projected.caption).toBe("Legenda customizada pelo usuário no Inspector");
+  expect(projected.hashtags).toEqual(["#exclusivo", "#customizado"]);
+});
+
+it("BUG-CL-003: putArsenalComposition preserves root extras on multi-slide posts to prevent cross-slide leakage", () => {
+  const initial = makePost();
+  const multiSlidePost: CanvasPostModel = {
+    ...initial,
+    slides: [
+      { ...initial.slides[0] },
+      { ...initial.slides[0], id: "slide-2", extraTexts: undefined, extraImages: undefined },
+    ],
+    extraTexts: [{ id: "legacy-root-text", text: "Legacy Root", x: 10, y: 10, fontSize: 16, fill: "#000", fontFamily: "Inter" }],
+  };
+
+  const comp = createArsenalFixtureComposition();
+  const compWithAuthorial = addArsenalAuthorialLayer(comp, {
+    id: "cover-extra-text",
+    kind: "text",
+    text: "Cover Extra",
+    x: 50,
+    y: 50,
+    width: 200,
+    height: 40,
+    rotation: 0,
+    opacity: 1,
+    zIndex: 10,
+    fontFamily: "Inter",
+    fontSize: 20,
+    fontWeight: "normal",
+    color: "#ff0000",
+    textAlign: "left",
+  });
+
+  const projected = putArsenalComposition(multiSlidePost, compWithAuthorial);
+
+  // O slide 0 recebe os extras autorais
+  expect(projected.slides[0].extraTexts?.some(t => t.id === "cover-extra-text")).toBe(true);
+  // O root extraTexts NÃO é sobrescrito pelos extras da capa no multi-slide, preservando isolamento e herança do slide 2
+  expect(projected.extraTexts?.some(t => t.id === "legacy-root-text")).toBe(true);
+  expect(projected.extraTexts?.some(t => t.id === "cover-extra-text")).toBe(false);
+});
+
+it("BUG-CL-017: putArsenalComposition adopts generated caption when root has INITIAL_POST template caption", () => {
+  // Simula compileArsenalGeneration onde o post inicial ainda não possui composition no slide
+  const postFromGeneration: CanvasPostModel = {
+    ...structuredClone(INITIAL_POST),
+    slides: [{ id: "s1", step: "", headline: "", subtext: "" }],
+    caption: INITIAL_POST.caption,
+  };
+
+  const compWithGeneratedCaption = createArsenalFixtureComposition();
+  compWithGeneratedCaption.content.caption = "CAPTION FROM GENERATED CONTENT";
+
+  const projected = putArsenalComposition(postFromGeneration, compWithGeneratedCaption);
+
+  // A caption gerada da composição deve ser adotada em vez de reter a caption de template do INITIAL_POST
+  expect(projected.caption).toBe("CAPTION FROM GENERATED CONTENT");
+});
+
+it("BUG-CL-018: putArsenalComposition preserves explicit INITIAL_POST caption on existing composition across visual mutation", () => {
+  const initial = makePost();
+  // Post com composição existente e legenda explicitamente igual a INITIAL_POST.caption
+  const postWithInitialCaption: CanvasPostModel = {
+    ...initial,
+    caption: INITIAL_POST.caption,
+  };
+
+  const compWithDifferentCaption = createArsenalFixtureComposition();
+  compWithDifferentCaption.content.caption = "STALE COMPOSITION CAPTION";
+
+  const projected = putArsenalComposition(postWithInitialCaption, compWithDifferentCaption);
+
+  // A legenda deve permanecer INITIAL_POST.caption e NÃO ser substituída pela caption da composição
+  expect(projected.caption).toBe(INITIAL_POST.caption);
+});
+
+it("BUG-CL-019: putArsenalComposition projects cover subtext to root instead of retaining INITIAL_POST.subtext", () => {
+  const postWithoutSubtext: CanvasPostModel = {
+    ...structuredClone(INITIAL_POST),
+    slides: [{ id: "s1", step: "", headline: "", subtext: "" }],
+    subtext: INITIAL_POST.subtext,
+  };
+
+  const compWithoutBody = createArsenalFixtureComposition();
+  compWithoutBody.content = {
+    schemaVersion: 3 as const,
+    blocks: [{ id: "h", type: "text" as const, role: "headline" as const, text: "Café artesanal" }],
+    caption: "",
+    hashtags: [],
+  };
+
+  const projected = putArsenalComposition(postWithoutSubtext, compWithoutBody);
+
+  expect(projected.slides[0].subtext).toBe("");
+  expect(projected.subtext).toBe("");
+});
+
+it("BUG-CL-019: title-only Arsenal compilation does not retain demo subtext in post root", async () => {
+  const content = {
+    schemaVersion: 3 as const,
+    blocks: [{ id: "title", type: "text" as const, role: "headline" as const, text: "Café da manhã" }],
+    caption: "CAFÉ CAPTION",
+    hashtags: ["cafe"],
+  };
+  const post = await compileArsenalGeneration(
+    {
+      schemaVersion: 2,
+      traceId: "00000000-0000-4000-8000-000000000010",
+      runId: "00000000-0000-4000-8000-000000000010",
+      slot: 0,
+      content,
+      contentContract: deriveVariableContentContract("Um título"),
+      userContentHash: arsenalHash(content),
+      targetAspectRatio: "1:1",
+      selection: "none",
+      candidates: [],
+      pieces: {},
+      assets: [],
+    },
+    { deadline: performance.now() + 5000, assetDeadline: performance.now() + 1000 }
+  );
+  expect(post.slides[0].subtext).toBe("");
+  expect(post.subtext).toBe("");
+});
+
+it("BUG-CL-020: putArsenalComposition initializes hashtags from composition when undefined and preserves defined hashtags", () => {
+  const fixture = createArsenalFixtureComposition();
+  const composition = editArsenalContent(fixture, {
+    ...fixture.content,
+    hashtags: ["#cafe", "#artesanal"],
+  });
+
+  // Caso 1: hashtags undefined na raiz -> adota da composição
+  const postUndefinedHashtags: CanvasPostModel = {
+    ...structuredClone(INITIAL_POST),
+    hashtags: undefined,
+    currentSlideIndex: 0,
+    slides: [{ id: "s", step: "", headline: "", subtext: "" }],
+  };
+  const projectedInitialized = putArsenalComposition(postUndefinedHashtags, composition);
+  expect(projectedInitialized.hashtags).toEqual(["#cafe", "#artesanal"]);
+
+  // Caso 2: hashtags já definidas na raiz (inclusive []) -> preserva autoridade da raiz
+  const postEmptyHashtags: CanvasPostModel = {
+    ...postUndefinedHashtags,
+    hashtags: [],
+  };
+  const projectedEmpty = putArsenalComposition(postEmptyHashtags, composition);
+  expect(projectedEmpty.hashtags).toEqual([]);
+
+  const postExistingHashtags: CanvasPostModel = {
+    ...postUndefinedHashtags,
+    hashtags: ["#global"],
+  };
+  const projectedExisting = putArsenalComposition(postExistingHashtags, composition);
+  expect(projectedExisting.hashtags).toEqual(["#global"]);
+});
+
+
+
+

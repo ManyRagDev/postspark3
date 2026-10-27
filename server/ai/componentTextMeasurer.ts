@@ -1,3 +1,4 @@
+import {cachedAssetBytes} from "../designCatalog/localAssetCache";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -10,6 +11,34 @@ import { arsenalHash } from "@shared/arsenalContent";
 import type { ArsenalAsset } from "@shared/designArsenal";
 import type { ArsenalTextMeasurer } from "@shared/arsenalGeometry";
 import { layoutRichText } from "@shared/arsenalTextLayout";
+import type { RichTextLayoutConfig } from "@shared/arsenalTextLayout";
+
+/** Word partitions retain separators for lossless reassembly. They have no ink
+ * at line end and must not turn an otherwise fitting fragment into overflow.
+ * This affects measurement only; canonical text, rich styles and line breaks survive. */
+function measurementText(input: RichTextLayoutConfig): RichTextLayoutConfig {
+  const removed = new Set<number>();
+  for (const match of Array.from(input.text.matchAll(/[^\S\r\n]+(?=\r?$)/gm)))
+    for (let i = match.index; i < match.index + match[0].length; i++)
+      removed.add(i);
+  if (!removed.size) return input;
+  const filter = (text: string, offset: number) =>
+    text
+      .split("")
+      .filter((_char, i) => !removed.has(offset + i))
+      .join("");
+  let offset = 0;
+  const richText = input.richText?.map(chunk => {
+    const next = { ...chunk, text: filter(chunk.text, offset) };
+    offset += chunk.text.length;
+    return next;
+  });
+  return {
+    ...input,
+    text: filter(input.text, 0),
+    ...(richText ? { richText } : {}),
+  };
+}
 
 type MeasurableFont = {
   unitsPerEm: number;
@@ -17,9 +46,11 @@ type MeasurableFont = {
   variationAxes?: Record<string, { min: number; max: number }>;
   getVariation?: (axes: Record<string, number>) => MeasurableFont;
 };
-const cachedFonts = new Map<string, Promise<MeasurableFont>>();
+// Cache only completed fonts: one request's cancellation must never poison another.
+const cachedFonts = new Map<string, MeasurableFont>();
 export async function loadComponentFontBytes(
-  asset: ArsenalAsset
+  asset: ArsenalAsset,
+  signal?: AbortSignal
 ): Promise<Buffer> {
   if (asset.kind === "bundled") {
     const entry = (bundled as Record<string, { path: string }>)[asset.id];
@@ -29,24 +60,45 @@ export async function loadComponentFontBytes(
       entry.path.includes("..")
     )
       throw new Error("unverified_bundled_font");
-    return readFile(join(process.cwd(), "client/public", entry.path));
+    return readFile(join(process.cwd(), "client/public", entry.path), {
+      signal,
+    });
   }
+  const download=async(downloadSignal?:AbortSignal)=>{
+  const signal=downloadSignal;
   const result = await createClient(
     ENV.supabaseUrl,
     ENV.supabaseServiceRoleKey,
-    { auth: { persistSession: false } }
+    {
+      auth: { persistSession: false },
+      global: signal
+        ? {
+            fetch: (url, init) =>
+              fetch(url, {
+                ...init,
+                signal: init?.signal
+                  ? AbortSignal.any([signal, init.signal])
+                  : signal,
+              }),
+          }
+        : undefined,
+    }
   )
     .storage.from(ARSENAL_BUCKET)
     .download(asset.sha256);
   if (result.error || !result.data)
     throw new Error("component_font_unavailable");
   return Buffer.from(await result.data.arrayBuffer());
+  };
+  return ENV.localDemandEnabled?cachedAssetBytes(asset.sha256,()=>download(AbortSignal.timeout(15000)),signal):download(signal);
 }
 /** No font substitution: bytes, family metadata and variation weight are checked. */
 export async function createComponentTextMeasurer(
   assets: ArsenalAsset[],
-  loadBytes = loadComponentFontBytes
+  loadBytes = loadComponentFontBytes,
+  signal?: AbortSignal
 ): Promise<ArsenalTextMeasurer> {
+  signal?.throwIfAborted();
   const fonts = new Map<
     string,
     { asset: ArsenalAsset; font: MeasurableFont }
@@ -56,10 +108,11 @@ export async function createComponentTextMeasurer(
       .filter(a => a.family)
       .map(async asset => {
         const key = arsenalHash(asset);
-        let task = cachedFonts.get(key);
-        if (!task) {
-          task = (async () => {
-            const bytes = await loadBytes(asset);
+        let font = cachedFonts.get(key);
+        if (!font) {
+          font = await (async () => {
+            const bytes = await loadBytes(asset, signal);
+            signal?.throwIfAborted();
             if (
               bytes.length !== asset.bytes ||
               createHash("sha256").update(bytes).digest("hex") !== asset.sha256
@@ -82,16 +135,15 @@ export async function createComponentTextMeasurer(
             }
             return font;
           })();
-          cachedFonts.set(key, task);
-          void task.catch(() => cachedFonts.delete(key));
+          cachedFonts.set(key, font);
         }
-        const font = await task;
+        signal?.throwIfAborted();
         fonts.set(`${asset.family}|${asset.weight}`, { asset, font });
       })
   );
   return input =>
     layoutRichText({
-      ...input,
+      ...measurementText(input),
       measureGlyph: (text, family, size, style) => {
         const weight = Number(
           style.match(/\b([1-8]\d{2}|900)\b/)?.[1] ??

@@ -1,3 +1,4 @@
+import GoogleAuthCallback from "./components/auth/GoogleAuthCallback";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -48,54 +49,6 @@ function TopupSuccess() {
         <p className="text-2xl mb-2">⚡</p>
         <p className="text-foreground font-semibold">Sparks adicionados!</p>
         <p className="text-muted-foreground text-sm mt-1">Redirecionando...</p>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Callback do Google OAuth via Supabase.
- */
-function GoogleAuthCallback() {
-  useEffect(() => {
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.replace('#', ''));
-    const access_token = params.get('access_token');
-
-    if (!access_token) {
-      window.location.href = '/?auth_error=no_token';
-      return;
-    }
-
-    fetch('/api/auth/supabase-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ access_token }),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          if (res.status === 403) {
-            const body = await res.json().catch(() => ({}));
-            if (body.error === 'postspark_access_required') {
-              window.location.href = '/?auth_error=postspark_access_required';
-              return;
-            }
-          }
-          window.location.href = '/?auth_error=session_failed';
-          return;
-        }
-        window.location.href = '/thevoid';
-      })
-      .catch(() => { window.location.href = '/?auth_error=session_failed'; });
-  }, []);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "oklch(0.04 0.06 280)" }}>
-      <div className="text-center">
-        <div className="text-2xl mb-3 animate-spin inline-block">✦</div>
-        <p className="text-foreground font-semibold">Autenticando...</p>
-        <p className="text-muted-foreground text-sm mt-1">Aguarde um instante</p>
       </div>
     </div>
   );

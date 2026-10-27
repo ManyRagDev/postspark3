@@ -4,7 +4,7 @@ import { extractReadablePage, normalizeSiteUrl } from "./siteContent";
 describe("siteContent", () => {
   it("normalizes protocol, host, hash and trailing slash", () => {
     expect(normalizeSiteUrl("EXAMPLE.com/oferta/#precos")).toBe(
-      "https://example.com/oferta",
+      "https://example.com/oferta"
     );
   });
 
@@ -23,7 +23,7 @@ describe("siteContent", () => {
           <script>window.secret = "ignore";</script>
           <p>Centralize processos &amp; reduza trabalho manual.</p>
         </body>
-      </html>`,
+      </html>`
     );
 
     expect(page.title).toBe("Produto Claro");
@@ -31,5 +31,28 @@ describe("siteContent", () => {
     expect(page.content).toContain("Ganhe tempo");
     expect(page.content).toContain("processos & reduza");
     expect(page.content).not.toContain("window.secret");
+  });
+});
+
+describe("complete source extraction for generation", () => {
+  it("retains a late qualifier while legacy extraction keeps its existing limit", () => {
+    const html = `<body>${"a".repeat(13000)} Frete grátis somente acima de R$ 100</body>`;
+    expect(
+      extractReadablePage("https://example.com", html, {
+        requireComplete: true,
+      }).content
+    ).toContain("somente acima de R$ 100");
+    expect(
+      extractReadablePage("https://example.com", html).content
+    ).toHaveLength(12000);
+  });
+  it("rejects oversize complete extraction instead of presenting a cut source as complete", () => {
+    expect(() =>
+      extractReadablePage(
+        "https://example.com",
+        `<body>${"a".repeat(24001)}</body>`,
+        { requireComplete: true }
+      )
+    ).toThrow("limite de leitura integral");
   });
 });

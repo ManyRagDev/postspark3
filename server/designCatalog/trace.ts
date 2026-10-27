@@ -1,3 +1,4 @@
+import {localDiagnosticsEnabled,writeLocalDiagnostic} from "../ai/localDiagnostics";
 import { getDb } from "../db";
 import { appendOperationalLog } from "../_core/operationalLog";
 import { recordGenerationEvent } from "../ai/generationTrace";
@@ -29,6 +30,7 @@ export async function traceCatalog(
     JSON.stringify({ event: "DESIGN_CATALOG", traceId, stage, status, ...data })
   );
   try {
+    if(localDiagnosticsEnabled()){await writeLocalDiagnostic(traceId,event);return true;}
     const { error } = await getDb()
       .from("design_catalog_events")
       .upsert(event, {

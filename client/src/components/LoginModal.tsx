@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, Eye, EyeOff, Loader2, Chrome } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '@/lib/supabaseClient';
+import { exchangeSupabaseSession } from '@/lib/authBridge';
 
 interface LoginModalProps {
     open: boolean;
@@ -10,25 +11,6 @@ interface LoginModalProps {
 }
 
 type AuthMode = 'login' | 'register';
-
-async function exchangeSupabaseSession(access_token: string): Promise<void> {
-    const res = await fetch('/api/auth/supabase-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ access_token }),
-    });
-    if (!res.ok) {
-        if (res.status === 403) {
-            const body = await res.json().catch(() => ({}));
-            if (body.error === 'postspark_access_required') {
-                throw new Error('postspark_access_required');
-            }
-        }
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Falha ao criar sessão');
-    }
-}
 
 export default function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
     const [mode, setMode] = useState<AuthMode>('login');

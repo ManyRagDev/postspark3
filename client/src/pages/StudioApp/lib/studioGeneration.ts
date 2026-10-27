@@ -219,7 +219,7 @@ export function variationToCanvasModel(
 }
 
 /**
- * Instrução de "direção de gosto" injetada no `content` do `post.generate`
+ * Instrução de "direção de gosto" injetada no `content` de `generation.start`
  * (apenas para input de texto). Não altera schema nem o motor: viaja como
  * texto livre dentro do prompt, alinhada à gramática do orquestrador.
  */

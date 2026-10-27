@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { CanvasPostModel } from "../components/types";
+import { INITIAL_POST, type CanvasPostModel } from "../components/types";
 import { canvasModelToSavePayload, savedPostToCanvasModel } from "./saveAdapter";
+import { createArsenalFixtureComposition } from "./arsenalFixture";
+import { editArsenalContent, putArsenalComposition } from "./arsenalComposition";
 
 function makePost(overrides: Partial<CanvasPostModel> = {}): CanvasPostModel {
   return {
@@ -142,5 +144,37 @@ describe("saveAdapter", () => {
     expect(reopened.slides).toHaveLength(1);
     expect(reopened.palette.background).toBe("#120D0A");
     expect(reopened.aspectRatio).toBe("1:1");
+  });
+
+  it("round-trips empty caption and literal template caption without coercion", () => {
+    const postEmpty = makePost({ caption: "" });
+    const payloadEmpty = canvasModelToSavePayload(postEmpty, { inputType: "text", inputContent: "p" });
+    const reopenedEmpty = savedPostToCanvasModel({ id: 6, canvas_model: payloadEmpty.canvasModel });
+    expect(reopenedEmpty.caption).toBe("");
+
+    const postTemplate = makePost({ caption: "Marcas de alto padrão não disputam a atenção..." });
+    const payloadTemplate = canvasModelToSavePayload(postTemplate, { inputType: "text", inputContent: "p" });
+    const reopenedTemplate = savedPostToCanvasModel({ id: 7, canvas_model: payloadTemplate.canvasModel });
+    expect(reopenedTemplate.caption).toBe("Marcas de alto padrão não disputam a atenção...");
+  });
+
+  it("BUG-CL-020: round-trips hashtags initialized from composition through save payload and reopen", () => {
+    const fixture = createArsenalFixtureComposition();
+    const composition = editArsenalContent(fixture, {
+      ...fixture.content,
+      hashtags: ["#cafe", "#artesanal"],
+    });
+    const post: CanvasPostModel = {
+      ...structuredClone(INITIAL_POST),
+      hashtags: undefined,
+      currentSlideIndex: 0,
+      slides: [{ id: "s", step: "", headline: "", subtext: "" }],
+    };
+    const initialized = putArsenalComposition(post, composition);
+    expect(initialized.hashtags).toEqual(["#cafe", "#artesanal"]);
+
+    const payload = canvasModelToSavePayload(initialized, { inputType: "text", inputContent: "audit" });
+    const reopened = savedPostToCanvasModel({ id: 10, canvas_model: JSON.parse(JSON.stringify(payload.canvasModel)) });
+    expect(reopened.hashtags).toEqual(["#cafe", "#artesanal"]);
   });
 });

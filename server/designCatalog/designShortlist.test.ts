@@ -4,6 +4,12 @@ import {
   type ComponentCardV1,
 } from "@shared/componentAssembly";
 import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.fixture";
+import { resolveCompleteDesignOffers } from "@shared/completeDesignOffers";
+import { describeCompactOffer } from "@shared/compactDesignProfile";
+import {
+  runWithGenerationTrace,
+  type GenerationTrace,
+} from "../ai/generationTrace";
 import {
   designShortlistBrief,
   evaluateDesignBatch,
@@ -51,6 +57,86 @@ const input = (cards: ComponentCardV1[]) => ({
 afterEach(() => vi.unstubAllGlobals());
 
 describe("design shortlist", () => {
+  it("ranks complete offers independently, retaining true family and component recency", async () => {
+    const cards = catalog(14);
+    cards[1].completeDesign!.family = cards[0].completeDesign!.family;
+    const offers = resolveCompleteDesignOffers(cards, { slideCount: 1, contentMode: "compose" });
+    offers.sort((a,b)=>a.sourceId.localeCompare(b.sourceId));
+    const projections = offers.map(o => ({ ...o.slides[0].card, id: o.offerId, hash: o.signature }));
+    const profiles = Object.fromEntries(offers.map(o => [o.offerId, describeCompactOffer(o)]));
+    const requests: JevRequest[] = [];
+    const evaluate = vi.fn(async (r: JevRequest) => { requests.push(r); return answer(r); });
+    const result = await shortlistCompleteDesigns({
+      ...input(projections), offers, profiles,
+      recentSelections: [{ requestId: "old", selections: [{ family: offers[0].family, designIds: [offers[0].sourceId] }] }],
+    }, evaluate);
+    expect(result.ranking).toHaveLength(14);
+    expect(result.ranking!.find(r => r.id === offers[0].offerId)?.recencyPenalty).toBe(0.3);
+    expect(result.ranking!.find(r => r.id === offers[1].offerId)?.recencyPenalty).toBe(0.22);
+    expect(result.cards).toHaveLength(12);
+    expect(result.cards.map(c => c.id)).not.toContain(offers[0].offerId);
+    expect(requests.flatMap(r => Object.keys(r.questions)).sort()).toEqual(offers.map(o => o.offerId).sort());
+    expect(requests.every(r => Buffer.byteLength(JSON.stringify(r)) <= 28000)).toBe(true);
+    expect(result.ranking!.every(r => Math.abs(r.adjustedScore - (r.score-r.recencyPenalty-r.similarityPenalty)) < 1e-9)).toBe(true);
+    const selected=result.ranking!.filter(r => r.shortlistPosition !== null).sort((a,b)=>a.shortlistPosition!-b.shortlistPosition!);
+    expect(selected.map(r => r.id)).toEqual(result.cards.map(c=>c.id));
+    const oversized=structuredClone(profiles);
+    oversized[offers[0].offerId].common.limitations = ["Explicit authored constraint ".repeat(2000)];
+    evaluate.mockClear();
+    await expect(shortlistCompleteDesigns({ ...input(projections), offers, profiles:oversized }, evaluate)).rejects.toThrow('context_too_large');
+    expect(evaluate).not.toHaveBeenCalled();
+  });
+  it("does not let many related paper/window families crowd out equally suitable distinct constructions", async () => {
+    const cards = catalog(16);
+    for (let i = 0; i < cards.length; i++)
+      cards[i].completeDesign!.designGuidance = {
+        version: 1,
+        summary: "Authored structure",
+        motifs:
+          i < 14
+            ? ["paper", "window"]
+            : [i === 14 ? "radial-type" : "comparison-grid"],
+        preserve: [],
+        contentRules: ["Explain each fact"],
+        mediaRules: [],
+        knownLimitations: [],
+      };
+    const result = await shortlistCompleteDesigns(input(cards), async request =>
+      answer(request, id =>
+        [cards[14].id, cards[15].id].includes(id) ? 2.95 : 3
+      )
+    );
+    expect(result.cards.map(card => card.id)).toEqual(
+      expect.arrayContaining([cards[14].id, cards[15].id])
+    );
+    const strong = await shortlistCompleteDesigns(input(cards), async request =>
+      answer(request, id => (id === cards[0].id ? 4 : 2))
+    );
+    expect(strong.cards[0].id).toBe(cards[0].id);
+  });
+  it("uses a bounded owner-history penalty without creating another evaluation call", async () => {
+    const cards = catalog(15),
+      evaluate = vi.fn(async (request: JevRequest) => answer(request));
+    const result = await shortlistCompleteDesigns(
+      {
+        ...input(cards),
+        recentSelections: [
+          {
+            requestId: "owner-recent",
+            selections: [
+              {
+                family: cards[0].completeDesign!.family,
+                designIds: [cards[0].id],
+              },
+            ],
+          },
+        ],
+      },
+      evaluate
+    );
+    expect(result.cards.map(card => card.id)).not.toContain(cards[0].id);
+    expect(evaluate).toHaveBeenCalledTimes(result.batches);
+  });
   it("uses textual evidence for images without shipping base64 into a text-only classifier", () => {
     const image = "data:image/png;base64," + "abcd".repeat(20000);
     const brief = designShortlistBrief(
@@ -230,5 +316,48 @@ describe("design shortlist", () => {
       evaluateDesignBatch(requests[0], { deadlineMs: Date.now() - 1 })
     ).rejects.toThrow("deadline_exceeded");
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+  it("retains a paid provider receipt when the returned scoring answers fail local validation", async () => {
+    const request: JevRequest = {
+      model: "typesafe/jev-1.13",
+      state: "brief",
+      questions: {
+        one: {
+          type: "score",
+          instructions: { task: "fit", design: {} as any },
+        },
+      },
+    };
+    const response = { ...answer(request), id: "provider-jev", answers: {} };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, json: async () => response }))
+    );
+    const trace: GenerationTrace = {
+      id: "run",
+      userUuid: "owner",
+      inputType: "text",
+      inputContent: "private",
+      platform: "instagram",
+      postMode: "static",
+      creationMode: "execution",
+      requestedModel: request.model,
+      startedAt: Date.now(),
+      calls: [],
+      events: [],
+    };
+    await expect(
+      runWithGenerationTrace(trace, () =>
+        evaluateDesignBatch(request, { deadlineMs: null })
+      )
+    ).rejects.toThrow("incomplete_answers");
+    expect(trace.calls).toHaveLength(1);
+    expect(trace.calls[0]).toMatchObject({
+      providerId: "provider-jev",
+      promptTokens: 100,
+      completionTokens: 10,
+      estimatedCostUsd: 0.001,
+      costSource: "provider",
+    });
   });
 });
