@@ -3255,3 +3255,24 @@ A preparação conserva até três alternativas por proposta dentre ofertas comp
 A migration incremental `0043_brand_capture_and_reconciliation.sql` contém tabelas, RLS, grants de RPC somente ao runtime, índices, leases, idempotência e estados de reconciliação; depende de 0034–0042 e não reaplica migrações anteriores. O executor existente despacha captura ou geração; o modo local permanece acionado por eventos e agendamentos pontuais. Chamadas HTTP de conteúdo e CSS validam destinos públicos e cada redirecionamento, fixam DNS por conexão e limitam tempo/tamanho. Screenshot remoto requer `SCREENSHOT_PUBLIC_NETWORK_ONLY=true` somente após verificar que o serviço bloqueia destinos privados em redirecionamentos e sub-recursos. Sem essa garantia, a captura usa HTML/CSS e apresenta a limitação visual para revisão.
 
 A ativação remota desta revisão exige troca coordenada com novas admissões pausadas, aplicação de 0043 e backend/worker/frontend compatíveis. Pedidos e resultados históricos permanecem. A homologação com provedores reais e a jornada salvar/reabrir/exportar no ambiente alvo são distintas da validação isolada local. `CanvasPostModel` permanece autoritativo, sem alteração do motor e do contrato de persistência do editor. Procedimento: [ativação do protocolo 9](docs/brand-generation-rollout.md).
+
+
+## Executor de produção no AWS Lightsail (2026-10-28)
+
+O executor externo de produção é hospedado na instância `postspark-worker-prod`,
+região `us-east-2`, Ubuntu 24.04, pacote Lightsail Linux de 2 GiB. Frontend e API
+continuam na Vercel; pedidos, checkpoints, leases, billing e arquivos continuam no
+Supabase. O worker consulta os pedidos duráveis e executa as chamadas aos provedores
+e a revisão pelo Chromium/CanvasPostStage. Nenhuma fila externa foi adicionada.
+
+A imagem é construída a partir de `Dockerfile.worker`, com o processo Node direto
+recebendo os sinais de encerramento. Docker Compose supervisiona o container,
+reinicia após falha/reboot, limita memória e logs e permite concluir o trabalho
+atual antes de uma troca. Credenciais de Supabase e IA ficam em arquivo privado no
+host, fora da imagem e do Git; credenciais AWS, Stripe, SMTP e JWT não são enviadas.
+
+O deploy do executor tem procedimento explícito, independente da entrega Vercel:
+`python3 ops/aws/deploy-worker.py --activate`. Ele verifica o pacote, constrói a
+imagem, executa o renderer real em container sem rede e só então permite ativar
+a revisão. Backend, contratos e renderer devem permanecer compatíveis entre os
+dois destinos. Operação, configuração privada e recuperação: [executor AWS](ops/aws/README.md).

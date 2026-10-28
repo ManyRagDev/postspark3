@@ -5,8 +5,8 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 COPY patches ./patches
 RUN pnpm install --frozen-lockfile
-COPY . .
-RUN pnpm build:review-renderer && chown -R node:node /app
+COPY --chown=node:node . .
+RUN pnpm build:review-renderer && chown node:node /app && chown -R node:node dist
 USER node
 ENV NODE_ENV=production GENERATION_WORKER_MODE=external REVIEW_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
-CMD ["pnpm", "generation:worker"]
+CMD ["node", "--import", "tsx", "server/ai/workflows/generationWorker.ts"]
