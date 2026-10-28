@@ -1,8 +1,8 @@
 import { publicUrl,publicHtml } from "./publicUrl";
 /**
- * ScreenshotService: Bridge to the Railway Playwright microservice
+ * ScreenshotService: Bridge to the authenticated website capture service
  *
- * Provides typed wrappers for all Railway endpoints:
+ * Provides typed wrappers for all capture endpoints:
  *   captureScreenshot()          — single page PNG (original, backward compat)
  *   captureMultipleScreenshots() — batch capture → Record<url, ArrayBuffer>
  *   captureElements()            — element-level capture → Record<selector, ArrayBuffer>
@@ -32,6 +32,14 @@ function serviceUrl(path: string): string {
   return `${SCREENSHOT_SERVICE_URL}${path}`;
 }
 
+function serviceHeaders(): Record<string, string> {
+  const token = process.env.SCREENSHOT_SERVICE_TOKEN;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 function warnMissing(fn: string): null {
   console.warn(`[screenshotService] ${fn}: SCREENSHOT_SERVICE_URL not configured`);
   return null;
@@ -56,7 +64,7 @@ export async function captureScreenshot(
         await publicUrl(url);
         const response = await fetch(serviceUrl(endpoint), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: serviceHeaders(),
             body: JSON.stringify({
                 url,
                 viewport: type === 'desktop' ? { width: 1440, height: 900 } : undefined,
@@ -99,7 +107,7 @@ export async function captureMultipleScreenshots(
         await Promise.all(urls.map(url=>publicUrl(url)));
         const response = await fetch(serviceUrl('/screenshot/multi'), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: serviceHeaders(),
             body: JSON.stringify({ urls, viewport, maxPages }),
             signal: AbortSignal.timeout(BATCH_TIMEOUT_MS),
         });
@@ -152,9 +160,10 @@ export async function captureElements(
     console.log(`[screenshotService] Element capture: ${selectors.length} selector(s) on ${url}`);
 
     try {
+        await publicUrl(url);
         const response = await fetch(serviceUrl('/screenshot/element'), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: serviceHeaders(),
             body: JSON.stringify({ url, selectors, viewport }),
             signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
         });
@@ -205,7 +214,7 @@ export async function discoverPages(
         await publicUrl(url);
         const response = await fetch(serviceUrl('/discover'), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: serviceHeaders(),
             body: JSON.stringify({ url, maxLinks }),
             signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
         });

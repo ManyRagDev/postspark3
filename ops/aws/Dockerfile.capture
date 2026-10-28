@@ -1,0 +1,9 @@
+# Reuse the worker's already verified Node/Chromium/dependency layers.
+# This image receives NO worker environment, database key or AI provider key.
+ARG POSTSPARK_WORKER_BASE
+FROM ${POSTSPARK_WORKER_BASE}
+COPY --chown=node:node server/capture /app/server/capture
+COPY --chown=node:node ops/aws/capture-probe.ts /app/ops/aws/capture-probe.ts
+ENV NODE_ENV=production PORT=3000 CAPTURE_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
+USER node
+CMD ["node", "--import", "tsx", "server/capture/index.ts"]

@@ -76,6 +76,9 @@ A captura visual de páginas externas usa outro serviço, configurado em
 `SCREENSHOT_SERVICE_URL`. Ative `SCREENSHOT_PUBLIC_NETWORK_ONLY=true` somente
 depois de verificar o bloqueio de destinos privados também em redirects e
 sub-recursos. A extração HTML/CSS existente permanece disponível nesse intervalo.
+O procedimento para hospedar o capturador na mesma máquina está em
+[README.capture.md](./README.capture.md). Código preparado não significa serviço
+ativado; confirme os testes e a configuração remota descritos nesse procedimento.
 
 ## Operação e recuperação
 

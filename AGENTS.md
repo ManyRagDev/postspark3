@@ -120,6 +120,7 @@ Verifique o fluxo afetado, incluindo persistência e reabertura quando pertinent
 Fonte: https://raw.githubusercontent.com/aws/agent-toolkit-for-aws/refs/heads/main/rules/aws-starter-rules.md
 
 Contexto deste projeto: nova experiência da AWS; região selecionada `us-east-2`.
+Preferência de acompanhamento do usuário para AWS: `help_level=LOW`.
 O catálogo e a configuração do Agent Toolkit usam `us-east-1`; isso não altera a região dos recursos do PostSpark.
 As instruções existentes do projeto e as decisões expressas do usuário têm precedência sobre o bloco abaixo.
 
