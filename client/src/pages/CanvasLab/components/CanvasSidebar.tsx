@@ -84,8 +84,11 @@ export default function CanvasSidebar({
   const [customFontInput, setCustomFontInput] = useState(post.customFontUrl || "");
   const [uploadedFontName, setUploadedFontName] = useState<string | null>(null);
 
+  const prevSelectedElementIdRef = useRef<string | null | undefined>(selectedElementId);
   useEffect(() => {
-    if (!selectedElementId) return;
+    const prev = prevSelectedElementIdRef.current;
+    prevSelectedElementIdRef.current = selectedElementId;
+    if (!selectedElementId || selectedElementId === prev) return;
     if (composition && activeTab === "brand") {
       setActiveTab("design");
     }
@@ -455,7 +458,7 @@ export default function CanvasSidebar({
 
       {/* Conteúdo da Aba Ativa */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar">
-        {!composition && selectedElementId && (selectedElementId === "headline" || selectedElementId === "subtext" || selectedElementId === "badge" || extraTextsList.some(t => t.id === selectedElementId)) ? (
+        {selectedElementId && (extraImagesList.some(img => img.id === selectedElementId) || extraTextsList.some(t => t.id === selectedElementId) || (!composition && (selectedElementId === "headline" || selectedElementId === "subtext" || selectedElementId === "badge"))) ? (
           <PropertyInspector
             post={post}
             selectedId={selectedElementId}
@@ -465,6 +468,19 @@ export default function CanvasSidebar({
         ) : (
           <>
             {/* ─── ABA 1: CONTEÚDO ─── */}
+        {activeTab === "content" && composition && onAddExtraText && (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={onAddExtraText}
+              className="w-full py-2.5 px-2 rounded-xl bg-gradient-to-r from-[oklch(0.78_0.22_48)]/20 to-[oklch(0.78_0.22_48)]/10 hover:from-[oklch(0.78_0.22_48)]/30 hover:to-[oklch(0.78_0.22_48)]/20 border border-[oklch(0.78_0.22_48)]/40 hover:border-[oklch(0.78_0.22_48)]/60 text-[oklch(0.78_0.22_48)] hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+              title="Adicionar nova caixa de texto livre"
+            >
+              <Plus size={13} strokeWidth={2.5} />
+              <span>+ Texto</span>
+            </button>
+          </div>
+        )}
         {activeTab === "content" && !composition && (
           <div className="space-y-4">
             {/* Dica contextual (item 9) */}
@@ -799,146 +815,6 @@ export default function CanvasSidebar({
               )}
             </div>
 
-            {/* ── Imagens e Fotos Livres Adicionais ── */}
-            <div className="pt-3 border-t border-white/8 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold flex items-center gap-1.5">
-                  <ImagePlus size={12} className="text-[oklch(0.78_0.22_48)]" />
-                  <span>Imagens & Fotos ({extraImagesList.length})</span>
-                </label>
-              </div>
-
-              {extraImagesList.length === 0 ? (
-                <p className="text-[11px] text-white/40 italic">
-                  Nenhuma imagem inserida neste slide. Use a aba Mídia para adicionar fotos, adesivos ou ilustrações.
-                </p>
-              ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                  {extraImagesList.map((img, idx) => {
-                    const isSelected = selectedElementId === img.id;
-                    return (
-                      <div
-                        key={img.id}
-                        className={`p-2.5 rounded-xl border space-y-2 transition-all ${
-                          isSelected
-                            ? "bg-[oklch(0.78_0.22_48)]/10 border-[oklch(0.78_0.22_48)]/50 shadow-sm"
-                            : "bg-white/3 border-white/8 hover:border-white/15"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/15 bg-black/40 shrink-0">
-                              <img src={img.url} alt={`Imagem ${idx + 1}`} className="w-full h-full object-cover" />
-                            </div>
-                            <div>
-                              <div className="text-xs font-medium text-white/90">
-                                Foto #{idx + 1}
-                              </div>
-                              <div className="text-[10px] text-white/40 font-mono">
-                                {img.width} × {img.height}px
-                              </div>
-                            </div>
-                          </div>
-                          {onRemoveExtraImage && (
-                            <button
-                              type="button"
-                              onClick={() => onRemoveExtraImage(img.id)}
-                              title="Remover imagem do slide"
-                              className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all cursor-pointer"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Controles de Opacidade e Arredondamento */}
-                        <div className="space-y-1.5 pt-1.5 border-t border-white/5 text-[11px]">
-                          <div className="flex items-center justify-between text-white/60">
-                            <span>Opacidade</span>
-                            <span className="font-mono text-[10px]">{Math.round((img.opacity ?? 1) * 100)}%</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0.1"
-                            max="1"
-                            step="0.05"
-                            value={img.opacity ?? 1}
-                            onChange={(e) => onUpdateExtraImage?.(img.id, { opacity: parseFloat(e.target.value) })}
-                            className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
-                          />
-
-                          <div className="flex items-center justify-between text-white/60 pt-1">
-                            <span>Arredondamento</span>
-                            <span className="font-mono text-[10px]">{img.cornerRadius || 0}px</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="40"
-                            step="2"
-                            value={img.cornerRadius || 0}
-                            onChange={(e) => onUpdateExtraImage?.(img.id, { cornerRadius: parseInt(e.target.value) })}
-                            className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
-                          />
-
-                          <div className="flex items-center justify-between text-white/60 pt-1">
-                            <span>Giro / Rotação</span>
-                            <span className="font-mono text-[10px]">{img.rotation || 0}°</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="-180"
-                            max="180"
-                            step="5"
-                            value={img.rotation || 0}
-                            onChange={(e) => onUpdateExtraImage?.(img.id, { rotation: parseInt(e.target.value, 10) })}
-                            className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
-                          />
-
-                          <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-white/5">
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => onUpdatePost(reorderExtraElement(post, img.id, "front"))}
-                                title="Trazer para frente no palco"
-                                className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer"
-                              >
-                                <ChevronsUp size={11} />
-                                <span>Frente</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => onUpdatePost(reorderExtraElement(post, img.id, "back"))}
-                                title="Enviar para trás no palco"
-                                className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer"
-                              >
-                                <ChevronsDown size={11} />
-                                <span>Trás</span>
-                              </button>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const result = duplicateExtraElement(post, img.id);
-                                onUpdatePost(result.post);
-                                toast.success("Imagem duplicada!");
-                              }}
-                              title="Duplicar imagem"
-                              className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer"
-                            >
-                              <Copy size={10} />
-                              <span>Duplicar</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
             {/* ── Tipografia do Post & Fontes ── */}
             <div className="pt-3 border-t border-white/8 space-y-3">
               <div className="space-y-1.5">
@@ -951,18 +827,6 @@ export default function CanvasSidebar({
                   uploadedFontName={uploadedFontName}
                   userFonts={post.userFonts}
                 />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] uppercase tracking-wider text-white/50 font-semibold flex items-center gap-1">
-                  <Type size={11} />
-                  <span>Upload de Fonte (.ttf, .otf, .woff2)</span>
-                </label>
-                <label className="w-full border border-dashed border-white/20 bg-white/3 hover:bg-white/6 rounded-xl p-2.5 flex items-center justify-center gap-2 text-xs text-white/70 cursor-pointer transition-all">
-                  <Upload size={13} />
-                  <span>Importar Arquivo de Fonte...</span>
-                  <input type="file" accept=".ttf,.otf,.woff,.woff2" onChange={handleFontFileUpload} className="hidden" />
-                </label>
               </div>
 
               <div className="space-y-1.5 p-2.5 rounded-xl bg-white/3 border border-white/8">
@@ -1132,17 +996,168 @@ export default function CanvasSidebar({
         {onMediaUpdate && <div className={activeTab === "media" ? "" : "hidden"}><MediaSlotPanel post={post} onUpdate={onMediaUpdate} selectedId={selectedElementId} retainedPreview={mediaPreview} onRetainPreview={onMediaPreview} /></div>}
         {activeTab === "media" && (
           <div className="space-y-4">
-{composition && <ArsenalCompositionInspector composition={composition} section="media" selectedId={selectedElementId ?? null} onSelect={id => onSelectElement?.(id)} onChange={c => onUpdateComposition?.(c)} />}
+            {composition && (
+              <ArsenalCompositionInspector
+                composition={composition}
+                section="media"
+                hideMediaSlotUpload={Boolean(onMediaUpdate)}
+                selectedId={selectedElementId ?? null}
+                onSelect={id => onSelectElement?.(id)}
+                onChange={c => onUpdateComposition?.(c)}
+              />
+            )}
 
             {/* Dica contextual (item 9) */}
             <TipCallout id="tip-media-tab" title="Fundos por IA, texturas ou suas fotos">
               {composition ? "Gere um fundo, escolha uma textura ou envie uma foto. Ajuste o enquadramento nos controles acima." : "Gere um fundo com IA, explore 110+ texturas da biblioteca ou envie uma foto. Para enquadrar, dê duplo clique no fundo do palco."}
             </TipCallout>
 
-            {onAddExtraImage && <button type="button" onClick={() => sidebarImageInputRef.current?.click()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-orange-400/35 bg-orange-400/10 px-3 py-2.5 text-xs font-semibold text-orange-300 hover:bg-orange-400/20"><ImagePlus size={15} /> Inserir imagem sobreposta</button>}
+            {/* Camadas de Imagem Sobrepostas (extraImages) */}
+            <div className="space-y-2.5">
+              {onAddExtraImage && (
+                <button
+                  type="button"
+                  onClick={() => sidebarImageInputRef.current?.click()}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-orange-400/35 bg-orange-400/10 px-3 py-2.5 text-xs font-semibold text-orange-300 hover:bg-orange-400/20 cursor-pointer"
+                >
+                  <ImagePlus size={15} /> Inserir imagem sobreposta
+                </button>
+              )}
+
+              {extraImagesList.length > 0 && (
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold flex items-center gap-1.5">
+                      <ImagePlus size={12} className="text-[oklch(0.78_0.22_48)]" />
+                      <span>Imagens Sobrepostas ({extraImagesList.length})</span>
+                    </label>
+                  </div>
+                  {extraImagesList.map((img, idx) => {
+                    const isSelected = selectedElementId === img.id;
+                    return (
+                      <div
+                        key={img.id}
+                        className={`p-2.5 rounded-xl border space-y-2 transition-all ${
+                          isSelected
+                            ? "bg-[oklch(0.78_0.22_48)]/10 border-[oklch(0.78_0.22_48)]/50 shadow-sm"
+                            : "bg-white/3 border-white/8 hover:border-white/15"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/15 bg-black/40 shrink-0">
+                              <img src={img.url} alt={`Imagem ${idx + 1}`} className="w-full h-full object-cover" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium text-white/90">
+                                Foto #{idx + 1}
+                              </div>
+                              <div className="text-[10px] text-white/40 font-mono">
+                                {img.width} × {img.height}px
+                              </div>
+                            </div>
+                          </div>
+                          {onRemoveExtraImage && (
+                            <button
+                              type="button"
+                              onClick={() => onRemoveExtraImage(img.id)}
+                              title="Remover imagem do slide"
+                              className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all cursor-pointer"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="space-y-1.5 pt-1.5 border-t border-white/5 text-[11px]">
+                          <div className="flex items-center justify-between text-white/60">
+                            <span>Opacidade</span>
+                            <span className="font-mono text-[10px]">{Math.round((img.opacity ?? 1) * 100)}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0.1"
+                            max="1"
+                            step="0.05"
+                            value={img.opacity ?? 1}
+                            onChange={(e) => onUpdateExtraImage?.(img.id, { opacity: parseFloat(e.target.value) })}
+                            className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                          />
+
+                          <div className="flex items-center justify-between text-white/60 pt-1">
+                            <span>Arredondamento</span>
+                            <span className="font-mono text-[10px]">{img.cornerRadius || 0}px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="40"
+                            step="2"
+                            value={img.cornerRadius || 0}
+                            onChange={(e) => onUpdateExtraImage?.(img.id, { cornerRadius: parseInt(e.target.value) })}
+                            className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                          />
+
+                          <div className="flex items-center justify-between text-white/60 pt-1">
+                            <span>Giro / Rotação</span>
+                            <span className="font-mono text-[10px]">{img.rotation || 0}°</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-180"
+                            max="180"
+                            step="5"
+                            value={img.rotation || 0}
+                            onChange={(e) => onUpdateExtraImage?.(img.id, { rotation: parseInt(e.target.value, 10) })}
+                            className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                          />
+
+                          <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-white/5">
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => onUpdatePost(reorderExtraElement(post, img.id, "front"))}
+                                title="Trazer para frente no palco"
+                                className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                              >
+                                <ChevronsUp size={11} />
+                                <span>Frente</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onUpdatePost(reorderExtraElement(post, img.id, "back"))}
+                                title="Enviar para trás no palco"
+                                className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                              >
+                                <ChevronsDown size={11} />
+                                <span>Trás</span>
+                              </button>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const result = duplicateExtraElement(post, img.id);
+                                onUpdatePost(result.post);
+                                toast.success("Imagem duplicada!");
+                              }}
+                              title="Duplicar imagem"
+                              className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                            >
+                              <Copy size={10} />
+                              <span>Duplicar</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* CARD DO PLANO DE FUNDO ATIVO (AJUSTE ESTILO CANVA + DOWNLOAD) */}
-            {Boolean(post.slides[post.currentSlideIndex]?.bgImage ?? post.bgImage) && (() => {
+            {!(composition && onMediaUpdate) && Boolean(post.slides[post.currentSlideIndex]?.bgImage ?? post.bgImage) && (() => {
               const currentSlide = post.slides[post.currentSlideIndex];
               const currentPlacement = currentSlide?.bgPlacement || post.bgPlacement;
               const activeFitMode: FitMode = currentPlacement?.fitMode || "cover";
@@ -1292,23 +1307,46 @@ export default function CanvasSidebar({
             )}
 
             {/* 1. Direções e geração de imagem por IA */}
-            <div className="space-y-2 p-3 rounded-xl border border-white/10 bg-white/3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-white">
-                  <Wand2 size={13} className="text-[oklch(0.78_0.22_48)]" />
-                  <span>Gerar Imagem com IA</span>
+            {currentSlide?.composition && onMediaUpdate ? (
+              <details className="rounded-xl border border-white/10 bg-white/3 p-3 group">
+                <summary className="flex items-center justify-between cursor-pointer list-none text-xs font-bold text-white">
+                  <div className="flex items-center gap-1.5">
+                    <Wand2 size={13} className="text-[oklch(0.78_0.22_48)]" />
+                    <span>Sugestões de Direção de Arte (IA)</span>
+                  </div>
+                  <span className="text-[10px] text-white/40">▾</span>
+                </summary>
+                <div className="mt-2.5 pt-2.5 border-t border-white/8">
+                  <ImageDirectionSuggestions
+                    post={post}
+                    defaultPrompt={currentSlide?.imagePrompt || post.imagePrompt || ""}
+                    busy={isGeneratingAiImage}
+                    buttonLabel="Gerar Imagem com IA"
+                    busyLabel="Gerando imagem..."
+                    onGenerate={handleGenerateAiImage}
+                    onGenerated={handleGeneratedAiImage}
+                  />
                 </div>
+              </details>
+            ) : (
+              <div className="space-y-2 p-3 rounded-xl border border-white/10 bg-white/3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+                    <Wand2 size={13} className="text-[oklch(0.78_0.22_48)]" />
+                    <span>Gerar Imagem com IA</span>
+                  </div>
+                </div>
+                <ImageDirectionSuggestions
+                  post={post}
+                  defaultPrompt={currentSlide?.imagePrompt || post.imagePrompt || ""}
+                  busy={isGeneratingAiImage}
+                  buttonLabel="Gerar Imagem com IA"
+                  busyLabel="Gerando imagem..."
+                  onGenerate={handleGenerateAiImage}
+                  onGenerated={handleGeneratedAiImage}
+                />
               </div>
-              <ImageDirectionSuggestions
-                post={post}
-                defaultPrompt={currentSlide?.imagePrompt || post.imagePrompt || ""}
-                busy={isGeneratingAiImage}
-                buttonLabel="Gerar Imagem com IA"
-                busyLabel="Gerando imagem..."
-                onGenerate={handleGenerateAiImage}
-                onGenerated={handleGeneratedAiImage}
-              />
-            </div>
+            )}
 
             {/* 2. BIBLIOTECA DE TEXTURAS OFICIAIS (ABRE GAVETA FLUTUANTE) */}
             <div className="space-y-2 pt-2 border-t border-white/8">
@@ -1335,145 +1373,149 @@ export default function CanvasSidebar({
               </button>
             </div>
 
-            {/* 3. UPLOAD DO COMPUTADOR */}
-            <div className="space-y-1.5 pt-2 border-t border-white/8">
-              <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
-                Upload do Computador
-              </label>
-              <label className="w-full border border-dashed border-white/20 bg-white/3 hover:bg-white/6 rounded-xl p-3 flex items-center justify-center gap-2 text-xs text-white/70 cursor-pointer transition-all">
-                <Upload size={14} />
-                <span>Selecionar Foto Local...</span>
-                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-              </label>
-            </div>
-
-            {/* 4. REMOVER FUNDO */}
-            <button
-              type="button"
-              onClick={() => handleApplyBackground(undefined)}
-              className="w-full py-2 rounded-xl border border-white/10 bg-white/4 hover:bg-white/8 text-xs text-white/60 hover:text-white cursor-pointer"
-            >
-              Usar Apenas Cor Sólida (Sem Foto)
-            </button>
-
-            {/* 5. CONTROLES DO OVERLAY / SCRIM */}
-            <div className="space-y-3 pt-3 border-t border-white/8">
-              <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-white/50 font-semibold">
-                <span>Camada de Sobreposição (Overlay)</span>
-                <span>{Math.round((post.overlayOpacity ?? 0.55) * 100)}%</span>
-              </div>
-
-              {/* Modo de Distribuição / Variações */}
-              <div className="space-y-1.5">
-                <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Estilo do Overlay</span>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {[
-                    { id: "gradient-bottom", label: "Gradiente ↓", desc: "Suave na base" },
-                    { id: "gradient-top", label: "Gradiente ↑", desc: "Suave no topo" },
-                    { id: "solid", label: "Sólido ■", desc: "Uniforme" },
-                    { id: "radial", label: "Vinheta ◉", desc: "Foco central" },
-                  ].map((m) => {
-                    const active = (post.overlayMode || "gradient-bottom") === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => onUpdatePost({ overlayMode: m.id as OverlayMode })}
-                        className={`py-1.5 px-2.5 rounded-lg text-left text-xs transition-all cursor-pointer border ${
-                          active
-                            ? "bg-[oklch(0.78_0.22_48)]/15 border-[oklch(0.78_0.22_48)] text-white font-medium shadow-sm"
-                            : "bg-white/4 border-white/8 text-white/60 hover:text-white hover:bg-white/8"
-                        }`}
-                      >
-                        <div className="font-semibold text-[11px]">{m.label}</div>
-                        <div className="text-[9px] text-white/40">{m.desc}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Cor do Overlay */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Cor da Sobreposição</span>
-                  {post.overlayColor && (
-                    <button
-                      type="button"
-                      onClick={() => onUpdatePost({ overlayColor: undefined })}
-                      className="text-[10px] text-white/40 hover:text-white/80 underline cursor-pointer"
-                    >
-                      Padrão do Fundo
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {[
-                    { label: "Preto", color: "#000000", tip: "Escurecer com alto contraste" },
-                    { label: "Fundo", color: post.palette.background, tip: "Cor original do post" },
-                    { label: "Destaque", color: post.palette.accent, tip: "Cor da marca" },
-                    { label: "Branco", color: "#FFFFFF", tip: "Claro / High-key" },
-                    { label: "Noite", color: "#0F172A", tip: "Grafite azulado" },
-                  ].map((p, idx) => {
-                    const active = post.overlayColor
-                      ? post.overlayColor.toLowerCase() === p.color.toLowerCase()
-                      : p.label === "Fundo";
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        title={`${p.label} (${p.tip})`}
-                        onClick={() => onUpdatePost({ overlayColor: p.color })}
-                        className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border transition-all cursor-pointer ${
-                          active
-                            ? "border-[oklch(0.78_0.22_48)] bg-white/10 text-white font-medium shadow-sm"
-                            : "border-white/10 bg-white/4 text-white/60 hover:text-white hover:bg-white/8"
-                        }`}
-                      >
-                        <span
-                          className="w-3 h-3 rounded-full border border-white/20 shrink-0"
-                          style={{ backgroundColor: p.color }}
-                        />
-                        <span>{p.label}</span>
-                      </button>
-                    );
-                  })}
-
-                  {/* Picker nativo */}
-                  <label
-                    title="Escolher cor personalizada"
-                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] border border-white/10 bg-white/4 hover:bg-white/8 text-white/60 hover:text-white cursor-pointer transition-all"
-                  >
-                    <input
-                      type="color"
-                      value={post.overlayColor || post.palette.background || "#000000"}
-                      onChange={(e) => onUpdatePost({ overlayColor: e.target.value })}
-                      className="w-3.5 h-3.5 rounded border-0 p-0 cursor-pointer bg-transparent"
-                    />
-                    <span className="text-[10px] font-mono">
-                      {(post.overlayColor || post.palette.background || "#000000").slice(0, 7).toUpperCase()}
-                    </span>
+            {!(composition && onMediaUpdate) && (
+              <>
+                {/* 3. UPLOAD DO COMPUTADOR */}
+                <div className="space-y-1.5 pt-2 border-t border-white/8">
+                  <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
+                    Upload do Computador
+                  </label>
+                  <label className="w-full border border-dashed border-white/20 bg-white/3 hover:bg-white/6 rounded-xl p-3 flex items-center justify-center gap-2 text-xs text-white/70 cursor-pointer transition-all">
+                    <Upload size={14} />
+                    <span>Selecionar Foto Local...</span>
+                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                   </label>
                 </div>
-              </div>
 
-              {/* Slider de Intensidade */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between text-[10px] text-white/40 uppercase tracking-wider font-semibold">
-                  <span>Intensidade / Opacidade</span>
-                  <span className="font-mono text-white/70">{Math.round((post.overlayOpacity ?? 0.55) * 100)}%</span>
+                {/* 4. REMOVER FUNDO */}
+                <button
+                  type="button"
+                  onClick={() => handleApplyBackground(undefined)}
+                  className="w-full py-2 rounded-xl border border-white/10 bg-white/4 hover:bg-white/8 text-xs text-white/60 hover:text-white cursor-pointer"
+                >
+                  Usar Apenas Cor Sólida (Sem Foto)
+                </button>
+
+                {/* 5. CONTROLES DO OVERLAY / SCRIM */}
+                <div className="space-y-3 pt-3 border-t border-white/8">
+                  <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-white/50 font-semibold">
+                    <span>Camada de Sobreposição (Overlay)</span>
+                    <span>{Math.round((post.overlayOpacity ?? 0.55) * 100)}%</span>
+                  </div>
+
+                  {/* Modo de Distribuição / Variações */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Estilo do Overlay</span>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {[
+                        { id: "gradient-bottom", label: "Gradiente ↓", desc: "Suave na base" },
+                        { id: "gradient-top", label: "Gradiente ↑", desc: "Suave no topo" },
+                        { id: "solid", label: "Sólido ■", desc: "Uniforme" },
+                        { id: "radial", label: "Vinheta ◉", desc: "Foco central" },
+                      ].map((m) => {
+                        const active = (post.overlayMode || "gradient-bottom") === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => onUpdatePost({ overlayMode: m.id as OverlayMode })}
+                            className={`py-1.5 px-2.5 rounded-lg text-left text-xs transition-all cursor-pointer border ${
+                              active
+                                ? "bg-[oklch(0.78_0.22_48)]/15 border-[oklch(0.78_0.22_48)] text-white font-medium shadow-sm"
+                                : "bg-white/4 border-white/8 text-white/60 hover:text-white hover:bg-white/8"
+                            }`}
+                          >
+                            <div className="font-semibold text-[11px]">{m.label}</div>
+                            <div className="text-[9px] text-white/40">{m.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Cor do Overlay */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">Cor da Sobreposição</span>
+                      {post.overlayColor && (
+                        <button
+                          type="button"
+                          onClick={() => onUpdatePost({ overlayColor: undefined })}
+                          className="text-[10px] text-white/40 hover:text-white/80 underline cursor-pointer"
+                        >
+                          Padrão do Fundo
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {[
+                        { label: "Preto", color: "#000000", tip: "Escurecer com alto contraste" },
+                        { label: "Fundo", color: post.palette.background, tip: "Cor original do post" },
+                        { label: "Destaque", color: post.palette.accent, tip: "Cor da marca" },
+                        { label: "Branco", color: "#FFFFFF", tip: "Claro / High-key" },
+                        { label: "Noite", color: "#0F172A", tip: "Grafite azulado" },
+                      ].map((p, idx) => {
+                        const active = post.overlayColor
+                          ? post.overlayColor.toLowerCase() === p.color.toLowerCase()
+                          : p.label === "Fundo";
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            title={`${p.label} (${p.tip})`}
+                            onClick={() => onUpdatePost({ overlayColor: p.color })}
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border transition-all cursor-pointer ${
+                              active
+                                ? "border-[oklch(0.78_0.22_48)] bg-white/10 text-white font-medium shadow-sm"
+                                : "border-white/10 bg-white/4 text-white/60 hover:text-white hover:bg-white/8"
+                            }`}
+                          >
+                            <span
+                              className="w-3 h-3 rounded-full border border-white/20 shrink-0"
+                              style={{ backgroundColor: p.color }}
+                            />
+                            <span>{p.label}</span>
+                          </button>
+                        );
+                      })}
+
+                      {/* Picker nativo */}
+                      <label
+                        title="Escolher cor personalizada"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] border border-white/10 bg-white/4 hover:bg-white/8 text-white/60 hover:text-white cursor-pointer transition-all"
+                      >
+                        <input
+                          type="color"
+                          value={post.overlayColor || post.palette.background || "#000000"}
+                          onChange={(e) => onUpdatePost({ overlayColor: e.target.value })}
+                          className="w-3.5 h-3.5 rounded border-0 p-0 cursor-pointer bg-transparent"
+                        />
+                        <span className="text-[10px] font-mono">
+                          {(post.overlayColor || post.palette.background || "#000000").slice(0, 7).toUpperCase()}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Slider de Intensidade */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[10px] text-white/40 uppercase tracking-wider font-semibold">
+                      <span>Intensidade / Opacidade</span>
+                      <span className="font-mono text-white/70">{Math.round((post.overlayOpacity ?? 0.55) * 100)}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={post.overlayOpacity ?? 0.55}
+                      onChange={(e) => onUpdatePost({ overlayOpacity: parseFloat(e.target.value) })}
+                      className="w-full accent-[oklch(0.78_0.22_48)] cursor-pointer"
+                    />
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={post.overlayOpacity ?? 0.55}
-                  onChange={(e) => onUpdatePost({ overlayOpacity: parseFloat(e.target.value) })}
-                  className="w-full accent-[oklch(0.78_0.22_48)] cursor-pointer"
-                />
-              </div>
-            </div>
+              </>
+            )}
           </div>
         )}
 
@@ -1545,6 +1587,109 @@ export default function CanvasSidebar({
             onSelect={(id) => onSelectElement?.(id)}
             onChange={(c) => onUpdateComposition?.(c)}
           />
+        )}
+        {composition && activeTab === "content" && (
+          <div className="space-y-4 pt-3 border-t border-white/8">
+            {extraTextsList.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold flex items-center gap-1.5">
+                  <Type size={12} className="text-[oklch(0.78_0.22_48)]" />
+                  <span>Textos Livres ({extraTextsList.length})</span>
+                </label>
+                <div className="space-y-2">
+                  {extraTextsList.map((et, idx) => (
+                    <div
+                      key={et.id}
+                      onClick={() => onSelectElement?.(et.id)}
+                      className="p-2.5 rounded-xl bg-white/4 border border-white/10 hover:border-white/20 space-y-2 transition-all cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="text-[10px] font-mono text-white/40">#{idx + 1}</span>
+                        <input
+                          type="text"
+                          value={et.text}
+                          onChange={(e) => onUpdateExtraText?.(et.id, { text: e.target.value })}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)]"
+                          placeholder="Digite seu texto..."
+                        />
+                        {onRemoveExtraText && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRemoveExtraText(et.id);
+                            }}
+                            title="Remover caixa de texto"
+                            className="p-1 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all cursor-pointer"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
+                  Legenda Estratégica (Instagram)
+                </label>
+                <button
+                  type="button"
+                  onClick={handleCopyCaption}
+                  className="flex items-center gap-1 text-[10px] text-[oklch(0.78_0.22_48)] hover:underline font-bold cursor-pointer"
+                >
+                  {copiedCaption ? <Check size={12} /> : <Copy size={12} />}
+                  <span>{copiedCaption ? "Copiado!" : "Copiar"}</span>
+                </button>
+              </div>
+              <textarea
+                rows={5}
+                value={post.caption}
+                onChange={(e) => onUpdatePost({ caption: e.target.value })}
+                className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)] resize-none font-sans leading-relaxed"
+                placeholder="Legenda para redes sociais com quebras de linha..."
+              />
+            </div>
+          </div>
+        )}
+        {composition && activeTab === "style" && (
+          <div className="pt-3 border-t border-white/8 space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
+                Tipografia Global do Post
+              </label>
+              <FontPickerDropdown
+                value={post.fontFamily}
+                onChange={(font) => onUpdatePost({ fontFamily: font })}
+                uploadedFontName={uploadedFontName}
+                userFonts={post.userFonts}
+              />
+            </div>
+            <div className="space-y-1.5 p-2.5 rounded-xl bg-white/3 border border-white/8">
+              <label className="text-[10px] uppercase tracking-wider text-white/50 font-semibold flex items-center gap-1">
+                <Upload size={11} />
+                <span>Fonte Pessoal (TTF, OTF, WOFF, WOFF2)</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => sidebarFontInputRef.current?.click()}
+                className="w-full flex items-center justify-center gap-1.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-medium cursor-pointer"
+              >
+                <Upload size={12} className="text-[oklch(0.78_0.22_48)]" />
+                <span>Enviar Fonte Pessoal (≤ 1 MiB)</span>
+              </button>
+              {post.userFonts && post.userFonts.length > 0 && (
+                <div className="text-[10px] text-white/40 font-mono">
+                  {post.userFonts.length} fonte(s) pessoal(is) instalada(s)
+                </div>
+              )}
+            </div>
+          </div>
         )}
           </>
         )}

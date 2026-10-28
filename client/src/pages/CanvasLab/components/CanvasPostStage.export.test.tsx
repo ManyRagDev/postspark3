@@ -156,3 +156,24 @@ it("BUG-CL-033: empty body text allows export even if subtextFontFamily failed t
     else delete (document as any).fonts;
   }
 });
+
+it("reversible visibility excludes pending native images and hidden fonts while locking leaves export visible", async () => {
+  const post = structuredClone(INITIAL_POST), ref = createRef<CanvasPostStageRef>();
+  post.bgImage = "https://example.com/unavailable.png";
+  post.logoUrl = "https://example.com/logo.png";
+  post.fontFamily = "HiddenHeadlineFont";
+  post.slides = [{ id: "s", step: "", headline: "Hidden heading", subtext: "", elementStates: {
+    background: { hidden: true }, logo: { hidden: true }, headline: { hidden: true },
+  } }];
+  const previous = Object.getOwnPropertyDescriptor(document, "fonts");
+  Object.defineProperty(document, "fonts", { configurable: true, value: { check: () => false, forEach: (cb: any) => cb({ family: "HiddenHeadlineFont", status: "error" }) } });
+  try {
+    await render(post, ref);
+    expect(ref.current!.exportPng4K()).toBe(capture.png);
+    post.slides[0].elementStates = { background: { locked: true }, logo: { hidden: true }, headline: { hidden: true } };
+    await render({...post}, ref);
+    expect(() => ref.current!.exportPng4K()).toThrow(/carregamento/);
+  } finally {
+    if (previous) Object.defineProperty(document, "fonts", previous); else delete (document as any).fonts;
+  }
+});

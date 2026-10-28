@@ -192,8 +192,11 @@ export function overrideArsenalElement(
       l.id === id ? { ...l, ...(patch as any) } : l
     );
   }
+  const paletteAppliedFills = c.paletteAppliedFills ? { ...c.paletteAppliedFills } : undefined;
+  if (paletteAppliedFills && Object.hasOwn(patch, "fill")) delete paletteAppliedFills[id];
   return resolveArsenalComposition({
     ...c,
+    ...(paletteAppliedFills ? { paletteAppliedFills } : {}),
     ...(authorialLayers ? { authorialLayers } : {}),
     relations,
     overrides: { ...c.overrides, [id]: { ...c.overrides[id], ...patch } },
@@ -460,13 +463,21 @@ export function duplicateArsenalAuthorialLayer(
   if (!target) return { composition: c, newId: id };
   const newId = `layer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const duplicated: ArsenalAuthorialLayer = {
-    ...target,
+    ...structuredClone(target),
     id: newId,
     x: target.x + 24,
     y: target.y + 24,
     zIndex: Math.max(...c.elements.map(e => e.zIndex), 0) + 1,
   };
-  const next = addArsenalAuthorialLayer(c, duplicated);
+  const next = addArsenalAuthorialLayer({
+    ...c,
+    ...(c.elementStates?.[id] ? { elementStates: { ...c.elementStates, [newId]: structuredClone(c.elementStates[id]) } } : {}),
+    ...(c.effects[id] ? { effects: { ...c.effects, [newId]: structuredClone(c.effects[id]) } } : {}),
+    ...(c.richText[id] ? { richText: { ...c.richText, [newId]: structuredClone(c.richText[id]) } } : {}),
+    ...(c.media[id] ? { media: { ...c.media, [newId]: structuredClone(c.media[id]) } } : {}),
+    ...(c.paletteAppliedFills?.[id] ? { paletteAppliedFills: { ...c.paletteAppliedFills, [newId]: c.paletteAppliedFills[id] } } : {}),
+    ...(c.overrides[id]?.fill !== undefined ? { overrides: { ...c.overrides, [newId]: { fill: c.overrides[id].fill } } } : {}),
+  }, duplicated);
   return { composition: next, newId };
 }
 
@@ -657,6 +668,13 @@ export function cloneArsenalComposition(
       nextMedia[mappedKey] = structuredClone(val);
     }
     cloned.media = nextMedia;
+
+    if (cloned.elementStates) cloned.elementStates = Object.fromEntries(
+      Object.entries(cloned.elementStates).map(([id, state]) => [idMap.get(id) ?? id, structuredClone(state)]),
+    );
+    if (cloned.paletteAppliedFills) cloned.paletteAppliedFills = Object.fromEntries(
+      Object.entries(cloned.paletteAppliedFills).map(([id, color]) => [idMap.get(id) ?? id, color]),
+    );
 
     // Materializa e reconcilia elements e groups através do resolver existente
     const resolved = resolveArsenalComposition(cloned);

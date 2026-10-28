@@ -18,6 +18,8 @@ import {
   type RichTextLayout,
 } from "../lib/richTextLayout";
 import RichTextRenderer from "./RichTextRenderer";
+import { COMPOSITION_BACKGROUND_ID, COMPOSITION_LOGO_ID, getArsenalElementState } from "../lib/editorElementState";
+import { containImageRect } from "../lib/imageContain";
 import { loadArsenalImage } from "../lib/arsenalAssets";
 
 type Event = any;
@@ -144,11 +146,14 @@ function CompositionCustomBackground({
 
   if (!image) return null;
 
-  const scale = Math.max(
+  const contain = bg.fitMode === "contain";
+  const scale = (contain ? Math.min : Math.max)(
     stageWidth / image.naturalWidth,
     stageHeight / image.naturalHeight
   );
-  const crop = {
+  const imageWidth = contain ? image.naturalWidth * scale : stageWidth;
+  const imageHeight = contain ? image.naturalHeight * scale : stageHeight;
+  const crop = contain ? undefined : {
     x: (image.naturalWidth - stageWidth / scale) * (bg.focalX ?? 0.5),
     y: (image.naturalHeight - stageHeight / scale) * (bg.focalY ?? 0.5),
     width: stageWidth / scale,
@@ -163,8 +168,10 @@ function CompositionCustomBackground({
     <Group listening={false}>
       <KonvaImage
         image={image}
-        width={stageWidth}
-        height={stageHeight}
+        x={contain ? (stageWidth - imageWidth) / 2 : 0}
+        y={contain ? (stageHeight - imageHeight) / 2 : 0}
+        width={imageWidth}
+        height={imageHeight}
         crop={crop}
         listening={false}
       />
@@ -249,12 +256,16 @@ function CompositionLogo({
   stageHeight,
   interactive,
   onSelect,
+  register,
+  onTransform,
 }: {
   logo: ArsenalLogo;
   stageWidth: number;
   stageHeight: number;
   interactive: boolean;
   onSelect: () => void;
+  register: (node: any) => void;
+  onTransform: (patch: Record<string, number>) => void;
 }) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   useEffect(() => {
@@ -293,18 +304,30 @@ function CompositionLogo({
     y = stageHeight - h - 24;
   }
 
+  const fitted = containImageRect(image.naturalWidth, image.naturalHeight, w, h);
   return (
-    <KonvaImage
-      image={image}
+    <Group
+      ref={register}
       x={x}
       y={y}
       width={w}
       height={h}
       opacity={logo.opacity ?? 1}
       listening={interactive}
+      draggable={interactive}
+      onDragEnd={event => { if (interactive) onTransform({ x: event.target.x(), y: event.target.y() }); }}
+      onTransformEnd={event => {
+        if (!interactive) return;
+        const node = event.target;
+        const patch = { x: node.x(), y: node.y(), width: Math.max(8, node.width() * node.scaleX()), height: Math.max(8, node.height() * node.scaleY()) };
+        node.scaleX(1); node.scaleY(1); onTransform(patch);
+      }}
       onClick={onSelect}
       onTap={onSelect}
-    />
+    >
+      <Rect width={w} height={h} fill="rgba(0,0,0,0)" />
+      <KonvaImage image={image} {...fitted} listening={false} />
+    </Group>
   );
 }
 
@@ -331,6 +354,9 @@ export function ArsenalCompositionContents({
   onDragEnd?: () => void;
 }) {
   const render = (node: ArsenalElement | ArsenalGroup): React.ReactNode => {
+    const state = getArsenalElementState(c, node.id);
+    if (!state.visible) return null;
+    const canInteract = interactive && !state.locked;
     const isGroup = !("kind" in node),
       e = node as ArsenalElement;
     const layout = !isGroup && e.kind === "text" ? arsenalTextLayout(e) : null;
@@ -341,7 +367,7 @@ export function ArsenalCompositionContents({
       else onSelect(node.id);
     };
     const commit = (event: Event) => {
-      if (event.target !== event.currentTarget) return;
+      if (!canInteract || event.target !== event.currentTarget) return;
       event.cancelBubble = true;
       const target = event.target;
       const patch: Record<string, any> = {
@@ -388,7 +414,7 @@ export function ArsenalCompositionContents({
         opacity={node.opacity}
         scaleX={isGroup ? (node as ArsenalGroup).scale : 1}
         scaleY={isGroup ? (node as ArsenalGroup).scale : 1}
-        draggable={interactive && !editing}
+        draggable={canInteract && !editing}
         dragBoundFunc={
           createSnapBoundFunc
             ? createSnapBoundFunc(
@@ -397,7 +423,7 @@ export function ArsenalCompositionContents({
               )
             : undefined
         }
-        listening={interactive}
+        listening={canInteract}
         onDragMove={onDragMove}
         onDragEnd={(event) => {
           onDragEnd?.();
@@ -552,7 +578,7 @@ export function ArsenalCompositionContents({
             e={e}
             c={c}
             onSelect={onSelect}
-            interactive={interactive}
+            interactive={canInteract}
           />
         ) : e.kind === "rect" ? (
           <Rect
@@ -579,14 +605,14 @@ export function ArsenalCompositionContents({
   const stageHeight = c.artboard.height * scale;
   return (
     <>
-      <Rect
+      {getArsenalElementState(c, COMPOSITION_BACKGROUND_ID).visible && <Rect
         name="canvas-bg"
         width={360}
         height={stageHeight}
         fill={c.artboard.background}
         listening={false}
-      />
-      {c.version === 3 && c.customBackground?.imageUrl && (
+      />}
+      {c.version === 3 && getArsenalElementState(c, COMPOSITION_BACKGROUND_ID).visible && c.customBackground?.imageUrl && (
         <CompositionCustomBackground
           bg={c.customBackground}
           stageWidth={360}
@@ -601,13 +627,15 @@ export function ArsenalCompositionContents({
       >
         {orderedArsenalNodes(c, null).map(render)}
       </Group>
-      {c.version === 3 && c.logo?.url && (
+      {c.version === 3 && getArsenalElementState(c, COMPOSITION_LOGO_ID).visible && c.logo?.url && (
         <CompositionLogo
           logo={c.logo}
           stageWidth={360}
           stageHeight={stageHeight}
-          interactive={interactive}
-          onSelect={() => onSelect("logo")}
+          interactive={interactive && !getArsenalElementState(c, COMPOSITION_LOGO_ID).locked}
+          onSelect={() => onSelect(COMPOSITION_LOGO_ID)}
+          register={node => register(COMPOSITION_LOGO_ID, node, false)}
+          onTransform={patch => onTransform(COMPOSITION_LOGO_ID, patch)}
         />
       )}
     </>

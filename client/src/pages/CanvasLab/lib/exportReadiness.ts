@@ -1,3 +1,5 @@
+import { visibleCompositionAssets } from "./exportMedia";
+import { getArsenalElementState } from "./editorElementState";
 import type { CarouselSlideItem, CanvasPostModel } from "../components/types";
 
 export function cleanFontFamily(family?: string | null): string | null {
@@ -11,8 +13,9 @@ export function collectUsedFontsForSlide(slide: CarouselSlideItem, post: CanvasP
 
   if (slide.composition) {
     if (Array.isArray(slide.composition.elements)) {
-      for (const el of slide.composition.elements) {
+      for (const el of visibleCompositionAssets(slide.composition).elements) {
         if (
+          getArsenalElementState(slide.composition, el.id).visible &&
           el.kind === "text" &&
           el.fontFamily &&
           el.text &&
@@ -29,6 +32,8 @@ export function collectUsedFontsForSlide(slide: CarouselSlideItem, post: CanvasP
     if (Array.isArray(anyComp.authorialLayers)) {
       for (const layer of anyComp.authorialLayers) {
         if (
+          visibleCompositionAssets(slide.composition).elements.some(element => element.id === layer.id) &&
+          getArsenalElementState(slide.composition, layer.id).visible &&
           layer.kind === "text" &&
           layer.fontFamily &&
           layer.text &&
@@ -45,7 +50,7 @@ export function collectUsedFontsForSlide(slide: CarouselSlideItem, post: CanvasP
   }
 
   // Slide Nativo N:
-  const hasHeadline = Boolean(slide.headline && slide.headline.trim().length > 0);
+  const hasHeadline = !slide.elementStates?.headline?.hidden && Boolean(slide.headline && slide.headline.trim().length > 0);
   if (hasHeadline) {
     const headlineFont = cleanFontFamily(slide.visualStyle?.fontFamily || post.fontFamily);
     if (headlineFont) used.add(headlineFont);
@@ -61,7 +66,7 @@ export function collectUsedFontsForSlide(slide: CarouselSlideItem, post: CanvasP
     }
   }
 
-  const hasSubtext = Boolean(slide.subtext && slide.subtext.trim().length > 0);
+  const hasSubtext = !slide.elementStates?.subtext?.hidden && Boolean(slide.subtext && slide.subtext.trim().length > 0);
   if (hasSubtext) {
     const subtextFont = cleanFontFamily(
       slide.visualStyle?.subtextFontFamily ||
@@ -83,7 +88,7 @@ export function collectUsedFontsForSlide(slide: CarouselSlideItem, post: CanvasP
 
   const extraTexts = slide.extraTexts || post.extraTexts || [];
   for (const et of extraTexts) {
-    if (et.text && et.text.trim().length > 0 && et.opacity !== 0 && !(et as any).hidden) {
+    if (!slide.elementStates?.[et.id]?.hidden && et.text && et.text.trim().length > 0 && et.opacity !== 0 && !(et as any).hidden) {
       const etFont = cleanFontFamily(et.fontFamily);
       if (etFont) used.add(etFont);
     }

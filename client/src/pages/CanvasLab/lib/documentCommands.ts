@@ -84,12 +84,15 @@ export function cloneSlide(
       extraTexts = clonedSlide.extraTexts;
     }
   } else if (Array.isArray(clonedSlide.extraTexts)) {
-    extraTexts = clonedSlide.extraTexts.map((text) => ({ ...text, id: freshId("tx") }));
+    extraTexts = clonedSlide.extraTexts.map((text) => {
+      const id = freshId("tx"); idMap.set(text.id, id);
+      return { ...text, id };
+    });
   } else if (postContext && slideIndex !== undefined && Array.isArray(postContext.extraTexts)) {
-    extraTexts = resolveSlideExtraTexts(postContext, slideIndex).map((text) => ({
-      ...structuredClone(text),
-      id: freshId("tx"),
-    }));
+    extraTexts = resolveSlideExtraTexts(postContext, slideIndex).map((text) => {
+      const id = freshId("tx"); idMap.set(text.id, id);
+      return { ...structuredClone(text), id };
+    });
   } else {
     extraTexts = clonedSlide.extraTexts;
   }
@@ -119,12 +122,15 @@ export function cloneSlide(
       extraImages = clonedSlide.extraImages;
     }
   } else if (Array.isArray(clonedSlide.extraImages)) {
-    extraImages = clonedSlide.extraImages.map((image) => ({ ...image, id: freshId("im") }));
+    extraImages = clonedSlide.extraImages.map((image) => {
+      const id = freshId("im"); idMap.set(image.id, id);
+      return { ...image, id };
+    });
   } else if (postContext && slideIndex !== undefined && Array.isArray(postContext.extraImages)) {
-    extraImages = resolveSlideExtraImages(postContext, slideIndex).map((image) => ({
-      ...structuredClone(image),
-      id: freshId("im"),
-    }));
+    extraImages = resolveSlideExtraImages(postContext, slideIndex).map((image) => {
+      const id = freshId("im"); idMap.set(image.id, id);
+      return { ...structuredClone(image), id };
+    });
   } else {
     extraImages = clonedSlide.extraImages;
   }
@@ -141,6 +147,14 @@ export function cloneSlide(
     delete clonedSlide.extraImages;
   }
 
+  clonedSlide.extraShapes = clonedSlide.extraShapes?.map(shape => {
+    const id = freshId("shape"); idMap.set(shape.id, id);
+    return { ...shape, id };
+  });
+  if (clonedSlide.elementStates) clonedSlide.elementStates = Object.fromEntries(
+    Object.entries(clonedSlide.elementStates).map(([id, state]) => [idMap.get(id) ?? id, structuredClone(state)]),
+  );
+  if (clonedSlide.elementOrder) clonedSlide.elementOrder = clonedSlide.elementOrder.map(id => idMap.get(id) ?? id);
   return clonedSlide;
 }
 

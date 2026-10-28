@@ -45,6 +45,7 @@ describe("RichTextFloatingToolbar mobile", () => {
     expect(toolbar?.className).not.toContain("overflow-x-auto");
     expect(toolbar?.querySelectorAll(".grid-cols-6")).toHaveLength(2);
     expect(toolbar?.querySelectorAll('input[type="color"]')).toHaveLength(1);
+    for (const button of Array.from(toolbar!.querySelectorAll("button"))) expect(button.className).toContain("h-11");
 
     act(() => toolbar?.querySelector<HTMLButtonElement>('button[aria-label="Aplicar cor #FF5C00"]')?.click());
     expect(onApplyFormat).toHaveBeenCalledWith({ color: "#FF5C00" }, 0, 5);
@@ -84,4 +85,28 @@ describe("RichTextFloatingToolbar mobile", () => {
     expect(toolbar?.querySelector('button[aria-label="Restaurar tamanho"]')).toBeNull();
     expect(toolbar?.textContent).not.toContain("T=");
   });
+
+  it("keeps completion actions and formatting in separate rows of one positioned desktop surface", () => {
+    const conclude = vi.fn();
+    const render = (end: number) => act(() => root.render(<RichTextFloatingToolbar
+      actions={<button onClick={conclude}>Concluir</button>}
+      selection={{start:0,end}}
+      anchorRef={createRef<HTMLDivElement>()}
+      palette={{background:"#121212",text:"#FFFFFF",accent:"#FF5C00"}}
+      baseColor="#FFFFFF" onApplyFormat={vi.fn()} onRestoreFocus={vi.fn()}
+    />));
+    render(5);
+    const actions = document.body.querySelector('[aria-label="Concluir edição do texto"]')!;
+    const positionedSurface = actions.parentElement!;
+    expect(positionedSurface.className).toContain("fixed");
+    expect(positionedSurface.className).toContain("flex-col");
+    expect(positionedSurface.children).toHaveLength(2);
+    expect(positionedSurface.children[1].getAttribute("aria-label")).toBe("Formatar texto selecionado");
+    act(() => actions.querySelector("button")!.click());
+    expect(conclude).toHaveBeenCalledTimes(1);
+    render(0);
+    expect(positionedSurface.querySelector('[aria-label="Concluir edição do texto"]')).not.toBeNull();
+    expect(positionedSurface.querySelector('[aria-label="Formatar texto selecionado"]')).toBeNull();
+  });
+
 });

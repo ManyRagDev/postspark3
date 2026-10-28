@@ -1,9 +1,17 @@
-import { useState } from "react";
-import { Copy, Plus, Trash2, Layers, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import type { CarouselSlideItem } from "./types";
+import { memo, useEffect, useRef, useState } from "react";
+import { Plus, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { CanvasPostStage } from "./CanvasPostStage";
+import { aspectRatioHeight } from "@shared/aspectRatios";
+import type { CanvasPostModel, CarouselSlideItem } from "./types";
 
 interface CarouselFilmstripProps {
+  post?: CanvasPostModel;
   slides: CarouselSlideItem[];
   currentIndex: number;
   onSelectSlide: (index: number) => void;
@@ -13,7 +21,48 @@ interface CarouselFilmstripProps {
   onReorderSlide?: (sourceIndex: number, targetIndex: number) => void;
 }
 
+const Thumbnail = memo(function Thumbnail({
+  post,
+  index,
+}: {
+  post: CanvasPostModel;
+  index: number;
+}) {
+  const node = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(
+    () => typeof IntersectionObserver === "undefined"
+  );
+  useEffect(() => {
+    if (!node.current || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        setVisible(true);
+        observer.disconnect();
+      }
+    });
+    observer.observe(node.current);
+    return () => observer.disconnect();
+  }, []);
+  const scale = 48 / aspectRatioHeight(post.aspectRatio);
+  return (
+    <div
+      ref={node}
+      className="pointer-events-none flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded"
+      aria-hidden="true"
+    >
+      {visible && (
+        <CanvasPostStage
+          post={{ ...post, currentSlideIndex: index }}
+          zoom={scale}
+          isReadOnly
+        />
+      )}
+    </div>
+  );
+});
+
 export default function CarouselFilmstrip({
+  post,
   slides,
   currentIndex,
   onSelectSlide,
@@ -22,140 +71,107 @@ export default function CarouselFilmstrip({
   onRemoveSlide,
   onReorderSlide,
 }: CarouselFilmstripProps) {
-  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragged, setDragged] = useState<number | null>(null);
   return (
-    <div className="h-[76px] md:h-20 border-t border-white/10 bg-black/60 backdrop-blur-xl px-3 md:px-4 py-2 flex items-center gap-3 shrink-0 z-20 overflow-x-auto select-none custom-scrollbar">
-      <div className="hidden md:flex items-center gap-2 pr-3 border-r border-white/10 shrink-0 text-white/50 text-[11px] font-semibold uppercase tracking-wider">
-        <Layers size={14} className="text-[oklch(0.78_0.22_48)]" />
-        <span className="hidden sm:inline">{slides.length > 1 ? `Carrossel (${slides.length})` : "Post"}</span>
-      </div>
-
-      {/* Miniaturas dos Slides */}
-      <div className="flex items-center gap-2.5 flex-1">
-        {slides.map((slide, idx) => {
-          const isSelected = idx === currentIndex;
-          const isDraggingThis = draggedIdx === idx;
-          return (
-            <div
-              key={slide.id || idx}
-              onClick={() => onSelectSlide(idx)}
-              draggable={Boolean(onReorderSlide && slides.length > 1)}
-              onDragStart={(e) => {
-                setDraggedIdx(idx);
-                e.dataTransfer.setData("text/plain", String(idx));
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              onDragEnd={() => setDraggedIdx(null)}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDraggedIdx(null);
-                const from = parseInt(e.dataTransfer.getData("text/plain"), 10);
-                if (!isNaN(from) && from !== idx) {
-                  onReorderSlide?.(from, idx);
-                }
-              }}
-              className={`group relative h-15 w-24 rounded-xl border p-1 md:p-1.5 flex flex-col justify-between cursor-pointer transition-all shrink-0 ${
-                isDraggingThis ? "opacity-40 border-dashed border-[oklch(0.78_0.22_48)]" : ""
-              } ${
-                isSelected
-                  ? "bg-white/15 border-[oklch(0.78_0.22_48)] shadow-md ring-1 ring-[oklch(0.78_0.22_48)]"
-                  : "bg-white/4 border-white/10 hover:bg-white/8 text-white/60"
-              }`}
-            >
-              <div className="flex items-center justify-between text-[9px] font-mono font-bold text-white/70">
-                <div className="flex items-center gap-1">
-                  <span>0{idx + 1}</span>
-                  {idx === 0 && (
-                    <span className="px-1 py-0.2 rounded bg-[oklch(0.78_0.22_48)]/25 text-[oklch(0.78_0.22_48)] text-[7px] font-bold tracking-wider uppercase">
-                      Capa
-                    </span>
-                  )}
-                </div>
-                <div className="hidden opacity-0 transition-opacity group-hover:opacity-100 md:flex md:items-center md:gap-1">
-                  {idx > 0 && onReorderSlide && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onReorderSlide(idx, idx - 1);
-                      }}
-                      className="hover:text-white"
-                      title="Mover slide para a esquerda"
-                    >
-                      <ChevronLeft size={10} />
-                    </button>
-                  )}
-                  {idx < slides.length - 1 && onReorderSlide && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onReorderSlide(idx, idx + 1);
-                      }}
-                      className="hover:text-white"
-                      title="Mover slide para a direita"
-                    >
-                      <ChevronRight size={10} />
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDuplicateSlide(idx);
-                    }}
-                    className="hover:text-white"
-                    title="Duplicar Slide"
-                  >
-                    <Copy size={10} />
-                  </button>
-                  {slides.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveSlide(idx);
-                      }}
-                      className="hover:text-red-400"
-                      title="Excluir Slide"
-                    >
-                      <Trash2 size={10} />
-                    </button>
-                  )}
-                </div>
-                <div className="md:hidden" onClick={(event) => event.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild><button type="button" draggable={false} className="flex h-5 w-5 items-center justify-center rounded-md bg-white/10 text-white" aria-label={`Ações do slide ${idx + 1}`}><MoreHorizontal size={13} /></button></DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 border-white/15 bg-[#10141D] text-white">
-                      {idx > 0 && onReorderSlide && <DropdownMenuItem onSelect={() => onReorderSlide(idx, idx - 1)}>Mover para a esquerda</DropdownMenuItem>}
-                      {idx < slides.length - 1 && onReorderSlide && <DropdownMenuItem onSelect={() => onReorderSlide(idx, idx + 1)}>Mover para a direita</DropdownMenuItem>}
-                      <DropdownMenuItem onSelect={() => onDuplicateSlide(idx)}>Duplicar slide</DropdownMenuItem>
-                      {slides.length > 1 && <DropdownMenuItem onSelect={() => onRemoveSlide(idx)} variant="destructive">Excluir slide</DropdownMenuItem>}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-              <p className="truncate text-[9.5px] font-medium leading-tight text-white">
-                {slide.headline}
-              </p>
-            </div>
-          );
-        })}
-
-        {/* Botão de Adicionar Slide */}
-        <button
-          type="button"
-          onClick={onAddSlide}
-          className="hidden h-15 w-16 rounded-xl border border-dashed border-white/20 bg-white/3 hover:bg-white/6 flex-col items-center justify-center gap-1 text-[10px] text-white/60 hover:text-white cursor-pointer transition-all shrink-0 font-semibold md:flex"
+    <nav
+      aria-label="Slides do post"
+      className="z-20 flex h-20 shrink-0 items-center gap-2 overflow-x-auto border-t border-white/10 bg-[#0a0d16] px-2 py-2"
+    >
+      {slides.map((slide, index) => (
+        <div
+          key={slide.id}
+          className={`relative flex h-16 shrink-0 items-center rounded-xl border ${currentIndex === index ? "border-orange-400 bg-orange-400/10" : "border-white/10"} ${dragged === index ? "opacity-40" : ""}`}
+          draggable={Boolean(onReorderSlide && slides.length > 1)}
+          onDragStart={event => {
+            setDragged(index);
+            event.dataTransfer.setData("text/plain", String(index));
+          }}
+          onDragEnd={() => setDragged(null)}
+          onDragOver={event => event.preventDefault()}
+          onDrop={event => {
+            event.preventDefault();
+            const from = Number(event.dataTransfer.getData("text/plain"));
+            setDragged(null);
+            if (
+              Number.isInteger(from) &&
+              from >= 0 &&
+              from < slides.length &&
+              from !== index
+            )
+              onReorderSlide?.(from, index);
+          }}
         >
-          <Plus size={14} />
-          <span>Slide</span>
-        </button>
-      </div>
-    </div>
+          <button
+            type="button"
+            aria-label={`Selecionar slide ${index + 1}: ${slide.headline}`}
+            aria-current={currentIndex === index ? "true" : undefined}
+            onClick={() => onSelectSlide(index)}
+            className="flex h-full min-w-28 items-center gap-1 rounded-l-xl px-2 text-left focus-visible:outline-2 focus-visible:outline-orange-300"
+          >
+            {post && <Thumbnail post={post} index={index} />}
+            <span className="max-w-20">
+              <span className="block text-[10px] text-white/50">
+                {index + 1}
+                {index === 0 ? " · Capa" : ""}
+              </span>
+              <span className="block truncate text-xs">
+                {slide.headline || "Sem título"}
+              </span>
+            </span>
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                draggable={false}
+                className="grid min-h-11 min-w-11 place-items-center rounded-xl hover:bg-white/10"
+                aria-label={`Ações do slide ${index + 1}`}
+              >
+                <MoreHorizontal size={18} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-52 border-white/15 bg-[#10141D] text-white"
+            >
+              {index > 0 && onReorderSlide && (
+                <DropdownMenuItem
+                  onSelect={() => onReorderSlide(index, index - 1)}
+                >
+                  Mover para a esquerda
+                </DropdownMenuItem>
+              )}
+              {index < slides.length - 1 && onReorderSlide && (
+                <DropdownMenuItem
+                  onSelect={() => onReorderSlide(index, index + 1)}
+                >
+                  Mover para a direita
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onSelect={() => onDuplicateSlide(index)}>
+                Duplicar slide
+              </DropdownMenuItem>
+              {slides.length > 1 && (
+                <DropdownMenuItem
+                  onSelect={() => onRemoveSlide(index)}
+                  variant="destructive"
+                >
+                  Excluir slide
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={onAddSlide}
+        aria-label="Adicionar slide"
+        className="flex min-h-11 min-w-16 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/20 px-2 py-2 text-xs text-white/70"
+      >
+        <Plus size={18} />
+        Slide
+      </button>
+    </nav>
   );
 }

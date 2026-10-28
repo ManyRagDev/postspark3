@@ -1,8 +1,9 @@
+import { INITIAL_POST } from "../components/types";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createCanvas } from "@napi-rs/canvas";
 import { createArsenalFixtureComposition } from "./arsenalFixture";
 import { addArsenalAuthorialLayer, hideArsenalInstance, overrideArsenalElement, resolveArsenalComposition } from "./arsenalComposition";
-import { exportImageNodeReady, renderedCompositionImageCount, visibleExportImageNodes } from "./exportMedia";
+import { exportImageNodeReady, renderedCompositionImageCount, renderedNativeImageCount, visibleCompositionAssets, visibleExportImageNodes } from "./exportMedia";
 
 const originalDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
 beforeAll(() => Object.defineProperty(globalThis, "document", { configurable: true, value: { createElement: () => createCanvas(20, 20) } }));
@@ -49,4 +50,37 @@ describe("rendered export media", () => {
     expect(visible).toEqual([loaded]);
     expect(visible.every(exportImageNodeReady)).toBe(true);
   });
+});
+
+
+it("excludes reversibly hidden group media and background/logo without deleting assets", () => {
+  const c = createArsenalFixtureComposition();
+  const media = c.elements.find(element => element.kind === "media")!;
+  const hidden = { ...c, media: { [media.id]: { kind: "user" as const, url: "https://example.com/a.png", focalX: .5, focalY: .5 } }, elementStates: { [media.parentId!]: { hidden: true } } };
+  expect(renderedCompositionImageCount(hidden)).toBe(0);
+  expect(visibleCompositionAssets(hidden).elements.some(element => element.id === media.id)).toBe(false);
+  expect(hidden.elements.some(element => element.id === media.id)).toBe(true);
+  expect(hidden.media[media.id].url).toBeTruthy();
+  expect(renderedCompositionImageCount({ ...hidden, elementStates: {} })).toBe(1);
+});
+
+it("native media readiness respects per-slide logo overrides and reversible hiding", () => {
+  const post = structuredClone(INITIAL_POST), slide = post.slides[0];
+  post.logoUrl = "legacy-logo.png"; post.bgImage = "bg.png";
+  slide.extraImages = [{ id: "photo", url: "photo.png", x: 0, y: 0, width: 100, height: 100 }];
+  slide.elementStates = { background: { hidden: true }, photo: { hidden: true } };
+  expect(renderedNativeImageCount(slide, post)).toBe(1);
+  slide.logo = { url: "", position: "custom" };
+  expect(renderedNativeImageCount(slide, post)).toBe(0);
+  slide.elementStates = {};
+  expect(renderedNativeImageCount(slide, post)).toBe(2);
+});
+
+it("composition pseudo layers never share visibility with catalog elements named logo or background", () => {
+  let c = addArsenalAuthorialLayer(createArsenalFixtureComposition(), { id: "logo", kind: "image", url: "photo.png", x: 0, y: 0, width: 100, height: 100, zIndex: 1 });
+  if (c.version !== 3) throw new Error("Expected V3");
+  c = { ...c, logo: { url: "brand.png", position: "custom" }, customBackground: { imageUrl: "bg.png" }, elementStates: { __canvas_logo__: { hidden: true }, __canvas_background__: { hidden: true } } };
+  expect(renderedCompositionImageCount(c)).toBe(1);
+  c.elementStates = { logo: { hidden: true } };
+  expect(renderedCompositionImageCount(c)).toBe(2);
 });

@@ -9,6 +9,7 @@ export type ReplicationGroup = typeof REPLICATION_GROUPS[number];
 export type SlideStyle = NonNullable<CarouselSlideItem["visualStyle"]>;
 
 const STYLE_KEYS = [
+  "showBadge", "badgeText", "showStep",
   "familyId", "familyName", "fontFamily", "customFontUrl", "palette",
   "overlayOpacity", "overlayColor", "overlayMode", "headlineAlign", "bodyAlign",
   "headlineSizeScale", "subtextSizeScale", "manualHeadlineColor", "manualSubtextColor",
@@ -522,4 +523,3 @@ export function replicateCarouselComposition(
 
   return { ...post, slides };
 }
-

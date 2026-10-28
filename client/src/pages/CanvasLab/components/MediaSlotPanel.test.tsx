@@ -60,3 +60,24 @@ it('removed target keeps a preview for explicit application elsewhere',async()=>
   act(()=>Array.from(host.querySelectorAll('button')).find(b=>b.textContent==='Aplicar no destino atual')!.click());
   expect(onUpdate.mock.calls.at(-1)?.[0].slotId).toBe('__background__');
 });
+it('uses the composition background lock and keeps a late result for recovery',async()=>{
+  const {post}=fixture();const slide=post.slides[0];const unlocked={...post,slides:[{...slide,imagePrompt:'Paisagem'},...post.slides.slice(1)]};const onUpdate=vi.fn();let resolve!:(value:{imageUrl:string})=>void;
+  mocks.generate.mockImplementation(()=>new Promise(r=>{resolve=r;}));render(unlocked,'__canvas_background__',onUpdate);
+  await act(async()=>{Array.from(host.querySelectorAll('button')).find(b=>b.textContent==='Gerar imagem com IA')!.click();});
+  const locked={...unlocked,slides:[{...unlocked.slides[0],composition:{...unlocked.slides[0].composition!,elementStates:{__canvas_background__:{locked:true}}}},...unlocked.slides.slice(1)]};
+  render(locked,'__canvas_background__',onUpdate);
+  expect(host.textContent).toContain('Desbloqueie este destino');
+  expect((Array.from(host.querySelectorAll('button')).find(b=>b.textContent?.includes('Preparando imagem')) as HTMLButtonElement).disabled).toBe(true);
+  await act(async()=>{resolve({imageUrl:'https://example.com/late.png'});});
+  expect(onUpdate.mock.calls.some(([,op])=>op.kind==='apply')).toBe(false);
+  expect(host.querySelector('img[alt="Imagem pronta para aplicação"]')?.getAttribute('src')).toBe('https://example.com/late.png');
+});
+
+it('does not report success or discard the image when the parent rejects a late apply',async()=>{
+  const {post,id}=fixture();const update=vi.fn((_target,_op)=>false);mocks.generate.mockResolvedValue({imageUrl:'https://example.com/retained.png'});render(post,id,update);
+  await act(async()=>{Array.from(host.querySelectorAll('button')).find(b=>b.textContent==='Gerar imagem com IA')!.click();});
+  expect(host.querySelector('img[alt="Imagem pronta para aplicação"]')?.getAttribute('src')).toBe('https://example.com/retained.png');
+  act(()=>Array.from(host.querySelectorAll('button')).find(b=>b.textContent==='Aplicar no destino atual')!.click());
+  expect(host.querySelector('img[alt="Imagem pronta para aplicação"]')).not.toBeNull();
+  const {toast}=await import('sonner');expect(toast.success).not.toHaveBeenCalled();
+});

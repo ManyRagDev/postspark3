@@ -115,8 +115,11 @@ export default function CanvasMobileDrawer({
   ];
   const [activeTab, setActiveTab] = useState<MobileTab>("text");
 
+  const prevSelectedElementIdRef = useRef<string | null | undefined>(selectedElementId);
   useEffect(() => {
-    if (!selectedElementId) return;
+    const prev = prevSelectedElementIdRef.current;
+    prevSelectedElementIdRef.current = selectedElementId;
+    if (!selectedElementId || selectedElementId === prev) return;
     if (composition && activeTab === "brand") {
       setActiveTab("design");
     }
@@ -376,7 +379,7 @@ export default function CanvasMobileDrawer({
           {/* Conteúdo da Aba (Apenas quando aberta) */}
           {isOpen && (
             <div ref={panelContentRef} className="flex-1 overflow-y-auto overscroll-y-contain p-4 space-y-4 custom-scrollbar">
-              {!composition && selectedElementId && (selectedElementId === "headline" || selectedElementId === "subtext" || selectedElementId === "badge" || extraTextsList.some(t => t.id === selectedElementId)) ? (
+              {selectedElementId && (extraImagesList.some(img => img.id === selectedElementId) || extraTextsList.some(t => t.id === selectedElementId) || (!composition && (selectedElementId === "headline" || selectedElementId === "subtext" || selectedElementId === "badge"))) ? (
                 <PropertyInspector
                   post={post}
                   selectedId={selectedElementId}
@@ -387,6 +390,18 @@ export default function CanvasMobileDrawer({
               ) : (
                 <>
                   {/* ─── ABA 1: TEXTO ─── */}
+              {activeTab === "text" && composition && onAddExtraText && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={onAddExtraText}
+                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[oklch(0.78_0.22_48)]/20 to-[oklch(0.78_0.22_48)]/10 hover:from-[oklch(0.78_0.22_48)]/30 hover:to-[oklch(0.78_0.22_48)]/20 border border-[oklch(0.78_0.22_48)]/40 text-[oklch(0.78_0.22_48)] text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]"
+                  >
+                    <Plus size={14} strokeWidth={2.5} />
+                    <span>+ Texto</span>
+                  </button>
+                </div>
+              )}
               {activeTab === "text" && !composition && (
                 <div className="space-y-3">
                   <TipCallout id="tip-mtext-tab" title="Conteúdo do post" compact>
@@ -704,142 +719,6 @@ export default function CanvasMobileDrawer({
                     )}
                   </div>
 
-                  {/* ── Imagens e Fotos Livres Adicionais ── */}
-                  <div className="space-y-2 pt-2 border-t border-white/8">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-mono text-white/50 uppercase flex items-center gap-1">
-                        <ImagePlus size={11} className="text-[oklch(0.78_0.22_48)]" />
-                        <span>Imagens & Fotos ({extraImagesList.length})</span>
-                      </label>
-                    </div>
-
-                    {extraImagesList.length > 0 && (
-                      <div className="space-y-2">
-                        {extraImagesList.map((img, idx) => {
-                          const isSelected = selectedElementId === img.id;
-                          return (
-                            <div
-                              key={img.id}
-                              className={`p-2.5 rounded-xl border space-y-2 transition-all ${
-                                isSelected
-                                  ? "bg-[oklch(0.78_0.22_48)]/10 border-[oklch(0.78_0.22_48)]/50 shadow-sm"
-                                  : "bg-white/3 border-white/8 hover:border-white/15"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-9 h-9 rounded-lg overflow-hidden border border-white/15 bg-black/40 shrink-0">
-                                    <img src={img.url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
-                                  </div>
-                                  <div>
-                                    <div className="text-xs font-medium text-white/90">
-                                      Foto #{idx + 1}
-                                    </div>
-                                    <div className="text-[10px] text-white/40 font-mono">
-                                      {img.width} × {img.height}px
-                                    </div>
-                                  </div>
-                                </div>
-                                {onRemoveExtraImage && (
-                                  <button
-                                    type="button"
-                                    onClick={() => onRemoveExtraImage(img.id)}
-                                    title="Remover imagem"
-                                    className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all cursor-pointer"
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                )}
-                              </div>
-
-                              {/* Opacidade e Arredondamento */}
-                              <div className="space-y-1.5 pt-1.5 border-t border-white/5 text-[11px]">
-                                <div className="flex items-center justify-between text-white/60">
-                                  <span>Opacidade</span>
-                                  <span className="font-mono text-[10px]">{Math.round((img.opacity ?? 1) * 100)}%</span>
-                                </div>
-                                <input
-                                  type="range"
-                                  min="0.1"
-                                  max="1"
-                                  step="0.05"
-                                  value={img.opacity ?? 1}
-                                  onChange={(e) => onUpdateExtraImage?.(img.id, { opacity: parseFloat(e.target.value) })}
-                                  className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
-                                />
-
-                                <div className="flex items-center justify-between text-white/60 pt-0.5">
-                                  <span>Arredondamento</span>
-                                  <span className="font-mono text-[10px]">{img.cornerRadius || 0}px</span>
-                                </div>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="60"
-                                  step="2"
-                                  value={img.cornerRadius || 0}
-                                  onChange={(e) => onUpdateExtraImage?.(img.id, { cornerRadius: parseInt(e.target.value, 10) })}
-                                  className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
-                                />
-
-                                <div className="flex items-center justify-between text-white/60 pt-0.5">
-                                  <span>Giro / Rotação</span>
-                                  <span className="font-mono text-[10px]">{img.rotation || 0}°</span>
-                                </div>
-                                <input
-                                  type="range"
-                                  min="-180"
-                                  max="180"
-                                  step="5"
-                                  value={img.rotation || 0}
-                                  onChange={(e) => onUpdateExtraImage?.(img.id, { rotation: parseInt(e.target.value, 10) })}
-                                  className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
-                                />
-
-                                <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-white/5">
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => onUpdatePost(reorderExtraElement(post, img.id, "front"))}
-                                      title="Trazer para frente no palco"
-                                      className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[9px] flex items-center gap-1 transition-all cursor-pointer"
-                                    >
-                                      <ChevronsUp size={10} />
-                                      <span>Frente</span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => onUpdatePost(reorderExtraElement(post, img.id, "back"))}
-                                      title="Enviar para trás no palco"
-                                      className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[9px] flex items-center gap-1 transition-all cursor-pointer"
-                                    >
-                                      <ChevronsDown size={10} />
-                                      <span>Trás</span>
-                                    </button>
-                                  </div>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const result = duplicateExtraElement(post, img.id);
-                                      onUpdatePost(result.post);
-                                      toast.success("Imagem duplicada!");
-                                    }}
-                                    title="Duplicar imagem"
-                                    className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[9px] flex items-center gap-1 transition-all cursor-pointer"
-                                  >
-                                    <Copy size={9} />
-                                    <span>Duplicar</span>
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
                   {/* Tipografia do Post */}
                   <div className="space-y-1 pt-2 border-t border-white/8">
                     <label className="text-[11px] font-mono text-white/50 uppercase flex items-center gap-1">
@@ -937,9 +816,9 @@ export default function CanvasMobileDrawer({
 
               {/* ─── ABA 3: MÍDIA & PLANO DE FUNDO ─── */}
               {onMediaUpdate && <div className={activeTab === "media" ? "" : "hidden"}><MediaSlotPanel post={post} onUpdate={onMediaUpdate} selectedId={selectedElementId} retainedPreview={mediaPreview} onRetainPreview={onMediaPreview} /></div>}
-        {activeTab === "media" && !(composition && onMediaUpdate) && (
+              {activeTab === "media" && (
                 <div className="space-y-4">
-{composition && <ArsenalCompositionInspector composition={composition} section="media" selectedId={selectedElementId ?? null} onSelect={id => onSelectElement?.(id)} onChange={c => onUpdateComposition?.(c)} />}
+                  {composition && <ArsenalCompositionInspector composition={composition} section="media" selectedId={selectedElementId ?? null} onSelect={id => onSelectElement?.(id)} onChange={c => onUpdateComposition?.(c)} hideMediaSlotUpload={Boolean(onMediaUpdate)} />}
 
                   <TipCallout id="tip-mmedia-tab" title="Fundos por IA, texturas ou fotos" compact>
                     Gere fundo com IA, abra o catálogo de texturas ou envie da galeria do celular.
@@ -1205,40 +1084,65 @@ export default function CanvasMobileDrawer({
                   )}
 
                   {/* 3. Gerador de Imagem com IA */}
-                  <div className="p-3.5 rounded-2xl bg-white/4 border border-white/10 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-white">
-                        <Wand2 size={14} className="text-[oklch(0.78_0.22_48)]" />
-                        <span>Gerar Imagem com IA</span>
+                  {currentSlide?.composition && onMediaUpdate ? (
+                    <details className="p-3.5 rounded-2xl bg-white/4 border border-white/10 group">
+                      <summary className="flex items-center justify-between cursor-pointer list-none text-xs font-bold text-white">
+                        <div className="flex items-center gap-1.5">
+                          <Wand2 size={14} className="text-[oklch(0.78_0.22_48)]" />
+                          <span>Sugestões de Direção de Arte (IA)</span>
+                        </div>
+                        <span className="text-[10px] text-white/40">▾</span>
+                      </summary>
+                      <div className="mt-2.5 pt-2.5 border-t border-white/8">
+                        <ImageDirectionSuggestions
+                          post={post}
+                          defaultPrompt={currentSlide?.imagePrompt || post.imagePrompt || ""}
+                          busy={isGeneratingAi}
+                          buttonLabel="Gerar Imagem com IA"
+                          busyLabel="Gerando imagem..."
+                          onGenerate={handleGenerateAiImage}
+                          onGenerated={handleGeneratedAiImage}
+                        />
                       </div>
+                    </details>
+                  ) : (
+                    <div className="p-3.5 rounded-2xl bg-white/4 border border-white/10 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+                          <Wand2 size={14} className="text-[oklch(0.78_0.22_48)]" />
+                          <span>Gerar Imagem com IA</span>
+                        </div>
+                      </div>
+                      <ImageDirectionSuggestions
+                        post={post}
+                        defaultPrompt={currentSlide?.imagePrompt || post.imagePrompt || ""}
+                        busy={isGeneratingAi}
+                        buttonLabel="Gerar Imagem com IA"
+                        busyLabel="Gerando imagem..."
+                        onGenerate={handleGenerateAiImage}
+                        onGenerated={handleGeneratedAiImage}
+                      />
                     </div>
-                    <ImageDirectionSuggestions
-                      post={post}
-                      defaultPrompt={currentSlide?.imagePrompt || post.imagePrompt || ""}
-                      busy={isGeneratingAi}
-                      buttonLabel="Gerar Imagem com IA"
-                      busyLabel="Gerando imagem..."
-                      onGenerate={handleGenerateAiImage}
-                      onGenerated={handleGeneratedAiImage}
-                    />
-                  </div>
+                  )}
 
                   {/* 4. Upload da Galeria do Celular (Fundo) */}
-                  <label className="flex items-center justify-between p-3 rounded-2xl bg-white/4 hover:bg-white/7 border border-white/10 cursor-pointer active:scale-[0.99] transition-all">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-white/8 flex items-center justify-center">
-                        <Upload size={14} className="text-white/70" />
+                  {!(composition && onMediaUpdate) && (
+                    <label className="flex items-center justify-between p-3 rounded-2xl bg-white/4 hover:bg-white/7 border border-white/10 cursor-pointer active:scale-[0.99] transition-all">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-white/8 flex items-center justify-center">
+                          <Upload size={14} className="text-white/70" />
+                        </div>
+                        <span className="text-xs font-semibold text-white/90">Definir Imagem de Fundo</span>
                       </div>
-                      <span className="text-xs font-semibold text-white/90">Definir Imagem de Fundo</span>
-                    </div>
-                    <span className="text-xs text-white/50">Fundo</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </label>
+                      <span className="text-xs text-white/50">Fundo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
 
                   {/* 5. Inserir Foto como Camada Livre */}
                   {onAddExtraImage && (
@@ -1258,6 +1162,142 @@ export default function CanvasMobileDrawer({
                       </div>
                       <span className="text-xs font-bold text-[oklch(0.78_0.22_48)]">+ Inserir</span>
                     </button>
+                  )}
+
+                  {/* ── Imagens e Fotos Livres Adicionais ── */}
+                  {extraImagesList.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-white/8">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-mono text-white/50 uppercase flex items-center gap-1">
+                          <ImagePlus size={11} className="text-[oklch(0.78_0.22_48)]" />
+                          <span>Imagens & Fotos ({extraImagesList.length})</span>
+                        </label>
+                      </div>
+
+                      <div className="space-y-2">
+                        {extraImagesList.map((img, idx) => {
+                          const isSelected = selectedElementId === img.id;
+                          return (
+                            <div
+                              key={img.id}
+                              className={`p-2.5 rounded-xl border space-y-2 transition-all ${
+                                isSelected
+                                  ? "bg-[oklch(0.78_0.22_48)]/10 border-[oklch(0.78_0.22_48)]/50 shadow-sm"
+                                  : "bg-white/3 border-white/8 hover:border-white/15"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-9 h-9 rounded-lg overflow-hidden border border-white/15 bg-black/40 shrink-0">
+                                    <img src={img.url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                                  </div>
+                                  <div>
+                                    <div className="text-xs font-medium text-white/90">
+                                      Foto #{idx + 1}
+                                    </div>
+                                    <div className="text-[10px] text-white/40 font-mono">
+                                      {img.width} × {img.height}px
+                                    </div>
+                                  </div>
+                                </div>
+                                {onRemoveExtraImage && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onRemoveExtraImage(img.id)}
+                                    title="Remover imagem"
+                                    className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all cursor-pointer"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Opacidade e Arredondamento */}
+                              <div className="space-y-1.5 pt-1.5 border-t border-white/5 text-[11px]">
+                                <div className="flex items-center justify-between text-white/60">
+                                  <span>Opacidade</span>
+                                  <span className="font-mono text-[10px]">{Math.round((img.opacity ?? 1) * 100)}%</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0.1"
+                                  max="1"
+                                  step="0.05"
+                                  value={img.opacity ?? 1}
+                                  onChange={(e) => onUpdateExtraImage?.(img.id, { opacity: parseFloat(e.target.value) })}
+                                  className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                                />
+
+                                <div className="flex items-center justify-between text-white/60 pt-0.5">
+                                  <span>Arredondamento</span>
+                                  <span className="font-mono text-[10px]">{img.cornerRadius || 0}px</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="60"
+                                  step="2"
+                                  value={img.cornerRadius || 0}
+                                  onChange={(e) => onUpdateExtraImage?.(img.id, { cornerRadius: parseInt(e.target.value, 10) })}
+                                  className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                                />
+
+                                <div className="flex items-center justify-between text-white/60 pt-0.5">
+                                  <span>Giro / Rotação</span>
+                                  <span className="font-mono text-[10px]">{img.rotation || 0}°</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="-180"
+                                  max="180"
+                                  step="5"
+                                  value={img.rotation || 0}
+                                  onChange={(e) => onUpdateExtraImage?.(img.id, { rotation: parseInt(e.target.value, 10) })}
+                                  className="w-full accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                                />
+
+                                <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-white/5">
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => onUpdatePost(reorderExtraElement(post, img.id, "front"))}
+                                      title="Trazer para frente no palco"
+                                      className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[9px] flex items-center gap-1 transition-all cursor-pointer"
+                                    >
+                                      <ChevronsUp size={10} />
+                                      <span>Frente</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onUpdatePost(reorderExtraElement(post, img.id, "back"))}
+                                      title="Enviar para trás no palco"
+                                      className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[9px] flex items-center gap-1 transition-all cursor-pointer"
+                                    >
+                                      <ChevronsDown size={10} />
+                                      <span>Trás</span>
+                                    </button>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const result = duplicateExtraElement(post, img.id);
+                                      onUpdatePost(result.post);
+                                      toast.success("Imagem duplicada!");
+                                    }}
+                                    title="Duplicar imagem"
+                                    className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[9px] flex items-center gap-1 transition-all cursor-pointer"
+                                  >
+                                    <Copy size={9} />
+                                    <span>Duplicar</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -1335,13 +1375,98 @@ export default function CanvasMobileDrawer({
 
               {/* ─── ABA 5: DESIGN (ARSENAL COMPOSITION) ─── */}
               {composition && ["text", "style", "design"].includes(activeTab) && (
-                <ArsenalCompositionInspector
-                  composition={composition}
-            section={activeTab === "text" ? "content" : activeTab === "style" ? "style" : "design"}
-                  selectedId={selectedElementId ?? null}
-                  onSelect={(id) => onSelectElement?.(id)}
-                  onChange={(c) => onUpdateComposition?.(c)}
-                />
+                <div className="space-y-4">
+                  <ArsenalCompositionInspector
+                    composition={composition}
+                    section={activeTab === "text" ? "content" : activeTab === "style" ? "style" : "design"}
+                    selectedId={selectedElementId ?? null}
+                    onSelect={(id) => onSelectElement?.(id)}
+                    onChange={(c) => onUpdateComposition?.(c)}
+                  />
+                  {activeTab === "text" && (
+                    <div className="space-y-4 pt-3 border-t border-white/10">
+                      {extraTextsList.length > 0 && (
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-mono text-white/50 uppercase flex items-center gap-1">
+                            <Type size={11} />
+                            <span>Textos Livres ({extraTextsList.length})</span>
+                          </label>
+                          <div className="space-y-2">
+                            {extraTextsList.map((et, idx) => (
+                              <div
+                                key={et.id}
+                                onClick={() => onSelectElement?.(et.id)}
+                                className="p-2.5 rounded-xl bg-white/4 border border-white/10 space-y-1.5"
+                              >
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <span className="text-[10px] font-mono text-white/40">#{idx + 1}</span>
+                                  <input
+                                    type="text"
+                                    value={et.text}
+                                    onChange={(e) => onUpdateExtraText?.(et.id, { text: e.target.value })}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-[oklch(0.78_0.22_48)]"
+                                    placeholder="Texto livre..."
+                                  />
+                                  {onRemoveExtraText && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onRemoveExtraText(et.id);
+                                      }}
+                                      className="p-1 rounded-lg text-white/40 hover:text-red-400 active:bg-red-500/20"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-mono text-white/50 uppercase">
+                            Legenda Estratégica (Instagram)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(post.caption || "");
+                              toast.success("Legenda copiada!");
+                            }}
+                            className="flex items-center gap-1 text-[10px] text-[oklch(0.78_0.22_48)] font-bold"
+                          >
+                            <Copy size={11} />
+                            <span>Copiar</span>
+                          </button>
+                        </div>
+                        <textarea
+                          rows={4}
+                          value={post.caption}
+                          onChange={(e) => onUpdatePost({ caption: e.target.value })}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)] resize-none font-sans leading-relaxed"
+                          placeholder="Legenda para redes sociais..."
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {activeTab === "style" && (
+                    <div className="space-y-1 pt-3 border-t border-white/10">
+                      <label className="text-[11px] font-mono text-white/50 uppercase flex items-center gap-1">
+                        <Type size={11} />
+                        <span>Tipografia do Post</span>
+                      </label>
+                      <FontPickerDropdown
+                        value={post.fontFamily}
+                        onChange={(font) => onUpdatePost({ fontFamily: font })}
+                      />
+                    </div>
+                  )}
+                </div>
               )}
                 </>
               )}

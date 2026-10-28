@@ -11,6 +11,21 @@ const names = {
   quote: "Citação",
   comparison: "Comparação",
 };
+const roleLabels: Record<string, string> = {
+  headline: "Título principal",
+  subheadline: "Subtítulo",
+  body: "Corpo do texto",
+  highlight: "Destaque",
+  cta: "Chamada (CTA)",
+  eyebrow: "Chapéu / Tag",
+  caption: "Legenda",
+  quote: "Citação",
+  stat: "Número / Métrica",
+  footer: "Rodapé",
+  sectionLabel: "Seção",
+  callToAction: "Chamada (CTA)",
+  label: "Rótulo",
+};
 export default function VariableContentEditor({
   value,
   onChange,
@@ -137,16 +152,7 @@ export default function VariableContentEditor({
               >
                 {contentTextRoles.map(r => (
                   <option key={r} value={r}>
-                    {
-                      {
-                        headline: "Título",
-                        body: "Corpo",
-                        eyebrow: "Chamada",
-                        sectionLabel: "Seção",
-                        callToAction: "CTA",
-                        label: "Rótulo",
-                      }[r]
-                    }
+                    {roleLabels[r] ?? r}
                   </option>
                 ))}
               </select>
