@@ -9,8 +9,12 @@ renderer real do CanvasLab. Não há cópia do banco para a máquina.
 - Projeto acessado pelo perfil local `postspark`; região `us-east-2`.
 - Instância `postspark-worker-prod`, Ubuntu 24.04, pacote `small_3_0`.
 - 2 vCPU, 2 GiB de RAM, 60 GiB de SSD; preço consultado em 28/10/2026: US$ 12/mês.
-- Sem snapshots automáticos, IP estático, load balancer ou outros add-ons pagos.
-- Firewall permite somente SSH a partir do endereço do operador.
+- IP estático `18.189.144.221` associado à instância; não tem custo enquanto
+  associado. Sem snapshots automáticos, load balancer ou outros add-ons pagos.
+- Firewall permite SSH somente do IP atual do operador e HTTP/HTTPS para o
+  capturador autenticado em `https://capture.postspark.com.br`.
+- Captura e geração têm containers separados na mesma máquina. Caddy termina
+  HTTPS e renova certificados; o capturador não recebe chaves de IA ou banco.
 - Docker inicia no boot; o executor usa `restart: unless-stopped`, usuário sem
   privilégios no container, limite de memória, rotação de logs e encerramento
   gracioso de até 12 minutos para preservar o trabalho atual.
@@ -52,6 +56,9 @@ Uma entrega que afete backend, contratos compartilhados ou o renderer tem dois
 destinos: API/frontend na Vercel e executor pelo comando acima. O deploy da Vercel
 não executa este comando. O reinício automático do container mantém o processo
 ligado; atualizações de código seguem o procedimento de entrega explícito.
+Mudanças em `server/capture/` também exigem atualizar a imagem do capturador,
+conforme [operação da captura](./README.capture.md). O adaptador
+`server/screenshotService.ts` é compartilhado pela API e pelo executor.
 
 ## Configuração privada
 
@@ -72,13 +79,13 @@ das configurações privadas. O comando de deploy não transfere credenciais.
 As chamadas de modelos continuam usando os provedores já configurados e têm
 cobrança própria, independente dos créditos de hospedagem AWS.
 
-A captura visual de páginas externas usa outro serviço, configurado em
-`SCREENSHOT_SERVICE_URL`. Ative `SCREENSHOT_PUBLIC_NETWORK_ONLY=true` somente
-depois de verificar o bloqueio de destinos privados também em redirects e
-sub-recursos. A extração HTML/CSS existente permanece disponível nesse intervalo.
-O procedimento para hospedar o capturador na mesma máquina está em
-[README.capture.md](./README.capture.md). Código preparado não significa serviço
-ativado; confirme os testes e a configuração remota descritos nesse procedimento.
+A captura visual de páginas externas usa o serviço AWS em
+`https://capture.postspark.com.br`, configurado em `SCREENSHOT_SERVICE_URL`.
+Cada consumidor precisa de `SCREENSHOT_SERVICE_TOKEN` privado e
+`SCREENSHOT_PUBLIC_NETWORK_ONLY=true`. O serviço valida e fixa DNS de destinos
+públicos em cada conexão, redirecionamento e sub-recurso. Sem configuração ou
+quando uma página não pode ser capturada, a extração HTML/CSS permanece disponível.
+Operação, atualização e testes: [README.capture.md](./README.capture.md).
 
 ## Operação e recuperação
 
@@ -91,6 +98,10 @@ O helper solicita chaves SSH temporárias à AWS em cada operação. A chave pú
 do servidor é fixada localmente; mudanças inesperadas são rejeitadas. Se o
 endereço de saída do operador mudar, atualize a regra SSH no Lightsail para o
 novo `/32`; não abra a porta para `0.0.0.0/0`.
+Agentes com o MCP nativo obtêm `GetInstanceAccessDetails` por esse conector e
+passam o JSON privado (0600) em `--access-details-file` aos helpers de SSH e deploy.
+Nesse modo os helpers não executam a CLI AWS. As chaves têm validade curta;
+renove o arquivo pelo MCP antes de outra conexão quando expirarem.
 
 As revisões ficam em `/opt/postspark-worker/releases/`. A seleção atual fica em
 `current.env`, e a anterior é preservada em `previous.env`. Para retornar a uma

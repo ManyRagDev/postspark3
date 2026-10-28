@@ -3,6 +3,9 @@
 O serviço em `server/capture/` substitui o microserviço antigo da Railway. Mantém
 captura desktop/mobile, lote de até cinco páginas, recortes por seletor e
 descoberta de links. A API e o executor usam `server/screenshotService.ts`.
+O endpoint de produção é `https://capture.postspark.com.br`; o DNS aponta para o
+IP estático `18.189.144.221` da instância existente. Caddy mantém HTTPS com os
+certificados persistidos nos volumes próprios. O segredo não aparece na URL.
 
 Este procedimento não cria outra máquina. Confira primeiro o uso da instância
 `postspark-worker-prod` em `us-east-2` e o plano/créditos AWS. O limite do capturador
@@ -13,9 +16,9 @@ antes de aumentar carga; os testes locais não comprovam a capacidade do servido
 ## Rede e credenciais
 
 - O capturador não recebe configuração do banco, chaves de IA ou credenciais AWS.
-- `SCREENSHOT_SERVICE_TOKEN` é obrigatório (pelo menos 32 bytes). Gere um segredo
-  aleatório para produção; salve-o em `/opt/postspark-capture/shared/capture.env`
-  com permissão 0600, fora do Git/imagem. Compartilhe somente esse segredo com a
+- `SCREENSHOT_SERVICE_TOKEN` é obrigatório (pelo menos 32 bytes). A primeira
+  ativação gera o segredo em `/opt/postspark-capture/shared/capture.env`, com
+  permissão 0600, fora do Git/imagem. Compartilhe somente esse segredo com a
   API da Vercel e o executor que chamarão o capturador.
 - As capturas exigem `Authorization: Bearer ...`. `/health` é somente diagnóstico.
 - Antes de qualquer socket HTTP, cada endereço é validado pelo módulo existente
@@ -29,6 +32,19 @@ antes de aumentar carga; os testes locais não comprovam a capacidade do servido
   a alternativa existente quando a captura falha.
 
 ## Construção e teste
+
+O procedimento automatizado empacota somente a fonte necessária, verifica SHA256,
+constrói a imagem e testa a API real antes de permitir ativação:
+
+```sh
+python3 ops/aws/deploy-capture.py --base-image postspark-worker:REVISAO_VERIFICADA
+python3 ops/aws/deploy-capture.py --base-image postspark-worker:REVISAO_VERIFICADA --activate
+```
+
+O cliente de teste roda em outro container, para não compartilhar o limite de
+memória do serviço. Os arquivos públicos de prova usam uma pasta própria;
+credenciais e configurações do banco não participam do teste. A ativação preserva
+o token, a configuração HTTPS e os volumes de certificados existentes.
 
 Use uma revisão de imagem do executor já verificada como base. Os arquivos
 copiados ao contexto devem conter somente `server/capture/` e
@@ -48,13 +64,13 @@ separado e execute Compose com esse `--env-file`. O compose base publica somente
 ```sh
 docker compose --env-file current.env -f compose.capture.yml up -d --wait
 docker compose --env-file current.env -f compose.capture.yml exec -T capture \
-  node --import tsx ops/aws/capture-probe.ts
+  node -e "fetch('http://127.0.0.1:3000/health').then(async r=>console.log(await r.json()))"
 ```
 
-O probe usa sites públicos e a API real: verifica PNG desktop/mobile, lote,
+O probe do procedimento automatizado usa a página pública do PostSpark e a API real: verifica PNG desktop/mobile, lote,
 recorte, descoberta, rejeição de chamada sem token e bloqueio do metadata AWS.
 Não chama IA, banco, cobrança nem gera posts. Confira também o PNG produzido em
-`/tmp/postspark-capture-desktop.png`, o consumo conjunto de memória, os logs e a
+`/opt/postspark-capture/proofs/desktop.png`, o consumo conjunto de memória, os logs e a
 continuidade do heartbeat do executor.
 
 ## Conectar produção
@@ -75,6 +91,6 @@ continuidade do heartbeat do executor.
 5. Publique os consumidores e teste a captura de um site no PostSpark autenticado.
    Uma captura sintética ou `/health` não comprova o fluxo completo de marca.
 
-Alterações de DNS, firewall, certificados e ambiente ainda precisam ser
-executadas/verificadas no destino. Este arquivo descreve o procedimento; a
-presença do código não comprova uma migração ativa.
+Uma troca de host exige conferir DNS, firewall, certificados e cada consumidor.
+O procedimento não cria outra máquina nem faz upgrade do plano AWS. A presença
+da imagem ou um health check sozinho não comprovam o fluxo completo no aplicativo.

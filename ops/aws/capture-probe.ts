@@ -36,7 +36,7 @@ assert.equal(
   503
 );
 const desktop = await png(await request("/screenshot", { url }), 1440, 900);
-await writeFile("/tmp/postspark-capture-desktop.png", desktop);
+await writeFile(process.env.CAPTURE_PROBE_OUTPUT || "/tmp/postspark-capture-desktop.png", desktop);
 await png(await request("/screenshot/mobile", { url }), 390, 844);
 const [batch, elements] = await Promise.all([
   request("/screenshot/multi", { urls: [url] }).then(async response => {

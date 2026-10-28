@@ -3276,3 +3276,25 @@ O deploy do executor tem procedimento explícito, independente da entrega Vercel
 imagem, executa o renderer real em container sem rede e só então permite ativar
 a revisão. Backend, contratos e renderer devem permanecer compatíveis entre os
 dois destinos. Operação, configuração privada e recuperação: [executor AWS](ops/aws/README.md).
+
+### Captura de sites no mesmo Lightsail
+
+O serviço antes hospedado na Railway passa a ser implementado em `server/capture/`
+e exposto por `https://capture.postspark.com.br`, na mesma instância, com IP fixo.
+Um container próprio mantém Chromium e um contexto de navegação ativo por vez;
+Caddy termina HTTPS e persiste os certificados em volumes separados. O capturador
+não recebe credenciais de banco, modelos ou AWS. O adaptador compartilhado
+`server/screenshotService.ts` envia `SCREENSHOT_SERVICE_TOKEN` somente ao serviço.
+Cada consumidor configura esse segredo no backend, além da URL e da garantia
+`SCREENSHOT_PUBLIC_NETWORK_ONLY=true`; o navegador do usuário não recebe o token.
+
+Documentos, redirecionamentos e sub-recursos HTTP passam por validação de destino
+público e resolução DNS fixada por conexão. Service workers, WebSockets, métodos
+de escrita e portas fora de 80/443 são bloqueados. Páginas que dependam desses
+recursos, login ou desafios contra robôs podem exigir a alternativa HTML/CSS já
+existente. A migração não altera billing, persistência de posts ou `CanvasPostModel`.
+
+A entrega da captura é independente da imagem de geração e da publicação Vercel.
+`ops/aws/deploy-capture.py` testa a API em containers limitados antes da ativação;
+atualizações preservam o token e os certificados. Procedimento e limites:
+[captura AWS](ops/aws/README.capture.md).

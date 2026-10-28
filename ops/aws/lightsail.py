@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--profile', default='postspark')
     parser.add_argument('--region', default='us-east-2')
     parser.add_argument('--instance', default='postspark-worker-prod')
+    parser.add_argument('--access-details-file', type=Path, help='Private accessDetails JSON obtained through the native AWS MCP; skips AWS CLI')
     commands = parser.add_subparsers(dest='action', required=True)
     ssh = commands.add_parser('ssh')
     ssh.add_argument('command', nargs='?', default='true')
@@ -30,17 +31,22 @@ def main():
     download.add_argument('source')
     download.add_argument('destination', type=Path)
     args = parser.parse_args()
-    cli = shutil.which('aws')
-    if not cli:
-        raise SystemExit('AWS CLI not found. Install it and run aws login --profile postspark.')
-    request = subprocess.run([
-        cli, 'lightsail', 'get-instance-access-details', '--instance-name', args.instance,
-        '--protocol', 'ssh', '--profile', args.profile, '--region', args.region,
-        '--no-cli-pager', '--output', 'json',
-    ], capture_output=True, text=True, check=False)
-    if request.returncode:
-        raise SystemExit(request.stderr)
-    details = json.loads(request.stdout)['accessDetails']
+    if args.access_details_file:
+        if args.access_details_file.stat().st_mode & 0o077:
+            raise SystemExit('Access details file must be private (0600)')
+        details = json.loads(args.access_details_file.read_text())
+    else:
+        cli = shutil.which('aws')
+        if not cli:
+            raise SystemExit('AWS CLI not found. Install it and run aws login --profile postspark.')
+        request = subprocess.run([
+            cli, 'lightsail', 'get-instance-access-details', '--instance-name', args.instance,
+            '--protocol', 'ssh', '--profile', args.profile, '--region', args.region,
+            '--no-cli-pager', '--output', 'json',
+        ], capture_output=True, text=True, check=False)
+        if request.returncode:
+            raise SystemExit(request.stderr)
+        details = json.loads(request.stdout)['accessDetails']
     ip = str(ipaddress.ip_address(details['ipAddress']))
     user = details['username']
     if not user.replace('-', '').replace('_', '').isalnum():
@@ -78,7 +84,7 @@ def main():
             os.chmod(file, 0o600)
         options = [
             '-i', str(key), '-o', f'CertificateFile={cert}',
-            '-o', f'UserKnownHostsFile={known}', '-o', f'StrictHostKeyChecking={strict}',
+            '-o', f'UserKnownHostsFile="{known}"', '-o', f'StrictHostKeyChecking={strict}',
             '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes',
             '-o', 'ConnectTimeout=15', '-o', 'ServerAliveInterval=15',
             '-o', 'ServerAliveCountMax=3',

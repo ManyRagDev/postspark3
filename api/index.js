@@ -2166,6 +2166,13 @@ var init_publicUrl = __esm({
 function serviceUrl(path5) {
   return `${SCREENSHOT_SERVICE_URL}${path5}`;
 }
+function serviceHeaders() {
+  const token = process.env.SCREENSHOT_SERVICE_TOKEN;
+  return {
+    "Content-Type": "application/json",
+    ...token ? { Authorization: `Bearer ${token}` } : {}
+  };
+}
 function warnMissing(fn) {
   console.warn(`[screenshotService] ${fn}: SCREENSHOT_SERVICE_URL not configured`);
   return null;
@@ -2178,7 +2185,7 @@ async function captureScreenshot(url, type = "desktop") {
     await publicUrl(url);
     const response = await fetch(serviceUrl(endpoint), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: serviceHeaders(),
       body: JSON.stringify({
         url,
         viewport: type === "desktop" ? { width: 1440, height: 900 } : void 0
@@ -2207,7 +2214,7 @@ async function captureMultipleScreenshots(urls, viewport = { width: 1440, height
     await Promise.all(urls.map((url) => publicUrl(url)));
     const response = await fetch(serviceUrl("/screenshot/multi"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: serviceHeaders(),
       body: JSON.stringify({ urls, viewport, maxPages }),
       signal: AbortSignal.timeout(BATCH_TIMEOUT_MS)
     });
@@ -2239,9 +2246,10 @@ async function captureElements(url, selectors, viewport = { width: 1440, height:
   if (selectors.length === 0) return {};
   console.log(`[screenshotService] Element capture: ${selectors.length} selector(s) on ${url}`);
   try {
+    await publicUrl(url);
     const response = await fetch(serviceUrl("/screenshot/element"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: serviceHeaders(),
       body: JSON.stringify({ url, selectors, viewport }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
     });
@@ -2290,7 +2298,7 @@ async function discoverPages(url, maxLinks = 8) {
     await publicUrl(url);
     const response = await fetch(serviceUrl("/discover"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: serviceHeaders(),
       body: JSON.stringify({ url, maxLinks }),
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
     });
@@ -4565,7 +4573,7 @@ function readArsenalComposition(value) {
   resolveArsenalShapePoints(c);
   return c;
 }
-var ARSENAL_COMPILER, ARSENAL_VARIABLE_COMPILER, arsenalCompilerSchema, arsenalContentSourceSchema, id2, hash2, n, color, geometry, arsenalAssetSchema, arsenalUserMediaSchema, arsenalMediaSlotSchema, arsenalContentFragmentSchema, arsenalTextFragmentSchema, arsenalPieceSchema, arsenalInstanceSchema, arsenalGroupSchema, arsenalBindingSchema, relationBase, output, relationMeta, arsenalRelationSchema, arsenalVariantSchema, arsenalResolvedElementSchema, arsenalOriginSchema, arsenalAuthorialLayerSchema, arsenalCustomBackgroundSchema, arsenalLogoSchema, arsenalUserFontSchema, arsenalElementEffectSchema, arsenalCompositionBaseFields, arsenalCompositionV2Schema, arsenalCompositionV3Schema, arsenalCompositionSchema, pinnedCandidateV2Schema, catalogBundleV2Schema;
+var ARSENAL_COMPILER, ARSENAL_VARIABLE_COMPILER, arsenalCompilerSchema, arsenalContentSourceSchema, id2, hash2, n, color, geometry, arsenalAssetSchema, arsenalUserMediaSchema, arsenalMediaSlotSchema, arsenalContentFragmentSchema, arsenalTextFragmentSchema, arsenalPieceSchema, arsenalInstanceSchema, arsenalGroupSchema, arsenalBindingSchema, relationBase, output, relationMeta, arsenalRelationSchema, arsenalVariantSchema, arsenalResolvedElementSchema, arsenalOriginSchema, arsenalAuthorialLayerSchema, arsenalCustomBackgroundSchema, arsenalLogoSchema, arsenalUserFontSchema, arsenalElementEffectSchema, canvasElementStateSchema, canvasElementStatesSchema, arsenalCompositionBaseFields, arsenalCompositionV2Schema, arsenalCompositionV3Schema, arsenalCompositionSchema, pinnedCandidateV2Schema, catalogBundleV2Schema;
 var init_designArsenal = __esm({
   "shared/designArsenal.ts"() {
     "use strict";
@@ -4922,6 +4930,7 @@ var init_designArsenal = __esm({
         }).strict()
       ).optional(),
       url: z6.string().optional(),
+      imagePrompt: z6.string().max(2e3).optional(),
       focalX: n.min(0).max(1).optional(),
       focalY: n.min(0).max(1).optional(),
       effect: z6.string().optional(),
@@ -4929,6 +4938,7 @@ var init_designArsenal = __esm({
     }).strict();
     arsenalCustomBackgroundSchema = z6.object({
       fill: color.optional(),
+      fitMode: z6.enum(["cover", "contain"]).optional(),
       imageUrl: z6.string().optional(),
       focalX: n.min(0).max(1).optional(),
       focalY: n.min(0).max(1).optional(),
@@ -4968,7 +4978,15 @@ var init_designArsenal = __esm({
       blur: n.min(0).optional(),
       offset: z6.object({ x: n, y: n }).strict().optional()
     }).strict();
+    canvasElementStateSchema = z6.object({
+      hidden: z6.boolean().optional(),
+      locked: z6.boolean().optional()
+    }).strict();
+    canvasElementStatesSchema = z6.record(z6.string().min(1), canvasElementStateSchema);
     arsenalCompositionBaseFields = {
+      elementStates: canvasElementStatesSchema.optional(),
+      /** Last fill written by an explicit palette action; other fill overrides remain manual. */
+      paletteAppliedFills: z6.record(id2, color).optional(),
       origin: arsenalOriginSchema,
       mediaSlotPrompts: z6.record(id2, z6.string().max(2e3)).optional(),
       base: arsenalVariantSchema,

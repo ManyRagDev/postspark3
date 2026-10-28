@@ -86,7 +86,7 @@ export function createCaptureApp(
                 stop.signal,
                 async page =>
                   (
-                    await page.screenshot({ type: "png", timeout: 5000 })
+                    await page.screenshot({ type: "png", timeout: 5000, animations: "disabled" })
                   ).toString("base64")
               );
             } catch {
@@ -121,7 +121,7 @@ export function createCaptureApp(
                     continue;
                   }
                   elements[selector] = (
-                    await target.screenshot({ type: "png", timeout: 1000 })
+                    await target.screenshot({ type: "png", timeout: 5000, animations: "disabled" })
                   ).toString("base64");
                 } catch {
                   notFound.push(selector);
@@ -203,7 +203,7 @@ export function createCaptureApp(
             url,
             targetViewport,
             stop.signal,
-            page => page.screenshot({ type: "png", timeout: 5000 })
+            page => page.screenshot({ type: "png", timeout: 5000, animations: "disabled" })
           );
           res.type("png").send(png);
         }

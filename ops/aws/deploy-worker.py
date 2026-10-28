@@ -15,11 +15,14 @@ root = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--activate', action='store_true')
 parser.add_argument('--profile', default='postspark')
+parser.add_argument('--access-details-file', type=Path, help='Private SSH access JSON obtained through native AWS MCP')
 args = parser.parse_args()
 
 subprocess.run([sys.executable, str(root/'ops/aws/package-worker.py')], cwd=root, check=True)
 release = json.loads(Path('/tmp/postspark-worker-release.json').read_text())
 helper = [sys.executable, str(root/'ops/aws/lightsail.py'), '--profile', args.profile]
+if args.access_details_file:
+    helper.extend(['--access-details-file', str(args.access_details_file.resolve())])
 subprocess.run([*helper, 'upload', release['archive'], '/tmp/postspark-worker-source.tar.gz'], check=True)
 subprocess.run([*helper, 'upload', str(root/'ops/aws/release-worker.sh'), '/tmp/postspark-worker-release.sh'], check=True)
 command = 'sudo sh /tmp/postspark-worker-release.sh build ' + shlex.quote(release['release']) + ' ' + shlex.quote(release['sha256'])

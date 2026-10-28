@@ -7,7 +7,7 @@ exec >> /var/log/postspark-worker-bootstrap.log 2>&1
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get update
-apt-get install -y --no-install-recommends docker.io docker-compose-v2 ca-certificates curl
+apt-get install -y --no-install-recommends docker.io docker-compose-v2 docker-buildx ca-certificates curl
 systemctl enable --now docker
 
 # Give builds a small emergency buffer on the 2 GiB host; runtime remains bounded.
