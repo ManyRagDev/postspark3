@@ -9,6 +9,7 @@ import {
   overrideArsenalElement,
   updateArsenalAuthorialLayer,
   putArsenalComposition,
+  addArsenalUserFont,
 } from "./arsenalComposition";
 
 /** Bridge slide-scoped UI commands to the authoritative composition. */
@@ -21,6 +22,7 @@ export function applyCompositionAppearancePatch(
   if (!c) return;
   const changedSlide = patch.slides?.[post.currentSlideIndex];
   const value = <K extends keyof CanvasPostModel>(key: K) => patch[key];
+  if (patch.userFonts) for (const font of patch.userFonts) c = addArsenalUserFont(c, font);
   const headline = patch.headline ?? changedSlide?.headline;
   const subtext = patch.subtext ?? changedSlide?.subtext;
   if (

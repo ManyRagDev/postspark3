@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ChevronDown, Search, Check, Type, X } from "lucide-react";
-import { FONT_CATALOG, loadCatalogFonts, loadFontByName, type FontEntry } from "@/lib/fonts";
+import {
+  FONT_CATALOG,
+  loadCatalogFonts,
+  loadFontByName,
+  type FontEntry,
+} from "@/lib/fonts";
 
 interface FontPickerDropdownProps {
   value: string;
@@ -8,9 +13,16 @@ interface FontPickerDropdownProps {
   uploadedFontName?: string | null;
   userFonts?: import("@shared/designArsenal").ArsenalUserFont[];
   className?: string;
+  mixed?: boolean;
 }
 
-type CategoryTab = "all" | "serif" | "display" | "sansSerif" | "mono" | "upload";
+type CategoryTab =
+  | "all"
+  | "serif"
+  | "display"
+  | "sansSerif"
+  | "mono"
+  | "upload";
 
 const CATEGORY_TABS: Array<{ id: CategoryTab; label: string }> = [
   { id: "all", label: "Todas" },
@@ -26,6 +38,7 @@ export default function FontPickerDropdown({
   uploadedFontName,
   userFonts,
   className = "",
+  mixed = false,
 }: FontPickerDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -62,7 +75,10 @@ export default function FontPickerDropdown({
     if (!isOpen) return;
 
     const handlePointerDown = (e: MouseEvent | TouchEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -86,11 +102,13 @@ export default function FontPickerDropdown({
 
   // Build unified font list
   const allFonts = useMemo(() => {
-    const list: Array<FontEntry & { category: CategoryTab; categoryLabel: string }> = [];
+    const list: Array<
+      FontEntry & { category: CategoryTab; categoryLabel: string }
+    > = [];
 
     if (userFonts && userFonts.length > 0) {
-      userFonts.forEach((uf) => {
-        if (!list.some((existing) => existing.name === uf.family)) {
+      userFonts.forEach(uf => {
+        if (!list.some(existing => existing.name === uf.family)) {
           list.push({
             name: uf.family,
             label: uf.family,
@@ -108,16 +126,16 @@ export default function FontPickerDropdown({
       });
     }
 
-    FONT_CATALOG.serif.forEach((f) =>
+    FONT_CATALOG.serif.forEach(f =>
       list.push({ ...f, category: "serif", categoryLabel: "Serifada" })
     );
-    FONT_CATALOG.display.forEach((f) =>
+    FONT_CATALOG.display.forEach(f =>
       list.push({ ...f, category: "display", categoryLabel: "Display" })
     );
-    FONT_CATALOG.sansSerif.forEach((f) =>
+    FONT_CATALOG.sansSerif.forEach(f =>
       list.push({ ...f, category: "sansSerif", categoryLabel: "Sans-Serif" })
     );
-    FONT_CATALOG.mono.forEach((f) =>
+    FONT_CATALOG.mono.forEach(f =>
       list.push({ ...f, category: "mono", categoryLabel: "Mono" })
     );
 
@@ -126,20 +144,31 @@ export default function FontPickerDropdown({
 
   // Current font info
   const currentFontInfo = useMemo(() => {
-    const match = allFonts.find((f) => f.name.toLowerCase() === value.toLowerCase());
+    if (mixed)
+      return {
+        name: value,
+        label: "Várias fontes",
+        category: "sansSerif" as CategoryTab,
+        categoryLabel: "Seleção mista",
+      };
+    const match = allFonts.find(
+      f => f.name.toLowerCase() === value.toLowerCase()
+    );
     if (match) return match;
     return {
       name: value || "Inter",
-      label: value || "Inter",
+      label: /^Arsenal_[a-f0-9]+$/i.test(value)
+        ? "Fonte original do design"
+        : value || "Inter",
       category: "sansSerif" as CategoryTab,
       categoryLabel: "Padrão",
     };
-  }, [allFonts, value]);
+  }, [allFonts, value, mixed]);
 
   // Filtered fonts
   const filteredFonts = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return allFonts.filter((f) => {
+    return allFonts.filter(f => {
       const matchesCategory = activeTab === "all" || f.category === activeTab;
       const matchesSearch =
         !query ||
@@ -157,7 +186,10 @@ export default function FontPickerDropdown({
 
   const tabs = useMemo(() => {
     if ((userFonts && userFonts.length > 0) || uploadedFontName) {
-      return [...CATEGORY_TABS, { id: "upload" as CategoryTab, label: "Próprias" }];
+      return [
+        ...CATEGORY_TABS,
+        { id: "upload" as CategoryTab, label: "Próprias" },
+      ];
     }
     return CATEGORY_TABS;
   }, [userFonts, uploadedFontName]);
@@ -167,7 +199,7 @@ export default function FontPickerDropdown({
       {/* ── Trigger Button ── */}
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => setIsOpen(prev => !prev)}
         className="w-full flex items-center justify-between gap-2 p-2.5 rounded-xl border border-white/10 bg-[#12141A] hover:bg-white/6 transition-all text-left cursor-pointer group focus:outline-none focus:border-[oklch(0.78_0.22_48)]"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -199,7 +231,9 @@ export default function FontPickerDropdown({
           <ChevronDown
             size={14}
             className={`text-white/50 transition-transform duration-200 ${
-              isOpen ? "rotate-180 text-[oklch(0.78_0.22_48)]" : "group-hover:text-white"
+              isOpen
+                ? "rotate-180 text-[oklch(0.78_0.22_48)]"
+                : "group-hover:text-white"
             }`}
           />
         </div>
@@ -210,12 +244,15 @@ export default function FontPickerDropdown({
         <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl bg-[#0f1118]/98 border border-white/15 shadow-2xl backdrop-blur-2xl p-2.5 space-y-2 max-h-[380px] flex flex-col animate-in fade-in zoom-in-95 duration-150">
           {/* Campo de Busca */}
           <div className="relative shrink-0">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" />
+            <Search
+              size={13}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40"
+            />
             <input
               ref={searchInputRef}
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={e => setSearch(e.target.value)}
               placeholder="Buscar tipografia..."
               className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-7 py-1.5 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)] transition-colors"
             />
@@ -232,7 +269,7 @@ export default function FontPickerDropdown({
 
           {/* Abas / Filtros de Categoria */}
           <div className="flex gap-1 overflow-x-auto custom-scrollbar pb-1 shrink-0">
-            {tabs.map((tab) => {
+            {tabs.map(tab => {
               const isActive = activeTab === tab.id;
               return (
                 <button
@@ -258,7 +295,7 @@ export default function FontPickerDropdown({
                 Nenhuma tipografia encontrada para "{search}".
               </div>
             ) : (
-              filteredFonts.map((font) => {
+              filteredFonts.map(font => {
                 const isSelected =
                   font.name.toLowerCase() === value.toLowerCase();
 
@@ -293,7 +330,10 @@ export default function FontPickerDropdown({
                         Ag 123
                       </span>
                       {isSelected && (
-                        <Check size={14} className="text-[oklch(0.78_0.22_48)] shrink-0" />
+                        <Check
+                          size={14}
+                          className="text-[oklch(0.78_0.22_48)] shrink-0"
+                        />
                       )}
                     </div>
                   </button>

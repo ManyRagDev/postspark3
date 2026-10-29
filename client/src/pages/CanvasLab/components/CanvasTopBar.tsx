@@ -1,4 +1,3 @@
-import { generationAspectRatios } from "@shared/aspectRatios";
 import {
   AlertCircle,
   ArrowDownToLine,
@@ -7,15 +6,13 @@ import {
   Check,
   FileArchive,
   Loader2,
-  Layers3,
-  Magnet,
   MoreHorizontal,
   Plus,
   Redo2,
   RotateCcw,
   Undo2,
-  ZoomIn,
-  ZoomOut,
+  SlidersHorizontal,
+  Copy,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -23,13 +20,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import UserTopMenu from "@/components/UserTopMenu";
-import { ASPECT_RATIO_CAPTIONS, type AspectRatioType } from "./types";
+import type { AspectRatioType } from "./types";
 import type { AutoSaveState } from "../lib/autoSaveManager";
 
 interface CanvasTopBarProps {
@@ -59,28 +54,26 @@ interface CanvasTopBarProps {
   isAutoSaveEnabled?: boolean;
   onAutoSaveChange?: (enabled: boolean) => void;
   onReplicate?: () => void;
+  onTechnical?: () => void;
+  onCanvasTools?: () => void;
+  onSaveCopy?: () => void;
 }
 
 const iconButton =
-  "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/75 transition-colors hover:bg-white/12 hover:text-white disabled:cursor-not-allowed disabled:opacity-35 sm:h-10 sm:w-10";
+  "grid min-h-11 min-w-11 shrink-0 place-items-center rounded-xl text-white/80 hover:bg-white/10 disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-orange-300";
+const menuClass =
+  "[&_[role=menuitem]]:min-h-11 [&_[role=menuitemcheckbox]]:min-h-11 w-64 border-white/15 bg-[#10141D] text-white";
 
 export default function CanvasTopBar({
-  aspectRatio,
-  onAspectRatioChange,
-  zoom,
-  onZoomIn,
-  onZoomOut,
-  onResetZoom,
   onExportPng,
   onExportZip,
   onBackToGallery,
-  isSnapEnabled = true,
-  onToggleSnap,
   isExportingZip = false,
   slideCount = 1,
   onAddSlide,
   onRestart,
   onSave,
+  onSaveCopy,
   isSaving = false,
   onUndo,
   onRedo,
@@ -90,272 +83,201 @@ export default function CanvasTopBar({
   lastSavedAt,
   isAutoSaveEnabled = false,
   onAutoSaveChange,
-  onReplicate,
+  onTechnical,
+  onCanvasTools,
 }: CanvasTopBarProps) {
   const saveStatus =
-    autoSaveState === "saving"
-      ? "Salvando automaticamente"
+    autoSaveState === "saving" || isSaving
+      ? "Salvando…"
       : autoSaveState === "saved"
         ? "Alterações salvas"
         : autoSaveState === "dirty"
           ? "Alterações não salvas"
           : autoSaveState === "error"
-            ? "Erro no salvamento automático"
+            ? "Não foi possível salvar"
             : "";
-
   return (
-    <header className="relative z-30 flex h-14 w-full shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-[#0a0d16]/95 px-2 backdrop-blur-xl sm:px-4 xl:px-5">
-      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-        <div
-          className="flex shrink-0 items-center gap-1.5"
-          aria-label="PostSpark Studio"
-        >
-          <span
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-orange-400/35 bg-orange-500/10 text-lg text-orange-400 shadow-[0_0_18px_rgba(255,92,0,0.15)]"
-            aria-hidden="true"
-          >
-            ✦
-          </span>
-          <div className="hidden leading-none sm:block">
-            <span className="block bg-gradient-to-r from-white via-white to-orange-300 bg-clip-text text-sm font-black tracking-tight text-transparent">
-              PostSpark
-            </span>
-            <span className="mt-0.5 block text-[9px] font-bold tracking-[0.24em] text-orange-400">
-              STUDIO
-            </span>
-          </div>
-          <span className={`hidden text-[10px] font-black tracking-[0.12em] text-orange-200 ${onReplicate ? "sm:hidden" : "min-[380px]:inline sm:hidden"}`}>
-            STUDIO
-          </span>
-        </div>
+    <>
+    <header className="z-30 flex min-h-14 w-full shrink-0 flex-wrap items-center justify-between gap-1 border-b border-white/10 bg-[#0a0d16] px-1 sm:px-3">
+      <div className="flex min-w-0 items-center gap-1 sm:gap-3">
         {onBackToGallery && (
           <button
             type="button"
+            className={iconButton}
             onClick={onBackToGallery}
-            className={`${iconButton} sm:hidden`}
             aria-label="Voltar para a galeria"
             title="Voltar para a galeria"
           >
-            <ArrowLeft size={17} />
+            <ArrowLeft size={18} />
           </button>
         )}
-        {onUndo && (
-          <div
-            className="flex shrink-0 items-center gap-1 rounded-xl border border-orange-400/20 bg-orange-400/[0.06] p-0.5"
-            role="group"
-            aria-label="Histórico de edição"
+        <div
+          className="hidden shrink-0 text-sm font-bold sm:block"
+          aria-label="PostSpark Studio"
+        >
+          <span className="mr-2 text-orange-400">✦</span>PostSpark
+        </div>
+        <div
+          className="flex shrink-0 items-center"
+          role="group"
+          aria-label="Histórico de edição"
+        >
+          <button
+            type="button"
+            className={iconButton}
+            onClick={onUndo}
+            disabled={!canUndo}
+            aria-label="Desfazer"
+            title="Desfazer (Ctrl+Z)"
           >
-            <button
-              type="button"
-              onClick={onUndo}
-              disabled={!canUndo}
-              className="flex h-8 w-8 items-center justify-center gap-1.5 rounded-lg text-white transition-colors hover:bg-orange-400/15 disabled:text-white/35 sm:h-9 sm:w-9 xl:w-auto xl:px-2.5"
-              aria-label="Desfazer"
-              title="Desfazer (Ctrl+Z / Cmd+Z)"
-            >
-              <Undo2 size={17} />
-              <span className="hidden text-xs font-semibold xl:inline">
-                Desfazer
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={onRedo}
-              disabled={!canRedo}
-              className="flex h-8 w-8 items-center justify-center gap-1.5 rounded-lg text-white transition-colors hover:bg-orange-400/15 disabled:text-white/35 sm:h-9 sm:w-9 xl:w-auto xl:px-2.5"
-              aria-label="Refazer"
-              title="Refazer"
-            >
-              <Redo2 size={17} />
-              <span className="hidden text-xs font-semibold xl:inline">
-                Refazer
-              </span>
-            </button>
-          </div>
-        )}
+            <Undo2 size={18} />
+          </button>
+          <button
+            type="button"
+            className={iconButton}
+            onClick={onRedo}
+            disabled={!canRedo}
+            aria-label="Refazer"
+            title="Refazer (Ctrl+Shift+Z)"
+          >
+            <Redo2 size={18} />
+          </button>
+        </div>
       </div>
-
       <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-        {onReplicate && (
-          <button type="button" onClick={onReplicate} aria-label="Replicar formatação em outros slides" title="Replicar formatação em outros slides" className={`${iconButton} hidden min-[390px]:flex sm:hidden`}>
-            <Layers3 size={17} />
-          </button>
-        )}
-        {onSave && onAutoSaveChange && (
-          <label
-            className="hidden cursor-pointer items-center gap-1.5 text-[11px] text-white/70 lg:flex"
-            title="Salvar automaticamente após alterações"
-          >
-            <input
-              type="checkbox"
-              checked={isAutoSaveEnabled}
-              onChange={event => onAutoSaveChange(event.target.checked)}
-              className="h-4 w-4 cursor-pointer accent-[#FF5C00]"
-            />
-            <span>Auto-save</span>
-          </label>
-        )}
         {saveStatus && (
           <span
-            className="hidden items-center gap-1.5 text-[11px] text-white/55 xl:flex"
+            role="status"
+            aria-label={saveStatus}
             title={
               lastSavedAt
-                ? `Último salvamento: ${lastSavedAt.toLocaleTimeString("pt-BR")}`
+                ? `${saveStatus} · ${lastSavedAt.toLocaleTimeString("pt-BR")}`
                 : saveStatus
             }
-            role="status"
+            className="hidden items-center gap-1 text-xs text-white/60 lg:flex"
           >
-            {autoSaveState === "saving" ? (
-              <Loader2 size={13} className="animate-spin text-sky-400" />
+            {autoSaveState === "saving" || isSaving ? (
+              <Loader2 size={14} className="animate-spin" />
             ) : autoSaveState === "saved" ? (
-              <Check size={13} className="text-emerald-400" />
+              <Check size={14} className="text-emerald-400" />
             ) : autoSaveState === "error" ? (
-              <AlertCircle size={13} className="text-red-400" />
+              <AlertCircle size={16} className="text-red-400" />
             ) : (
               <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
             )}
-            <span>{saveStatus}</span>
+            <span className="hidden lg:inline">{saveStatus}</span>
           </span>
         )}
         {onSave && (
           <button
             type="button"
+            className={`${iconButton.replace("grid ", "flex ")} items-center justify-center gap-1 border border-white/15 px-2 sm:px-3`}
             onClick={onSave}
             disabled={isSaving}
-            className="flex h-9 min-w-9 shrink-0 items-center justify-center gap-2 rounded-xl border border-orange-400/35 bg-orange-400/15 px-2 text-orange-100 transition-colors hover:bg-orange-400/25 disabled:opacity-50 sm:h-10 sm:px-3"
             aria-label={isSaving ? "Salvando post" : "Salvar post"}
-            title="Salvar este post na sua biblioteca"
           >
-            {isSaving ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <BookmarkCheck size={16} />
-            )}
-            <span className="hidden text-xs font-bold sm:inline">
-              {isSaving ? "Salvando" : "Salvar"}
-            </span>
+            <BookmarkCheck size={16} />
+            <span className="text-xs">Salvar</span>
           </button>
         )}
-        <button
-          type="button"
-          onClick={onExportPng}
-          className="hidden h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-orange-400 to-orange-600 px-3 text-xs font-bold text-black shadow-[0_0_20px_rgba(255,92,0,0.18)] transition hover:brightness-110 xl:flex"
-        >
-          <ArrowDownToLine size={15} /> Exportar 4K
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex min-h-11 items-center gap-1 rounded-xl bg-orange-400 px-3 text-xs font-bold text-black hover:bg-orange-300"
+              aria-label="Baixar post"
+            >
+              <ArrowDownToLine size={16} />
+              Baixar
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className={menuClass}>
+            <DropdownMenuLabel>Baixar a arte</DropdownMenuLabel>
+            <DropdownMenuItem onSelect={onExportPng}>
+              <ArrowDownToLine />
+              Imagem do slide atual · PNG 4K
+            </DropdownMenuItem>
+            {slideCount > 1 && (
+              <DropdownMenuItem
+                onSelect={onExportZip}
+                disabled={isExportingZip}
+              >
+                <FileArchive />
+                {isExportingZip
+                  ? "Preparando arquivos…"
+                  : "Todos os slides · ZIP"}
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
               className={iconButton}
               aria-label="Mais ações do editor"
-              title="Mais ações do editor"
             >
-              <MoreHorizontal size={19} />
+              <MoreHorizontal size={18} />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="w-60 border-white/15 bg-[#10141D] text-white"
-          >
-            {onBackToGallery && (
-              <DropdownMenuItem
-                onSelect={onBackToGallery}
-                className="hidden sm:flex"
-              >
-                <ArrowLeft /> Galeria
+          <DropdownMenuContent align="end" className={menuClass}>
+            {onSave && (
+              <DropdownMenuItem onSelect={onSave}>
+                <BookmarkCheck />
+                Salvar post
               </DropdownMenuItem>
             )}
-            {onRestart && (
-              <DropdownMenuItem onSelect={onRestart} variant="destructive" className="hidden md:flex">
-                <RotateCcw /> Recomeçar
+            {onSaveCopy && (
+              <DropdownMenuItem onSelect={onSaveCopy}>
+                <Copy />
+                Salvar uma cópia
               </DropdownMenuItem>
             )}
-            {slideCount === 1 && onAddSlide && (
-              <DropdownMenuItem onSelect={onAddSlide} className="md:hidden">
-                <Plus /> Transformar este post em carrossel
-              </DropdownMenuItem>
-            )}
-            {onReplicate && (
-              <DropdownMenuItem onSelect={onReplicate} className="sm:hidden">
-                <Layers3 /> Replicar em outros slides
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator className="bg-white/10" />
-            <div className="hidden md:block xl:hidden">
-              <DropdownMenuLabel>Formato</DropdownMenuLabel>
-              <DropdownMenuRadioGroup
-                value={aspectRatio}
-                onValueChange={value =>
-                  onAspectRatioChange(value as AspectRatioType)
-                }
-              >
-                {generationAspectRatios.map(
-                  id => (
-                    <DropdownMenuRadioItem key={id} value={id}>
-                      {id} · {ASPECT_RATIO_CAPTIONS[id].caption}
-                    </DropdownMenuRadioItem>
-                  )
-                )}
-              </DropdownMenuRadioGroup>
-              {onToggleSnap && (
-                <DropdownMenuCheckboxItem
-                  checked={isSnapEnabled}
-                  onCheckedChange={() => onToggleSnap()}
-                >
-                  <Magnet /> Ímã de alinhamento
-                </DropdownMenuCheckboxItem>
-              )}
-              <DropdownMenuItem
-                onSelect={event => {
-                  event.preventDefault();
-                  onZoomOut();
-                }}
-              >
-                <ZoomOut /> Diminuir zoom
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onResetZoom}>
-                Zoom: {Math.round(zoom * 100)}% · Ajustar para 100%
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={event => {
-                  event.preventDefault();
-                  onZoomIn();
-                }}
-              >
-                <ZoomIn /> Aumentar zoom
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/10" />
-            </div>
             {onSave && onAutoSaveChange && (
               <DropdownMenuCheckboxItem
-                className="lg:hidden"
                 checked={isAutoSaveEnabled}
-                onCheckedChange={checked => onAutoSaveChange(checked === true)}
+                onCheckedChange={value => onAutoSaveChange(value === true)}
               >
                 Salvamento automático
               </DropdownMenuCheckboxItem>
             )}
-            <DropdownMenuItem
-              onSelect={onExportPng}
-              className="hidden md:flex xl:hidden"
-            >
-              <ArrowDownToLine /> Exportar imagem 4K
-            </DropdownMenuItem>
-            {slideCount > 1 && (
-              <DropdownMenuItem
-                onSelect={onExportZip}
-                disabled={isExportingZip}
-                className="hidden md:flex"
-              >
-                <FileArchive />{" "}
-                {isExportingZip ? "Gerando ZIP" : "Baixar carrossel ZIP"}
+            {onAddSlide && (
+              <DropdownMenuItem onSelect={onAddSlide}>
+                <Plus />
+                {slideCount === 1
+                  ? "Adicionar slide e criar carrossel"
+                  : "Adicionar slide"}
               </DropdownMenuItem>
+            )}
+            {onCanvasTools && (
+              <DropdownMenuItem onSelect={onCanvasTools}>
+                <SlidersHorizontal />
+                Formato e zoom
+              </DropdownMenuItem>
+            )}
+            {onTechnical && (
+              <DropdownMenuItem onSelect={onTechnical}>
+                <SlidersHorizontal />
+                Ferramentas avançadas
+              </DropdownMenuItem>
+            )}
+            {onRestart && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={onRestart} variant="destructive">
+                  <RotateCcw />
+                  Recomeçar
+                </DropdownMenuItem>
+              </>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
         <UserTopMenu variant="inline" compactMobile />
       </div>
     </header>
+    {saveStatus && <div role="status" className={`shrink-0 bg-[#0a0d16] px-3 py-1 text-xs lg:hidden ${autoSaveState === "error" ? "text-red-300" : "text-white/70"}`}>
+      {saveStatus}
+    </div>}
+    </>
   );
 }

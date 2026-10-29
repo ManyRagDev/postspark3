@@ -9,6 +9,8 @@ import {
   COMPOSITIONS,
   fitPostToAspectRatio,
 } from "./guidedComposition";
+import { applyContrastGuard, getContrastWarnings } from "./contrast";
+import { resolveSlideAppearance } from "./slideReplication";
 import { createArsenalFixtureComposition } from "./arsenalFixture";
 import { normalizeCanvasModel, canvasModelToSavePayload } from "./saveAdapter";
 import {
@@ -91,6 +93,94 @@ describe("guided composition", () => {
         expect(composePost(post, id)).toEqual(result);
       });
     }
+  it("reorganizes without recoloring manual colors, rich text, effects or overlays when requested", () => {
+    const post = fixture();
+    post.slides[0].visualStyle = {
+      palette: {
+        background: "#f1e2d3",
+        text: "#123456",
+        accent: "#bb3355",
+        surface: "#eeeedd",
+        headlineColor: "#ca1234",
+        subtextColor: "#345678",
+      },
+      manualHeadlineColor: true,
+      manualSubtextColor: false,
+      headlineEffect: "outline",
+      headlineEffectColor: "#aa1122",
+      subtextEffect: "shadow",
+      subtextEffectColor: "#334455",
+      overlayColor: "#123abc",
+      overlayMode: "radial",
+      overlayOpacity: 0.47,
+    };
+    const before = structuredClone(post);
+    const proposal = composePost(post, "balanced", {
+      preserveColors: true,
+    }).post!;
+    const view = resolveSlideAppearance(proposal, 0);
+    expect(view.palette).toEqual(post.slides[0].visualStyle.palette);
+    for (const key of [
+      "manualHeadlineColor",
+      "manualSubtextColor",
+      "headlineEffect",
+      "headlineEffectColor",
+      "subtextEffect",
+      "subtextEffectColor",
+      "overlayColor",
+      "overlayMode",
+      "overlayOpacity",
+    ] as const)
+      expect(view[key]).toEqual(post.slides[0].visualStyle[key]);
+    expect(proposal.slides[0].headlineRich).toEqual([
+      { text: post.slides[0].headline, color: "#ff99aa", underline: true },
+    ]);
+    expect(proposal.slides[0].headlinePos).not.toEqual(
+      post.slides[0].headlinePos
+    );
+    expect(proposal.slides[1]).toMatchObject(post.slides[1]);
+    expect(post).toEqual(before);
+    const reopened = normalizeCanvasModel(JSON.parse(JSON.stringify(proposal)));
+    expect(resolveSlideAppearance(reopened, 0).palette).toEqual(view.palette);
+    const resized = fitPostToAspectRatio(reopened, "9:16").post!;
+    expect(resolveSlideAppearance(resized, 0).palette).toEqual(view.palette);
+    const edited = fitAssistedEdit(resized, {
+      headline: "Uma chamada atualizada",
+      subtext: resized.slides[0].subtext,
+      caption: resized.caption,
+    }).post!;
+    expect(resolveSlideAppearance(edited, 0).palette).toEqual(view.palette);
+  });
+  it("keeps contrast auditing and the existing default recovery policy independent of color-preserving reflow", () => {
+    const post = fixture();
+    post.slides[0].visualStyle = {
+      palette: {
+        background: "#ffffff",
+        text: "#ffffff",
+        accent: "#123456",
+        headlineColor: "#ffffff",
+        subtextColor: "#ffffff",
+      },
+      manualHeadlineColor: true,
+      manualSubtextColor: false,
+    };
+    const preserved = resolveSlideAppearance(
+      composePost(post, "balanced", { preserveColors: true }).post!,
+      0
+    );
+    expect(preserved.palette).toEqual(resolveSlideAppearance(post, 0).palette);
+    expect(getContrastWarnings(preserved)).toMatchObject({ headline: true });
+    const guarded = applyContrastGuard(preserved);
+    expect(guarded.palette.headlineColor).toBe("#ffffff");
+    expect(guarded.palette.subtextColor).not.toBe("#ffffff");
+    const defaultRecovery = resolveSlideAppearance(
+      composePost(post, "balanced").post!,
+      0
+    );
+    expect(defaultRecovery.palette.text).not.toBe("#ffffff");
+    expect(defaultRecovery.manualHeadlineColor).toBe(true);
+  });
+
   it("rejects excessive copy without losing it or shrinking below readable limits", () => {
     const post = fixture();
     post.slides[0].subtext = "Uma mensagem muito longa. ".repeat(200);
@@ -209,9 +299,7 @@ describe("format projection", () => {
     const post: CanvasPostModel = {
       ...fixture(),
       aspectRatio: initialRatio,
-      slides: [
-        { ...fixture().slides[0], composition: comp },
-      ],
+      slides: [{ ...fixture().slides[0], composition: comp }],
     };
 
     const next = fitPostToAspectRatio(post, "9:16").post!;
@@ -224,4 +312,3 @@ describe("format projection", () => {
     expect(post.slides[0].composition!.effectiveAspectRatio).toBe(initialRatio);
   });
 });
-

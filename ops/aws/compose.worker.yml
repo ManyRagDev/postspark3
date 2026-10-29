@@ -1,0 +1,27 @@
+name: postspark-worker
+services:
+  generation-worker:
+    image: postspark-worker:${POSTSPARK_WORKER_RELEASE:?Set the verified release image tag}
+    # Direct Node process receives SIGTERM, avoiding package-manager wrappers.
+    command: ["node", "--import", "tsx", "server/ai/workflows/generationWorker.ts"]
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 12m
+    env_file:
+      - /opt/postspark-worker/shared/worker.env
+    environment:
+      NODE_ENV: production
+      GENERATION_WORKER_MODE: external
+      GENERATION_LOCAL_DEMAND_ENABLED: "false"
+      REVIEW_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium
+    mem_limit: 1536m
+    memswap_limit: 2g
+    shm_size: 256mb
+    pids_limit: 256
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"

@@ -113,5 +113,39 @@ describe("Property Inspector Unificado (OS-005)", () => {
       Number(reordered.overrides[elem1.id]?.zIndex ?? 0)
     );
   });
+
+  it("renders contextual controls for overlay image (extraImage) with scale, opacity, cornerRadius and z-order", async () => {
+    const post: CanvasPostModel = {
+      ...INITIAL_POST,
+      slides: [
+        {
+          ...INITIAL_POST.slides[0],
+          extraImages: [
+            { id: "img-1", url: "https://example.com/1.png", x: 40, y: 40, width: 200, height: 200, scaleX: 1.2, scaleY: 1.2, opacity: 0.85 },
+          ],
+        },
+      ],
+    };
+    const handleUpdate = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <PropertyInspector
+          post={post}
+          selectedId="img-1"
+          onUpdatePost={handleUpdate}
+          onClose={vi.fn()}
+        />
+      );
+    });
+
+    expect(host.textContent).toContain("Imagem Sobreposta");
+    expect(host.textContent).toContain("Escala");
+    expect(host.textContent).toContain("Opacidade");
+    expect(host.textContent).toContain("Cantos Arredondados");
+    expect(host.textContent).toContain("Trazer p/ Frente");
+    expect(host.textContent).toContain("Enviar p/ Trás");
+  });
 });
+
 

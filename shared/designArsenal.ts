@@ -601,6 +601,7 @@ export const arsenalAuthorialLayerSchema = z
       )
       .optional(),
     url: z.string().optional(),
+    imagePrompt: z.string().max(2000).optional(),
     focalX: n.min(0).max(1).optional(),
     focalY: n.min(0).max(1).optional(),
     effect: z.string().optional(),
@@ -612,6 +613,7 @@ export type ArsenalAuthorialLayer = z.infer<typeof arsenalAuthorialLayerSchema>;
 export const arsenalCustomBackgroundSchema = z
   .object({
     fill: color.optional(),
+    fitMode: z.enum(["cover", "contain"]).optional(),
     imageUrl: z.string().optional(),
     focalX: n.min(0).max(1).optional(),
     focalY: n.min(0).max(1).optional(),
@@ -668,7 +670,18 @@ export const arsenalElementEffectSchema = z
   .strict();
 export type ArsenalElementEffect = z.infer<typeof arsenalElementEffectSchema>;
 
+/** Authoring state never removes geometry, editorial bindings or media. */
+export const canvasElementStateSchema = z.object({
+  hidden: z.boolean().optional(),
+  locked: z.boolean().optional(),
+}).strict();
+export const canvasElementStatesSchema = z.record(z.string().min(1), canvasElementStateSchema);
+export type CanvasElementStates = z.infer<typeof canvasElementStatesSchema>;
+
 const arsenalCompositionBaseFields = {
+  elementStates: canvasElementStatesSchema.optional(),
+  /** Last fill written by an explicit palette action; other fill overrides remain manual. */
+  paletteAppliedFills: z.record(id, color).optional(),
   origin: arsenalOriginSchema,
   mediaSlotPrompts: z.record(id, z.string().max(2000)).optional(),
   base: arsenalVariantSchema,

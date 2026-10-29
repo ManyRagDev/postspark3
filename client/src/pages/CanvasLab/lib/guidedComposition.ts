@@ -8,6 +8,7 @@ import {
 } from "../components/types";
 import { resolveSlideAppearance } from "./slideReplication";
 import { layoutRichText } from "./richTextLayout";
+import { reconcileRichTextChange } from "./richText";
 import {
   projectArsenalFormat,
   hasArsenalGeometryOverrides,
@@ -127,7 +128,13 @@ export function captureInitialVisuals(post: CanvasPostModel): CanvasPostModel {
       // Recover backgrounds stored only in the compatibility field by the former editor.
       if (slide.bgImage && (c.version !== 3 || !c.customBackground)) {
         changed = true;
-        return {...slide, composition: setArsenalCustomBackground(c, {imageUrl: slide.bgImage, overlayOpacity: 0})};
+        return {
+          ...slide,
+          composition: setArsenalCustomBackground(c, {
+            imageUrl: slide.bgImage,
+            overlayOpacity: 0,
+          }),
+        };
       }
       return slide;
     }
@@ -231,7 +238,8 @@ function updateSlide(
 /** Pure proposal: caller owns preview, commit, history and autosave. */
 export function composePost(
   source: CanvasPostModel,
-  id: GuidedCompositionId
+  id: GuidedCompositionId,
+  options: { preserveColors?: boolean } = {}
 ): CompositionProposal {
   const post = captureInitialVisuals(source);
   const slide = post.slides[post.currentSlideIndex];
@@ -278,12 +286,31 @@ export function composePost(
     return {
       error: "O conteúdo não cabe com leitura confortável neste formato.",
     };
-  const background = normalizeHexColor(view.palette.background, "#171717");
+  const background = options.preserveColors
+    ? view.palette.background
+    : normalizeHexColor(view.palette.background, "#171717");
   const ink = readableInk(background);
+  const preserveRichColors = (
+    text: string,
+    chunks: CarouselSlideItem["headlineRich"]
+  ) =>
+    options.preserveColors && chunks?.length
+      ? reconcileRichTextChange(
+          chunks.map(chunk => chunk.text).join(""),
+          text,
+          chunks
+        ).map(({ sizeScale: _oldScale, ...chunk }) => chunk)
+      : [];
   const next: CarouselSlideItem = {
     ...slide,
-    headlineRich: [],
-    subtextRich: [],
+    headlineRich: preserveRichColors(
+      slide.headline,
+      slide.headlineRich ?? post.headlineRich
+    ),
+    subtextRich: preserveRichColors(
+      slide.subtext,
+      slide.subtextRich ?? post.subtextRich
+    ),
     headlinePos: { x, y },
     subtextPos: { x, y: y + head.height + gap },
     headlineWidth: width,
@@ -323,6 +350,20 @@ export function composePost(
       overlayOpacity: 0.12,
       overlayMode: "solid",
       overlayColor: background,
+      ...(options.preserveColors
+        ? {
+            palette: { ...view.palette },
+            manualHeadlineColor: view.manualHeadlineColor,
+            manualSubtextColor: view.manualSubtextColor,
+            headlineEffect: view.headlineEffect,
+            subtextEffect: view.subtextEffect,
+            headlineEffectColor: view.headlineEffectColor,
+            subtextEffectColor: view.subtextEffectColor,
+            overlayOpacity: view.overlayOpacity,
+            overlayMode: view.overlayMode,
+            overlayColor: view.overlayColor,
+          }
+        : {}),
     },
   };
   return { post: updateSlide(post, next) };
@@ -478,11 +519,11 @@ export function fitAssistedEdit(
     { ...slide, headline: values.headline, subtext: values.subtext }
   );
   const preferred = slide.guidedComposition?.id || "balanced";
-  const first = composePost(draft, preferred);
+  const first = composePost(draft, preferred, { preserveColors: true });
   if (first.post) return first;
   for (const choice of COMPOSITIONS) {
     if (choice.id === preferred) continue;
-    const proposal = composePost(draft, choice.id);
+    const proposal = composePost(draft, choice.id, { preserveColors: true });
     if (proposal.post) return proposal;
   }
   return first;
@@ -515,7 +556,8 @@ export function fitPostToAspectRatio(
     if (!composition) continue;
     const proposal = composePost(
       { ...next, currentSlideIndex: index },
-      composition.id
+      composition.id,
+      { preserveColors: true }
     );
     if (!proposal.post)
       return { error: `Slide ${index + 1}: ${proposal.error}` };

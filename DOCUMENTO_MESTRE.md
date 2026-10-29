@@ -368,16 +368,13 @@ O editor visual oficial do PostSpark (`CanvasLabPage`, rota `/thevoid`) foi cons
 ### Estrutura e Fluxo:
 - **Máquina de estados** (`StudioAppV2BPage`): `create` (StudioCreateViewV2B) → `gallery` (StudioGalleryView desktop / StudioMobileFlashcards mobile — "HoloDeck" histórico) → `editor` (CanvasLabPage).
 - **Galeria**: clique/toque no card seleciona a direção e abre o editor (além do botão "Personalizar Post").
-- **Editor CanvasLab**: `CanvasTopBar` concentra identidade Studio, Desfazer/Refazer, salvamento, exportação e menu de ações; `CanvasToolRail` reúne formato, ímã e zoom à direita apenas em desktop largo. Para slides sem `composition`, `GuidedEditor` oferece edição básica e `CanvasSidebar` (desktop) / `CanvasMobileDrawer` (mobile) preservam as abas **Texto · Estilo · Mídia · Logo** na edição livre. Para slides com composição, inclusive fallback V3, `CanvasLabPage` substitui essas interfaces por outra barra e `ArsenalCompositionInspector`; vários recursos convencionais não estão disponíveis nesse ramo (§13.41). `CanvasPostStage` desenha a prancheta Konva e `CarouselFilmstrip` controla os slides. Em larguras menores, as ferramentas da rail ficam no menu da barra superior.
-
-### Abas do editor convencional (desktop e mobile em paridade):
-- **Texto**: título/subtítulo/etapa/badge, alinhamento, **cores por elemento** (Título/Corpo, com selo de contraste baixo e botão Limpar), **multiplicadores de tamanho** (`headlineSizeScale`/`subtextSizeScale`, 60–160%) e legenda estratégica do Instagram.
-- **Estilo**: 14 famílias visuais (via `applyFamilyPreset` — nunca altera cores), tipografia/upload de fonte/Google Fonts e paleta cromática (fundo/destaque/texto).
-- **Mídia**: geração de fundo por IA, biblioteca de texturas (110+ assets), upload local, download direto da imagem, ajuste de enquadramento estilo Canva e overlay.
-- **Logo**: upload de logo (PNG transparente, paridade desktop/mobile), posição inicial em 4 quadrantes (`logoPosition`, arraste no palco prevalece) e badge/tag.
-
-### Sistema de Dicas (item 9):
-- `useStudioTipsStore` (zustand persist) com checkbox global **"Mostrar dicas"** (rodapé da sidebar/drawer) e dicas contextuais dispensáveis (`TipCallout`) por aba.
+- **Editor CanvasLab**: `CanvasTopBar` concentra voltar, desfazer/refazer, estado do salvamento, Baixar e ações secundárias. `CanvasEditorChrome` oferece Fundo, Adicionar, Aparência, Marca, Camadas e Legenda nos dois modelos de slide. Fundo reúne cor, geração/envio de imagem, texturas, enquadramento e filtro. Desktop usa painel lateral; mobile usa dock e painel inferior com área reservada no cálculo de encaixe. Formato, zoom e ímã ficam em `CanvasToolRail`; no mobile a ação **Formato e zoom** abre essa barra sob demanda.
+- **Seleção e edição**: ferramenta aberta, seleção por ID de slide/objeto e edição em curso são estados independentes. Selecionar não troca a ferramenta. **Editar texto** abre edição na arte; **Ajustar** abre propriedades e um campo alternativo apenas para o texto selecionado. Camadas projeta grupos e reúne decoração recolhida, com ações condicionadas à capacidade real do objeto. Listas mantêm operações sobre itens. Legenda tem editor único e Copiar.
+- **Documento e comandos**: `lib/editorController.ts` adapta intenções para slides convencionais e composições, sem documento concorrente. O resultado volta a `handleUpdatePost`, histórico e autosave. Digitação em um mesmo campo é agrupada até a saída de foco; edição na arte confirma texto e trechos numa única mutação. Prévia de reorganização permanece separada até aplicar; `composePost(..., { preserveColors: true })` preserva cores na reorganização e nos refluxos de texto/formato.
+- **Estado das camadas**: `elementStates` guarda ocultação e bloqueio, com defaults visível/desbloqueado; `elementOrder` guarda ordem convencional. Grupos transmitem restrições aos filhos, que indicam o ancestral responsável. Ocultar não remove dados. Esses campos atravessam normalização, clonagem, schema, receita portátil e exportação. Não exigem migração: continuam dentro de `canvas_model`.
+- **Aparência e marca**: tipografia usa papéis/conteúdo reconhecido, com destinos explícitos, exibe seleção mista quando necessário e reúne a importação de fontes. A ação de paleta em composições usa `paletteAppliedFills` para distinguir última aplicação automática de uma substituição manual. Logo convencional aceita override em `slide.logo` (URL vazia significa removido), com fallback da raiz para documentos anteriores; composição conserva seu logo próprio. Aplicar logo a outros slides copia somente a marca. Restaurar visual do Arsenal apresenta prévia e confirmação antes da mutação reversível.
+- **Mídia e carrossel**: Adicionar → Imagem cria uma camada autoral; Trocar imagem fixa a foto selecionada e Fundo fixa o fundo, sem substituição implícita entre destinos. Gerador, envio e sugestões compartilham destino por ID. O funil valida o destino atual quando uma resposta chega e preserva resultado sem destino válido para recuperação, inclusive após fechar o painel. Texturas continuam identificadas como fundo. Miniaturas de slides usam o próprio `CanvasPostStage`; menus oferecem duplicar, excluir e mover por botões.
+- **Renderização**: `CanvasPostStage` permanece autoritativo para arte, miniaturas e exportação. O encaixe usa o retângulo efetivamente livre e pode ampliar além de 100% da base. Ações de concluir/cancelar e formatação têm áreas separadas, com portais mobile. `ArsenalCompositionInspector` permanece nas ferramentas avançadas; Sidebar/Drawer e as barras guiadas anteriores não são montados pela página ativa.
 
 ### Salvamento e biblioteca (item 7):
 - Botão **Salvar** (top bar) → diálogo **"Salvar como novo" × "Atualizar o post salvo"** com checkbox **"Memorizar esta decisão"** (`localStorage postspark.savePreference`).
@@ -3258,3 +3255,46 @@ A preparação conserva até três alternativas por proposta dentre ofertas comp
 A migration incremental `0043_brand_capture_and_reconciliation.sql` contém tabelas, RLS, grants de RPC somente ao runtime, índices, leases, idempotência e estados de reconciliação; depende de 0034–0042 e não reaplica migrações anteriores. O executor existente despacha captura ou geração; o modo local permanece acionado por eventos e agendamentos pontuais. Chamadas HTTP de conteúdo e CSS validam destinos públicos e cada redirecionamento, fixam DNS por conexão e limitam tempo/tamanho. Screenshot remoto requer `SCREENSHOT_PUBLIC_NETWORK_ONLY=true` somente após verificar que o serviço bloqueia destinos privados em redirecionamentos e sub-recursos. Sem essa garantia, a captura usa HTML/CSS e apresenta a limitação visual para revisão.
 
 A ativação remota desta revisão exige troca coordenada com novas admissões pausadas, aplicação de 0043 e backend/worker/frontend compatíveis. Pedidos e resultados históricos permanecem. A homologação com provedores reais e a jornada salvar/reabrir/exportar no ambiente alvo são distintas da validação isolada local. `CanvasPostModel` permanece autoritativo, sem alteração do motor e do contrato de persistência do editor. Procedimento: [ativação do protocolo 9](docs/brand-generation-rollout.md).
+
+
+## Executor de produção no AWS Lightsail (2026-10-28)
+
+O executor externo de produção é hospedado na instância `postspark-worker-prod`,
+região `us-east-2`, Ubuntu 24.04, pacote Lightsail Linux de 2 GiB. Frontend e API
+continuam na Vercel; pedidos, checkpoints, leases, billing e arquivos continuam no
+Supabase. O worker consulta os pedidos duráveis e executa as chamadas aos provedores
+e a revisão pelo Chromium/CanvasPostStage. Nenhuma fila externa foi adicionada.
+
+A imagem é construída a partir de `Dockerfile.worker`, com o processo Node direto
+recebendo os sinais de encerramento. Docker Compose supervisiona o container,
+reinicia após falha/reboot, limita memória e logs e permite concluir o trabalho
+atual antes de uma troca. Credenciais de Supabase e IA ficam em arquivo privado no
+host, fora da imagem e do Git; credenciais AWS, Stripe, SMTP e JWT não são enviadas.
+
+O deploy do executor tem procedimento explícito, independente da entrega Vercel:
+`python3 ops/aws/deploy-worker.py --activate`. Ele verifica o pacote, constrói a
+imagem, executa o renderer real em container sem rede e só então permite ativar
+a revisão. Backend, contratos e renderer devem permanecer compatíveis entre os
+dois destinos. Operação, configuração privada e recuperação: [executor AWS](ops/aws/README.md).
+
+### Captura de sites no mesmo Lightsail
+
+O serviço antes hospedado na Railway passa a ser implementado em `server/capture/`
+e exposto por `https://capture.postspark.com.br`, na mesma instância, com IP fixo.
+Um container próprio mantém Chromium e um contexto de navegação ativo por vez;
+Caddy termina HTTPS e persiste os certificados em volumes separados. O capturador
+não recebe credenciais de banco, modelos ou AWS. O adaptador compartilhado
+`server/screenshotService.ts` envia `SCREENSHOT_SERVICE_TOKEN` somente ao serviço.
+Cada consumidor configura esse segredo no backend, além da URL e da garantia
+`SCREENSHOT_PUBLIC_NETWORK_ONLY=true`; o navegador do usuário não recebe o token.
+
+Documentos, redirecionamentos e sub-recursos HTTP passam por validação de destino
+público e resolução DNS fixada por conexão. Service workers, WebSockets, métodos
+de escrita e portas fora de 80/443 são bloqueados. Páginas que dependam desses
+recursos, login ou desafios contra robôs podem exigir a alternativa HTML/CSS já
+existente. A migração não altera billing, persistência de posts ou `CanvasPostModel`.
+
+A entrega da captura é independente da imagem de geração e da publicação Vercel.
+`ops/aws/deploy-capture.py` testa a API em containers limitados antes da ativação;
+atualizações preservam o token e os certificados. Procedimento e limites:
+[captura AWS](ops/aws/README.capture.md).

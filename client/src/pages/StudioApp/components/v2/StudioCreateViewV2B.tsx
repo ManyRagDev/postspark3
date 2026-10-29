@@ -10,6 +10,7 @@ import SparkLogo from "@/components/SparkLogo";
 import ProjectSelectorDropdown from "./ProjectSelectorDropdown";
 import ProjectCalibrationModal from "./ProjectCalibrationModal";
 import UserTopMenu from "@/components/UserTopMenu";
+import { Link } from "wouter";
 import {
   STUDIO,
   MONO,
@@ -140,6 +141,9 @@ export default function StudioCreateViewV2B({
 
       {/* MENU DO USUÁRIO NO CANTO SUPERIOR DIREITO (SPARKS, SALVOS, PERFIL) */}
       <UserTopMenu />
+      <Link href="/saved-posts" className="fixed left-4 top-4 z-40 flex min-h-11 items-center rounded-full border border-white/15 bg-[#0a0d16] px-4 text-sm text-white hover:bg-white/10">
+        Meus posts
+      </Link>
 
       {captureUrl&&<BrandCaptureModal url={captureUrl} projectId={selectedProjectId} onClose={()=>setCaptureUrl(undefined)} onSaved={id=>{onSelectProjectId?.(id);setCaptureUrl(undefined);setPrompt("");setUrlAsContent(false);toast.success("Projeto salvo. Agora informe o pedido do post.");}}/>}
       {/* MODAL DE CALIBRAGEM DE PROJETO */}
@@ -244,7 +248,7 @@ export default function StudioCreateViewV2B({
                   type="button"
                   onClick={handleSubmit}
                   disabled={!canSubmit}
-                  aria-label={isUrl&&!urlAsContent?"Capturar marca gratuitamente":declaredSpecimen ? "Criar com este gosto" : "Criar direções de arte"}
+                  aria-label={isUrl&&!urlAsContent?"Capturar marca gratuitamente":declaredSpecimen ? "Criar com este gosto" : "Criar posts"}
                   className="mb-1.5 mr-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 active:scale-95 cursor-pointer"
                   style={{
                     background: canSubmit ? "#FF5C00" : "rgba(242,237,228,0.06)",
@@ -303,7 +307,7 @@ export default function StudioCreateViewV2B({
                   transition: "color 200ms",
                 }}
               >
-                {declaredSpecimen ? "Criar com este gosto" : "Criar direções de arte"}
+                {declaredSpecimen ? "Criar com este gosto" : "Criar posts"}
               </span>
             </div>
           </section>

@@ -65,7 +65,7 @@ export function SaveChoiceDialog({
           onClick={isSaving ? undefined : onCancel}
         >
           <motion.div
-            className="w-full max-w-sm rounded-3xl border border-white/12 bg-[#0d1017] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.9)]"
+            className="max-h-[95dvh] w-full max-w-sm overflow-y-auto rounded-3xl border border-white/12 bg-[#0d1017] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.9)]"
             initial={{ opacity: 0, scale: 0.94, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
@@ -192,14 +192,14 @@ export function ConfirmDialog({
               <button
                 type="button"
                 onClick={onCancel}
-                className="flex-1 py-2.5 px-4 rounded-2xl bg-white/8 hover:bg-white/14 border border-white/12 text-white text-xs font-bold transition-all active:scale-[0.98] cursor-pointer"
+                className="min-h-11 flex-1 py-2.5 px-4 rounded-2xl bg-white/8 hover:bg-white/14 border border-white/12 text-white text-xs font-bold transition-all active:scale-[0.98] cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={onConfirm}
-                className="flex-1 py-2.5 px-4 rounded-2xl bg-rose-500 hover:bg-rose-400 text-white text-xs font-bold transition-all active:scale-[0.98] cursor-pointer"
+                className="min-h-11 flex-1 py-2.5 px-4 rounded-2xl bg-rose-500 hover:bg-rose-400 text-white text-xs font-bold transition-all active:scale-[0.98] cursor-pointer"
               >
                 {confirmLabel}
               </button>

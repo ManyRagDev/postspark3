@@ -63,17 +63,17 @@ export default function GuidedEditor({
               <ImagePlus className="mr-1 inline" size={14} />
               Fundo e imagem
             </button>
-            <button className={button} onClick={() => setAction("visual")}>
-              <Highlighter className="mr-1 inline" size={14} />
-              Destaque
-            </button>
-            {post.slides.length > 1 && onReplicate && (
-              <button className={button} onClick={onReplicate}>
-                <Layers3 className="mr-1 inline" size={14} />
-                Aplicar estilo a outros slides
-              </button>
-            )}
           </>
+        )}
+        <button className={button} onClick={() => setAction("visual")}>
+          <Highlighter className="mr-1 inline" size={14} />
+          Destaque
+        </button>
+        {post.slides.length > 1 && onReplicate && (
+          <button className={button} onClick={onReplicate}>
+            <Layers3 className="mr-1 inline" size={14} />
+            Aplicar estilo a outros slides
+          </button>
         )}
         <button
           className={`${button} text-orange-200`}
@@ -148,7 +148,7 @@ export function GuidedEditorDialog({
     visual:
       "Realce um trecho do título mantendo suas palavras e a composição escolhida. Se a cor não tiver contraste suficiente, usamos sublinhado.",
     recover:
-      "Compare antes de aplicar. Textos, imagem e logo são preservados ao reorganizar; posições, fontes, cores e efeitos podem mudar. Você pode desfazer.",
+      "Compare antes de aplicar. Textos, imagem, logo e cores são preservados ao reorganizar; posições e tamanhos podem mudar. Você pode desfazer.",
   };
   const titles = {
     text: "Editar texto",
@@ -171,7 +171,7 @@ export function GuidedEditorDialog({
             ),
           }
         : mediaDraft;
-    setProposal(composePost(base, id));
+    setProposal(composePost(base, id, { preserveColors: action === "recover" }));
   };
   const previewImage = (url: string) => {
     if (slide?.composition) {

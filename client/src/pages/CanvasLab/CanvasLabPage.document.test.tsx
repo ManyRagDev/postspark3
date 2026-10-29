@@ -15,7 +15,7 @@ import { putArsenalComposition } from "./lib/arsenalComposition";
 const c = vi.hoisted(() => ({
   stage: null as any,
   bar: null as any,
-  side: null as any,
+  chrome: null as any,
   guide: null as any,
   film: null as any,
   rep: null as any,
@@ -41,18 +41,12 @@ vi.mock("./components/CanvasTopBar", () => ({
   },
 }));
 
-vi.mock("./components/CanvasSidebar", () => ({
-  default: (p: any) => {
-    c.side = p;
-    return null;
-  },
+vi.mock("./components/CanvasEditorChrome", () => ({
+  default: (p: any) => { c.chrome = p; return null; },
+  CanvasAddPanel: () => null,
 }));
-
 vi.mock("./components/GuidedEditor", () => ({
-  default: (p: any) => {
-    c.guide = p;
-    return null;
-  },
+  GuidedEditorDialog: (p: any) => { c.guide = p; return null; },
 }));
 
 vi.mock("./components/CarouselFilmstrip", () => ({
@@ -140,7 +134,8 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
     expect(previewAppearance.fontFamily).toBe("Arial");
     expect(previewAppearance.headlineAlign).toBe("center");
 
-    // Aplica a proposta na prévia guiada
+    // Abre a reorganização e aplica a proposta na prévia
+    await act(async () => { c.chrome.contents.appearance.props.children[0].props.onReorganize(); });
     await act(async () => {
       c.guide.onApply(proposal);
     });
@@ -169,7 +164,7 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
 
     // Adiciona texto extra no slide 0
     await act(async () => {
-      c.side.onAddExtraText();
+      c.chrome.contents.add.props.children[0].props.onAddText();
     });
 
     // Slide 0 possui 1 texto extra
@@ -217,7 +212,7 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
 
     // No slide 0, removemos tx-leg-1
     await act(async () => {
-      c.side.onRemoveExtraText("tx-leg-1");
+      c.chrome.contents.layers.props.onAction({ slideId: c.stage.post.slides[0].id, elementId: "tx-leg-1" }, "remove", {});
     });
 
     // Slide 0 agora materializou apenas [tx-leg-2]
@@ -241,7 +236,7 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
       c.film.onSelectSlide(0);
     });
     await act(async () => {
-      c.side.onRemoveExtraText("tx-leg-2");
+      c.chrome.contents.layers.props.onAction({ slideId: c.stage.post.slides[0].id, elementId: "tx-leg-2" }, "remove", {});
     });
 
     // Slide 0 deve ser [] (não undefined), impedindo que os extras da raiz resurjam
@@ -265,7 +260,7 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
 
     // Usuário altera a legenda explicitamente
     await act(async () => {
-      c.side.onUpdatePost({
+      c.chrome.contents.appearance.props.children[0].props.onUpdatePost({
         caption: "Legenda atualizada pelo usuário",
         hashtags: ["#novidade"],
       });
@@ -281,7 +276,7 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
 
     // Realiza uma mutação visual no slide 1 via composition update
     await act(async () => {
-      c.side.onUpdateComposition(comp1);
+      c.stage.onUpdateComposition(comp1);
     });
 
     // A legenda e hashtags globais NÃO devem ser revertidas pelo conteúdo em comp1.content
@@ -290,7 +285,7 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
 
     // E uma edição explícita de texto no slide também preserva a legenda
     await act(async () => {
-      c.side.onUpdatePost({ headline: "Headline alterada no slide 1" });
+      c.stage.onUpdateText("headline", "Headline alterada no slide 1");
     });
 
     expect(c.stage.post.caption).toBe("Legenda atualizada pelo usuário");
@@ -298,7 +293,7 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
     expect(c.stage.post.slides[1].headline).toBe("Headline alterada no slide 1");
   });
 
-  it("AC-05 (P07): mode toggle between Guided and Free preserves document identity without spurious edits", async () => {
+  it("AC-05 (P07): opening and closing a tool preserves document identity without spurious edits", async () => {
     const post = basePost();
     post.caption = "Legenda intocada";
 
@@ -309,14 +304,14 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
     const initialDoc = c.stage.post;
     expect(c.bar.canUndo).toBe(false);
 
-    // Alterna para o modo Livre
+    // Abre a ferramenta Marca
     await act(async () => {
-      c.guide.onFreeChange(true);
+      c.chrome.onToolChange("brand");
     });
 
-    // Alterna de volta para o modo Guiado
+    // Fecha a ferramenta
     await act(async () => {
-      c.guide.onFreeChange(false);
+      c.chrome.onToolChange(null);
     });
 
     // O documento não foi clonado nem sofreu mutações
@@ -337,7 +332,7 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
 
     // Usuário apaga a legenda explicitamente no slide nativo
     await act(async () => {
-      c.side.onUpdatePost({ caption: "" });
+      c.chrome.contents.caption.props.onChange("");
     });
     expect(c.stage.post.caption).toBe("");
 
@@ -368,7 +363,7 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
 
     // Usuário define explicitamente a legenda como INITIAL_POST.caption
     await act(async () => {
-      c.side.onUpdatePost({ caption: INITIAL_POST.caption });
+      c.chrome.contents.caption.props.onChange(INITIAL_POST.caption);
     });
     expect(c.stage.post.caption).toBe(INITIAL_POST.caption);
 
@@ -379,7 +374,7 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
 
     // Mutação visual no slide 1 via composition update
     await act(async () => {
-      c.side.onUpdateComposition(comp1);
+      c.stage.onUpdateComposition(comp1);
     });
 
     // A legenda explicitamente definida NÃO deve ser substituída pela legenda da composição
@@ -406,7 +401,7 @@ describe("CanvasLabPage Document Contracts (OS-001)", () => {
 
     // Atualiza a composição na capa
     await act(async () => {
-      c.side.onUpdateComposition(comp0);
+      c.stage.onUpdateComposition(comp0);
     });
 
     // Subtext da raiz projeta o subtext da capa (vazio, e não o texto demonstrativo antigo)

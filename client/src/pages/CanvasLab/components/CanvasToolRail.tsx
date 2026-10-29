@@ -37,7 +37,7 @@ export default function CanvasToolRail({
   return (
     <nav
       aria-label="Ferramentas da prancheta"
-      className="absolute right-3 top-4 z-30 hidden w-14 flex-col items-center gap-1 rounded-2xl border border-white/12 bg-[#10141D]/95 p-1.5 shadow-[0_16px_36px_rgba(0,0,0,0.45)] backdrop-blur-xl xl:flex"
+      className="z-20 flex min-h-12 shrink-0 items-center justify-center gap-1 border-b border-white/10 bg-[#10141D] px-2"
     >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -50,12 +50,14 @@ export default function CanvasToolRail({
             <span className="text-xs font-bold leading-none text-white">
               {aspectRatio}
             </span>
-            <span className="text-[10px] font-medium leading-none">Formato</span>
+            <span className="text-[10px] font-medium leading-none">
+              Formato
+            </span>
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          side="left"
+          side="bottom"
           className="w-56 border-white/15 bg-[#10141D] text-white"
         >
           <DropdownMenuLabel>Formato</DropdownMenuLabel>
@@ -65,13 +67,11 @@ export default function CanvasToolRail({
               onAspectRatioChange(value as AspectRatioType)
             }
           >
-            {generationAspectRatios.map(
-              id => (
-                <DropdownMenuRadioItem key={id} value={id}>
-                  {id} · {ASPECT_RATIO_CAPTIONS[id].caption}
-                </DropdownMenuRadioItem>
-              )
-            )}
+            {generationAspectRatios.map(id => (
+              <DropdownMenuRadioItem key={id} value={id}>
+                {id} · {ASPECT_RATIO_CAPTIONS[id].caption}
+              </DropdownMenuRadioItem>
+            ))}
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -85,7 +85,7 @@ export default function CanvasToolRail({
       >
         <Magnet size={19} />
       </button>
-      <span className="my-1 h-px w-8 bg-white/10" aria-hidden="true" />
+      <span className="mx-1 h-6 w-px bg-white/10" aria-hidden="true" />
       <button
         type="button"
         onClick={onZoomIn}
@@ -98,11 +98,11 @@ export default function CanvasToolRail({
       <button
         type="button"
         onClick={onResetZoom}
-        className="flex min-h-8 w-11 items-center justify-center rounded-lg text-[11px] font-semibold text-white/65 hover:bg-white/10 hover:text-white"
-        aria-label={`Zoom ${Math.round(zoom * 100)}%. Voltar para 100%`}
-        title="Voltar para 100%"
+        className="flex min-h-11 min-w-24 px-2 items-center justify-center rounded-lg text-[11px] font-semibold text-white/65 hover:bg-white/10 hover:text-white"
+        aria-label={`Ajustar à tela. Zoom ${Math.round(zoom * 100)}%`}
+        title="Ajustar à tela"
       >
-        {Math.round(zoom * 100)}%
+        Ajustar · {Math.round(zoom * 100)}%
       </button>
       <button
         type="button"

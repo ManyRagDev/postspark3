@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import CarouselFilmstrip from "./CarouselFilmstrip";
 
 describe("CarouselFilmstrip mobile", () => {
-  it("mantém o menu de ações com metade da área anterior e seleciona pelo cartão", () => {
+  it("oferece ações com alvo mínimo de toque e seleção por botão acessível", () => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     const host = document.createElement("div");
     document.body.appendChild(host);
@@ -26,8 +26,11 @@ describe("CarouselFilmstrip mobile", () => {
       />
     ));
     const menu = host.querySelector('button[aria-label="Ações do slide 2"]') as HTMLButtonElement;
-    expect(menu.className).toContain("h-5 w-5");
-    act(() => menu.parentElement?.parentElement?.parentElement?.click());
+    expect(menu.className).toContain("min-h-11");
+    expect(menu.className).toContain("min-w-11");
+    const select = host.querySelector<HTMLButtonElement>('[aria-label="Selecionar slide 2: Dois"]');
+    expect(select).not.toBeNull();
+    act(() => select?.click());
     expect(onSelectSlide).toHaveBeenCalledWith(1);
     act(() => root.unmount());
     host.remove();

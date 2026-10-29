@@ -17,7 +17,7 @@ beforeEach(()=>{
   vi.spyOn(HTMLCanvasElement.prototype,'getContext').mockImplementation(()=>createCanvas(20,20).getContext('2d') as never);
   host=document.createElement('div');document.body.append(host);root=createRoot(host);vi.clearAllMocks();
 });
-afterEach(()=>{act(()=>root.unmount());host.remove();vi.restoreAllMocks();});
+afterEach(()=>{act(()=>root.unmount());host.remove();vi.restoreAllMocks();vi.unstubAllGlobals();});
 function fixture(label='Foto do produto') {
   const c=createArsenalFixtureComposition();const id=c.elements.find(e=>e.kind==='media')!.id;
   c.base={...c.base,mediaSlots:[{id,label,function:'produto',prompt:'Produto na bancada',deferred:true,policy:'cover'}]};
@@ -57,6 +57,58 @@ it('removed target keeps a preview for explicit application elsewhere',async()=>
   await act(async()=>{resolve({imageUrl:'https://example.com/generated.png'});});
   expect(onUpdate.mock.calls.some(([,op])=>op.kind==='apply')).toBe(false);
   expect(host.querySelector('img[alt="Imagem pronta para aplicação"]')?.getAttribute('src')).toBe('https://example.com/generated.png');
-  act(()=>Array.from(host.querySelectorAll('button')).find(b=>b.textContent==='Aplicar no destino atual')!.click());
+  await act(async()=>{Array.from(host.querySelectorAll('button')).find(b=>b.textContent==='Aplicar no destino atual')!.click();});
   expect(onUpdate.mock.calls.at(-1)?.[0].slotId).toBe('__background__');
+});
+it('uses the composition background lock and keeps a late result for recovery',async()=>{
+  const {post}=fixture();const slide=post.slides[0];const unlocked={...post,slides:[{...slide,imagePrompt:'Paisagem'},...post.slides.slice(1)]};const onUpdate=vi.fn();let resolve!:(value:{imageUrl:string})=>void;
+  mocks.generate.mockImplementation(()=>new Promise(r=>{resolve=r;}));render(unlocked,'__canvas_background__',onUpdate);
+  await act(async()=>{Array.from(host.querySelectorAll('button')).find(b=>b.textContent==='Gerar imagem com IA')!.click();});
+  const locked={...unlocked,slides:[{...unlocked.slides[0],composition:{...unlocked.slides[0].composition!,elementStates:{__canvas_background__:{locked:true}}}},...unlocked.slides.slice(1)]};
+  render(locked,'__canvas_background__',onUpdate);
+  expect(host.textContent).toContain('Desbloqueie este destino');
+  expect((Array.from(host.querySelectorAll('button')).find(b=>b.textContent?.includes('Preparando imagem')) as HTMLButtonElement).disabled).toBe(true);
+  await act(async()=>{resolve({imageUrl:'https://example.com/late.png'});});
+  expect(onUpdate.mock.calls.some(([,op])=>op.kind==='apply')).toBe(false);
+  expect(host.querySelector('img[alt="Imagem pronta para aplicação"]')?.getAttribute('src')).toBe('https://example.com/late.png');
+});
+
+it('does not report success or discard the image when the parent rejects a late apply',async()=>{
+  const {post,id}=fixture();const update=vi.fn((_target,_op)=>false);mocks.generate.mockResolvedValue({imageUrl:'https://example.com/retained.png'});render(post,id,update);
+  await act(async()=>{Array.from(host.querySelectorAll('button')).find(b=>b.textContent==='Gerar imagem com IA')!.click();});
+  expect(host.querySelector('img[alt="Imagem pronta para aplicação"]')?.getAttribute('src')).toBe('https://example.com/retained.png');
+  await act(async()=>{Array.from(host.querySelectorAll('button')).find(b=>b.textContent==='Aplicar no destino atual')!.click();});
+  expect(host.querySelector('img[alt="Imagem pronta para aplicação"]')).not.toBeNull();
+  const {toast}=await import('sonner');expect(toast.success).not.toHaveBeenCalled();
+});
+
+it('adds a generated image as a new layer without changing the background or an existing slot',async()=>{
+  const {post}=fixture();const before=JSON.stringify(post);const update=vi.fn(),add=vi.fn();
+  vi.stubGlobal('Image',class {naturalWidth=800;naturalHeight=600;onload?:()=>void;set src(_url:string){queueMicrotask(()=>this.onload?.());}});
+  mocks.generate.mockResolvedValue({imageUrl:'https://example.com/new-layer.png'});
+  act(()=>root.render(<MediaSlotPanel post={post} onUpdate={update} addImage={add}/>));
+  expect(host.querySelector('select')).toBeNull();
+  expect(host.querySelector('textarea')!.value).toBe('');
+  await act(async()=>{const input=host.querySelector('textarea')!;Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value')!.set!.call(input,'Uma câmera sobre a mesa');input.dispatchEvent(new Event('input',{bubbles:true}));});
+  await act(async()=>{host.querySelector<HTMLInputElement>('input[type=checkbox]')!.click();});
+  await act(async()=>{Array.from(host.querySelectorAll('button')).find(b=>b.textContent==='Gerar imagem com IA')!.click();});
+  expect(mocks.generate).toHaveBeenCalledOnce();
+  expect(mocks.generate.mock.calls[0][0].postContext.compositionGuidance).toBeUndefined();
+  expect(add).toHaveBeenCalledWith('https://example.com/new-layer.png',800,600,post.slides[0].id);
+  expect(update).not.toHaveBeenCalled();expect(JSON.stringify(post)).toBe(before);
+});
+
+it('pins the background task even when a photo is selected',()=>{
+  const {post,id}=fixture();const update=vi.fn();
+  act(()=>root.render(<MediaSlotPanel post={post} onUpdate={update} selectedId={id} fixedTargetId="__background__"/>));
+  expect(host.querySelector('select')).toBeNull();
+  expect(host.textContent).toContain('Imagem de fundo deste slide.');
+  expect(mocks.generate).not.toHaveBeenCalled();
+});
+
+it('does not silently substitute the background when a pinned photo no longer exists',()=>{
+  const {post}=fixture();
+  act(()=>root.render(<MediaSlotPanel post={post} onUpdate={vi.fn()} fixedTargetId="deleted-photo"/>));
+  expect(host.textContent).toContain('A imagem selecionada não existe mais');
+  expect(host.querySelector('textarea')).toBeNull();
 });

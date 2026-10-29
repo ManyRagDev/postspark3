@@ -329,6 +329,9 @@ export interface CanvasCustomImage {
   scaleX?: number;
   scaleY?: number;
   zIndex?: number;
+  focalX?: number;
+  focalY?: number;
+  imagePrompt?: string;
 }
 
 /** Retângulos simples usados por composições determinísticas. */
@@ -381,6 +384,12 @@ export interface InitialVisualReference {
 }
 
 export interface CarouselSlideItem {
+  /** Slide-local authoring state; absent entries are visible and unlocked. */
+  elementStates?: import("@shared/designArsenal").CanvasElementStates;
+  /** Back-to-front native/extra sibling order. Missing IDs retain natural order. */
+  elementOrder?: string[];
+  /** Explicit slide-local brand placement; an empty URL removes only this logo. */
+  logo?: import("@shared/designArsenal").ArsenalLogo;
   assemblyRole?: (typeof import("@shared/componentAssembly").assemblySlideRoles)[number];
   assemblyDensity?: (typeof import("@shared/componentAssembly").assemblyDensities)[number];
   /** Official ordered document; legacy text fields are compatibility projections. */
@@ -415,6 +424,7 @@ export interface CarouselSlideItem {
   splitBgPosition?: SplitBgPosition;
   /** Aparência local; campos ausentes herdam os defaults do documento. */
   visualStyle?: Partial<Pick<CanvasPostModel,
+    | "showBadge" | "badgeText" | "showStep"
     | "familyId" | "familyName" | "fontFamily" | "subtextFontFamily" | "customFontUrl"
     | "palette" | "overlayOpacity" | "overlayColor" | "overlayMode"
     | "headlineAlign" | "bodyAlign" | "headlineSizeScale" | "subtextSizeScale" | "headlineFontWeight" | "subtextFontWeight"

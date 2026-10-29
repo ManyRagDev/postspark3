@@ -14,6 +14,7 @@ import {
 } from "@shared/arsenalContent";
 import {
   arsenalCompositionSchema,
+  fragmentContentText,
   orderArsenalRelations,
   type ArsenalComposition,
   type ArsenalCompositionV2,
@@ -28,6 +29,7 @@ import {
 } from "@shared/designArsenal";
 import { INITIAL_POST, type CanvasPostModel, type CanvasRichTextChunk } from "../components/types";
 import { layoutRichText } from "./richTextLayout";
+import { reconcileRichTextChange } from "./richText";
 
 export function arsenalTextLayout(e: ArsenalElement) {
   return layoutRichText({
@@ -102,11 +104,28 @@ export function editArsenalContent(
       },
     };
   }
-  return resolveArsenalComposition({
+  const overrides = structuredClone(updated.overrides);
+  const changedTextIds = new Set(c.elements.filter(element => {
+    const binding = c.base.bindings.find(b => b.id === element.bindingId);
+    return binding?.kind === "text" &&
+      readContentSource(c.content, binding.source) !== readContentSource(content, binding.source);
+  }).map(element => element.id));
+  // Bound copy is projected from content. Old per-element copy must not mask a new phrase.
+  for (const id of Array.from(changedTextIds)) if (overrides[id]) delete overrides[id].text;
+  const resolved = resolveArsenalComposition({
     ...updated,
+    overrides,
     content,
     contentRevision: c.contentRevision + 1,
   });
+  const richText = { ...resolved.richText };
+  for (const element of resolved.elements) {
+    if (!changedTextIds.has(element.id)) continue;
+    const old = c.elements.find(e => e.id === element.id);
+    if (old?.richText?.length)
+      richText[element.id] = reconcileRichTextChange(old.text, element.text, old.richText);
+  }
+  return resolveArsenalComposition({ ...resolved, richText });
 }
 export function editArsenalElementText(
   c: ArsenalComposition,
@@ -120,6 +139,34 @@ export function editArsenalElementText(
   const content = structuredClone(c.content),
     richText = { ...c.richText, [id]: chunks ?? [] };
   if (binding) {
+    if (binding.kind === "text" && element.contentFragment) {
+      const source = readContentSource(c.content, binding.source);
+      if (typeof source !== "string") return c;
+      const fragment = element.contentFragment;
+      const original = fragmentContentText(source, fragment);
+      let start = 0;
+      for (let index = 0; index < fragment.index; index++)
+        start += fragmentContentText(source, { ...fragment, index }).length;
+      const before = source.slice(0, start), after = source.slice(start + original.length);
+      const replacement = text === element.text ? original :
+        (original.match(/^\s*/)?.[0] ?? "") + text.trim() + (original.match(/\s*$/)?.[0] ?? "");
+      const joined = before +
+        (before && replacement && !/\s$/.test(before) && !/^\s/.test(replacement) ? " " : "") + replacement +
+        (replacement && after && !/\s$/.test(replacement) && !/^\s/.test(after) ? " " : "") + after;
+      setContentSource(content, binding.source, joined, element.itemId);
+      const overrides = structuredClone(c.overrides);
+      for (const sibling of c.elements.filter(e => {
+        const b = c.base.bindings.find(b => b.id === e.bindingId);
+        return b?.kind === "text" && b.source === binding.source;
+      })) if (overrides[sibling.id]) delete overrides[sibling.id].text;
+      const next = editArsenalContent({ ...c, overrides }, content);
+      const resolved = resolveArsenalComposition(next);
+      const newText = resolved.elements.find(e => e.id === id)?.text ?? text;
+      return resolveArsenalComposition({ ...resolved, richText: {
+        ...resolved.richText,
+        [id]: reconcileRichTextChange(text, newText, chunks ?? reconcileRichTextChange(element.text, text, element.richText)),
+      } });
+    }
     if (binding.source !== "media.primary") {
       let textToSet = text;
       if (binding.prefix && textToSet.startsWith(binding.prefix)) {
@@ -133,11 +180,11 @@ export function editArsenalElementText(
       }
       setContentSource(content, binding.source, textToSet, element.itemId);
     }
-    const next = editArsenalContent({ ...c, richText }, content);
-    return resolveArsenalComposition({
-      ...next,
-      overrides: { ...next.overrides, [id]: { ...next.overrides[id], text } },
-    });
+    const next = editArsenalContent(c, content);
+    return resolveArsenalComposition({ ...next, richText: {
+      ...next.richText,
+      [id]: chunks ?? reconcileRichTextChange(element.text, text, element.richText),
+    } });
   }
   if (c.version === 3 && c.authorialLayers.some(l => l.id === id)) {
     const authorialLayers = c.authorialLayers.map(l =>
@@ -192,8 +239,11 @@ export function overrideArsenalElement(
       l.id === id ? { ...l, ...(patch as any) } : l
     );
   }
+  const paletteAppliedFills = c.paletteAppliedFills ? { ...c.paletteAppliedFills } : undefined;
+  if (paletteAppliedFills && Object.hasOwn(patch, "fill")) delete paletteAppliedFills[id];
   return resolveArsenalComposition({
     ...c,
+    ...(paletteAppliedFills ? { paletteAppliedFills } : {}),
     ...(authorialLayers ? { authorialLayers } : {}),
     relations,
     overrides: { ...c.overrides, [id]: { ...c.overrides[id], ...patch } },
@@ -460,13 +510,21 @@ export function duplicateArsenalAuthorialLayer(
   if (!target) return { composition: c, newId: id };
   const newId = `layer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const duplicated: ArsenalAuthorialLayer = {
-    ...target,
+    ...structuredClone(target),
     id: newId,
     x: target.x + 24,
     y: target.y + 24,
     zIndex: Math.max(...c.elements.map(e => e.zIndex), 0) + 1,
   };
-  const next = addArsenalAuthorialLayer(c, duplicated);
+  const next = addArsenalAuthorialLayer({
+    ...c,
+    ...(c.elementStates?.[id] ? { elementStates: { ...c.elementStates, [newId]: structuredClone(c.elementStates[id]) } } : {}),
+    ...(c.effects[id] ? { effects: { ...c.effects, [newId]: structuredClone(c.effects[id]) } } : {}),
+    ...(c.richText[id] ? { richText: { ...c.richText, [newId]: structuredClone(c.richText[id]) } } : {}),
+    ...(c.media[id] ? { media: { ...c.media, [newId]: structuredClone(c.media[id]) } } : {}),
+    ...(c.paletteAppliedFills?.[id] ? { paletteAppliedFills: { ...c.paletteAppliedFills, [newId]: c.paletteAppliedFills[id] } } : {}),
+    ...(c.overrides[id]?.fill !== undefined ? { overrides: { ...c.overrides, [newId]: { fill: c.overrides[id].fill } } } : {}),
+  }, duplicated);
   return { composition: next, newId };
 }
 
@@ -657,6 +715,13 @@ export function cloneArsenalComposition(
       nextMedia[mappedKey] = structuredClone(val);
     }
     cloned.media = nextMedia;
+
+    if (cloned.elementStates) cloned.elementStates = Object.fromEntries(
+      Object.entries(cloned.elementStates).map(([id, state]) => [idMap.get(id) ?? id, structuredClone(state)]),
+    );
+    if (cloned.paletteAppliedFills) cloned.paletteAppliedFills = Object.fromEntries(
+      Object.entries(cloned.paletteAppliedFills).map(([id, color]) => [idMap.get(id) ?? id, color]),
+    );
 
     // Materializa e reconcilia elements e groups através do resolver existente
     const resolved = resolveArsenalComposition(cloned);

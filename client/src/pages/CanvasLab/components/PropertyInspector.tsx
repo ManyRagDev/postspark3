@@ -1,8 +1,25 @@
 import React, { useMemo } from "react";
-import { X, AlignLeft, AlignCenter, AlignRight, Copy, Trash2, ChevronsUp, ChevronsDown } from "lucide-react";
+import {
+  X,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Copy,
+  Trash2,
+  ChevronsUp,
+  ChevronsDown,
+  Image as ImageIcon,
+} from "lucide-react";
 import { toast } from "sonner";
-import { CanvasPostModel, CanvasCustomText, type TextLegibilityEffect } from "./types";
-import { applyPatchToCurrentSlide, duplicateExtraElement, removeExtraElement, reorderExtraElement } from "../lib/documentCommands";
+import { CanvasPostModel, CanvasCustomText, CanvasCustomImage, type TextLegibilityEffect } from "./types";
+import {
+  applyPatchToCurrentSlide,
+  duplicateExtraElement,
+  removeExtraElement,
+  reorderExtraElement,
+  resolveSlideExtraImages,
+  updateExtraElement as updateExtraImage,
+} from "../lib/documentCommands";
 import FontPickerDropdown from "./FontPickerDropdown";
 import { FONT_CATALOG } from "@/lib/fonts";
 
@@ -30,6 +47,9 @@ export default function PropertyInspector({ post, selectedId, onUpdatePost, onCl
   const extraTextMatch = slideExtraTexts.find(t => t.id === selectedId) || globalExtraTexts.find(t => t.id === selectedId);
   const isExtraText = !!extraTextMatch;
   const isSlideSpecificExtra = !!slideExtraTexts.find(t => t.id === selectedId);
+
+  // Procurar em extraImages
+  const extraImage = resolveSlideExtraImages(post, post.currentSlideIndex).find(img => img.id === selectedId) as (CanvasCustomImage & { scale?: number }) | undefined;
 
   // Valores de Propriedade Resolvidos
   let fontFamily = "Inter";
@@ -120,10 +140,20 @@ export default function PropertyInspector({ post, selectedId, onUpdatePost, onCl
     }
   };
 
-  const titleStr = isHeadline ? "Título Principal" : isSubtext ? "Subtítulo / Corpo" : isBadge ? "Badge" : isExtraText ? "Texto Adicional" : "Elemento";
+  const titleStr = isHeadline
+    ? "Título Principal"
+    : isSubtext
+      ? "Subtítulo / Corpo"
+      : isBadge
+        ? "Badge"
+        : isExtraText
+          ? "Texto Adicional"
+          : extraImage
+            ? "Imagem Sobreposta"
+            : "Elemento";
 
-  if (!isHeadline && !isSubtext && !isExtraText && !isBadge) {
-    return null; // Imagens vão ser handled depois ou aqui se necessário. Focando no texto.
+  if (!isHeadline && !isSubtext && !isBadge && !extraTextMatch && !extraImage) {
+    return null;
   }
 
   return (
@@ -131,7 +161,15 @@ export default function PropertyInspector({ post, selectedId, onUpdatePost, onCl
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded bg-white/10 flex items-center justify-center font-bold text-xs">
-            {isHeadline ? 'T' : isSubtext ? 'S' : 'A'}
+            {extraImage ? (
+              <ImageIcon size={14} className="text-white/80" />
+            ) : isHeadline ? (
+              "T"
+            ) : isSubtext ? (
+              "S"
+            ) : (
+              "A"
+            )}
           </div>
           <div>
             <h3 className="text-sm font-semibold">{titleStr}</h3>
@@ -146,53 +184,235 @@ export default function PropertyInspector({ post, selectedId, onUpdatePost, onCl
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        
-        {/* Fonte & Alinhamento */}
-        <div className="space-y-3">
-          <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">Fonte e Alinhamento</label>
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-               <FontPickerDropdown
-                  value={fontFamily}
-                  onChange={updateFontFamily}
-                  userFonts={post.userFonts}
-               />
+        {extraImage && (
+          <>
+            {extraImage.url && (
+              <div className="rounded-lg overflow-hidden border border-white/10 bg-black/40 h-28 flex items-center justify-center p-2">
+                <img
+                  src={extraImage.url}
+                  alt="Imagem Sobreposta"
+                  className="max-h-full max-w-full object-contain rounded"
+                />
+              </div>
+            )}
+
+            {/* Escala */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
+                  Escala
+                </label>
+                <span className="text-xs font-mono text-white/50">
+                  {Math.round((extraImage.scaleX ?? 1) * 100)}%
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="0.2"
+                  max="2.5"
+                  step="0.05"
+                  value={extraImage.scaleX ?? 1}
+                  onChange={(e) => {
+                    const nextScale = parseFloat(e.target.value);
+                    onUpdatePost(
+                      updateExtraImage(post, extraImage.id, {
+                        scaleX: nextScale,
+                        scaleY: nextScale,
+                      })
+                    );
+                  }}
+                  className="flex-1 accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                />
+              </div>
             </div>
-            <div className="flex bg-white/5 border border-white/10 rounded-lg overflow-hidden shrink-0">
-              {[
-                { id: "left", icon: <AlignLeft size={14} /> },
-                { id: "center", icon: <AlignCenter size={14} /> },
-                { id: "right", icon: <AlignRight size={14} /> },
-              ].map((a) => (
+
+            {/* Opacidade */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
+                  Opacidade
+                </label>
+                <span className="text-xs font-mono text-white/50">
+                  {Math.round((extraImage.opacity ?? 1) * 100)}%
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1"
+                  step="0.05"
+                  value={extraImage.opacity ?? 1}
+                  onChange={(e) =>
+                    onUpdatePost(
+                      updateExtraImage(post, extraImage.id, {
+                        opacity: parseFloat(e.target.value),
+                      } as any)
+                    )
+                  }
+                  className="flex-1 accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Arredondamento */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
+                  Cantos Arredondados
+                </label>
+                <span className="text-xs font-mono text-white/50">
+                  {extraImage.cornerRadius || 0}px
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="0"
+                  max="60"
+                  step="2"
+                  value={extraImage.cornerRadius || 0}
+                  onChange={(e) =>
+                    onUpdatePost(
+                      updateExtraImage(post, extraImage.id, {
+                        cornerRadius: parseInt(e.target.value, 10),
+                      } as any)
+                    )
+                  }
+                  className="flex-1 accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Giro */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
+                  Giro
+                </label>
+                <span className="text-xs font-mono text-white/50">
+                  {extraImage.rotation || 0}°
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="-180"
+                  max="180"
+                  step="5"
+                  value={extraImage.rotation || 0}
+                  onChange={(e) =>
+                    onUpdatePost(
+                      updateExtraImage(post, extraImage.id, {
+                        rotation: parseInt(e.target.value, 10),
+                      } as any)
+                    )
+                  }
+                  className="flex-1 accent-[oklch(0.78_0.22_48)] h-1 bg-white/10 rounded-lg cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Botões de Camada */}
+            <div className="space-y-3 pt-4 border-t border-white/10">
+              <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">
+                Organização
+              </label>
+              <div className="grid grid-cols-2 gap-2">
                 <button
-                  key={a.id}
-                  onClick={() => updateAlign(a.id as any)}
-                  className={`p-2 transition-colors cursor-pointer ${align === a.id ? 'bg-[oklch(0.78_0.22_48)] text-black' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+                  type="button"
+                  onClick={() =>
+                    onUpdatePost(reorderExtraElement(post, extraImage.id, "front"))
+                  }
+                  className="p-2 rounded bg-white/5 hover:bg-white/10 text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
-                  {a.icon}
+                  <ChevronsUp size={14} /> Trazer p/ Frente
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdatePost(reorderExtraElement(post, extraImage.id, "back"))
+                  }
+                  className="p-2 rounded bg-white/5 hover:bg-white/10 text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <ChevronsDown size={14} /> Enviar p/ Trás
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onUpdatePost(duplicateExtraElement(post, extraImage.id).post);
+                    toast.success("Imagem duplicada!");
+                  }}
+                  className="p-2 rounded bg-white/5 hover:bg-white/10 text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Copy size={14} /> Duplicar Camada
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onUpdatePost(removeExtraElement(post, extraImage.id));
+                    onClose();
+                  }}
+                  className="p-2 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Trash2 size={14} /> Remover Camada
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Fonte & Alinhamento */}
+        {!extraImage && (
+          <div className="space-y-3">
+            <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">Fonte e Alinhamento</label>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                 <FontPickerDropdown
+                    value={fontFamily}
+                    onChange={updateFontFamily}
+                    userFonts={post.userFonts}
+                 />
+              </div>
+              <div className="flex bg-white/5 border border-white/10 rounded-lg overflow-hidden shrink-0">
+                {[
+                  { id: "left", icon: <AlignLeft size={14} /> },
+                  { id: "center", icon: <AlignCenter size={14} /> },
+                  { id: "right", icon: <AlignRight size={14} /> },
+                ].map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => updateAlign(a.id as any)}
+                    className={`p-2 transition-colors cursor-pointer ${align === a.id ? 'bg-[oklch(0.78_0.22_48)] text-black' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+                  >
+                    {a.icon}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Cor Principal */}
-        <div className="space-y-3">
-          <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">Cor do Texto</label>
-          <div className="flex items-center gap-2">
-             <input
-                type="color"
-                value={color}
-                onChange={(e) => updateColor(e.target.value)}
-                className="w-10 h-10 rounded cursor-pointer border-0 bg-transparent"
-             />
-             <div className="flex gap-1.5 flex-wrap flex-1">
-               {['#FFFFFF', '#000000', post.palette.accent, post.palette.background, '#F87171', '#FBBF24', '#34D399', '#60A5FA', '#A78BFA'].filter(Boolean).map(c => (
-                  <button key={c} onClick={() => updateColor(c)} className="w-6 h-6 rounded-full border border-white/20 shadow-sm transition-transform hover:scale-110 cursor-pointer" style={{ backgroundColor: c }} />
-               ))}
-             </div>
+        {!extraImage && (
+          <div className="space-y-3">
+            <label className="text-[11px] uppercase tracking-wider text-white/50 font-semibold">Cor do Texto</label>
+            <div className="flex items-center gap-2">
+               <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => updateColor(e.target.value)}
+                  className="w-10 h-10 rounded cursor-pointer border-0 bg-transparent"
+               />
+               <div className="flex gap-1.5 flex-wrap flex-1">
+                 {['#FFFFFF', '#000000', post.palette.accent, post.palette.background, '#F87171', '#FBBF24', '#34D399', '#60A5FA', '#A78BFA'].filter(Boolean).map(c => (
+                    <button key={c} onClick={() => updateColor(c)} className="w-6 h-6 rounded-full border border-white/20 shadow-sm transition-transform hover:scale-110 cursor-pointer" style={{ backgroundColor: c }} />
+                 ))}
+               </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Opacidade (ExtraText) */}
         {isExtraText && (

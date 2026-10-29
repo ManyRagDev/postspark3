@@ -128,11 +128,21 @@ function SavedPostPreview({ post }: { post: any }) {
 }
 
 function GalleryPreview({post}:{post:{id:number;headline:string;gallery_preview?:string|null}}){
+ const container = useRef<HTMLDivElement>(null);
  const [requested,setRequested]=useState(false);
+ useEffect(() => {
+   if (post.gallery_preview || !container.current) return;
+   if (typeof IntersectionObserver === "undefined") { setRequested(true); return; }
+   const observer = new IntersectionObserver(([entry]) => {
+     if (entry.isIntersecting) { setRequested(true); observer.disconnect(); }
+   }, { rootMargin: "100px" });
+   observer.observe(container.current);
+   return () => observer.disconnect();
+ }, [post.id, post.gallery_preview]);
  const preview=trpc.post.get.useQuery({id:post.id},{enabled:requested&&!post.gallery_preview,staleTime:Infinity,retry:false});
  if(post.gallery_preview)return <div className="flex h-52 justify-center bg-black/25 p-3"><img src={post.gallery_preview} alt={`Prévia: ${post.headline}`} className="object-contain" /></div>;
  if(preview.data)return <SavedPostPreview post={preview.data}/>;
- return <div className="flex h-52 flex-col items-center justify-center gap-3 bg-black/25 p-4"><p>{post.headline}</p><button disabled={preview.isFetching} onClick={()=>{setRequested(true);if(requested)void preview.refetch();}}>{preview.isFetching?'Carregando…':preview.error?'Tentar prévia novamente':'Carregar prévia'}</button></div>;
+ return <div ref={container} className="flex h-52 flex-col items-center justify-center gap-3 bg-black/25 p-4"><p>{post.headline}</p>{preview.error ? <button onClick={()=>void preview.refetch()}>Tentar prévia novamente</button> : <p role="status" className="text-xs text-muted-foreground">{requested ? 'Preparando prévia…' : 'Prévia ao aproximar'}</p>}</div>;
 }
 
 export default function SavedPosts() {

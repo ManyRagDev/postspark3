@@ -67,13 +67,13 @@ describe("StudioCreateViewV2B draft control", () => {
     act(()=>container.querySelector<HTMLButtonElement>('button[aria-label="Capturar marca gratuitamente"]')!.click());
     expect(container.querySelector('[data-testid=brand-capture]')?.textContent).toBe("https://example.com/");expect(onSubmit).not.toHaveBeenCalled();
     act(()=>container.querySelector<HTMLInputElement>('input[type=checkbox]')!.click());
-    act(()=>container.querySelector<HTMLButtonElement>('button[aria-label="Criar direções de arte"]')!.click());
+    act(()=>container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!.click());
     expect(onSubmit).toHaveBeenCalledWith("https://example.com/","static",expect.objectContaining({platform:"instagram"}));
   });
   it("treats a URL followed by instructions as content and exposes all four platforms",()=>{
     const onSubmit=vi.fn();act(()=>root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={()=>{}} initialPrompt="https://example.com/ Compare os critérios"/>));
     expect(container.querySelectorAll('select[aria-label=Plataforma] option')).toHaveLength(4);
-    act(()=>container.querySelector<HTMLButtonElement>('button[aria-label="Criar direções de arte"]')!.click());expect(onSubmit).toHaveBeenCalledOnce();expect(container.querySelector('[data-testid=brand-capture]')).toBeNull();
+    act(()=>container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!.click());expect(onSubmit).toHaveBeenCalledOnce();expect(container.querySelector('[data-testid=brand-capture]')).toBeNull();
   });
 
 });

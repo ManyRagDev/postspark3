@@ -10,7 +10,7 @@ import { createArsenalFixtureComposition } from "./lib/arsenalFixture";
 const c = vi.hoisted(() => ({
   stage: null as any,
   bar: null as any,
-  side: null as any,
+  chrome: null as any,
   guide: null as any,
   film: null as any,
   rep: null as any,
@@ -36,18 +36,12 @@ vi.mock("./components/CanvasTopBar", () => ({
   },
 }));
 
-vi.mock("./components/CanvasSidebar", () => ({
-  default: (p: any) => {
-    c.side = p;
-    return null;
-  },
+vi.mock("./components/CanvasEditorChrome", () => ({
+  default: (p: any) => { c.chrome = p; return null; },
+  CanvasAddPanel: () => null,
 }));
-
 vi.mock("./components/GuidedEditor", () => ({
-  default: (p: any) => {
-    c.guide = p;
-    return null;
-  },
+  GuidedEditorDialog: (p: any) => { c.guide = p; return null; },
 }));
 
 vi.mock("./components/CarouselFilmstrip", () => ({
@@ -122,7 +116,7 @@ function createMultiSlidePost(): CanvasPostModel {
 }
 
 describe("CanvasLabPage History and Navigation (OS-002)", () => {
-  it("AC-03 / P06: Edit -> Undo -> Navigate -> Toggle Mode -> Redo preserves redo and does not create spurious autosave", async () => {
+  it("AC-03 / P06: Edit -> Undo -> Navigate -> Open Tool -> Redo preserves redo and does not create spurious autosave", async () => {
     const post = createMultiSlidePost();
     const handleSave = vi.fn().mockReturnValue(true);
 
@@ -132,7 +126,7 @@ describe("CanvasLabPage History and Navigation (OS-002)", () => {
 
     // 1. Edita no slide 0
     await act(async () => {
-      c.side.onUpdatePost({ headline: "Headline Editada" });
+      c.stage.onUpdateText("headline", "Headline Editada");
     });
 
     expect(c.stage.post.slides[0].headline).toBe("Headline Editada");
@@ -160,14 +154,14 @@ describe("CanvasLabPage History and Navigation (OS-002)", () => {
     // Navegação isolada NÃO deve acionar save
     expect(handleSave).not.toHaveBeenCalled();
 
-    // 4. Alterna modo Livre e volta para Guiado
+    // 4. Abre e fecha a ferramenta Marca
     await act(async () => {
-      c.guide.onFreeChange(true);
+      c.chrome.onToolChange("brand");
     });
     expect(c.bar.canRedo).toBe(true);
 
     await act(async () => {
-      c.guide.onFreeChange(false);
+      c.chrome.onToolChange(null);
     });
     expect(c.bar.canRedo).toBe(true);
 
@@ -181,7 +175,7 @@ describe("CanvasLabPage History and Navigation (OS-002)", () => {
 
     // 6. Novo commit após navegação edita exatamente o slide exibido (slide 1)
     await act(async () => {
-      c.side.onUpdatePost({ headline: "Nova Edição no Slide 1" });
+      c.stage.onUpdateText("headline", "Nova Edição no Slide 1");
     });
 
     expect(c.stage.post.slides[1].headline).toBe("Nova Edição no Slide 1");
@@ -265,7 +259,7 @@ describe("CanvasLabPage History and Navigation (OS-002)", () => {
 
     // Edição 1
     await act(async () => {
-      c.side.onUpdatePost({ headline: "Edição 1" });
+      c.stage.onUpdateText("headline", "Edição 1");
     });
     expect(c.stage.post.slides[0].headline).toBe("Edição 1");
 
@@ -278,7 +272,7 @@ describe("CanvasLabPage History and Navigation (OS-002)", () => {
 
     // Nova edição real deve descartar o Redo
     await act(async () => {
-      c.side.onUpdatePost({ headline: "Edição 2" });
+      c.stage.onUpdateText("headline", "Edição 2");
     });
 
     expect(c.stage.post.slides[0].headline).toBe("Edição 2");
@@ -294,7 +288,7 @@ describe("CanvasLabPage History and Navigation (OS-002)", () => {
 
     // Realiza uma edição para ter o que desfazer
     await act(async () => {
-      c.side.onUpdatePost({ headline: "Edição por Teclado" });
+      c.stage.onUpdateText("headline", "Edição por Teclado");
     });
     expect(c.stage.post.slides[0].headline).toBe("Edição por Teclado");
 
@@ -385,7 +379,7 @@ describe("CanvasLabPage History and Navigation (OS-002)", () => {
     expect(c.stage.selectedElementId).toBe(slide0ElementId);
 
     // Edição no mesmo slide preserva seleção
-    await act(async () => c.side.onUpdatePost({ headline: "Slide 0 Editado" }));
+    await act(async () => c.stage.onUpdateText("headline", "Slide 0 Editado"));
     expect(c.stage.selectedElementId).toBe(slide0ElementId);
 
     // Reordenação do slide 0 preserva o slide ativo e a seleção

@@ -1,5 +1,14 @@
-import { applyMediaOperation, pendingMediaCount, targetExists, type MediaUpdate } from './lib/mediaSlots';
-import { applyCompositionAppearancePatch, shouldDeleteCanvasSelection } from "./lib/compositionEditing";
+import {
+  applyMediaOperation,
+  pendingMediaCount,
+  targetExists,
+  type MediaUpdate,
+} from "./lib/mediaSlots";
+import {
+  applyCompositionAppearancePatch,
+  shouldDeleteCanvasSelection,
+} from "./lib/compositionEditing";
+import { applyFamilyPreset } from "./lib/familyPreset";
 import { aspectRatioHeight } from "@shared/aspectRatios";
 import { ensureArsenalCompositionFonts } from "./lib/arsenalAssets";
 import { arsenalApi } from "@/lib/arsenalApi";
@@ -9,6 +18,7 @@ import type { ArsenalComposition } from "@shared/designArsenal";
 import { applyContentText } from "@shared/arsenalContent";
 import {
   putArsenalComposition,
+  restoreArsenalVariant,
   editArsenalContent,
   editArsenalElementText,
   setArsenalCustomBackground,
@@ -18,21 +28,64 @@ import {
   removeArsenalAuthorialLayer,
   hideArsenalInstance,
 } from "./lib/arsenalComposition";
-import GuidedEditor from "./components/GuidedEditor";
-import { captureInitialVisuals, composePost, fitPostToAspectRatio } from "./lib/guidedComposition";
-import CanvasMobileDrawer from "./components/CanvasMobileDrawer";
-import { useRef, useState, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
+import { GuidedEditorDialog } from "./components/GuidedEditor";
+import CanvasEditorChrome, {
+  CanvasAddPanel,
+  type CanvasEditorTool,
+} from "./components/CanvasEditorChrome";
+import {
+  CanvasEditorLayers,
+  CanvasCaptionPanel,
+} from "./components/CanvasEditorPanel";
+import {
+  CanvasAppearancePanel,
+  CanvasBrandPanel,
+  CanvasMediaPanel,
+} from "./components/CanvasEditorContent";
+import { CanvasSelectionPanel } from "./components/CanvasSelectionPanel";
+import {
+  projectEditorLayers,
+  resolveEditorSelection,
+  executeEditorCommand,
+  applyEditorTypography,
+  applyEditorPalette,
+  setEditorLogo,
+  resolveEditorProperties,
+  COMPOSITION_BACKGROUND_ID,
+  type EditorCommand,
+  type EditorTarget,
+} from "./lib/editorController";
+import {
+  captureInitialVisuals,
+  composePost,
+  fitPostToAspectRatio,
+} from "./lib/guidedComposition";
+import {
+  useRef,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RotateCcw, Check, Crop } from "lucide-react";
 import { toast } from "sonner";
-import { CanvasPostStage, type CanvasPostStageRef } from "./components/CanvasPostStage";
+import {
+  CanvasPostStage,
+  type CanvasPostStageRef,
+} from "./components/CanvasPostStage";
 import CanvasTopBar from "./components/CanvasTopBar";
 import CanvasToolRail from "./components/CanvasToolRail";
-import CanvasMobileQuickActions from "./components/CanvasMobileQuickActions";
 import SlideReplicationDialog from "./components/SlideReplicationDialog";
-import CanvasSidebar from "./components/CanvasSidebar";
 import CarouselFilmstrip from "./components/CarouselFilmstrip";
-import { ConfirmDialog, PendingMediaExportDialog, SaveChoiceDialog, readSavePreference, writeSavePreference } from "./components/CanvasLabDialogs";
+import {
+  ConfirmDialog,
+  PendingMediaExportDialog,
+  SaveChoiceDialog,
+  readSavePreference,
+  writeSavePreference,
+} from "./components/CanvasLabDialogs";
 import {
   INITIAL_POST,
   type AspectRatioType,
@@ -62,11 +115,25 @@ import {
   setHistoryPresent,
 } from "./lib/canvasHistory";
 import { AutoSaveManager, type AutoSaveState } from "./lib/autoSaveManager";
-import { applyCurrentSlideAppearancePatch, replicateSlideAppearance, resolveSlideAppearance, replicateCarouselComposition, type ReplicationGroup } from "./lib/slideReplication";
+import {
+  applyCurrentSlideAppearancePatch,
+  replicateSlideAppearance,
+  resolveSlideAppearance,
+  replicateCarouselComposition,
+  type ReplicationGroup,
+} from "./lib/slideReplication";
 
 export type PostUpdateAction =
-  | { kind: "document"; document: CanvasPostModel; composition?: ArsenalComposition }
-  | { kind: "patch"; patch: Partial<CanvasPostModel>; composition?: ArsenalComposition }
+  | {
+      kind: "document";
+      document: CanvasPostModel;
+      composition?: ArsenalComposition;
+    }
+  | {
+      kind: "patch";
+      patch: Partial<CanvasPostModel>;
+      composition?: ArsenalComposition;
+    }
   | { kind: "updater"; update: (prev: CanvasPostModel) => CanvasPostModel };
 
 export type PostUpdateInput =
@@ -80,7 +147,12 @@ interface CanvasLabPageProps {
   /** Item 6: recomeçar do zero — limpa a sessão e volta à tela de criação. */
   onRestart?: () => void;
   /** Item 7: persiste o post ("new" = INSERT, "update" = UPDATE do salvo). */
-  onSave?: (post: CanvasPostModel, mode: "new" | "update", source: "manual" | "auto", galleryPreview?:string) => Promise<boolean>;
+  onSave?: (
+    post: CanvasPostModel,
+    mode: "new" | "update",
+    source: "manual" | "auto",
+    galleryPreview?: string
+  ) => Promise<boolean>;
   /** Existe um post salvo vinculado à sessão (habilita "Atualizar"). */
   hasSavedPost?: boolean;
   isSaving?: boolean;
@@ -98,11 +170,16 @@ function readAutoSavePreference(): boolean {
   }
 }
 
-function syncPostCaptionWithCompositions(post: CanvasPostModel): CanvasPostModel {
+function syncPostCaptionWithCompositions(
+  post: CanvasPostModel
+): CanvasPostModel {
   if (typeof post.caption !== "string") return post;
   let changed = false;
   const slides = post.slides.map(slide => {
-    if (slide.composition && slide.composition.content.caption !== post.caption) {
+    if (
+      slide.composition &&
+      slide.composition.content.caption !== post.caption
+    ) {
       changed = true;
       return {
         ...slide,
@@ -117,30 +194,70 @@ function syncPostCaptionWithCompositions(post: CanvasPostModel): CanvasPostModel
   return changed ? { ...post, slides } : post;
 }
 
-export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart, onSave, hasSavedPost = false, isSaving = false }: CanvasLabPageProps = {}) {
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const [freeEditing, setFreeEditing] = useState(false);
-  const [formatPreview,setFormatPreview] = useState<CanvasPostModel|null>(null);
-  const [nativeFormatPreview,setNativeFormatPreview]=useState<CanvasPostModel|null>(null);
-  const [formatLoading,setFormatLoading]=useState(false);
-  const formatRequest=useRef(0);
+export default function CanvasLabPage({
+  initialPost,
+  onBackToGallery,
+  onRestart,
+  onSave,
+  hasSavedPost = false,
+  isSaving = false,
+}: CanvasLabPageProps = {}) {
+  const [activeTool, setActiveTool] = useState<CanvasEditorTool | null>(null);
+  const [restorePreview, setRestorePreview] = useState<{
+    slideId: string;
+    composition: ArsenalComposition;
+  } | null>(null);
+  const [mobileChromeHeight, setMobileChromeHeight] = useState(60);
+  const [isTextEditing, setIsTextEditing] = useState(false);
+  const [canvasToolsOpen, setCanvasToolsOpen] = useState(false);
+  const [pendingTextEdit, setPendingTextEdit] = useState<string | null>(null);
+  const [guidedAction, setGuidedAction] = useState<"visual" | "recover" | null>(
+    null
+  );
+  const [technicalOpen, setTechnicalOpen] = useState(false);
+  const [brandScopeOpen, setBrandScopeOpen] = useState(false);
+  const [brandDestinations, setBrandDestinations] = useState<string[]>([]);
+  const freeEditing = true;
+  const [formatPreview, setFormatPreview] = useState<CanvasPostModel | null>(
+    null
+  );
+  const [nativeFormatPreview, setNativeFormatPreview] =
+    useState<CanvasPostModel | null>(null);
+  const [formatLoading, setFormatLoading] = useState(false);
+  const formatRequest = useRef(0);
   const [mediaPreview, setMediaPreview] = useState<string>();
-  const [requestedTab, setRequestedTab] = useState<"media" | undefined>();
   const [isEditingBackground, setIsEditingBackground] = useState(false);
-  const [history, setHistory] = useState(() => createHistory<CanvasPostModel>(captureInitialVisuals(syncPostCaptionWithCompositions(initialPost || INITIAL_POST))));
+  const [history, setHistory] = useState(() =>
+    createHistory<CanvasPostModel>(
+      captureInitialVisuals(
+        syncPostCaptionWithCompositions(initialPost || INITIAL_POST)
+      )
+    )
+  );
   const post = history.present;
   const arsenalComposition = post.slides[post.currentSlideIndex]?.composition;
-  const currentViewPost = useMemo(() => resolveSlideAppearance(post, post.currentSlideIndex), [post]);
+  const currentViewPost = useMemo(
+    () => resolveSlideAppearance(post, post.currentSlideIndex),
+    [post]
+  );
 
   const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
-  const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(readAutoSavePreference);
+  const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(
+    readAutoSavePreference
+  );
   const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false);
   const isExitingRef = useRef(false);
-  const autoSaveManagerRef = useRef<AutoSaveManager<CanvasPostModel> | null>(null);
+  const autoSaveManagerRef = useRef<AutoSaveManager<CanvasPostModel> | null>(
+    null
+  );
   const onSaveRef = useRef(onSave);
   const hasSavedPostRef = useRef(hasSavedPost);
   const postRef = useRef(post);
+  const editSessionRef = useRef<{
+    target: EventTarget;
+    started: boolean;
+  } | null>(null);
   onSaveRef.current = onSave;
   hasSavedPostRef.current = hasSavedPost;
   postRef.current = post;
@@ -149,10 +266,14 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   useEffect(() => {
     if (!isAutoSaveEnabled || !onSaveRef.current) return;
     const manager = new AutoSaveManager<CanvasPostModel>({
-      onSave: async (docToSave) => {
+      onSave: async docToSave => {
         const mode = hasSavedPostRef.current ? "update" : "new";
-        const preview=await captureSavePreview(docToSave);
-        return (preview?onSaveRef.current?.(docToSave,mode,"auto",preview):onSaveRef.current?.(docToSave,mode,"auto")) ?? false;
+        const preview = await captureSavePreview(docToSave);
+        return (
+          (preview
+            ? onSaveRef.current?.(docToSave, mode, "auto", preview)
+            : onSaveRef.current?.(docToSave, mode, "auto")) ?? false
+        );
       },
       debounceMs: 1000,
       onStateChange: (state, savedAt) => {
@@ -164,7 +285,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     if (autoSaveState === "dirty") manager.triggerChange(postRef.current);
     return () => {
       manager.destroy();
-      if (autoSaveManagerRef.current === manager) autoSaveManagerRef.current = null;
+      if (autoSaveManagerRef.current === manager)
+        autoSaveManagerRef.current = null;
     };
   }, [isAutoSaveEnabled]);
 
@@ -182,35 +304,50 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   // Função centralizadora de mutações com histórico de Undo/Redo e agendamento de AutoSave
-  const setPost = (updater: CanvasPostModel | ((prev: CanvasPostModel) => CanvasPostModel)) => {
+  const setPost = (
+    updater: CanvasPostModel | ((prev: CanvasPostModel) => CanvasPostModel)
+  ) => {
     const current = postRef.current;
     const proposed = typeof updater === "function" ? updater(current) : updater;
-    const next = captureInitialVisuals(syncPostCaptionWithCompositions(proposed));
+    const next = captureInitialVisuals(
+      syncPostCaptionWithCompositions(proposed)
+    );
     if (next === current) return;
     postRef.current = next;
-    setHistory((prevHistory) => {
+    const session = editSessionRef.current;
+    const coalesce = Boolean(session?.started);
+    if (session) session.started = true;
+    setHistory(prevHistory => {
       if (next === prevHistory.present) return prevHistory;
-      return pushHistory(prevHistory, next);
+      return coalesce
+        ? { ...prevHistory, present: next, future: [] }
+        : pushHistory(prevHistory, next);
     });
     autoSaveManagerRef.current?.triggerChange(next);
     if (!autoSaveManagerRef.current) setAutoSaveState("dirty");
   };
 
   const handleUndo = () => {
-    setHistory((prev) => {
+    editSessionRef.current = null;
+    stageRef.current?.commitDraft?.();
+    setHistory(prev => {
       if (!canUndo(prev)) return prev;
-      const currentActiveId = prev.present.slides[prev.present.currentSlideIndex]?.id;
+      const currentActiveId =
+        prev.present.slides[prev.present.currentSlideIndex]?.id;
       const nextHistory = undoHistory(prev);
       let doc = nextHistory.present;
       const preservedIndex = currentActiveId
-        ? doc.slides.findIndex((s) => s.id === currentActiveId)
+        ? doc.slides.findIndex(s => s.id === currentActiveId)
         : -1;
       if (preservedIndex >= 0) {
         doc = { ...doc, currentSlideIndex: preservedIndex };
       } else {
         doc = {
           ...doc,
-          currentSlideIndex: Math.min(Math.max(0, doc.currentSlideIndex), Math.max(0, doc.slides.length - 1)),
+          currentSlideIndex: Math.min(
+            Math.max(0, doc.currentSlideIndex),
+            Math.max(0, doc.slides.length - 1)
+          ),
         };
       }
       const finalHistory = { ...nextHistory, present: doc };
@@ -221,20 +358,26 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   const handleRedo = () => {
-    setHistory((prev) => {
+    editSessionRef.current = null;
+    stageRef.current?.commitDraft?.();
+    setHistory(prev => {
       if (!canRedo(prev)) return prev;
-      const currentActiveId = prev.present.slides[prev.present.currentSlideIndex]?.id;
+      const currentActiveId =
+        prev.present.slides[prev.present.currentSlideIndex]?.id;
       const nextHistory = redoHistory(prev);
       let doc = nextHistory.present;
       const preservedIndex = currentActiveId
-        ? doc.slides.findIndex((s) => s.id === currentActiveId)
+        ? doc.slides.findIndex(s => s.id === currentActiveId)
         : -1;
       if (preservedIndex >= 0) {
         doc = { ...doc, currentSlideIndex: preservedIndex };
       } else {
         doc = {
           ...doc,
-          currentSlideIndex: Math.min(Math.max(0, doc.currentSlideIndex), Math.max(0, doc.slides.length - 1)),
+          currentSlideIndex: Math.min(
+            Math.max(0, doc.currentSlideIndex),
+            Math.max(0, doc.slides.length - 1)
+          ),
         };
       }
       const finalHistory = { ...nextHistory, present: doc };
@@ -247,8 +390,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const handleSelectSlide = (index: number) => {
     if (index === post.currentSlideIndex) return;
     if (index < 0 || index >= post.slides.length) return;
+    stageRef.current?.commitDraft?.();
+    setIsEditingBackground(false);
     setSelectedElementId(null);
-    setHistory((prev) => {
+    setHistory(prev => {
       if (index === prev.present.currentSlideIndex) return prev;
       return setHistoryPresent(prev, {
         ...prev.present,
@@ -261,10 +406,17 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   useEffect(() => {
     const handleHistoryKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
         return;
       }
-      const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+      const isMac =
+        typeof navigator !== "undefined" &&
+        /Mac|iPod|iPhone|iPad/.test(navigator.platform);
       const mod = isMac ? e.metaKey : e.ctrlKey;
       if (mod && e.key.toLowerCase() === "z") {
         e.preventDefault();
@@ -285,67 +437,77 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const handleReorderSlide = (sourceIndex: number, targetIndex: number) => {
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => reorderSlides(prev, sourceIndex, targetIndex),
+      update: prev => reorderSlides(prev, sourceIndex, targetIndex),
     });
   };
 
   const [zoom, setZoom] = useState(1);
-  const [isZoomScrubbing, setIsZoomScrubbing] = useState(false);
   const [isExportingZip, setIsExportingZip] = useState(false);
-  const [pendingExport, setPendingExport] = useState<"png" | "zip" | null>(null);
+  const [pendingExport, setPendingExport] = useState<"png" | "zip" | null>(
+    null
+  );
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isRestartConfirmOpen, setIsRestartConfirmOpen] = useState(false);
   const [isReplicationOpen, setIsReplicationOpen] = useState(false);
   const stageRef = useRef<CanvasPostStageRef>(null);
-  const captureSavePreview=async(doc:CanvasPostModel):Promise<string|undefined>=>{
-    if(!import.meta.env.DEV||doc.currentSlideIndex!==0||postRef.current!==doc)return;
-    try{const image=await stageRef.current?.exportThumbnail();if(postRef.current===doc&&image&&image.length<=100000)return image;}catch{/* Save the document even when preview capture fails. */}
+  const captureSavePreview = async (
+    doc: CanvasPostModel
+  ): Promise<string | undefined> => {
+    if (
+      !import.meta.env.DEV ||
+      doc.currentSlideIndex !== 0 ||
+      postRef.current !== doc
+    )
+      return;
+    try {
+      const image = await stageRef.current?.exportThumbnail();
+      if (postRef.current === doc && image && image.length <= 100000)
+        return image;
+    } catch {
+      /* Save the document even when preview capture fails. */
+    }
   };
 
-  const [selectedElementTarget, setSelectedElementTarget] = useState<{ slideId: string; elementId: string } | null>(null);
+  const [selectedElementTarget, setSelectedElementTarget] = useState<{
+    slideId: string;
+    elementId: string;
+  } | null>(null);
 
   const curActiveSlide = post.slides[post.currentSlideIndex];
 
-  const isElementInCurrentSlide = useMemo(() => {
-    if (!selectedElementTarget || !curActiveSlide || curActiveSlide.id !== selectedElementTarget.slideId) {
-      return false;
-    }
-    const elementId = selectedElementTarget.elementId;
-    const inComp =
-      Boolean(curActiveSlide.composition?.elements.some((e) => e.id === elementId)) ||
-      Boolean(
-        curActiveSlide.composition?.version === 3 &&
-          curActiveSlide.composition.authorialLayers.some((l) => l.id === elementId)
-      );
-    const inTexts = resolveSlideExtraTexts(post, post.currentSlideIndex).some(
-      (t) => t.id === elementId
-    );
-    const inImages = resolveSlideExtraImages(post, post.currentSlideIndex).some(
-      (i) => i.id === elementId
-    );
-    const isLogo =
-      elementId === "logo" &&
-      (Boolean(curActiveSlide.composition?.version === 3 ? curActiveSlide.composition.logo?.url : false) || Boolean(post.logoUrl));
-    return inComp || inTexts || inImages || isLogo;
-  }, [post, selectedElementTarget, curActiveSlide]);
-
-  const selectedElementId = isElementInCurrentSlide ? selectedElementTarget!.elementId : null;
-
-  const freeEditingRef = useRef(freeEditing);
-  useEffect(() => {
-    freeEditingRef.current = freeEditing;
-  }, [freeEditing]);
+  const editorLayers = useMemo(
+    () => projectEditorLayers(post, curActiveSlide.id),
+    [post, curActiveSlide.id]
+  );
+  const editorSelection = useMemo(
+    () =>
+      selectedElementTarget?.slideId === curActiveSlide.id
+        ? resolveEditorSelection(post, selectedElementTarget)
+        : undefined,
+    [post, selectedElementTarget, curActiveSlide.id]
+  );
+  const isElementInCurrentSlide = Boolean(editorSelection);
+  const selectedElementId = editorSelection?.id ?? null;
 
   const setSelectedElementId = useCallback(
-    (elementIdOrUpdater: string | null | ((prev: string | null) => string | null)) => {
-      setSelectedElementTarget((prevTarget) => {
-        const curSlide = postRef.current.slides[postRef.current.currentSlideIndex];
+    (
+      elementIdOrUpdater:
+        | string
+        | null
+        | ((prev: string | null) => string | null)
+    ) => {
+      setSelectedElementTarget(prevTarget => {
+        const curSlide =
+          postRef.current.slides[postRef.current.currentSlideIndex];
         const curSlideId = curSlide?.id;
-        const prevId = prevTarget && curSlideId && prevTarget.slideId === curSlideId ? prevTarget.elementId : null;
-        const nextId = typeof elementIdOrUpdater === "function" ? elementIdOrUpdater(prevId) : elementIdOrUpdater;
-        if (nextId && freeEditingRef.current && typeof window !== "undefined" && window.innerWidth < 768) {
-          setIsMobileDrawerOpen(true);
-        }
+        const prevId =
+          prevTarget && curSlideId && prevTarget.slideId === curSlideId
+            ? prevTarget.elementId
+            : null;
+        const nextId =
+          typeof elementIdOrUpdater === "function"
+            ? elementIdOrUpdater(prevId)
+            : elementIdOrUpdater;
         if (!nextId || !curSlideId) return null;
         return { slideId: curSlideId, elementId: nextId };
       });
@@ -353,23 +515,42 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     []
   );
   const mobileStageAreaRef = useRef<HTMLElement>(null);
-  const [measuredStageHeight, setMeasuredStageHeight] = useState<number | null>(null);
+  const [measuredStageHeight, setMeasuredStageHeight] = useState<number | null>(
+    null
+  );
+  const [measuredStageWidth, setMeasuredStageWidth] = useState<number | null>(
+    null
+  );
 
   // Monitoramento dinâmico da resolução da tela para responsividade matemática
   const [windowDimensions, setWindowDimensions] = useState({
     width: typeof window !== "undefined" ? window.innerWidth : 390,
     height: typeof window !== "undefined" ? window.innerHeight : 844,
+    bottomInset: 0,
   });
 
   useEffect(() => {
     const handleResize = () => {
       setWindowDimensions({
         width: window.innerWidth,
-        height: window.innerHeight,
+        height: window.visualViewport?.height ?? window.innerHeight,
+        bottomInset: window.visualViewport
+          ? Math.max(
+              0,
+              window.innerHeight -
+                window.visualViewport.height -
+                window.visualViewport.offsetTop
+            )
+          : 0,
       });
     };
+    handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   // Mede a altura real após o layout (inclusive safe area e teclado), evitando
@@ -378,38 +559,64 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     const stageArea = mobileStageAreaRef.current;
     if (!stageArea) return;
     const measure = () => {
-      const height = stageArea.getBoundingClientRect().height;
-      setMeasuredStageHeight(previous => previous === height ? previous : height);
+      const rect = stageArea.getBoundingClientRect();
+      const height = rect.height;
+      const width = rect.width;
+      setMeasuredStageHeight(previous =>
+        previous === height ? previous : height
+      );
+      setMeasuredStageWidth(previous =>
+        previous === width ? previous : width
+      );
     };
     measure();
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
     observer.observe(stageArea);
     return () => observer.disconnect();
-  }, [isMobileDrawerOpen, post.slides.length]);
+  }, [activeTool, post.slides.length, mobileChromeHeight, isTextEditing]);
 
   const isMobile = windowDimensions.width < 768;
   const baseWidth = 360;
   const baseHeight = aspectRatioHeight(post.aspectRatio);
 
-  // A área útil mobile acompanha o dock, a faixa de slides e o painel flutuante.
-  const mobileDockHeight = freeEditing ? 74 : 0;
-  const mobileQuickActionsHeight = isMobileDrawerOpen ? 0 : 64;
-  const mobileFilmstripHeight = post.slides.length > 1 && !isMobileDrawerOpen ? 76 : 0;
-  const mobilePanelHeight = Math.min(windowDimensions.height * 0.52, 560);
+  // Fit uses the actual free rectangle. The mobile chrome reserves space in the
+  // flex layout, so the art is never translated underneath a sheet.
+  const fittedScale = useMemo(() => {
+    const width =
+      measuredStageWidth ??
+      (isMobile ? windowDimensions.width : windowDimensions.width - 80);
+    const height = measuredStageHeight ?? windowDimensions.height - 180;
+    const padding = isMobile ? 16 : 48;
+    return Math.max(
+      0.05,
+      Math.min(
+        Math.max(1, width - padding) / baseWidth,
+        Math.max(1, height - padding) / baseHeight
+      )
+    );
+  }, [
+    isMobile,
+    measuredStageWidth,
+    measuredStageHeight,
+    windowDimensions.width,
+    windowDimensions.height,
+    baseHeight,
+  ]);
 
-  const mobileAdaptiveScale = useMemo(() => {
-    if (!isMobile) return 1;
+  useEffect(() => {
+    if (!pendingTextEdit || !selectedElementId) return;
+    const frame = requestAnimationFrame(() => {
+      stageRef.current?.beginTextEdit?.(pendingTextEdit);
+      setPendingTextEdit(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [pendingTextEdit, selectedElementId]);
 
-    const topBarHeight = 56;
-    const padding = 16;
-    const availableWidth = windowDimensions.width - padding * 2;
-    const stageAreaHeight = measuredStageHeight ?? windowDimensions.height - topBarHeight - mobileQuickActionsHeight - mobileDockHeight - mobileFilmstripHeight;
-    const visibleHeight = Math.max(100, stageAreaHeight - (isMobileDrawerOpen ? mobilePanelHeight + 8 : 0) - padding * 2);
-    return Math.min(availableWidth / baseWidth, visibleHeight / baseHeight, 0.98);
-  }, [isMobile, isMobileDrawerOpen, windowDimensions.width, windowDimensions.height, baseWidth, baseHeight, mobileQuickActionsHeight, mobileFilmstripHeight, mobilePanelHeight, measuredStageHeight]);
-
-  const applyPatchCommit = (patch: Partial<CanvasPostModel>, comp?: ArsenalComposition) => {
+  const applyPatchCommit = (
+    patch: Partial<CanvasPostModel>,
+    comp?: ArsenalComposition
+  ) => {
     if (comp) {
       setPost(prev => ({
         ...putArsenalComposition({ ...prev, ...patch }, comp),
@@ -417,7 +624,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       }));
       return;
     }
-    setPost((prev) => {
+    setPost(prev => {
       const curIdx = prev.currentSlideIndex;
       const currentSlide = prev.slides[curIdx];
       let next = applyCurrentSlideAppearancePatch(prev, patch);
@@ -426,7 +633,14 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         if (c) next = putArsenalComposition(next, c);
       }
       if (patch.familyId && patch.familyId !== currentViewPost.familyId) {
-        return { ...next, slides: next.slides.map((slide, index) => index === next.currentSlideIndex ? { ...slide, guidedComposition: undefined } : slide) };
+        return {
+          ...next,
+          slides: next.slides.map((slide, index) =>
+            index === next.currentSlideIndex
+              ? { ...slide, guidedComposition: undefined }
+              : slide
+          ),
+        };
       }
       return next;
     });
@@ -444,7 +658,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     if (input && typeof input === "object" && "kind" in input) {
       if (input.kind === "document") {
         const doc = input.document;
-        const comp = input.composition ?? composition ?? doc.slides[doc.currentSlideIndex]?.composition;
+        const comp =
+          input.composition ??
+          composition ??
+          doc.slides[doc.currentSlideIndex]?.composition;
         if (comp) {
           setPost(() => ({
             ...putArsenalComposition(doc, comp),
@@ -477,7 +694,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
 
     if (isFullDocument) {
       const doc = input as CanvasPostModel;
-      const comp = composition ?? doc.slides[doc.currentSlideIndex]?.composition;
+      const comp =
+        composition ?? doc.slides[doc.currentSlideIndex]?.composition;
       if (comp) {
         setPost(() => ({
           ...putArsenalComposition(doc, comp),
@@ -493,49 +711,110 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   const handleMediaUpdate: MediaUpdate = (target, operation) => {
-    if (operation.kind === 'apply' && !targetExists(postRef.current, target)) setMediaPreview(operation.url);
-    handleUpdatePost({
-      kind: "updater",
-      update: prev => applyMediaOperation(prev, target, operation) ?? prev,
-    });
+    editSessionRef.current = null;
+    const next = applyMediaOperation(postRef.current, target, operation);
+    if (!next) {
+      if (operation.kind === "apply") {
+        setMediaPreview(operation.url);
+        toast.info(
+          "O destino foi removido ou bloqueado. A imagem está disponível no painel Imagem para outro espaço."
+        );
+      }
+      return false;
+    }
+    handleUpdatePost({ kind: "document", document: next });
+    return true;
   };
 
   const handleReplicate = (groups: ReplicationGroup[], targets: number[]) => {
-    let next = replicateSlideAppearance(post, post.currentSlideIndex, targets, groups);
+    let next = replicateSlideAppearance(
+      post,
+      post.currentSlideIndex,
+      targets,
+      groups
+    );
     const composition = post.slides[post.currentSlideIndex]?.guidedComposition;
     const sourceComp = post.slides[post.currentSlideIndex]?.composition;
     if (groups.includes("composition") && composition) {
       for (const index of targets) {
-        const proposal = composePost({ ...next, currentSlideIndex: index }, composition.id);
+        const proposal = composePost(
+          { ...next, currentSlideIndex: index },
+          composition.id,
+          { preserveColors: true }
+        );
         if (!proposal.post) {
-          toast.error(`Slide ${index + 1}: ${proposal.error} Nenhuma alteração foi aplicada.`);
+          toast.error(
+            `Slide ${index + 1}: ${proposal.error} Nenhuma alteração foi aplicada.`
+          );
           return;
         }
         next = { ...proposal.post, currentSlideIndex: post.currentSlideIndex };
       }
     } else if (groups.includes("composition") && sourceComp) {
-      next = replicateCarouselComposition(next, post.currentSlideIndex, targets);
+      next = replicateCarouselComposition(
+        next,
+        post.currentSlideIndex,
+        targets
+      );
     } else if (groups.includes("composition")) {
-      next = { ...next, slides: next.slides.map((slide, index) => targets.includes(index) ? { ...slide, guidedComposition: undefined, composition: undefined } : slide) };
+      next = {
+        ...next,
+        slides: next.slides.map((slide, index) =>
+          targets.includes(index)
+            ? { ...slide, guidedComposition: undefined, composition: undefined }
+            : slide
+        ),
+      };
     }
     handleUpdatePost({ kind: "document", document: next });
     setIsReplicationOpen(false);
-    toast.success(`Formatação aplicada em ${targets.length} slide${targets.length === 1 ? "" : "s"}.`);
+    toast.success(
+      `Formatação aplicada em ${targets.length} slide${targets.length === 1 ? "" : "s"}.`
+    );
   };
 
   const handleAspectRatioChange = async (ratio: AspectRatioType) => {
-    if(arsenalComposition){try{await ensureArsenalCompositionFonts(arsenalComposition);}catch(error){toast.error((error as Error).message);return;}}
+    if (arsenalComposition) {
+      try {
+        await ensureArsenalCompositionFonts(arsenalComposition);
+      } catch (error) {
+        toast.error((error as Error).message);
+        return;
+      }
+    }
     const proposal = fitPostToAspectRatio(post, ratio);
-    if (!proposal.post) { toast.error(proposal.error); return; }
-    if(arsenalComposition){
-      const request=++formatRequest.current;
-      setFormatPreview(proposal.post);setNativeFormatPreview(null);setFormatLoading(true);
-      try{
+    if (!proposal.post) {
+      toast.error(proposal.error);
+      return;
+    }
+    if (arsenalComposition) {
+      const request = ++formatRequest.current;
+      setFormatPreview(proposal.post);
+      setNativeFormatPreview(null);
+      setFormatLoading(true);
+      try {
         if (arsenalComposition.origin.componentAssembly) return;
-        const offer=await arsenalApi.designCatalog.resolveArsenalVariant.mutate({versionId:arsenalComposition.origin.versionId,aspectRatio:ratio},{signal:AbortSignal.timeout(8000)});
-        if(offer){const preview=await applyArsenalFormatVariant(post,offer);if(request===formatRequest.current)setNativeFormatPreview(preview);}
-      }catch{if(request===formatRequest.current)toast.info("Variante indisponível; a projeção preserva seus ajustes.");}
-      finally{if(request===formatRequest.current)setFormatLoading(false);}
+        const offer =
+          await arsenalApi.designCatalog.resolveArsenalVariant.mutate(
+            {
+              versionId: arsenalComposition.origin.versionId,
+              aspectRatio: ratio,
+            },
+            { signal: AbortSignal.timeout(8000) }
+          );
+        if (offer) {
+          const preview = await applyArsenalFormatVariant(post, offer);
+          if (request === formatRequest.current)
+            setNativeFormatPreview(preview);
+        }
+      } catch {
+        if (request === formatRequest.current)
+          toast.info(
+            "Variante indisponível; a projeção preserva seus ajustes."
+          );
+      } finally {
+        if (request === formatRequest.current) setFormatLoading(false);
+      }
       return;
     }
     handleUpdatePost({ kind: "document", document: proposal.post });
@@ -544,7 +823,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const handleToggleSnap = () => {
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const next = prev.isSnapEnabled === false ? true : false;
         return { ...prev, isSnapEnabled: next };
       },
@@ -552,10 +831,13 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   // Salva posições individuais arrastadas no slide ativo
-  const handleUpdateRichText = (field: "headline" | "subtext", chunks: any[]) => {
+  const handleUpdateRichText = (
+    field: "headline" | "subtext",
+    chunks: any[]
+  ) => {
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const curIdx = prev.currentSlideIndex;
         const currentSlide = prev.slides[curIdx];
         const updatedSlides = [...prev.slides];
@@ -572,18 +854,25 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const handleUpdateTextTransform = (
     elementKey: "headline" | "subtext",
     props: { x?: number; y?: number; width?: number; scale?: number },
-    layoutPositions?: { headlinePos: ElementPosition; subtextPos: ElementPosition; barPos: ElementPosition }
+    layoutPositions?: {
+      headlinePos: ElementPosition;
+      subtextPos: ElementPosition;
+      barPos: ElementPosition;
+    }
   ) => {
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const currentSlide = prev.slides[prev.currentSlideIndex];
         if (!currentSlide) return prev;
 
         const updatedSlide = { ...currentSlide };
 
         if (props.x !== undefined && props.y !== undefined) {
-          (updatedSlide as any)[`${elementKey}Pos`] = { x: props.x, y: props.y };
+          (updatedSlide as any)[`${elementKey}Pos`] = {
+            x: props.x,
+            y: props.y,
+          };
         }
         if (props.width !== undefined) {
           (updatedSlide as any)[`${elementKey}Width`] = props.width;
@@ -605,12 +894,17 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   const handleUpdateElementPosition = (
-    elementKey: "headlinePos" | "subtextPos" | "badgePos" | "barPos" | "logoPos",
+    elementKey:
+      | "headlinePos"
+      | "subtextPos"
+      | "badgePos"
+      | "barPos"
+      | "logoPos",
     pos: ElementPosition
   ) => {
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const curIdx = prev.currentSlideIndex;
         const currentSlide = prev.slides[curIdx];
         if (!currentSlide) return prev;
@@ -635,7 +929,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   ) => {
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const curIdx = prev.currentSlideIndex;
         const currentSlide = prev.slides[curIdx];
         if (!currentSlide) return prev;
@@ -665,7 +959,8 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const handleUpdateBgTransform = (transform: BgImageTransform) => {
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => applyPatchToCurrentSlide(prev, { bgTransform: transform }),
+      update: prev =>
+        applyPatchToCurrentSlide(prev, { bgTransform: transform }),
     });
   };
 
@@ -681,35 +976,24 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   // Edição direta no canvas (duplo clique / duplo toque)
-  const handleUpdateText = (field: "headline" | "subtext" | "badgeText", value: string) => {
-    handleUpdatePost({
-      kind: "updater",
-      update: (prev) => {
-        const curIdx = prev.currentSlideIndex;
-        const currentSlide = prev.slides[curIdx];
-        const updatedSlides = [...prev.slides];
-
-        if (currentSlide) {
-          if (field === "headline") {
-            updatedSlides[curIdx] = { ...currentSlide, headline: value };
-          } else if (field === "subtext") {
-            updatedSlides[curIdx] = { ...currentSlide, subtext: value };
-          } else if (field === "badgeText") {
-            if (!prev.showBadge && prev.showStep) {
-              updatedSlides[curIdx] = { ...currentSlide, step: value };
-              return {
-                ...prev,
-                slides: updatedSlides,
-              };
-            }
-          }
-        }
-
-        return currentSlide && field !== "badgeText"
-          ? { ...prev, slides: updatedSlides }
-          : { ...prev, [field]: value, slides: updatedSlides };
-      },
-    });
+  const handleUpdateText = (
+    field: "headline" | "subtext" | "badgeText",
+    value: string
+  ) => {
+    if (field === "badgeText") {
+      const slide = postRef.current.slides[postRef.current.currentSlideIndex];
+      runEditorCommand(
+        { slideId: slide.id, elementId: "badge" },
+        { type: "text", text: value }
+      );
+      return;
+    }
+    handleUpdatePost(prev => ({
+      ...prev,
+      slides: prev.slides.map((slide, index) =>
+        index === prev.currentSlideIndex ? { ...slide, [field]: value } : slide
+      ),
+    }));
   };
 
   // Texto e marcações rich-text formam uma única mutação do documento. Assim,
@@ -718,11 +1002,15 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     field: "headline" | "subtext",
     value: string,
     chunks: CanvasRichTextChunk[],
-    layoutPositions?: { headlinePos: ElementPosition; subtextPos: ElementPosition; barPos: ElementPosition }
+    layoutPositions?: {
+      headlinePos: ElementPosition;
+      subtextPos: ElementPosition;
+      barPos: ElementPosition;
+    }
   ) => {
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const curIdx = prev.currentSlideIndex;
         const currentSlide = prev.slides[curIdx];
         const richField = `${field}Rich` as "headlineRich" | "subtextRich";
@@ -749,15 +1037,19 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     const curIdx = post.currentSlideIndex;
     const currentSlide = post.slides[curIdx];
     if (currentSlide?.composition) {
-      const updatedComp = updateArsenalAuthorialLayer(currentSlide.composition, id, pos);
+      const updatedComp = updateArsenalAuthorialLayer(
+        currentSlide.composition,
+        id,
+        pos
+      );
       handleUpdatePost({}, updatedComp);
       return;
     }
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const curTexts = resolveSlideExtraTexts(prev, curIdx);
-        const updatedExtra = curTexts.map((item) =>
+        const updatedExtra = curTexts.map(item =>
           item.id === id ? { ...item, x: pos.x, y: pos.y } : item
         );
         return {
@@ -775,15 +1067,19 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     const curIdx = post.currentSlideIndex;
     const currentSlide = post.slides[curIdx];
     if (currentSlide?.composition) {
-      const updatedComp = editArsenalElementText(currentSlide.composition, id, value);
+      const updatedComp = editArsenalElementText(
+        currentSlide.composition,
+        id,
+        value
+      );
       handleUpdatePost({}, updatedComp);
       return;
     }
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const curTexts = resolveSlideExtraTexts(prev, curIdx);
-        const updatedExtra = curTexts.map((item) =>
+        const updatedExtra = curTexts.map(item =>
           item.id === id ? { ...item, text: value } : item
         );
         return {
@@ -807,7 +1103,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       id: newId,
       text: "Novo Texto",
       x: Math.round((baseWidth - 220) / 2),
-      y: Math.min(baseHeight - 80, Math.round(baseHeight * 0.45 + (count - 1) * 35)),
+      y: Math.min(
+        baseHeight - 80,
+        Math.round(baseHeight * 0.45 + (count - 1) * 35)
+      ),
       width: 220,
       fontSize: 20,
       align: "center",
@@ -819,13 +1118,26 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         id: newId,
         kind: "text",
         text: "Novo Texto",
-        zIndex: Math.max(0, ...[...currentSlide.composition.elements, ...currentSlide.composition.groups].filter(e => !e.parentId).map(e => e.zIndex)) + 1,
+        zIndex:
+          Math.max(
+            0,
+            ...[
+              ...currentSlide.composition.elements,
+              ...currentSlide.composition.groups,
+            ]
+              .filter(e => !e.parentId)
+              .map(e => e.zIndex)
+          ) + 1,
         parentId: null,
-        x: (newExtraText.x ?? 0) * currentSlide.composition.artboard.width / baseWidth,
-        y: (newExtraText.y ?? 0) * currentSlide.composition.artboard.width / baseWidth,
-        width: 220 * currentSlide.composition.artboard.width / baseWidth,
-        height: 40 * currentSlide.composition.artboard.width / baseWidth,
-        fontSize: 20 * currentSlide.composition.artboard.width / baseWidth,
+        x:
+          ((newExtraText.x ?? 0) * currentSlide.composition.artboard.width) /
+          baseWidth,
+        y:
+          ((newExtraText.y ?? 0) * currentSlide.composition.artboard.width) /
+          baseWidth,
+        width: (220 * currentSlide.composition.artboard.width) / baseWidth,
+        height: (40 * currentSlide.composition.artboard.width) / baseWidth,
+        fontSize: (20 * currentSlide.composition.artboard.width) / baseWidth,
         fontFamily: "Arial",
         fontWeight: 400,
         fill: post.palette.text || "#FFFFFF",
@@ -835,53 +1147,66 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       });
       handleUpdatePost({}, updatedComp);
       setSelectedElementId(newId);
-      toast.success("Nova caixa de texto adicionada! Dê dois cliques para editar no palco.");
+      setActiveTool(null);
+      setPendingTextEdit(newId);
       return;
     }
 
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const curTexts = resolveSlideExtraTexts(prev, prev.currentSlideIndex);
         const updatedExtra = [...curTexts, newExtraText];
         return {
           ...prev,
           slides: prev.slides.map((s, i) =>
-            i === prev.currentSlideIndex ? { ...s, extraTexts: updatedExtra } : s
+            i === prev.currentSlideIndex
+              ? { ...s, extraTexts: updatedExtra }
+              : s
           ),
         };
       },
     });
 
     setSelectedElementId(newId);
-    toast.success("Nova caixa de texto adicionada! Dê dois cliques para editar no palco.");
+    setActiveTool(null);
+    setPendingTextEdit(newId);
   };
 
   // Atualiza propriedades de uma caixa de texto extra (cor, tamanho, texto, alinhamento)
-  const handleUpdateExtraText = (id: string, patch: Partial<CanvasCustomText>) => {
+  const handleUpdateExtraText = (
+    id: string,
+    patch: Partial<CanvasCustomText>
+  ) => {
     const curIdx = post.currentSlideIndex;
     const currentSlide = post.slides[curIdx];
     if (currentSlide?.composition) {
-      const updatedComp = updateArsenalAuthorialLayer(currentSlide.composition, id, {
-        ...(patch.text !== undefined ? { text: patch.text } : {}),
-        ...(patch.fontSize !== undefined ? { fontSize: patch.fontSize } : {}),
-        ...(patch.color !== undefined ? { fill: patch.color } : {}),
-        ...(patch.fontFamily !== undefined ? { fontFamily: patch.fontFamily } : {}),
-        ...(patch.align !== undefined ? { align: patch.align } : {}),
-        ...(patch.width !== undefined ? { width: patch.width } : {}),
-        ...(patch.x !== undefined ? { x: patch.x } : {}),
-        ...(patch.y !== undefined ? { y: patch.y } : {}),
-        ...(patch.rotation !== undefined ? { rotation: patch.rotation } : {}),
-      });
+      const updatedComp = updateArsenalAuthorialLayer(
+        currentSlide.composition,
+        id,
+        {
+          ...(patch.text !== undefined ? { text: patch.text } : {}),
+          ...(patch.fontSize !== undefined ? { fontSize: patch.fontSize } : {}),
+          ...(patch.color !== undefined ? { fill: patch.color } : {}),
+          ...(patch.fontFamily !== undefined
+            ? { fontFamily: patch.fontFamily }
+            : {}),
+          ...(patch.align !== undefined ? { align: patch.align } : {}),
+          ...(patch.width !== undefined ? { width: patch.width } : {}),
+          ...(patch.x !== undefined ? { x: patch.x } : {}),
+          ...(patch.y !== undefined ? { y: patch.y } : {}),
+          ...(patch.rotation !== undefined ? { rotation: patch.rotation } : {}),
+        }
+      );
       handleUpdatePost({}, updatedComp);
       return;
     }
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const activeIdx = prev.currentSlideIndex;
         const curTexts = resolveSlideExtraTexts(prev, activeIdx);
-        const updatedExtra = curTexts.map((item) =>
+        const updatedExtra = curTexts.map(item =>
           item.id === id ? { ...item, ...patch } : item
         );
         return {
@@ -899,7 +1224,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     const curIdx = post.currentSlideIndex;
     const currentSlide = post.slides[curIdx];
     if (currentSlide?.composition) {
-      const updatedComp = removeArsenalAuthorialLayer(currentSlide.composition, id);
+      const updatedComp = removeArsenalAuthorialLayer(
+        currentSlide.composition,
+        id
+      );
       handleUpdatePost({}, updatedComp);
       if (selectedElementId === id) setSelectedElementId(null);
       toast.info("Caixa de texto removida.");
@@ -907,10 +1235,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     }
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const activeIdx = prev.currentSlideIndex;
         const curTexts = resolveSlideExtraTexts(prev, activeIdx);
-        const updatedExtra = curTexts.filter((item) => item.id !== id);
+        const updatedExtra = curTexts.filter(item => item.id !== id);
         return {
           ...prev,
           slides: prev.slides.map((s, i) =>
@@ -926,73 +1254,152 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   };
 
   // ─── GERENCIAMENTO DE IMAGENS LIVRES ADICIONAIS (FOTOS / ADESIVOS) ───
-  const handleAddExtraImage = async (sourceUrl: string, naturalWidth?: number, naturalHeight?: number, targetSlideId?: string) => {
+  const handleAddExtraImage = async (
+    sourceUrl: string,
+    naturalWidth?: number,
+    naturalHeight?: number,
+    targetSlideId?: string
+  ) => {
     const sourcePostId = postRef.current.id;
-    const slideId = targetSlideId ?? postRef.current.slides[postRef.current.currentSlideIndex]?.id;
+    const slideId =
+      targetSlideId ??
+      postRef.current.slides[postRef.current.currentSlideIndex]?.id;
     let url = sourceUrl;
-    if (sourceUrl.startsWith('data:image/')) {
-      try { url = (await arsenalApi.post.saveMediaAsset.mutate({ imageData: sourceUrl })).url; }
-      catch (error) { toast.error((error as Error).message); return; }
+    if (sourceUrl.startsWith("data:image/")) {
+      try {
+        url = (
+          await arsenalApi.post.saveMediaAsset.mutate({ imageData: sourceUrl })
+        ).url;
+      } catch (error) {
+        toast.error((error as Error).message);
+        return;
+      }
     }
-    if (postRef.current.id !== sourcePostId || !postRef.current.slides.some(s => s.id === slideId)) {
-      toast.info('O slide foi removido. A imagem enviada não foi aplicada em outro slide.');
+    if (
+      postRef.current.id !== sourcePostId ||
+      !postRef.current.slides.some(s => s.id === slideId)
+    ) {
+      toast.info(
+        "O slide foi removido. A imagem enviada não foi aplicada em outro slide."
+      );
       return;
     }
-    const newId = freshId('im');
+    const newId = freshId("im");
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const index = prev.slides.findIndex(s => s.id === slideId);
         if (prev.id !== sourcePostId || index < 0) return prev;
         const slide = prev.slides[index];
-        let width = 140, height = 140;
-        if (naturalWidth && naturalHeight && naturalWidth > 0 && naturalHeight > 0) {
+        let width = 140,
+          height = 140;
+        if (
+          naturalWidth &&
+          naturalHeight &&
+          naturalWidth > 0 &&
+          naturalHeight > 0
+        ) {
           const ratio = naturalWidth / naturalHeight;
-          if (ratio >= 1) { width = Math.min(180, Math.round(baseWidth * 0.45)); height = Math.round(width / ratio); }
-          else { height = Math.min(180, Math.round(baseHeight * 0.45)); width = Math.round(height * ratio); }
+          if (ratio >= 1) {
+            width = Math.min(180, Math.round(baseWidth * 0.45));
+            height = Math.round(width / ratio);
+          } else {
+            height = Math.min(180, Math.round(baseHeight * 0.45));
+            width = Math.round(height * ratio);
+          }
         }
-        const image: CanvasCustomImage = { id: newId, url, x: Math.round((baseWidth - width) / 2), y: Math.round((baseHeight - height) / 2), width, height, rotation: 0, opacity: 1, cornerRadius: 0 };
+        const image: CanvasCustomImage = {
+          id: newId,
+          url,
+          x: Math.round((baseWidth - width) / 2),
+          y: Math.round((baseHeight - height) / 2),
+          width,
+          height,
+          rotation: 0,
+          opacity: 1,
+          cornerRadius: 0,
+        };
         if (slide.composition) {
-          const c = slide.composition, factor = c.artboard.width / baseWidth;
-          const zIndex = Math.max(0, ...[...c.elements, ...c.groups].filter(e => !e.parentId).map(e => e.zIndex)) + 1;
-          const next = addArsenalAuthorialLayer(c, { ...image, rotation: 0, opacity: 1, cornerRadius: 0, kind: 'image', zIndex, parentId: null, x: image.x * factor, y: image.y * factor, width: width * factor, height: height * factor });
-          const projected = putArsenalComposition({ ...prev, currentSlideIndex: index }, next);
-          return index === prev.currentSlideIndex ? { ...projected, caption: prev.caption, hashtags: prev.hashtags } : { ...prev, slides: projected.slides };
+          const c = slide.composition,
+            factor = c.artboard.width / baseWidth;
+          const zIndex =
+            Math.max(
+              0,
+              ...[...c.elements, ...c.groups]
+                .filter(e => !e.parentId)
+                .map(e => e.zIndex)
+            ) + 1;
+          const next = addArsenalAuthorialLayer(c, {
+            ...image,
+            rotation: 0,
+            opacity: 1,
+            cornerRadius: 0,
+            kind: "image",
+            zIndex,
+            parentId: null,
+            x: image.x * factor,
+            y: image.y * factor,
+            width: width * factor,
+            height: height * factor,
+          });
+          const projected = putArsenalComposition(
+            { ...prev, currentSlideIndex: index },
+            next
+          );
+          return index === prev.currentSlideIndex
+            ? { ...projected, caption: prev.caption, hashtags: prev.hashtags }
+            : { ...prev, slides: projected.slides };
         }
         const images = [...resolveSlideExtraImages(prev, index), image];
         return {
           ...prev,
-          slides: prev.slides.map((s, i) => i === index ? { ...s, extraImages: images } : s),
+          slides: prev.slides.map((s, i) =>
+            i === index ? { ...s, extraImages: images } : s
+          ),
         };
       },
     });
-    if (postRef.current.slides[postRef.current.currentSlideIndex]?.id === slideId) setSelectedElementId(newId);
-    toast.success('Imagem adicionada ao post! Use as alças para redimensionar ou mover.');
+    if (
+      postRef.current.slides[postRef.current.currentSlideIndex]?.id === slideId
+    )
+      setSelectedElementId(newId);
+    toast.success(
+      "Imagem adicionada ao post! Use as alças para redimensionar ou mover."
+    );
   };
 
-  const handleUpdateExtraImage = (id: string, patch: Partial<CanvasCustomImage>) => {
+  const handleUpdateExtraImage = (
+    id: string,
+    patch: Partial<CanvasCustomImage>
+  ) => {
     const curIdx = post.currentSlideIndex;
     const currentSlide = post.slides[curIdx];
     if (currentSlide?.composition) {
-      const updatedComp = updateArsenalAuthorialLayer(currentSlide.composition, id, {
-        ...(patch.url !== undefined ? { url: patch.url } : {}),
-        ...(patch.width !== undefined ? { width: patch.width } : {}),
-        ...(patch.height !== undefined ? { height: patch.height } : {}),
-        ...(patch.x !== undefined ? { x: patch.x } : {}),
-        ...(patch.y !== undefined ? { y: patch.y } : {}),
-        ...(patch.rotation !== undefined ? { rotation: patch.rotation } : {}),
-        ...(patch.opacity !== undefined ? { opacity: patch.opacity } : {}),
-        ...(patch.cornerRadius !== undefined ? { cornerRadius: patch.cornerRadius } : {}),
-      });
+      const updatedComp = updateArsenalAuthorialLayer(
+        currentSlide.composition,
+        id,
+        {
+          ...(patch.url !== undefined ? { url: patch.url } : {}),
+          ...(patch.width !== undefined ? { width: patch.width } : {}),
+          ...(patch.height !== undefined ? { height: patch.height } : {}),
+          ...(patch.x !== undefined ? { x: patch.x } : {}),
+          ...(patch.y !== undefined ? { y: patch.y } : {}),
+          ...(patch.rotation !== undefined ? { rotation: patch.rotation } : {}),
+          ...(patch.opacity !== undefined ? { opacity: patch.opacity } : {}),
+          ...(patch.cornerRadius !== undefined
+            ? { cornerRadius: patch.cornerRadius }
+            : {}),
+        }
+      );
       handleUpdatePost({}, updatedComp);
       return;
     }
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const activeIdx = prev.currentSlideIndex;
         const slideImages = resolveSlideExtraImages(prev, activeIdx);
-        const updatedImages = slideImages.map((item) =>
+        const updatedImages = slideImages.map(item =>
           item.id === id ? { ...item, ...patch } : item
         );
         return {
@@ -1009,7 +1416,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     const curIdx = post.currentSlideIndex;
     const currentSlide = post.slides[curIdx];
     if (currentSlide?.composition) {
-      const updatedComp = removeArsenalAuthorialLayer(currentSlide.composition, id);
+      const updatedComp = removeArsenalAuthorialLayer(
+        currentSlide.composition,
+        id
+      );
       handleUpdatePost({}, updatedComp);
       if (selectedElementId === id) setSelectedElementId(null);
       toast.info("Imagem removida do post.");
@@ -1017,10 +1427,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     }
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const activeIdx = prev.currentSlideIndex;
         const slideImages = resolveSlideExtraImages(prev, activeIdx);
-        const updatedImages = slideImages.filter((item) => item.id !== id);
+        const updatedImages = slideImages.filter(item => item.id !== id);
         return {
           ...prev,
           slides: prev.slides.map((s, i) =>
@@ -1035,23 +1445,39 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     toast.info("Imagem removida do post.");
   };
 
-  const removeSelectedElement = () => {
-    if (!selectedElementId) return;
-    if (arsenalComposition) {
-      if (selectedElementId === "logo") handleUpdatePost({ logoUrl: undefined });
-      else handleUpdatePost({}, hideArsenalInstance(arsenalComposition, selectedElementId));
-    } else {
-      const activeIdx = post.currentSlideIndex;
-      const curImages = resolveSlideExtraImages(post, activeIdx);
-      const curTexts = resolveSlideExtraTexts(post, activeIdx);
-      if (curImages.some(e => e.id === selectedElementId)) handleRemoveExtraImage(selectedElementId);
-      else if (curTexts.some(e => e.id === selectedElementId)) handleRemoveExtraText(selectedElementId);
+  const runEditorCommand = (target: EditorTarget, command: EditorCommand) => {
+    const geometry =
+      command.type === "duplicate" ||
+      command.type === "align" ||
+      command.type === "properties"
+        ? (stageRef.current?.getElementGeometry?.(target.elementId) ??
+          undefined)
+        : undefined;
+    const result = executeEditorCommand(
+      postRef.current,
+      target,
+      geometry ? ({ ...command, geometry } as EditorCommand) : command
+    );
+    if (!result.ok) {
+      toast.info(result.reason || "Não foi possível alterar o objeto.");
+      return;
     }
-    setSelectedElementId(null);
+    handleUpdatePost({ kind: "document", document: result.post });
+    if (result.selection !== undefined)
+      setSelectedElementTarget(result.selection);
+  };
+  const removeSelectedElement = () => {
+    if (selectedElementTarget)
+      runEditorCommand(selectedElementTarget, { type: "remove" });
   };
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (!selectedElementId || !freeEditing || !shouldDeleteCanvasSelection(event, event.target as HTMLElement | null)) return;
+      if (
+        !selectedElementId ||
+        !freeEditing ||
+        !shouldDeleteCanvasSelection(event, event.target as HTMLElement | null)
+      )
+        return;
       event.preventDefault();
       removeSelectedElement();
     };
@@ -1076,8 +1502,10 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     const manager = autoSaveManagerRef.current;
     manager?.pauseForManualSave();
     try {
-      const preview=await captureSavePreview(docToSave);
-      const saved = await (preview?onSave(docToSave,mode,"manual",preview):onSave(docToSave,mode,"manual"));
+      const preview = await captureSavePreview(docToSave);
+      const saved = await (preview
+        ? onSave(docToSave, mode, "manual", preview)
+        : onSave(docToSave, mode, "manual"));
       if (saved && postRef.current === docToSave) {
         setAutoSaveState("saved");
         setLastSavedAt(new Date());
@@ -1137,7 +1565,12 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       stageRef.current.commitDraft?.();
     }
     let dataUrl: string;
-    try { dataUrl = stageRef.current.exportPng4K(); } catch(error) { toast.error((error as Error).message); return; }
+    try {
+      dataUrl = stageRef.current.exportPng4K();
+    } catch (error) {
+      toast.error((error as Error).message);
+      return;
+    }
     if (!dataUrl) {
       toast.error("Erro ao gerar imagem 4K.");
       return;
@@ -1155,11 +1588,15 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       stageRef.current.commitDraft?.();
     }
     setIsExportingZip(true);
-    toast.info("Compilando todos os slides em arquivo ZIP de alta resolução...");
+    toast.info(
+      "Compilando todos os slides em arquivo ZIP de alta resolução..."
+    );
 
     try {
       const blob = await stageRef.current.exportZip4K((current, total) => {
-        toast.loading(`Renderizando slide ${current} de ${total}...`, { id: "zip-progress" });
+        toast.loading(`Renderizando slide ${current} de ${total}...`, {
+          id: "zip-progress",
+        });
       });
       toast.dismiss("zip-progress");
 
@@ -1199,16 +1636,21 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
   const handleAddSlide = () => {
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => {
+      update: prev => {
         const nextIdx = prev.slides.length + 1;
         const newSlide = {
           id: `s-${Date.now()}`,
           step: `SLIDE 0${nextIdx} // CONTINUAÇÃO`,
           headline: "Novo ponto importante da narrativa",
-          subtext: "Explique este conceito com clareza para manter o público engajado até a chamada para ação.",
+          subtext:
+            "Explique este conceito com clareza para manter o público engajado até a chamada para ação.",
           visualStyle: prev.slides[prev.currentSlideIndex]?.visualStyle,
         };
-        return { ...prev, slides: [...prev.slides, newSlide], currentSlideIndex: prev.slides.length };
+        return {
+          ...prev,
+          slides: [...prev.slides, newSlide],
+          currentSlideIndex: prev.slides.length,
+        };
       },
     });
   };
@@ -1217,7 +1659,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     if (!post.slides[index]) return;
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => duplicateSlide(prev, index),
+      update: prev => duplicateSlide(prev, index),
     });
     setSelectedElementId(null);
   };
@@ -1229,7 +1671,7 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     }
     handleUpdatePost({
       kind: "updater",
-      update: (prev) => removeSlide(prev, index),
+      update: prev => removeSlide(prev, index),
     });
     setSelectedElementId(null);
   };
@@ -1242,7 +1684,11 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
       stageRef.current?.commitDraft?.();
     }
 
-    const isDirty = hadActiveDraft || autoSaveState === "dirty" || autoSaveState === "error" || autoSaveState === "saving";
+    const isDirty =
+      hadActiveDraft ||
+      autoSaveState === "dirty" ||
+      autoSaveState === "error" ||
+      autoSaveState === "saving";
 
     if (!isAutoSaveEnabled) {
       if (isDirty) {
@@ -1297,15 +1743,336 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [autoSaveState, isSaving]);
 
+  const editSelectedText = () => {
+    if (!editorSelection?.capabilities.editText) return;
+    setActiveTool(null);
+    setPendingTextEdit(editorSelection.id);
+  };
+  const changeTool = (tool: CanvasEditorTool | null) => {
+    stageRef.current?.commitDraft?.();
+    setActiveTool(
+      tool === "selection" && editorSelection?.kind === "background"
+        ? "background"
+        : tool
+    );
+  };
+  const updateAppearance = (patch: Partial<CanvasPostModel>) => {
+    if (patch.palette) {
+      const result = applyEditorPalette(
+        postRef.current,
+        [curActiveSlide.id],
+        patch.palette
+      );
+      if (result.ok)
+        handleUpdatePost({ kind: "document", document: result.post });
+      else toast.info(result.reason);
+      return;
+    }
+    handleUpdatePost(patch);
+  };
+  const editorChrome = (
+    <CanvasEditorChrome
+      isTextEditing={isTextEditing}
+      mobile={isMobile}
+      mobileBottomInset={windowDimensions.bottomInset}
+      mobileViewportHeight={windowDimensions.height}
+      activeTool={activeTool}
+      onToolChange={changeTool}
+      onPanelHeightChange={setMobileChromeHeight}
+      selectionLabel={!isTextEditing ? editorSelection?.label : undefined}
+      selectionActions={
+        editorSelection?.capabilities.editText ? (
+          <button
+            type="button"
+            className="min-h-11 px-2 text-xs font-semibold text-orange-300"
+            onClick={editSelectedText}
+          >
+            Editar texto
+          </button>
+        ) : editorSelection &&
+          ["image", "background"].includes(editorSelection.kind) ? (
+          <button
+            type="button"
+            className="min-h-11 px-2 text-xs font-semibold text-orange-300"
+            onClick={() =>
+              changeTool(
+                editorSelection.kind === "background" ? "background" : "media"
+              )
+            }
+          >
+            Trocar imagem
+          </button>
+        ) : undefined
+      }
+      contents={{
+        add: (
+          <div className="space-y-3">
+            <CanvasAddPanel
+              onAddText={handleAddExtraText}
+              onAddImage={() => changeTool("insert-image")}
+            />
+            <button
+              className="min-h-11 w-full rounded-lg border border-white/15 px-3 text-sm"
+              onClick={handleAddSlide}
+            >
+              Adicionar slide
+            </button>
+          </div>
+        ),
+        background: (() => {
+          const target = {
+            slideId: curActiveSlide.id,
+            elementId: curActiveSlide.composition
+              ? COMPOSITION_BACKGROUND_ID
+              : "background",
+          };
+          const layer = resolveEditorSelection(post, target);
+          if (!layer) return null;
+          return (
+            <CanvasMediaPanel
+              post={post}
+              mode="background"
+              onMediaUpdate={handleMediaUpdate}
+              mediaPreview={mediaPreview}
+              onMediaPreview={setMediaPreview}
+              backgroundColor={String(
+                resolveEditorProperties(post, target).values.fill ||
+                  currentViewPost.palette.background
+              )}
+              onBackgroundColorChange={fill =>
+                runEditorCommand(target, {
+                  type: "properties",
+                  patch: { fill },
+                })
+              }
+            >
+              <CanvasSelectionPanel
+                post={post}
+                layer={layer}
+                hideColor
+                onEditOnCanvas={() => {}}
+                onCommand={command => runEditorCommand(target, command)}
+              />
+            </CanvasMediaPanel>
+          );
+        })(),
+        "insert-image": (
+          <CanvasMediaPanel
+            post={post}
+            mode="add"
+            onMediaUpdate={handleMediaUpdate}
+            mediaPreview={mediaPreview}
+            onMediaPreview={setMediaPreview}
+            onAddExtraImage={(url, width, height, slideId) => {
+              if (postRef.current.id === post.id)
+                return handleAddExtraImage(url, width, height, slideId);
+              return false;
+            }}
+          />
+        ),
+        appearance: (
+          <div className="space-y-4">
+            <CanvasAppearancePanel
+              post={currentViewPost}
+              onUpdatePost={updateAppearance}
+              onApplyTypography={(role, font, ids) => {
+                const result = applyEditorTypography(
+                  postRef.current,
+                  ids,
+                  role,
+                  font
+                );
+                if (result.ok)
+                  handleUpdatePost({ kind: "document", document: result.post });
+                else toast.info(result.reason);
+              }}
+              onReorganize={() => setGuidedAction("recover")}
+              onRestore={
+                curActiveSlide.composition
+                  ? () => {
+                      const slide =
+                        postRef.current.slides[
+                          postRef.current.currentSlideIndex
+                        ];
+                      if (slide.composition)
+                        void ensureArsenalCompositionFonts(slide.composition)
+                          .then(() => {
+                            const current = postRef.current.slides.find(
+                              item => item.id === slide.id
+                            );
+                            if (current?.composition)
+                              setRestorePreview({
+                                slideId: slide.id,
+                                composition: restoreArsenalVariant(
+                                  current.composition
+                                ),
+                              });
+                          })
+                          .catch(error =>
+                            toast.error((error as Error).message)
+                          );
+                    }
+                  : undefined
+              }
+              onApplyFamily={familyId => {
+                handleUpdatePost(prev => {
+                  const view = resolveSlideAppearance(
+                    prev,
+                    prev.currentSlideIndex
+                  );
+                  const preset = applyFamilyPreset(view, familyId);
+                  const next = applyCurrentSlideAppearancePatch(prev, {
+                    familyId: preset.familyId,
+                    familyName: preset.familyName,
+                    fontFamily: preset.fontFamily,
+                  });
+                  return {
+                    ...next,
+                    slides: next.slides.map((slide, index) =>
+                      index === next.currentSlideIndex
+                        ? {
+                            ...slide,
+                            guidedComposition: undefined,
+                            visualStyle: {
+                              ...slide.visualStyle,
+                              palette: { ...view.palette },
+                            },
+                          }
+                        : slide
+                    ),
+                  };
+                });
+              }}
+            />
+            {post.slides.length > 1 && (
+              <button
+                className="min-h-11 w-full rounded-lg border border-white/15 text-xs"
+                onClick={() => setIsReplicationOpen(true)}
+              >
+                Aplicar aparência a outros slides
+              </button>
+            )}
+          </div>
+        ),
+        brand: (
+          <CanvasBrandPanel
+            post={currentViewPost}
+            onUpdatePost={updateAppearance}
+            onSetLogo={(slideId, patch) => {
+              const result = setEditorLogo(postRef.current, [slideId], {
+                ...patch,
+                ...(Object.hasOwn(patch, "url")
+                  ? { url: patch.url ?? "" }
+                  : {}),
+              });
+              if (result.ok) {
+                handleUpdatePost({ kind: "document", document: result.post });
+                if (result.selection)
+                  setSelectedElementTarget(result.selection);
+              } else toast.error(result.reason);
+            }}
+            onReplicate={
+              post.slides.length > 1
+                ? () => {
+                    setBrandDestinations([]);
+                    setBrandScopeOpen(true);
+                  }
+                : undefined
+            }
+          />
+        ),
+        layers: (
+          <CanvasEditorLayers
+            key={curActiveSlide.id}
+            layers={editorLayers}
+            selectedId={selectedElementId}
+            onSelect={setSelectedElementTarget}
+            onAdjust={target => {
+              setSelectedElementTarget(target);
+              const layer = resolveEditorSelection(postRef.current, target);
+              stageRef.current?.commitDraft?.();
+              setActiveTool(
+                layer?.kind === "background" ? "background" : "selection"
+              );
+            }}
+            onAction={(target, action, layer) =>
+              runEditorCommand(
+                target,
+                action === "forward" || action === "backward"
+                  ? { type: "reorder", direction: action }
+                  : action === "visibility"
+                    ? { type: "visibility", visible: !layer.visible }
+                    : action === "lock"
+                      ? { type: "lock", locked: !layer.locked }
+                      : { type: action }
+              )
+            }
+          />
+        ),
+        caption: (
+          <CanvasCaptionPanel
+            value={post.caption}
+            onChange={caption => handleUpdatePost({ caption })}
+          />
+        ),
+        selection: editorSelection ? (
+          <CanvasSelectionPanel
+            post={post}
+            layer={editorSelection}
+            onCommand={command =>
+              runEditorCommand(editorSelection.target, command)
+            }
+            onEditOnCanvas={editSelectedText}
+            onChangeImage={() =>
+              changeTool(
+                editorSelection.kind === "background" ? "background" : "media"
+              )
+            }
+          />
+        ) : (
+          <p className="text-sm text-white/60">
+            Selecione um objeto na arte ou em Camadas.
+          </p>
+        ),
+        media: (
+          <CanvasMediaPanel
+            post={post}
+            onMediaUpdate={handleMediaUpdate}
+            selectedId={selectedElementId}
+            mediaPreview={mediaPreview}
+            onMediaPreview={setMediaPreview}
+            onAddExtraImage={handleAddExtraImage}
+          />
+        ),
+      }}
+    />
+  );
+
   return (
-    <div className="h-[100dvh] w-full bg-[#07090E] text-white flex flex-col overflow-hidden select-none font-sans">
+    <div
+      onFocusCapture={event => {
+        const target = event.target;
+        if (
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement
+        ) {
+          editSessionRef.current = { target, started: false };
+        } else editSessionRef.current = null;
+      }}
+      onBlurCapture={event => {
+        if (editSessionRef.current?.target === event.target)
+          editSessionRef.current = null;
+      }}
+      style={{ height: windowDimensions.height }}
+      className="h-[100dvh] w-full bg-[#07090E] text-white flex flex-col overflow-hidden select-none font-sans"
+    >
       {/* 1. Top Bar */}
       <CanvasTopBar
         aspectRatio={post.aspectRatio}
         onAspectRatioChange={handleAspectRatioChange}
         zoom={zoom}
-        onZoomIn={() => setZoom((z) => Math.min(1.8, z + 0.1))}
-        onZoomOut={() => setZoom((z) => Math.max(0.6, z - 0.1))}
+        onZoomIn={() => setZoom(z => Math.min(1.8, z + 0.1))}
+        onZoomOut={() => setZoom(z => Math.max(0.6, z - 0.1))}
         onResetZoom={() => setZoom(1)}
         onExportPng={handleExportPng}
         onExportZip={handleExportZip}
@@ -1326,94 +2093,33 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         lastSavedAt={lastSavedAt}
         isAutoSaveEnabled={isAutoSaveEnabled}
         onAutoSaveChange={handleAutoSaveChange}
-        onReplicate={post.slides.length > 1 ? () => setIsReplicationOpen(true) : undefined}
+        onSaveCopy={onSave ? () => handleSaveNew(false) : undefined}
+        onTechnical={() => setTechnicalOpen(true)}
+        onCanvasTools={
+          isMobile ? () => setCanvasToolsOpen(open => !open) : undefined
+        }
       />
 
-      <GuidedEditor post={post} free={freeEditing}
-        onReplicate={post.slides.length > 1 ? () => setIsReplicationOpen(true) : undefined}
-        onFreeChange={free => { setFreeEditing(free); setIsMobileDrawerOpen(false); setIsEditingBackground(false); setSelectedElementId(null); setRequestedTab(undefined); }}
-        onApply={next => {
-          handleUpdatePost({
-            kind: "document",
-            document: next,
-            composition: next.slides[next.currentSlideIndex]?.composition,
-          });
-          setSelectedElementId(null);
-        }}
-        onImageTools={() => { setFreeEditing(true); setRequestedTab("media"); setIsMobileDrawerOpen(true); }} />
-
-      {freeEditing && selectedElementId && (arsenalComposition?.elements.some(e => e.id === selectedElementId) || resolveSlideExtraImages(post, post.currentSlideIndex).some(e => e.id === selectedElementId) || resolveSlideExtraTexts(post, post.currentSlideIndex).some(e => e.id === selectedElementId)) && (
-        <div className="flex justify-center border-b border-white/10 py-1">
-          <button type="button" className="rounded-lg px-3 py-2 text-xs text-rose-300 hover:bg-white/10" onClick={removeSelectedElement}>Remover elemento selecionado · Del</button>
-        </div>
+      {!isTextEditing && (!isMobile || canvasToolsOpen) && (
+        <CanvasToolRail
+          aspectRatio={post.aspectRatio}
+          onAspectRatioChange={handleAspectRatioChange}
+          isSnapEnabled={post.isSnapEnabled !== false}
+          onToggleSnap={handleToggleSnap}
+          zoom={zoom}
+          onZoomIn={() => setZoom(z => Math.min(3, z + 0.1))}
+          onZoomOut={() => setZoom(z => Math.max(0.25, z - 0.1))}
+          onResetZoom={() => setZoom(1)}
+        />
       )}
-
-      {!isMobileDrawerOpen && (
-        <div className={isReplicationOpen ? "invisible" : ""} aria-hidden={isReplicationOpen}>
-          <CanvasMobileQuickActions
-            aspectRatio={post.aspectRatio}
-            onAspectRatioChange={handleAspectRatioChange}
-            slideCount={post.slides.length}
-            onAddSlide={handleAddSlide}
-            zoom={zoom}
-            onZoomChange={setZoom}
-            onZoomScrubChange={setIsZoomScrubbing}
-            onResetZoom={() => setZoom(1)}
-            isSnapEnabled={post.isSnapEnabled !== false}
-            onToggleSnap={handleToggleSnap}
-            onRestart={onRestart ? handleRestartClick : undefined}
-            onExportPng={handleExportPng}
-            onExportZip={handleExportZip}
-            isExportingZip={isExportingZip}
-          />
-        </div>
-      )}
-
-      {/* 2. Área Central */}
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* Desktop: Barra Lateral Fixa à Esquerda (Intocada) */}
-        <div className={freeEditing ? "hidden md:flex h-full" : "hidden"}>
-          <CanvasSidebar
-            requestedTab={requestedTab}
-            post={currentViewPost}
-            composition={arsenalComposition}
-            onUpdateComposition={c => handleUpdatePost({}, c)}
-            onUpdatePost={handleUpdatePost}
-            onMediaUpdate={handleMediaUpdate}
-            mediaPreview={mediaPreview}
-            onMediaPreview={setMediaPreview}
-            onReplicate={post.slides.length > 1 ? () => setIsReplicationOpen(true) : undefined}
-            isEditingBackground={isEditingBackground}
-            onToggleBackgroundEdit={() => setIsEditingBackground((v) => !v)}
-            onAddExtraText={handleAddExtraText}
-            onUpdateExtraText={handleUpdateExtraText}
-            onRemoveExtraText={handleRemoveExtraText}
-            onAddExtraImage={handleAddExtraImage}
-            onUpdateExtraImage={handleUpdateExtraImage}
-            onRemoveExtraImage={handleRemoveExtraImage}
-            selectedElementId={selectedElementId}
-            onSelectElement={setSelectedElementId}
-          />
-        </div>
-
+      <div className="flex-1 min-h-0 flex overflow-hidden relative">
+        {!isMobile && editorChrome}
         {/* Palco da Prancheta com Viewport Adaptativo (Mobile & Desktop) */}
         <main
           ref={mobileStageAreaRef}
-          onClick={() => {
-            if (isMobileDrawerOpen) setIsMobileDrawerOpen(false);
-          }}
-          className="min-w-0 flex-1 bg-[#040508] relative overflow-hidden flex items-center justify-center p-2 sm:p-8 xl:pr-20 custom-scrollbar"
+          style={{ justifyContent: "safe center", alignItems: "safe center" }}
+          className="min-w-0 min-h-0 flex-1 bg-[#040508] relative overflow-auto flex items-center justify-center p-2 sm:p-6 custom-scrollbar"
         >
-          <CanvasToolRail
-            aspectRatio={post.aspectRatio}
-            onAspectRatioChange={handleAspectRatioChange}
-            isSnapEnabled={post.isSnapEnabled !== false}
-            onToggleSnap={handleToggleSnap}
-            zoom={zoom}
-            onZoomIn={() => setZoom((z) => Math.min(1.8, z + 0.1))}
-            onZoomOut={() => setZoom((z) => Math.max(0.6, z - 0.1))}
-            onResetZoom={() => setZoom(1)}
-          />
           {/* BARRA FLUTUANTE DE MODO DE EDIÇÃO DO FUNDO (ESTILO CANVA) */}
           <AnimatePresence>
             {isEditingBackground && (
@@ -1426,9 +2132,12 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
               >
                 <div className="flex items-center gap-2 text-white/90">
                   <span className="w-2.5 h-2.5 rounded-full bg-[oklch(0.78_0.22_48)] animate-pulse" />
-                  <span className="font-bold text-white">Editando Enquadramento do Fundo</span>
+                  <span className="font-bold text-white">
+                    Editando Enquadramento do Fundo
+                  </span>
                   <span className="text-white/40 hidden lg:inline">
-                    | Arraste para reposicionar ou use os controladores para redimensionar
+                    | Arraste para reposicionar ou use os controladores para
+                    redimensionar
                   </span>
                 </div>
 
@@ -1459,89 +2168,238 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
             )}
           </AnimatePresence>
 
-          <motion.div
-            className="flex items-center justify-center cursor-pointer md:cursor-default"
-            animate={
-              isMobile
-                ? {
-                    scale: mobileAdaptiveScale * zoom,
-                    y: isMobileDrawerOpen ? -(mobilePanelHeight + 8) / 2 : 0,
-                  }
-                : {
-                    scale: zoom,
-                    y: 0,
-                  }
-            }
-            transition={isMobile && isZoomScrubbing
-              ? { duration: 0 }
-              : { type: "spring", stiffness: 280, damping: 26, mass: 0.8 }}
+          <div
+            className="shrink-0"
+            style={{
+              width: baseWidth * fittedScale * zoom,
+              height: baseHeight * fittedScale * zoom,
+            }}
           >
-            <CanvasPostStage
-              ref={stageRef}
-              post={post}
-              onUpdateComposition={c=>handleUpdatePost({},c)}
-              isReadOnly={!freeEditing}
-              isMobile={isMobile}
-              zoom={1}
-              selectedElementId={selectedElementId}
-              onSelectElement={setSelectedElementId}
-              onUpdateElementPosition={handleUpdateElementPosition}
-              onUpdateDecorationTransform={handleUpdateDecorationTransform}
-              onUpdateTextTransform={handleUpdateTextTransform}
-              isEditingBackground={isEditingBackground}
-              onUpdateBgTransform={handleUpdateBgTransform}
-              onEnterBackgroundEdit={() => setIsEditingBackground(true)}
-              onUpdateText={handleUpdateText}
-              onCommitTextEdit={handleCommitTextEdit}
-              onUpdateRichText={handleUpdateRichText}
-              onUpdateExtraText={handleUpdateExtraText}
-              onUpdateExtraTextPosition={handleUpdateExtraTextPosition}
-              onUpdateExtraTextContent={handleUpdateExtraTextContent}
-              onUpdateExtraImage={handleUpdateExtraImage}
-            />
-          </motion.div>
+            <div
+              style={{
+                width: baseWidth,
+                height: baseHeight,
+                transform: `scale(${fittedScale * zoom})`,
+                transformOrigin: "top left",
+              }}
+            >
+              <CanvasPostStage
+                ref={stageRef}
+                post={post}
+                onUpdateComposition={c => handleUpdatePost({}, c)}
+                onEditingChange={setIsTextEditing}
+                isReadOnly={false}
+                isMobile={isMobile}
+                zoom={1}
+                displayScale={fittedScale * zoom}
+                selectedElementId={selectedElementId}
+                onSelectElement={setSelectedElementId}
+                onUpdateElementPosition={handleUpdateElementPosition}
+                onUpdateDecorationTransform={handleUpdateDecorationTransform}
+                onUpdateTextTransform={handleUpdateTextTransform}
+                isEditingBackground={isEditingBackground}
+                onUpdateBgTransform={handleUpdateBgTransform}
+                onEnterBackgroundEdit={() => setIsEditingBackground(true)}
+                onUpdateText={handleUpdateText}
+                onCommitTextEdit={handleCommitTextEdit}
+                onUpdateRichText={handleUpdateRichText}
+                onUpdateExtraText={handleUpdateExtraText}
+                onUpdateExtraTextPosition={handleUpdateExtraTextPosition}
+                onUpdateExtraTextContent={handleUpdateExtraTextContent}
+                onUpdateExtraImage={handleUpdateExtraImage}
+                onUpdateExtraShape={(id, patch) =>
+                  handleUpdatePost(prev => ({
+                    ...prev,
+                    slides: prev.slides.map((slide, index) =>
+                      index === prev.currentSlideIndex
+                        ? {
+                            ...slide,
+                            extraShapes: slide.extraShapes?.map(shape =>
+                              shape.id === id ? { ...shape, ...patch } : shape
+                            ),
+                          }
+                        : slide
+                    ),
+                  }))
+                }
+                onUpdateLogo={patch => {
+                  const result = setEditorLogo(
+                    postRef.current,
+                    [curActiveSlide.id],
+                    patch
+                  );
+                  if (result.ok)
+                    handleUpdatePost({
+                      kind: "document",
+                      document: result.post,
+                    });
+                  else toast.error(result.reason);
+                }}
+              />
+            </div>
+          </div>
         </main>
-
-        {/* Mobile: Bottom Sheet Drawer Deslizante Nativo */}
-        <CanvasMobileDrawer
-          post={currentViewPost}
-          composition={arsenalComposition}
-          onUpdateComposition={c => handleUpdatePost({}, c)}
-          onUpdatePost={handleUpdatePost}
-          onMediaUpdate={handleMediaUpdate}
-            mediaPreview={mediaPreview}
-            onMediaPreview={setMediaPreview}
-          requestedTab={requestedTab}
-          suspended={isReplicationOpen || !freeEditing}
-          isOpen={isMobileDrawerOpen}
-          onToggleOpen={setIsMobileDrawerOpen}
-          onReplicate={post.slides.length > 1 ? () => setIsReplicationOpen(true) : undefined}
-          onAddExtraText={handleAddExtraText}
-          onUpdateExtraText={handleUpdateExtraText}
-          onRemoveExtraText={handleRemoveExtraText}
-          onAddExtraImage={handleAddExtraImage}
-          onUpdateExtraImage={handleUpdateExtraImage}
-          onRemoveExtraImage={handleRemoveExtraImage}
-          selectedElementId={selectedElementId}
-          onSelectElement={setSelectedElementId}
-        />
       </div>
-
-      {/* Mobile: slides visíveis apenas no carrossel e com o painel fechado. Desktop: fita permanente. */}
-      <div className={`${post.slides.length > 1 && !isMobileDrawerOpen ? "block" : "hidden"} shrink-0 md:block`}>
-        <CarouselFilmstrip
-          slides={post.slides}
-          currentIndex={post.currentSlideIndex}
-          onSelectSlide={handleSelectSlide}
-          onAddSlide={handleAddSlide}
-          onDuplicateSlide={handleDuplicateSlide}
-          onRemoveSlide={handleDeleteSlide}
-          onReorderSlide={handleReorderSlide}
+      {post.slides.length > 1 &&
+        (!isMobile || (!activeTool && !isTextEditing)) && (
+          <CarouselFilmstrip
+            post={post}
+            slides={post.slides}
+            currentIndex={post.currentSlideIndex}
+            onSelectSlide={handleSelectSlide}
+            onAddSlide={handleAddSlide}
+            onDuplicateSlide={handleDuplicateSlide}
+            onRemoveSlide={handleDeleteSlide}
+            onReorderSlide={handleReorderSlide}
+          />
+        )}
+      {isMobile && (
+        <>
+          <div
+            style={{ height: mobileChromeHeight }}
+            className="shrink-0"
+            aria-hidden="true"
+          />
+          {editorChrome}
+        </>
+      )}
+      {guidedAction && (
+        <GuidedEditorDialog
+          key={`${curActiveSlide.id}-${guidedAction}`}
+          post={post}
+          action={guidedAction}
+          onClose={() => setGuidedAction(null)}
+          onApply={next => {
+            handleUpdatePost({ kind: "document", document: next });
+            setGuidedAction(null);
+          }}
+          onImageTools={() => {
+            setGuidedAction(null);
+            setActiveTool("media");
+          }}
         />
-      </div>
-      {/* Reserva real para o dock: o canvas não fica escondido atrás de um overlay. */}
-      {freeEditing && <div className="h-[calc(74px+env(safe-area-inset-bottom))] shrink-0 md:hidden" aria-hidden="true" />}
-
+      )}
+      <ConfirmDialog
+        open={Boolean(restorePreview)}
+        title="Restaurar o layout original?"
+        description="Confira a prévia. Textos, imagens, cores e fontes são preservados; posições e ajustes do layout serão restaurados. Você pode desfazer."
+        confirmLabel="Restaurar layout"
+        onCancel={() => setRestorePreview(null)}
+        onConfirm={() => {
+          if (restorePreview) {
+            handleUpdatePost(prev => {
+              const index = prev.slides.findIndex(
+                slide => slide.id === restorePreview.slideId
+              );
+              const composition = prev.slides[index]?.composition;
+              if (!composition) return prev;
+              const view = putArsenalComposition(
+                { ...prev, currentSlideIndex: index },
+                restoreArsenalVariant(composition)
+              );
+              return { ...prev, slides: view.slides };
+            });
+          }
+          setRestorePreview(null);
+        }}
+      >
+        {restorePreview && (
+          <div className="flex justify-center py-3">
+            <CanvasPostStage
+              post={putArsenalComposition(
+                {
+                  ...post,
+                  currentSlideIndex: post.slides.findIndex(
+                    slide => slide.id === restorePreview.slideId
+                  ),
+                },
+                restorePreview.composition
+              )}
+              zoom={Math.max(
+                0.2,
+                Math.min(
+                  0.75,
+                  (windowDimensions.width - 80) / baseWidth,
+                  (windowDimensions.height - 300) / baseHeight
+                )
+              )}
+              isReadOnly
+            />
+          </div>
+        )}
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={technicalOpen}
+        title="Ferramentas avançadas do design"
+        description="Ajustes técnicos de relações e arquivo portátil."
+        confirmLabel="Concluir"
+        onConfirm={() => setTechnicalOpen(false)}
+        onCancel={() => setTechnicalOpen(false)}
+      >
+        {arsenalComposition ? (
+          <ArsenalCompositionInspector
+            composition={arsenalComposition}
+            onChange={c => handleUpdatePost({}, c)}
+            selectedId={selectedElementId}
+            onSelect={setSelectedElementId}
+            section="design"
+          />
+        ) : (
+          <p>
+            As ferramentas de relações são específicas dos designs com
+            composição. Posição e tamanho estão em Ajustar.
+          </p>
+        )}
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={brandScopeOpen}
+        title="Aplicar logo a outros slides"
+        description="Escolha os slides que receberão este logo. Textos e fotos serão preservados."
+        confirmLabel="Aplicar logo"
+        onCancel={() => setBrandScopeOpen(false)}
+        onConfirm={() => {
+          const source =
+            curActiveSlide.composition?.version === 3
+              ? curActiveSlide.composition.logo
+              : (curActiveSlide.logo ?? {
+                  url: post.logoUrl ?? "",
+                  position: post.logoPosition,
+                });
+          const result = setEditorLogo(
+            postRef.current,
+            brandDestinations,
+            source ?? { url: "" }
+          );
+          if (result.ok) {
+            handleUpdatePost({ kind: "document", document: result.post });
+            setBrandScopeOpen(false);
+          } else toast.info(result.reason);
+        }}
+      >
+        <div className="space-y-2">
+          {post.slides
+            .filter(slide => slide.id !== curActiveSlide.id)
+            .map(slide => (
+              <label
+                key={slide.id}
+                className="flex min-h-11 items-center gap-2 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  checked={brandDestinations.includes(slide.id)}
+                  onChange={event =>
+                    setBrandDestinations(ids =>
+                      event.target.checked
+                        ? [...ids, slide.id]
+                        : ids.filter(id => id !== slide.id)
+                    )
+                  }
+                />
+                Slide {post.slides.indexOf(slide) + 1} · {slide.headline}
+              </label>
+            ))}
+        </div>
+      </ConfirmDialog>
       <PendingMediaExportDialog
         format={pendingExport}
         count={pendingMediaCount(post, pendingExport === "zip")}
@@ -1549,8 +2407,40 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
         onCancel={() => setPendingExport(null)}
       />
       {/* ── Diálogos: Salvar (item 7) e Recomeçar (item 6) ── */}
-      <ConfirmDialog open={Boolean(formatPreview)} title="Aplicar novo formato?" description="Confira a projeção do seu layout. A variante do catálogo é opcional e redefine somente a geometria." confirmLabel="Aplicar formato" onCancel={()=>{formatRequest.current++;setFormatPreview(null);setNativeFormatPreview(null);}} onConfirm={()=>{if(formatPreview)handleUpdatePost({ kind: "document", document: formatPreview });formatRequest.current++;setFormatPreview(null);setNativeFormatPreview(null);}}>
-        {formatLoading&&<p role="status">Consultando formatos da mesma versão…</p>}{nativeFormatPreview&&nativeFormatPreview!==formatPreview&&<button className="rounded border border-white/20 p-2" onClick={()=>setFormatPreview(nativeFormatPreview)}>Pré-visualizar variante do catálogo · redefinir geometria</button>}{formatPreview&&<div className="my-3 flex justify-center"><CanvasPostStage post={formatPreview} zoom={.4} isReadOnly/></div>}
+      <ConfirmDialog
+        open={Boolean(formatPreview)}
+        title="Aplicar novo formato?"
+        description="Confira a projeção do seu layout. A variante do catálogo é opcional e redefine somente a geometria."
+        confirmLabel="Aplicar formato"
+        onCancel={() => {
+          formatRequest.current++;
+          setFormatPreview(null);
+          setNativeFormatPreview(null);
+        }}
+        onConfirm={() => {
+          if (formatPreview)
+            handleUpdatePost({ kind: "document", document: formatPreview });
+          formatRequest.current++;
+          setFormatPreview(null);
+          setNativeFormatPreview(null);
+        }}
+      >
+        {formatLoading && (
+          <p role="status">Consultando formatos da mesma versão…</p>
+        )}
+        {nativeFormatPreview && nativeFormatPreview !== formatPreview && (
+          <button
+            className="rounded border border-white/20 p-2"
+            onClick={() => setFormatPreview(nativeFormatPreview)}
+          >
+            Pré-visualizar variante do catálogo · redefinir geometria
+          </button>
+        )}
+        {formatPreview && (
+          <div className="my-3 flex justify-center">
+            <CanvasPostStage post={formatPreview} zoom={0.4} isReadOnly />
+          </div>
+        )}
       </ConfirmDialog>
       <SaveChoiceDialog
         open={isSaveDialogOpen}
@@ -1575,7 +2465,9 @@ export default function CanvasLabPage({ initialPost, onBackToGallery, onRestart,
             if (isAutoSaveEnabled && autoSaveManagerRef.current) {
               const ok = await autoSaveManagerRef.current.flushNow();
               if (ok === false) {
-                toast.error("Não foi possível salvar o post antes de recomeçar.");
+                toast.error(
+                  "Não foi possível salvar o post antes de recomeçar."
+                );
                 return;
               }
             }

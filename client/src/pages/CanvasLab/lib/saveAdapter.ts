@@ -1,7 +1,7 @@
 import { assemblyDirectionV1Schema, assemblySlideRoles, assemblyDensities } from "@shared/componentAssembly";
 import { arsenalCompilationReportSchema } from "@shared/arsenalGeneration";
 import { catalogCompilationSchema } from "@shared/designCatalog";
-import { readArsenalComposition } from "@shared/designArsenal";
+import { readArsenalComposition, canvasElementStatesSchema, arsenalLogoSchema } from "@shared/designArsenal";
 import { completeDesignProvenanceSchema } from "@shared/completeDesignGeneration";
 /**
  * Adapters de persistência do CanvasLab (PostSpark Studio).
@@ -251,6 +251,9 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
       ? raw.slides.map((s, i) => ({
           ...(s.composition !== undefined ? { composition: readArsenalComposition(s.composition) } : {}),
           id: s.id || `s-${i + 1}`,
+          elementStates: canvasElementStatesSchema.safeParse(s.elementStates).data,
+          elementOrder: Array.isArray(s.elementOrder) ? Array.from(new Set(s.elementOrder.filter(id => typeof id === "string"))) : undefined,
+          logo: arsenalLogoSchema.safeParse(s.logo).data,
           ...(s.assemblyRole && assemblySlideRoles.includes(s.assemblyRole) ? { assemblyRole: s.assemblyRole } : {}),
           ...(s.assemblyDensity && assemblyDensities.includes(s.assemblyDensity) ? { assemblyDensity: s.assemblyDensity } : {}),
           step: s.step || `SLIDE 0${i + 1}`,

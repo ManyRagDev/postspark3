@@ -7,7 +7,12 @@ import { INITIAL_POST } from "./types";
 import CanvasMobileDrawer from "./CanvasMobileDrawer";
 
 vi.mock("@/lib/trpc", () => ({
-  trpc: { post: { generateImage: { useMutation: () => ({ mutateAsync: vi.fn() }) } } },
+  trpc: {
+    post: {
+      generateImage: { useMutation: () => ({ mutateAsync: vi.fn() }) },
+      saveMediaAsset: { useMutation: () => ({ mutateAsync: vi.fn() }) },
+    },
+  },
 }));
 vi.mock("./BackgroundsDrawer", () => ({ default: () => null }));
 vi.mock("./RadialTextureSelector", () => ({ default: () => null }));
@@ -76,4 +81,39 @@ describe("CanvasMobileDrawer", () => {
     expect(container.textContent).not.toContain("Baixar Imagem (HD)");
     expect(container.textContent).not.toContain("Aplicar fundo a todos os slides");
   });
+
+  it("allows opening Logo tab without hijacking when a composition element is selected and keeps Mídia tools available", async () => {
+    const { createArsenalFixtureComposition } = await import("../lib/arsenalFixture");
+    const composition = createArsenalFixtureComposition();
+    const selectedId = composition.elements[0].id;
+
+    await act(async () => {
+      root.render(
+        <CanvasMobileDrawer
+          post={INITIAL_POST}
+          onUpdatePost={vi.fn()}
+          isOpen
+          onToggleOpen={vi.fn()}
+          composition={composition}
+          selectedElementId={selectedId}
+          onMediaUpdate={vi.fn()}
+        />
+      );
+    });
+
+    const toolbar = container.querySelector('[role="toolbar"][aria-label="Ferramentas de edição"]');
+    const logoBtn = Array.from(toolbar?.querySelectorAll("button") ?? []).find(b => b.textContent?.includes("Logo"));
+    await act(async () => {
+      logoBtn?.click();
+    });
+    expect(container.textContent).toContain("Logo da Marca (PNG Transparente)");
+
+    const mediaBtn = Array.from(toolbar?.querySelectorAll("button") ?? []).find(b => b.textContent?.includes("Mídia"));
+    await act(async () => {
+      mediaBtn?.click();
+    });
+    expect(container.textContent).toContain("Catálogo de Texturas HD");
+    expect(container.textContent).toContain("Gerar Imagem com IA");
+  });
 });
+
