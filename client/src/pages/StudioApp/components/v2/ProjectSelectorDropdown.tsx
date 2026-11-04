@@ -58,16 +58,6 @@ export default function ProjectSelectorDropdown({
 
   const activeProject = projects.find((p) => p.id === selectedProjectId) || null;
 
-  // Auto-seleciona o default se o usuário ainda não escolheu nenhum
-  useEffect(() => {
-    if (!selectedProjectId && projects.length > 0) {
-      const defaultProj = projects.find((p) => p.isDefault) || projects[0];
-      if (defaultProj) {
-        onSelectProject(defaultProj.id);
-      }
-    }
-  }, [projects, selectedProjectId]);
-
   // Fecha dropdown ao clicar fora
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -109,11 +99,11 @@ export default function ProjectSelectorDropdown({
             ? "bg-[#FF5C00]/15 border-[#FF5C00]/40 text-orange-200 hover:bg-[#FF5C00]/25"
             : "bg-white/[0.04] border-white/10 text-white/70 hover:bg-white/[0.08]"
         } disabled:opacity-40 disabled:pointer-events-none`}
-        title={activeProject ? `Projeto ativo: ${activeProject.name} (${activeProject.niche})` : "Escolha ou crie um projeto de marca"}
+        title={activeProject ? `Projeto ativo: ${activeProject.name} (${activeProject.niche})` : "Sem projeto (Post livre)"}
       >
         <Building2 size={13} className={activeProject ? "text-[#FF5C00]" : "text-white/40"} />
         <span className="max-w-[140px] truncate">
-          {activeProject ? activeProject.name : "Escolher Projeto"}
+          {activeProject ? activeProject.name : "Sem projeto (Post livre)"}
         </span>
         <ChevronDown size={12} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
       </button>

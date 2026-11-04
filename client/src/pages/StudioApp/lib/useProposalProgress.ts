@@ -4,12 +4,12 @@ import { proposalDeliveryKey } from "./studioGenerationState";
 
 // Presentation estimates, not elapsed-time predictions or completion receipts.
 const STAGES: Record<string, [number, number, number]> = {
-  planned: [6, 12, 30],
-  waiting_input: [10, 16, 45],
-  running: [18, 65, 90],
-  checking: [70, 88, 60],
-  recovering: [60, 88, 60],
-  delivery_pending: [90, 96, 20],
+  planned: [8, 22, 15],
+  waiting_input: [12, 25, 30],
+  running: [25, 68, 60],
+  checking: [70, 88, 45],
+  recovering: [60, 88, 45],
+  delivery_pending: [90, 96, 15],
   ready: [98, 98, 1], // Client materialization is still pending while the skeleton exists.
 };
 

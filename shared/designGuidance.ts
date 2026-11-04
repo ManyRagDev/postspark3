@@ -4,10 +4,80 @@ const hash = z.string().regex(/^[a-f0-9]{64}$/);
 export const designGuidanceSchema = z
   .object({
     version: z.literal(1),
-    carouselVariant: z.discriminatedUnion("version", [
-      z.object({ version: z.literal(1), role: z.enum(["development", "closing"]), sourceId: z.string().uuid(), sourceHash: hash }).strict(),
-      z.object({ version: z.literal(2), role: z.enum(["development", "closing"]), sourceId: z.string().uuid(), sourceHash: hash, contentMode: z.enum(["compose", "literal"]) }).strict(),
-    ]).optional(),
+    representation: z
+      .object({
+        version: z.literal(3),
+        sourceId: z.string().uuid(),
+        sourceHash: hash,
+        method: z.literal("native_semantics_rebuild"),
+      })
+      .strict()
+      .optional(),
+    familyIdentity: z
+      .object({
+        essential: z.array(z.string()).min(1).max(20),
+        optional: z.array(z.string()).max(20),
+        adaptable: z.array(z.string()).max(20),
+      })
+      .strict()
+      .optional(),
+    fieldRelationships: z
+      .array(
+        z
+          .object({
+            kind: z.enum([
+              "contrast",
+              "emphasis",
+              "sequence",
+              "image_reference",
+              "independent_items",
+            ]),
+            sources: z.array(z.string()).min(1),
+            label: z.string(),
+          })
+          .strict()
+      )
+      .max(30)
+      .optional(),
+    carouselVariant: z
+      .discriminatedUnion("version", [
+        z
+          .object({
+            version: z.literal(1),
+            role: z.enum(["development", "closing"]),
+            sourceId: z.string().uuid(),
+            sourceHash: hash,
+          })
+          .strict(),
+        z
+          .object({
+            version: z.literal(2),
+            role: z.enum(["development", "closing"]),
+            sourceId: z.string().uuid(),
+            sourceHash: hash,
+            contentMode: z.enum(["compose", "literal"]),
+          })
+          .strict(),
+        z
+          .object({
+            version: z.literal(3),
+            role: z.enum(["development", "closing"]),
+            sourceId: z.string().uuid(),
+            sourceHash: hash,
+            contentMode: z.enum(["compose", "literal"]),
+            function: z.enum([
+              "reading",
+              "list",
+              "comparison",
+              "image_commentary",
+              "highlight",
+              "synthesis",
+            ]),
+            identity: z.array(z.string().min(1)).min(1).max(20),
+          })
+          .strict(),
+      ])
+      .optional(),
     summary: z.string().min(1).max(1000),
     motifs: z.array(z.string().min(1).max(120)).max(12),
     preserve: z.array(z.string().min(1).max(1000)).max(20),

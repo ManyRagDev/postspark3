@@ -474,7 +474,7 @@ export default function ExecutionBrief({
                 <SummaryRow label="Input inicial" value={initialInput.type} />
                 <SummaryRow label="Formato" value={brief.format} />
                 <SummaryRow label="Plataforma" value={brief.platform} />
-                <SummaryRow label="Objetivo" value={brief.objective} />
+                <SummaryRow label="Objetivo" value={brief.objective ?? "Conforme o pedido"} />
                 <SummaryRow label="CTA" value={brief.callToAction || "Nao definido"} />
                 <SummaryRow label="Intervencao" value={INTERVENTION_OPTIONS.find((option) => option.value === brief.interventionLevel)?.label || brief.interventionLevel} />
                 <SummaryRow label="Fonte de conteudo" value={CONTENT_SOURCE_OPTIONS.find((option) => option.value === brief.contentSourceType)?.label || brief.contentSourceType} />

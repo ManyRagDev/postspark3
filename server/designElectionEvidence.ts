@@ -2,6 +2,7 @@ import { arsenalHash } from "../shared/arsenalContent";
 import { catalogCoverageSchema, electionCandidatesSchema, electionClassificationSchema, electionDecisionSchema, electionDecisionV2Schema, assertCatalogCoverage, assertElectionCoverage } from "../shared/designElection";
 import { describeCompactOffer } from "../shared/compactDesignProfile";
 import { completeDesignOfferV1Schema } from "../shared/completeDesignOffers";
+import { inspectPlannedDesignElection } from "./plannedDesignElectionEvidence";
 
 type Row = Record<string, unknown>;
 const row = (x: unknown): Row => x && typeof x === "object" && !Array.isArray(x) ? x as Row : {};
@@ -23,6 +24,7 @@ const explanation = (code: string) => code.startsWith("missing_exact_slide_role:
 
 /** Read only persisted receipts. Never reconstruct past availability from today's catalog. */
 export function inspectDesignElection(request: Row, operations: Row[]) {
+  if (generationUsesPlanning(request) || row(request.prepared).planning) return inspectPlannedDesignElection(request, operations);
   const completed = (key: string) => {
     const op = operations.find(o => o.operation_key === `prepare:${key}`);
     if (op?.state !== "completed") return null;
@@ -148,3 +150,4 @@ export function inspectDesignElection(request: Row, operations: Row[]) {
     }), candidates:candidateRows, scoringBatches, issues,
   };
 }
+import { generationUsesPlanning } from "../shared/generationModel";

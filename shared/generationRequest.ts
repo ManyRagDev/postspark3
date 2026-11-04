@@ -2,6 +2,7 @@ import { generationSourceSchema } from "./generationSources";
 import { contentRequirementSchema } from "./contentRequirements";
 import { z } from "zod";
 import { generationProjectSnapshotSchema } from "./projectEditorial";
+import { generationModelSchema } from "./generationModel";
 
 /** Shared by the batch and orchestrated endpoints; execution controls cannot drift. */
 export const executionBriefSchema = z
@@ -9,7 +10,7 @@ export const executionBriefSchema = z
     creationMode: z.literal("execution"),
     format: z.enum(["static", "carousel", "story", "ad"]),
     platform: z.enum(["instagram", "twitter", "linkedin", "facebook"]),
-    objective: z.enum(["educate", "authority", "sell", "engage", "lead"]),
+    objective: z.enum(["educate", "authority", "sell", "engage", "lead"]).optional(),
     tone: z.string().max(160).optional(),
     callToAction: z.string().max(2000).optional(),
     audience: z.string().max(2000).optional(),
@@ -95,6 +96,8 @@ export const orchestratedGenerationInputSchema = z
     slideCount: z.number().int().min(2).max(10).optional(),
     aspectRatio: z.enum(["1:1", "4:5", "5:6", "9:16"]).default("4:5"),
     model: z.enum(["gemini", "llama"]).optional(),
+    generationModel: generationModelSchema.optional(),
+    generationParentRequestId: z.string().uuid().optional(),
     creationMode: z.enum(["ideation", "execution"]).default("ideation"),
     executionBrief: executionBriefSchema.optional(),
     siteIntelligenceId: z.string().uuid().optional(),

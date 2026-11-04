@@ -22,6 +22,7 @@ export interface GenerationCoordinatorInput
   offeredDefinitions?: ComponentDefinitionV1[];
   selectedDefinitions?: ComponentDefinitionV1[][];
   alternativeDefinitions?: ComponentDefinitionV1[][][];
+  planning?: import("@shared/generationPlan").GenerationPlanningReceipt;
   actor: string;
   savedProposals?: ProposalDelivery[];
   selectionReasons?: string[];
@@ -29,6 +30,7 @@ export interface GenerationCoordinatorInput
   perProposalImageObligations?: ProposalExecutionInput["imageObligation"][];
 }
 export interface GenerationCoordinatorDeps extends ProposalGraphDeps {
+  replan?: (slot: number, attempt: number, currentFamilies: string[]) => Promise<{ definitions: ComponentDefinitionV1[]; plan: import("@shared/generationPlan").ViableGenerationPlan } | null>;
   persistUpdate?: (delivery: ProposalDelivery) => Promise<void>;
   /** Authorize exact assets and settle the configured billing policy before public ready. */
   deliver?: (
@@ -127,6 +129,12 @@ export class GenerationCoordinator {
     const { bundle: _ignored, ...identity } = saved as ProposalDelivery & {
       bundle?: unknown;
     };
+    const slotPlan = this.input.planning?.slots[slot];
+    if (slotPlan && slotPlan.status !== "viable") {
+      const code = slotPlan.status === "insufficient_fit" ? "selection_insufficient_fit" : "planning_response_invalid";
+      await this.update(proposalDeliverySchema.parse({ ...identity, status: "failed", completedAt: Date.now(), errorReason: code, failure: { code, stage: "selection", retryable: false }, diagnostics: [{ code, target: `slot-${slot}`, evidence: slotPlan.reason }] }));
+      return;
+    }
     await this.update(
       proposalDeliverySchema.parse({
         ...identity,
@@ -158,19 +166,32 @@ export class GenerationCoordinator {
       ...(this.input.alternativeDefinitions?.[slot] ?? []).slice(0, 3),
     ];
     let attemptIndex = saved.attempt?.index ?? 0;
-    while (attemptIndex < candidates.length) {
-      const currentDefs = candidates[attemptIndex];
+    const plannedRecoveryCount = this.input.planning?.recoveryRepertoires[slot]?.length ?? 0;
+    const attemptLimit = this.input.reviewPolicyVersion === 10 ? 1 + plannedRecoveryCount : candidates.length;
+    while (attemptIndex < attemptLimit) {
+      let currentDefs = candidates[attemptIndex];
+      let narrativePlan = slotPlan?.status === "viable" ? slotPlan : undefined;
       const attemptSuffix = attemptIndex === 0 ? "" : `-fb${attemptIndex}`;
       const effectiveProposalId = `${saved.proposalId}${attemptSuffix}`;
       const attempt = {index:attemptIndex,id:effectiveProposalId};
       await this.update(proposalDeliverySchema.parse({...identity,status:attemptIndex?"recovering":"running",attempt}));
       try {
+        if (this.input.reviewPolicyVersion === 10 && attemptIndex > 0) {
+          const currentFamilies = Array.from(this.proposals.values()).filter(p => p.slot !== slot).map(p => p.status === "ready" ? p.bundle.family : this.input.planning?.offers[p.slot]?.family).filter((v): v is string => typeof v === "string");
+          const replanned = await this.deps.replan?.(slot, attemptIndex, currentFamilies);
+          if (!replanned) { attemptIndex++; continue; }
+          currentDefs = replanned.definitions;
+          narrativePlan = replanned.plan;
+        }
         result = await executeProposalWorkflow(
           {
             ...this.input,
             selectedDefinitions: currentDefs,
-            selectionReason: this.input.selectionReasons?.[slot],
-            editorialApproach: this.input.editorialApproaches?.[slot],
+            narrativePlan,
+            generationIntent: this.input.planning?.intent,
+            ...(this.input.planning?.intent.editorial ? { editorialCatalog: this.input.planning.editorialCatalog ?? null } : {}),
+            selectionReason: narrativePlan?.reason ?? this.input.selectionReasons?.[slot],
+            editorialApproach: narrativePlan?.editorialApproach ?? this.input.editorialApproaches?.[slot],
             imageObligation:
               this.input.perProposalImageObligations?.[slot] ??
               this.input.imageObligation,
@@ -210,14 +231,14 @@ export class GenerationCoordinator {
       }
 
       const action=recoveryAction({uncertain:await this.deps.uncertainOperations?.(saved.proposalId),failure:result.failure,remainingMs:(this.input.deadlineMs??Infinity)-Date.now(),templateAttempts:attemptIndex+1,textRecoveries:1,formalRepairs:1,cancelled:result.status==="cancelled"||result.status==="expired"});
-      if(action==="await_reconciliation" && this.input.reviewPolicyVersion===9){
+      if(action==="await_reconciliation" && (this.input.reviewPolicyVersion===9 || this.input.reviewPolicyVersion===10)){
         result=proposalDeliverySchema.parse({...result,status:"awaiting_reconciliation",attempt,completedAt:undefined});
         break;
       }
-      if((action==="next_template" || this.input.reviewPolicyVersion!==9 && result.status==="failed" && !["proposal_cancelled","generation_deadline_exceeded"].includes(result.errorReason??"")) && attemptIndex+1<candidates.length){attemptIndex++;continue;}
+      if((action==="next_template" || this.input.reviewPolicyVersion!==9 && this.input.reviewPolicyVersion!==10 && result.status==="failed" && !["proposal_cancelled","generation_deadline_exceeded"].includes(result.errorReason??"")) && attemptIndex+1<attemptLimit){attemptIndex++;continue;}
       break;
     }
-    const finalResult = result;
+    const finalResult = result.status === "planned" ? proposalDeliverySchema.parse({ ...identity, status: "failed", errorReason: "artwork_unusable", failure: { code: "artwork_unusable", stage: "copy", retryable: false } }) : result;
     if (finalResult.status === "ready" && this.deps.deliver) {
       await this.update(
         proposalDeliverySchema.parse({
@@ -259,9 +280,11 @@ export class GenerationCoordinator {
       !(finalResult.status === "ready" && this.deps.deliver)
     );
   }
-  start(): Promise<GenerationCoordinatorSnapshot> {
+  start(options: { maxConcurrency?: 1 | 3 } = {}): Promise<GenerationCoordinatorSnapshot> {
     // Multiple callers in one process share one invocation; restarts use persisted checkpoints.
     if (this.started) return this.started;
+    if (options.maxConcurrency !== undefined && ![1, 3].includes(options.maxConcurrency))
+      throw new Error("invalid_proposal_concurrency");
     const runIsolated = async (slot: number) => {
       try {
         await this.runProposal(slot);
@@ -290,7 +313,7 @@ export class GenerationCoordinator {
         default: () => [],
       }),
     });
-    const graph = new StateGraph(State)
+    const builder = new StateGraph(State)
       .addNode("proposal_a", async () => {
         return runIsolated(0);
       })
@@ -299,15 +322,19 @@ export class GenerationCoordinator {
       })
       .addNode("proposal_c", async () => {
         return runIsolated(2);
-      })
-      .addEdge(START, "proposal_a")
-      .addEdge(START, "proposal_b")
-      .addEdge(START, "proposal_c")
-      .addEdge("proposal_a", END)
-      .addEdge("proposal_b", END)
-      .addEdge("proposal_c", END)
-      .compile();
+      });
+    // Explicit graph ordering schedules the whole proposal before its workflow
+    // creates review deadlines. Product callers retain the ordinary fan-out.
+    const graph = (options.maxConcurrency === 1
+      ? builder.addEdge(START, "proposal_a").addEdge("proposal_a", "proposal_b")
+          .addEdge("proposal_b", "proposal_c").addEdge("proposal_c", END)
+      : builder.addEdge(START, "proposal_a").addEdge(START, "proposal_b")
+          .addEdge(START, "proposal_c").addEdge("proposal_a", END)
+          .addEdge("proposal_b", END).addEdge("proposal_c", END)).compile();
     this.started = graph
+      // Evaluation can bound whole graph nodes before any proposal work starts.
+      // The application omits this option and retains its normal three-way fan-out.
+      // No transport is queued inside a running review's phase deadline.
       .invoke({ finished: [] }, { signal: this.input.signal })
       .then(() => this.getSnapshot());
     return this.started;

@@ -1,4 +1,5 @@
 import {readCatalogManifest,versionedCatalogEnabled} from "../designCatalog/versionedCatalog";
+import { localCatalogRevisionOverride } from "../designCatalog/localCatalogOverride";
 import { resolveCompleteDesignOffers } from "@shared/completeDesignOffers";
 import { z } from "zod";
 import { componentDefinitionV1Schema, assemblyVariationBundleV1Schema } from "../../shared/componentAssembly";
@@ -322,7 +323,7 @@ export const designCatalogRouter = router({
   generationReadiness: protectedProcedure.query(async ({ ctx }) => {
     if (ctx.user.role !== "admin") return null;
     if(versionedCatalogEnabled()) {
-      const m=await readCatalogManifest();
+      const m=await readCatalogManifest(localCatalogRevisionOverride());
       return {mode:ENV.componentArsenalMode,reason:'ready' as const,candidateCount:m.summary.approved.staticOfferCount,draftCandidateCount:m.summary.experimental.staticOfferCount,carouselCandidateCount:m.summary.approved.carouselOfferCount,draftCarouselCandidateCount:m.summary.experimental.carouselOfferCount,durationMs:0,pipeline:'complete-designs' as const};
     }
     const started=Date.now();

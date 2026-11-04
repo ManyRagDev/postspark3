@@ -3,9 +3,11 @@ import { freezeGenerationProject } from "@shared/projectEditorial";
 import { reconcileGenerationReviews } from "../ai/workflows/generationReconciliation";
 import {arsenalHash} from "@shared/arsenalContent";
 import {readCatalogManifest,withCatalogRevision} from "../designCatalog/versionedCatalog";
+import {localCatalogRevisionOverride} from "../designCatalog/localCatalogOverride";
 import {enqueueLocal,localExecutorScope} from "../ai/workflows/localDemandSupervisor";
 import { resolveCompleteDesignOffers } from "@shared/completeDesignOffers";
 import { ENV } from "../_core/env";
+import { resolveGenerationModelConfig } from "../ai/generationModel";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
@@ -33,7 +35,7 @@ export const generationRouter = router({
       const base={...supported,ownerId:ctx.user.id,selectable:true,contractVersion:6 as const,progressTransport:'events' as const};
       if(!ENV.localDemandEnabled||ENV.generationAdmissionPaused)return {...base,enabled:false,reason:ENV.generationAdmissionPaused?'maintenance':'local_activation_required'};
       try{await (await import('../ai/workflows/proposalRenderer')).assertReviewRendererConfigured();}catch{return {...base,enabled:false,reason:'renderer_configuration_required'};}
-      try{const m=await readCatalogManifest(),counts=m.summary[ctx.user.role==='admin'?'experimental':'approved'];return {...base,...counts,catalogRevision:m.revision,catalogScope:ctx.user.role==='admin'?'experimental' as const:'approved' as const,catalogProject:arsenalHash(ENV.supabaseUrl),catalogCount:counts.staticOfferCount+counts.carouselOfferCount,enabled:counts.staticOfferCount+counts.carouselOfferCount>0,reason:'ready'};}
+      try{const m=await readCatalogManifest(localCatalogRevisionOverride()),counts=m.summary[ctx.user.role==='admin'?'experimental':'approved'];return {...base,...counts,catalogRevision:m.revision,catalogScope:ctx.user.role==='admin'?'experimental' as const:'approved' as const,catalogProject:arsenalHash(ENV.supabaseUrl),catalogCount:counts.staticOfferCount+counts.carouselOfferCount,enabled:counts.staticOfferCount+counts.carouselOfferCount>0,reason:'ready'};}
       catch{return {...base,enabled:false,reason:'catalog_publication_required'};}
     }
     if (ENV.generationAdmissionPaused) return {ownerId:ctx.user.id,selectable:true,enabled:false,contractVersion:6 as const,reason:"maintenance"};
@@ -84,7 +86,7 @@ export const generationRouter = router({
     .input(orchestratedGenerationInputSchema)
     .mutation(async ({ ctx, input }) => {
       console.info(
-        `[trpc:generation.start] 📩 Requisição recebida | user=${ctx.user.id.slice(0, 8)}... | modo=${input.postMode} | ratio=${input.aspectRatio ?? "auto"} | rota=${input.postMode === "carousel" ? "carousel_generation" : "static_generation"} | modelo_configurado=${input.postMode === "carousel" ? ENV.openRouterCarouselModel : ENV.openRouterStaticModel}`
+        `[trpc:generation.start] 📩 Requisição recebida | user=${ctx.user.id.slice(0, 8)}... | modo=${input.postMode} | ratio=${input.aspectRatio ?? "auto"} | rota=${input.postMode === "carousel" ? "carousel_generation" : "static_generation"} | modelo_configurado=${resolveGenerationModelConfig(input).model}`
       );
       if (input.ownerId !== ctx.user.id)
         throw new TRPCError({
@@ -160,7 +162,18 @@ export const generationRouter = router({
         catch{throw new TRPCError({code:'PRECONDITION_FAILED',message:'Prepare o renderer e o Chromium local antes de gerar.'});}
       }
       if(!ENV.openRouterApiKey)throw new TRPCError({code:"PRECONDITION_FAILED",message:"O serviço de geração precisa ser configurado antes de gerar. Nenhum Spark foi reservado."});
-      const manifest=await readCatalogManifest();
+      const parent = input.generationParentRequestId
+        ? await store.get(input.generationParentRequestId, ctx.user.id)
+        : null;
+      if (input.generationParentRequestId && !parent)
+        throw new TRPCError({ code: "NOT_FOUND", message: "A geração de origem não foi encontrada nesta conta." });
+      const generationConfig = parent?.generationConfig ?? resolveGenerationModelConfig(input);
+      if (generationConfig.preparationBudget && store.isPreparationAvailable && !(await store.isPreparationAvailable()))
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A preparação de geração está em atualização. Nenhum Spark foi reservado." });
+      if (parent?.generationConfig && input.generationModel && input.generationModel !== parent.generationConfig.choice)
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Gerar mais mantém o modelo do pedido anterior. Inicie uma nova criação para trocar." });
+      const catalogOverride=localCatalogRevisionOverride();
+      const manifest=await readCatalogManifest(catalogOverride);
       const executorScope=ENV.localDemandEnabled?await localExecutorScope():undefined;
       // General capability counts are advisory. Admission checks the exact same
       // authored revisions, format, roles, brand and media requirements as preparation.
@@ -181,7 +194,7 @@ export const generationRouter = router({
             : [],
         });
         const cards=await (manifest?withCatalogRevision(manifest.revision,loadCards):loadCards());
-        if (!eligibleCompleteDesignCardsForRequest(cards, input).length)
+        if (!eligibleCompleteDesignCardsForRequest(cards, input, generationConfig.generationStrategyVersion).length)
           throw new Error("complete_design_catalog_empty");
       } catch (error) {
         throw new TRPCError({
@@ -223,7 +236,9 @@ export const generationRouter = router({
         brand.logoUrl = savedReferences.get(brand.logoUrl) ?? brand.logoUrl;
       try {
         const admitted = await store.admission({
+          generationConfig,
           executorScope,catalogRevision:manifest?.revision,
+          stagedCatalog: Boolean(catalogOverride),
           ownerId: ctx.user.id,
           idempotencyKey: input.idempotencyKey,
           inputHash,
@@ -292,6 +307,7 @@ export const generationRouter = router({
         });
       return {
         snapshot: requestSnapshot(record),
+        generationConfig: record.generationConfig,
         errorReason: record.errorReason,
         sourceWarnings:record.prepared?.imageSourceReading?.reading.uncertainties??[],
         dispatchError:record.dispatchError,

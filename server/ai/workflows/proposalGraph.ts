@@ -1,3 +1,7 @@
+import { compactComponentCard } from "@shared/componentAssembly";
+import { designTextBudgetsV3 } from "@shared/designSelection";
+import { generationModelCallOptions } from "../generationModel";
+import { copyInstructionsV10 } from "./reviewExecutionConfigV10";
 import { copyInstructionsV9 } from "./reviewExecutionConfigV9";
 import { validatedEditorialContextV9 } from "./editorialContextV9";
 import { copyInstructionsV8 } from "./reviewExecutionConfigV8";
@@ -61,7 +65,10 @@ import {
   type EditorialPlan,
 } from "./proposalEditorial";
 import { carouselNarrativeContract } from "@shared/carouselNarrative";
-import { partitionArsenalReadinessIssues } from "@shared/arsenalReadiness";
+import {
+  partitionArsenalReadinessIssues,
+  subpixelTextOverflowLimit,
+} from "@shared/arsenalReadiness";
 import {
   proposalDeliverySchema,
   imageTaskContractSchema,
@@ -119,8 +126,12 @@ export interface ProposalSourceReference {
 }
 
 export interface ProposalExecutionInput {
-  reviewPolicyVersion?: 5 | 6 | 7 | 8 | 9;
-  reviewExecutionConfig?: ReviewExecutionConfigV1 | import("@shared/proposalReviewV7").ReviewExecutionConfigV2 | import("@shared/proposalReviewV8").ReviewExecutionConfigV3 | import("@shared/proposalReviewV9").ReviewExecutionConfigV4;
+  editorialCatalog?: import("@shared/editorialIntent").FrozenEditorialCatalog | null;
+  generationConfig?: import("@shared/generationModel").GenerationModelConfig;
+  narrativePlan?: import("@shared/generationPlan").ViableGenerationPlan;
+  generationIntent?: import("@shared/generationPlan").GenerationIntent;
+  reviewPolicyVersion?: 5 | 6 | 7 | 8 | 9 | 10;
+  reviewExecutionConfig?: ReviewExecutionConfigV1 | import("@shared/proposalReviewV7").ReviewExecutionConfigV2 | import("@shared/proposalReviewV8").ReviewExecutionConfigV3 | import("@shared/proposalReviewV9").ReviewExecutionConfigV4 | import("@shared/proposalReviewV10").ReviewExecutionConfigV5;
   editorialContextHash?: string;
   previousReviewContext?: { previous: ProposalReviewRecord; changedTargets: Array<{slideIndex:number;fieldId:string}> };
   requestId: string;
@@ -322,14 +333,14 @@ function jsonSchemaFormat(
 }
 
 function usesAffirmativeContext(input: ProposalExecutionInput) {
-  return (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9) || (input.reviewPolicyVersion === 7 && input.reviewExecutionConfig?.version === 2 && input.reviewExecutionConfig.editorialGuidanceVersion === 6);
+  return (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) || (input.reviewPolicyVersion === 7 && input.reviewExecutionConfig?.version === 2 && input.reviewExecutionConfig.editorialGuidanceVersion === 6);
 }
 function proposalContentRequirements(input: ProposalExecutionInput) {
   return usesAffirmativeContext(input) ? resolvedEditorialContext(input.editorialContext ?? editorialContextV7(input, 6)).requirements : effectiveContentRequirements(input.executionBrief);
 }
 
 function executionInstructions(input: ProposalExecutionInput): string {
-  if ((input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) return "Orientações, requisitos e suas origens estão referenciados no contexto editorial único. Resolva essas referências antes de compor.";
+  if ((input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) return "Orientações, requisitos e suas origens estão referenciados no contexto editorial único. Resolva essas referências antes de compor.";
   if (usesAffirmativeContext(input)) {
     const context = input.editorialContext ?? editorialContextV7(input, 6);
     return `Orientações efetivas: ${JSON.stringify(context.instructions)}\nOrigens: ${JSON.stringify(context.instructionOrigins)}\nObrigações efetivas: ${JSON.stringify(context.requirements)}`;
@@ -414,7 +425,7 @@ function checkBriefConstraints(
     if (copy.hashtags.some(tag => !brief.rawInput.includes(tag)))
       issues.push("visual_only_hashtags_expand_source");
   }
-  if((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9))) {
+  if((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) {
     const art=copy.slides.flatMap(s=>s.values.flatMap(v=>Array.isArray(v.value)?v.value:[v.value]));
     const caption=[copy.caption,...copy.hashtags];
     for(const r of proposalContentRequirements(input).filter(r=>r.kind!=="meaning")) {
@@ -499,13 +510,15 @@ function postModeRole(
 function inspectScenes(
   compositions: ArsenalComposition[],
   definitions: ComponentDefinitionV1[],
-  measureText: ArsenalTextMeasurer
+  measureText: ArsenalTextMeasurer,
+  allowSubpixelTextOverflow: boolean
 ) {
   const inspected = compositions.map((source, index) => {
     const composition = resolveArsenalGeometry(source, {
       measureText,
       allowReduction: true,
       elasticReduction: true,
+      allowSubpixelTextOverflow,
     });
     // Persist the already authored, bounded fit as an explicit resolved override.
     // Canvas edits/reopening may resolve relations again with reduction disabled.
@@ -532,9 +545,15 @@ function inspectScenes(
         };
     }
     const diagnostics: ProposalDiagnostic[] = [];
+    const subpixelTextTargets = new Set<string>();
     const { diagnostics: nonBlocking, blocking } =
       partitionArsenalReadinessIssues(composition.issues);
     for (const issue of nonBlocking) {
+      if (issue.startsWith("overflow:subpixel:")) {
+        const target = issue.slice("overflow:subpixel:".length).replace(/^token:/, "");
+        subpixelTextTargets.add(target);
+        continue;
+      }
       const contrast = issue.startsWith("contrast:unknown:");
       diagnostics.push({
         code: contrast ? "contrast_unknown" : "authored_text_media_overlap",
@@ -565,16 +584,30 @@ function inspectScenes(
         ? { ...element, width: authoredBox.width, height: authoredBox.height }
         : element;
       const measured = measureArsenalElement(measuredElement, measureText);
-      if (
-        (measured.height > measuredElement.height + 0.01 ||
-          measured.lines.some(
-            line => line.width > measuredElement.width + 0.01
-          )) &&
-        !blocking.some(
+      const exceeds = (tolerance: number) =>
+        measured.height > measuredElement.height + tolerance ||
+        measured.lines.some(line => line.width > measuredElement.width + tolerance);
+      if (exceeds(0.01)) {
+        const tolerance = allowSubpixelTextOverflow
+          ? subpixelTextOverflowLimit(arsenalWorldGeometry(element, composition.groups).scale)
+          : 0;
+        if (!exceeds(tolerance)) {
+          subpixelTextTargets.add(element.id);
+        } else if (!blocking.some(
           issue => issue.includes(element.id) && issue.startsWith("overflow:")
-        )
-      )
-        blocking.push(`overflow:${element.id}`);
+        )) {
+          blocking.push(`overflow:${element.id}`);
+        }
+      }
+    }
+    for (const target of Array.from(subpixelTextTargets)) {
+      if (blocking.some(issue => issue.startsWith("overflow:") && issue.endsWith(`:${target}`)))
+        continue;
+      diagnostics.push({
+        code: "text_overflow_subpixel",
+        target: `slide-${index + 1}:${target}`,
+        evidence: "O texto excede a caixa em até 0,5 unidade do layout.",
+      });
     }
     const findings: TechnicalFinding[] = blocking.map(issue => ({
       rule: issue.split(":", 2)[0] ?? "geometry_integrity",
@@ -611,6 +644,22 @@ export async function executeProposalWorkflow(
   let executionStage: "copy" | "media" | "review" = "copy";
   let recoveryUsed = false;
   const priorRecoveryKeys = new Set<string>();
+  // V10 gives physical fitting and material editorial correction one purchase
+  // each across all template attempts. An existing key can only replay through
+  // the durable operation, including a receipt left uncertain by a shutdown.
+  const canRecover = (key: string) => {
+    if (priorRecoveryKeys.has(key)) return true;
+    if (input.reviewPolicyVersion !== 10) return !recoveryUsed;
+    const kind = key === "copy_recovery" ? "copy_recovery" : "review_correction:";
+    return !Array.from(priorRecoveryKeys).some(prior => {
+      const relative = prior.replace(/^previous_attempt:/, "");
+      return kind === "copy_recovery" ? relative === kind : relative.startsWith(kind);
+    });
+  };
+  const spendRecovery = (key: string) => {
+    recoveryUsed = true;
+    priorRecoveryKeys.add(key);
+  };
   const base = {
     contractVersion: 1 as const,
     proposalId,
@@ -635,11 +684,11 @@ export async function executeProposalWorkflow(
         priorRecoveryKeys.add(key);
     if (deps.reviewRepairOperationKeys) for (const key of await deps.reviewRepairOperationKeys(proposalId)) deps.reviewRepairBudget!.add(key);
     recoveryUsed = priorRecoveryKeys.size > 0;
-    if((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9))) {
+    if((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) {
       const pinnedConfig = assertPinnedReviewConfig(input.reviewExecutionConfig);
       if(pinnedConfig.policyVersion !== input.reviewPolicyVersion) throw new GenerationFailureError("preparation_contract_incompatible","copy");
       const guidanceVersion = (input.reviewExecutionConfig as import("@shared/proposalReviewV7").ReviewExecutionConfigV2 | undefined)?.editorialGuidanceVersion;
-      try { input.reviewPolicyVersion === 9 ? validatedEditorialContextV9(input) : input.reviewPolicyVersion === 8 ? validatedEditorialContextV8(input) : validatedEditorialContext(input, guidanceVersion); } catch { throw new GenerationFailureError("preparation_contract_incompatible", "copy"); }
+      try { (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10) ? validatedEditorialContextV9(input) : input.reviewPolicyVersion === 8 ? validatedEditorialContextV8(input) : validatedEditorialContext(input, guidanceVersion); } catch { throw new GenerationFailureError("preparation_contract_incompatible", "copy"); }
     }
     if (!definitions.length || definitions.length > 10)
       throw new Error("proposal_definitions_required");
@@ -704,7 +753,10 @@ export async function executeProposalWorkflow(
       }
     };
     const measureText = deps.measureText ?? (await loadMeasurer());
-    if ((input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) deps = {...deps,measureText};
+    const allowSubpixelTextOverflow = input.generationConfig?.layoutFitPolicy === "subpixel_v1";
+    const inspect = (scenes: ArsenalComposition[]) =>
+      inspectScenes(scenes, definitions, measureText, allowSubpixelTextOverflow);
+    if ((input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) deps = {...deps,measureText};
     for (const definition of definitions) {
       for (const [pieceHash, piece] of Object.entries(definition.pieces)) {
         if (piece.kind !== "text") continue;
@@ -736,20 +788,23 @@ export async function executeProposalWorkflow(
     const mediaSlots = definitions.map(
       definition => definition.fragment.mediaSlots ?? []
     );
-    const narrativeContract = (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? null : carouselNarrativeContract(
+    const narrativeContract = (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? null : carouselNarrativeContract(
       definitions.length,
       input.executionBrief?.interventionLevel
     );
-    const copySchema = copyResponseSchema(definitions, false, (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)), usesAffirmativeContext(input));
+    const copySchema = copyResponseSchema(definitions, false, (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))), usesAffirmativeContext(input));
     const freshCopySchema = copyResponseSchema(
       definitions,
       Boolean(narrativeContract),
-      (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)),
+      (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))),
       usesAffirmativeContext(input)
     );
+    const textBudgetsV3 = input.reviewPolicyVersion === 10
+      ? definitions.map(definition => designTextBudgetsV3(compactComponentCard(definition)))
+      : null;
     const fieldSchemaNotes = definitions.map((definition, index) => ({
       slide: index,
-      ...((input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9) ? {artboard:definition.fragment.artboard,authoredGroups:definition.fragment.groups} : {}),
+      ...((input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? {artboard:definition.fragment.artboard,authoredGroups:definition.fragment.groups} : {}),
       narrative: narrativeContract?.slides[index] ?? null,
       designName: definition.label,
       family: definition.completeDesign!.family,
@@ -779,7 +834,7 @@ export async function executeProposalWorkflow(
                 : undefined;
             return {
               id,
-              ...((input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9) ? {x:instance?.x,y:instance?.y,rotation:instance?.rotation,parentId:instance?.parentId,fontWeight:piece?.fontWeight,align:piece?.align,lineHeight:piece?.lineHeight,letterSpacing:piece?.letterSpacing} : {}),
+              ...((input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? {x:instance?.x,y:instance?.y,rotation:instance?.rotation,parentId:instance?.parentId,fontWeight:piece?.fontWeight,align:piece?.align,lineHeight:piece?.lineHeight,letterSpacing:piece?.letterSpacing} : {}),
               width: instance?.width,
               height: instance?.height,
               fontFamily: piece?.fontFamily,
@@ -825,7 +880,10 @@ export async function executeProposalWorkflow(
         let wordsForAllFragments: number | null = fragments.length
           ? Math.max(...fragments.map(fragment => fragment.count))
           : null;
-        if (wordsForAllFragments !== null) {
+        const preservesOccupancy = fragments.length > 0 && fragments.every(
+          fragment => fragment.allocation?.mode === "preserve_occupancy"
+        );
+        if (wordsForAllFragments !== null && !preservesOccupancy) {
           while (
             wordsForAllFragments <= 10000 &&
             spans.some(
@@ -850,16 +908,17 @@ export async function executeProposalWorkflow(
         const wholeValueChars = targets
           .filter(target => !target.contentFragment)
           .map(target => target.maxChars ?? 0);
-        const estimatedMaxChars = fragments.length
-          ? Math.min(partitionChars, ...wholeValueChars)
-          : Math.min(...wholeValueChars);
+        const estimatedMaxChars = textBudgetsV3?.[index].find(budget => budget.source === field.source)?.estimatedCharacters
+          ?? (fragments.length
+            ? Math.min(partitionChars, ...wholeValueChars)
+            : Math.min(...wholeValueChars));
         return {
           id: field.id,
           role: field.role,
           kind: field.kind,
           required: field.required,
           cardinality: field.cardinality,
-          ...(usesAffirmativeContext(input) ? {textContract: field.kind === "list" ? "native_list: array de itens; prefixos e distribuição seguem os bindings" : fragments.length ? "word_partition: frase canônica contínua dividida por palavras entre caixas; quebras explícitas integram cada fragmento e consomem altura" : "continuous_text: valor inteiro na caixa; quebras autoradas consomem linhas e seguem o orçamento físico", authoredLines: targets.map(t => ({targetId:t.id, maxLines:t.maxLines, height:t.height})), optionalEmpty:!field.required} : {}),
+          ...(usesAffirmativeContext(input) ? {textContract: field.kind === "list" ? "native_list: array de itens; prefixos e distribuição seguem os bindings" : fragments.length ? "word_partition: value é uma única string canônica; o motor divide as palavras entre caixas. Preserve a frase contínua e as quebras autoradas no texto, sem converter os fragmentos em array" : "continuous_text: valor inteiro na caixa; quebras autoradas consomem linhas e seguem o orçamento físico", authoredLines: targets.map(t => ({targetId:t.id, maxLines:t.maxLines, height:t.height})), optionalEmpty:!field.required} : {}),
           bindings: definition.fragment.bindings
             .filter(binding => binding.source === field.source)
             .map(binding => ({
@@ -869,6 +928,7 @@ export async function executeProposalWorkflow(
               prefix: binding.prefix,
               gap: binding.gap,
               targetIds: binding.targetIds,
+              ...(binding.hideWhenEmpty?.length ? { hideWhenEmpty: binding.hideWhenEmpty } : {}),
             })),
           capacity: {
             distribution: fragments.length
@@ -876,6 +936,7 @@ export async function executeProposalWorkflow(
               : "whole_value_per_target",
             minWords: Math.max(...targets.map(target => target.minWords), 1),
             wordsForAllFragments,
+            ...(preservesOccupancy ? { fragmentAllocation: fragments[0].allocation, occupationNote: "Títulos curtos ocupam os alvos prioritários; não aumente o texto só para preencher todas as caixas." } : {}),
             estimatedMaxChars: Number.isFinite(estimatedMaxChars)
               ? estimatedMaxChars
               : null,
@@ -888,9 +949,14 @@ export async function executeProposalWorkflow(
     }));
     const execution = executionInstructions(input);
     const affirmative = usesAffirmativeContext(input);
+    const editorialReadingPrompt = input.generationIntent?.editorial
+      ? `Leitura editorial parcial: sinais requested são pedidos, suggested são possibilidades, forbidden são proibições expressas; ausência é neutra. Não acrescente conteúdo para preencher aspectos não especificados. Definições do vocabulário congelado:\n${JSON.stringify(input.editorialCatalog?.document.intents.filter(d => input.generationIntent!.editorial!.signals.some(s => s.intentId === d.id)) ?? [])}\nSinais congelados: ${JSON.stringify(input.generationIntent.editorial)}`
+      : null;
     const userCopyPrompt = affirmative ? [
       `Contexto editorial congelado (projeto, playbook e pedido):\n${JSON.stringify(input.editorialContext ?? editorialContextV7(input, 6))}`,
-      (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9) ? `Abordagem editorial da proposta ${slot + 1}: ${input.editorialApproach ?? "Preserve a distribuição literal e as escolhas expressas da peça."}` : `Direção da proposta ${slot + 1}: ${input.selectionReason ?? "composição compatível"}. Desenvolva uma abordagem própria a partir desta direção.`,
+      (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? `Abordagem editorial da proposta ${slot + 1}: ${input.editorialApproach ?? "Preserve a distribuição literal e as escolhas expressas da peça."}` : `Direção da proposta ${slot + 1}: ${input.selectionReason ?? "composição compatível"}. Desenvolva uma abordagem própria a partir desta direção.`,
+      ...(input.narrativePlan ? [`Plano narrativo e visual congelado (execute as atribuições de conteúdo por campo):\n${JSON.stringify({ intent: input.generationIntent, plan: input.narrativePlan })}`, "Preserve a superfície e a quantidade de itens pedidos. O plano orienta a redação; IDs e justificativas não são fontes de fatos."] : []),
+      ...(editorialReadingPrompt ? [editorialReadingPrompt] : []),
       `Condições de composição dos templates reais:\n${JSON.stringify(fieldSchemaNotes)}`,
       "Entregue os campos nativos na ordem dos slides. Cada fieldId aparece uma vez, com string vazia ou lista vazia nos campos opcionais que dispensarem texto. Listas usam arrays; linhas autoradas seguem a distribuição e os limites de cada caixa.",
     ].join("\n\n") : [
@@ -913,10 +979,11 @@ export async function executeProposalWorkflow(
     ].join("\n\n");
     const copySystemPrompt = affirmative ? [
       "Você redige diretamente nas composições visuais autoradas do PostSpark. Entregue JSON no schema nativo fornecido.",
-      (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9) ? (input.reviewPolicyVersion === 9 ? copyInstructionsV9 : copyInstructionsV8) : copyInstructionsV7(6),
+      (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? ((input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10) ? (input.reviewPolicyVersion === 10 ? copyInstructionsV10 : copyInstructionsV9) : copyInstructionsV8) : copyInstructionsV7(6),
       "Os contratos textContract e bindings descrevem a distribuição real: continuous_text mantém a frase inteira; word_partition reparte um valor canônico por palavras com index/count/weights; native_list recebe arrays; linhas autoradas preservam as quebras intencionais compatíveis com a altura. Componha frases compatíveis com essa distribuição. Em campos repartidos, uma frase contínua costuma aproveitar melhor o espaço. Quebras explícitas consomem linhas no fragmento em que recaem.",
       "maxChars é uma estimativa física; maxLines e altura se aplicam a cada alvo. minWords e wordsForAllFragments descrevem ocupação, e a contribuição da página define a extensão. Campos opcionais e fragmentos dispensáveis podem permanecer vazios. Apenas occupationRequired exige ocupação. Nomes preservam sua grafia integral.",
       "Listas nativas recebem o conteúdo de cada item; o renderer aplica os prefixos autorados. designGuidance, contentRules e mediaRules especificam hierarquia e autoria. Gere mediaPrompts para os slots obrigatórios, preservando mídia e geometria contratadas.",
+      ...(input.reviewPolicyVersion === 10 ? ["Considere o sentido da ênfase visual ao redigir: onde a autoria declara um fragmento destacado, componha a frase para que esse alvo receba uma palavra ou expressão relevante à mensagem. Ocupar a caixa não basta; não transforme um conectivo incidental no foco da peça. Essa decisão cabe à redação, pois a partição tipográfica não escolhe significados."] : []),
       execution,
     ].join("\n") : [
       "Você gera copy para composições visuais já autoradas e imutáveis do PostSpark.",
@@ -926,8 +993,8 @@ export async function executeProposalWorkflow(
       "contentFragment.count é o número de caixas, NÃO um limite de palavras. minWords/wordsForAllFragments são apenas mínimos de ocupação, nunca a extensão desejada. Use o espaço disponível para frases que expliquem os fatos; não reduza cada campo a duas palavras por haver dois fragmentos. Nunca separe nomes canônicos para atingir um mínimo de palavras: acrescente palavras factuais ao redor do nome, quando a intervenção permitir, ou preserve o fragmento vazio permitido.",
       "Quando a intervenção permitir redação, use capacity.wordsForAllFragments/minWords para evitar fragmentos vazios involuntários de um campo distribuído; reformule apenas o campo dentro dos fatos fornecidos, sem inventar conteúdo nem alterar a cena. Apenas targets.occupationRequired=true/designGuidance.requiredTextTargets exigem ocupação por contrato. Os demais fragmentos, campos opcionais e linhas vazias intencionais permanecem legítimos. Preserve o sentido do trecho de ênfase conforme contentRules, não apenas a contagem de palavras. Em visual_only preserve literalmente a fonte; não amplie nem reformule texto para preencher fragmentos.",
       "bindings descrevem o formato nativo: kind/listMode/cardinality/prefix. O renderer aplica prefix a cada item da lista: retorne apenas o conteúdo do item, sem repetir esse prefix. Não suprima marcadores editoriais pertencentes à informação quando não forem prefix autorado. As mesmas regras valem na recuperação.",
-      (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? "Não invente fatos, números ou propriedades do produto; benefício inferido deve ser limitado e sustentado." : "Não invente fatos, nomes, números, benefícios ou propriedades visuais.",
-      (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? copyInstructionsV7((input.reviewExecutionConfig as import("@shared/proposalReviewV7").ReviewExecutionConfigV2).editorialGuidanceVersion ?? 1) : editorialInstructions,
+      (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? "Não invente fatos, números ou propriedades do produto; benefício inferido deve ser limitado e sustentado." : "Não invente fatos, nomes, números, benefícios ou propriedades visuais.",
+      (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? copyInstructionsV7((input.reviewExecutionConfig as import("@shared/proposalReviewV7").ReviewExecutionConfigV2).editorialGuidanceVersion ?? 1) : editorialInstructions,
       ...(narrativeContract
         ? [
             narrativeContract.instructions,
@@ -960,15 +1027,16 @@ export async function executeProposalWorkflow(
                   ? "carousel_generation"
                   : "static_generation",
               model: input.model,
-              ...((input.reviewExecutionConfig?.version === 2 || input.reviewExecutionConfig?.version === 3 || input.reviewExecutionConfig?.version === 4) && input.reviewExecutionConfig.textModel ? {pinnedModel:input.reviewExecutionConfig.textModel, disableFallback:true} : {}),
+              ...((input.reviewExecutionConfig?.version === 2 || input.reviewExecutionConfig?.version === 3 || (input.reviewExecutionConfig?.version === 4 || input.reviewExecutionConfig?.version === 5)) && input.reviewExecutionConfig.textModel ? {pinnedModel:input.reviewExecutionConfig.textModel, disableFallback:true} : {}),
               deadlineMs: input.deadlineMs,
               maxTransportAttempts: 1,
               forceTextSchema: true,
               disableStructuredRepair: true,
               maxCompletionTokens: 5000,
+              ...generationModelCallOptions(input.generationConfig),
               response_format: jsonSchemaFormat(
                 freshCopySchema,
-                (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? "proposal_copy_v3" : narrativeContract ? "proposal_copy_v2" : "proposal_copy_v1"
+                (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? "proposal_copy_v3" : narrativeContract ? "proposal_copy_v2" : "proposal_copy_v1"
               ),
               messages: [
                 { role: "system", content: copySystemPrompt },
@@ -988,15 +1056,16 @@ export async function executeProposalWorkflow(
                 ? "carousel_generation"
                 : "static_generation",
             model: input.model,
-              ...((input.reviewExecutionConfig?.version === 2 || input.reviewExecutionConfig?.version === 3 || input.reviewExecutionConfig?.version === 4) && input.reviewExecutionConfig.textModel ? {pinnedModel:input.reviewExecutionConfig.textModel, disableFallback:true} : {}),
+              ...((input.reviewExecutionConfig?.version === 2 || input.reviewExecutionConfig?.version === 3 || (input.reviewExecutionConfig?.version === 4 || input.reviewExecutionConfig?.version === 5)) && input.reviewExecutionConfig.textModel ? {pinnedModel:input.reviewExecutionConfig.textModel, disableFallback:true} : {}),
             deadlineMs: input.deadlineMs,
             maxTransportAttempts: 1,
             forceTextSchema: true,
             disableStructuredRepair: true,
             maxCompletionTokens: 5000,
+              ...generationModelCallOptions(input.generationConfig),
             response_format: jsonSchemaFormat(
               freshCopySchema,
-              (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? "proposal_copy_v3" : narrativeContract ? "proposal_copy_v2" : "proposal_copy_v1"
+              (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? "proposal_copy_v3" : narrativeContract ? "proposal_copy_v2" : "proposal_copy_v1"
             ),
             messages: [
               { role: "system", content: copySystemPrompt },
@@ -1014,7 +1083,7 @@ export async function executeProposalWorkflow(
     let copy = copySchema.parse(parsed) as CopyResponse;
     // Historical journals remain readable; a fresh paid copy must satisfy the new
     // contract. Do not change its operation key and accidentally rebill an old run.
-    if ((input.reviewPolicyVersion !== 7 && (input.reviewPolicyVersion !== 8 && input.reviewPolicyVersion !== 9)) && copyDispatched && !copy.editorialPlan)
+    if ((input.reviewPolicyVersion !== 7 && (input.reviewPolicyVersion !== 8 && (input.reviewPolicyVersion !== 9 && input.reviewPolicyVersion !== 10))) && copyDispatched && !copy.editorialPlan)
       throw new Error("editorial_plan_required");
     if (
       copyDispatched &&
@@ -1033,7 +1102,7 @@ export async function executeProposalWorkflow(
     }
     const constraintIssues = [
       ...checkBriefConstraints(copy, input),
-      ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? [] : validateEditorialPlan(copy, input)),
+      ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? [] : validateEditorialPlan(copy, input)),
     ];
     if (constraintIssues.length) {
       if(input.reviewPolicyVersion===7)for(const issue of constraintIssues)diagnostics.push({code:"content_requirement_unmet",target:issue.startsWith("requirement_unmet:")?issue.slice("requirement_unmet:".length):"literal_intervention",evidence:JSON.stringify({policyVersion:7,stage:"copy",rule:issue.startsWith("requirement_unmet:")?"typed_requirement":"literal_intervention"})});
@@ -1065,7 +1134,7 @@ export async function executeProposalWorkflow(
         })
     );
 
-    let preflight = inspectScenes(compositions, definitions, measureText);
+    let preflight = inspect(compositions);
     // Raster slots are not fulfilled yet. Their placeholder cannot prove a
     // contrast defect; the final inspection evaluates the completed surface.
     let preflightFindings = preflight.findings.filter(
@@ -1078,10 +1147,10 @@ export async function executeProposalWorkflow(
       );
       if (
         isFixable &&
-        (!recoveryUsed || priorRecoveryKeys.has("copy_recovery")) &&
+        canRecover("copy_recovery") &&
         input.executionBrief?.interventionLevel !== "visual_only"
       ) {
-        recoveryUsed = true;
+        spendRecovery("copy_recovery");
         await deps.checkpoint?.("recovering", {
           reason: "authored_text_contract_recovery",
           findings: preflightFindings,
@@ -1134,6 +1203,7 @@ export async function executeProposalWorkflow(
           }),
         })) : undefined;
         const recoveryPrompt = [
+          ...(editorialReadingPrompt ? [editorialReadingPrompt] : []),
           ...(affirmative ? [`CONTEXTO EDITORIAL EFETIVO: ${JSON.stringify(input.editorialContext ?? editorialContextV7(input,6))}`, `FRAGMENTOS RESOLVIDOS E MEDIDOS: ${JSON.stringify(resolvedFragments)}`, "Repare exclusivamente os campos autorizados, considerando o fragmento efetivamente problemático e seu orçamento de linhas/altura. Preserve os demais textos, a mídia e a geometria. Em partição por palavras componha a frase canônica conforme as caixas; em listas preserve os itens e a estrutura nativa. Conteúdo literal permanece protegido."] : []),
           "REVISÃO TÉCNICA OBRIGATÓRIA DO CONTRATO DE TEXTO AUTORADO.",
           "A inspeção constatou overflow, colisão ou fragmento declarado essencial sem texto nas seguintes caixas autoradas:",
@@ -1145,20 +1215,20 @@ export async function executeProposalWorkflow(
           "Altere efetivamente os values dos fieldIds listados nos slides indicados. Encurtar outro slide não corrige este defeito. Campos saudáveis devem permanecer idênticos; o servidor só incorpora os alvos autorizados.",
           "Reescreva APENAS os campos problemáticos. Para overflow/colisão, seja conciso sem perder fatos e respeite o limite de caracteres por palavra. Para required_text_fragment, complete ou reformule o valor canônico conforme a partição real de palavras, preenchendo os alvos essenciais; não apenas encurte. Não preencha campos opcionais sem necessidade.",
           "Preserve o sentido de citações, palavras de ênfase e destaques indicado nas contentRules: pesos distribuem palavras, mas não decidem qual trecho merece destaque. A cena, caixas e estilos permanecem imutáveis.",
-          (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? "Preserve núcleo pedido, fatos usados, condições materiais e obrigações; não amplie promessas nem altere campos saudáveis." : "Preserve estritamente todos os fatos, nomes, números e obrigações literais do briefing original. Mantenha os demais campos inalterados.",
-          (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9) ? "Pedido original: referência em editorialContext.request.prompt." : `BRIEFING ORIGINAL:\n${input.prompt}`,
-          (input.reviewPolicyVersion !== 8 && input.reviewPolicyVersion !== 9) && input.executionBrief?.rawInput
+          (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? "Preserve núcleo pedido, fatos usados, condições materiais e obrigações; não amplie promessas nem altere campos saudáveis." : "Preserve estritamente todos os fatos, nomes, números e obrigações literais do briefing original. Mantenha os demais campos inalterados.",
+          (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? "Pedido original: referência em editorialContext.request.prompt." : `BRIEFING ORIGINAL:\n${input.prompt}`,
+          (input.reviewPolicyVersion !== 8 && (input.reviewPolicyVersion !== 9 && input.reviewPolicyVersion !== 10)) && input.executionBrief?.rawInput
             ? `DADOS DE ENTRADA DO BRIEFING:\n${input.executionBrief.rawInput}`
             : null,
-          (input.reviewPolicyVersion !== 8 && input.reviewPolicyVersion !== 9) && input.executionBrief?.notes
+          (input.reviewPolicyVersion !== 8 && (input.reviewPolicyVersion !== 9 && input.reviewPolicyVersion !== 10)) && input.executionBrief?.notes
             ? `NOTAS CONTEXTUAIS:\n${input.executionBrief.notes}`
             : null,
-          ((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) && (input.reviewExecutionConfig as import("@shared/proposalReviewV7").ReviewExecutionConfigV2 | undefined)?.editorialGuidanceVersion === 5 && (input.executionBrief?.audience || input.executionBrief?.brandEssence))
+          ((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) && (input.reviewExecutionConfig as import("@shared/proposalReviewV7").ReviewExecutionConfigV2 | undefined)?.editorialGuidanceVersion === 5 && (input.executionBrief?.audience || input.executionBrief?.brandEssence))
             ? `ORIENTAÇÃO DE MARCA E PÚBLICO:\n${[input.executionBrief.audience ? `Público: ${input.executionBrief.audience}` : null, input.executionBrief.brandEssence ? `Essência: ${input.executionBrief.brandEssence}` : null].filter(Boolean).join("\n")}`
             : null,
           `TEXTO ATUAL GERADO (SUJEITO A AJUSTE):\n${JSON.stringify(copy.slides, null, 2)}`,
-          (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9) ? "Obrigações congeladas: referências no contexto editorial único." : input.reviewPolicyVersion === 7 ? `OBRIGAÇÕES CONGELADAS: ${JSON.stringify(proposalContentRequirements(input))}` : `PLANO EDITORIAL CONGELADO: preserve mensagem, fatos atribuídos e propósito de cada slide; não elimine diferenciais para encurtar.\n${JSON.stringify(copy.editorialPlan ?? null)}`,
-          (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9) ? null : `CONTEXTO FACTUAL COMPLETO:\n${input.contextContent ?? ""}\n${JSON.stringify(input.sourceReferences ?? [])}`,
+          (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? "Obrigações congeladas: referências no contexto editorial único." : input.reviewPolicyVersion === 7 ? `OBRIGAÇÕES CONGELADAS: ${JSON.stringify(proposalContentRequirements(input))}` : `PLANO EDITORIAL CONGELADO: preserve mensagem, fatos atribuídos e propósito de cada slide; não elimine diferenciais para encurtar.\n${JSON.stringify(copy.editorialPlan ?? null)}`,
+          (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? null : `CONTEXTO FACTUAL COMPLETO:\n${input.contextContent ?? ""}\n${JSON.stringify(input.sourceReferences ?? [])}`,
           `LEGENDA / CONTEXTO:\n${copy.caption}`,
           `COMPOSIÇÕES NATIVAS E LIMITES DE CARACTERES:\n${JSON.stringify(fieldSchemaNotes, null, 2)}`,
         ]
@@ -1176,12 +1246,13 @@ export async function executeProposalWorkflow(
                   ? "carousel_generation"
                   : "static_generation",
               model: input.model,
-              ...((input.reviewExecutionConfig?.version === 2 || input.reviewExecutionConfig?.version === 3 || input.reviewExecutionConfig?.version === 4) && input.reviewExecutionConfig.textModel ? {pinnedModel:input.reviewExecutionConfig.textModel, disableFallback:true} : {}),
+              ...((input.reviewExecutionConfig?.version === 2 || input.reviewExecutionConfig?.version === 3 || (input.reviewExecutionConfig?.version === 4 || input.reviewExecutionConfig?.version === 5)) && input.reviewExecutionConfig.textModel ? {pinnedModel:input.reviewExecutionConfig.textModel, disableFallback:true} : {}),
               deadlineMs: input.deadlineMs,
               maxTransportAttempts: 1,
               forceTextSchema: true,
               disableStructuredRepair: true,
               maxCompletionTokens: 5000,
+              ...generationModelCallOptions(input.generationConfig),
               response_format: jsonSchemaFormat(
                 copySchema,
                 "proposal_copy_recovery_v1"
@@ -1215,7 +1286,7 @@ export async function executeProposalWorkflow(
 
           // Preserve caption, plan and fields outside the failed authored text targets.
           const surgicalCopy: CopyResponse = {
-            ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? {} : {editorialPlan:copy.editorialPlan}),
+            ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? {} : {editorialPlan:copy.editorialPlan}),
             caption: copy.caption,
             hashtags: copy.hashtags,
             slides: copy.slides.map((origSlide, slideIdx) => {
@@ -1255,7 +1326,7 @@ export async function executeProposalWorkflow(
 
           const recoveredConstraints = [
             ...checkBriefConstraints(surgicalCopy, input),
-            ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? [] : validateEditorialPlan(surgicalCopy, input)),
+            ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? [] : validateEditorialPlan(surgicalCopy, input)),
           ];
           if (recoveredConstraints.length === 0) {
             const recoveredCompositions = definitions.map((definition, index) =>
@@ -1275,11 +1346,7 @@ export async function executeProposalWorkflow(
                 experimental: input.experimental ?? true,
               })
             );
-            const recheck = inspectScenes(
-              recoveredCompositions,
-              definitions,
-              measureText
-            );
+            const recheck = inspect(recoveredCompositions);
             const recheckFindings = recheck.findings.filter(
               f => f.rule !== "contrast"
             );
@@ -1314,7 +1381,7 @@ export async function executeProposalWorkflow(
           diagnostics: preflight.diagnostics,
           errorReason:
             "Composição contém defeito técnico comprovado antes da geração de mídia.",
-          ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? {failure:{code:"artwork_unusable" as const, stage:"copy" as const, retryable:false}} : {}),
+          ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? {failure:{code:"artwork_unusable" as const, stage:"copy" as const, retryable:false}} : {}),
           completedAt: Date.now(),
         });
       }
@@ -1569,7 +1636,7 @@ export async function executeProposalWorkflow(
     await deps.checkpoint?.("technical_check_started", {
       slideCount: compositions.length,
     });
-    let finalInspection = inspectScenes(compositions, definitions, measureText);
+    let finalInspection = inspect(compositions);
     findings.push(...finalInspection.findings);
     diagnostics.splice(0, diagnostics.length, ...finalInspection.diagnostics);
     if (findings.length) {
@@ -1582,7 +1649,7 @@ export async function executeProposalWorkflow(
         findings,
         diagnostics,
         errorReason: "Composição contém defeito técnico comprovado.",
-        ...((input.reviewPolicyVersion===7 || input.reviewPolicyVersion===9)?{failure:{code:"artwork_unusable",stage:"copy",retryable:false}}:{}),
+        ...((input.reviewPolicyVersion===7 || (input.reviewPolicyVersion===9 || input.reviewPolicyVersion===10))?{failure:{code:"artwork_unusable",stage:"copy",retryable:false}}:{}),
       });
     }
     executionStage = "review";
@@ -1590,7 +1657,7 @@ export async function executeProposalWorkflow(
       round: "initial",
       slideCount: compositions.length,
     });
-    if(input.reviewPolicyVersion===9 && deps.executeOperation) await deps.executeOperation({operationKey:"candidate",stage:"review",deadlineMs:input.deadlineMs,signal:input.signal},async()=>({version:1,proposalId:input.proposalId,copy,compositions}));
+    if((input.reviewPolicyVersion===9 || input.reviewPolicyVersion===10) && deps.executeOperation) await deps.executeOperation({operationKey:"candidate",stage:"review",deadlineMs:input.deadlineMs,signal:input.signal},async()=>({version:1,proposalId:input.proposalId,copy,compositions}));
     const initialReview = await reviewProposal(
       input,
       deps,
@@ -1602,11 +1669,10 @@ export async function executeProposalWorkflow(
     reviews.push(initialReview);
     if (
       initialReview.status === "correction_required" &&
-      ((input.reviewPolicyVersion !== 7 && (input.reviewPolicyVersion !== 8 && input.reviewPolicyVersion !== 9)) || initialReview.findings.some(f=>isBlockingReviewFinding(f)&&f.fieldId!==null)) &&
-      (!recoveryUsed ||
-        priorRecoveryKeys.has(`review_correction:${initialReview.inputHash}`))
+      ((input.reviewPolicyVersion !== 7 && (input.reviewPolicyVersion !== 8 && (input.reviewPolicyVersion !== 9 && input.reviewPolicyVersion !== 10))) || initialReview.findings.some(f=>isBlockingReviewFinding(f)&&f.fieldId!==null)) &&
+      canRecover(`review_correction:${initialReview.inputHash}`)
     ) {
-      recoveryUsed = true;
+      spendRecovery(`review_correction:${initialReview.inputHash}`);
       await deps.checkpoint?.("recovering", {
         reason: "corroborated_review_correction",
         inputHash: initialReview.inputHash,
@@ -1638,7 +1704,7 @@ export async function executeProposalWorkflow(
               ? "carousel_generation"
               : "static_generation",
           model: input.model,
-              ...((input.reviewExecutionConfig?.version === 2 || input.reviewExecutionConfig?.version === 3 || input.reviewExecutionConfig?.version === 4) && input.reviewExecutionConfig.textModel ? {pinnedModel:input.reviewExecutionConfig.textModel, disableFallback:true} : {}),
+              ...((input.reviewExecutionConfig?.version === 2 || input.reviewExecutionConfig?.version === 3 || (input.reviewExecutionConfig?.version === 4 || input.reviewExecutionConfig?.version === 5)) && input.reviewExecutionConfig.textModel ? {pinnedModel:input.reviewExecutionConfig.textModel, disableFallback:true} : {}),
           signal: input.signal,
           deadlineMs: input.deadlineMs,
           maxTransportAttempts: 1,
@@ -1646,6 +1712,7 @@ export async function executeProposalWorkflow(
           disableStructuredRepair: true,
           forceTextSchema: true,
           maxCompletionTokens: 6000,
+          ...generationModelCallOptions(input.generationConfig),
           response_format: jsonSchemaFormat(
             copySchema,
             "proposal_editorial_recovery_v1"
@@ -1656,9 +1723,9 @@ export async function executeProposalWorkflow(
               role: "user",
               content: [
                 userCopyPrompt,
-                (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? `COPY ATUAL E CAMPOS SAUDÁVEIS CONGELADOS:\n${JSON.stringify(numericCorrected)}` : `COPY ATUAL E PLANO CONGELADO:\n${JSON.stringify(numericCorrected)}`,
+                (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? `COPY ATUAL E CAMPOS SAUDÁVEIS CONGELADOS:\n${JSON.stringify(numericCorrected)}` : `COPY ATUAL E PLANO CONGELADO:\n${JSON.stringify(numericCorrected)}`,
                 `PERDA EDITORIAL IDENTIFICADA COM FONTE:\n${JSON.stringify(editorialFindings)}`,
-                (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? "Corrija somente os alvos indicados, preservando criatividade, fatos usados e condições materiais; $caption só legenda, $hashtags só os itens indicados, fieldId=null indica problema visual sem autorização para inventar texto. Não imponha fórmula narrativa, não altere campos saudáveis, mídia ou estrutura. Não elimine ressalvas para caber." : "Recupere informação e progressão somente nos campos indicados (fieldId=null permite campos do slide indicado; $caption permite somente a legenda). Cumpra o papel narrativo: capa como gancho, desenvolvimento explicativo e fechamento que resolve a ideia. Preserve fatos, ressalvas, nomes e propósito de todos os slides. Não troque explicação por slogan para caber. Não altere campos saudáveis, hashtags, prompts de mídia nem plano. Se o espaço não comportar o pedido, não elimine o diferencial para simular sucesso.",
+                (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? "Corrija somente os alvos indicados, preservando criatividade, fatos usados e condições materiais; $caption só legenda, $hashtags só os itens indicados, fieldId=null indica problema visual sem autorização para inventar texto. Não imponha fórmula narrativa, não altere campos saudáveis, mídia ou estrutura. Não elimine ressalvas para caber." : "Recupere informação e progressão somente nos campos indicados (fieldId=null permite campos do slide indicado; $caption permite somente a legenda). Cumpra o papel narrativo: capa como gancho, desenvolvimento explicativo e fechamento que resolve a ideia. Preserve fatos, ressalvas, nomes e propósito de todos os slides. Não troque explicação por slogan para caber. Não altere campos saudáveis, hashtags, prompts de mídia nem plano. Se o espaço não comportar o pedido, não elimine o diferencial para simular sucesso.",
               ].join("\n\n"),
             },
           ],
@@ -1676,7 +1743,7 @@ export async function executeProposalWorkflow(
           caption: editorialFindings.some(f => f.fieldId === "$caption")
             ? candidate.caption
             : numericCorrected.caption,
-          hashtags: (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? numericCorrected.hashtags.flatMap((tag,index)=>editorialFindings.some(f=>f.fieldId==="$hashtags"&&"itemIndex" in f&&f.itemIndex===index) ? (candidate.hashtags[index]?.trim() ? [candidate.hashtags[index]] : []) : [tag]) : numericCorrected.hashtags,
+          hashtags: (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? numericCorrected.hashtags.flatMap((tag,index)=>editorialFindings.some(f=>f.fieldId==="$hashtags"&&"itemIndex" in f&&f.itemIndex===index) ? (candidate.hashtags[index]?.trim() ? [candidate.hashtags[index]] : []) : [tag]) : numericCorrected.hashtags,
           slides: numericCorrected.slides.map((slide, slideIndex) => ({
             ...slide,
             values: slide.values.map(row =>
@@ -1707,7 +1774,7 @@ export async function executeProposalWorkflow(
       copySchema.parse(corrected);
       const constraintIssues = [
         ...checkBriefConstraints(corrected, input),
-        ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? [] : validateEditorialPlan(corrected, input)),
+        ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? [] : validateEditorialPlan(corrected, input)),
       ];
       if (constraintIssues.length)
         throw new Error("proposal_review_correction_violates_brief");
@@ -1729,7 +1796,7 @@ export async function executeProposalWorkflow(
         }),
         media: compositions[index].media,
       }));
-      finalInspection = inspectScenes(compositions, definitions, measureText);
+      finalInspection = inspect(compositions);
       if (finalInspection.findings.length) {
         return checkedDelivery({
           ...base,
@@ -1738,12 +1805,12 @@ export async function executeProposalWorkflow(
           diagnostics: finalInspection.diagnostics,
           errorReason:
             "Correção localizada não passou pela conferência técnica.",
-          ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) ? {failure:{code:"artwork_unusable" as const, stage:"review" as const, retryable:false}} : {}),
+          ...((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) ? {failure:{code:"artwork_unusable" as const, stage:"review" as const, retryable:false}} : {}),
           completedAt: Date.now(),
         });
       }
-      if (input.reviewPolicyVersion === 5 || input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9))) input = { ...input, previousReviewContext: { previous: initialReview, changedTargets: corrected.slides.flatMap((slide,slideIndex) => slide.values.filter(v => arsenalHash(v.value) !== arsenalHash(copy.slides[slideIndex].values.find(p => p.fieldId === v.fieldId)?.value)).map(v => ({slideIndex,fieldId:v.fieldId}))) } };
-      if(input.reviewPolicyVersion===7 && input.previousReviewContext) {
+      if (input.reviewPolicyVersion === 5 || input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) input = { ...input, previousReviewContext: { previous: initialReview, changedTargets: corrected.slides.flatMap((slide,slideIndex) => slide.values.filter(v => arsenalHash(v.value) !== arsenalHash(copy.slides[slideIndex].values.find(p => p.fieldId === v.fieldId)?.value)).map(v => ({slideIndex,fieldId:v.fieldId}))) } };
+      if((input.reviewPolicyVersion===7 || input.reviewPolicyVersion===10) && input.previousReviewContext) {
         if(corrected.caption!==copy.caption)input.previousReviewContext.changedTargets.push({slideIndex:0,fieldId:"$caption"});
         if(arsenalHash(corrected.hashtags)!==arsenalHash(copy.hashtags))input.previousReviewContext.changedTargets.push({slideIndex:0,fieldId:"$hashtags"});
       }
@@ -1764,7 +1831,7 @@ export async function executeProposalWorkflow(
         )
       );
     }
-    if ((input.reviewPolicyVersion === 5 || input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9))) && reviews.length === 2) {
+    if ((input.reviewPolicyVersion === 5 || input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) && reviews.length === 2) {
       const previous = reviews[0], current = reviews[1];
       for (const coverage of current.sourceCoverage ?? []) {
         const old = previous.sourceCoverage?.find(c => c.sourceQuote === coverage.sourceQuote);
@@ -1820,7 +1887,7 @@ export async function executeProposalWorkflow(
             : []),
         ],
         failure: {
-          code: (input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9))) ? reviewFailureCode(lastReview.status, lastReview.limitation) : lastReview.status === "correction_required"
+          code: (input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) ? reviewFailureCode(lastReview.status, lastReview.limitation) : lastReview.status === "correction_required"
             ? "review_content_rejected"
             : /timeout/.test(lastReview.limitation)
               ? "review_deadline_exceeded"
@@ -1898,13 +1965,13 @@ export async function executeProposalWorkflow(
         : "Erro desconhecido na execução da proposta";
     console.error(`[proposal:${proposalId}] ❌ Proposta falhou:`, reason);
     const status = proposalErrorStatus(failure);
-    const publicFailure = (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9)) && reason.startsWith("execution_brief_constraints_failed:")
+    const publicFailure = (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) && reason.startsWith("execution_brief_constraints_failed:")
       ? {code:"content_requirement_unmet" as const,stage:executionStage,retryable:false}
       : failureFromError(failure, executionStage);
-    if((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9))) {
-      const evidence=JSON.stringify({policyVersion:7,stage:executionStage,code:publicFailure.code,detailHash:arsenalHash(reason)});
+    if((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) {
+      const evidence=JSON.stringify({policyVersion:input.reviewPolicyVersion,stage:executionStage,code:publicFailure.code,detailHash:arsenalHash(reason)});
       diagnostics.push({code:publicFailure.code,target:"proposal",evidence});
-      recordGenerationEvent({stage:"proposal_failure",status:"failed",detail:publicFailure.code,data:{policyVersion:7,proposalId,stage:executionStage,detailHash:arsenalHash(reason)}});
+      recordGenerationEvent({stage:"proposal_failure",status:"failed",detail:publicFailure.code,data:{policyVersion:input.reviewPolicyVersion,proposalId,stage:executionStage,detailHash:arsenalHash(reason)}});
     }
     await deps
       .checkpoint?.("proposal_ended", { status, reason })
@@ -1917,12 +1984,12 @@ export async function executeProposalWorkflow(
           rule: "execution_safety",
           target: "proposal",
           severity: "fatal",
-          evidence: (input.reviewPolicyVersion === 5 || input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9))) ? publicFailure.code : reason,
+          evidence: (input.reviewPolicyVersion === 5 || input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) ? publicFailure.code : reason,
         },
       ],
       diagnostics,
       failure: publicFailure,
-      errorReason: (input.reviewPolicyVersion === 5 || input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || input.reviewPolicyVersion === 9))) ? publicFailure.code : reason,
+      errorReason: (input.reviewPolicyVersion === 5 || input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) ? publicFailure.code : reason,
       completedAt: Date.now(),
     });
   }

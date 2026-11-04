@@ -1,4 +1,4 @@
-import {writeLocalDiagnostic,localDiagnosticsEnabled,compactDiagnosticEvents} from "./localDiagnostics";
+import {writeLocalDiagnostic,readLocalDiagnosticRecords,localDiagnosticsEnabled,compactDiagnosticEvents} from "./localDiagnostics";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomUUID } from "node:crypto";
 import type {
@@ -53,6 +53,9 @@ export interface LlmTraceCall {
   providerId?: string;
   costSource?: "provider" | "estimate" | "unknown";
   operationKey?: string;
+  transportTimeoutMs?: number;
+  deadlineAt?: number;
+  failureKind?: "transport_timeout" | "deadline" | "provider_error";
 }
 
 export interface GenerationTrace {
@@ -68,6 +71,7 @@ export interface GenerationTrace {
   startedAt: number;
   calls: LlmTraceCall[];
   events: GenerationDebugEvent[];
+  generationStrategyVersion?: 1 | 2;
 }
 
 const storage = new AsyncLocalStorage<GenerationTrace>();
@@ -91,9 +95,39 @@ export async function loadPersistedGenerationCalls(
     .eq("id", id)
     .eq("user_uuid", ownerId)
     .maybeSingle();
-  if (result.error) throw new Error("generation_trace_metrics_read_failed");
+  const local = localDiagnosticsEnabled()
+    ? (await readLocalDiagnosticRecords(id)).filter(r => r.id === id && r.userUuid === ownerId).flatMap(r => r.calls ?? [])
+    : [];
+  if (result.error && !local.length) throw new Error("generation_trace_metrics_read_failed");
   const calls = result.data?.prompt_snapshot?.calls;
-  return Array.isArray(calls) ? calls : [];
+  const unique = new Map<string, LlmTraceCall>();
+  for (const call of [...(Array.isArray(calls) ? calls : []), ...local] as LlmTraceCall[]) {
+    if (!call.operationKey) continue;
+    unique.set(`${call.operationKey}:${call.providerId ?? call.label}:${call.attempt ?? 1}:${call.promptHash}`, call);
+  }
+  return Array.from(unique.values());
+}
+
+/** Small durable operational evidence, independent of prompt/content retention. */
+export function buildGenerationDiagnosticSummary(trace: GenerationTrace) {
+  const summary = trace.events.findLast(e => e.stage === "generation_metrics" && e.detail === "journal_summary")?.data as Record<string, unknown> | undefined;
+  const unknown = Array.isArray(summary?.unknownCostOperations) ? summary.unknownCostOperations as string[] :
+    trace.calls.filter(c => c.costSource === "unknown" || c.error && !c.providerId).map(c => c.operationKey ?? c.label);
+  return {
+    version: 1, requestedModel: trace.requestedModel, generationStrategyVersion: trace.generationStrategyVersion,
+    costComplete: unknown.length === 0, unknownCostOperations: Array.from(new Set(unknown)),
+    knownOrEstimatedCostUsd: trace.calls.reduce((n, c) => n + c.estimatedCostUsd, 0),
+    failures: trace.calls.filter(c => c.error).map(c => ({ operationKey: c.operationKey, label: c.label,
+      phase: c.operationKey?.startsWith("prepare:") ? "selection" : "execution", model: c.effectiveModel,
+      kind: c.failureKind ?? "provider_error", latencyMs: c.latencyMs,
+      transportTimeoutMs: c.transportTimeoutMs, deadlineAt: c.deadlineAt, providerId: c.providerId ?? null,
+      costSource: c.costSource ?? "unknown",
+    })),
+    preparationRequests: trace.events.filter(e => e.stage === "preparation_request").map(e => ({
+      stage: e.detail, ...Object.fromEntries(Object.entries(e.data ?? {}).filter(([k]) =>
+        ["requestHash", "model", "requestCharacters", "requestBytes", "estimatedInputTokens", "tokenCountIsEstimate", "transportTimeoutMs", "deadlineAt", "remainingMs", "maxCompletionTokens"].includes(k))),
+    })),
+  };
 }
 
 /** Update observability only. Canonical history projections/status remain owned by the store. */
@@ -104,6 +138,8 @@ export async function persistGenerationTraceMetrics(
   const result = await getDb()
     .from("generation_runs")
     .update({
+      ...(trace.generationStrategyVersion ? { requested_model: trace.requestedModel } : {}),
+      diagnostic_summary: buildGenerationDiagnosticSummary(trace),
       effective_models: Array.from(
         new Set(
           trace.calls

@@ -111,9 +111,11 @@ export function compactDiagnosticEvents(events: any[]) {
     status,
     detail,
     at,
-    ...(data?.paidEffect !== undefined
-      ? { data: { paidEffect: data.paidEffect } }
-      : {}),
+    ...(stage === "preparation_request" && data ? { data: Object.fromEntries(
+      Object.entries(data).filter(([key, value]) =>
+        ["requestHash", "model", "requestCharacters", "requestBytes", "estimatedInputTokens", "tokenCountIsEstimate", "transportTimeoutMs", "deadlineAt", "remainingMs", "maxCompletionTokens"].includes(key) &&
+        (typeof value === "string" || typeof value === "number" || typeof value === "boolean"))
+    ) } : data?.paidEffect !== undefined ? { data: { paidEffect: data.paidEffect } } : {}),
   }));
 }
 

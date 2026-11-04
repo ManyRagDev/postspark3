@@ -1,3 +1,4 @@
+import { proposalReviewRecordV10Schema } from "./proposalReviewV10";
 import { proposalReviewRecordV9Schema } from "./proposalReviewV9";
 import { proposalReviewRecordV8Schema } from "./proposalReviewV8";
 import { proposalReviewRecordV7Schema } from "./proposalReviewV7";
@@ -455,6 +456,7 @@ export const proposalReviewRecordSchema = z.union([
   proposalReviewRecordV7Schema,
   proposalReviewRecordV8Schema,
   proposalReviewRecordV9Schema,
+  proposalReviewRecordV10Schema,
 ]);
 export type ProposalReviewRecord = z.infer<typeof proposalReviewRecordSchema>;
 export function isBlockingReviewFinding(finding: ProposalReviewRecord["findings"][number]) {

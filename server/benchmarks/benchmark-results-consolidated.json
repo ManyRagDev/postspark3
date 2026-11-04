@@ -1,0 +1,732 @@
+[
+  {
+    "modelId": "gemini",
+    "modelName": "Gemini 3.8 Flash",
+    "modelSlug": "google/gemini-3.8-flash",
+    "caseId": "trafego-pago-dados",
+    "caseTitle": "Tráfego Pago & Performance",
+    "caseTheme": "Factual & Métricas",
+    "status": "success",
+    "latencyMs": 2597,
+    "promptTokens": 915,
+    "completionTokens": 548,
+    "reasoningTokens": 0,
+    "totalTokens": 1463,
+    "costUsd": 0.003015375,
+    "parsedResponse": {
+      "literalClaim": "Existem 3 princípios inegociáveis na gestão de tráfego pago baseada em dados: atribuição multi-toque, otimização por margem líquida e janela de maturação de 7 dias sem pausas.",
+      "confirmedFacts": [
+        "Princípio 1: Atribuição multi-toque em vez de último clique.",
+        "Princípio 2: Otimização orientada a margem líquida (LTV/CAC), não apenas ROAS de tela.",
+        "Princípio 3: Janela de maturação do algoritmo de 7 dias sem interrupções manuais."
+      ],
+      "unknowns": [
+        "Plataformas específicas de anúncios utilizadas (Meta, Google, TikTok).",
+        "Nível médio de investimento dos gestores ou donos de e-commerce."
+      ],
+      "allowedInferences": [
+        "Decisões baseadas apenas em último clique ou ROAS de tela podem distorcer o resultado real.",
+        "Interromper campanhas antes de 7 dias compromete o aprendizado da máquina."
+      ],
+      "semanticVariationBudget": 3,
+      "variations": [
+        {
+          "tone": "Estratégico e analítico",
+          "headline": "Tráfego com dados: 3 regras inegociáveis",
+          "body": "Esqueça o último clique e o ROAS de tela. Crescimento real exige atribuição multi-toque, foco na margem líquida via LTV/CAC e 7 dias de aprendizado intocados para o algoritmo maturar.",
+          "cta": "Salve para revisar sua operação de mídia.",
+          "assumptions": [
+            "O leitor busca maturidade operacional e métricas reais de negócio."
+          ]
+        },
+        {
+          "tone": "Pragmático e direto",
+          "headline": "Pare de queimar verba em anúncios",
+          "body": "Três pilares blindam sua gestão: use atribuição multi-toque, meça margem líquida e LTV/CAC em vez de ROAS de painel, e nunca altere campanhas antes da janela de 7 dias de aprendizado.",
+          "cta": "Aplique estes princípios na sua próxima escala.",
+          "assumptions": [
+            "O leitor é pragmático e valoriza proteção contra desperdício de verba."
+          ]
+        },
+        {
+          "tone": "Educativo e provocador",
+          "headline": "O que o ROAS de tela não conta",
+          "body": "Escalar exige fundamentos: modelo multi-toque para ver a jornada, otimização pautada por LTV/CAC e paciência técnica para respeitar 7 dias completos de maturação sem tocar na campanha.",
+          "cta": "Compartilhe com quem gerencia o tráfego da sua loja.",
+          "assumptions": [
+            "O leitor se interessa por desfazer ilusões de métricas de vaidade."
+          ]
+        }
+      ]
+    },
+    "rawText": "{\"literalClaim\":\"Existem 3 princípios inegociáveis na gestão de tráfego pago baseada em dados: atribuição multi-toque, otimização por margem líquida e janela de maturação de 7 dias sem pausas.\",\"confirmedFacts\":[\"Princípio 1: Atribuição multi-toque em vez de último clique.\",\"Princípio 2: Otimização orientada a margem líquida (LTV/CAC), não apenas ROAS de tela.\",\"Princípio 3: Janela de maturação do algoritmo de 7 dias sem interrupções manuais.\"],\"unknowns\":[\"Plataformas específicas de anúncios utilizadas (Meta, Google, TikTok).\",\"Nível médio de investimento dos gestores ou donos de e-commerce.\"],\"allowedInferences\":[\"Decisões baseadas apenas em último clique ou ROAS de tela podem distorcer o resultado real.\",\"Interromper campanhas antes de 7 dias compromete o aprendizado da máquina.\"],\"semanticVariationBudget\":3,\"variations\":[{\"tone\":\"Estratégico e analítico\",\"headline\":\"Tráfego com dados: 3 regras inegociáveis\",\"body\":\"Esqueça o último clique e o ROAS de tela. Crescimento real exige atribuição multi-toque, foco na margem líquida via LTV/CAC e 7 dias de aprendizado intocados para o algoritmo maturar.\",\"cta\":\"Salve para revisar sua operação de mídia.\",\"assumptions\":[\"O leitor busca maturidade operacional e métricas reais de negócio.\"]},{\"tone\":\"Pragmático e direto\",\"headline\":\"Pare de queimar verba em anúncios\",\"body\":\"Três pilares blindam sua gestão: use atribuição multi-toque, meça margem líquida e LTV/CAC em vez de ROAS de painel, e nunca altere campanhas antes da janela de 7 dias de aprendizado.\",\"cta\":\"Aplique estes princípios na sua próxima escala.\",\"assumptions\":[\"O leitor é pragmático e valoriza proteção contra desperdício de verba.\"]},{\"tone\":\"Educativo e provocador\",\"headline\":\"O que o ROAS de tela não conta\",\"body\":\"Escalar exige fundamentos: modelo multi-toque para ver a jornada, otimização pautada por LTV/CAC e paciência técnica para respeitar 7 dias completos de maturação sem tocar na campanha.\",\"cta\":\"Compartilhe com quem gerencia o tráfego da sua loja.\",\"assumptions\":[\"O leitor se interessa por desfazer ilusões de métricas de vaidade.\"]}]}",
+    "factMatches": [
+      {
+        "fact": "multi-toque",
+        "found": true
+      },
+      {
+        "fact": "margem líquida",
+        "found": true
+      },
+      {
+        "fact": "7 dias",
+        "found": true
+      }
+    ],
+    "factCoveragePercent": 100
+  },
+  {
+    "modelId": "gemini",
+    "modelName": "Gemini 3.8 Flash",
+    "modelSlug": "google/gemini-3.8-flash",
+    "caseId": "lideranca-comunicacao",
+    "caseTitle": "Liderança & Gestão Comportamental",
+    "caseTheme": "Narrativo & Provocativo",
+    "status": "success",
+    "latencyMs": 2045,
+    "promptTokens": 316,
+    "completionTokens": 685,
+    "reasoningTokens": 0,
+    "totalTokens": 1001,
+    "costUsd": 0.003086325,
+    "parsedResponse": {
+      "literalClaim": "Líderes experientes cometem 3 falhas básicas de comunicação: presumir alinhamento tácito, dar feedback vago e reter contexto estratégico.",
+      "confirmedFacts": [
+        "Líderes experientes cometem erros básicos de comunicação.",
+        "O primeiro erro é presumir alinhamento tácito sem validação explícita de entendimento.",
+        "O segundo erro é fornecer feedback vago em vez de observações baseadas em comportamentos objetivos.",
+        "O terceiro erro é reter contexto estratégico por receio de sobrecarregar o time."
+      ],
+      "unknowns": [
+        "Qual a taxa de frequência exata desses erros no mercado.",
+        "Quais são os impactos financeiros diretos causados por essas falhas.",
+        "Quais métodos específicos corrigem cada um desses comportamentos."
+      ],
+      "allowedInferences": [
+        "A senioridade não blinda lideranças contra vícios elementares de comunicação.",
+        "A falta de alinhamento explícito e contexto gera ruídos operacionais nas equipes."
+      ],
+      "semanticVariationBudget": 3,
+      "variations": [
+        {
+          "tone": "Provocativo e Direto",
+          "headline": "Senioridade não blinda sua comunicação",
+          "body": "Muitos diretores ainda presumem alinhamento sem validar o entendimento, dão feedbacks vagos e retêm contexto achando que protegem o time. Experiência de mercado não substitui a clareza explícita no dia a dia.",
+          "cta": "Qual dessas armadilhas você ainda nota na sua rotina de gestão?",
+          "assumptions": [
+            "Diretores e gestores valorizam provocações diretas sobre eficácia de liderança."
+          ]
+        },
+        {
+          "tone": "Analítico e Reflexivo",
+          "headline": "Três vícios que travam lideranças seniores",
+          "body": "O erro de presumir acordos tácitos, economizar contexto por zelo e emitir avaliações abstratas mina a execução. Sem clareza comportamental e validação explícita, a estratégia se perde na ponta.",
+          "cta": "Compartilhe esta reflexão com outros líderes da sua organização.",
+          "assumptions": [
+            "Líderes analíticos buscam entender as causas estruturais dos gargalos de execução."
+          ]
+        },
+        {
+          "tone": "Pragmático e Construtivo",
+          "headline": "O custo invisível dos ruídos na liderança",
+          "body": "Poupar contexto para não sobrecarregar e evitar feedbacks objetivos cria distorções graves. A verdadeira eficiência de um gestor reside em checar alinhamentos e basear retornos em fatos concretos.",
+          "cta": "Como você valida o entendimento da sua equipe atualmente?",
+          "assumptions": [
+            "Gestores preferem focar no ganho de produtividade obtido pela clareza prática."
+          ]
+        }
+      ]
+    },
+    "rawText": "{\n  \"literalClaim\": \"Líderes experientes cometem 3 falhas básicas de comunicação: presumir alinhamento tácito, dar feedback vago e reter contexto estratégico.\",\n  \"confirmedFacts\": [\n    \"Líderes experientes cometem erros básicos de comunicação.\",\n    \"O primeiro erro é presumir alinhamento tácito sem validação explícita de entendimento.\",\n    \"O segundo erro é fornecer feedback vago em vez de observações baseadas em comportamentos objetivos.\",\n    \"O terceiro erro é reter contexto estratégico por receio de sobrecarregar o time.\"\n  ],\n  \"unknowns\": [\n    \"Qual a taxa de frequência exata desses erros no mercado.\",\n    \"Quais são os impactos financeiros diretos causados por essas falhas.\",\n    \"Quais métodos específicos corrigem cada um desses comportamentos.\"\n  ],\n  \"allowedInferences\": [\n    \"A senioridade não blinda lideranças contra vícios elementares de comunicação.\",\n    \"A falta de alinhamento explícito e contexto gera ruídos operacionais nas equipes.\"\n  ],\n  \"semanticVariationBudget\": 3,\n  \"variations\": [\n    {\n      \"tone\": \"Provocativo e Direto\",\n      \"headline\": \"Senioridade não blinda sua comunicação\",\n      \"body\": \"Muitos diretores ainda presumem alinhamento sem validar o entendimento, dão feedbacks vagos e retêm contexto achando que protegem o time. Experiência de mercado não substitui a clareza explícita no dia a dia.\",\n      \"cta\": \"Qual dessas armadilhas você ainda nota na sua rotina de gestão?\",\n      \"assumptions\": [\n        \"Diretores e gestores valorizam provocações diretas sobre eficácia de liderança.\"\n      ]\n    },\n    {\n      \"tone\": \"Analítico e Reflexivo\",\n      \"headline\": \"Três vícios que travam lideranças seniores\",\n      \"body\": \"O erro de presumir acordos tácitos, economizar contexto por zelo e emitir avaliações abstratas mina a execução. Sem clareza comportamental e validação explícita, a estratégia se perde na ponta.\",\n      \"cta\": \"Compartilhe esta reflexão com outros líderes da sua organização.\",\n      \"assumptions\": [\n        \"Líderes analíticos buscam entender as causas estruturais dos gargalos de execução.\"\n      ]\n    },\n    {\n      \"tone\": \"Pragmático e Construtivo\",\n      \"headline\": \"O custo invisível dos ruídos na liderança\",\n      \"body\": \"Poupar contexto para não sobrecarregar e evitar feedbacks objetivos cria distorções graves. A verdadeira eficiência de um gestor reside em checar alinhamentos e basear retornos em fatos concretos.\",\n      \"cta\": \"Como você valida o entendimento da sua equipe atualmente?\",\n      \"assumptions\": [\n        \"Gestores preferem focar no ganho de produtividade obtido pela clareza prática.\"\n      ]\n    }\n  ]\n}",
+    "factMatches": [
+      {
+        "fact": "alinhamento",
+        "found": true
+      },
+      {
+        "fact": "feedback",
+        "found": true
+      },
+      {
+        "fact": "contexto",
+        "found": true
+      }
+    ],
+    "factCoveragePercent": 100
+  },
+  {
+    "modelId": "gemini",
+    "modelName": "Gemini 3.8 Flash",
+    "modelSlug": "google/gemini-3.8-flash",
+    "caseId": "automacao-processos-b2b",
+    "caseTitle": "Eficiência & Automação de Processos B2B",
+    "caseTheme": "Pragmático & Solução Operacional",
+    "status": "success",
+    "latencyMs": 2407,
+    "promptTokens": 309,
+    "completionTokens": 666,
+    "reasoningTokens": 0,
+    "totalTokens": 975,
+    "costUsd": 0.003002175,
+    "parsedResponse": {
+      "literalClaim": "Uma distribuidora reduziu em 40% o tempo de faturamento ao eliminar a digitação manual de pedidos recebidos por PDF e WhatsApp, integrando automação direta ao ERP em 15 dias.",
+      "confirmedFacts": [
+        "Redução de 40% no tempo de faturamento de uma distribuidora.",
+        "Eliminação da digitação manual de pedidos recebidos por PDF e WhatsApp.",
+        "Integração de automação direta ao ERP realizada em 15 dias no case."
+      ],
+      "unknowns": [
+        "Nome da distribuidora e seu porte específico.",
+        "Nome do ERP utilizado na operação.",
+        "Volume total de pedidos processados diariamente."
+      ],
+      "allowedInferences": [
+        "Digitar pedidos manualmente consome horas úteis da equipe operacional.",
+        "Processos manuais de entrada de dados costumam gerar retrabalho e gargalos."
+      ],
+      "semanticVariationBudget": 3,
+      "variations": [
+        {
+          "tone": "Estratégico e Analítico",
+          "headline": "O custo invisível da digitação manual",
+          "body": "Copiar pedidos de WhatsApp e PDF drena a produtividade da sua equipe. Em um caso real, uma distribuidora reduziu em 40% o tempo de faturamento ao integrar pedidos direto ao ERP em 15 dias. Automatize a rotina e elimine o retrabalho.",
+          "cta": "Agende um diagnóstico da sua operação agora.",
+          "assumptions": [
+            "A liderança reconhece o tempo gasto com digitação como custo operacional."
+          ]
+        },
+        {
+          "tone": "Direto e Focado em Eficiência",
+          "headline": "Faturamento 40% mais rápido na prática",
+          "body": "Sua operação ainda perde horas digitando dados de PDFs e mensagens? Uma distribuidora integrou a captura direta de pedidos ao ERP em 15 dias, cortando em 40% o tempo de faturamento. Chega de gargalos na emissão.",
+          "cta": "Descubra como automatizar a entrada de pedidos.",
+          "assumptions": [
+            "O diretor operacional busca agilidade imediata no fechamento de pedidos."
+          ]
+        },
+        {
+          "tone": "Provocativo e Orientado a Operações",
+          "headline": "Sua equipe não deveria digitar pedidos",
+          "body": "O retrabalho manual trava o faturamento sem você perceber. Conectando pedidos de WhatsApp e PDF ao ERP em 15 dias, uma distribuidora acelerou o processo em 40%. Libere sua equipe de tarefas repetitivas e ganhe escala.",
+          "cta": "Converse com nossos especialistas em automação.",
+          "assumptions": [
+            "Empresários valorizam alocar pessoas em tarefas de maior valor agregado."
+          ]
+        }
+      ]
+    },
+    "rawText": "{\n  \"literalClaim\": \"Uma distribuidora reduziu em 40% o tempo de faturamento ao eliminar a digitação manual de pedidos recebidos por PDF e WhatsApp, integrando automação direta ao ERP em 15 dias.\",\n  \"confirmedFacts\": [\n    \"Redução de 40% no tempo de faturamento de uma distribuidora.\",\n    \"Eliminação da digitação manual de pedidos recebidos por PDF e WhatsApp.\",\n    \"Integração de automação direta ao ERP realizada em 15 dias no case.\"\n  ],\n  \"unknowns\": [\n    \"Nome da distribuidora e seu porte específico.\",\n    \"Nome do ERP utilizado na operação.\",\n    \"Volume total de pedidos processados diariamente.\"\n  ],\n  \"allowedInferences\": [\n    \"Digitar pedidos manualmente consome horas úteis da equipe operacional.\",\n    \"Processos manuais de entrada de dados costumam gerar retrabalho e gargalos.\"\n  ],\n  \"semanticVariationBudget\": 3,\n  \"variations\": [\n    {\n      \"tone\": \"Estratégico e Analítico\",\n      \"headline\": \"O custo invisível da digitação manual\",\n      \"body\": \"Copiar pedidos de WhatsApp e PDF drena a produtividade da sua equipe. Em um caso real, uma distribuidora reduziu em 40% o tempo de faturamento ao integrar pedidos direto ao ERP em 15 dias. Automatize a rotina e elimine o retrabalho.\",\n      \"cta\": \"Agende um diagnóstico da sua operação agora.\",\n      \"assumptions\": [\n        \"A liderança reconhece o tempo gasto com digitação como custo operacional.\"\n      ]\n    },\n    {\n      \"tone\": \"Direto e Focado em Eficiência\",\n      \"headline\": \"Faturamento 40% mais rápido na prática\",\n      \"body\": \"Sua operação ainda perde horas digitando dados de PDFs e mensagens? Uma distribuidora integrou a captura direta de pedidos ao ERP em 15 dias, cortando em 40% o tempo de faturamento. Chega de gargalos na emissão.\",\n      \"cta\": \"Descubra como automatizar a entrada de pedidos.\",\n      \"assumptions\": [\n        \"O diretor operacional busca agilidade imediata no fechamento de pedidos.\"\n      ]\n    },\n    {\n      \"tone\": \"Provocativo e Orientado a Operações\",\n      \"headline\": \"Sua equipe não deveria digitar pedidos\",\n      \"body\": \"O retrabalho manual trava o faturamento sem você perceber. Conectando pedidos de WhatsApp e PDF ao ERP em 15 dias, uma distribuidora acelerou o processo em 40%. Libere sua equipe de tarefas repetitivas e ganhe escala.\",\n      \"cta\": \"Converse com nossos especialistas em automação.\",\n      \"assumptions\": [\n        \"Empresários valorizam alocar pessoas em tarefas de maior valor agregado.\"\n      ]\n    }\n  ]\n}",
+    "factMatches": [
+      {
+        "fact": "40%",
+        "found": true
+      },
+      {
+        "fact": "PDF",
+        "found": true
+      },
+      {
+        "fact": "WhatsApp",
+        "found": true
+      },
+      {
+        "fact": "15 dias",
+        "found": true
+      }
+    ],
+    "factCoveragePercent": 100
+  },
+  {
+    "modelId": "claude",
+    "modelName": "Claude Haiku 5.5",
+    "modelSlug": "anthropic/claude-haiku-5.5",
+    "caseId": "trafego-pago-dados",
+    "caseTitle": "Tráfego Pago & Performance",
+    "caseTheme": "Factual & Métricas",
+    "status": "success",
+    "latencyMs": 3194,
+    "promptTokens": 1131,
+    "completionTokens": 1124,
+    "reasoningTokens": 0,
+    "totalTokens": 2255,
+    "costUsd": 0.0006751,
+    "parsedResponse": {
+      "literalClaim": "Três princípios inegociáveis da gestão de tráfego pago baseada em dados: atribuição multi-toque em vez de último clique, otimização por margem líquida (LTV/CAC) em vez de ROAS de tela, e janela de maturação de 7 dias sem interrupções manuais.",
+      "confirmedFacts": [
+        "Os 3 princípios são inegociáveis na gestão de tráfego pago baseada em dados.",
+        "Princípio 1: atribuição multi-toque em vez de último clique.",
+        "Princípio 2: otimização orientada a margem líquida (LTV/CAC), não apenas ROAS de tela.",
+        "Princípio 3: janela de maturação do algoritmo de 7 dias sem interrupções manuais.",
+        "O público-alvo do post são gestores de tráfego e donos de e-commerce."
+      ],
+      "unknowns": [
+        "Resultados numéricos de casos reais ou percentuais de melhoria.",
+        "Plataformas de mídia específicas citadas.",
+        "Valores de LTV, CAC ou metas de margem de qualquer marca."
+      ],
+      "allowedInferences": [
+        "Decisões baseadas em último clique tendem a superestimar canais de fundo de funil.",
+        "Pausar campanhas durante a maturação pode reiniciar o aprendizado do algoritmo.",
+        "Avaliar campanhas por ROAS isolado pode ignorar o lucro real após custos."
+      ],
+      "semanticVariationBudget": 2,
+      "variations": [
+        {
+          "tone": "Técnico e direto",
+          "headline": "Três princípios para decisões de tráfego que dão lucro",
+          "body": "Atribuição multi-toque mostra a jornada real do cliente. Otimizar por LTV/CAC revela a margem líquida, não só o ROAS de tela. E dar 7 dias de maturação sem interrupções deixa o algoritmo aprender de verdade.",
+          "cta": "Qual destes três princípios sua operação ainda não aplica?",
+          "assumptions": [
+            "Público composto por gestores de tráfego e donos de e-commerce.",
+            "Tom profissional sem promessas de resultado numérico."
+          ]
+        },
+        {
+          "tone": "Provocativo e estratégico",
+          "headline": "Seu ROAS pode estar mentindo para você",
+          "body": "Último clique esconde quem realmente influenciou a venda. ROAS de tela ignora o que sobra no caixa. E mexer na campanha antes de 7 dias zera o aprendizado do algoritmo. Três princípios inegociáveis.",
+          "cta": "Revise hoje um destes três pontos na sua conta.",
+          "assumptions": [
+            "Afirmação de que ROAS pode enganar é inferência razoável dos princípios informados.",
+            "Mantém-se a janela de 7 dias como dado confirmado."
+          ]
+        },
+        {
+          "tone": "Didático e acolhedor",
+          "headline": "Como gerir tráfego pago com base em dados sólidos",
+          "body": "Primeiro, reconheça todos os toques que levam à compra, não só o último. Depois, meça a margem líquida com LTV/CAC. Por fim, respeite 7 dias de maturação sem interferir manualmente na campanha.",
+          "cta": "Salve este post e aplique o checklist na próxima revisão.",
+          "assumptions": [
+            "Checklist mencionado na CTA é ação sugerida, não fato do briefing.",
+            "Linguagem voltada a gestores em início de carreira e donos de loja."
+          ]
+        }
+      ]
+    },
+    "rawText": "{\"literalClaim\":\"Três princípios inegociáveis da gestão de tráfego pago baseada em dados: atribuição multi-toque em vez de último clique, otimização por margem líquida (LTV/CAC) em vez de ROAS de tela, e janela de maturação de 7 dias sem interrupções manuais.\",\"confirmedFacts\":[\"Os 3 princípios são inegociáveis na gestão de tráfego pago baseada em dados.\",\"Princípio 1: atribuição multi-toque em vez de último clique.\",\"Princípio 2: otimização orientada a margem líquida (LTV/CAC), não apenas ROAS de tela.\",\"Princípio 3: janela de maturação do algoritmo de 7 dias sem interrupções manuais.\",\"O público-alvo do post são gestores de tráfego e donos de e-commerce.\"],\"unknowns\":[\"Resultados numéricos de casos reais ou percentuais de melhoria.\",\"Plataformas de mídia específicas citadas.\",\"Valores de LTV, CAC ou metas de margem de qualquer marca.\"],\"allowedInferences\":[\"Decisões baseadas em último clique tendem a superestimar canais de fundo de funil.\",\"Pausar campanhas durante a maturação pode reiniciar o aprendizado do algoritmo.\",\"Avaliar campanhas por ROAS isolado pode ignorar o lucro real após custos.\"],\"semanticVariationBudget\":2,\"variations\":[{\"tone\":\"Técnico e direto\",\"headline\":\"Três princípios para decisões de tráfego que dão lucro\",\"body\":\"Atribuição multi-toque mostra a jornada real do cliente. Otimizar por LTV/CAC revela a margem líquida, não só o ROAS de tela. E dar 7 dias de maturação sem interrupções deixa o algoritmo aprender de verdade.\",\"cta\":\"Qual destes três princípios sua operação ainda não aplica?\",\"assumptions\":[\"Público composto por gestores de tráfego e donos de e-commerce.\",\"Tom profissional sem promessas de resultado numérico.\"]},{\"tone\":\"Provocativo e estratégico\",\"headline\":\"Seu ROAS pode estar mentindo para você\",\"body\":\"Último clique esconde quem realmente influenciou a venda. ROAS de tela ignora o que sobra no caixa. E mexer na campanha antes de 7 dias zera o aprendizado do algoritmo. Três princípios inegociáveis.\",\"cta\":\"Revise hoje um destes três pontos na sua conta.\",\"assumptions\":[\"Afirmação de que ROAS pode enganar é inferência razoável dos princípios informados.\",\"Mantém-se a janela de 7 dias como dado confirmado.\"]},{\"tone\":\"Didático e acolhedor\",\"headline\":\"Como gerir tráfego pago com base em dados sólidos\",\"body\":\"Primeiro, reconheça todos os toques que levam à compra, não só o último. Depois, meça a margem líquida com LTV/CAC. Por fim, respeite 7 dias de maturação sem interferir manualmente na campanha.\",\"cta\":\"Salve este post e aplique o checklist na próxima revisão.\",\"assumptions\":[\"Checklist mencionado na CTA é ação sugerida, não fato do briefing.\",\"Linguagem voltada a gestores em início de carreira e donos de loja.\"]}]}",
+    "factMatches": [
+      {
+        "fact": "multi-toque",
+        "found": true
+      },
+      {
+        "fact": "margem líquida",
+        "found": true
+      },
+      {
+        "fact": "7 dias",
+        "found": true
+      }
+    ],
+    "factCoveragePercent": 100
+  },
+  {
+    "modelId": "claude",
+    "modelName": "Claude Haiku 5.5",
+    "modelSlug": "anthropic/claude-haiku-5.5",
+    "caseId": "lideranca-comunicacao",
+    "caseTitle": "Liderança & Gestão Comportamental",
+    "caseTheme": "Narrativo & Provocativo",
+    "status": "success",
+    "latencyMs": 2512,
+    "promptTokens": 1119,
+    "completionTokens": 1018,
+    "reasoningTokens": 0,
+    "totalTokens": 2137,
+    "costUsd": 0.0006209,
+    "parsedResponse": {
+      "literalClaim": "Líderes experientes continuam cometendo erros básicos de comunicação, como presumir alinhamento sem validação, dar feedback vago e reter contexto estratégico por receio de sobrecarregar o time.",
+      "confirmedFacts": [
+        "Líderes experientes continuam cometendo erros básicos de comunicação.",
+        "Erro 1: presumir alinhamento tácito sem validação explícita de entendimento.",
+        "Erro 2: fornecer feedback vago em vez de observações baseadas em comportamentos objetivos.",
+        "Erro 3: reter contexto estratégico por receio de sobrecarregar o time.",
+        "O público-alvo são diretores e gerentes."
+      ],
+      "unknowns": [
+        "Dados quantitativos sobre a frequência desses erros.",
+        "Exemplos reais ou casos de empresas específicas.",
+        "Soluções ou práticas recomendadas além da identificação dos erros."
+      ],
+      "allowedInferences": [
+        "Validar entendimento explicitamente reduz ruídos na comunicação.",
+        "Feedback baseado em comportamentos observáveis é mais útil que feedback vago.",
+        "Compartilhar contexto estratégico tende a engajar o time, sem afirmar dados específicos."
+      ],
+      "semanticVariationBudget": 2,
+      "variations": [
+        {
+          "tone": "Reflexivo e provocador",
+          "headline": "Você tem certeza que foi entendido?",
+          "body": "Líderes experientes ainda caem em armadilhas básicas: presumem alinhamento sem checar entendimento, dão feedback vago e retêm contexto estratégico por medo de sobrecarregar o time. Qual desses erros você reconhece na sua rotina?",
+          "cta": "Reflita e compartilhe qual erro você mais precisou corrigir.",
+          "assumptions": [
+            "O público reconhece a experiência de liderança como referência.",
+            "A provocação é intencional e não acusatória."
+          ]
+        },
+        {
+          "tone": "Direto e prático",
+          "headline": "Três erros que líderes experientes repetem",
+          "body": "Presumir alinhamento sem validação, dar feedback sem comportamentos objetivos e esconder contexto estratégico do time. Pequenos hábitos que custam caro na comunicação. Revise sua última reunião com essas três lentes.",
+          "cta": "Salve este post e aplique a revisão na sua próxima reunião.",
+          "assumptions": [
+            "O leitor busca ação imediata.",
+            "Os três erros são apresentados como hábitos a revisar."
+          ]
+        },
+        {
+          "tone": "Inspirador e estratégico",
+          "headline": "Liderar bem começa por comunicar melhor",
+          "body": "Mesmo com experiência, líderes podem presumir que todos entenderam, oferecer feedback genérico e reter contexto estratégico por receio de sobrecarregar. Validar, observar com precisão e compartilhar o porquê fortalecem o time.",
+          "cta": "Comente como você garante que sua equipe entendeu a estratégia.",
+          "assumptions": [
+            "O tom inspiracional combina com o público de gestores.",
+            "Compartilhar o porquê é apresentado como prática valiosa."
+          ]
+        }
+      ]
+    },
+    "rawText": "{\"literalClaim\":\"Líderes experientes continuam cometendo erros básicos de comunicação, como presumir alinhamento sem validação, dar feedback vago e reter contexto estratégico por receio de sobrecarregar o time.\",\"confirmedFacts\":[\"Líderes experientes continuam cometendo erros básicos de comunicação.\",\"Erro 1: presumir alinhamento tácito sem validação explícita de entendimento.\",\"Erro 2: fornecer feedback vago em vez de observações baseadas em comportamentos objetivos.\",\"Erro 3: reter contexto estratégico por receio de sobrecarregar o time.\",\"O público-alvo são diretores e gerentes.\"],\"unknowns\":[\"Dados quantitativos sobre a frequência desses erros.\",\"Exemplos reais ou casos de empresas específicas.\",\"Soluções ou práticas recomendadas além da identificação dos erros.\"],\"allowedInferences\":[\"Validar entendimento explicitamente reduz ruídos na comunicação.\",\"Feedback baseado em comportamentos observáveis é mais útil que feedback vago.\",\"Compartilhar contexto estratégico tende a engajar o time, sem afirmar dados específicos.\"],\"semanticVariationBudget\":2,\"variations\":[{\"tone\":\"Reflexivo e provocador\",\"headline\":\"Você tem certeza que foi entendido?\",\"body\":\"Líderes experientes ainda caem em armadilhas básicas: presumem alinhamento sem checar entendimento, dão feedback vago e retêm contexto estratégico por medo de sobrecarregar o time. Qual desses erros você reconhece na sua rotina?\",\"cta\":\"Reflita e compartilhe qual erro você mais precisou corrigir.\",\"assumptions\":[\"O público reconhece a experiência de liderança como referência.\",\"A provocação é intencional e não acusatória.\"]},{\"tone\":\"Direto e prático\",\"headline\":\"Três erros que líderes experientes repetem\",\"body\":\"Presumir alinhamento sem validação, dar feedback sem comportamentos objetivos e esconder contexto estratégico do time. Pequenos hábitos que custam caro na comunicação. Revise sua última reunião com essas três lentes.\",\"cta\":\"Salve este post e aplique a revisão na sua próxima reunião.\",\"assumptions\":[\"O leitor busca ação imediata.\",\"Os três erros são apresentados como hábitos a revisar.\"]},{\"tone\":\"Inspirador e estratégico\",\"headline\":\"Liderar bem começa por comunicar melhor\",\"body\":\"Mesmo com experiência, líderes podem presumir que todos entenderam, oferecer feedback genérico e reter contexto estratégico por receio de sobrecarregar. Validar, observar com precisão e compartilhar o porquê fortalecem o time.\",\"cta\":\"Comente como você garante que sua equipe entendeu a estratégia.\",\"assumptions\":[\"O tom inspiracional combina com o público de gestores.\",\"Compartilhar o porquê é apresentado como prática valiosa.\"]}]}",
+    "factMatches": [
+      {
+        "fact": "alinhamento",
+        "found": true
+      },
+      {
+        "fact": "feedback",
+        "found": true
+      },
+      {
+        "fact": "contexto",
+        "found": true
+      }
+    ],
+    "factCoveragePercent": 100
+  },
+  {
+    "modelId": "claude",
+    "modelName": "Claude Haiku 5.5",
+    "modelSlug": "anthropic/claude-haiku-5.5",
+    "caseId": "automacao-processos-b2b",
+    "caseTitle": "Eficiência & Automação de Processos B2B",
+    "caseTheme": "Pragmático & Solução Operacional",
+    "status": "success",
+    "latencyMs": 1380,
+    "promptTokens": 1110,
+    "completionTokens": 954,
+    "reasoningTokens": 0,
+    "totalTokens": 2064,
+    "costUsd": 0.000588,
+    "parsedResponse": {
+      "literalClaim": "Uma distribuidora reduziu em 40% o tempo de faturamento ao eliminar a digitação manual de pedidos recebidos por PDF e WhatsApp, integrando automação direta ao ERP em 15 dias.",
+      "confirmedFacts": [
+        "Uma distribuidora reduziu em 40% o tempo de faturamento.",
+        "A redução veio da eliminação da digitação manual de pedidos.",
+        "Os pedidos chegavam por PDF e WhatsApp.",
+        "A automação foi integrada diretamente ao ERP em 15 dias."
+      ],
+      "unknowns": [
+        "Nome da distribuidora.",
+        "Volume de pedidos processados por dia.",
+        "Custo exato do retrabalho em reais.",
+        "Número de colaboradores envolvidos antes e depois."
+      ],
+      "allowedInferences": [
+        "Digitação manual de pedidos gera retrabalho e tempo perdido.",
+        "Pedidos em PDF e WhatsApp exigem leitura e lançamento manual.",
+        "Integração direta ao ERP reduz etapas intermediárias."
+      ],
+      "semanticVariationBudget": 3,
+      "variations": [
+        {
+          "tone": "analítico e direto",
+          "headline": "Quanto tempo some na digitação de pedidos?",
+          "body": "Pedidos chegando por PDF e WhatsApp viram horas de lançamento manual. Uma distribuidora cortou 40% do tempo de faturamento ao integrar a automação direto ao ERP, em 15 dias.",
+          "cta": "Veja como mapear esse retrabalho na sua operação.",
+          "assumptions": [
+            "O leitor atua em operações ou diretoria financeira.",
+            "O tempo perdido é invisível nos relatórios atuais."
+          ]
+        },
+        {
+          "tone": "provocativo e executivo",
+          "headline": "Seu time ainda digita pedido à mão?",
+          "body": "Cada pedido copiado de PDF ou WhatsApp é uma chance de erro e atraso. Uma distribuidora eliminou essa etapa, integrou ao ERP em 15 dias e reduziu em 40% o tempo de faturamento.",
+          "cta": "Descubra onde seu faturamento está travando.",
+          "assumptions": [
+            "O leitor reconhece a digitação manual como parte da rotina.",
+            "Erros de lançamento são uma preocupação para a diretoria."
+          ]
+        },
+        {
+          "tone": "reflexivo e consultivo",
+          "headline": "O custo oculto do retrabalho operacional",
+          "body": "Horas perdidas com lançamentos repetidos raramente aparecem no fechamento. Ao automatizar a entrada de pedidos direto no ERP, uma distribuidora reduziu em 40% seu tempo de faturamento.",
+          "cta": "Converse com nosso time sobre o seu cenário.",
+          "assumptions": [
+            "O leitor busca eficiência sem depender de promessas genéricas.",
+            "O case é o principal argumento da mensagem."
+          ]
+        }
+      ]
+    },
+    "rawText": "{\"literalClaim\":\"Uma distribuidora reduziu em 40% o tempo de faturamento ao eliminar a digitação manual de pedidos recebidos por PDF e WhatsApp, integrando automação direta ao ERP em 15 dias.\",\"confirmedFacts\":[\"Uma distribuidora reduziu em 40% o tempo de faturamento.\",\"A redução veio da eliminação da digitação manual de pedidos.\",\"Os pedidos chegavam por PDF e WhatsApp.\",\"A automação foi integrada diretamente ao ERP em 15 dias.\"],\"unknowns\":[\"Nome da distribuidora.\",\"Volume de pedidos processados por dia.\",\"Custo exato do retrabalho em reais.\",\"Número de colaboradores envolvidos antes e depois.\"],\"allowedInferences\":[\"Digitação manual de pedidos gera retrabalho e tempo perdido.\",\"Pedidos em PDF e WhatsApp exigem leitura e lançamento manual.\",\"Integração direta ao ERP reduz etapas intermediárias.\"],\"semanticVariationBudget\":3,\"variations\":[{\"tone\":\"analítico e direto\",\"headline\":\"Quanto tempo some na digitação de pedidos?\",\"body\":\"Pedidos chegando por PDF e WhatsApp viram horas de lançamento manual. Uma distribuidora cortou 40% do tempo de faturamento ao integrar a automação direto ao ERP, em 15 dias.\",\"cta\":\"Veja como mapear esse retrabalho na sua operação.\",\"assumptions\":[\"O leitor atua em operações ou diretoria financeira.\",\"O tempo perdido é invisível nos relatórios atuais.\"]},{\"tone\":\"provocativo e executivo\",\"headline\":\"Seu time ainda digita pedido à mão?\",\"body\":\"Cada pedido copiado de PDF ou WhatsApp é uma chance de erro e atraso. Uma distribuidora eliminou essa etapa, integrou ao ERP em 15 dias e reduziu em 40% o tempo de faturamento.\",\"cta\":\"Descubra onde seu faturamento está travando.\",\"assumptions\":[\"O leitor reconhece a digitação manual como parte da rotina.\",\"Erros de lançamento são uma preocupação para a diretoria.\"]},{\"tone\":\"reflexivo e consultivo\",\"headline\":\"O custo oculto do retrabalho operacional\",\"body\":\"Horas perdidas com lançamentos repetidos raramente aparecem no fechamento. Ao automatizar a entrada de pedidos direto no ERP, uma distribuidora reduziu em 40% seu tempo de faturamento.\",\"cta\":\"Converse com nosso time sobre o seu cenário.\",\"assumptions\":[\"O leitor busca eficiência sem depender de promessas genéricas.\",\"O case é o principal argumento da mensagem.\"]}]}",
+    "factMatches": [
+      {
+        "fact": "40%",
+        "found": true
+      },
+      {
+        "fact": "PDF",
+        "found": true
+      },
+      {
+        "fact": "WhatsApp",
+        "found": true
+      },
+      {
+        "fact": "15 dias",
+        "found": true
+      }
+    ],
+    "factCoveragePercent": 100
+  },
+  {
+    "modelId": "deepseek",
+    "modelName": "DeepSeek V4.1 Flash",
+    "modelSlug": "deepseek/deepseek-v4.1-flash",
+    "caseId": "trafego-pago-dados",
+    "caseTitle": "Tráfego Pago & Performance",
+    "caseTheme": "Factual & Métricas",
+    "status": "success",
+    "latencyMs": 716,
+    "promptTokens": 344,
+    "completionTokens": 699,
+    "reasoningTokens": 0,
+    "totalTokens": 1043,
+    "costUsd": 0.00036498,
+    "parsedResponse": {
+      "literalClaim": "Os 3 princípios inegociáveis da gestão de tráfego pago baseada em dados: 1. Atribuição multi-toque em vez de último clique; 2. Otimização orientada a margem líquida (LTV/CAC), não apenas ROAS de tela; 3. Janela de maturação de aprendizado do algoritmo de 7 dias sem interrupções manuais.",
+      "confirmedFacts": [
+        "Atribuição multi-toque em vez de último clique.",
+        "Otimização orientada a margem líquida (LTV/CAC), não apenas ROAS de tela.",
+        "Janela de maturação de aprendizado do algoritmo de 7 dias sem interrupções manuais."
+      ],
+      "unknowns": [],
+      "allowedInferences": [
+        "Gestores de tráfego e donos de e-commerce são o público-alvo.",
+        "O conteúdo é um post para redes sociais."
+      ],
+      "semanticVariationBudget": 3,
+      "variations": [
+        {
+          "tone": "direto e autoritário",
+          "headline": "Tráfego pago: 3 princípios inegociáveis",
+          "body": "1. Atribuição multi-toque em vez de último clique. 2. Otimize margem líquida (LTV/CAC), não ROAS de tela. 3. Respeite a janela de 7 dias de aprendizado do algoritmo sem interrupções manuais. Gestão baseada em dados exige método, não achismo.",
+          "cta": "Compartilhe com seu gestor de tráfego.",
+          "assumptions": []
+        },
+        {
+          "tone": "educativo e estratégico",
+          "headline": "Os 3 pilares da gestão de tráfego orientada a dados",
+          "body": "Para gestores de tráfego e donos de e-commerce: 1. Atribuição multi-toque substitui o último clique. 2. Otimização por margem líquida (LTV/CAC) supera ROAS de tela. 3. Janela de 7 dias de aprendizado do algoritmo sem interrupções manuais. Aplique e veja a diferença.",
+          "cta": "Salve este post para consultar depois.",
+          "assumptions": []
+        },
+        {
+          "tone": "provocativo e focado em resultados",
+          "headline": "ROAS de tela não paga contas. Margem líquida sim.",
+          "body": "Se você ainda usa último clique, ROAS de tela e interrompe o algoritmo antes de 7 dias, está queimando dinheiro. Os 3 princípios inegociáveis: atribuição multi-toque, otimização por LTV/CAC e janela de maturação de 7 dias sem interrupções manuais.",
+          "cta": "Marque um gestor de tráfego que precisa ler isso.",
+          "assumptions": []
+        }
+      ]
+    },
+    "rawText": "{\n  \"literalClaim\": \"Os 3 princípios inegociáveis da gestão de tráfego pago baseada em dados: 1. Atribuição multi-toque em vez de último clique; 2. Otimização orientada a margem líquida (LTV/CAC), não apenas ROAS de tela; 3. Janela de maturação de aprendizado do algoritmo de 7 dias sem interrupções manuais.\",\n  \"confirmedFacts\": [\n    \"Atribuição multi-toque em vez de último clique.\",\n    \"Otimização orientada a margem líquida (LTV/CAC), não apenas ROAS de tela.\",\n    \"Janela de maturação de aprendizado do algoritmo de 7 dias sem interrupções manuais.\"\n  ],\n  \"unknowns\": [],\n  \"allowedInferences\": [\n    \"Gestores de tráfego e donos de e-commerce são o público-alvo.\",\n    \"O conteúdo é um post para redes sociais.\"\n  ],\n  \"semanticVariationBudget\": 3,\n  \"variations\": [\n    {\n      \"tone\": \"direto e autoritário\",\n      \"headline\": \"Tráfego pago: 3 princípios inegociáveis\",\n      \"body\": \"1. Atribuição multi-toque em vez de último clique. 2. Otimize margem líquida (LTV/CAC), não ROAS de tela. 3. Respeite a janela de 7 dias de aprendizado do algoritmo sem interrupções manuais. Gestão baseada em dados exige método, não achismo.\",\n      \"cta\": \"Compartilhe com seu gestor de tráfego.\"\n    ,\n      \"assumptions\": []\n    },\n    {\n      \"tone\": \"educativo e estratégico\",\n      \"headline\": \"Os 3 pilares da gestão de tráfego orientada a dados\",\n      \"body\": \"Para gestores de tráfego e donos de e-commerce: 1. Atribuição multi-toque substitui o último clique. 2. Otimização por margem líquida (LTV/CAC) supera ROAS de tela. 3. Janela de 7 dias de aprendizado do algoritmo sem interrupções manuais. Aplique e veja a diferença.\",\n      \"cta\": \"Salve este post para consultar depois.\"\n    ,\n      \"assumptions\": []\n    },\n    {\n      \"tone\": \"provocativo e focado em resultados\",\n      \"headline\": \"ROAS de tela não paga contas. Margem líquida sim.\",\n      \"body\": \"Se você ainda usa último clique, ROAS de tela e interrompe o algoritmo antes de 7 dias, está queimando dinheiro. Os 3 princípios inegociáveis: atribuição multi-toque, otimização por LTV/CAC e janela de maturação de 7 dias sem interrupções manuais.\",\n      \"cta\": \"Marque um gestor de tráfego que precisa ler isso.\"\n    ,\n      \"assumptions\": []\n    }\n  ]\n}",
+    "factMatches": [
+      {
+        "fact": "multi-toque",
+        "found": true
+      },
+      {
+        "fact": "margem líquida",
+        "found": true
+      },
+      {
+        "fact": "7 dias",
+        "found": true
+      }
+    ],
+    "factCoveragePercent": 100
+  },
+  {
+    "modelId": "deepseek",
+    "modelName": "DeepSeek V4.1 Flash",
+    "modelSlug": "deepseek/deepseek-v4.1-flash",
+    "caseId": "lideranca-comunicacao",
+    "caseTitle": "Liderança & Gestão Comportamental",
+    "caseTheme": "Narrativo & Provocativo",
+    "status": "success",
+    "latencyMs": 438,
+    "promptTokens": 331,
+    "completionTokens": 723,
+    "reasoningTokens": 0,
+    "totalTokens": 1054,
+    "costUsd": 0.000376395,
+    "parsedResponse": {
+      "literalClaim": "Erros básicos de comunicação cometidos por líderes experientes",
+      "confirmedFacts": [
+        "Presumir alinhamento tácito sem validação explícita de entendimento.",
+        "Fornecer feedback vago em vez de observações baseadas em comportamentos objetivos.",
+        "Reter contexto estratégico por receio de sobrecarregar o time."
+      ],
+      "unknowns": [
+        "Frequência exata dos erros",
+        "Impacto mensurável nos resultados",
+        "Setores ou cargos específicos afetados"
+      ],
+      "allowedInferences": [
+        "Líderes experientes podem ter pontos cegos de comunicação",
+        "A falta de clareza pode gerar desalinhamento e desmotivação",
+        "O medo de sobrecarregar pode levar à retenção de informações cruciais"
+      ],
+      "semanticVariationBudget": 3,
+      "variations": [
+        {
+          "tone": "reflexivo e provocador",
+          "headline": "Líderes experientes, erros básicos: por quê?",
+          "body": "Você presume alinhamento sem validar? Dá feedback vago? Retém contexto por medo de sobrecarregar? Esses erros básicos persistem em líderes experientes. A zona de conforto da experiência pode cegar. Reflita: seu time realmente entende o que você acha que comunicou?",
+          "cta": "Compartilhe sua experiência nos comentários.",
+          "assumptions": [
+            "Líderes experientes podem ter pontos cegos de comunicação"
+          ]
+        },
+        {
+          "tone": "direto e desafiador",
+          "headline": "3 erros que líderes experientes insistem em cometer",
+          "body": "1. Presumir alinhamento sem validar entendimento. 2. Feedback vago em vez de comportamentos objetivos. 3. Reter contexto estratégico por receio de sobrecarregar. Se você se identifica, seu time sente. A experiência não elimina a necessidade de comunicação clara. Mude hoje.",
+          "cta": "Qual desses erros você mais vê? Comente.",
+          "assumptions": [
+            "A falta de clareza pode gerar desalinhamento e desmotivação"
+          ]
+        },
+        {
+          "tone": "empático e analítico",
+          "headline": "Por que líderes experientes falham na comunicação?",
+          "body": "A experiência traz confiança, mas também pontos cegos: presumir alinhamento sem validar, dar feedback vago, reter contexto por medo de sobrecarregar. Esses erros básicos minam a eficácia. Reconheça e ajuste. A comunicação clara é uma prática contínua, não um dom.",
+          "cta": "Reflita e compartilhe este post com sua equipe.",
+          "assumptions": [
+            "O medo de sobrecarregar pode levar à retenção de informações cruciais"
+          ]
+        }
+      ]
+    },
+    "rawText": "{\n  \"literalClaim\": \"Erros básicos de comunicação cometidos por líderes experientes\",\n  \"confirmedFacts\": [\n    \"Presumir alinhamento tácito sem validação explícita de entendimento.\",\n    \"Fornecer feedback vago em vez de observações baseadas em comportamentos objetivos.\",\n    \"Reter contexto estratégico por receio de sobrecarregar o time.\"\n  ],\n  \"unknowns\": [\n    \"Frequência exata dos erros\",\n    \"Impacto mensurável nos resultados\",\n    \"Setores ou cargos específicos afetados\"\n  ],\n  \"allowedInferences\": [\n    \"Líderes experientes podem ter pontos cegos de comunicação\",\n    \"A falta de clareza pode gerar desalinhamento e desmotivação\",\n    \"O medo de sobrecarregar pode levar à retenção de informações cruciais\"\n  ],\n  \"semanticVariationBudget\": 3,\n  \"variations\": [\n    {\n      \"tone\": \"reflexivo e provocador\",\n      \"headline\": \"Líderes experientes, erros básicos: por quê?\",\n      \"body\": \"Você presume alinhamento sem validar? Dá feedback vago? Retém contexto por medo de sobrecarregar? Esses erros básicos persistem em líderes experientes. A zona de conforto da experiência pode cegar. Reflita: seu time realmente entende o que você acha que comunicou?\",\n      \"cta\": \"Compartilhe sua experiência nos comentários.\"\n    ,\n      \"assumptions\": [\n        \"Líderes experientes podem ter pontos cegos de comunicação\"\n      ]\n    },\n    {\n      \"tone\": \"direto e desafiador\",\n      \"headline\": \"3 erros que líderes experientes insistem em cometer\",\n      \"body\": \"1. Presumir alinhamento sem validar entendimento. 2. Feedback vago em vez de comportamentos objetivos. 3. Reter contexto estratégico por receio de sobrecarregar. Se você se identifica, seu time sente. A experiência não elimina a necessidade de comunicação clara. Mude hoje.\",\n      \"cta\": \"Qual desses erros você mais vê? Comente.\"\n    ,\n      \"assumptions\": [\n        \"A falta de clareza pode gerar desalinhamento e desmotivação\"\n      ]\n    },\n    {\n      \"tone\": \"empático e analítico\",\n      \"headline\": \"Por que líderes experientes falham na comunicação?\",\n      \"body\": \"A experiência traz confiança, mas também pontos cegos: presumir alinhamento sem validar, dar feedback vago, reter contexto por medo de sobrecarregar. Esses erros básicos minam a eficácia. Reconheça e ajuste. A comunicação clara é uma prática contínua, não um dom.\",\n      \"cta\": \"Reflita e compartilhe este post com sua equipe.\"\n    ,\n      \"assumptions\": [\n        \"O medo de sobrecarregar pode levar à retenção de informações cruciais\"\n      ]\n    }\n  ]\n}",
+    "factMatches": [
+      {
+        "fact": "alinhamento",
+        "found": true
+      },
+      {
+        "fact": "feedback",
+        "found": true
+      },
+      {
+        "fact": "contexto",
+        "found": true
+      }
+    ],
+    "factCoveragePercent": 100
+  },
+  {
+    "modelId": "deepseek",
+    "modelName": "DeepSeek V4.1 Flash",
+    "modelSlug": "deepseek/deepseek-v4.1-flash",
+    "caseId": "automacao-processos-b2b",
+    "caseTitle": "Eficiência & Automação de Processos B2B",
+    "caseTheme": "Pragmático & Solução Operacional",
+    "status": "success",
+    "latencyMs": 392,
+    "promptTokens": 327,
+    "completionTokens": 871,
+    "reasoningTokens": 0,
+    "totalTokens": 1198,
+    "costUsd": 0.000450215,
+    "parsedResponse": {
+      "literalClaim": "Distribuidora reduziu 40% do tempo de faturamento ao eliminar digitação manual de pedidos em PDF e WhatsApp, com automação integrada ao ERP em 15 dias.",
+      "confirmedFacts": [
+        "Distribuidora reduziu em 40% o tempo de faturamento.",
+        "Eliminou a digitação manual de pedidos recebidos por PDF e WhatsApp.",
+        "Integrou automação direta ao ERP em 15 dias."
+      ],
+      "unknowns": [
+        "Número de horas economizadas por semana ou mês.",
+        "Quantidade de pedidos processados antes e depois.",
+        "Número de funcionários envolvidos na digitação manual.",
+        "Custo da operação manual anterior.",
+        "ROI financeiro da automação.",
+        "Tempo exato de implementação em outros contextos."
+      ],
+      "allowedInferences": [
+        "O retrabalho com digitação manual consome horas que poderiam ser usadas em atividades estratégicas.",
+        "A automação pode reduzir erros e acelerar o faturamento.",
+        "Integrar automação ao ERP é viável em 15 dias em casos como o descrito."
+      ],
+      "semanticVariationBudget": 3,
+      "variations": [
+        {
+          "tone": "Direto e provocativo",
+          "headline": "Sua equipe perde horas digitando pedidos?",
+          "body": "Uma distribuidora eliminou a digitação manual de PDFs e WhatsApp e reduziu 40% do tempo de faturamento. A automação foi integrada ao ERP em 15 dias. Enquanto isso, muitas operações ainda gastam horas com retrabalho invisível. O custo não aparece na planilha, mas aparece no resultado.",
+          "cta": "Descubra como eliminar esse gargalo na sua operação.",
+          "assumptions": [
+            "O leitor reconhece que a digitação manual é um problema.",
+            "O leitor valoriza redução de tempo e retrabalho."
+          ]
+        },
+        {
+          "tone": "Consultivo e analítico",
+          "headline": "O retrabalho que ninguém mede",
+          "body": "Pedidos em PDF e WhatsApp exigem digitação manual. Isso consome horas da equipe e atrasa o faturamento. Uma distribuidora resolveu isso com automação integrada ao ERP em 15 dias e cortou 40% do tempo de faturamento. O ganho não foi só velocidade: foi liberar pessoas para tarefas que geram receita.",
+          "cta": "Avalie quanto tempo sua operação perde com digitação manual.",
+          "assumptions": [
+            "O leitor busca eficiência operacional.",
+            "O leitor entende que automação libera capacidade produtiva."
+          ]
+        },
+        {
+          "tone": "Inspiracional e orientado a resultado",
+          "headline": "Menos digitação, mais faturamento",
+          "body": "Eliminar a digitação manual de pedidos em PDF e WhatsApp parece pequeno, mas o impacto é grande. Uma distribuidora integrou automação ao ERP em 15 dias e reduziu 40% do tempo de faturamento. O retrabalho invisível some, e a operação ganha ritmo. O próximo passo é olhar para o seu fluxo.",
+          "cta": "Veja como reduzir o tempo de faturamento na sua distribuidora.",
+          "assumptions": [
+            "O leitor se inspira em cases de melhoria operacional.",
+            "O leitor está aberto a repensar processos internos."
+          ]
+        }
+      ]
+    },
+    "rawText": "{\n  \"literalClaim\": \"Distribuidora reduziu 40% do tempo de faturamento ao eliminar digitação manual de pedidos em PDF e WhatsApp, com automação integrada ao ERP em 15 dias.\",\n  \"confirmedFacts\": [\n    \"Distribuidora reduziu em 40% o tempo de faturamento.\",\n    \"Eliminou a digitação manual de pedidos recebidos por PDF e WhatsApp.\",\n    \"Integrou automação direta ao ERP em 15 dias.\"\n  ],\n  \"unknowns\": [\n    \"Número de horas economizadas por semana ou mês.\",\n    \"Quantidade de pedidos processados antes e depois.\",\n    \"Número de funcionários envolvidos na digitação manual.\",\n    \"Custo da operação manual anterior.\",\n    \"ROI financeiro da automação.\",\n    \"Tempo exato de implementação em outros contextos.\"\n  ],\n  \"allowedInferences\": [\n    \"O retrabalho com digitação manual consome horas que poderiam ser usadas em atividades estratégicas.\",\n    \"A automação pode reduzir erros e acelerar o faturamento.\",\n    \"Integrar automação ao ERP é viável em 15 dias em casos como o descrito.\"\n  ],\n  \"semanticVariationBudget\": 3,\n  \"variations\": [\n    {\n      \"tone\": \"Direto e provocativo\",\n      \"headline\": \"Sua equipe perde horas digitando pedidos?\",\n      \"body\": \"Uma distribuidora eliminou a digitação manual de PDFs e WhatsApp e reduziu 40% do tempo de faturamento. A automação foi integrada ao ERP em 15 dias. Enquanto isso, muitas operações ainda gastam horas com retrabalho invisível. O custo não aparece na planilha, mas aparece no resultado.\",\n      \"cta\": \"Descubra como eliminar esse gargalo na sua operação.\"\n    ,\n      \"assumptions\": [\n        \"O leitor reconhece que a digitação manual é um problema.\",\n        \"O leitor valoriza redução de tempo e retrabalho.\"\n      ]\n    },\n    {\n      \"tone\": \"Consultivo e analítico\",\n      \"headline\": \"O retrabalho que ninguém mede\",\n      \"body\": \"Pedidos em PDF e WhatsApp exigem digitação manual. Isso consome horas da equipe e atrasa o faturamento. Uma distribuidora resolveu isso com automação integrada ao ERP em 15 dias e cortou 40% do tempo de faturamento. O ganho não foi só velocidade: foi liberar pessoas para tarefas que geram receita.\",\n      \"cta\": \"Avalie quanto tempo sua operação perde com digitação manual.\"\n    ,\n      \"assumptions\": [\n        \"O leitor busca eficiência operacional.\",\n        \"O leitor entende que automação libera capacidade produtiva.\"\n      ]\n    },\n    {\n      \"tone\": \"Inspiracional e orientado a resultado\",\n      \"headline\": \"Menos digitação, mais faturamento\",\n      \"body\": \"Eliminar a digitação manual de pedidos em PDF e WhatsApp parece pequeno, mas o impacto é grande. Uma distribuidora integrou automação ao ERP em 15 dias e reduziu 40% do tempo de faturamento. O retrabalho invisível some, e a operação ganha ritmo. O próximo passo é olhar para o seu fluxo.\",\n      \"cta\": \"Veja como reduzir o tempo de faturamento na sua distribuidora.\"\n    ,\n      \"assumptions\": [\n        \"O leitor se inspira em cases de melhoria operacional.\",\n        \"O leitor está aberto a repensar processos internos.\"\n      ]\n    }\n  ]\n}",
+    "factMatches": [
+      {
+        "fact": "40%",
+        "found": true
+      },
+      {
+        "fact": "PDF",
+        "found": true
+      },
+      {
+        "fact": "WhatsApp",
+        "found": true
+      },
+      {
+        "fact": "15 dias",
+        "found": true
+      }
+    ],
+    "factCoveragePercent": 100
+  }
+]

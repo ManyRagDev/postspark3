@@ -2,11 +2,11 @@ import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 export const releaseOwner = "11111111-1111-4111-8111-111111111111",
   releaseOther = "22222222-2222-4222-8222-222222222222";
-export async function generationReleasePostgresFixture(options: { withoutLegacyBrandProjects?: boolean } = {}) {
+export async function generationReleasePostgresFixture(options: { withoutLegacyBrandProjects?: boolean; dataDir?: string } = {}) {
   const owner = releaseOwner,
     otherOwner = releaseOther,
     thirdOwner = "33333333-3333-4333-8333-333333333333";
-  const pg = new PGlite();
+  const pg = new PGlite(options.dataDir);
   await pg.exec(`
     CREATE ROLE anon;
     CREATE ROLE authenticated;

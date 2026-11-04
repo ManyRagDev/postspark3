@@ -33,6 +33,14 @@ const trace = (calls: LlmTraceCall[]): GenerationTrace => ({
   events: [],
 });
 describe("durable operation trace summaries", () => {
+  it("recognizes an explicitly recorded local visual plan without inventing a paid selection receipt", () => {
+    const local = trace([]);
+    local.events.push({ stage: "generation_plan", status: "completed", detail: "deterministic_local", data: { paidEffect: false }, at: new Date().toISOString() });
+    const result = journalResultWithTrace({ version: 1, slots: [] }, local);
+    const summary = summarizeGenerationJournal([{ operationKey: "prepare:selection", state: "completed", result }]);
+    expect(summary.calls).toEqual([]);
+    expect(summary.unknownCostOperations).toEqual([]);
+  });
   it("preserves a degraded history warning after restart without inventing provider calls", () => {
     const historyTrace = trace([]);
     historyTrace.events.push({

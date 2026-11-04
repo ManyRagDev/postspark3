@@ -160,7 +160,7 @@ export interface ExecutionBriefContext {
   creationMode: "execution";
   format: string;
   platform: Platform;
-  objective: string;
+  objective?: string;
   tone?: string;
   callToAction?: string;
   audience?: string;
@@ -309,7 +309,7 @@ function buildExecutionBriefContext(brief: ExecutionBriefContext): string {
   return `BRIEFING DE EXECUÇÃO:
 - Formato: ${brief.format}
 - Plataforma: ${brief.platform}
-- Objetivo: ${brief.objective}
+- Objetivo: ${brief.objective ?? "inferir do pedido, sem impor engajamento"}
 - Tom desejado: ${brief.tone || "não informado"}
 - CTA obrigatório: ${brief.callToAction || "não informado"}
 - Público-alvo: ${brief.audience || "não informado"}

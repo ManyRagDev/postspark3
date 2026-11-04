@@ -428,3 +428,4 @@ export function authorCarouselVisualSequence(
       : authorCarouselVisualVariant(definition, role, allowAdditionalText);
   });
 }
+export { authorFamilyCarouselVariant, authorFamilyCarouselRepertoire } from "./familyCarouselRepertoire";

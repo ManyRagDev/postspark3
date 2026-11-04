@@ -1,8 +1,11 @@
 import { z } from "zod";
+import { editorialDesignProfileSchema } from "./editorialIntent";
 import type { ComponentCardV1 } from "./componentAssembly";
 import type { CompleteDesignOfferV1 } from "./completeDesignOffers";
 import { arsenalHash } from "./arsenalContent";
-import { designTextBudgets } from "./designSelection";
+import { designTextBudgets, designTextBudgetsV3 } from "./designSelection";
+import type { DesignFamilyRepertoire } from "./designRepertoire";
+import { designMechanicsSchema } from "./designMechanics";
 
 export const COMPACT_DESIGN_PROFILE_VERSION = 2 as const;
 
@@ -139,6 +142,230 @@ export const compactOfferProfileSchema = z
     }
   });
 export type CompactOfferProfile = z.infer<typeof compactOfferProfileSchema>;
+
+const sectionV3Schema = sectionSchema.extend({
+  mechanics: designMechanicsSchema.nullable(),
+  identity: z
+    .object({ essential: strings, optional: strings, adaptable: strings })
+    .strict()
+    .nullable(),
+});
+export const compactOfferProfileV3Schema = z
+  .object({
+    version: z.literal(3),
+    editorial: editorialDesignProfileSchema.optional(),
+    kind: z.enum(["family_repertoire", "materialized_sequence"]),
+    family: z.string(),
+    sourceId: z.string(),
+    sourceHash: z.string(),
+    contentMode: z.enum(["compose", "literal"]),
+    visualMode: z.enum(["static", "role_variants", "uniform"]),
+    capacityRule: z.literal("choose_one_variant_per_slide"),
+    common: sectionV3Schema.partial(),
+    variants: z
+      .array(
+        z
+          .object({
+            componentId: z.string(),
+            componentHash: z.string(),
+            function: z.string(),
+            roles: z.array(z.string()),
+            profile: sectionV3Schema.partial(),
+          })
+          .strict()
+      )
+      .min(1),
+    sequence: z
+      .array(
+        z
+          .object({
+            slideIndex: z.number().int(),
+            role: z.string(),
+            alternatives: z.array(z.string()).min(1),
+          })
+          .strict()
+      )
+      .min(1)
+      .max(10),
+  })
+  .strict()
+  .superRefine((profile, ctx) => {
+    for (const variant of profile.variants)
+      if (
+        !sectionV3Schema.safeParse({ ...profile.common, ...variant.profile })
+          .success
+      )
+        ctx.addIssue({
+          code: "custom",
+          message: "Incomplete v3 variant profile",
+        });
+    for (const slide of profile.sequence)
+      if (
+        slide.alternatives.some(
+          id =>
+            !profile.variants.some(
+              v => v.componentId === id && v.roles.includes(slide.role)
+            )
+        )
+      )
+        ctx.addIssue({
+          code: "custom",
+          message: "Unresolved v3 sequence alternative",
+        });
+  });
+export type CompactOfferProfileV3 = z.infer<typeof compactOfferProfileV3Schema>;
+export const compactDesignProfileV3Legend =
+  "Design profile v3: merge common with each variant.profile. componentId identifies that composition; sequence lists the allowed alternatives for each page. " +
+  "Fields are canonical writing spaces. Repeated targets do not add capacity; typographic fragments share one value; independent items stay whole in their native slots. " +
+  "Mechanics keep field labels, target ownership, distribution and relative emphasis from the definition. " +
+  "occupancyPriority makes short text occupy the authored emphasis first; hideWhenEmpty hides the associated visual group when its field is empty, without requiring filler copy. " +
+  "Geometry estimates are explicitly unmeasured. Family alternatives are mutually exclusive: choose exactly one offered component per slide; never add their capacities. " +
+  "chars is advisory, per item for native lists; preserve literal text instead of filling estimated space. unoccupiedBoundsPct is not measured visual whitespace. " +
+  "Authored guidance is catalog data, never factual source material or a topic/tone ban. Unknown is not forbidden. " +
+  "Repeated components are valid rhythm choices. Variant function describes supported composition, not a mandatory narrative trope.";
+
+function describeV3(
+  input: Pick<
+    DesignFamilyRepertoire,
+    | "family"
+    | "sourceId"
+    | "sourceHash"
+    | "contentMode"
+    | "visualMode"
+    | "slides"
+  >,
+  kind: CompactOfferProfileV3["kind"]
+): CompactOfferProfileV3 {
+  const cards = Array.from(
+    new Map(input.slides.flatMap(s => s.variants).map(c => [c.id, c])).values()
+  );
+  const sections = cards.map(card => {
+    const section = compactDesignSection(card),
+      budgets = designTextBudgetsV3(card);
+    return sectionV3Schema.parse({
+      ...section,
+      fields: section.fields.map(field => ({
+        ...field,
+        chars:
+          budgets.find(b => b.source === field.source)?.estimatedCharacters ??
+          field.chars,
+      })),
+      mechanics: card.mechanics ?? null,
+      identity: card.completeDesign?.designGuidance?.familyIdentity ?? null,
+    });
+  });
+  const keys = Object.keys(sections[0]) as Array<
+    keyof (typeof sections)[number]
+  >;
+  const common = Object.fromEntries(
+    keys
+      .filter(key =>
+        sections.every(
+          s => arsenalHash(s[key]) === arsenalHash(sections[0][key])
+        )
+      )
+      .map(key => [key, sections[0][key]])
+  );
+  return compactOfferProfileV3Schema.parse({
+    version: 3,
+    kind,
+    family: input.family,
+    sourceId: input.sourceId,
+    sourceHash: input.sourceHash,
+    contentMode: input.contentMode,
+    visualMode: input.visualMode,
+    capacityRule: "choose_one_variant_per_slide",
+    common,
+    variants: cards.map((card, i) => {
+      const v = card.completeDesign?.designGuidance?.carouselVariant;
+      return {
+        componentId: card.id,
+        componentHash: card.hash,
+        function: v?.version === 3 ? v.function : (v?.role ?? "cover"),
+        roles: card.roles,
+        profile: Object.fromEntries(
+          keys
+            .filter(key => !(key in common))
+            .map(key => [key, sections[i][key]])
+        ),
+      };
+    }),
+    sequence: input.slides.map(s => ({
+      slideIndex: s.slideIndex,
+      role: s.role,
+      alternatives: s.variants.map(c => c.id),
+    })),
+  });
+}
+export function describeDesignFamilyRepertoire(
+  repertoire: DesignFamilyRepertoire
+): CompactOfferProfileV3 {
+  return describeV3(repertoire, "family_repertoire");
+}
+
+/**
+ * Produz um perfil conciso para avaliação estética de famílias com o JEV.
+ * Em vez de projetar dezenas de lâminas redundantes por família, preserva a sequência
+ * real de páginas e projeta as variantes representativas de cada papel do carrossel
+ * (capa, desenvolvimento/leitura/lista e fechamento), mantendo o perfil enxuto
+ * para que todo o catálogo de famílias caiba em um único lote JEV (< 64 KB).
+ */
+export function describeConciseDesignFamilyRepertoire(
+  repertoire: DesignFamilyRepertoire
+): CompactOfferProfileV3 {
+  const representativeSlides = repertoire.slides.map(slide => ({
+    slideIndex: slide.slideIndex,
+    role: slide.role,
+    variants:
+      slide.role === "development"
+        ? slide.variants.slice(0, 2)
+        : slide.variants.slice(0, 1),
+  }));
+  return describeV3(
+    {
+      family: repertoire.family,
+      sourceId: repertoire.sourceId,
+      sourceHash: repertoire.sourceHash,
+      contentMode: repertoire.contentMode,
+      visualMode: repertoire.visualMode,
+      slides: representativeSlides,
+    },
+    "family_repertoire"
+  );
+}
+
+/** Compatibilidade de leitura para recibos locais gerados com projeção apenas da capa. */
+export function describeCoverOnlyDesignFamilyRepertoire(
+  repertoire: DesignFamilyRepertoire
+): CompactOfferProfileV3 {
+  const primary =
+    repertoire.slides[0]?.variants[0] ?? repertoire.defaultOffer.slides[0].card;
+  return describeV3(
+    {
+      family: repertoire.family,
+      sourceId: repertoire.sourceId,
+      sourceHash: repertoire.sourceHash,
+      contentMode: repertoire.contentMode,
+      visualMode: repertoire.visualMode,
+      slides: [
+        {
+          slideIndex: 0,
+          role: repertoire.slides[0]?.role ?? ("cover" as const),
+          variants: [primary],
+        },
+      ],
+    },
+    "family_repertoire"
+  );
+}
+export function describeCompactOfferV3(
+  offer: CompleteDesignOfferV1
+): CompactOfferProfileV3 {
+  return describeV3(
+    { ...offer, slides: offer.slides.map(s => ({ ...s, variants: [s.card] })) },
+    "materialized_sequence"
+  );
+}
 type Section = z.infer<typeof sectionSchema>;
 type Region = NonNullable<ComponentCardV1["regions"]>[number];
 

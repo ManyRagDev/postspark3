@@ -38,6 +38,14 @@ export interface RuntimeManifest {
 export const RUNTIME_MANIFEST: RuntimeManifest = {
   version: 2,
   requirements: [
+    ...["editorial_catalog_revisions", "editorial_catalog_heads"].map(name => ({
+      kind: "table" as const, schema: "postspark", name, critical: true,
+      consumers: ["designCatalog/editorialCatalog.ts"], note: "immutable editorial vocabulary and version pointer; migration 0055",
+    })),
+    ...["editorial_catalog_head", "editorial_catalog_publish"].map(name => ({
+      kind: "rpc" as const, schema: "postspark", name, critical: true,
+      consumers: ["designCatalog/editorialCatalog.ts"], note: "migration 0055; publication must never be invoked by the read-only audit",
+    })),
     { kind: "table", schema: "postspark", name: "design_catalog_versions", critical: false, consumers: ["designCatalog/store.ts"], note: "ausência usa layout convencional com trace de fallback; migration 0018" },
     { kind: "table", schema: "postspark", name: "design_catalog_pieces", critical: false, consumers: ["design_catalog_create RPC"] },
     { kind: "table", schema: "postspark", name: "design_catalog_version_pieces", critical: false, consumers: ["design_catalog_create RPC"] },
@@ -89,6 +97,10 @@ export const RUNTIME_MANIFEST: RuntimeManifest = {
       "generation_v5_operation",
       "generation_v5_finish",
       "generation_v5_cancel",
+      "generation_admit_configured",
+      "generation_preparation_expectation",
+      "generation_recover_preparation",
+      "generation_preparation_available",
     ].map(name => ({
       kind: "rpc" as const,
       schema: "postspark",
@@ -130,6 +142,7 @@ export const RUNTIME_MANIFEST: RuntimeManifest = {
     { kind: "column", schema: "postspark", table: "posts", name: "canvas_model", critical: false, consumers: ["db.ts (createPost/updatePost)", "drizzle/0016_add_canvas_model_to_posts.sql"], note: "reabertura com fidelidade do editor CanvasLab (PostSpark Studio)" },
     { kind: "column", schema: "postspark", table: "generation_runs", name: "events", critical: true, consumers: ["db.ts:866", "generationTrace.ts:188"], note: "runtime persiste eventos de geração" },
     { kind: "column", schema: "postspark", table: "generation_runs", name: "events_version", critical: true, consumers: ["db.ts:849", "generationTrace.ts:188"] },
+    { kind: "column", schema: "postspark", table: "generation_runs", name: "diagnostic_summary", critical: true, consumers: ["ai/generationTrace.ts"], note: "privacy-preserving preparation diagnostics; migration 0052" },
     { kind: "column", schema: "postspark", table: "generation_runs", name: "failure_reason", critical: false, consumers: ["db.ts:createGenerationRun", "drizzle/0017_add_generation_failure_reason.sql"], note: "motivo normalizado de falha (taxonomia compartilhada); ausência degrada apenas o diagnóstico" },
     { kind: "column", schema: "postspark", table: "profiles", name: "id", critical: true, consumers: ["billing.ts:102"] },
     { kind: "column", schema: "postspark", table: "profiles", name: "email", critical: true, consumers: ["billing.ts:102"] },

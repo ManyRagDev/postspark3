@@ -30,6 +30,24 @@ const schema = {
 } as const;
 
 describe("model provider adapters", () => {
+  it("round trips optional GPT fields through nested refs and unions without removing valid nullable values", () => {
+    const original = { name: "strict-copy", strict: true, schema: {
+      type: "object", properties: { slides: { type: "array", items: { anyOf: [
+        { $ref: "#/$defs/slide" },
+        { type: "object", properties: { kind: { const: "end" } }, required: ["kind"], additionalProperties: false },
+      ] } } }, required: ["slides"], additionalProperties: false,
+      $defs: { slide: { type: "object", properties: {
+        kind: { const: "slide" }, title: { type: "string" }, optional: { type: "string" }, nullable: { type: ["string", "null"] },
+      }, required: ["kind", "title"], additionalProperties: false } },
+    } };
+    const adapted = adaptRequestForProvider({ provider: "openrouter", effectiveModel: "openai/gpt-6.1-sol", messages: [], responseFormat: { type: "json_schema", json_schema: original } });
+    expect(adapted.schema).toEqual(original);
+    const restored = adapted.normalizeResponseContent!(JSON.stringify({ slides: [{ kind: "slide", title: "A", optional: null, nullable: null }] }));
+    expect(JSON.parse(restored)).toEqual({ slides: [{ kind: "slide", title: "A", nullable: null }] });
+    expect(validateStructuredContent(restored, original).valid).toBe(true);
+    expect(validateStructuredContent(adapted.normalizeResponseContent!('{"slides":[{"kind":"slide","title":3,"optional":null,"nullable":null}]}'), original).valid).toBe(false);
+    expect(adapted.normalizeResponseContent!("invalid json")).toBe("invalid json");
+  });
   it("keeps native json_schema for Groq GPT-OSS", () => {
     const adapted = adaptRequestForProvider({
       provider: "groq",

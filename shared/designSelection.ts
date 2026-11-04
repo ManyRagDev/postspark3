@@ -50,6 +50,36 @@ export function designTextBudgets(card: ComponentCardV1) {
     };
   });
 }
+
+/** V3 advisory projection accounts for unequal fragments. A narrow emphasized
+ * fragment can constrain the whole headline; independent list slots stay per item.
+ * Keep the historical V2 estimator stable for stored profiles and receipts. */
+export function designTextBudgetsV3(card: ComponentCardV1) {
+  const legacy = designTextBudgets(card);
+  return legacy.map(budget => {
+    const field = card.mechanics?.fields.find(f => f.source === budget.source);
+    if (!field || field.targets.some(t => t.charsEstimate === null))
+      return { ...budget, basis: "geometry_estimate" as const };
+    const values = field.targets.map(t => t.charsEstimate!);
+    let estimatedCharacters = Math.min(...values);
+    if (field.distribution === "typographic_fragments") {
+      const weights = field.targets.map(t => t.fragmentWeight ?? 1),
+        total = weights.reduce((sum, w) => sum + w, 0);
+      estimatedCharacters = Math.floor(
+        Math.min(...values.map((value, i) => (value * total) / weights[i]))
+      );
+    }
+    return {
+      ...budget,
+      estimatedCharacters,
+      distribution: field.distribution,
+      basis: "geometry_estimate" as const,
+      ...(field.distribution === "independent_items"
+        ? { perItemCharacters: values }
+        : {}),
+    };
+  });
+}
 const position = (center: number, names: string[]) =>
   names[center < 1 / 3 ? 0 : center > 2 / 3 ? 2 : 1];
 

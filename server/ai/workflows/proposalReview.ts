@@ -1,3 +1,4 @@
+import { reviewProposalV10 } from "./proposalReviewV10";
 import { reviewProposalV9 } from "./proposalReviewV9";
 import { reviewProposalV8 } from "./proposalReviewV8";
 import { reviewProposalV7 } from "./proposalReviewV7";
@@ -279,6 +280,7 @@ export async function reviewProposal(
   copy: ReviewCopy,
   round: "initial" | "recheck"
 ): Promise<ProposalReviewRecord> {
+  if (input.reviewPolicyVersion === 10) return reviewProposalV10(input, deps, definitions, compositions, copy, round);
   if (input.reviewPolicyVersion === 9) return reviewProposalV9(input, deps, definitions, compositions, copy, round);
   if (input.reviewPolicyVersion === 8) return reviewProposalV8(input, deps, definitions, compositions, copy, round);
   if (input.reviewPolicyVersion === 7) return reviewProposalV7(input, deps, definitions, compositions, copy, round);

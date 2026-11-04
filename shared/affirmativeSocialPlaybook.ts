@@ -3,12 +3,13 @@ export const AFFIRMATIVE_PLAYBOOK_VERSION = "instagram.affirmative.1" as const;
 /** The eight simulation principles, generalized to the project's audience. */
 const principles = [
   "Trate o assunto pedido sob a perspectiva da marca e das necessidades de seu público. Selecione os fatos que ajudam a responder à pergunta desta peça.",
-  "Abra com uma situação concreta, dúvida ou contraste reconhecível pelo público. Escolha livremente a construção que melhor apresenta o assunto e dá motivo para continuar.",
+  "Abra com uma situação concreta, dúvida ou contraste reconhecível pelo público. Construa o título ancorando diretamente os substantivos concretos de canais, ferramentas, termos técnicos, métricas ou números presentes no insumo (ex.: sistemas, prazos, dados de porcentagem, artefatos físicos), combinados a verbos de ação direta que declarem uma mudança operacional verificável.",
   "Converse com o leitor usando vocabulário cotidiano e frases naturais. Apresente conceitos técnicos na medida em que ajudam a entender ou decidir, traduzindo o mecanismo em utilidade.",
+  "Ao estruturar a narrativa ou variações editoriais, utilize recortes analíticos objetivos: evidência direta (resultado e alavanca técnica que o gerou), anatomia do processo (entrada do insumo, atrito manual e integração) ou contraste de decisão (paralelo técnico entre a prática anterior e o método disciplinado).",
   "Construa uma sequência em que cada página acrescenta uma contribuição própria. Relacione os apoios à ideia central de cada página e faça o fechamento responder à abertura.",
-  "Dimensione o volume de texto pela informação necessária para compreender a página. Use ritmo de frases, hierarquia e espaço de leitura apropriados ao celular; reserve detalhes complementares para a legenda.",
+  "Dimensione o volume de texto pela informação necessária para compreender a página. Cada frase deve introduzir um fato ou sua relação direta de causa e efeito, concluindo o bloco no momento em que a cadeia factual estiver entregue. Reserve detalhes complementares para a legenda.",
   "Descreva capacidades concretas e benefícios qualificados pelas condições da fonte. Identifique o período observado quando a afirmação depender de acompanhamento histórico.",
-  "Feche com uma ação pertinente ao conteúdo e ao contexto da marca. Escolha uma ação principal e torne claro seu propósito.",
+  "Feche com uma ação pertinente ao conteúdo e ao contexto da marca, propondo uma checagem de processo ou auditoria operacional prática aplicável à rotina do tomador de decisão.",
   "Use estes princípios como referências de autoria. Adapte a estrutura, a extensão e a forma de abertura ao assunto, preservando liberdade de criação e a voz da marca.",
 ] as const;
 
@@ -33,5 +34,6 @@ export const affirmativeCopyInstructions = [
   "Desenvolva a peça com autonomia editorial dentro dessas entradas. Resolva foco, progressão e extensão durante a redação. A direção selecionada identifica a abordagem desta proposta; desenvolva sua contribuição própria.",
   "Entregue diretamente os textos nos campos nativos, a legenda, as hashtags e os prompts de mídia contratados. Campos opcionais vazios são válidos quando a página já comunica sua contribuição. Capacidade disponível é limite físico, e a informação necessária determina o volume.",
   "Preserve o nível de intervenção: visual_only conserva literalmente o texto; light_optimize permite clareza e concisão leves; optimize_structure permite criar e reorganizar dentro dos fatos e requisitos. Obrigações art/caption/either mantêm seus destinos.",
+  "Ancore títulos nos substantivos concretos do insumo (canais, ferramentas, métricas, prazos e termos do domínio) usando verbos de ação direta. Estruture o raciocínio por evidência de mecanismo, anatomia de processo ou contraste de decisão. Conclua cada bloco no último fato concreto sem aforismos, e feche com uma checagem prática de processo.",
   "Afirmações expressam o alcance demonstrado pela fonte. Estatísticas, comparações, prazos, garantias e resultados exigem suporte; exemplos hipotéticos ficam identificados como tais. Condições que tornam uma promessa verdadeira acompanham a afirmação usada.",
 ].join("\n");

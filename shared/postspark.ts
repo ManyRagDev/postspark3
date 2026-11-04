@@ -148,7 +148,7 @@ export interface CreativeExecutionBrief {
   creationMode: "execution";
   format: "static" | "carousel" | "story" | "ad";
   platform: Platform;
-  objective: "educate" | "authority" | "sell" | "engage" | "lead";
+  objective?: "educate" | "authority" | "sell" | "engage" | "lead";
   tone?: string;
   callToAction?: string;
   audience?: string;

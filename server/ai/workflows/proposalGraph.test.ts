@@ -14,6 +14,7 @@ import { createComponentTextMeasurer } from "../componentTextMeasurer";
 import { resolveArsenalGeometry } from "@shared/arsenalGeometry";
 import { resolveReviewExecutionConfigV7 } from "./reviewExecutionConfigV7";
 import { editorialContextV7 } from "./editorialContextV7";
+import { resolveGenerationModelConfig } from "../generationModel";
 
 // These tests exercise deterministic geometry/copy/media guards. Real required-review
 // integration is exercised separately in proposalGraphReview.test.ts.
@@ -1182,6 +1183,35 @@ describe("Proposal Graph Workflow (canonical V1 delivery)", () => {
     expect(snapshot.proposals[1].status).toBe("ready");
     expect(snapshot.proposals[2].status).toBe("ready");
     expect(snapshot.overallStatus).toBe("completed");
+  });
+
+  it.each([
+    { axis: "height", excess: 0.02, current: true, status: "ready" },
+    { axis: "width", excess: 0.5, current: true, status: "ready" },
+    { axis: "height", excess: 0.51, current: true, status: "failed" },
+    { axis: "height", excess: 0.02, current: false, status: "failed" },
+  ])("applies the admitted fit policy to $axis excess $excess (current=$current)", async ({ axis, excess, current, status }) => {
+    const definition = completeDesignTestDefinitions()[0];
+    const title = "Café artesanal";
+    const box = definition.fragment.instances[0];
+    const deps = textDeps(copyFor(definition, title), {
+      measureText: input => ({
+        height: input.text === title && axis === "height" ? box.height + excess : 20,
+        lines: [{ width: input.text === title && axis === "width" ? box.width + excess : 100 }],
+        runs: [{ fill: input.fill, fontSize: input.fontSize, fontStyle: input.fontStyle }],
+      }),
+    });
+    const generationConfig = current ? resolveGenerationModelConfig({ postMode: "static" }) : undefined;
+    const result = await executeProposalWorkflow(workflowInput(definition, { generationConfig }), deps);
+    expect(result.status, result.errorReason).toBe(status);
+    if (status === "ready") {
+      expect(deps.generateText).toHaveBeenCalledTimes(1);
+      expect(result.diagnostics.filter(d => d.code === "text_overflow_subpixel")).toHaveLength(1);
+      expect(result.bundle?.slides[0].composition.elements.find(element => element.id === box.id)?.text).toBe(title);
+    } else {
+      expect(deps.generateText).toHaveBeenCalledTimes(2);
+      expect(result.findings).toEqual(expect.arrayContaining([expect.objectContaining({ rule: "overflow", severity: "fatal" })]));
+    }
   });
 
   it("fails proposal if text overflow persists after the single recovery attempt", async () => {

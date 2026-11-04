@@ -3,6 +3,7 @@ import {
   type CreationBrief,
   creationBriefSchema,
 } from "@shared/postspark";
+import { generationModelSchema, type GenerationModel } from "@shared/generationModel";
 
 export const BRIEF_DRAFT_STORAGE_KEY = "postspark.creation_brief.draft.v1";
 
@@ -12,6 +13,7 @@ export interface SavedBriefDraft {
   brief: CreationBrief;
   declaredFamilyId: string | null;
   stage?: "create" | "gallery" | "editor";
+  generationModel?: GenerationModel;
 }
 
 /**
@@ -20,7 +22,8 @@ export interface SavedBriefDraft {
 export function saveBriefDraft(
   brief: CreationBrief,
   declaredFamilyId: string | null = null,
-  stage: "create" | "gallery" | "editor" = "create"
+  stage: "create" | "gallery" | "editor" = "create",
+  generationModel?: GenerationModel,
 ): void {
   if (typeof window === "undefined" || !window.localStorage) return;
   try {
@@ -31,6 +34,7 @@ export function saveBriefDraft(
       brief: validatedBrief,
       declaredFamilyId,
       stage,
+      ...(generationModel ? { generationModel } : {}),
     };
     window.localStorage.setItem(BRIEF_DRAFT_STORAGE_KEY, JSON.stringify(payload));
   } catch (err) {
@@ -64,6 +68,7 @@ export function loadBriefDraft(): SavedBriefDraft | null {
       brief: validatedBrief.data,
       declaredFamilyId: parsed.declaredFamilyId ?? null,
       stage: parsed.stage ?? "create",
+      generationModel: generationModelSchema.safeParse(parsed.generationModel).data ?? "gemini",
     };
   } catch (err) {
     console.warn("[briefDraftStorage] Erro ao carregar rascunho do briefing:", err);

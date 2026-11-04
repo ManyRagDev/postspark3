@@ -1,0 +1,583 @@
+{
+  "version": 1,
+  "purpose": "held_out_editorial_evaluation",
+  "labelStatus": "engineering_hypotheses_pending_editorial_review",
+  "notes": [
+    "Written separately from the profile references; do not compile these prompts into reference embeddings.",
+    "Expected labels assess editorial structure and explicit composition preferences, not measured text fit or generation quality.",
+    "The family labels are not mutually exclusive. Unlisted families are unjudged, not automatically incorrect.",
+    "Insufficient cases require context or do not expose an editorial treatment; this set does not establish general OOD coverage.",
+    "Names identify catalogue families only; topics such as finance, health or gardening are not family restrictions."
+  ],
+  "cases": [
+    {
+      "id": "comparison-investment",
+      "prompt": "Mostre em dois lados a diferença entre investir todo mês e esperar sobrar dinheiro. Use frases curtas em cada lado.",
+      "tags": ["comparison", "finance"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["versus"],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": []
+      },
+      "contrastGroup": "same-treatment-comparison"
+    },
+    {
+      "id": "comparison-food",
+      "prompt": "Quero colocar lado a lado duas opções de café da manhã, com uma vantagem de cada escolha.",
+      "tags": ["comparison", "food"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["versus"],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": []
+      },
+      "contrastGroup": "same-treatment-comparison"
+    },
+    {
+      "id": "comparison-software",
+      "prompt": "Faça um confronto entre o processo manual e o automatizado: uma coluna para cada um e poucas palavras.",
+      "tags": ["comparison", "technology"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["versus"],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": []
+      },
+      "contrastGroup": "same-treatment-comparison"
+    },
+    {
+      "id": "investment-long-explanation",
+      "prompt": "Explique como organizar uma reserva financeira. Desenvolva o raciocínio em pequenos parágrafos ao longo das páginas, sem separar em lados opostos.",
+      "tags": ["reading", "finance", "negation"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "paper-window-requested",
+          "6da56cf3eb349b1ef42ab98eaf610f05"
+        ],
+        "acceptableFamilyIds": [
+          "daily-paper",
+          "ideas-paper",
+          "paper-paper-requested",
+          "window-paper-requested",
+          "window-window-requested",
+          "daily-window"
+        ],
+        "disfavoredFamilyIds": ["versus", "data-punch"]
+      },
+      "contrastGroup": "same-topic-finance"
+    },
+    {
+      "id": "investment-number",
+      "prompt": "O relatório que anexei informa 18% de crescimento no total investido. Quero que esse percentual seja o centro da arte, com uma frase curta de contexto.",
+      "tags": ["metric", "finance"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["data-punch"],
+        "acceptableFamilyIds": ["chromatic-block"],
+        "disfavoredFamilyIds": ["versus"]
+      },
+      "contrastGroup": "same-topic-finance"
+    },
+    {
+      "id": "investment-reflection",
+      "prompt": "Uma reflexão bem curta sobre a relação com o dinheiro, com bastante espaço livre e só um complemento pequeno.",
+      "tags": ["reflection", "finance", "restrained"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["minimal-air"],
+        "acceptableFamilyIds": ["daily-paper"],
+        "disfavoredFamilyIds": ["data-punch", "mosaic-grid"]
+      },
+      "contrastGroup": "same-topic-finance"
+    },
+    {
+      "id": "parallel-three-health",
+      "prompt": "Separe três hábitos para cuidar da voz em três cartões equivalentes. Cada cartão terá uma recomendação e uma explicação própria.",
+      "tags": ["parallel_items", "health"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["mosaic-grid"],
+        "acceptableFamilyIds": ["6da56cf3eb349b1ef42ab98eaf610f05"],
+        "disfavoredFamilyIds": ["data-punch"]
+      },
+      "contrastGroup": "same-treatment-parallel"
+    },
+    {
+      "id": "parallel-three-work",
+      "prompt": "Organize as três prioridades da equipe em áreas independentes, todas com o mesmo destaque e um texto por prioridade.",
+      "tags": ["parallel_items", "work"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["mosaic-grid"],
+        "acceptableFamilyIds": ["6da56cf3eb349b1ef42ab98eaf610f05"],
+        "disfavoredFamilyIds": ["versus"]
+      },
+      "contrastGroup": "same-treatment-parallel"
+    },
+    {
+      "id": "parallel-three-travel",
+      "prompt": "Quero três blocos para três cuidados antes de viajar. Cada cuidado precisa ficar inteiro no seu bloco.",
+      "tags": ["parallel_items", "travel"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["mosaic-grid"],
+        "acceptableFamilyIds": ["6da56cf3eb349b1ef42ab98eaf610f05"],
+        "disfavoredFamilyIds": ["data-punch"]
+      },
+      "contrastGroup": "same-treatment-parallel"
+    },
+    {
+      "id": "health-reasons",
+      "prompt": "Por que a prevenção importa? Apresente uma explicação inicial, três motivos em itens separados e uma conclusão que retome o argumento.",
+      "tags": ["argument", "health", "list"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["6da56cf3eb349b1ef42ab98eaf610f05"],
+        "acceptableFamilyIds": ["mosaic-grid", "paper-window-requested"],
+        "disfavoredFamilyIds": ["data-punch", "kinetic-type"]
+      },
+      "contrastGroup": "same-topic-health"
+    },
+    {
+      "id": "health-number",
+      "prompt": "A pesquisa fornecida mostra que 42% dos participantes mudaram a rotina. Faça o 42% dominar a peça; o restante será só uma frase explicativa.",
+      "tags": ["metric", "health"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["data-punch"],
+        "acceptableFamilyIds": ["chromatic-block"],
+        "disfavoredFamilyIds": ["versus"]
+      },
+      "contrastGroup": "same-topic-health"
+    },
+    {
+      "id": "health-reflection",
+      "prompt": "Quero uma frase acolhedora sobre descanso, com um apoio bem pequeno e composição discreta, sem grande quantidade de informação.",
+      "tags": ["reflection", "health", "restrained"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["minimal-air"],
+        "acceptableFamilyIds": ["daily-paper"],
+        "disfavoredFamilyIds": ["mosaic-grid"]
+      },
+      "contrastGroup": "same-topic-health"
+    },
+    {
+      "id": "reading-technology",
+      "prompt": "Ensine como avaliar uma ferramenta digital, explicando o motivo de cada decisão em parágrafos curtos. Quero conteúdo para ler, não só frases de efeito.",
+      "tags": ["reading", "technology", "negation"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "paper-window-requested",
+          "6da56cf3eb349b1ef42ab98eaf610f05"
+        ],
+        "acceptableFamilyIds": [
+          "daily-paper",
+          "ideas-paper",
+          "paper-paper-requested",
+          "window-paper-requested",
+          "window-window-requested",
+          "daily-window"
+        ],
+        "disfavoredFamilyIds": ["kinetic-type", "stroke-impact", "data-punch"]
+      },
+      "contrastGroup": "same-treatment-reading"
+    },
+    {
+      "id": "reading-gardening",
+      "prompt": "Desenvolva uma explicação sobre o cuidado com mudas. Cada página deve aprofundar uma ideia com texto corrido e exemplos curtos.",
+      "tags": ["reading", "gardening"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "paper-window-requested",
+          "6da56cf3eb349b1ef42ab98eaf610f05"
+        ],
+        "acceptableFamilyIds": [
+          "daily-paper",
+          "ideas-paper",
+          "paper-paper-requested",
+          "window-paper-requested",
+          "window-window-requested",
+          "daily-window"
+        ],
+        "disfavoredFamilyIds": ["data-punch", "brutal-split"]
+      },
+      "contrastGroup": "same-treatment-reading"
+    },
+    {
+      "id": "reading-education",
+      "prompt": "Explique como revisar uma redação. Use título compacto e parágrafos que avancem no raciocínio, deixando a leitura ser o foco.",
+      "tags": ["reading", "education"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "paper-window-requested",
+          "6da56cf3eb349b1ef42ab98eaf610f05"
+        ],
+        "acceptableFamilyIds": [
+          "daily-paper",
+          "ideas-paper",
+          "paper-paper-requested",
+          "window-paper-requested",
+          "window-window-requested",
+          "daily-window"
+        ],
+        "disfavoredFamilyIds": ["kinetic-type", "data-punch"]
+      },
+      "contrastGroup": "same-treatment-reading"
+    },
+    {
+      "id": "photo-person",
+      "prompt": "Use o retrato que enviei como protagonista. Acima dele, coloque apenas uma frase curta que apresente a pessoa.",
+      "tags": ["photo", "portrait", "headline"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "f65e1862777e3c9e201442396155f3fa",
+          "brutal-split"
+        ],
+        "acceptableFamilyIds": ["gifts-paper", "gifts-window"],
+        "disfavoredFamilyIds": ["data-punch", "mosaic-grid"]
+      },
+      "contrastGroup": "same-treatment-photo"
+    },
+    {
+      "id": "photo-object",
+      "prompt": "Quero mostrar o objeto na foto em destaque e uma única frase bem breve. A imagem deve explicar mais que o texto.",
+      "tags": ["photo", "object", "headline"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "f65e1862777e3c9e201442396155f3fa",
+          "brutal-split"
+        ],
+        "acceptableFamilyIds": ["gifts-paper", "gifts-window"],
+        "disfavoredFamilyIds": ["mosaic-grid"]
+      },
+      "contrastGroup": "same-treatment-photo"
+    },
+    {
+      "id": "photo-invitation",
+      "prompt": "Anuncie o encontro usando a foto enviada, um pequeno texto explicando o convite e uma chamada para inscrição.",
+      "tags": ["photo", "invitation", "support"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["gifts-paper", "gifts-window"],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": ["data-punch"]
+      },
+      "contrastGroup": "same-topic-event"
+    },
+    {
+      "id": "poster-launch",
+      "prompt": "Prepare um cartaz de lançamento: título com hierarquia de pôster, uma sinopse curta e atmosfera de cinema.",
+      "tags": ["poster", "announcement"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["cinematic-depth"],
+        "acceptableFamilyIds": ["stroke-impact", "kinetic-type"],
+        "disfavoredFamilyIds": ["mosaic-grid"]
+      },
+      "contrastGroup": "same-topic-event"
+    },
+    {
+      "id": "event-quiet-notice",
+      "prompt": "Faça um aviso sobre a nova data do encontro. Título, uma linha de apoio e convite para confirmar presença, dentro de uma composição de painel.",
+      "tags": ["announcement", "brief_invitation"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "ideas-window",
+          "daily-window",
+          "window-ribbons-requested",
+          "paper-ribbons-requested"
+        ],
+        "acceptableFamilyIds": ["window-window-requested"],
+        "disfavoredFamilyIds": ["data-punch"]
+      },
+      "contrastGroup": "same-topic-event"
+    },
+    {
+      "id": "expressive-manifesto",
+      "prompt": "A peça terá uma frase de manifesto e um complemento mínimo. Quero que as letras sejam a própria expressão visual da mensagem.",
+      "tags": ["expressive_type", "manifesto"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["kinetic-type", "stroke-impact"],
+        "acceptableFamilyIds": ["glitch-signal"],
+        "disfavoredFamilyIds": ["mosaic-grid"]
+      },
+      "contrastGroup": "same-treatment-headline"
+    },
+    {
+      "id": "outlined-announcement",
+      "prompt": "Anuncie a novidade com poucas palavras e letras grandes desenhadas com contorno, acompanhadas de uma pequena explicação.",
+      "tags": ["outlined_type", "announcement"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["stroke-impact"],
+        "acceptableFamilyIds": ["kinetic-type"],
+        "disfavoredFamilyIds": ["mosaic-grid"]
+      },
+      "contrastGroup": "same-treatment-headline"
+    },
+    {
+      "id": "graphic-alert",
+      "prompt": "Apresente um alerta com uma afirmação destacada, explicação curta e uma estética de interferência gráfica.",
+      "tags": ["graphic_signal", "alert"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["glitch-signal"],
+        "acceptableFamilyIds": ["stroke-impact"],
+        "disfavoredFamilyIds": ["minimal-air"]
+      }
+    },
+    {
+      "id": "color-notice",
+      "prompt": "Um comunicado breve: etiqueta da categoria, título e uma frase de apoio, organizados em áreas de cores contrastantes.",
+      "tags": ["color_blocks", "announcement"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["chromatic-block"],
+        "acceptableFamilyIds": ["stroke-impact"],
+        "disfavoredFamilyIds": ["mosaic-grid"]
+      }
+    },
+    {
+      "id": "grid-concept",
+      "prompt": "Apresente um conceito em duas palavras grandes e uma nota pequena, organizado por uma grade gráfica visível.",
+      "tags": ["grid", "headline"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["Screenshot-2026-09-28-23:29:44"],
+        "acceptableFamilyIds": ["chromatic-block"],
+        "disfavoredFamilyIds": ["mosaic-grid"]
+      }
+    },
+    {
+      "id": "paper-explanation",
+      "prompt": "Quero uma sequência explicativa em composição de papéis sobrepostos: uma ideia com justificativa curta por página e convite no fechamento.",
+      "tags": ["reading", "paper"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "daily-paper",
+          "ideas-paper",
+          "paper-paper-requested",
+          "window-paper-requested"
+        ],
+        "acceptableFamilyIds": ["paper-window-requested"],
+        "disfavoredFamilyIds": ["data-punch"]
+      }
+    },
+    {
+      "id": "no-comparison",
+      "prompt": "Não quero mito versus verdade nem duas colunas. Quero desenvolver uma explicação contínua sobre as diferenças culturais, com parágrafos curtos.",
+      "tags": ["negation", "reading", "contrast"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "paper-window-requested",
+          "6da56cf3eb349b1ef42ab98eaf610f05"
+        ],
+        "acceptableFamilyIds": [
+          "daily-paper",
+          "ideas-paper",
+          "paper-paper-requested",
+          "window-paper-requested",
+          "window-window-requested",
+          "daily-window"
+        ],
+        "disfavoredFamilyIds": ["versus"]
+      },
+      "contrastGroup": "negation-comparison"
+    },
+    {
+      "id": "yes-comparison",
+      "prompt": "Quero mito versus verdade em duas colunas, com frases breves que coloquem as afirmações em contraste.",
+      "tags": ["comparison", "contrast"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["versus"],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": ["data-punch"]
+      },
+      "contrastGroup": "negation-comparison"
+    },
+    {
+      "id": "no-number",
+      "prompt": "Não tenho estatística para destacar. Explique a ideia com texto corrido e exemplos; não use percentual como centro da composição.",
+      "tags": ["negation", "reading", "no_metric"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "paper-window-requested",
+          "6da56cf3eb349b1ef42ab98eaf610f05"
+        ],
+        "acceptableFamilyIds": [
+          "daily-paper",
+          "ideas-paper",
+          "paper-paper-requested",
+          "window-paper-requested",
+          "window-window-requested",
+          "daily-window"
+        ],
+        "disfavoredFamilyIds": ["data-punch"]
+      },
+      "contrastGroup": "negation-metric"
+    },
+    {
+      "id": "yes-number",
+      "prompt": "Tenho uma estatística confirmada: 63%. Destaque esse percentual como centro da composição e use só uma linha de contexto.",
+      "tags": ["metric"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["data-punch"],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": ["versus"]
+      },
+      "contrastGroup": "negation-metric"
+    },
+    {
+      "id": "no-photo",
+      "prompt": "Quero explicar uma ideia apenas com texto, com bastante espaço de leitura. Não use fotografia nem um título gigante sem desenvolvimento.",
+      "tags": ["negation", "reading", "no_photo"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "paper-window-requested",
+          "6da56cf3eb349b1ef42ab98eaf610f05"
+        ],
+        "acceptableFamilyIds": [
+          "daily-paper",
+          "ideas-paper",
+          "paper-paper-requested",
+          "window-paper-requested",
+          "window-window-requested",
+          "daily-window"
+        ],
+        "disfavoredFamilyIds": [
+          "f65e1862777e3c9e201442396155f3fa",
+          "brutal-split",
+          "kinetic-type"
+        ]
+      }
+    },
+    {
+      "id": "two-goals",
+      "prompt": "Explique três critérios para escolher um serviço e convide o leitor a conhecer a solução. Cada critério deve ter sua explicação própria.",
+      "tags": ["multi_intent", "education", "persuasion", "parallel_items"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "mosaic-grid",
+          "6da56cf3eb349b1ef42ab98eaf610f05"
+        ],
+        "acceptableFamilyIds": ["paper-window-requested"],
+        "disfavoredFamilyIds": []
+      }
+    },
+    {
+      "id": "typos-comparison",
+      "prompt": "quero compara duas opcao lado a lado, um resuminho de cada pra pessoa decidir",
+      "tags": ["typos", "comparison"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": ["versus"],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": ["data-punch"]
+      }
+    },
+    {
+      "id": "typos-reading",
+      "prompt": "explica devagar com paragrafos curtinhos o porque de cada etapa. nao so titulo",
+      "tags": ["typos", "reading"],
+      "expected": {
+        "signal": "rankable",
+        "preferredFamilyIds": [
+          "paper-window-requested",
+          "6da56cf3eb349b1ef42ab98eaf610f05"
+        ],
+        "acceptableFamilyIds": [
+          "daily-paper",
+          "ideas-paper",
+          "paper-paper-requested",
+          "window-paper-requested",
+          "window-window-requested",
+          "daily-window"
+        ],
+        "disfavoredFamilyIds": ["data-punch", "kinetic-type"]
+      }
+    },
+    {
+      "id": "insufficient-ack",
+      "prompt": "Pode fazer.",
+      "tags": ["insufficient"],
+      "expected": {
+        "signal": "insufficient",
+        "preferredFamilyIds": [],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": []
+      }
+    },
+    {
+      "id": "insufficient-topic",
+      "prompt": "Marketing.",
+      "tags": ["insufficient", "topic_only"],
+      "expected": {
+        "signal": "insufficient",
+        "preferredFamilyIds": [],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": []
+      }
+    },
+    {
+      "id": "insufficient-url",
+      "prompt": "https://exemplo.invalid/artigo",
+      "tags": ["insufficient", "source_unread"],
+      "expected": {
+        "signal": "insufficient",
+        "preferredFamilyIds": [],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": []
+      }
+    },
+    {
+      "id": "insufficient-referential",
+      "prompt": "Faça igual ao anterior, mas melhor.",
+      "tags": ["insufficient", "context_missing"],
+      "expected": {
+        "signal": "insufficient",
+        "preferredFamilyIds": [],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": []
+      }
+    },
+    {
+      "id": "insufficient-noise",
+      "prompt": "asdf qwer 123 zzzz",
+      "tags": ["insufficient", "noise"],
+      "expected": {
+        "signal": "insufficient",
+        "preferredFamilyIds": [],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": []
+      }
+    },
+    {
+      "id": "unsupported-action",
+      "prompt": "Qual é a previsão do tempo de amanhã?",
+      "tags": ["insufficient", "outside_editorial_task"],
+      "expected": {
+        "signal": "insufficient",
+        "preferredFamilyIds": [],
+        "acceptableFamilyIds": [],
+        "disfavoredFamilyIds": []
+      }
+    }
+  ]
+}

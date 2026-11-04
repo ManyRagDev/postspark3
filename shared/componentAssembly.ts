@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { designGuidanceSchema } from "./designGuidance";
+import { deriveDesignMechanics, designMechanicsSchema } from "./designMechanics";
 export { designGuidanceSchema, type DesignGuidance } from "./designGuidance";
 import { arsenalHash, contentCoverageIssues } from "./arsenalContent";
 import { bindAssemblyContent, bindCompleteDesignClosingContent } from "./assemblyContentBindings";
@@ -191,6 +192,7 @@ export const componentCardV1Schema = z
     kind: z.enum(componentKinds),
     label: z.string(),
     description: z.string(),
+    mechanics: designMechanicsSchema.optional(),
     visualTraits: z.object({
       version: z.literal(1),
       sourceKey: z.string().min(1).max(240),
@@ -297,6 +299,7 @@ export function compactComponentCard(
     kind: c.kind,
     label: c.label,
     description: c.description,
+    mechanics: deriveDesignMechanics(c),
     visualTraits: {version:1,sourceKey:c.source.kind === "recipe" ? `recipe:${c.source.referenceId}` : `catalog:${c.source.versionId}:${c.source.variantKey}`,languages:Array.from(languages),treatments:Array.from(treatments)},
     roles: c.roles,
     densities: c.densities,
@@ -987,12 +990,18 @@ export function materializeAssemblySlide(
         pieceHash: ph,
       });
     }
-    for (const b of f.bindings)
+    for (const b of f.bindings) {
+      const { hideWhenEmpty, ...binding } = b;
+      const presenceTargets = hideWhenEmpty
+        ?.filter(id => !removable.has(id))
+        .map(remap);
       base.bindings.push({
-        ...b,
+        ...binding,
         id: `${prefix}-${arsenalHash(b.id).slice(0, 20)}`,
         targetIds: b.targetIds.map(remap),
+        ...(presenceTargets?.length ? { hideWhenEmpty: presenceTargets } : {}),
       });
+    }
     for (const relation of f.relations) {
       const outputs = relation.outputs.filter(o => !removable.has(o.targetId));
       if (outputs.length)

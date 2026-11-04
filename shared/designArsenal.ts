@@ -120,9 +120,18 @@ export const arsenalContentFragmentSchema = z.object({
   count: n.int().min(1).max(100),
   unit: z.literal("words"),
   weights: z.array(n.positive()).max(100).optional(),
+  // Opt-in: old snapshots retain proportional slicing, including empty fragments.
+  allocation: z.object({
+    mode: z.literal("preserve_occupancy"),
+    priority: z.array(n.int().min(0)).min(1).max(100),
+  }).strict().optional(),
 }).strict().superRefine((f, ctx) => {
   if (f.index >= f.count || (f.weights && f.weights.length !== f.count))
     ctx.addIssue({ code: "custom", message: "Partição de conteúdo inválida" });
+  if (f.allocation && (f.allocation.priority.length !== f.count ||
+      new Set(f.allocation.priority).size !== f.count ||
+      f.allocation.priority.some(i => i >= f.count)))
+    ctx.addIssue({ code: "custom", message: "Prioridade de ocupação inválida" });
 });
 /** Partition without dropping or duplicating canonical text, including whitespace. */
 export function fragmentContentText(text: string, fragment?: z.infer<typeof arsenalContentFragmentSchema>): string {
@@ -130,8 +139,16 @@ export function fragmentContentText(text: string, fragment?: z.infer<typeof arse
   const tokens = text.match(/\s*\S+\s*/g) ?? (text ? [text] : []);
   const weights = fragment.weights ?? Array(fragment.count).fill(1);
   const total = weights.reduce((sum, weight) => sum + weight, 0);
+  if (fragment.allocation && tokens.length < fragment.count) {
+    const occupied = fragment.allocation.priority.slice(0, tokens.length).sort((a, b) => a - b);
+    const token = occupied.indexOf(fragment.index);
+    return token < 0 ? "" : tokens[token];
+  }
   const boundary = (index: number) => index === fragment.count ? tokens.length :
-    Math.floor(tokens.length * weights.slice(0, index).reduce((sum, weight) => sum + weight, 0) / total);
+    fragment.allocation
+      ? Math.max(index, Math.min(tokens.length - fragment.count + index,
+          Math.floor(tokens.length * weights.slice(0, index).reduce((sum, weight) => sum + weight, 0) / total)))
+      : Math.floor(tokens.length * weights.slice(0, index).reduce((sum, weight) => sum + weight, 0) / total);
   return tokens.slice(boundary(fragment.index), boundary(fragment.index + 1)).join("");
 }
 
@@ -205,6 +222,9 @@ export const arsenalBindingSchema = z
     source: arsenalContentSourceSchema,
     required: z.boolean(),
     targetIds: z.array(id).min(1).max(20),
+    // The binding's content controls its whole authored visual unit. Resolved
+    // opacity is derived on every render; instances are never deleted.
+    hideWhenEmpty: z.array(id).min(1).max(40).optional(),
     cardinality: z
       .object({ min: n.int().min(0), max: n.int().min(1).max(10000) })
       .strict()
@@ -451,6 +471,11 @@ export function validateArsenalGraph(v: {
         errors.push(`Binding inválido/duplicado: ${target}`);
       bound.add(target);
     }
+  for (const b of v.bindings) {
+    if (b.hideWhenEmpty && (b.kind === "media" || new Set(b.hideWhenEmpty).size !== b.hideWhenEmpty.length ||
+        b.hideWhenEmpty.some(target => !v.instances.some(e => e.id === target))))
+      errors.push(`Conjunto de visibilidade inválido: ${b.id}`);
+  }
   const ownership = new Map<string, string>();
   if (new Set(v.relations.map(r => r.id)).size !== v.relations.length)
     errors.push("IDs de relações duplicados");
@@ -782,7 +807,8 @@ export function validatePieceRelations(
   for (const rows of Array.from(fragments.values())) {
     const first = rows[0];
     if (rows.length !== first.count || new Set(rows.map(f => f.index)).size !== first.count ||
-        rows.some(f => f.count !== first.count || arsenalHash(f.weights ?? []) !== arsenalHash(first.weights ?? [])))
+        rows.some(f => f.count !== first.count || arsenalHash(f.weights ?? []) !== arsenalHash(first.weights ?? []) ||
+          arsenalHash(f.allocation ?? null) !== arsenalHash(first.allocation ?? null)))
       throw new Error("Partição textual incompleta ou inconsistente");
   }
   for (const relation of relations)

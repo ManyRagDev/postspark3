@@ -97,7 +97,7 @@ const GENERATION_STATUS_LABELS: Record<string, string> = {
   waiting_input: "Aguardando dados",
   checking: "Conferindo resultado",
   recovering: "Tentando recuperar",
-  awaiting_reconciliation:"Revisão pendente de confirmação",
+  awaiting_reconciliation:"Aguardando confirmação",
   delivery_pending: "Preparando entrega",
   ready: "Pronta",
   failed: "Falhou",
@@ -127,6 +127,9 @@ export function labelGenerationCapabilityReason(reason?: string): string {
 
 export function messageGenerationProposalFailure(reason?: string, failure?: GenerationFailure): string {
   switch (failure?.code ?? historicalGenerationFailure(reason)?.code ?? reason) {
+    case "preparation_reconciliation_required": return "O planejamento aguarda confirmação de uma operação anterior. Confira o resultado existente antes de iniciar outro pedido.";
+    case "selection_insufficient_fit": return "Não encontramos uma composição que atenda a esta opção sem perder conteúdo importante. As outras opções viáveis continuam disponíveis.";
+    case "planning_response_invalid": return "A IA não conseguiu concluir o planejamento desta opção. As outras opções viáveis continuam disponíveis.";
     case "catalog_variant_unavailable": return "Este design ainda não possui todos os slides revisados para este pedido. Aguarde a atualização do acervo.";
     case "catalog_component_ineligible": return "Um design ficou indisponível durante a entrega. As outras propostas continuam disponíveis.";
     case "catalog_coverage_incomplete": return "Não foi possível conferir todas as opções do acervo. A seleção não foi concluída; use a referência do pedido para diagnóstico.";

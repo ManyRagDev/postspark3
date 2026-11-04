@@ -1,7 +1,8 @@
 import { isStandaloneHttpUrl } from "@shared/generationSources";
 import BrandCaptureModal from "./BrandCaptureModal";
 import { toast } from "sonner";
-export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference"};
+import { GENERATION_MODEL_LABELS, getGenerationModelHint, type GenerationModel } from "@shared/generationModel";
+export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference";generationModel?:GenerationModel};
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Loader2, Sparkles, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
@@ -34,6 +35,7 @@ interface StudioCreateViewV2BProps {
   declaredFamilyId: string | null;
   onDeclareFamily: (familyId: string | null) => void;
   initialPlatform?:CreationInputOptions["platform"];
+  initialGenerationModel?: GenerationModel;
   initialImage?:string;
   initialImagePurpose?:CreationInputOptions["imagePurpose"];
   initialPrompt?: string;
@@ -49,7 +51,7 @@ export default function StudioCreateViewV2B({
   isLoading,
   declaredFamilyId,
   onDeclareFamily,
-  initialPlatform="instagram",initialImage,initialImagePurpose="content",
+  initialPlatform="instagram",initialImage,initialImagePurpose="content",initialGenerationModel="gemini",
   initialPrompt = "",
   initialMode = "static",
   hasSavedDraft = false,
@@ -59,8 +61,8 @@ export default function StudioCreateViewV2B({
 }: StudioCreateViewV2BProps) {
   const [captureUrl,setCaptureUrl]=useState<string>();
   const [urlAsContent,setUrlAsContent]=useState(false);
-  const [options,setOptions]=useState<CreationInputOptions>({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose});
-  useEffect(()=>setOptions({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose}),[initialPlatform,initialImage,initialImagePurpose]);
+  const [options,setOptions]=useState<CreationInputOptions>({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose,generationModel:initialGenerationModel});
+  useEffect(()=>setOptions({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose,generationModel:initialGenerationModel}),[initialPlatform,initialImage,initialImagePurpose,initialGenerationModel]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
   const [prompt, setPrompt] = useState(initialPrompt);
@@ -213,6 +215,30 @@ export default function StudioCreateViewV2B({
             >
               <div className="flex flex-col p-1.5">
                 <div className="flex flex-wrap items-center gap-3 px-3 pt-2 text-xs">
+                <div className="flex flex-col gap-0.5">
+                  <label className="flex items-center gap-1.5 text-white/80">
+                    <span>Modelo</span>
+                    <select
+                      aria-label="Modelo de geração"
+                      disabled={isLoading}
+                      className="rounded bg-black/40 border border-white/10 px-2 py-1 text-xs text-white focus:outline-none focus:border-[#FF5C00]/60 transition-colors"
+                      value={options.generationModel ?? "gemini"}
+                      onChange={(e) => setOptions({ ...options, generationModel: e.target.value as GenerationModel })}
+                    >
+                      {Object.entries(GENERATION_MODEL_LABELS).map(([value, label]) => (
+                        <option key={value} value={value} className="bg-neutral-900 text-white">
+                          {label}
+                        </option>
+                      ))}
+                      <option value="gpt" className="hidden">
+                        GPT (Descontinuado)
+                      </option>
+                    </select>
+                  </label>
+                  <span className="text-[10px] text-white/50 pl-0.5 font-normal tracking-wide">
+                    💡 {getGenerationModelHint(options.generationModel)}
+                  </span>
+                </div>
                 <label>Plataforma <select aria-label="Plataforma" className="rounded bg-black/30 p-2" value={options.platform} onChange={e=>setOptions({...options,platform:e.target.value as CreationInputOptions["platform"]})}>{["instagram","twitter","linkedin","facebook"].map(p=><option key={p} value={p}>{p}</option>)}</select></label>
                 <label className="cursor-pointer underline">{options.image?"Trocar imagem":"Adicionar imagem"}<input aria-label="Imagem do pedido" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>8_000_000){toast.error("Use uma imagem de até 8 MB.");return;}const r=new FileReader();r.onload=()=>setOptions({...options,image:String(r.result)});r.readAsDataURL(f);}}/></label>
                 {options.image&&<><select aria-label="Finalidade da imagem" value={options.imagePurpose} className="bg-black/30 p-2" onChange={e=>setOptions({...options,imagePurpose:e.target.value as CreationInputOptions["imagePurpose"]})}><option value="content">Imagem como fonte de conteúdo</option><option value="visual_reference">Referência visual</option></select><button onClick={()=>setOptions({...options,image:undefined})}>Remover imagem</button></>}

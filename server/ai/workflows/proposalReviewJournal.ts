@@ -1,3 +1,4 @@
+import { reviewDurableContextV5Schema, type ReviewExecutionConfigV5, type ProposalReviewDurableContextV5 } from "@shared/proposalReviewV10";
 import { reviewDurableContextV4Schema, type ReviewExecutionConfigV4, type ProposalReviewDurableContextV4 } from "@shared/proposalReviewV9";
 import { reviewDurableContextV3Schema, type ReviewExecutionConfigV3, type ProposalReviewDurableContextV3 } from "@shared/proposalReviewV8";
 import { reviewDurableContextV2Schema, type ReviewExecutionConfigV2, type ProposalReviewDurableContextV2 } from "@shared/proposalReviewV7";
@@ -25,11 +26,11 @@ const incompatible = () =>
 export function readReviewContext(
   result: unknown,
   input: ProposalExecutionInput,
-  config: ReviewExecutionConfigV1 | ReviewExecutionConfigV2 | ReviewExecutionConfigV3 | ReviewExecutionConfigV4,
+  config: ReviewExecutionConfigV1 | ReviewExecutionConfigV2 | ReviewExecutionConfigV3 | ReviewExecutionConfigV4 | ReviewExecutionConfigV5,
   key: string
 ) {
   const value = readJournalResult<Record<string, unknown>>(result);
-  const parsed = config.policyVersion === 9 ? reviewDurableContextV4Schema.safeParse(value?.__proposalReview) : config.policyVersion === 8 ? reviewDurableContextV3Schema.safeParse(value?.__proposalReview) : config.policyVersion === 7
+  const parsed = config.policyVersion === 10 ? reviewDurableContextV5Schema.safeParse(value?.__proposalReview) : config.policyVersion === 9 ? reviewDurableContextV4Schema.safeParse(value?.__proposalReview) : config.policyVersion === 8 ? reviewDurableContextV3Schema.safeParse(value?.__proposalReview) : config.policyVersion === 7
     ? reviewDurableContextV2Schema.safeParse(value?.__proposalReview)
     : reviewContextSchema.safeParse(value?.__proposalReview);
   if (!parsed.success) throw incompatible();
@@ -38,7 +39,7 @@ export function readReviewContext(
   if (
     !match ||
     ctx.policyVersion !== config.policyVersion ||
-    ((ctx.policyVersion === 7 || ctx.policyVersion === 8 || ctx.policyVersion === 9) && ctx.sourceContextHash !== input.editorialContextHash) ||
+    ((ctx.policyVersion === 7 || ctx.policyVersion === 8 || ctx.policyVersion === 9 || ctx.policyVersion === 10) && ctx.sourceContextHash !== input.editorialContextHash) ||
     ctx.requestId !== input.requestId ||
     ctx.proposalId !== input.proposalId ||
     ctx.revision !== (input.revision ?? 1) ||
@@ -59,7 +60,7 @@ export function readReviewContext(
     )
   )
     throw incompatible();
-  if ((ctx.policyVersion === 7 || ctx.policyVersion === 8 || ctx.policyVersion === 9) && (new Set(ctx.textUnitInventory.map(u=>u.id)).size !== ctx.textUnitInventory.length || ctx.textUnitInventory.some(u=>u.textHash !== arsenalHash(u.text) || u.visibleAliases.some(a=>!ctx.aliasMap[a])))) throw incompatible();
+  if ((ctx.policyVersion === 7 || ctx.policyVersion === 8 || ctx.policyVersion === 9 || ctx.policyVersion === 10) && (new Set(ctx.textUnitInventory.map(u=>u.id)).size !== ctx.textUnitInventory.length || ctx.textUnitInventory.some(u=>u.textHash !== arsenalHash(u.text) || u.visibleAliases.some(a=>!ctx.aliasMap[a])))) throw incompatible();
   const expected = buildReviewEvidenceAliases(anchors);
   if (
     arsenalHash(expected.inventory) !== arsenalHash(ctx.anchorInventory) ||
@@ -83,7 +84,7 @@ export async function readReviewOperations(
 export function initialReviewContext(
   operations: GenerationOperationRecord[],
   input: ProposalExecutionInput,
-  config: ReviewExecutionConfigV1 | ReviewExecutionConfigV2 | ReviewExecutionConfigV3 | ReviewExecutionConfigV4
+  config: ReviewExecutionConfigV1 | ReviewExecutionConfigV2 | ReviewExecutionConfigV3 | ReviewExecutionConfigV4 | ReviewExecutionConfigV5
 ) {
   const initial = operations.filter(o =>
     o.operationKey.startsWith("review:initial:")
@@ -133,8 +134,8 @@ export async function executeReviewOperation<T>(
   input: ProposalExecutionInput,
   deps: ProposalGraphDeps,
   key: string,
-  context: ProposalReviewDurableContextV1 | ProposalReviewDurableContextV2 | ProposalReviewDurableContextV3 | ProposalReviewDurableContextV4,
-  config: ReviewExecutionConfigV1 | ReviewExecutionConfigV2 | ReviewExecutionConfigV3 | ReviewExecutionConfigV4,
+  context: ProposalReviewDurableContextV1 | ProposalReviewDurableContextV2 | ProposalReviewDurableContextV3 | ProposalReviewDurableContextV4 | ProposalReviewDurableContextV5,
+  config: ReviewExecutionConfigV1 | ReviewExecutionConfigV2 | ReviewExecutionConfigV3 | ReviewExecutionConfigV4 | ReviewExecutionConfigV5,
   work: () => Promise<T>
 ): Promise<T> {
   return locked(`${input.requestId}:${input.proposalId}`, async () => {

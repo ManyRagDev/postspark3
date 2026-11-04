@@ -1,0 +1,373 @@
+{
+  "version": 1,
+  "intents": [
+    {
+      "id": "afirmar_mensagem",
+      "label": "Destacar uma mensagem central",
+      "description": "Concentrar a peça em uma afirmação, posicionamento ou frase principal de leitura rápida. Exemplos: uma frase forte; manifeste a ideia central. O destaque é editorial e não exige gritos, agressividade ou excesso de texto. Não fragmentar a frase em ideias independentes só porque o título usa várias caixas."
+    },
+    {
+      "id": "analisar_pontos_negativos",
+      "label": "Analisar pontos negativos",
+      "description": "Examinar limitações, falhas, riscos ou desvantagens do assunto, com argumentos sustentados pelo insumo. Exemplos: explique os problemas; destaque os pontos negativos. Pode tratar uma única opção e não exige comparação. Não inferir crítica pelo tema, nem inventar riscos. Sem críticas proíbe esta abordagem; sem comparação não a proíbe."
+    },
+    {
+      "id": "anunciar_novidade",
+      "label": "Anunciar uma novidade",
+      "description": "Comunicar lançamento, atualização, evento ou notícia com uma chamada principal e apoio conciso, se disponível. Exemplos: anuncie a abertura; divulgue a novidade. Não implica desconto, urgência, exagero ou chamada comercial. Não transforme simples explicação em anúncio; sem divulgação proíbe essa finalidade."
+    },
+    {
+      "id": "apresentar_com_imagem",
+      "label": "Apresentar com protagonismo da imagem",
+      "description": "Apresentar pessoa, produto, objeto ou cena deixando a imagem comunicar o contexto, acompanhada por mensagem curta. Diferencia-se de explicar detalhadamente atributos em vários parágrafos. Não exige venda, celebridade ou tema específico. Respeitar pedidos sem foto ou sem imagem e a disponibilidade real de mídia."
+    },
+    {
+      "id": "comentar_imagem",
+      "label": "Comentar uma imagem",
+      "description": "Usar texto breve para interpretar, contextualizar ou chamar atenção a algo mostrado em uma imagem. A relação entre texto e cena faz parte da mensagem; depende de mídia adequada e de slot real. Não inventar o conteúdo de uma imagem indisponível. Sem imagem proíbe o uso; a ausência de foto no pedido é neutra."
+    },
+    {
+      "id": "comparar_alternativas",
+      "label": "Comparar alternativas",
+      "description": "Colocar dois lados, opções ou situações em relação, explicitando diferenças, vantagens ou trade-offs. Exemplos: compare A e B; mostre antes e depois. Pedir apenas os pontos negativos de uma opção não implica comparação. Se o pedido disser sem comparar, registre a proibição específica; a palavra comparação isolada não é um pedido positivo."
+    },
+    {
+      "id": "convidar_participacao",
+      "label": "Convidar à participação",
+      "description": "Encaminhar o público para uma ação de participação, como inscrição, visita, contato ou comentário, com convite explícito. Não inventar prazo, link, benefício ou oferta. Um campo CTA no design é capacidade, não obrigação. Sem CTA ou não convide proíbe o convite; ausência de pedido comercial não significa proibição."
+    },
+    {
+      "id": "destacar_dado",
+      "label": "Destacar um dado fornecido",
+      "description": "Dar protagonismo a um número, resultado ou métrica presente no insumo, conservando unidade e contexto necessários. Exemplo: destaque os 18% informados no relatório. Mencionar um tema quantitativo não autoriza criar uma estatística. Sem números é proibição explícita; ausência de número não é pedido para inventar um."
+    },
+    {
+      "id": "esclarecer_equivoco",
+      "label": "Esclarecer um equívoco",
+      "description": "Contrapor uma afirmação equivocada à explicação ou correção sustentada pelo insumo. Exemplos: mito e realidade; explique por que essa ideia está errada. Não pressupor que uma afirmação seja falsa nem que todo contraste seja uma correção. Sem desmentir é proibição específica desta abordagem."
+    },
+    {
+      "id": "estimular_reflexao",
+      "label": "Estimular uma reflexão breve",
+      "description": "Apresentar uma pergunta, observação ou ideia central para provocar reflexão, com pouco desenvolvimento. Exemplos: proponha uma reflexão; faça uma pergunta para pensar. Não pressupõe motivação, autoajuda ou tom filosófico. Sem pergunta proíbe a forma interrogativa, mas não toda reflexão ou afirmação."
+    },
+    {
+      "id": "explicar_raciocinio",
+      "label": "Explicar um raciocínio",
+      "description": "Desenvolver uma ideia com contexto, causas, razões ou consequências em texto encadeado. Exemplos: explique como funciona; mostre por que acontece. Não obriga listas, comparação, crítica ou tom didático infantil. Sem explicação longa limita o desenvolvimento, sem necessariamente proibir uma frase de apoio."
+    },
+    {
+      "id": "organizar_pontos",
+      "label": "Organizar pontos independentes",
+      "description": "Apresentar recomendações, argumentos ou observações em itens separados e completos, ligados pelo mesmo assunto. Exemplos: liste os motivos; três dicas. Os itens não precisam ser opostos nem formar etapas. Respeitar quantidade e capacidade reais do design. Sem lista proíbe esta organização; não deduzir lista só pelo assunto."
+    },
+    {
+      "id": "orientar_acao",
+      "label": "Orientar uma ação",
+      "description": "Indicar como fazer algo ou qual próximo passo seguir, com instrução útil e compreensível. Pode ser uma orientação curta ou sequência quando o formato comportar. Exemplos: ensine o procedimento; diga como começar. Não confundir com vender ou chamar para clicar. Sem tutorial restringe instruções sequenciais, não toda explicação."
+    },
+    {
+      "id": "sintetizar",
+      "label": "Sintetizar uma conclusão",
+      "description": "Reunir a conclusão ou mensagem essencial de um conteúdo já fornecido, preservando seu sentido. Exemplos: resuma o aprendizado; encerre com uma síntese. Não introduzir fatos nem transformar resumo em convite. Em carrosséis, depende da composição de fechamento disponível; não obriga todo slide a concluir."
+    }
+  ],
+  "designs": [
+    {
+      "sourceId": "0161174b-436d-4fb3-81bc-774ecb2652ac",
+      "sourceHash": "7ab4dbd8fcb8a71201b0016e35612c6cb66670e218207f9de7abdb7250461f73",
+      "intentIds": [
+        "analisar_pontos_negativos",
+        "organizar_pontos",
+        "orientar_acao"
+      ],
+      "rationale": "A composição r9 dispõe até três cartões independentes sob título comum. Cada cartão pode trazer um argumento, limitação ou orientação completa. As duas linhas de cada cartão pertencem à mesma ideia; quantidade e ordem dependem do pedido."
+    },
+    {
+      "sourceId": "10f85079-4bcf-4d58-8072-fb7665a5d39c",
+      "sourceHash": "ac72d9d2a345de9d560fa7c3e885e115e865d3f2e3ad65b0b0f30dc2fc4fec15",
+      "intentIds": [
+        "afirmar_mensagem",
+        "anunciar_novidade",
+        "convidar_participacao"
+      ],
+      "rationale": "Faixas r9 com título, apoio curto e CTA, sem variante de leitura. Permite aviso e convite concentrados; as faixas decorativas não representam itens independentes."
+    },
+    {
+      "sourceId": "189d39d4-b183-4e3f-8965-31994f11f05b",
+      "sourceHash": "e8f40e071da1c53028cb76d7ebe0fa0ed720075d8e9bb8ff522c88eeb862ca24",
+      "intentIds": [
+        "afirmar_mensagem",
+        "anunciar_novidade",
+        "estimular_reflexao"
+      ],
+      "rationale": "Blocos cromáticos r9 organizam um título e apoio breve, sem imagem ou lista. Permitem mensagem principal e chamada concisa. Cor não define tom, humor ou assunto."
+    },
+    {
+      "sourceId": "29b34537-dadd-4db7-8b83-d7373ea792c2",
+      "sourceHash": "1caa5203b6b1cf02c6dc2aeacd72524e945dcf2e4e19c7cb6eaf9dd797a4ef03",
+      "intentIds": [
+        "afirmar_mensagem",
+        "anunciar_novidade",
+        "convidar_participacao"
+      ],
+      "rationale": "Esta origem ideas-window r9 tem título e apoio curto com CTA, sem variante de leitura. Favorece aviso, convite e mensagem central; não herda a capacidade da outra origem homônima."
+    },
+    {
+      "sourceId": "408db15a-9f12-449c-803a-976391883758",
+      "sourceHash": "92e9e0c6b15e79c8e2824422e3c85daa956371d58e699b2ec9e17f96b8c577a1",
+      "intentIds": [
+        "analisar_pontos_negativos",
+        "explicar_raciocinio",
+        "orientar_acao",
+        "sintetizar"
+      ],
+      "rationale": "A origem r9 tem título, um corpo e CTA em papel. Variantes de leitura e síntese ampliam o apoio à explicação e à análise; no estático vale a capacidade original. Não há lista nativa."
+    },
+    {
+      "sourceId": "49ba7d37-41f8-4a7e-8223-71ecc1fef951",
+      "sourceHash": "e726ab8d9f4814db85814b90749cb3e30f0801151aff8252986dffa619aaa101",
+      "intentIds": [
+        "analisar_pontos_negativos",
+        "convidar_participacao",
+        "explicar_raciocinio",
+        "orientar_acao"
+      ],
+      "rationale": "O papel r9 oferece título, apoio e CTA, com variantes de leitura e síntese. Favorece explicação concisa ou orientação e admite crítica fundamentada; o visual não impõe positividade."
+    },
+    {
+      "sourceId": "6377a8db-73bc-4eb5-88eb-6d63d868431e",
+      "sourceHash": "a3e9bcbc2d82c779703ef44f98129e6aa763a2543a6113bb2857e884c6dc3348",
+      "intentIds": [
+        "analisar_pontos_negativos",
+        "explicar_raciocinio",
+        "orientar_acao",
+        "sintetizar"
+      ],
+      "rationale": "Esta segunda origem daily-paper r9 oferece título, corpo e CTA com leitura e síntese. Permite raciocínio ou limitações em prosa. Seu repertório é identificado separadamente do outro daily-paper."
+    },
+    {
+      "sourceId": "63c1c5b4-367b-4721-8588-3394eb48fd77",
+      "sourceHash": "a72eef8f9972ab01a4423ab9708814317dd1958a8fe9008f589423ef0bcdae4e",
+      "intentIds": [
+        "convidar_participacao",
+        "explicar_raciocinio",
+        "orientar_acao"
+      ],
+      "rationale": "Esta segunda origem ideas-window r9 possui variante de leitura breve além de título, apoio e CTA. Sustenta orientação e explicação concisa; preserva identidade própria apesar do nome compartilhado."
+    },
+    {
+      "sourceId": "6dc5d744-8940-4eac-8016-1517c7c556c0",
+      "sourceHash": "a6e9caa71dd767f4773c1efc923497dc2a6d265c8f1861b02ab1157380215be2",
+      "intentIds": [
+        "afirmar_mensagem",
+        "apresentar_com_imagem",
+        "comentar_imagem"
+      ],
+      "rationale": "A origem r9 tem uma fotografia dominante e um único título dividido em três regiões, sem corpo ou lista. Sustenta apresentação visual e comentário curto. As três caixas não são três argumentos."
+    },
+    {
+      "sourceId": "7556a437-6195-4940-8d60-c8dfa34e9ea7",
+      "sourceHash": "d05168d2b79e341725628bbed1a5cdd24ff50f4511b0bf5105c339f7dd33e8b3",
+      "intentIds": [
+        "afirmar_mensagem",
+        "estimular_reflexao",
+        "sintetizar"
+      ],
+      "rationale": "A hierarquia contida r9 tem título e apoio conciso; o repertório também oferece leitura curta e síntese. Favorece ideia central ou reflexão breve sem exigir positividade, autoajuda ou linguagem informal."
+    },
+    {
+      "sourceId": "88fc88de-3f47-49f7-86a4-82e89c5a24db",
+      "sourceHash": "1064a152f436560d4572d7c35098efa917310e9ec3730469f3a88ea2ce2a68c8",
+      "intentIds": [
+        "analisar_pontos_negativos",
+        "convidar_participacao",
+        "explicar_raciocinio",
+        "orientar_acao"
+      ],
+      "rationale": "Esta origem ideas-paper r9 oferece título, corpo e CTA, com leitura e síntese no repertório. Apoia explicação ou análise em parágrafo e orientação; camadas de papel não são itens semânticos."
+    },
+    {
+      "sourceId": "8c32f6a2-9e62-46ac-8220-8b64856f019e",
+      "sourceHash": "a8b1adbb99234d15e55e21f6b7bddc0ed42ecb87cf726da9bfa8c6d863e4874d",
+      "intentIds": [
+        "convidar_participacao",
+        "explicar_raciocinio",
+        "orientar_acao"
+      ],
+      "rationale": "A janela r9 tem título, apoio único e CTA, com variante de leitura breve. Sustenta orientação concisa e convite; os fragmentos do título formam uma frase, sem slots de comparação."
+    },
+    {
+      "sourceId": "8ef8835c-108f-43e7-8a5e-c20fc69b0bf7",
+      "sourceHash": "afb2ac9ad1fe5f4262b2e1638a679daa7d87060a29a91f86c62a11d294ab6428",
+      "intentIds": [
+        "afirmar_mensagem",
+        "anunciar_novidade",
+        "convidar_participacao"
+      ],
+      "rationale": "O repertório r9 de faixas tem título, apoio curto e CTA, sem variante de leitura. Serve a chamada concisa e convite; decoração em faixas não constitui lista de pontos."
+    },
+    {
+      "sourceId": "9a5e0b0d-c2d2-4fad-8415-57c6b26ebab4",
+      "sourceHash": "1798534952ba102ff8bca4397f2bd774a9e1847c5193f6c2d986f03c7e53d0c5",
+      "intentIds": [
+        "afirmar_mensagem",
+        "anunciar_novidade",
+        "explicar_raciocinio"
+      ],
+      "rationale": "O repertório r9 combina título marcado, apoio e variante de leitura curta. Permite chamada ou explicação concisa; interferência gráfica não impõe gírias, alarmismo ou tema tecnológico."
+    },
+    {
+      "sourceId": "9b36720c-b18f-4a9a-81b0-960521610c29",
+      "sourceHash": "e94ab2e24d5c49622c697f4d12bffd26d35fb0fd53b56ad76719783208c6b214",
+      "intentIds": [
+        "convidar_participacao",
+        "explicar_raciocinio",
+        "orientar_acao"
+      ],
+      "rationale": "Esta origem daily-window r9 possui título, apoio e CTA, além de leitura breve. Permite orientação e convite; o vínculo é pelo ID e hash, sem fundir a outra origem daily-window."
+    },
+    {
+      "sourceId": "9ed999d2-1a2d-4bcd-800c-72feb58f2da2",
+      "sourceHash": "679e65f33c784777602cf2e0111c57b9f18b177a84081213987a6073b250d70c",
+      "intentIds": [
+        "analisar_pontos_negativos",
+        "convidar_participacao",
+        "explicar_raciocinio",
+        "orientar_acao"
+      ],
+      "rationale": "Papel r9 com título, corpo e CTA, além de variantes de leitura e síntese. Suporta explicação e análise em parágrafo; o ornamento não exige tom artesanal nem restringe o assunto."
+    },
+    {
+      "sourceId": "a3f983f9-cab6-42af-8bfa-03d4e790354b",
+      "sourceHash": "de67db8e60d902f34cde8e8977ef9b85be27d7d452110c75109b03697df82d03",
+      "intentIds": [
+        "analisar_pontos_negativos",
+        "explicar_raciocinio",
+        "organizar_pontos",
+        "orientar_acao",
+        "sintetizar"
+      ],
+      "rationale": "A página r9 contém corpo contínuo, lista semântica de um a três itens e conclusão. Permite argumentação, limitações fundamentadas e pontos independentes. Quantidades e extensão continuam sujeitas aos slots da variante."
+    },
+    {
+      "sourceId": "a8562b71-e1e1-4bfa-8cdd-28194a40b6f1",
+      "sourceHash": "10961ad8e5d7ee6fc213f05e3c38b627e715b598e369d7f4dfb5e30a1fc6064a",
+      "intentIds": [
+        "afirmar_mensagem",
+        "anunciar_novidade",
+        "apresentar_com_imagem"
+      ],
+      "rationale": "O split r9 separa fotografia e um único título de impacto. Permite anúncio visual e afirmação curta; a divisão geométrica não oferece dois corpos para comparar argumentos."
+    },
+    {
+      "sourceId": "abbcf9a5-c3f1-4725-8ee5-207c430db40b",
+      "sourceHash": "bbf7e7eb35ce5ed1ca20fdbb06a2a1fad07b5472a2dc9c91434a7bb22e73724b",
+      "intentIds": [
+        "afirmar_mensagem",
+        "anunciar_novidade"
+      ],
+      "rationale": "O título com contorno r9 e seu apoio curto sustentam afirmação ou anúncio direto. Não há variante de leitura nem slot de fotografia nesta composição; impacto visual não equivale a argumentação longa."
+    },
+    {
+      "sourceId": "b0693214-95fe-483f-88e4-6210208b2a85",
+      "sourceHash": "eee92dd4d72f261b652b6962fc162c27f65258b2fda09c5ce78c08f5d87c5720",
+      "intentIds": [
+        "afirmar_mensagem",
+        "anunciar_novidade"
+      ],
+      "rationale": "A tipografia expressiva r9 destaca um título contínuo com apoio curto. Serve a posicionamento ou chamada; rotações e fragmentos não criam tópicos independentes nem espaço para explicação longa."
+    },
+    {
+      "sourceId": "b132a735-358a-4688-829a-61c18976a1b8",
+      "sourceHash": "62db7f4b9e9ee14bb6589cbad735ac3753fb9aea97c8e83f54fa5405bd6c6c7f",
+      "intentIds": [
+        "analisar_pontos_negativos",
+        "convidar_participacao",
+        "explicar_raciocinio",
+        "orientar_acao"
+      ],
+      "rationale": "Esta janela r9 tem título contínuo, corpo e CTA, com variantes de leitura e síntese. Sustenta explicação e análise de limitações em prosa, sem pressupor lados opostos ou lista."
+    },
+    {
+      "sourceId": "b5e7822f-8163-437f-81e7-7fea73cbe87d",
+      "sourceHash": "288f6e1e4308ec24e046f0bd66ecd966a8140b1e870ff3010a270e8d7808ba60",
+      "intentIds": [
+        "afirmar_mensagem",
+        "anunciar_novidade"
+      ],
+      "rationale": "A composição r9 usa título e apoio curto com atmosfera de pôster. Apesar da descrição histórica mencionar imagem, a definição atual não oferece slot de mídia. A afinidade é com chamada textual, sem prometer fotografia."
+    },
+    {
+      "sourceId": "b7d7323a-73d6-4017-8e33-62f485ae0bf0",
+      "sourceHash": "3201519b182026cb80daef0395457939e3bdee11463ef21a15b006b27e04009f",
+      "intentIds": [
+        "afirmar_mensagem",
+        "anunciar_novidade",
+        "estimular_reflexao"
+      ],
+      "rationale": "A grade gráfica r9 contém um título contínuo e apoio pequeno. Permite afirmar uma ideia ou anunciar brevemente; células azuis são decoração e não uma grade de itens editoriais."
+    },
+    {
+      "sourceId": "b92a1f16-5900-4f10-87c1-685e3b2396a0",
+      "sourceHash": "892d2a8124c44093a9f09b8ae8afc80322c4a08c92717b40d448ee9a0ce4ca44",
+      "intentIds": [
+        "apresentar_com_imagem",
+        "comentar_imagem",
+        "convidar_participacao",
+        "explicar_raciocinio"
+      ],
+      "rationale": "A janela r9 combina um slot de mídia, título, apoio e CTA. O repertório permite comentário de imagem e leitura breve. Convite é possibilidade do campo, não obrigação para todo conteúdo."
+    },
+    {
+      "sourceId": "c6b9eb85-a388-4ec5-8d1c-eab55da08610",
+      "sourceHash": "4f04d1a8a3dcc04046c5df4b539483a78e555ae0dc5be4ef6d8e643a0a19133d",
+      "intentIds": [
+        "analisar_pontos_negativos",
+        "convidar_participacao",
+        "explicar_raciocinio",
+        "orientar_acao"
+      ],
+      "rationale": "Esta segunda origem ideas-paper r9 mantém corpo único e CTA, com leitura e síntese disponíveis. Apoia explicação e análise concisa, preservando seu ID e hash próprios; não é sinônimo técnico da outra origem."
+    },
+    {
+      "sourceId": "ee2fd558-0005-45f2-8066-aef00cb4d034",
+      "sourceHash": "9cf8690752d8d7f0e7ab6e0a63e93ef8540c7ec0e93433ea14aa3f4929f37456",
+      "intentIds": [
+        "destacar_dado"
+      ],
+      "rationale": "A composição r9 reserva destaque específico para métrica, com título de contexto. Só cabe dado sustentado pelo insumo; o tamanho do número não autoriza inventar estatísticas ou transformar texto comum em métrica."
+    },
+    {
+      "sourceId": "f0b1f9f1-d0bc-41a4-8878-f57f0f4f9b6b",
+      "sourceHash": "71bb676ec3cedee1939278ff0d8da42107d01cd2ebe9415ca876f6915f1eda24",
+      "intentIds": [
+        "apresentar_com_imagem",
+        "comentar_imagem",
+        "convidar_participacao",
+        "explicar_raciocinio"
+      ],
+      "rationale": "A origem r9 combina título, apoio, imagem e CTA. O repertório inclui leitura e síntese; comporta contextualização breve da imagem e convite, conforme a variante realmente selecionada."
+    },
+    {
+      "sourceId": "f49daa11-9ba1-4313-8e14-6097bb187757",
+      "sourceHash": "ca9bcb5c2fe0178cea47437d8c97a53b19c65db4217b4c9c17dbfb9429ba3f1d",
+      "intentIds": [
+        "comparar_alternativas",
+        "esclarecer_equivoco"
+      ],
+      "rationale": "A composição r9 declara relação contrast entre dois corpos independentes sob título compartilhado. Permite contrastar alternativas ou afirmação e correção; não impõe tema, tom negativo ou vencedor."
+    },
+    {
+      "sourceId": "fec070ec-d7f5-492c-8a8b-50bdda5d7d27",
+      "sourceHash": "83d8e557e251d30996f03f97aa59c19a1e85e797c414be52a59a2b3d7a8e0092",
+      "intentIds": [
+        "analisar_pontos_negativos",
+        "explicar_raciocinio",
+        "orientar_acao",
+        "sintetizar"
+      ],
+      "rationale": "Esta janela r9 inclui variante de leitura com corpo contínuo mais extenso e fechamento de síntese. Sustenta desenvolvimento textual e análise fundamentada. Essa capacidade depende da variante e não amplia o estático automaticamente."
+    }
+  ]
+}

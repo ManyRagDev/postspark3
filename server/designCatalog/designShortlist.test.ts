@@ -5,7 +5,8 @@ import {
 } from "@shared/componentAssembly";
 import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.fixture";
 import { resolveCompleteDesignOffers } from "@shared/completeDesignOffers";
-import { describeCompactOffer } from "@shared/compactDesignProfile";
+import { describeCompactOffer, describeDesignFamilyRepertoire } from "@shared/compactDesignProfile";
+import { resolveDesignFamilyRepertoires } from "@shared/designRepertoire";
 import {
   runWithGenerationTrace,
   type GenerationTrace,
@@ -57,6 +58,47 @@ const input = (cards: ComponentCardV1[]) => ({
 afterEach(() => vi.unstubAllGlobals());
 
 describe("design shortlist", () => {
+  it("ranks family repertoire suitability before recency and similarity in the revised pipeline", async () => {
+    const repertoires = resolveDesignFamilyRepertoires(catalog(14), { slideCount: 1, contentMode: "compose" });
+    const offers = repertoires.map(r => r.defaultOffer);
+    const projections = offers.map(o => ({ ...o.slides[0].card, id: o.offerId, hash: o.signature }));
+    const profiles = Object.fromEntries(repertoires.map(r => [r.defaultOffer.offerId, describeDesignFamilyRepertoire(r)]));
+    const best = offers[0];
+    const requests: JevRequest[] = [];
+    const result = await shortlistCompleteDesigns({ ...input(projections), offers, profiles, rankingPolicy: "suitability_first", recentSelections: [{ requestId: "previous", selections: [{ family: best.family, designIds: [best.sourceId] }] }] }, async request => {
+      requests.push(request);
+      return answer(request, id => id === best.offerId ? 3.1 : 3);
+    });
+    expect(result.cards[0].id).toBe(best.offerId);
+    expect(result.ranking!.find(r => r.id === best.offerId)?.recencyPenalty).toBeGreaterThan(0);
+    expect(requests.every(r => Object.values(r.questions).every(q => q.instructions.design.version === 3))).toBe(true);
+    expect(requests.every(r => r.state.includes("mutually exclusive"))).toBe(true);
+  });
+  it("penalizes zero-confidence JEV scores when rankingPolicy is suitability_first", async () => {
+    const repertoires = resolveDesignFamilyRepertoires(catalog(14), { slideCount: 1, contentMode: "compose" });
+    const offers = repertoires.map(r => r.defaultOffer);
+    const projections = offers.map(o => ({ ...o.slides[0].card, id: o.offerId, hash: o.signature }));
+    const profiles = Object.fromEntries(repertoires.map(r => [r.defaultOffer.offerId, describeDesignFamilyRepertoire(r)]));
+    const zeroConf = offers[0];
+    const highConf = offers[1];
+    const result = await shortlistCompleteDesigns({ ...input(projections), offers, profiles, rankingPolicy: "suitability_first" }, async request => ({
+      model: request.model,
+      answers: Object.fromEntries(
+        Object.keys(request.questions).map(id => [
+          id,
+          id === zeroConf.offerId
+            ? { type: "score" as const, score: 3.5, confidence: 0.0 }
+            : id === highConf.offerId
+            ? { type: "score" as const, score: 3.0, confidence: 0.9 }
+            : { type: "score" as const, score: 2.0, confidence: 0.8 },
+        ])
+      ),
+      usage: { input_tokens: 100, output_tokens: 10, cost: 0.001 },
+    }));
+    // zeroConf: 3.5 * (0.5 + 0) = 1.75
+    // highConf: 3.0 * (0.5 + 0.45) = 2.85 -> highConf must be ranked before zeroConf!
+    expect(result.cards[0].id).toBe(highConf.offerId);
+  });
   it("ranks complete offers independently, retaining true family and component recency", async () => {
     const cards = catalog(14);
     cards[1].completeDesign!.family = cards[0].completeDesign!.family;

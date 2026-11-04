@@ -177,3 +177,5 @@ designs/inbox/*
 
 # Local executor identity, catalog cache and diagnostics
 .postspark-local/
+
+!docs/generation-model-rollout.md

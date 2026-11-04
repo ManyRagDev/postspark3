@@ -1,4 +1,4 @@
-import {publishCatalogIfEnabled} from "./versionedCatalog";
+import {publishCatalogIfEnabled,queueCatalogStagedComponent} from "./versionedCatalog";
 import { componentDefinitionV1Schema, compactComponentCard, componentCardV1Schema, componentKinds, type ComponentDefinitionV1, type ComponentCardV1 } from "../../shared/componentAssembly";
 import type { StudioPreferences } from "../../shared/studioPreferences";
 import { arsenalHash } from "../../shared/arsenalContent";
@@ -34,11 +34,17 @@ function requestsExpressiveStyle(text:string) {
   return /\b(express\w*|criativ\w*|ousad\w*|editorial|impactante|vibrante)\b/i.test(text);
 }
 export async function prepareComponentDraft(value:unknown,actor:string) {
-  const definition=componentDefinitionV1Schema.parse(value),db=getDb();
+  const definition=componentDefinitionV1Schema.parse(value);
   if(definition.assets.some(a=>a.kind!=="catalog"))throw new Error("Componentes usam assets catalog verificados");
+  // The staging transaction validates every asset manifest atomically, alongside
+  // existing canonical rows. Ordinary imports still verify before any write.
+  const staged=queueCatalogStagedComponent(definition,actor);
+  if(staged)return staged;
+  const db=getDb();
   if(definition.assets.length){
     const found=await db.from("design_catalog_assets").select("id,manifest").in("id",definition.assets.map(a=>a.id));
-    if(found.error||definition.assets.some(a=>!found.data?.some((r:any)=>r.id===a.id&&arsenalHash(r.manifest)===arsenalHash(a))))throw new Error("Assets não verificados antes do import");
+    if(found.error)throw found.error;
+    if(definition.assets.some(a=>!found.data?.some((r:any)=>r.id===a.id&&arsenalHash(r.manifest)===arsenalHash(a))))throw new Error("Assets não verificados antes do import");
   }
   const stored=await db.from("design_components").upsert({id:definition.id,definition_hash:definition.hash,definition,status:"draft",kind:definition.kind,source_key:sourceKey(definition),roles:definition.roles,densities:definition.densities,aspect_ratios:definition.aspectRatios,actor_id:actor},{onConflict:"id",ignoreDuplicates:true}).select("id");
   if(stored.error)throw stored.error;

@@ -65,7 +65,7 @@ describe("verify:runtime — manifesto cobre o runtime (SPEC-004)", () => {
 });
 
 describe("verify:runtime — classificação de sondas remotas (SPEC-004)", () => {
-  it.each(["generation_admit","generation_settle","generation_reconcile"])("never invokes mutating durable RPC %s during a read-only audit", async name => {
+  it.each(["editorial_catalog_publish","generation_admit","generation_admit_configured","generation_preparation_expectation","generation_recover_preparation","generation_settle","generation_reconcile"])("never invokes mutating durable RPC %s during a read-only audit", async name => {
     const rpc=vi.fn();
     const requirement=RUNTIME_MANIFEST.requirements.find(item=>item.kind==="rpc"&&item.name===name)!;
     expect(requirement).toBeDefined();

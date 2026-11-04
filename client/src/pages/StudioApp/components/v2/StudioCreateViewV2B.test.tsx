@@ -39,6 +39,31 @@ describe("StudioCreateViewV2B draft control", () => {
     delete (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT;
   });
 
+  it.each(["claude", "deepseek", "gemini"])("submits the active %s model and keeps legacy GPT hidden", model => {
+    const onSubmit = vi.fn();
+    act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={() => {}} initialPrompt="Uma ideia" />));
+    const select = container.querySelector<HTMLSelectElement>('select[aria-label="Modelo de geração"]')!;
+    expect(select.querySelector('option[value="gpt"]')?.className).toContain("hidden");
+    act(() => { select.value = model; select.dispatchEvent(new Event("change", { bubbles: true })); });
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!.click());
+    expect(onSubmit).toHaveBeenCalledWith("Uma ideia", "static", expect.objectContaining({ generationModel: model }));
+    expect(container.textContent).not.toContain("sub-segundo");
+  });
+
+  it("defaults to Gemini and submits an explicit GPT choice with the briefing", () => {
+    const onSubmit = vi.fn();
+    const props = { onSubmit, isLoading: false, declaredFamilyId: null, onDeclareFamily: vi.fn(), initialPrompt: "Uma ideia" };
+    act(() => root.render(<StudioCreateViewV2B {...props} />));
+    const select = container.querySelector<HTMLSelectElement>('select[aria-label="Modelo de geração"]')!;
+    expect(select.value).toBe("gemini");
+    act(() => { select.value = "gpt"; select.dispatchEvent(new Event("change", { bubbles: true })); });
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!.click());
+    expect(onSubmit).toHaveBeenCalledWith("Uma ideia", "static", expect.objectContaining({ generationModel: "gpt" }));
+    act(() => root.render(<StudioCreateViewV2B {...props} initialGenerationModel="gpt" isLoading />));
+    expect(select.disabled).toBe(true);
+    expect(select.value).toBe("gpt");
+  });
+
   it("offers discard only for a saved draft and clears the visible prompt", () => {
     const onDiscardDraft = vi.fn();
     const props = {

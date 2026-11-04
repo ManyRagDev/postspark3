@@ -28,6 +28,64 @@ export interface AdaptedProviderRequest {
   responseFormat?: ResponseFormat;
   schema?: JsonSchema;
   structuredOutputMode?: "native_schema" | "text_schema";
+  normalizeResponseContent?: (content: string) => string;
+}
+
+/** OpenAI strict objects encode an absent optional value as null on the wire. */
+function strictNativeSchema(node: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...node };
+  delete result.$schema;
+  delete result.default;
+  for (const key of ["anyOf", "oneOf", "allOf"])
+    if (Array.isArray(result[key])) result[key] = result[key].map(child => strictNativeSchema(child));
+  for (const key of ["$defs", "definitions"])
+    if (result[key] && typeof result[key] === "object") result[key] = Object.fromEntries(
+      Object.entries(result[key]).map(([name, child]) => [name, strictNativeSchema(child as Record<string, unknown>)])
+    );
+  if (result.items && typeof result.items === "object") result.items = strictNativeSchema(result.items as Record<string, unknown>);
+  if (result.type === "object" || result.properties) {
+    if (result.additionalProperties && typeof result.additionalProperties === "object")
+      throw new Error("native_schema_dynamic_properties_unsupported");
+    const required = new Set(Array.isArray(result.required) ? result.required : []);
+    const properties = Object.entries((result.properties ?? {}) as Record<string, Record<string, unknown>>);
+    result.properties = Object.fromEntries(properties.map(([key, child]) => [
+      key, required.has(key) ? strictNativeSchema(child) : { anyOf: [strictNativeSchema(child), { type: "null" }] },
+    ]));
+    result.required = properties.map(([key]) => key);
+    result.additionalProperties = false;
+  }
+  return result;
+}
+
+function restoreOptionalValues(value: unknown, schema: Record<string, unknown>, root: Record<string, unknown>): unknown {
+  if (typeof schema.$ref === "string") {
+    const resolved = resolveReference(root, schema.$ref);
+    return resolved ? restoreOptionalValues(value, resolved, root) : value;
+  }
+  for (const key of ["anyOf", "oneOf"] as const) {
+    if (!Array.isArray(schema[key])) continue;
+    for (const child of schema[key]) {
+      const restored = restoreOptionalValues(value, child, root);
+      const errors: string[] = [];
+      validateNode(restored, child, root, "$", errors);
+      if (!errors.length) return restored;
+    }
+  }
+  if (Array.isArray(value) && schema.items && typeof schema.items === "object")
+    return value.map(item => restoreOptionalValues(item, schema.items as Record<string, unknown>, root));
+  if (value && typeof value === "object" && !Array.isArray(value) && schema.properties) {
+    const restored = { ...value } as Record<string, unknown>;
+    const required = new Set(Array.isArray(schema.required) ? schema.required : []);
+    for (const [key, child] of Object.entries(schema.properties as Record<string, Record<string, unknown>>)) {
+      if (!(key in restored)) continue;
+      const nullErrors: string[] = [];
+      validateNode(null, child, root, "$", nullErrors);
+      if (restored[key] === null && !required.has(key) && nullErrors.length) delete restored[key];
+      else restored[key] = restoreOptionalValues(restored[key], child, root);
+    }
+    return restored;
+  }
+  return value;
 }
 
 function contentParts(content: MessageContent | MessageContent[]): MessageContent[] {
@@ -73,6 +131,20 @@ export function adaptRequestForProvider(input: {
   messages: NormalizedMessage[];
   responseFormat?: ResponseFormat;
 }): AdaptedProviderRequest {
+  if (input.provider === "openrouter" && input.effectiveModel?.startsWith("openai/gpt-6.1-sol") &&
+      !input.forceTextSchema && input.responseFormat?.type === "json_schema") {
+    const schema = input.responseFormat.json_schema;
+    return {
+      messages: input.messages,
+      responseFormat: { type: "json_schema", json_schema: { ...schema, strict: true, schema: strictNativeSchema(schema.schema) } },
+      schema,
+      structuredOutputMode: "native_schema",
+      normalizeResponseContent: content => {
+        try { return JSON.stringify(restoreOptionalValues(JSON.parse(content), schema.schema, schema.schema)); }
+        catch { return content; }
+      },
+    };
+  }
   const openRouterGeminiNeedsTextSchema =
     input.provider === "openrouter" &&
     input.effectiveModel?.startsWith("google/gemini-3.8-flash");

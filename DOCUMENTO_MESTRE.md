@@ -3298,3 +3298,384 @@ A entrega da captura é independente da imagem de geração e da publicação Ve
 `ops/aws/deploy-capture.py` testa a API em containers limitados antes da ativação;
 atualizações preservam o token e os certificados. Procedimento e limites:
 [captura AWS](ops/aws/README.capture.md).
+
+## Geração com intenção, repertório e revisão material — estratégia 2 (2026-11-01)
+
+O fluxo ativo `/thevoid` e `/studio` oferece Gemini 3.8 Flash, Claude Haiku 5.5 e DeepSeek V4.1 Flash.
+Os três modelos usam os slugs configurados no servidor e schema textual nas
+novas admissões. Gemini 3.8 Flash usa reasoning `low`; Claude e DeepSeek usam
+`none`. GPT Sol
+(`openai/gpt-6.1-sol`, `medium`, schema nativo) permanece compatível com recibos
+históricos e pedidos derivados. Não há fallback entre os modelos. A migração
+0053 amplia as duas funções de admissão sem reescrever recibos existentes.
+Requisitos `kind: content` representam entregas; `kind: execution` representa
+diretrizes de formato, mídia, tom e limites factuais, mantidas no contexto editorial.
+A migração 0054 compara a revisão V10 com a projeção material desses requisitos;
+recibos sem `kind` preservam a semântica anterior. A
+verificação e implantação coordenada estão em [ativação dos modelos](docs/generation-model-rollout.md).
+O servidor resolve a escolha enumerada e grava `generation_config` na mesma
+transação da admissão e reserva de Sparks. A configuração inclui a versão da
+estratégia, o modelo, os parâmetros e o modo de saída; fica separada da entrada
+original do cliente e de seu hash de idempotência. Retomadas preservam essa
+configuração. “Gerar mais” herda a configuração do pedido original, após conferir
+a propriedade desse pedido. JEV, leitura de fontes, imagens e revisão conservam
+seus responsáveis próprios.
+
+`GENERATION_STRATEGY_VERSION=2` habilita o novo caminho para novas admissões.
+O padrão continua `1` para permitir implantação coordenada; mudar o ambiente não
+reinterpreta pedidos já admitidos. A estratégia 2 produz preparação versão 6,
+perfis versão 3 e revisão protocolo 10, com configuração de revisão versão 5.
+As versões anteriores mantêm seus leitores, semântica e operações duráveis.
+
+Em 03/11/2026, a publicação do catálogo R9 criou a revisão ativa 5 a partir
+da revisão 4 de staging. As 29 famílias e 156 lâminas derivadas ficaram
+disponíveis no catálogo aprovado. Os pedidos fixam a revisão na admissão.
+A estratégia 2 está ativa nas novas admissões de produção. A API Vercel e o
+worker AWS receberam a mesma versão de código. A preparação mantém a
+quantidade confirmada de lâminas como restrição de formato. Citações abreviadas
+de requisitos de execução são expandidas a partir do pedido quando todos os
+trechos existem na ordem indicada. A auditoria aplica a mesma normalização ao
+recibo original do provedor.
+
+Novas admissões das duas estratégias registram `layoutFitPolicy: subpixel_v1`.
+Na inspeção tipográfica, excesso residual de até 0,5 unidade da caixa vira
+diagnóstico. Grupos ampliados têm tolerância local menor para limitar o excesso
+na prancheta. Excesso maior aciona a recuperação técnica, sujeito à validação
+e à revisão visual da proposta. Retomadas e pedidos derivados seguem o critério
+do recibo original. A ausência do campo identifica a política anterior.
+
+### Representação e planejamento
+
+O catálogo declara a função comunicativa dos campos, unidades independentes,
+fragmentos tipográficos, relações entre texto e imagem, identidade essencial,
+elementos opcionais e possibilidades de adaptação. Estimativas geométricas de
+texto são identificadas como estimativas; não são medições de texto renderizado.
+O perfil compacto conserva essas relações. Capacidade de lista não é confundida
+com quantidade de linhas, palavras ou fragmentos de um mesmo título.
+
+Definições novas podem usar `contentFragment.allocation` com
+`preserve_occupancy` e uma prioridade de alvos. Isso conserva palavras e ordem,
+ocupando o destaque mesmo com título curto; não escolhe semanticamente qual
+palavra merece destaque. A redação recebe os alvos e essa regra para compor a
+frase. `binding.hideWhenEmpty` associa superfícies e marcadores ao conteúdo
+opcional: esvaziar o campo oculta o conjunto, preenchê-lo restaura os mesmos
+elementos. A regra continua operante na edição e após salvar/reabrir, sem excluir
+elementos da definição. Definições sem esses metadados mantêm o comportamento
+histórico. As estimativas enviadas à escrita V10 usam a mesma projeção de
+capacidade V3 utilizada na seleção, inclusive o gargalo de fragmentos desiguais.
+
+Cada família pode oferecer alternativas por papel de página, incluindo leitura,
+lista, comparação, destaque e síntese. O repertório é linear: mostra as
+alternativas disponíveis sem enumerar seu produto cartesiano nem somar espaços
+de composições mutuamente exclusivas. `defaultOffer` é uma sequência
+representativa determinística, não uma recomendação editorial. O planejador
+escolhe exatamente uma variante por página e a materialização valida a sequência
+concreta. O conjunto reconstruído preserva fontes anteriores; novas definições
+possuem IDs e hashes próprios. Novas famílias percorrem o mesmo extrator e
+resolver, sem exigirem listas de IDs no runtime.
+
+Antes de escolher o layout, a geração interpreta objetivo, tom contextual,
+conteúdo e requisitos. Requisitos explícitos remetem a um trecho do pedido;
+inferências e preferências não se tornam proibições automaticamente. Não se
+impõe engajamento como objetivo padrão. A adaptação controlada usa capacidades
+declaradas; o modo literal conserva as exigências de texto e ordem.
+
+No protocolo histórico, quando há mais de 12 famílias elegíveis, JEV avalia a adequação em lotes e a
+pontuação ponderada pela confiança ordena a lista curta. Os perfis V3 compactos
+incluem a capa, as opções de desenvolvimento e o fechamento. O recibo
+`prepare:selection_input` fixa a versão do perfil para retomadas. Com até
+12 famílias elegíveis, o planejador recebe todas. No protocolo editorial descrito abaixo,
+JEV também pontua catálogos menores. A seleção local planeja os
+três slots, distribuindo unidades de conteúdo em campos reais e na legenda.
+Quando uma família não comporta o plano de um slot, a busca continua nas opções
+elegíveis. Uma exigência de
+cinco itens na arte requer cinco unidades identificáveis nessa superfície; não
+pode ser cumprida por três espaços ou transferida silenciosamente para a legenda.
+Repetir família ou variante é permitido quando atende melhor ao conteúdo.
+
+Somente o catálogo enviado ao planejador usa o transporte implementado em
+`shared/generationSelectionTransport.ts`. Novas admissões da estratégia 2 usam
+`selection_catalog_v2`, que também compartilha objetos e listas idênticos;
+pedidos já admitidos conservam o transporte `selection_catalog_v1` registrado.
+Textos longos exatamente iguais são armazenados uma vez e referenciados em sua
+posição original; contratos de campos idênticos são compartilhados por chave,
+mantendo o vínculo de cada componente. A legenda explica a resolução das
+referências e os objetos literais que se parecem com referências são escapados.
+Intenção, briefing e contexto editorial continuam diretos. Os perfis V3
+canônicos, as entradas do JEV, a ordem das variantes e os contratos de validação
+não são alterados; nenhuma nota de origem ou regra é removida por interpretação
+semântica. O decodificador recompõe o catálogo original e confere seu
+`canonicalHash`, preservando IDs, cardinalidades, obrigatoriedade, capacidades,
+mecânica e limitações. `buildGenerationSelectionRequest` centraliza o pedido
+efetivo e também serve às verificações locais de admissão de custo. O roundtrip
+exato prova preservação de dados, mas não demonstra que o modelo interpreta bem
+as referências: isso requer validação da seleção real.
+
+Um slot sem composição adequada termina como `insufficient_fit`; uma resposta
+inválida de planejamento termina como `planning_failed`. Candidato, variante ou
+campo inválido em um slot não descarta seus irmãos válidos. Os dois casos são
+distintos de indisponibilidade operacional. A entrega parcial e a liquidação
+seguem a política existente de propostas prontas, sem novo preço de Sparks.
+
+### Prazo e reconciliação da preparação
+
+Novas admissões da estratégia 2 fixam no recibo de configuração o orçamento de
+intenção e seleção, o tempo reservado às etapas posteriores e a versão do
+transporte. A seleção de carrosséis com mais de cinco páginas pode esperar até
+180 segundos, limitada pelo prazo total menos a reserva; estáticos usam até 90
+segundos e os demais carrosséis até 120. O prazo de transporte não autoriza
+repetir uma inferência paga, e requisições históricas mantêm sua configuração.
+
+Antes da chamada de intenção ou seleção, o journal registra a expectativa com
+modelo, configuração e hashes das mensagens efetivas e do formato de resposta.
+O recibo recebido é persistido antes da interpretação. Se uma chamada iniciada
+ficar incerta, o pedido permanece em `awaiting_reconciliation`, preservando a
+reserva, sem recomprar a operação. A retomada exige recibo recuperável e confronto
+de proprietário, operação, modelo, configuração, mensagens e schema; depois passa
+pelos validadores normais. Sem identificador ou conteúdo disponível, aguarda-se
+até o prazo original. Retenção no provedor não é habilitada por esse mecanismo.
+
+`generation_runs` distingue modelo solicitado, fase, timeout e custo desconhecido,
+com resumo durável de diagnóstico sem prompts. O fluxo local pode preservar mais
+detalhes diagnósticos conforme sua configuração; a estimativa de tokens de entrada
+é indicada como estimativa. Uma resposta não recuperável não tem custo presumido.
+
+### Escrita, recuperação e revisão
+
+A escrita recebe o plano materializado e seus destinos, antes da composição e
+renderização determinísticas. O pedido congela intenção, candidatos, perfis,
+ranking, catálogo, definições e alternativas de recuperação. Uma troca de família
+replaneja abordagem e distribuição para a nova composição antes de escrever.
+Há até duas famílias alternativas por slot. Os limites de um reparo físico e um
+reparo editorial são separados e compartilhados entre as tentativas daquele slot;
+retomar o journal não renova esses limites nem repete efeitos pagos concluídos.
+
+A revisão V10 usa IDs estáveis de fontes e unidades visíveis, com localização
+textual reconstruída deterministicamente. Examina afirmações e promessas reais,
+condições materiais, cobertura dos requisitos explícitos e a sequência do
+carrossel. Orientações de marca não viram fontes factuais. Preferências estéticas
+permanecem aconselhamento; não vetam a entrega sozinhas. Reparar a estrutura de
+um parecer não fabrica aprovação nem reescreve a peça. Falha operacional incerta
+segue reconciliação e prazo originais.
+
+O protocolo distingue requisitos do contexto e requisitos da intenção planejada.
+Uma repetição entre os dois inventários pode ser normalizada quando o ID pertence
+à intenção e o julgamento e o conjunto completo de evidências coincidem. Essa
+normalização fica auditada e não cria cobertura; IDs desconhecidos ou avaliações
+contraditórias continuam inválidos. O reparo formal recebe os IDs, diferenças e
+caminhos que precisam ser corrigidos. Validade formal não certifica a interpretação
+semântica do modelo: a avaliação de garantias, qualificadores e condições exige
+conferência própria da amostra.
+
+Os recibos do revisor usam o ID canônico da proposta. O journal de uma tentativa
+alternativa usa o prefixo efetivo `-fbN`; o guard de persistência relaciona ambos
+e exige revisão da arte daquela tentativa. Uma revisão da tentativa anterior não
+aprova a arte atual. Auditoria e inspeção de runs reconhecem preparação 6, perfis
+V3, revisão V10 e entrega parcial, mantendo as verificações históricas.
+
+### Migrações e ativação
+
+As migrações incrementais são `0044_generation_model_config.sql` (admissão com
+configuração pinada), `0045_staged_catalog_local_admission.sql` (catálogo preparado
+para validação local) e `0046_generation_review_v10.sql` (recibos, commit e
+reconciliação V10). Dependem das migrações anteriores; não devem ser substituídas
+por reaplicação do schema completo. Os RPCs de escrita são restritos ao runtime.
+A migração `0052_generation_preparation_reconciliation.sql` acrescenta o resumo
+diagnóstico e as operações duráveis de preparação; a API verifica a presença dos
+recursos antes de reservar Sparks para novas admissões que exigem esse protocolo.
+Ela foi aplicada ao Supabase conectado em 2026-11-02; o uso do protocolo ainda
+depende da API e do executor com o código correspondente.
+As migrações `0047_catalog_stage_batch_performance.sql` e
+`0048_catalog_snapshot_batch_performance.sql` reduzem cópias/expansões repetidas
+do catálogo e dão prazo próprio de 60 segundos aos RPCs administrativos de
+staging e leitura do snapshot. O PostgREST aplica esses settings antes da consulta;
+os timeouts globais e dos demais endpoints não mudam.
+
+A migração `0049_catalog_stage_row_validation.sql` verifica o conjunto por
+cardinalidade, identidades únicas e comparação exata de cada registro, evitando
+reconstruir grandes agregados JSONB durante o staging. O servidor envia para
+registro somente definições novas; as reutilizadas são comparadas integralmente
+com o snapshot e continuam presentes na validação completa da transação.
+Para staging, a leitura das fontes usa páginas de 25 componentes, incluindo
+cartões e manifests dos assets. A revisão das fontes é conferida antes e depois
+da leitura, e novamente sob lock no commit; uma mudança concorrente rejeita o
+conjunto, sem gravar um catálogo parcialmente atualizado. Cada leitura tem prazo
+de 12 segundos. Falhas transitórias permitem uma repetição por leitura, até
+quatro repetições extras no conjunto; erros de autorização e de conteúdo não
+são repetidos. Os manifests dos novos assets são conferidos na transação de
+staging, evitando consultar repetidamente cada asset antes de enfileirar as
+definições em memória. A publicação ordinária mantém seu caminho existente.
+A migração `0050_catalog_stage_timing.sql` registra a duração e as contagens
+de seis etapas administrativas do staging. Esses logs não contêm definições ou
+identificadores de usuários; a etapa final indica retorno da função, enquanto
+a confirmação da instalação depende do recibo e da releitura da revisão.
+
+A migração `0051_catalog_stage_delta.sql` acrescenta um transporte administrativo
+por diferenças. Havendo uma revisão imutável da mesma fonte, o cliente envia sua
+identidade e hash, somente as linhas novas ou com cartões/metadados alterados,
+os registros novos e todos os índices recalculados. O banco recompõe as demais
+linhas dessa revisão e chama `catalog_stage`, preservando a validação integral
+das definições, assets, cartões, cardinalidade, índices e fonte sob lock. O RPC
+usa `SECURITY INVOKER`, execução exclusiva de `service_role` e o mesmo prazo
+administrativo; não muda a revisão ativa ou os privilégios das tabelas.
+Sem revisão base, a primeira importação usa o snapshot completo. Erros de leitura
+ou de hash não provocam troca silenciosa de protocolo ou repetição da escrita.
+
+`buildCatalogPublication` centraliza a construção de registros, snapshot, summary,
+índices e hash para o importador e para preparação administrativa de payloads.
+O builder não faz chamadas externas nem grava dados. Uma invocação administrativa
+via SQL usa o mesmo RPC e exige conferência do administrador e releitura da revisão
+resultante; não constitui um fallback de acesso a dados no produto. Snapshot e
+definições remotos, inclusive o catálogo ativo, precisam ser conferidos mesmo
+quando o transporte retornou sucesso.
+
+`withCatalogStaging` registra drafts, vínculos de assets, evidência estrutural e
+snapshot imutável em uma transação. A revisão preparada não muda a revisão ativa
+nem publica os novos cartões no índice consumido pelos workers antigos.
+`GENERATION_LOCAL_CATALOG_REVISION` seleciona essa revisão somente com
+`NODE_ENV=development`, executor `local-demand` e execução local habilitada.
+Capabilities, manifesto, download do snapshot e prontidão usam essa mesma
+revisão local, inclusive antes da admissão. Fora desse escopo, consultam a revisão
+ativa. Esse valor não é aceito do navegador. A ativação explícita por
+`activateCatalogRevision` confere a revisão das fontes, publica os índices e
+ativa o mesmo snapshot validado; alterações concorrentes nas fontes exigem nova
+validação.
+
+A ativação do fluxo requer migrations, API e executor compatíveis e a escolha
+coordenada da estratégia e do catálogo. A preparação local não equivale a deploy
+ou ativação de produção. O harness em `server/benchmarks/generationMatrix/`
+compara as duas estratégias e os dois modelos com journal, teto de custo e
+chamadas, manifest imutável e painel sem identificação dos modelos. Seu modo
+padrão não faz inferências pagas; resultados de fixtures e medições físicas não
+demonstram qualidade editorial nem uma jornada autenticada.
+
+O plano de geração é proveniência, não um segundo documento de edição.
+`CanvasPostModel` permanece autoritativo: mutações passam por
+`CanvasLabPage.handleUpdatePost`, renderização por `CanvasPostStage` e
+persistência por `saveAdapter` em `canvas_model`. Alterações posteriores do usuário
+não são sobrescritas pelo planejamento original. A validação de disponibilização
+inclui criação, galeria, edição, salvamento, reabertura e exportação reais de post
+único e carrossel.
+
+### Afinidade editorial local — protótipo em backlog (2026-11-04)
+
+Por decisão de produto em 2026-11-04, a ativação foi adiada para uma fase com
+orçamento e capacidade de infraestrutura adequados. O MVP mantém interpretação
+e seleção pelo fluxo remoto existente; `EDITORIAL_AFFINITY_MODE=off` permanece
+o padrão. Código e avaliações ficam preservados para retomada, sem ativar
+observação ou influência na seleção. Contexto e pendências:
+[backlog de afinidade editorial local](docs/backlog-afinidade-editorial-local.md).
+
+`server/ai/editorialAffinity/` calcula similaridade entre o texto submetido e
+referências editoriais offline. A primeira versão suporta somente `off` (padrão)
+e `shadow`: não modifica a avaliação JEV, a shortlist, o plano, billing ou o
+`CanvasPostModel`. A interpretação de requisitos/conteúdo por LLM permanece.
+O processamento ocorre na preparação após o envio, sem feedback durante digitação.
+
+As anotações iniciais cobrem os 29 repertórios r9 (25 nomes de família distintos),
+com 116 referências e identidades/hashes das composições que as sustentam.
+O resolvedor existente limita a observação às variantes disponíveis, ao modo
+literal/adaptável e à obrigação de mídia. Fonte ou variante sem correspondência
+fica sem score; nomes de família e temas de exemplos não são identidades.
+As anotações e os 40 casos de avaliação são hipóteses de engenharia pendentes de
+revisão editorial. Similaridade não é probabilidade nem comprova suficiência de
+um pedido vago; esta versão não contém detector semântico de fora de escopo.
+
+`pnpm editorial:provision minilm` (ou `e5`) baixa explicitamente um modelo público
+em revisão fixada para `.postspark-local/editorial-affinity/<modelo>`.
+`pnpm editorial:affinity compile <diretório>` verifica os arquivos e compila os
+vetores; `evaluate <diretório> <relatório.json>` compara os casos offline e
+`inspect <diretório> "pedido"` mostra as afinidades. Somente o provisionamento
+usa rede. O runtime verifica hashes e usa arquivos locais, com CPU, mean pooling
+com máscara e normalização L2. Não trunca silenciosamente, limita concorrência
+e devolve diagnóstico neutro em falha/timeout. O prazo é cooperativo; uma
+inferência nativa iniciada conserva sua vaga até terminar. Os pesos e relatórios
+locais não fazem parte do bundle do frontend nem são versionados no Git.
+
+Em uma retomada futura, para observar, configurar `EDITORIAL_AFFINITY_MODE=shadow` e
+`EDITORIAL_AFFINITY_DIR` com o caminho absoluto do diretório compilado, e reiniciar
+o executor. Atualizar todos os leitores/executores antes dessa ativação: versões
+anteriores do schema estrito não conhecem o campo opcional `editorialAffinity`.
+Desativar o modo não apaga recibos salvos; um rollback deve manter um leitor
+compatível com esse campo.
+O recibo fica no `selection_input` já existente e no estado preparado, separado
+dos scores JEV, sem nova operação durável ou migração. Retomadas usam o recibo
+salvo; históricos sem o campo continuam sem observação. Nenhuma mudança nos
+limiares ou nos artefatos reclassifica uma preparação já concluída.
+
+### Intencionalidades editoriais dinâmicas — protocolo remoto (2026-11-04)
+
+Novos pedidos usam a estratégia 2 por padrão e fixam `editorialIntentVersion=1`
+na configuração de admissão. O fluxo ativo é TheVoid → contexto e catálogo
+fixados → chamada LLM `prepare:intent` → JEV → planejamento local → redação e
+revisão → galeria/CanvasLab. A extração editorial amplia a chamada de intenção
+existente; não acrescenta uma segunda chamada de classificação nem ativa o
+encoder local. A interpretação ocorre após o envio do pedido, sem feedback
+visual durante a digitação nesta versão.
+
+`shared/editorialIntent.ts` define o vocabulário autorado e a leitura parcial.
+Cada sinal tem ID, estado `requested`, `suggested` ou `forbidden`, origem,
+clareza qualitativa, justificativa e trecho literal quando explícito. Ausência
+significa não especificado, com efeito neutro. Inferências são apenas sugestões
+indicativas; não viram proibições ou obrigações materiais. Os IDs são validados
+contra o vocabulário congelado; uma resposta inválida interrompe a preparação
+antes do JEV. A validação estrutural não prova a precisão semântica do LLM.
+
+A migração `0055_editorial_catalog.sql` acrescenta revisões editoriais imutáveis
+em JSONB e um ponteiro por revisão do catálogo de designs. Cada anotação vincula
+`sourceId` e `sourceHash` exatos a intenções compartilhadas e uma justificativa
+composicional. Publicação é atômica e restrita ao serviço; não altera geometria,
+IDs/hashes de componentes, o catálogo visual ativo ou o CanvasPostModel. Novas
+revisões visuais precisam de publicação editorial correspondente; fontes sem
+anotação ficam neutras. O vocabulário não é uma lista fixa importada pelo runtime.
+
+`server/designCatalog/editorialCatalog.ts` mantém ponteiros em memória por
+30 segundos, documentos por hash em cache limitado e leituras concorrentes
+compartilhadas. Uma publicação invalida o cache local; outros processos observam
+a atualização após o TTL. Ausência de catálogo é neutra; falhas de leitura ou
+integridade não são convertidas silenciosamente em ausência. `selection_input`
+congela a revisão e o documento; `prepared.planning` guarda esse catálogo e a
+interpretação no JSONB da geração. Retomadas reutilizam esses registros sem
+consultar o ponteiro atual ou refazer chamadas concluídas.
+
+JEV recebe as capacidades editoriais de cada design e a leitura do pedido,
+inclusive com até 12 candidatos. Seus scores continuam sendo de adequação,
+não probabilidades calibradas de intenção. O planejador mantém elegibilidade,
+regras de mídia e capacidade dos campos. Redação e revisão recebem a mesma
+leitura e definições; sugestões ou aspectos ausentes não criam exigências.
+Recibos históricos sem o marcador preservam schemas, prompts e hashes antigos,
+incluindo a recuperação de respostas incertas. Os contratos V10 de revisão
+permanecem compatíveis; os novos dados entram no hash da entrada de cada revisão.
+
+Novos recibos `selection_input` fixam `familyRankingVersion=1`: a eleição JEV
+tem uma única candidatura por chave `completeDesign.family`, com perfil V4
+agregado de identidade, intenções e capacidades, sem IDs, geometria, campos ou
+sequência de lâminas. Origens diferentes da mesma família permanecem como
+alternativas locais, sem votos adicionais. Após ranquear as famílias, o
+planejador escolhe a composição e suas lâminas, preservando os vínculos exatos
+de fonte/hash. Capacidades de alternativas não são somadas. A nota da família
+e seus membros ficam em `planning.familyElection`; a projeção dessa nota nos
+membros existe apenas para compatibilidade dos consumidores seguintes. A
+auditoria distingue inventário, famílias avaliadas e composições materializadas.
+Recibos anteriores sem esse marcador conservam a avaliação por origem e seus
+hashes; os registros históricos do catálogo não viram candidaturas editoriais.
+
+Para publicar anotações, aplicar as migrações até 0055 antes de ativar o código
+nos leitores e executores. Usar `pnpm editorial:catalog --catalog-revision N
+--file caminho.json` para verificar o documento contra o cache local da revisão
+(ou informar `--snapshot` com um envelope exportado). Acrescentar `--publish`
+publica após conferir a revisão remota. O seed inicial em
+`harness/completeDesigns/editorialCatalogSeed.json` contém 14 intenções para as
+29 origens r9; são anotações iniciais de engenharia, não uma avaliação de
+qualidade do modelo. Adições e alterações são feitas no JSON autorado e
+publicadas como nova revisão, sem editar a lógica de extração. A publicação não
+modifica gerações admitidas que já tenham seu `selection_input` salvo.
+`GENERATION_STRATEGY_VERSION=1` permite rollback das novas admissões; os leitores
+precisam continuar entendendo os recibos da estratégia 2 já gravados.
+
+Estado operacional em 2026-11-04: a migração 0055 foi aplicada ao Supabase
+conectado e registrada como `20261104041427` (`editorial_catalog`). O catálogo
+visual 4 usado pelo localhost possui a revisão editorial
+`982d68db-eeaf-44ad-9766-4a9783b3374f`, com 14 intenções e 29 origens. Essa
+publicação não promove o catálogo visual nem implanta o código nos executores
+de produção; outras revisões visuais precisam de suas próprias anotações.

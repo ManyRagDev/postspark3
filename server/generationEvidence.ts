@@ -7,6 +7,9 @@ import { executionBriefSchema } from "../shared/generationRequest";
 import { arsenalHash } from "../shared/arsenalContent";
 import { proposalDeliverySchema } from "../shared/generationContracts";
 import { inspectDesignElection } from "./designElectionEvidence";
+import { inspectModernReviewEvidence, effectiveEvidenceProposalId, effectiveEvidenceOperationKey } from "./modernGenerationReviewEvidence";
+import { generationModelConfigSchema, generationUsesPlanning } from "../shared/generationModel";
+import { createHash } from "node:crypto";
 import { reviewExecutionConfigV1Schema, reviewDurableContextV1Schema } from "../shared/proposalReview";
 import {
   isPaidGenerationOperation,
@@ -32,6 +35,8 @@ export type GenerationEvidenceInput = {
 /** Pure persisted-data audit. No I/O, generation, repair or rendering. */
 export function inspectGenerationEvidence(input: GenerationEvidenceInput) {
   const request = input.request;
+  const prepared = row(request.prepared);
+  const planned = generationUsesPlanning(request);
   const checks: { code: string; scope: string; passed: boolean }[] = [];
   const check = (code: string, passed: boolean, scope = "request") =>
     checks.push({ code, scope, passed });
@@ -60,24 +65,31 @@ export function inspectGenerationEvidence(input: GenerationEvidenceInput) {
         : nonempty(result.id) && nonempty(result.model))
     );
   };
-  check("terminal_completed", request.status === "completed");
+  const rawProposals = list(request.proposals);
+  const deliveredCount = rawProposals.filter(p => row(p).status === "ready").length;
+  const pending = planned && request.status === "awaiting_reconciliation";
+  check(pending ? "pending_status_matches_operations" : planned ? "terminal_status_matches_deliveries" : "terminal_completed",
+    pending ? rawProposals.some(p => row(p).status === "awaiting_reconciliation") && operations.some(o => o.state !== "completed")
+      : planned ? request.status === (deliveredCount === 3 ? "completed" : deliveredCount > 0 ? "partial" : "failed") : request.status === "completed");
   check("operation_keys_unique", operationByKey.size === operations.length);
   check(
     "no_unresolved_operations",
     operations.length > 0 && operations.every(op => op.state === "completed")
   );
-  check("selection_persisted", completed("prepare:selection"));
-  const rawProposals = list(request.proposals);
+  check("selection_persisted", completed("prepare:selection") || planned && list(row(prepared.planning).selectorIds).length === 0);
   const slots = rawProposals.map(v => row(v).slot);
   check(
-    "three_ready_slots",
+    planned ? "three_terminal_slots" : "three_ready_slots",
     rawProposals.length === 3 &&
       [0, 1, 2].every(slot => slots.filter(v => v === slot).length === 1) &&
-      rawProposals.every(v => row(v).status === "ready")
+      rawProposals.every(v => planned ? ["ready", "failed", "cancelled", "expired", ...(pending ? ["awaiting_reconciliation"] : [])].includes(String(row(v).status)) : row(v).status === "ready")
   );
   const ids = rawProposals.map(v => row(v).proposalId);
   check("proposal_ids_unique", ids.every(nonempty) && new Set(ids).size === 3);
-  const prepared = row(request.prepared);
+  if (planned) {
+    const pinnedModel = generationModelConfigSchema.safeParse(request.generation_config);
+    check("generation_model_config_pinned", pinnedModel.success && (() => { const { configurationHash, ...value } = pinnedModel.data; return value.generationStrategyVersion === 2 && configurationHash === createHash("sha256").update(JSON.stringify(value)).digest("hex"); })());
+  }
   const designElection = inspectDesignElection(request, operations);
   if (designElection.status !== "legacy_unverified") check("design_election_coverage_complete", designElection.complete);
   const pinned = reviewExecutionConfigV1Schema.safeParse(prepared.reviewExecutionConfig);
@@ -87,11 +99,13 @@ export function inspectGenerationEvidence(input: GenerationEvidenceInput) {
     const parsed = proposalDeliverySchema.safeParse(raw);
     check(
       "canonical_delivery",
-      parsed.success && parsed.data.status === "ready",
+      parsed.success && (planned || parsed.data.status === "ready"),
       scope
     );
-    if (!parsed.success || parsed.data.status !== "ready")
-      return { slot: source.slot, status: source.status, canonical: false };
+    if (!parsed.success || parsed.data.status !== "ready") {
+      if (planned && parsed.success) check("request_identity", parsed.data.runId === request.id, scope);
+      return { slot: source.slot, status: source.status, canonical: planned && parsed.success, failureCode: row(source.failure).code ?? null };
+    }
     const proposal = parsed.data,
       { bundle } = proposal;
     check("request_identity", proposal.runId === request.id, scope);
@@ -109,15 +123,16 @@ export function inspectGenerationEvidence(input: GenerationEvidenceInput) {
     );
     check(
       "copy_provider_result_persisted",
-      providerLinked(`${proposal.proposalId}:copy`),
+      providerLinked(`${effectiveEvidenceProposalId(proposal)}:copy`),
       scope
     );
     for (const review of proposal.reviews ?? [])
       check(
         "review_provider_result_persisted",
-        (review.policyVersion === 5 || review.policyVersion === 6 || review.policyVersion === 7) ? review.operationKeys[0] === `${proposal.proposalId}:review:${review.round}:${review.inputHash}` && review.operationKeys.every((key,index) => (index === 0 || key.startsWith(`${proposal.proposalId}:review_evidence_repair:${review.round}:`)) && providerLinked(key)) : providerLinked(`${proposal.proposalId}:review:${review.round}:${review.inputHash}`),
+        (review.policyVersion >= 5 && "operationKeys" in review) ? review.operationKeys[0] === `${proposal.proposalId}:review:${review.round}:${review.inputHash}` && review.operationKeys.every((key,index) => (index === 0 || key.startsWith(`${proposal.proposalId}:review_evidence_repair:${review.round}:`)) && providerLinked(effectiveEvidenceOperationKey(proposal, key))) : providerLinked(`${effectiveEvidenceProposalId(proposal)}:review:${review.round}:${review.inputHash}`),
         scope
       );
+    if (prepared.reviewPolicyVersion === 9 || prepared.reviewPolicyVersion === 10 || proposal.reviews?.some(r => r.policyVersion === 9 || r.policyVersion === 10)) inspectModernReviewEvidence(request, operations, proposal, (code, passed) => check(code, passed, scope));
     if (proposal.reviews?.some(r => r.policyVersion === 5 || r.policyVersion === 6 || r.policyVersion === 7)) {
       const effects = operations.filter(o=>String(o.operation_key).startsWith(`${proposal.proposalId}:review:`) || String(o.operation_key).startsWith(`${proposal.proposalId}:review_evidence_repair:`));
       check("review_effect_budget",effects.length <= 3 && effects.filter(o=>String(o.operation_key).includes(":review_evidence_repair:")).length <= 1 && effects.filter(o=>String(o.operation_key).includes(":review:initial:")).length <= 1 && effects.filter(o=>String(o.operation_key).includes(":review:recheck:")).length <= 1,scope);
@@ -187,7 +202,7 @@ export function inspectGenerationEvidence(input: GenerationEvidenceInput) {
         const mediaScope = `${scope}:slide:${slideIndex}:media:${slot.id}`;
         if (slot.deferred) {
           check("required_media_private", Boolean(owned), mediaScope);
-          const key = `${proposal.proposalId}:image:${slideIndex}:${slot.id}`;
+          const key = `${effectiveEvidenceProposalId(proposal)}:image:${slideIndex}:${slot.id}`;
           check(
             "media_operation_persisted",
             completed(key) &&
@@ -332,8 +347,13 @@ export function inspectGenerationEvidence(input: GenerationEvidenceInput) {
         savedSlides.every(
           (slide, i) =>
             slide.id === bundle.slides[i].id &&
-            arsenalHash(slide.composition) ===
-              arsenalHash(bundle.slides[i].composition)
+            (arsenalHash(slide.composition) === arsenalHash(bundle.slides[i].composition) ||
+              (model.caption === bundle.caption && arsenalHash(slide.composition) === arsenalHash(
+                { ...bundle.slides[i].composition, state: "applied",
+                  contentRevision: bundle.slides[i].composition.contentRevision + 1,
+                  content: { ...bundle.slides[i].composition.content, caption: bundle.caption },
+                  userContentHash: arsenalHash({ ...bundle.slides[i].composition.content, caption: bundle.caption }) }
+              )))
         )
     );
     check("saved_compositions_match_delivery", sameCompositions, "saved-post");
@@ -409,6 +429,7 @@ export function inspectGenerationEvidence(input: GenerationEvidenceInput) {
     limitations: [
       "Read-only database snapshot; no browser interaction, rendering, generation, media fetching or authentication flow was exercised.",
       "Persisted review decisions and operation results are checked; provider receipts and actual visible pixels are not independently replayed.",
+      "A verified partial result covers its delivered slots and documented failures; it does not turn insufficient_fit or planning_failed into a delivered post, or certify the model's semantic judgments.",
       "Historical normalized results can lack provider IDs. Durable call metadata is checked when present, including every attempt; providerEvidence reports missing links separately.",
       "Saved-post equality, when requested, expects unchanged delivered compositions. Intentional edits or format changes are reported as mismatches.",
       "Request, operations and optional post/reservation are separate reads; rerun against a stable terminal request if concurrent writes occur.",

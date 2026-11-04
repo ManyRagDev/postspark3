@@ -20,7 +20,7 @@ describe("briefDraftStorage - Etapa 4", () => {
       selectedFormat: "carousel",
     });
 
-    saveBriefDraft(brief, "editorial-bold", "create");
+    saveBriefDraft(brief, "editorial-bold", "create", "gpt");
 
     expect(hasRecoverableBriefDraft()).toBe(true);
 
@@ -30,6 +30,7 @@ describe("briefDraftStorage - Etapa 4", () => {
     expect(loaded?.brief.format).toBe("carousel");
     expect(loaded?.declaredFamilyId).toBe("editorial-bold");
     expect(loaded?.stage).toBe("create");
+    expect(loaded?.generationModel).toBe("gpt");
   });
 
   it("limpa o rascunho com clearBriefDraft", () => {

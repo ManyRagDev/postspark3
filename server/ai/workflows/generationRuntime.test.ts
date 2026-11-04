@@ -25,6 +25,35 @@ import {
 import { ENV } from "../../_core/env";
 import * as localDiagnostics from "../localDiagnostics";
 import { resolveReviewExecutionConfigV7 } from "./reviewExecutionConfigV7";
+import { resolveGenerationModelConfig } from "../generationModel";
+
+describe("uncertain strategy-2 preparation lifecycle", () => {
+  it("keeps preparation pending across restart with zero duplicate effects and preserves timeout phase", async () => {
+    const old = ENV.generationStrategyVersion; ENV.generationStrategyVersion = 2;
+    const generationConfig = resolveGenerationModelConfig({ generationModel: "gpt", postMode: "static" });
+    ENV.generationStrategyVersion = old;
+    const s = setup({ generationConfig, prepared: undefined, deadlineAt: Date.now() + 600_000 });
+    s.store.persistPreparationExpectation = vi.fn(async (_id, _lease, key, expectation) => {
+      s.journal.set(key, { ...s.journal.get(key)!, expectation });
+    });
+    const effect = vi.fn(async () => { throw Object.assign(new Error("controlled timeout"), { name: "LlmTransportTimeoutError", code: "TIMEOUT" }); });
+    const prepare = vi.fn(async (_input, _owner, _experimental, _deadline, deps) => {
+      await deps.operation("selection", async () => {
+        await deps.expectPreparation("selection", { kind: "generation_preparation_v1", configurationHash: generationConfig.configurationHash,
+          model: generationConfig.model, messagesHash: "a".repeat(64), responseFormatHash: "b".repeat(64), requestHash: "c".repeat(64) });
+        return effect();
+      });
+      throw new Error("Unreachable");
+    });
+    const overrides = { store: s.store, prepare, persistTrace: vi.fn(async () => {}), loadTraceCalls: async () => [] };
+    const first = await executeClaimedGeneration(s.record(), "lease", overrides);
+    expect(first.overallStatus).toBe("awaiting_reconciliation");
+    expect(first.proposals.every(p => p.status === "awaiting_reconciliation" && p.failure?.code === "preparation_reconciliation_required")).toBe(true);
+    expect(s.store.finish).toHaveBeenLastCalledWith(id, "lease", "awaiting_reconciliation", "provider_timeout");
+    const second = await executeClaimedGeneration({ ...s.record(), status: "running" }, "other-lease", overrides);
+    expect(second.overallStatus).toBe("awaiting_reconciliation"); expect(effect).toHaveBeenCalledTimes(1);
+  });
+});
 
 const fixtureReviewScenes: import("./proposalReview").RenderReviewScenes =
   async ({ compositions }) =>
@@ -52,7 +81,7 @@ const reviewReply = () => ({
 
 const id = "00000000-0000-4000-8000-000000000002",
   owner = "00000000-0000-4000-8000-000000000001";
-function setup() {
+function setup(overrides: Partial<RequestRecord> = {}) {
   const input = orchestratedGenerationInputSchema.parse({
     ownerId: owner,
     inputType: "text",
@@ -84,10 +113,11 @@ function setup() {
       contextContent: input.content,
       visualPreference: defaultStudioPreferences,
     },
+    ...overrides,
   };
   const journal = new Map<
     string,
-    { state: "new" | "completed" | "uncertain"; result?: unknown }
+    { state: "new" | "completed" | "uncertain"; result?: unknown; expectation?: unknown }
   >();
   const store = {
     get: vi.fn(async () => record),
@@ -134,6 +164,7 @@ function setup() {
         operationKey,
         state: v.state === "new" ? "started" : v.state,
         result: v.result,
+        expectation: v.expectation,
       }))
     ),
   } as unknown as GenerationStore;

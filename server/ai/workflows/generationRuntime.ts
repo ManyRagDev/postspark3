@@ -12,6 +12,8 @@ import {
 import { type OrchestratedGenerationInput } from "@shared/generationRequest";
 import type { SiteIntelligence } from "@shared/postspark";
 import { invokeLLM } from "../../_core/llm";
+import { replanGenerationSlot } from "./generationPlanning";
+import { hydrateCompleteDesignComponents } from "../../designCatalog/completeDesignStore";
 import { loadSiteIntelligence } from "../../siteIntelligence";
 import { scrapeUrl } from "../../siteContent";
 import { getBrandProjectById } from "../../db";
@@ -50,8 +52,8 @@ import { ENV } from "../../_core/env";
 import { assertReviewExecutionConfigV7 } from "./reviewExecutionConfigV7";
 
 export class ReconciliationRequiredError extends Error {
-  constructor(key: string) {
-    super(`reconciliation_required:${key}`);
+  constructor(readonly operationKey: string) {
+    super(`reconciliation_required:${operationKey}`);
   }
 }
 
@@ -142,6 +144,7 @@ export function durableOperations(
     const operationTrace: GenerationTrace | undefined = parent
       ? { ...parent, calls: [], events: [] }
       : undefined;
+    let resultPersisted = false;
     try {
       const result = await (operationTrace
         ? runWithGenerationTrace(operationTrace, work)
@@ -153,6 +156,7 @@ export function durableOperations(
         operationKey,
         operationTrace ? journalResultWithTrace(result, operationTrace) : result
       );
+      resultPersisted = true;
       signal.throwIfAborted();
       console.info(
         `[runtime:op] ✅ [${record.id.slice(0, 8)}] ${operationKey} concluída com sucesso.`
@@ -171,7 +175,7 @@ export function durableOperations(
         );
         parent.events.push(...operationTrace.events);
       }
-      await store
+      if (!resultPersisted) await store
         .markOperationUncertain(record.id, leaseToken, operationKey)
         .catch(() => undefined);
       throw error;
@@ -575,7 +579,8 @@ export async function executeClaimedGeneration(
     platform: record.input.platform,
     postMode: record.input.postMode,
     creationMode: record.input.creationMode,
-    requestedModel: record.input.model ?? "default",
+    requestedModel: record.generationConfig?.model ?? record.input.model ?? "default",
+    generationStrategyVersion: record.generationConfig?.generationStrategyVersion,
     siteIntelligenceId: record.input.siteIntelligenceId,
     startedAt: record.createdAt ?? Date.now(),
     calls: [],
@@ -768,6 +773,7 @@ async function executeClaimedGenerationWithinTrace(
 
       const hasPaidPrepEffect = operations.some(op =>
         op.operationKey.startsWith("prepare:design-shortlist:") ||
+        op.operationKey === "prepare:intent" ||
         op.operationKey === "prepare:selection"
       );
       const selectionInputOp = operations.find(op => op.operationKey === "prepare:selection_input");
@@ -800,9 +806,13 @@ async function executeClaimedGenerationWithinTrace(
         record.deadlineAt,
         {
           loadContext: deps.loadContext,
+          generationConfig: record.generationConfig,
           resumeReviewPolicyVersion,
           signal: controller.signal,
           operation,
+          expectPreparation: deps.store.persistPreparationExpectation
+            ? (key, expectation) => deps.store.persistPreparationExpectation!(record.id, leaseToken, `prepare:${key}`, expectation)
+            : undefined,
           recentSelections: () =>
             deps.store.recentSelections(record.ownerId, record.id),
           generate: params =>
@@ -818,7 +828,9 @@ async function executeClaimedGenerationWithinTrace(
     const currentProposals=[...record.proposals];
     for (const proposal of record.proposals) {
       if (["ready","failed","cancelled","expired","waiting_input"].includes(proposal.status)) continue;
-      try { await deps.verifyPrepared(prepared,record.experimental,undefined,[proposal.slot]); }
+      // A resumed fallback validates its own pinned sequence in replanGenerationSlot.
+      // Withdrawal of the abandoned initial family must not invalidate that work.
+      try { await deps.verifyPrepared(prepared,record.experimental,undefined,prepared.reviewPolicyVersion === 10 && (proposal.attempt?.index ?? 0) > 0 ? [] : [proposal.slot]); }
       catch(error) {
         if(deps.shutdownSignal?.aborted)throw new Error("local_executor_shutdown");
         const failure=failureFromError(error,"catalog");
@@ -844,6 +856,7 @@ async function executeClaimedGenerationWithinTrace(
         sourceImages: prepared.imageSourceReading?.images,
         sourceReferences: prepared.sourceReferences,
         selectedDefinitions: prepared.selectedDefinitions,
+        planning: prepared.planning,
         alternativeDefinitions: prepared.alternativeDefinitions,
         selectionReasons: prepared.selectionReasons,
         editorialApproaches: prepared.editorialApproaches,
@@ -856,6 +869,7 @@ async function executeClaimedGenerationWithinTrace(
         platform: record.input.platform,
         tone: record.input.tone,
         model: record.input.model,
+        generationConfig: record.generationConfig,
         postMode: record.input.postMode,
         deadlineMs: record.deadlineAt,
         signal: controller.signal,
@@ -884,6 +898,7 @@ async function executeClaimedGenerationWithinTrace(
             }),
         },
         ...deps.graphDeps,
+        ...(record.generationConfig && prepared.planning ? { replan: (slot: number, attempt: number, currentFamilies: string[]) => replanGenerationSlot({ prepared, slot, attempt, currentFamilies, generationConfig: record.generationConfig!, deadlineMs: record.deadlineAt, experimental: record.experimental }, { generate: invokeLLM, hydrate: hydrateCompleteDesignComponents, operation: (key, work) => durableOperations(deps.store, record, leaseToken, controller.signal, `${record.proposals[slot].proposalId}:`)(key, work), signal: controller.signal }) } : {}),
         reviewOperations: async proposalId => (await deps.store.listOperations(record.id, record.ownerId))
           .filter(o => o.operationKey.startsWith(`${proposalId}:review:`) || o.operationKey.startsWith(`${proposalId}:review_evidence_repair:`))
           .map(o => ({ ...o, operationKey: o.operationKey.slice(proposalId.length + 1), result: readJournalResult(o.result) })),
@@ -949,7 +964,23 @@ async function executeClaimedGenerationWithinTrace(
     const latest = await deps.store.get(record.id, record.ownerId);
     if (latest && !["queued", "running"].includes(latest.status))
       return requestSnapshot(latest);
-    const failure = failureFromError(error);
+    const failure = failureFromError(error, latest?.prepared ? "execution" : "selection");
+    const pendingPreparation = !latest?.prepared && record.generationConfig?.generationStrategyVersion === 2 &&
+      record.deadlineAt > Date.now() && !controller.signal.aborted
+      ? (await deps.store.listOperations(record.id, record.ownerId)).filter(op =>
+          ["prepare:intent", "prepare:selection"].includes(op.operationKey) && op.state !== "completed" &&
+          (op.expectation as {kind?:string})?.kind === "generation_preparation_v1") : [];
+    if (pendingPreparation.length) {
+      const pendingFailure = { code: "preparation_reconciliation_required" as const, stage: "selection" as const, retryable: false };
+      for (const proposal of latest?.proposals ?? []) {
+        if (["ready", "failed", "cancelled", "expired"].includes(proposal.status)) continue;
+        await deps.store.checkpointProposal(record.id, leaseToken, { ...proposal, status: "awaiting_reconciliation", failure: pendingFailure,
+          errorReason: pendingFailure.code, diagnostics: [...(proposal.diagnostics ?? []), ...pendingPreparation.map(op => ({
+            code: failure.code, target: op.operationKey, evidence: "A resposta de uma operação iniciada não foi confirmada; nenhuma nova inferência foi autorizada.",
+          }))] });
+      }
+      return requestSnapshot(await deps.store.finish(record.id, leaseToken, "awaiting_reconciliation", failure.code));
+    }
     for (const proposal of latest?.proposals ?? []) {
       if (["ready","failed","cancelled","expired"].includes(proposal.status)) continue;
       await deps.store.checkpointProposal(record.id,leaseToken,{...proposal,status:"failed",failure,errorReason:failure.code,completedAt:Date.now()});

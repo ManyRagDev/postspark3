@@ -159,6 +159,8 @@ import { z } from "zod";
 export const generationFailureSchema = z.object({
   code: z.enum([
     "catalog_variant_unavailable",
+    "selection_insufficient_fit",
+    "planning_response_invalid",
     "catalog_component_ineligible",
     "catalog_coverage_incomplete",
     "preparation_contract_incompatible",
@@ -169,6 +171,7 @@ export const generationFailureSchema = z.object({
     "review_deadline_exceeded",
     "provider_unavailable",
     "provider_timeout",
+    "preparation_reconciliation_required",
     "materialization_failed",
     "execution_failed",
     "review_response_truncated",
@@ -208,7 +211,7 @@ export function failureFromError(error: unknown, stage: GenerationFailure["stage
   if (error instanceof GenerationFailureError) return error.failure;
   if((error as {name?:string})?.name==="SourceContextLimitError")return {code:"source_limitation",stage,retryable:false};
   const e=error as {name?:string;code?:string;cause?:{name?:string}};
-  if (e?.name === "LlmDeadlineExceededError" || e?.code === "TIMEOUT") return {code:"provider_timeout",stage,retryable:true};
+  if (e?.name === "LlmDeadlineExceededError" || e?.name === "LlmTransportTimeoutError" || e?.cause?.name === "LlmTransportTimeoutError" || e?.code === "TIMEOUT") return {code:"provider_timeout",stage,retryable:true};
   if (e?.name === "ProviderRequestError" || e?.cause?.name === "ProviderRequestError" || e?.code === "BAD_GATEWAY" || e?.code === "TOO_MANY_REQUESTS") return {code:"provider_unavailable",stage,retryable:true};
   return historicalGenerationFailure(error instanceof Error ? error.message : undefined) ?? { code: "execution_failed", stage, retryable: false };
 }

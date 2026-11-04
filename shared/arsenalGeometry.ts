@@ -3,6 +3,7 @@ import {
   readContentSource,
   contentCoverageIssues,
 } from "./arsenalContent";
+import { subpixelTextOverflowLimit } from "./arsenalReadiness";
 import {
   orderArsenalRelations,
   fragmentContentText,
@@ -38,6 +39,8 @@ export type ArsenalGeometryOptions = {
   measureText: ArsenalTextMeasurer;
   allowReduction?: boolean;
   elasticReduction?: boolean;
+  /** Reports small measured text excesses as readiness diagnostics. */
+  allowSubpixelTextOverflow?: boolean;
 };
 export function measureArsenalElement(
   e: ArsenalElement,
@@ -116,9 +119,24 @@ export function resolveArsenalGeometry(
   source: ArsenalComposition,
   options: ArsenalGeometryOptions
 ): ArsenalComposition {
-  const { measureText, allowReduction = false, elasticReduction = false } = options;
+  const {
+    measureText,
+    allowReduction = false,
+    elasticReduction = false,
+    allowSubpixelTextOverflow = false,
+  } = options;
   const c = structuredClone(source),
     issues: string[] = [];
+  const textOverflowTolerance = (element: ArsenalElement) =>
+    allowSubpixelTextOverflow
+      ? subpixelTextOverflowLimit(arsenalWorldGeometry(element, c.groups).scale)
+      : 0;
+  const reportTextOverflow = (target: string, withinTolerance: boolean) => {
+    const rule = allowSubpixelTextOverflow && withinTolerance
+      ? "overflow:subpixel"
+      : "overflow";
+    issues.push(`${rule}:${target}`);
+  };
   const hidden = new Set(c.version === 3 ? (c.hiddenInstanceIds ?? []) : []);
   c.elements = c.base.instances
     .filter(i => !hidden.has(i.id))
@@ -271,6 +289,20 @@ export function resolveArsenalGeometry(
       }
   }
   issues.push(...contentCoverageIssues(c.content, c.base.bindings));
+  // A blank optional item hides its associated card/marker as one visual unit.
+  // Recomputed from canonical bindings (or the editor's explicit text override)
+  // on each resolve; no instance is removed from the authoritative document.
+  for (const binding of c.base.bindings) {
+    if (!binding.hideWhenEmpty) continue;
+    const occupied = c.elements.some(e =>
+      e.bindingId === binding.id && e.kind === "text" && e.text.trim()
+    );
+    if (!occupied)
+      for (const target of binding.hideWhenEmpty) {
+        const element = c.elements.find(e => e.id === target);
+        if (element) element.opacity = 0;
+      }
+  }
   const expand = (id: string) => repeats.get(id) ?? [id];
   const find = (id: string): ArsenalElement | ArsenalGroup | undefined =>
     c.elements.find(e => e.id === id) ?? c.groups.find(g => g.id === id);
@@ -317,13 +349,13 @@ export function resolveArsenalGeometry(
           let layout = measureArsenalElement(e, measureText);
           // An indivisible token may overflow horizontally while its one-line
           // height still fits. The authored font-size interval covers both axes.
-          const overflowsTokenWidth = () => e.text.split(/\s+/).some(token => {
+          const overflowsTokenWidth = (tolerance = 0.01) => e.text.split(/\s+/).some(token => {
             const measured = measureText({
               text: token, width: 1000000, fontSize: e.fontSize,
               fontFamily: e.fontFamily, fontStyle: String(e.fontWeight),
               fill: e.fill, letterSpacing: e.letterSpacing,
             });
-            return measured.lines.some(line => line.width > e.width + 0.01);
+            return measured.lines.some(line => line.width > e.width + tolerance);
           });
           if (
             allowReduction &&
@@ -371,10 +403,19 @@ export function resolveArsenalGeometry(
               }
             }
           }
-          if (layout.height > p.maxHeight) issues.push(`overflow:${id}`);
+          if (layout.height > p.maxHeight)
+            reportTextOverflow(
+              id,
+              layout.height <= p.maxHeight + textOverflowTolerance(e)
+            );
           // The layout engine can wrap graphemes; a wide indivisible token is still an explicit warning.
           const wide = overflowsTokenWidth();
-          if (wide) issues.push(`overflow:token:${id}`);
+          if (wide)
+            reportTextOverflow(
+              `token:${id}`,
+              allowSubpixelTextOverflow &&
+                !overflowsTokenWidth(textOverflowTolerance(e))
+            );
           const x =
             p.anchor === "center"
               ? base.x + (base.width - e.width) / 2
@@ -446,7 +487,8 @@ export function resolveArsenalGeometry(
   for (const e of c.elements) {
     if (e.kind === "text") {
       const layout = measureArsenalElement(e, measureText);
-      if (layout.height > e.height + 0.01) issues.push(`overflow:${e.id}`);
+      if (layout.height > e.height + 0.01)
+        reportTextOverflow(e.id, layout.height <= e.height + textOverflowTolerance(e));
     }
     if (e.kind === "media" && !c.media[e.id] && !e.imageAssetId && !e.mediaSlot?.deferred)
       issues.push(`missing_media:${e.id}`);

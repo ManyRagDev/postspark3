@@ -113,6 +113,7 @@ export function listMigrationFiles(): string[] {
 
 export async function validateMigrations(): Promise<MigrationValidation[]> {
   const files = listMigrationFiles();
+  if (!files.length) return [];
   const parser = await createPostgresParser();
   const results: MigrationValidation[] = [];
 
@@ -185,6 +186,7 @@ const RPC_PROBE_ARGS: Record<string, Record<string, unknown>> = {
   },
   generation_admit: { p_id: SENTINEL_UUID, p_owner: SENTINEL_UUID, p_idempotency_key: "__verify_sentinel__", p_input_hash: "0".repeat(64), p_input: {ownerId: SENTINEL_UUID,idempotencyKey:"__verify_sentinel__"}, p_experimental: false, p_deadline_at: new Date(Date.now()+60000).toISOString() },
   generation_settle: { p_id: SENTINEL_UUID },
+  editorial_catalog_head: { p_catalog_revision: "0" },
   get_billing_profile: { p_user_id: SENTINEL_UUID },
   has_manylabs_app_access: { p_user_id: SENTINEL_UUID },
   // ensure_manylabs_app_access NÃO é sondado: a função auto-ativa acesso
@@ -266,7 +268,7 @@ async function probeColumn(client: SupabaseClient<any, any>, requirement: Runtim
 }
 
 export async function probeRpc(client: SupabaseClient<any, any>, requirement: RuntimeRequirement): Promise<ProbeResult> {
-  if (["ensure_manylabs_app_access", "generation_admit", "generation_settle", "generation_reconcile", "generation_v5_claim", "generation_v5_worker_heartbeat", "generation_v5_lease_update", "generation_v5_operation", "generation_v5_finish", "generation_v5_cancel"].includes(requirement.name)) {
+  if (["editorial_catalog_publish", "ensure_manylabs_app_access", "generation_admit", "generation_admit_configured", "generation_preparation_expectation", "generation_recover_preparation", "generation_settle", "generation_reconcile", "generation_v5_claim", "generation_v5_worker_heartbeat", "generation_v5_lease_update", "generation_v5_operation", "generation_v5_finish", "generation_v5_cancel"].includes(requirement.name)) {
     return {
       requirement: requirement.name,
       kind: requirement.kind,

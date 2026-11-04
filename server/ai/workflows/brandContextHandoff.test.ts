@@ -102,8 +102,17 @@ it("delivers the same frozen project/playbook to JEV, selector, native copy and 
   expect(context.instructionOrigins).toEqual({tone:"piece", audience:"piece", callToAction:"piece"});
   expect(context.requirements.map(r => r.value)).toContain("milagre garantido");
   expect(context.sources.some(s => s.text.includes("Condição histórica"))).toBe(true);
-  for (const call of deps.jevCalls) expect(JSON.parse(call.state).context.editorialContext).toEqual(context);
-  expect(JSON.parse(deps.generateCalls[0].messages[1].content).editorialContext).toEqual(context);
+  const transported = [...deps.jevCalls.map(call => JSON.parse(call.state).context.editorialContext),
+    JSON.parse(deps.generateCalls[0].messages[1].content).editorialContext];
+  for (const encoded of transported) {
+    if (!encoded.sourceTexts) { expect(encoded).toEqual(context); continue; }
+    const { sources, ...metadata } = context;
+    const { sources: references, sourceTexts, sourceTextEncoding: _encoding, ...actualMetadata } = encoded;
+    expect(actualMetadata).toEqual(metadata);
+    expect(references.map(({ textRef, ...source }: any) => ({ ...source,
+      text: sourceTexts[textRef.textId].slice(textRef.start, textRef.end),
+    }))).toEqual(sources.map(({ hash: _hash, canonicalHash: _canonical, ...source }) => source));
+  }
   const calls:any[] = [];
   const outcome = await executeProposalWorkflow({requestId, runId, proposalId:"affirmative-proposal", slot:0, prompt:input.content, platform:input.platform, postMode:input.postMode,
     projectDossier, projectSnapshot, executionBrief:prepared.executionBrief!, contextContent:prepared.contextContent, editorialContext:context, editorialContextHash:context.hash,

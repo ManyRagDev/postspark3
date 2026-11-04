@@ -1,4 +1,5 @@
 import {ENV} from "../../_core/env";
+import {localCatalogRevisionOverride} from "../../designCatalog/localCatalogOverride";
 import {publishGenerationRecord} from "./generationEvents";
 import { randomUUID } from "node:crypto";
 import type { ComponentDefinitionV1 } from "../../../shared/componentAssembly";
@@ -11,6 +12,7 @@ import type { OrchestratedGenerationInput } from "../../../shared/generationRequ
 import { projectProposalVariation } from "../../../shared/proposalProjection";
 import { getDb } from "../../db";
 import { recordGenerationEvent } from "../generationTrace";
+import { generationModelConfigSchema, type GenerationModelConfig } from "../../../shared/generationModel";
 
 export type GenerationRequestStatus =
   | "queued"
@@ -22,9 +24,10 @@ export type GenerationRequestStatus =
   | "cancelled";
 
 export interface GenerationPreparedState {
-  preparationVersion?: 2 | 3 | 4 | 5;
-  reviewPolicyVersion?: 5 | 6 | 7 | 8 | 9;
-  reviewExecutionConfig?: import("@shared/proposalReview").ReviewExecutionConfigV1 | import("@shared/proposalReviewV7").ReviewExecutionConfigV2 | import("@shared/proposalReviewV8").ReviewExecutionConfigV3 | import("@shared/proposalReviewV9").ReviewExecutionConfigV4;
+  preparationVersion?: 2 | 3 | 4 | 5 | 6;
+  reviewPolicyVersion?: 5 | 6 | 7 | 8 | 9 | 10;
+  reviewExecutionConfig?: import("@shared/proposalReview").ReviewExecutionConfigV1 | import("@shared/proposalReviewV7").ReviewExecutionConfigV2 | import("@shared/proposalReviewV8").ReviewExecutionConfigV3 | import("@shared/proposalReviewV9").ReviewExecutionConfigV4 | import("@shared/proposalReviewV10").ReviewExecutionConfigV5;
+  planning?: import("@shared/generationPlan").GenerationPlanningReceipt;
   editorialContextHash?: string;
   editorialContext?: import("./editorialContextV8").EditorialContext;
   electionReceipt?: import("../../../shared/designElection").AnyElectionDecision;
@@ -46,6 +49,7 @@ export interface GenerationPreparedState {
 }
 
 export interface RequestRecord {
+  generationConfig?: GenerationModelConfig;
   executionMode?: "external" | "local-demand";
   executorScope?: string;
   catalogRevision?: string;
@@ -92,8 +96,11 @@ export interface GenerationOperationRecord {
 }
 
 export interface GenerationStore {
+  isPreparationAvailable?: () => Promise<boolean>;
+  persistPreparationExpectation?:(id:string,lease:string,key:string,expectation:import("@shared/generationPreparationReceipt").PreparationExpectation)=>Promise<void>;
   persistReviewExpectation?:(id:string,lease:string,key:string,expectation:unknown)=>Promise<void>;
   admission(input: {
+    generationConfig?: GenerationModelConfig;
     ownerId: string;
     idempotencyKey: string;
     inputHash: string;
@@ -102,6 +109,7 @@ export interface GenerationStore {
     deadlineAt?: number;
     executorScope?: string;
     catalogRevision?: string;
+    stagedCatalog?: boolean;
   }): Promise<AdmissionResult>;
   claim(workerId: string): Promise<ClaimedGeneration | null>;
   workerHeartbeat(workerId: string): Promise<void>;
@@ -207,6 +215,9 @@ export function requestRecord(value: any): RequestRecord {
     throw new Error("generation_store_invalid_record");
   const leaseUntil = timestamp(value.lease_until ?? value.leaseUntil);
   return {
+    ...((value.generation_config ?? value.generationConfig) != null
+      ? { generationConfig: generationModelConfigSchema.parse(value.generation_config ?? value.generationConfig) }
+      : {}),
     executionMode: value.execution_mode ?? "external",
     executorScope: value.executor_scope ?? undefined,
     catalogRevision: value.catalog_revision != null ? String(value.catalog_revision) : undefined,
@@ -311,7 +322,9 @@ export function createGenerationStore(
   }
 
   return {
+    async isPreparationAvailable(){ try { return await rpc("generation_preparation_available", {}) === true; } catch { return false; } },
     async persistReviewExpectation(id,lease,key,expectation){await rpc("generation_review_expectation",{p_id:id,p_lease:lease,p_key:key,p_expectation:expectation});},
+    async persistPreparationExpectation(id,lease,key,expectation){await rpc("generation_preparation_expectation",{p_id:id,p_lease:lease,p_key:key,p_expectation:expectation});},
     async listOperations(requestId, ownerId) {
       if (!db.from) throw new Error("generation_store_read_unavailable");
       const owned = await db
@@ -414,7 +427,9 @@ export function createGenerationStore(
       );
       if (deadlineAt <= now)
         throw new Error("generation_deadline_must_be_future");
-      const data = await rpc(input.executorScope ? "generation_admit_local" : input.catalogRevision ? "generation_admit_external" : "generation_admit", {
+      if (input.stagedCatalog && (!input.executorScope || !input.catalogRevision || localCatalogRevisionOverride() !== input.catalogRevision)) throw new Error("catalog_local_override_not_allowed");
+      const data = await rpc(input.stagedCatalog ? "generation_admit_staged_local" : input.generationConfig ? "generation_admit_configured" : input.executorScope ? "generation_admit_local" : input.catalogRevision ? "generation_admit_external" : "generation_admit", {
+        ...(input.generationConfig ? { p_generation_config: generationModelConfigSchema.parse(input.generationConfig) } : {}),
         ...(input.executorScope ? {p_scope:input.executorScope}:{}),
         ...(input.catalogRevision ? {p_revision:input.catalogRevision}:{}),
         p_id: id,

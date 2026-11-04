@@ -405,6 +405,8 @@ export default function StudioAppV2BPage() {
       aspectRatio: previousInput?.aspectRatio ?? assemblyAspectRatio,
       slideCount: mode === "carousel" ? previousInput?.slideCount ?? brief?.slideCount ?? 5 : undefined,
       ...(previousInput?.model ? { model: previousInput.model } : {}),
+      generationModel: previousInput?.generationModel ?? creationInputOptions.current.generationModel ?? "gemini",
+      generationParentRequestId: source === "more" ? activeGenerationRequestId ?? undefined : undefined,
       creationMode: executionBrief ? "execution" : "ideation",
       executionBrief,
       projectId: activeProjId,
@@ -469,6 +471,7 @@ export default function StudioAppV2BPage() {
     if (response.input && restoredGenerationContextRequestId.current !== response.snapshot.requestId) {
       restoredGenerationContextRequestId.current = response.snapshot.requestId;
       lastGenerationInput.current = response.input as Partial<OrchestratedGenerationInput>;
+      creationInputOptions.current = { ...creationInputOptions.current, generationModel: response.generationConfig?.choice ?? response.input.generationModel ?? "gemini" };
       if (catalogOwnerId) setAssemblyPilot(Boolean(response.input.includeDraftDesigns));
       const restoredPrompt = response.input.executionBrief?.rawInput
         ?? (response.input.inputType === "url"
@@ -538,7 +541,7 @@ export default function StudioAppV2BPage() {
   }, [generationSnapshot]);
 
   const persistBriefDraft = (brief: CreationBrief, stage: "create" | "gallery") => {
-    saveBriefDraft(brief, declaredFamilyId, stage);
+    saveBriefDraft(brief, declaredFamilyId, stage, creationInputOptions.current.generationModel);
     setHasSavedDraft(hasRecoverableBriefDraft());
   };
 
@@ -553,7 +556,7 @@ export default function StudioAppV2BPage() {
         setDeclaredFamilyId(draft.declaredFamilyId);
       }
       setActiveBrief(draft.brief);
-      const image=draft.brief.sources?.find(s=>s.kind==="image");creationInputOptions.current={platform:draft.brief.platform??"instagram",image:image?.value,imagePurpose:image?.purpose==="visual_reference"?"visual_reference":"content"};
+      const image=draft.brief.sources?.find(s=>s.kind==="image");creationInputOptions.current={platform:draft.brief.platform??"instagram",image:image?.value,imagePurpose:image?.purpose==="visual_reference"?"visual_reference":"content",generationModel:draft.generationModel??"gemini"};
     }
   }, []);
 
@@ -1097,6 +1100,7 @@ export default function StudioAppV2BPage() {
           onSubmit={handleCreateSubmit}
           isLoading={isLoading||sourceUpload.isPending}
           initialPlatform={activeBrief?.platform}
+          initialGenerationModel={creationInputOptions.current.generationModel}
           initialImage={activeBrief?.sources?.find(s=>s.kind==="image")?.value}
           initialImagePurpose={activeBrief?.sources?.find(s=>s.kind==="image")?.purpose}
           declaredFamilyId={declaredFamilyId}
@@ -1123,7 +1127,7 @@ export default function StudioAppV2BPage() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  {generationSnapshot.overallStatus==="awaiting_reconciliation"&&<><p>O resultado da revisão ainda precisa ser confirmado. O pedido mantém o prazo original.</p><button disabled={generationReconcile.isPending} onClick={()=>activeGenerationRequestId&&generationReconcile.mutate({requestId:activeGenerationRequestId})}>Conferir resultado existente</button></>}
+                  {generationSnapshot.overallStatus==="awaiting_reconciliation"&&<><p>Uma etapa da geração ainda precisa ser confirmada. O pedido mantém o prazo original.</p><button disabled={generationReconcile.isPending} onClick={()=>activeGenerationRequestId&&generationReconcile.mutate({requestId:activeGenerationRequestId})}>Conferir resultado existente</button></>}
                   {activeGenerationQuery.error && <button type="button" onClick={() => void activeGenerationQuery.refetch()} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm">Atualizar progresso</button>}
                   {["running","awaiting_reconciliation"].includes(generationSnapshot.overallStatus) && (
                     <button type="button" disabled={generationCancel.isPending} onClick={() => void cancelActiveGeneration()} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm disabled:opacity-50">{generationCancel.isPending ? "Cancelando…" : "Cancelar geração"}</button>

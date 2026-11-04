@@ -12,8 +12,10 @@ const number = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
 export const isPaidGenerationOperation = (key: string) =>
   key === "prepare:selection" ||
+  key === "prepare:intent" ||
+  key.startsWith("prepare:template_replan:") ||
   key.startsWith("prepare:design-shortlist:") ||
-  /:(?:copy(?:_recovery)?$|review:|review_correction:|review_evidence_repair:|image:)/.test(key);
+  /:(?:copy(?:_recovery)?$|template_replan:|review:|review_correction:|review_evidence_repair:|image:)/.test(key);
 
 /** Only an explicit durable receipt can prove that a potentially paid branch stayed local. */
 export function journalOperationWasLocal(result: unknown) {
@@ -23,7 +25,7 @@ export function journalOperationWasLocal(result: unknown) {
     Array.isArray(metadata.events) &&
     metadata.events.some(
       (event: any) =>
-        event.stage === "review_correction" &&
+        (event.stage === "review_correction" || event.stage === "generation_plan") &&
         event.status === "completed" &&
         event.detail === "deterministic_local" &&
         event.data?.paidEffect === false

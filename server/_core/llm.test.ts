@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ENV } from "./env";
 import { invokeLLM, resolveModelConfig } from "./llm";
 import { runWithGenerationTrace } from "../ai/generationTrace";
+import { generationModelCallOptions, resolveGenerationModelConfig } from "../ai/generationModel";
+vi.mock("./operationalLog", () => ({ appendOperationalLog: vi.fn(async () => {}) }));
 
 const original = {
   geminiApiKey: ENV.geminiApiKey,
@@ -26,6 +28,64 @@ afterEach(() => {
 });
 
 describe("resolveModelConfig", () => {
+  it.each(["claude", "deepseek"] as const)("sends %s with reasoning disabled, text schema and no model fallback", async choice => {
+    ENV.openRouterApiKey = "test-openrouter";
+    const config = resolveGenerationModelConfig({ generationModel: choice, postMode: "static" });
+    const fetchMock = vi.fn().mockResolvedValue(providerResponse(config.model, '{"answer":"ok"}'));
+    vi.stubGlobal("fetch", fetchMock);
+    const trace: any = { id: "model-test", startedAt: Date.now(), calls: [], events: [] };
+    await runWithGenerationTrace(trace, () => invokeLLM({
+      taskRoute: "static_generation", messages: [{ role: "user", content: "Teste" }],
+      maxTransportAttempts: 1, response_format: structuredFormat,
+      ...generationModelCallOptions(config),
+    }));
+    const payload = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(payload.model).toBe(config.model);
+    expect(payload.reasoning).toEqual({ effort: "none", exclude: true });
+    expect(payload.response_format).toEqual({ type: "json_object" });
+    expect(payload.messages.some((message: any) => message.content.includes("ADAPTADOR DE SAIDA ESTRUTURADA"))).toBe(true);
+    expect(trace.calls[0].reasoningTokens).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends GPT Sol native schema with medium reasoning, no sampling options, and restores optional nulls", async () => {
+    ENV.openRouterApiKey = "test-openrouter";
+    const config = resolveGenerationModelConfig({ generationModel: "gpt", postMode: "static" });
+    const fetchMock = vi.fn().mockResolvedValue(providerResponse(config.model, '{"title":"Receita","subtitle":null}'));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await invokeLLM({
+      taskRoute: "static_generation", messages: [{ role: "user", content: "Teste" }],
+      temperature: 0.8, top_p: 0.9, maxTransportAttempts: 1,
+      response_format: { type: "json_schema", json_schema: { name: "copy", strict: true, schema: {
+        type: "object", properties: { title: { type: "string" }, subtitle: { type: "string" } },
+        required: ["title"], additionalProperties: false,
+      } } },
+      ...generationModelCallOptions(config),
+    });
+    const payload = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(payload.model).toBe("openai/gpt-6.1-sol");
+    expect(payload.reasoning).toEqual({ effort: "medium", exclude: true });
+    expect(payload).not.toHaveProperty("temperature");
+    expect(payload).not.toHaveProperty("top_p");
+    expect(payload.provider.require_parameters).toBe(true);
+    expect(payload.response_format.type).toBe("json_schema");
+    expect(payload.response_format.json_schema.schema.required).toEqual(["title", "subtitle"]);
+    expect(JSON.parse(result.choices[0].message.content as string)).toEqual({ title: "Receita" });
+  });
+
+  it("never falls back from the selected GPT model after a provider rejection", async () => {
+    ENV.openRouterApiKey = "test-openrouter";
+    ENV.geminiApiKey = "fallback-must-not-run";
+    ENV.aiModelFallbackEnabled = true;
+    const fetchMock = vi.fn().mockResolvedValue(new Response("Model unavailable", { status: 404 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(invokeLLM({
+      taskRoute: "carousel_generation", messages: [{ role: "user", content: "Teste" }], maxTransportAttempts: 1,
+      ...generationModelCallOptions(resolveGenerationModelConfig({ generationModel: "gpt", postMode: "carousel" })),
+    })).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).model).toBe("openai/gpt-6.1-sol");
+  });
   it("dispatches the validated pinned model instead of the current route default", async () => {
     ENV.openRouterApiKey = "test-openrouter";
     const pinnedModel = "provider/pinned-historical-model";

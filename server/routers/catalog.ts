@@ -8,6 +8,7 @@ import {
 } from "../designCatalog/versionedCatalog";
 import { arsenalHash } from "@shared/arsenalContent";
 import { TRPCError } from "@trpc/server";
+import { localCatalogRevisionOverride } from "../designCatalog/localCatalogOverride";
 export const catalogRouter = router({
   manifest: protectedProcedure.query(async ({ ctx }) => {
     if (!versionedCatalogEnabled())
@@ -15,7 +16,7 @@ export const catalogRouter = router({
         code: "PRECONDITION_FAILED",
         message: "Catálogo versionado não ativado.",
       });
-    const m = await readCatalogManifest(),
+    const m = await readCatalogManifest(localCatalogRevisionOverride()),
       scope = ctx.user.role === "admin" ? "experimental" : "approved";
     return {
       revision: m.revision,
@@ -31,7 +32,9 @@ export const catalogRouter = router({
     .query(async ({ ctx, input }) => {
       if (!versionedCatalogEnabled())
         throw new TRPCError({ code: "PRECONDITION_FAILED" });
-      const manifest = await readCatalogManifest();
+      // Match generation.capabilities: Studio downloads this snapshot before
+      // admission, including a server-selected development staging revision.
+      const manifest = await readCatalogManifest(localCatalogRevisionOverride());
       if (input.revision !== manifest.revision)
         throw new TRPCError({
           code: "CONFLICT",

@@ -128,6 +128,9 @@ export function normalizeReviewV7(options: {
   round: "initial" | "recheck";
   operationKeys: string[];
   discardedFields: string[];
+  /** V10 resolves an omitted planned field in code, including an empty native
+   * value that has no text unit. Absent on V7–V9; their rules stay unchanged. */
+  nativeRequirementTargets?: Array<{ slideIndex: number; fieldId: string }>;
 }) {
   const { response: r, units, aliases, context, copy, compositions } = options;
   const equal = (a: Array<string | number>, b: Array<string | number>) =>
@@ -243,9 +246,29 @@ export function normalizeReviewV7(options: {
           !copy.slides[f.slideIndex].values.some(v => v.fieldId === f.fieldId))
       )
         invalid();
-      if (!generated && f.fieldId !== null && f.category !== "fact_omission")
+      if (
+        !generated &&
+        f.fieldId !== null &&
+        f.category !== "fact_omission" &&
+        !(
+          f.category === "explicit_requirement" &&
+          options.nativeRequirementTargets?.some(
+            t => t.slideIndex === f.slideIndex && t.fieldId === f.fieldId
+          )
+        )
+      )
         invalid();
-    } else if (!generated || f.fieldId !== "$caption") invalid();
+    } else if (
+      (!generated &&
+        !(
+          f.category === "explicit_requirement" &&
+          options.nativeRequirementTargets?.some(
+            t => t.slideIndex === 0 && t.fieldId === "$caption"
+          )
+        )) ||
+      f.fieldId !== "$caption"
+    )
+      invalid();
     if (!generated && f.sourceQuote) {
       const source = context.sources.find(s => s.id === f.sourceId);
       if (!source || !resolveSourceQuote(source.text, f.sourceQuote).length)

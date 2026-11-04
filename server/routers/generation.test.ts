@@ -1,15 +1,19 @@
 vi.mock("../designCatalog/versionedCatalog",()=>({readCatalogManifest:async()=>({revision:"1"}),withCatalogRevision:(_revision:string,work:()=>unknown)=>work()}));
 import { ENV } from "../_core/env";
+import { resolveGenerationModelConfig } from "../ai/generationModel";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { proposalDeliverySchema } from "@shared/generationContracts";
 import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.fixture";
 import { compactComponentCard } from "@shared/componentAssembly";
+import { authorFamilyCarouselRepertoire } from "../designCatalog/familyCarouselRepertoire";
 const originalProviderKey=ENV.openRouterApiKey;
+const originalStrategy=ENV.generationStrategyVersion;
 beforeEach(()=>{ENV.openRouterApiKey="offline-test-configured";});
 afterEach(()=>{ENV.openRouterApiKey=originalProviderKey;});
 const state = vi.hoisted(() => ({
   plan: "DEV",
   available: true,
+  preparationAvailable: true,
   approved: 3,
   draft: 0,
   catalogCards: null as any[] | null,
@@ -45,6 +49,7 @@ vi.mock("../mediaAssets", async importOriginal => {
 vi.mock("../ai/workflows/generationStore", () => ({
   createGenerationStore: () => ({
     isAvailable: async () => state.available,
+    isPreparationAvailable: async () => state.preparationAvailable,
     catalogAvailability: async () => ({
       approved: state.approved,
       draft: state.draft,
@@ -63,8 +68,10 @@ const owner = "00000000-0000-4000-8000-000000000001",
   id = "00000000-0000-4000-8000-000000000002";
 afterEach(() => {
   ENV.generationAdmissionPaused = false;
+  ENV.generationStrategyVersion = originalStrategy;
   state.plan = "DEV";
   state.available = true;
+  state.preparationAvailable = true;
   state.getBy.mockResolvedValue(null);
   state.approved = 3;
   state.draft = 0;
@@ -106,6 +113,69 @@ function record() {
 }
 
 describe("orchestrated authenticated API", () => {
+  it("rejects strategy-2 admission before any reservation when preparation migration is absent", async () => {
+    ENV.generationStrategyVersion = 2;
+    state.preparationAvailable = false;
+    await expect(caller().start({ ...input, postMode: "static" })).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    expect(state.admission).not.toHaveBeenCalled();
+  });
+  it("admits a V3-only carousel with strategy2 and uses the pinned parent strategy for generate-more", async () => {
+    const source=completeDesignTestDefinitions()[0];
+    state.catalogCards=[source,...authorFamilyCarouselRepertoire(source)].map(compactComponentCard);
+    state.admission.mockResolvedValue({record:record(),created:true});
+    const carousel={...input,content:"Explique o tema em 5 slides",postMode:"carousel" as const,slideCount:5};
+    ENV.generationStrategyVersion=2;
+    await caller().start(carousel);
+    const config=state.admission.mock.calls[0][0].generationConfig;
+    expect(config.generationStrategyVersion).toBe(2);
+    ENV.generationStrategyVersion=1;
+    state.get.mockResolvedValue({...record(),generationConfig:config});
+    await caller().start({...carousel,generationParentRequestId:id});
+    expect(state.admission.mock.calls[1][0].generationConfig).toEqual(config);
+    const historical=resolveGenerationModelConfig(carousel);
+    state.get.mockResolvedValue({...record(),generationConfig:historical});
+    ENV.generationStrategyVersion=2;
+    await expect(caller().start({...carousel,generationParentRequestId:id})).rejects.toMatchObject({code:"PRECONDITION_FAILED"});
+    expect(state.admission).toHaveBeenCalledTimes(2);
+  });
+  it("lets strategy2 plan partial delivery when a requested photo/type mix is only partly available", async () => {
+    const source=completeDesignTestDefinitions()[0];
+    state.catalogCards=[source,...authorFamilyCarouselRepertoire(source)].map(compactComponentCard);
+    ENV.generationStrategyVersion=2;
+    state.admission.mockResolvedValue({record:record(),created:true});
+    await caller().start({...input,content:"duas propostas com foto e uma tipográfica",postMode:"carousel",slideCount:5});
+    expect(state.admission).toHaveBeenCalledOnce();
+  });
+  it("admits an explicit GPT receipt without changing the client input hash", async () => {
+    state.admission.mockResolvedValue({ record: record(), created: true });
+    const parsed = orchestratedGenerationInputSchema.parse({ ...input, generationModel: "gpt" });
+    await caller().start(parsed);
+    const admitted = state.admission.mock.calls[0][0];
+    expect(admitted.generationConfig).toMatchObject({ choice: "gpt", model: "openai/gpt-6.1-sol", reasoningEffort: "medium", structuredOutputMode: "native_schema" });
+    expect(admitted.input).toEqual(parsed);
+    expect(admitted.inputHash).toBe(requestInputHash(parsed));
+    expect(admitted.input).not.toHaveProperty("generationConfig");
+  });
+
+  it("inherits the exact admitted configuration for generate-more and checks parent ownership", async () => {
+    const config = resolveGenerationModelConfig({ generationModel: "gpt", postMode: "static" });
+    state.get.mockResolvedValue({ ...record(), generationConfig: config });
+    state.admission.mockResolvedValue({ record: record(), created: true });
+    await caller().start({ ...input, generationModel: "gpt", generationParentRequestId: id });
+    expect(state.get).toHaveBeenCalledWith(id, owner);
+    expect(state.admission.mock.calls[0][0].generationConfig).toEqual(config);
+    await expect(caller().start({ ...input, generationModel: "gemini", generationParentRequestId: id })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    state.get.mockResolvedValue(null);
+    await expect(caller().start({ ...input, generationParentRequestId: id })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(state.admission).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns an existing idempotent GPT request without re-resolving its config", async () => {
+    const parsed = orchestratedGenerationInputSchema.parse({ ...input, generationModel: "gpt" });
+    state.getBy.mockResolvedValue({ ...record(), input: parsed, inputHash: requestInputHash(parsed), generationConfig: resolveGenerationModelConfig(parsed) });
+    expect(await caller().start(parsed)).toMatchObject({ created: false });
+    expect(state.admission).not.toHaveBeenCalled();
+  });
   it("logs the configured route and the public early rejection without logging the briefing", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     const error = vi.spyOn(console, "error").mockImplementation(() => {});

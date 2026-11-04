@@ -33,6 +33,11 @@ export const GROQ_SCOUT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 export const GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
 
 const MODEL_COSTS: Record<string, ModelCostConfig> = {
+  "openai/gpt-6.1-sol": {
+    inputCostPerMillion: 2,
+    outputCostPerMillion: 10,
+    platformFeePercent: ENV.openRouterPlatformFeePercent,
+  },
   // Estimativa pelo endpoint DeepSeek no OpenRouter (2026-09-29).
   // O custo real retornado pelo provedor tem precedência em llm.ts.
   "deepseek/deepseek-v4.1-flash": {
@@ -75,6 +80,7 @@ const MODEL_COSTS: Record<string, ModelCostConfig> = {
 };
 
 function normalizeModelForCost(model: string): string {
+  if (model.startsWith("openai/gpt-6.1-sol")) return "openai/gpt-6.1-sol";
   if (model.startsWith("openai/gpt-5-mini")) return "openai/gpt-5-mini";
   if (model.startsWith("openai/gpt-5.4-mini")) return "openai/gpt-5.4-mini";
   if (model.startsWith("google/gemini-3.8-flash")) return "google/gemini-3.8-flash";

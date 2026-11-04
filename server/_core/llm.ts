@@ -107,6 +107,8 @@ export type InvokeParams = {
   forceTextSchema?: boolean;
   disableStructuredRepair?: boolean;
   structuredValidationOwner?: "transport" | "caller";
+  /** Internal pinned preparation protocol; the journal owns response validation. */
+  durablePreparationReceipt?: boolean;
 };
 
 export type ToolCall = {
@@ -308,6 +310,17 @@ const normalizeResponseFormat = ({
   };
 };
 
+/** Exact OpenRouter wire messages used to bind a preparation receipt to its request. */
+export function preparationTransportSnapshot(params: InvokeParams) {
+  if (!params.pinnedModel || !params.disableFallback)
+    throw new Error("pinned_preparation_transport_required");
+  const responseFormat = normalizeResponseFormat(params);
+  return adaptRequestForProvider({
+    provider: "openrouter", effectiveModel: params.pinnedModel, forceTextSchema: params.forceTextSchema,
+    messages: params.messages.map(normalizeMessage), responseFormat,
+  });
+}
+
 type StructuredFailureType =
   | "empty_content"
   | "truncated"
@@ -446,8 +459,9 @@ function contentLength(result?: InvokeResult): number | undefined {
   return result ? responseText(result).length : undefined;
 }
 
-function reasoningTokens(result?: InvokeResult): number {
-  return result?.usage?.completion_tokens_details?.reasoning_tokens ?? 0;
+function reasoningTokens(result?: InvokeResult): number | undefined {
+  const value = result?.usage?.completion_tokens_details?.reasoning_tokens;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
 }
 
 function realOrEstimatedCostUsd(input: {
@@ -499,8 +513,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const effectiveTaskRoute = taskRoute ?? (isAiTaskRoute(requestedModel) ? requestedModel : undefined);
 
   if (structuredValidationOwner === "caller") {
+    const preparationCaller = params.durablePreparationReceipt === true && Boolean(params.pinnedModel) &&
+      ["static_generation", "carousel_generation"].includes(effectiveTaskRoute ?? "") &&
+      ["generation_intent_v1", "generation_selection_v1"].includes(traceLabel);
     if (
-      effectiveTaskRoute !== "post_evaluation" ||
+      effectiveTaskRoute !== "post_evaluation" && !preparationCaller ||
       maxTransportAttempts !== 1 ||
       !disableFallback ||
       !disableStructuredRepair
@@ -582,19 +599,24 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         params.reasoningEffort ?? params.reasoning_effort ?? "low";
     } else if (config.provider === "openrouter") {
       const taskPolicy = effectiveTaskRoute ? OPENROUTER_TASK_POLICY[effectiveTaskRoute] : undefined;
-      const reasoningEffort =
+      const isGptSol = config.effectiveModel.startsWith("openai/gpt-6.1-sol");
+      const requestedReasoning =
         params.reasoningEffort ??
         params.reasoning_effort ??
         taskPolicy?.reasoningEffort;
+      const reasoningEffort = isGptSol && (!requestedReasoning || ["none", "minimal"].includes(requestedReasoning))
+        ? "medium" : requestedReasoning;
       payload.max_tokens = completionTokenLimit;
-      payload.temperature = params.temperature ?? taskPolicy?.temperature ?? 0.55;
-      payload.top_p = params.topP ?? params.top_p ?? taskPolicy?.topP ?? 0.9;
+      if (!isGptSol) {
+        payload.temperature = params.temperature ?? taskPolicy?.temperature ?? 0.55;
+        payload.top_p = params.topP ?? params.top_p ?? taskPolicy?.topP ?? 0.9;
+      }
       if (reasoningEffort) {
         payload.reasoning_effort = reasoningEffort;
         payload.reasoning = { effort: reasoningEffort, exclude: true };
       }
       if (config.providerOptions) {
-        payload.provider = config.providerOptions;
+        payload.provider = isGptSol ? { ...config.providerOptions, require_parameters: true } : config.providerOptions;
       }
     } else {
       payload.max_tokens = completionTokenLimit;
@@ -696,6 +718,9 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       structuredFailureType: input.structuredFailureType,
       repairedOutput: input.repairedOutput,
       error,
+      transportTimeoutMs: params.transportTimeoutMs ?? timeoutForTaskRoute(effectiveTaskRoute),
+      deadlineAt: deadlineMs,
+      failureKind: input.error instanceof LlmTransportTimeoutError ? "transport_timeout" : input.error instanceof LlmDeadlineExceededError ? "deadline" : input.error ? "provider_error" : undefined,
     });
     void appendOperationalLog(input.result ? "AI_PROVIDER_200" : "AI_PROVIDER_ATTEMPT_FAILED", {
       traceLabel,
@@ -739,8 +764,10 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     const remainingMs = deadlineMs === undefined ? Infinity : deadlineMs - Date.now();
     const deadlineIsLimiting = remainingMs <= routeTimeoutMs;
     let deadlineTimerFired = false;
+    let transportTimerFired = false;
     const timeout = setTimeout(() => {
       if (deadlineIsLimiting) deadlineTimerFired = true;
+      else transportTimerFired = true;
       controller.abort();
     }, Math.max(1, Math.min(routeTimeoutMs, remainingMs)));
     try {
@@ -788,6 +815,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       if (deadlineTimerFired || (deadlineMs !== undefined && Date.now() >= deadlineMs)) {
         throw new LlmDeadlineExceededError();
       }
+      if (transportTimerFired) throw new LlmTransportTimeoutError(routeTimeoutMs);
       if (error instanceof ProviderRequestError) throw error;
       void appendOperationalLog("AI_PROVIDER_REQUEST_ERROR", {
         provider: config.provider,
@@ -914,6 +942,9 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       const payload = buildPayload(config, adapted.messages, adapted.responseFormat);
       try {
         const result = await callProvider(config, payload);
+        if (adapted.normalizeResponseContent && typeof result.choices?.[0]?.message?.content === "string") {
+          result.choices[0].message.content = adapted.normalizeResponseContent(result.choices[0].message.content);
+        }
         if (adapted.schema) {
           const content = responseText(result);
           const validation = validateStructuredContent(content, adapted.schema);
@@ -1071,6 +1102,14 @@ class LlmDeadlineExceededError extends Error {
   constructor() {
     super("LLM request deadline exceeded");
     this.name = "LlmDeadlineExceededError";
+  }
+}
+
+class LlmTransportTimeoutError extends Error {
+  readonly code = "TIMEOUT";
+  constructor(readonly timeoutMs: number) {
+    super(`LLM transport timeout after ${timeoutMs}ms`);
+    this.name = "LlmTransportTimeoutError";
   }
 }
 

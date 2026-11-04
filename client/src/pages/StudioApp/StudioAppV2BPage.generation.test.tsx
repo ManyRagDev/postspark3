@@ -255,14 +255,14 @@ describe("Studio Generation progressive flow", () => {
     h.start.mockResolvedValueOnce({ snapshot: snapshot([ready("proposal-a", 0)], "completed"), created: true })
       .mockResolvedValueOnce({ snapshot: { ...snapshot([running("proposal-new", 0)]), requestId: secondRequestId, runId: "new-run" }, created: true });
     mount();
-    await act(async () => { h.create.onSubmit("Café artesanal", "static"); await Promise.resolve(); });
+    await act(async () => { h.create.onSubmit("Café artesanal", "static", { platform: "instagram", imagePurpose: "content", generationModel: "gpt" }); await Promise.resolve(); });
     await flush();
     act(() => h.gallery.onSelectVariation(h.gallery.variations[0]));
     await act(async () => { await h.editor.onSave(h.editor.initialPost, "new", "auto"); });
     act(() => h.editor.onBackToGallery(h.editor.initialPost));
     await act(async () => { h.gallery.onGenerateMore(); await Promise.resolve(); });
     expect(h.start).toHaveBeenCalledTimes(2);
-    expect(h.start.mock.calls[1][0]).toMatchObject({ inputType: "text", content: "Crie 3 novos ganchos criativos e direções de arte alternativas sobre: Café artesanal", executionBrief: h.start.mock.calls[0][0].executionBrief });
+    expect(h.start.mock.calls[1][0]).toMatchObject({ generationModel: "gpt", generationParentRequestId: requestId, inputType: "text", content: "Crie 3 novos ganchos criativos e direções de arte alternativas sobre: Café artesanal", executionBrief: h.start.mock.calls[0][0].executionBrief });
     expect(h.gallery.variations.map((item: any) => item.id)).toEqual(["post-a"]);
     act(() => h.gallery.onSelectVariation(h.gallery.variations[0]));
     expect(h.editor.hasSavedPost).toBe(true);
@@ -473,13 +473,13 @@ describe("Studio Generation progressive flow", () => {
     };
     h.getData = { snapshot: snapshot([ready("proposal-a", 0)], "completed"), input: {
       inputType: "text", content: "Brief preservado", postMode: "static", executionBrief,
-      platform: "instagram", aspectRatio: "9:16", includeDraftDesigns: true, model: "gemini",
+      platform: "instagram", aspectRatio: "9:16", includeDraftDesigns: true, model: "gemini", generationModel: "gpt",
     } };
     h.start.mockResolvedValue({ snapshot: { ...snapshot([running("new", 0)]), requestId: secondRequestId }, created: true });
     mount();
     await flush();
     await act(async () => { h.gallery.onGenerateMore(); await Promise.resolve(); });
-    expect(h.start.mock.calls[0][0]).toMatchObject({ aspectRatio: "9:16", includeDraftDesigns: true, model: "gemini", executionBrief });
+    expect(h.start.mock.calls[0][0]).toMatchObject({ aspectRatio: "9:16", includeDraftDesigns: true, model: "gemini", generationModel: "gpt", generationParentRequestId: requestId, executionBrief });
     expect(sessionStorage.getItem("postspark.generation_v5.request_id")).toBeNull();
     expect(sessionStorage.getItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY)).toBe(secondRequestId);
   });

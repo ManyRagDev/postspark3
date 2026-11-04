@@ -22,6 +22,8 @@ const envInteger = (
 const isProduction = process.env.NODE_ENV === "production";
 
 export const ENV = {
+  localCatalogRevision: process.env.GENERATION_LOCAL_CATALOG_REVISION ?? "",
+  generationStrategyVersion: (process.env.GENERATION_STRATEGY_VERSION === "1" ? 1 : 2) as 1 | 2,
   generationAdmissionPaused: envFlag("GENERATION_ADMISSION_PAUSED", false),
   generationWorkerMode: process.env.NODE_ENV === "development" && !process.env.VERCEL && process.env.GENERATION_WORKER_MODE !== "external" ? "local-demand" as const : "external" as const,
   localDemandEnabled: !isProduction && !process.env.VERCEL && process.env.GENERATION_WORKER_MODE !== "external" && process.env.GENERATION_LOCAL_DEMAND_ENABLED === "true",
@@ -40,6 +42,8 @@ export const ENV = {
   openRouterSiteUrl: process.env.OPENROUTER_SITE_URL ?? "https://postspark.app",
   openRouterAppName: process.env.OPENROUTER_APP_NAME ?? "PostSpark",
   openRouterTextModel: process.env.OPENROUTER_TEXT_MODEL ?? "openai/gpt-5-mini",
+  openRouterClaudeModel: process.env.OPENROUTER_CLAUDE_MODEL ?? "anthropic/claude-haiku-5.5",
+  openRouterDeepSeekModel: process.env.OPENROUTER_DEEPSEEK_MODEL ?? "deepseek/deepseek-v4.1-flash",
   // Rotas especificas preservam OPENROUTER_TEXT_MODEL como rollback global.
   openRouterStaticModel:
     process.env.OPENROUTER_STATIC_MODEL ?? process.env.OPENROUTER_TEXT_MODEL ?? "google/gemini-3.8-flash",

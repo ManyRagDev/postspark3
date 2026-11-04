@@ -14,7 +14,7 @@ async function main() {
   const requestResult = await db
     .from("generation_v5_requests")
     .select(
-      "id,status,owner_id,input,prepared,proposals,billing_mode,billing_ledger,billing_reservation_id,billing_reserved,billing_preparation,billing_per_proposal,billing_debited,billing_settled_at,billing_error,created_at,updated_at"
+      "id,status,owner_id,input,prepared,proposals,experimental,generation_config,billing_mode,billing_ledger,billing_reservation_id,billing_reserved,billing_preparation,billing_per_proposal,billing_debited,billing_settled_at,billing_error,created_at,updated_at"
     )
     .eq("id", options.id)
     .single();
@@ -24,7 +24,7 @@ async function main() {
   const [operations, post, reservation] = await Promise.all([
     db
       .from("generation_v5_operations")
-      .select("operation_key,state,result")
+      .select("operation_key,state,result,expectation")
       .eq("request_id", options.id),
     options.postId
       ? db

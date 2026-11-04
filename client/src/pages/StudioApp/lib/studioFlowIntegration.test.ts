@@ -72,7 +72,8 @@ describe("E2E Integration Matrix — Experiência Inteligente PostSpark (Etapa 9
 
     expect(execution.format).toBe("static");
     expect(execution.creationMode).toBe("execution");
-    expect(execution.objective).toBeDefined();
+    expect(execution.objective).toBeUndefined();
+    expect(creationBriefToExecutionBrief({ ...brief, audience: "Curiosos" }).audience).toBe("Curiosos");
     expect(brief.version).toBe(1);
   });
 
