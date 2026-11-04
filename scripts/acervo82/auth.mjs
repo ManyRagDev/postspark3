@@ -92,7 +92,7 @@ if (action === "setup") {
         account: account.email,
         credentials: ".acervo82-local/test-account.json",
         authBypass: false,
-        applicationSchemaComplete: false,
+        scope: "authentication-only",
       })
     );
   } catch (error) {

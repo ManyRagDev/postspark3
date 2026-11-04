@@ -19,10 +19,13 @@ pnpm acervo82:init
 pnpm acervo82:db:start
 pnpm acervo82:db:env
 pnpm acervo82:auth:setup
+pnpm acervo82:bootstrap
 pnpm acervo82:doctor
 pnpm acervo82:dev
 # Com a aplicação e o Supabase locais em execução:
+pnpm acervo82:fixtures
 pnpm acervo82:auth:verify
+pnpm acervo82:journey
 # Ao encerrar os serviços de banco locais:
 pnpm acervo82:db:stop
 ```
@@ -37,9 +40,13 @@ A CLI Supabase 3.0.0 está fixada como dependência de desenvolvimento da worktr
 
 O runtime nativo foi iniciado com sucesso nesta preparação. A API local usa a porta 55481; PostgreSQL, 55482; Studio, 55483; Mailpit, 55484. O servidor PostSpark usa 127.0.0.1:3182 e recusa trocar silenciosamente de porta nesse perfil. `acervo82:db:env` obtém apenas credenciais da instância local e grava o perfil privado sem imprimi-las. O cache e os dados nativos ficam em `../.supabase-local`, fora do diretório com espaços, sob o contêiner desta worktree. A primeira tentativa incompleta em `.acervo82-local/supabase-home` foi encerrada; não participa da instância atual.
 
-O banco vazio não equivale a uma aplicação operacional. O bootstrap precisa reconciliar o schema real com as migrações: há histórico MySQL e migrações PostgreSQL incrementais em `drizzle/`. Não aplicar a pasta inteira indiscriminadamente nem tratar fixtures PGlite reduzidas como schema completo de Auth/Storage.
+O bootstrap está em `scripts/acervo82/bootstrap.mjs`. Ele exige o perfil e a conta locais, recusa assumir tabelas sem seu journal e aplica o schema em uma transação, com lock e hashes em `acervo82_private.schema_steps`. `--dry-run` executa e reverte a preparação; repetir o comando preserva o banco e recusa etapas aplicadas cujo SQL mudou. A execução inicial reúne 56 etapas: pré-requisitos locais, 54 migrações e compatibilidade de runtime/grants. Os arquivos 0000/0001 atuais contêm PostgreSQL; a migração 0012 é inválida e 0013 depende dela, ambas substituídas pela 0015 corretiva. Os SQLs históricos não foram modificados: o launcher tolera o schema já criado por Auth e reúne os limites transacionais sob a transação externa.
 
-Antes de liberar geração: preparar schema, Auth com conta administrativa de teste, políticas/grants, buckets e assets; validar persistência `canvas_model`; importar somente composições pertencentes ao novo rol e fixar sua revisão no executor local. Billing externo, SMTP real, captura de site e provedores pagos permanecem sem configuração. A rodada paga de geração é uma etapa futura com orçamento explícito.
+Os pré-requisitos locais incluem `profiles`, mídia, privacidade e tabelas vazias de leitura de billing; a compatibilidade torna a propriedade UUID obrigatória e adiciona os campos JSON usados pela persistência. O perfil da conta principal é DEV real, com zero Sparks, evitando o fallback FREE por ausência de tabela. Isso não provisiona Stripe, trial ou compra de créditos. Todas as tabelas expostas têm RLS e acesso direto do navegador revogado; o backend conserva a checagem de proprietário. Os grants seletivos das revisões imutáveis são preservados. Os buckets `postspark-media` e `design-arsenal` são privados, com limite de 8 MiB e tipos permitidos.
+
+`acervo82:fixtures` cria pela API autenticada três documentos técnicos (post simples, carrossel e mídia), uma imagem sintética e uma marca fictícia. Reexecutar preserva as edições existentes. IDs e imagem de upload ficam em `.acervo82-local/fixtures.json` e `.acervo82-local/sample-upload.png`. O verificador usa um quarto post dedicado e uma segunda conta local para contraprovas de propriedade; esses são dados de teste. Nenhum deles é uma composição do novo catálogo: não importa referências antigas nem concede aprovação aos 82 designs.
+
+Antes de liberar geração: concluir assets e composições nativas do novo rol e fixar sua revisão no executor local. Schema, Auth, políticas/grants, buckets e persistência `canvas_model` estão preparados para os testes descritos abaixo. Billing externo, SMTP real, captura de site e provedores pagos permanecem sem configuração. A rodada paga de geração é uma etapa futura com orçamento explícito.
 
 ## Autenticação durante a preparação local
 
@@ -49,9 +56,18 @@ Decisão do proprietário: usar **e-mail e senha locais** nos testes, mantendo G
 
 O fixture `ops/acervo82/auth-fixture.sql` implementa apenas os dois RPCs de acesso consumidos pelo backend. A conta preparada recebe um grant por UUID na tabela privada `acervo82_private.access_grants`, protegida por RLS e sem acesso para `anon`/`authenticated`. Os RPCs são `SECURITY INVOKER`, com execução apenas pelo `service_role`. Não cadastram automaticamente usuários nem usam e-mail ou `user_metadata` para conceder acesso. O setup recusa sobrescrever funções preexistentes que não pertençam a esse fixture. `BYPASS_AUTH=true` é recusado pelo perfil local: token Supabase, cookie bridge e autorização continuam reais. O schema `postspark` está habilitado na API local; alterações no `config.toml` exigem reiniciar essa instância.
 
-`acervo82:auth:verify` verifica senha incorreta, token inválido, login válido, cookie HttpOnly, identidade no `auth.me`, ausência de sessão sem cookie, logout e restrições de acesso no banco. A sessão criada pelo verificador é encerrada sem revogar as sessões do navegador. O login pela interface e a permanência após recarregar foram conferidos em `127.0.0.1:3182/thevoid`. Esse fixture não instala perfis financeiros, posts, projetos de marca, catálogo ou Storage e não reproduz a integração ManyLabs hospedada. O saldo FREE exibido pode vir do fallback da aplicação enquanto `profiles` estiver ausente; não certifica billing local.
+`acervo82:auth:verify` verifica senha incorreta, token inválido, login válido, cookie HttpOnly, identidade no `auth.me`, ausência de sessão sem cookie, logout e restrições de acesso no banco. A sessão criada pelo verificador é encerrada sem revogar as sessões do navegador. O login pela interface e a permanência após recarregar foram conferidos em `127.0.0.1:3182/thevoid`. Esse fixture de Auth não reproduz ManyLabs hospedado; banco e buckets são preparados separadamente por `acervo82:bootstrap`.
 
 Referências: [senha no Supabase](https://supabase.com/docs/guides/auth/passwords) e [Google no desenvolvimento local](https://supabase.com/docs/guides/auth/social-sign-in/auth-google#local-development).
+
+## Condução dos testes locais
+
+- Biblioteca: `http://127.0.0.1:3182/saved-posts`. Abrir um dos documentos, editar texto pelo painel Camadas, salvar atualizando o registro e reabrir pela biblioteca. O carrossel permite testar conteúdo por slide; o post de mídia permite testar carregamento e enquadramento. A imagem sintética está disponível para uploads manuais.
+- Referências das 82 entradas: `designs/showcase_consolidado/index.html` e `designs/acervo82/manifest.json`, preservados na worktree. O inventário verifica os 158 arquivos sem rede. O HTML original usa CDN Tailwind; sua visualização não é uma promessa de funcionamento inteiramente offline.
+- Checagem automática: `acervo82:doctor` deve ficar sem pendências. `acervo82:journey` faz 16 verificações reais de API/DB/Storage: persistência JSON canônica, adaptador oficial de reabertura, biblioteca, marca, imagem exata, privacidade de buckets, isolamento entre proprietários, RLS, preservação dos grants imutáveis. Não chama modelos nem ativa catálogo. O relatório identifica que não verifica navegador ou geração por provedor.
+- Conferência de navegador realizada: título editado no CanvasLab, registro atualizado, biblioteca mostrando a alteração e documento reaberto com o texto preservado. O aplicativo confirmou a produção do PNG 4K, mas a captura automática do arquivo de download expirou no navegador integrado. Inspeção dos bytes/dimensões do PNG baixado e ZIP do carrossel permanecem testes manuais; não são declarados homologados.
+
+Os 82 designs ainda exigem autoria nativa e revisão. A geração por IA permanece pausada e sem credenciais pagas. O ambiente preparado permite conduzir testes de edição, uploads e persistência e iniciar a autoria controlada; não certifica geração com os 82 nem substituição produtiva do catálogo.
 
 ## Execução da autoria
 
@@ -70,8 +86,8 @@ O pacote de ativação deve identificar commit da aplicação, manifesto/hashes 
 
 ## Limite desta entrega
 
-Esta preparação preserva as fontes, cria o inventário, isola configuração e fornece verificações offline. O login por senha foi verificado com os serviços locais reais e o navegador. A preparação não reconstrói automaticamente os 82 modelos, não aprova sua estética e não homologa geração, salvamento ou exportação. O estado das dependências locais e da execução fica no relatório de preparação.
+Esta preparação preserva as fontes, cria o inventário, isola configuração e fornece verificações offline. Login, edição, salvamento e reabertura foram verificados com serviços locais reais e navegador. A preparação não reconstrói automaticamente os 82 modelos, não aprova sua estética nem homologa geração ou os arquivos exportados. O estado das dependências locais e da execução fica no relatório de preparação.
 
 ## Verificação desta preparação
 
-Inventário íntegro: 82 entradas e 158 arquivos; testes de preparação, TypeScript e 27 regressões de catálogo/save adapter aprovados. Build Vite com perfil local e bundle do renderer aprovados. Na correção de Auth, oito testes de interface/limites/callback, dez verificações contra os serviços reais e advisors de segurança locais passaram. O navegador chegou ao Studio com a conta real e preservou a sessão após recarregar. A instância PostgreSQL está acessível, mas o doctor ainda identifica a ausência das tabelas da aplicação. Login não certifica geração ou salvar/reabrir. Nenhuma chamada paga ou ativação do catálogo foi executada.
+Inventário íntegro: 82 entradas e 158 arquivos. Na preparação do schema, quatro testes offline, TypeScript e 33 regressões de catálogo/save adapter/mídia passaram; 16 verificações reais de API/DB/Storage também. O bootstrap completo passou em transação revertida antes da aplicação e a repetição confirmou zero etapas novas. Advisors locais sem achados de segurança. O doctor aponta schema, perfil, Auth e buckets prontos. Evidências em `artifacts/acervo82/preparation/{bootstrap,journey,browser,report}.json` e screenshot `editor-save-reopen.png`. Nenhuma chamada paga ou ativação do catálogo foi executada.
