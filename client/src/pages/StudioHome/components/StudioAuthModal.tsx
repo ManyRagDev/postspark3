@@ -1,14 +1,32 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { exchangeSupabaseSession } from "@/lib/authBridge";
+import { isLocalEmailAuth } from "@/lib/localEmailAuth";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, ChevronDown, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronDown,
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  Mail,
+} from "lucide-react";
 import { useState } from "react";
 
 type AuthMode = "login" | "register";
 
-function GoogleLogo({ className = "h-4 w-4 shrink-0" }: { className?: string }) {
+function GoogleLogo({
+  className = "h-4 w-4 shrink-0",
+}: {
+  className?: string;
+}) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <path
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
         fill="#4285F4"
@@ -36,7 +54,18 @@ interface StudioAuthModalProps {
   initialPrompt?: string;
 }
 
-export default function StudioAuthModal({ isOpen, isMobile, onClose, initialPrompt }: StudioAuthModalProps) {
+export default function StudioAuthModal({
+  isOpen,
+  isMobile,
+  onClose,
+  initialPrompt,
+}: StudioAuthModalProps) {
+  const localEmailOnly = isLocalEmailAuth({
+    development: import.meta.env.DEV,
+    mode: import.meta.env.VITE_POSTSPARK_LOCAL_AUTH,
+    hostname: window.location.hostname,
+    supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+  });
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -65,7 +94,9 @@ export default function StudioAuthModal({ isOpen, isMobile, onClose, initialProm
       const accessToken = result.data.session?.access_token;
       if (!accessToken) {
         if (mode === "register") {
-          setError("Conta criada com sucesso! Verifique seu e-mail para confirmar.");
+          setError(
+            "Conta criada com sucesso! Verifique seu e-mail para confirmar."
+          );
           return;
         }
         throw new Error("Sessão não encontrada.");
@@ -75,8 +106,10 @@ export default function StudioAuthModal({ isOpen, isMobile, onClose, initialProm
       window.location.href = "/thevoid";
     } catch (err: any) {
       const message = err?.message || "Não foi possível autenticar agora.";
-      if (message.includes("Invalid login credentials")) setError("E-mail ou senha incorretos.");
-      else if (message.includes("User already registered")) setError("Este e-mail já está cadastrado.");
+      if (message.includes("Invalid login credentials"))
+        setError("E-mail ou senha incorretos.");
+      else if (message.includes("User already registered"))
+        setError("Este e-mail já está cadastrado.");
       else setError(message);
     } finally {
       setLoading(false);
@@ -131,10 +164,14 @@ export default function StudioAuthModal({ isOpen, isMobile, onClose, initialProm
                 : "relative z-10 w-full max-w-md my-auto rounded-[2rem] border border-white/15 p-8 shadow-2xl backdrop-blur-2xl pointer-events-auto"
             }
             style={{
-              background: "linear-gradient(180deg, rgba(18, 22, 34, 0.98) 0%, rgba(8, 10, 16, 0.99) 100%)",
-              boxShadow: "0 28px 80px rgba(0,0,0,0.85), 0 0 50px rgba(0, 245, 255, 0.08)",
+              background:
+                "linear-gradient(180deg, rgba(18, 22, 34, 0.98) 0%, rgba(8, 10, 16, 0.99) 100%)",
+              boxShadow:
+                "0 28px 80px rgba(0,0,0,0.85), 0 0 50px rgba(0, 245, 255, 0.08)",
             }}
-            initial={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.94, y: 20 }}
+            initial={
+              isMobile ? { y: "100%" } : { opacity: 0, scale: 0.94, y: 20 }
+            }
             animate={isMobile ? { y: "0%" } : { opacity: 1, scale: 1, y: 0 }}
             exit={isMobile ? { y: "100%" } : { opacity: 0, scale: 0.96, y: 15 }}
             transition={{ type: "spring", stiffness: 340, damping: 32 }}
@@ -163,41 +200,56 @@ export default function StudioAuthModal({ isOpen, isMobile, onClose, initialProm
                 {mode === "login" ? "Entre no PostSpark" : "Crie sua conta"}
               </h2>
               <p className="mt-1 text-xs md:text-sm text-white/60">
-                {initialPrompt
-                  ? "Acesse sua conta para gerar posts com esta ideia."
-                  : "Direção de arte e inteligência visual para seus posts."}
+                {localEmailOnly
+                  ? "Entre com o e-mail e a senha da conta de teste local."
+                  : initialPrompt
+                    ? "Acesse sua conta para gerar posts com esta ideia."
+                    : "Direção de arte e inteligência visual para seus posts."}
               </p>
             </div>
 
-            {/* Google OAuth */}
-            <button
-              type="button"
-              onClick={handleGoogle}
-              disabled={loading || googleLoading || !isSupabaseConfigured}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/6 py-3 px-4 text-sm font-medium text-white transition-all hover:bg-white/10 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
-            >
-              {googleLoading ? (
-                <Loader2 size={18} className="animate-spin text-white" />
-              ) : (
-                <GoogleLogo className="h-4 w-4 shrink-0" />
-              )}
-              <span>{googleLoading ? "Conectando..." : "Continuar com Google"}</span>
-            </button>
+            {!localEmailOnly && (
+              <>
+                {/* Google OAuth */}
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  disabled={loading || googleLoading || !isSupabaseConfigured}
+                  className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/6 py-3 px-4 text-sm font-medium text-white transition-all hover:bg-white/10 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+                >
+                  {googleLoading ? (
+                    <Loader2 size={18} className="animate-spin text-white" />
+                  ) : (
+                    <GoogleLogo className="h-4 w-4 shrink-0" />
+                  )}
+                  <span>
+                    {googleLoading ? "Conectando..." : "Continuar com Google"}
+                  </span>
+                </button>
 
-            <div className="my-4 flex items-center gap-3">
-              <div className="h-px flex-1 bg-white/10" />
-              <span className="text-[10px] uppercase tracking-[0.24em] text-white/35">ou com e-mail</span>
-              <div className="h-px flex-1 bg-white/10" />
-            </div>
+                <div className="my-4 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-white/10" />
+                  <span className="text-[10px] uppercase tracking-[0.24em] text-white/35">
+                    ou com e-mail
+                  </span>
+                  <div className="h-px flex-1 bg-white/10" />
+                </div>
+              </>
+            )}
 
             {/* Formulário */}
             <form onSubmit={handleEmailAuth} className="space-y-3">
               <div className="relative">
-                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+                <Mail
+                  size={16}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40"
+                />
                 <input
                   type="email"
+                  aria-label="E-mail"
+                  autoComplete="email"
                   value={email}
-                  onChange={(e) => {
+                  onChange={e => {
                     setEmail(e.target.value);
                     setError(null);
                   }}
@@ -208,22 +260,32 @@ export default function StudioAuthModal({ isOpen, isMobile, onClose, initialProm
               </div>
 
               <div className="relative">
-                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+                <Lock
+                  size={16}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40"
+                />
                 <input
                   type={showPassword ? "text" : "password"}
+                  aria-label="Senha"
+                  autoComplete={
+                    mode === "register" ? "new-password" : "current-password"
+                  }
                   value={password}
-                  onChange={(e) => {
+                  onChange={e => {
                     setPassword(e.target.value);
                     setError(null);
                   }}
                   required
                   minLength={6}
-                  placeholder={mode === "register" ? "Mínimo 6 caracteres" : "Sua senha"}
+                  placeholder={
+                    mode === "register" ? "Mínimo 6 caracteres" : "Sua senha"
+                  }
                   className="w-full rounded-2xl border border-white/12 bg-white/5 py-3 pl-10 pr-11 text-sm text-white placeholder-white/35 outline-none transition-all focus:border-[oklch(0.7_0.22_40)] focus:bg-white/8"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  onClick={() => setShowPassword(v => !v)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -241,7 +303,8 @@ export default function StudioAuthModal({ isOpen, isMobile, onClose, initialProm
                 disabled={loading || googleLoading || !isSupabaseConfigured}
                 className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl py-3 text-sm font-semibold text-black transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
                 style={{
-                  background: "linear-gradient(135deg, oklch(0.75 0.22 45), oklch(0.65 0.2 25))",
+                  background:
+                    "linear-gradient(135deg, oklch(0.75 0.22 45), oklch(0.65 0.2 25))",
                   boxShadow: "0 0 24px oklch(0.7 0.22 40 / 35%)",
                 }}
               >
@@ -249,26 +312,35 @@ export default function StudioAuthModal({ isOpen, isMobile, onClose, initialProm
                   <Loader2 size={17} className="animate-spin" />
                 ) : (
                   <>
-                    <span>{mode === "login" ? "Entrar no PostSpark" : "Criar conta"}</span>
-                    <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+                    <span>
+                      {mode === "login" ? "Entrar no PostSpark" : "Criar conta"}
+                    </span>
+                    <ArrowRight
+                      size={16}
+                      className="transition-transform group-hover:translate-x-0.5"
+                    />
                   </>
                 )}
               </button>
             </form>
 
-            <div className="mt-4 text-center text-xs text-white/55">
-              {mode === "login" ? "Ainda não tem conta? " : "Já possui conta? "}
-              <button
-                type="button"
-                onClick={() => {
-                  setMode((v) => (v === "login" ? "register" : "login"));
-                  setError(null);
-                }}
-                className="font-semibold text-[oklch(0.75_0.22_45)] hover:underline cursor-pointer"
-              >
-                {mode === "login" ? "Criar conta" : "Fazer login"}
-              </button>
-            </div>
+            {!localEmailOnly && (
+              <div className="mt-4 text-center text-xs text-white/55">
+                {mode === "login"
+                  ? "Ainda não tem conta? "
+                  : "Já possui conta? "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode(v => (v === "login" ? "register" : "login"));
+                    setError(null);
+                  }}
+                  className="font-semibold text-[oklch(0.75_0.22_45)] hover:underline cursor-pointer"
+                >
+                  {mode === "login" ? "Criar conta" : "Fazer login"}
+                </button>
+              </div>
+            )}
           </motion.div>
         </div>
       )}

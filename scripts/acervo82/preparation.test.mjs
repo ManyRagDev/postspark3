@@ -26,6 +26,7 @@ test('remote URLs, frontend/backend project mismatch and accidental admission ar
     { SUPABASE_URL: 'http://127.0.0.1.attacker.test:54321' },
     { DATABASE_URL: 'postgresql://user:pass@production.invalid/db' },
     { GENERATION_ADMISSION_PAUSED: 'false' },
+    { BYPASS_AUTH: 'true' },
     { OPENROUTER_API_KEY: 'real-key-must-not-be-loaded' },
   ]) assert.throws(() => validateEnvironment({ ...env, ...change }));
 });

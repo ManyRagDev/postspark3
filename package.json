@@ -34,6 +34,8 @@
     "acervo82:inventory": "node --require ./scripts/testing/block-network.cjs scripts/acervo82/inventory.mjs --write",
     "acervo82:verify": "node --require ./scripts/testing/block-network.cjs scripts/acervo82/inventory.mjs",
     "acervo82:test": "node --require ./scripts/testing/block-network.cjs --test scripts/acervo82/preparation.test.mjs",
+    "acervo82:auth:setup": "node scripts/acervo82/auth.mjs setup",
+    "acervo82:auth:verify": "node scripts/acervo82/auth.mjs verify",
     "acervo82:init": "node scripts/acervo82/local.mjs init",
     "acervo82:doctor": "node scripts/acervo82/local.mjs doctor",
     "acervo82:dev": "pnpm build:review-renderer && node scripts/acervo82/local.mjs dev",

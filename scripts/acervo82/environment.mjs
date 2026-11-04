@@ -10,6 +10,7 @@ export function localUrl(value, name) {
 }
 export function validateEnvironment(env, { requireKeys = true } = {}) {
   if (env.POSTSPARK_ACERVO82_LOCAL !== 'true' || env.NODE_ENV !== 'development') throw new Error('acervo82_local_profile_required');
+  if (env.BYPASS_AUTH === 'true') throw new Error('local_tests_require_real_auth');
   const server = localUrl(env.SUPABASE_URL, 'SUPABASE_URL');
   const client = localUrl(env.VITE_SUPABASE_URL, 'VITE_SUPABASE_URL');
   if (server.href !== client.href || server.pathname !== '/' || server.username || server.password) throw new Error('supabase_frontend_backend_mismatch');

@@ -30,6 +30,14 @@ if (command === 'init') {
       checks.push({ name: 'local-application-schema', ready: missing.length === 0, missing });
     } catch (error) { checks.push({ name: 'local-application-schema', ready: false, reason: error.code || error.message }); }
     finally { await client.end(); }
+    try {
+      const response = await fetch(`${env.SUPABASE_URL}/auth/v1/settings`, {
+        headers: { apikey: env.VITE_SUPABASE_ANON_KEY }, signal: AbortSignal.timeout(5000),
+      });
+      const settings = await response.json();
+      checks.push({ name: 'local-auth-service', ready: response.ok,
+        providers: { google: settings.external?.google === true, email: settings.external?.email === true } });
+    } catch (error) { checks.push({ name: 'local-auth-service', ready: false, reason: error.code || error.message }); }
   }
   console.log(JSON.stringify({ checks, runtime: 'native-experimental', paidResourcesCreated: false, admissionPaused: true, fullJourneyVerified: false }));
   if (checks.some(c => !c.ready)) process.exitCode = 2;
