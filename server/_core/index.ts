@@ -165,8 +165,10 @@ async function startServer() {
       console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
     }
 
-    server.listen(port, () => {
-      console.log(`Server running on http://localhost:${port}/`);
+    const acervo82Local = process.env.POSTSPARK_ACERVO82_LOCAL === "true";
+    if (acervo82Local && port !== preferredPort) throw new Error("Acervo 82: a porta local configurada está ocupada.");
+    server.listen({ port, host: acervo82Local ? "127.0.0.1" : undefined }, () => {
+      console.log(`Server running on http://${acervo82Local ? "127.0.0.1" : "localhost"}:${port}/`);
       // Start the configured local executor only after the server binds successfully.
       withNetworkDiagnosticScope({source:"startup-recovery"},()=>startLocalGenerationWorker());
     });

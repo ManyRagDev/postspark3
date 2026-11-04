@@ -1,0 +1,2418 @@
+{
+  "format": "postspark.acervo82.roster",
+  "version": 1,
+  "purpose": "complete-replacement-of-selection-catalog",
+  "artboard": {
+    "width": 1080,
+    "height": 1350
+  },
+  "gallery": {
+    "path": "designs/showcase_consolidado/index.html",
+    "sha256": "970c3a9a301e3c2cc976c2ed91c32e1c7820859aa062041591f6bea60558da0e",
+    "bytes": 134588
+  },
+  "original": {
+    "path": "designs/acervo82/sources/showcase-original.html",
+    "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+    "bytes": 246256
+  },
+  "entries": [
+    {
+      "id": "acervo82-reference-01",
+      "group": "reference",
+      "order": 1,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/01_gravar_criativos_anuncio_laranja_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/01_gravar_criativos_anuncio_laranja_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/01_gravar_criativos_anuncio_laranja_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/01_gravar_criativos_anuncio_laranja_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 0,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-02",
+      "group": "reference",
+      "order": 2,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/02_perguntas_antes_do_design_papel_empilhado_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/02_perguntas_antes_do_design_papel_empilhado_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/02_perguntas_antes_do_design_papel_empilhado_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/02_perguntas_antes_do_design_papel_empilhado_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 1,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-03",
+      "group": "reference",
+      "order": 3,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/03_truth_about_creative_people_azul_e_amarelo_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/03_truth_about_creative_people_azul_e_amarelo_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/03_truth_about_creative_people_azul_e_amarelo_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 2,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-04",
+      "group": "reference",
+      "order": 4,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/04_brutalism_editorial_vermelho_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/04_brutalism_editorial_vermelho_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/04_brutalism_editorial_vermelho_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 3,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-05",
+      "group": "reference",
+      "order": 5,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/05_prompt_retrato_editorial_com_legenda_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/05_prompt_retrato_editorial_com_legenda_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/05_prompt_retrato_editorial_com_legenda_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 4,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-06",
+      "group": "reference",
+      "order": 6,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/06_janelas_sobrepostas_matriz_reutilizavel_adaptacao_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/06_janelas_sobrepostas_matriz_reutilizavel_adaptacao_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/06_janelas_sobrepostas_matriz_reutilizavel_adaptacao_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/06_janelas_sobrepostas_matriz_reutilizavel_adaptacao_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 5,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-07",
+      "group": "reference",
+      "order": 7,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/07_a_internet_trouxe_muita_coisa_boa_computador_retro_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/07_a_internet_trouxe_muita_coisa_boa_computador_retro_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/07_a_internet_trouxe_muita_coisa_boa_computador_retro_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/07_a_internet_trouxe_muita_coisa_boa_computador_retro_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 6,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-08",
+      "group": "reference",
+      "order": 8,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/08_why_do_you_actually_exist_pergunta_editorial_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/08_why_do_you_actually_exist_pergunta_editorial_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/08_why_do_you_actually_exist_pergunta_editorial_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/08_why_do_you_actually_exist_pergunta_editorial_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 7,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-09",
+      "group": "reference",
+      "order": 9,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/09_brutalist_web_design_poster_comercial_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/09_brutalist_web_design_poster_comercial_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/09_brutalist_web_design_poster_comercial_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 8,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-10",
+      "group": "reference",
+      "order": 10,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/10_pieces_retrato_com_mosaico_acido_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/10_pieces_retrato_com_mosaico_acido_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/10_pieces_retrato_com_mosaico_acido_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/10_pieces_retrato_com_mosaico_acido_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 9,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-11",
+      "group": "reference",
+      "order": 11,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/11_atalho_para_criar_conteudo_tarjas_azuis_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/11_atalho_para_criar_conteudo_tarjas_azuis_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/11_atalho_para_criar_conteudo_tarjas_azuis_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 10,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-12",
+      "group": "reference",
+      "order": 12,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/12_seu_direct_e_uma_mina_de_ouro_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/12_seu_direct_e_uma_mina_de_ouro_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/12_seu_direct_e_uma_mina_de_ouro_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/12_seu_direct_e_uma_mina_de_ouro_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 11,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-13",
+      "group": "reference",
+      "order": 13,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/13_voce_muda_fazendo_foto.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/13_voce_muda_fazendo_foto.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/13_voce_muda_fazendo_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 12,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-14",
+      "group": "reference",
+      "order": 14,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/14_grid_systems_foto.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/14_grid_systems_foto.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/14_grid_systems_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/14_grid_systems_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 13,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-15",
+      "group": "reference",
+      "order": 15,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/15_marca_diferente_resolver_a_dor_certa_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/15_marca_diferente_resolver_a_dor_certa_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/15_marca_diferente_resolver_a_dor_certa_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/15_marca_diferente_resolver_a_dor_certa_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 14,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-16",
+      "group": "reference",
+      "order": 16,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/16_no_skill_no_seat_tipografia_extrudada_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/16_no_skill_no_seat_tipografia_extrudada_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/16_no_skill_no_seat_tipografia_extrudada_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/16_no_skill_no_seat_tipografia_extrudada_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 15,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-17",
+      "group": "reference",
+      "order": 17,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/17_caos_no_escritorio_fotografia_integral_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/17_caos_no_escritorio_fotografia_integral_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/17_caos_no_escritorio_fotografia_integral_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 16,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-18",
+      "group": "reference",
+      "order": 18,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/18_marketing_that_gets_talked_about_imprensa_acido_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/18_marketing_that_gets_talked_about_imprensa_acido_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/18_marketing_that_gets_talked_about_imprensa_acido_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/18_marketing_that_gets_talked_about_imprensa_acido_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 17,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-19",
+      "group": "reference",
+      "order": 19,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/19_papel_rasgado_revelacao_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/19_papel_rasgado_revelacao_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/19_papel_rasgado_revelacao_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 18,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-20",
+      "group": "reference",
+      "order": 20,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/20_editorial_graphic_design_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/20_editorial_graphic_design_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/20_editorial_graphic_design_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 19,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-21",
+      "group": "reference",
+      "order": 21,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/21_contraste_while_others_blur_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/21_contraste_while_others_blur_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/21_contraste_while_others_blur_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 20,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-22",
+      "group": "reference",
+      "order": 22,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/22_editorial_holding_my_life_together_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/22_editorial_holding_my_life_together_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/22_editorial_holding_my_life_together_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/22_editorial_holding_my_life_together_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 21,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-23",
+      "group": "reference",
+      "order": 23,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/23_contraste_editorial_seu_negocio_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/23_contraste_editorial_seu_negocio_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/23_contraste_editorial_seu_negocio_render.png",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/23_contraste_editorial_seu_negocio_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 22,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-reference-24",
+      "group": "reference",
+      "order": 24,
+      "title": "Foto",
+      "sourceKind": "raster",
+      "preview": "designs/showcase_consolidado/01_referencias_curadas_r4/24_catalogo_tipografico_duas_colunas_foto.jpg",
+      "evidenceImages": [
+        "designs/showcase_consolidado/01_referencias_curadas_r4/24_catalogo_tipografico_duas_colunas_foto.jpg",
+        "designs/showcase_consolidado/01_referencias_curadas_r4/24_catalogo_tipografico_duas_colunas_card_curadoria.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-references .ratio-4-5",
+        "index": 23,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-01",
+      "group": "r9",
+      "order": 1,
+      "title": "editorial holding my life",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/01_editorial_holding_my_life.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/01_editorial_holding_my_life.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 0,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-02",
+      "group": "r9",
+      "order": 2,
+      "title": "brutal split 4 5",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/02_brutal_split_4_5.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/02_brutal_split_4_5.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 1,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-03",
+      "group": "r9",
+      "order": 3,
+      "title": "versus mito vs verdade",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/03_versus_mito_vs_verdade.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/03_versus_mito_vs_verdade.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 2,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-04",
+      "group": "r9",
+      "order": 4,
+      "title": "presentes com significado",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/04_presentes_com_significado.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/04_presentes_com_significado.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 3,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-05",
+      "group": "r9",
+      "order": 5,
+      "title": "sua ideia em movimento papel",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/05_sua_ideia_em_movimento_papel.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/05_sua_ideia_em_movimento_papel.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 4,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-06",
+      "group": "r9",
+      "order": 6,
+      "title": "sua ideia em movimento janela",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/06_sua_ideia_em_movimento_janela.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/06_sua_ideia_em_movimento_janela.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 5,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-07",
+      "group": "r9",
+      "order": 7,
+      "title": "criar com intencao janela",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/07_criar_com_intencao_janela.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/07_criar_com_intencao_janela.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 6,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-08",
+      "group": "r9",
+      "order": 8,
+      "title": "janelas tarjas azuis",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/08_janelas_tarjas_azuis.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/08_janelas_tarjas_azuis.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 7,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-09",
+      "group": "r9",
+      "order": 9,
+      "title": "why do you actually exist",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/09_why_do_you_actually_exist.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/09_why_do_you_actually_exist.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 8,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-10",
+      "group": "r9",
+      "order": 10,
+      "title": "criar com intencao papel",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/10_criar_com_intencao_papel.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/10_criar_com_intencao_papel.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 9,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-11",
+      "group": "r9",
+      "order": 11,
+      "title": "minimal air 4 5",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/11_minimal_air_4_5.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/11_minimal_air_4_5.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 10,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-12",
+      "group": "r9",
+      "order": 12,
+      "title": "grid systems suico",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/12_grid_systems_suico.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/12_grid_systems_suico.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 11,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-13",
+      "group": "r9",
+      "order": 13,
+      "title": "criar com intencao janela v2",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/13_criar_com_intencao_janela_v2.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/13_criar_com_intencao_janela_v2.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 12,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-14",
+      "group": "r9",
+      "order": 14,
+      "title": "presentes foto de fundo",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/14_presentes_foto_de_fundo.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/14_presentes_foto_de_fundo.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 13,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-15",
+      "group": "r9",
+      "order": 15,
+      "title": "chromatic block 4 5",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/15_chromatic_block_4_5.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/15_chromatic_block_4_5.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 14,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-16",
+      "group": "r9",
+      "order": 16,
+      "title": "stroke impact 4 5",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/16_stroke_impact_4_5.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/16_stroke_impact_4_5.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 15,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-17",
+      "group": "r9",
+      "order": 17,
+      "title": "glitch signal 4 5",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/17_glitch_signal_4_5.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/17_glitch_signal_4_5.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 16,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-18",
+      "group": "r9",
+      "order": 18,
+      "title": "janelas janelas",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/18_janelas_janelas.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/18_janelas_janelas.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 17,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-19",
+      "group": "r9",
+      "order": 19,
+      "title": "sua ideia janela v2",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/19_sua_ideia_janela_v2.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/19_sua_ideia_janela_v2.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 18,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-20",
+      "group": "r9",
+      "order": 20,
+      "title": "data punch 4 5",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/20_data_punch_4_5.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/20_data_punch_4_5.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 19,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-21",
+      "group": "r9",
+      "order": 21,
+      "title": "mosaic grid 4 5",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/21_mosaic_grid_4_5.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/21_mosaic_grid_4_5.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 20,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-22",
+      "group": "r9",
+      "order": 22,
+      "title": "kinetic type 4 5",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/22_kinetic_type_4_5.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/22_kinetic_type_4_5.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 21,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-23",
+      "group": "r9",
+      "order": 23,
+      "title": "poster de cinema 4 5",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/23_poster_de_cinema_4_5.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/23_poster_de_cinema_4_5.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 22,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-24",
+      "group": "r9",
+      "order": 24,
+      "title": "criar com intencao papel v2",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/24_criar_com_intencao_papel_v2.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/24_criar_com_intencao_papel_v2.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 23,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-25",
+      "group": "r9",
+      "order": 25,
+      "title": "sua ideia papel v2",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/25_sua_ideia_papel_v2.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/25_sua_ideia_papel_v2.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 24,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-26",
+      "group": "r9",
+      "order": 26,
+      "title": "papel empilhado papel",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/26_papel_empilhado_papel.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/26_papel_empilhado_papel.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 25,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-27",
+      "group": "r9",
+      "order": 27,
+      "title": "papel empilhado janelas",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/27_papel_empilhado_janelas.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/27_papel_empilhado_janelas.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 26,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-28",
+      "group": "r9",
+      "order": 28,
+      "title": "janelas papel empilhado",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/28_janelas_papel_empilhado.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/28_janelas_papel_empilhado.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 27,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-r9-29",
+      "group": "r9",
+      "order": 29,
+      "title": "papel empilhado tarjas azuis",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/02_catalogo_oficial_r9/29_papel_empilhado_tarjas_azuis.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/02_catalogo_oficial_r9/29_papel_empilhado_tarjas_azuis.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-original .ratio-4-5",
+        "index": 28,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-01",
+      "group": "concept",
+      "order": 1,
+      "title": "01. Linear Bento Blueprint",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/01_linear_bento.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/01_linear_bento.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 0,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-02",
+      "group": "concept",
+      "order": 2,
+      "title": "02. Warm Editorial Magazine",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/02_warm_editorial.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/02_warm_editorial.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 1,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-03",
+      "group": "concept",
+      "order": 3,
+      "title": "03. Asymmetric Swiss Poster",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/03_asymmetric_swiss.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/03_asymmetric_swiss.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 2,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-04",
+      "group": "concept",
+      "order": 4,
+      "title": "04. Floating Note / Glass UI",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/04_floating_note.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/04_floating_note.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 3,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-05",
+      "group": "concept",
+      "order": 5,
+      "title": "05. Dual Split Dilemma",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/05_dual_split.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/05_dual_split.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 4,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-06",
+      "group": "concept",
+      "order": 6,
+      "title": "06. Industrial Tech-Spec",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/06_industrial_tech_spec.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/06_industrial_tech_spec.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 5,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-07",
+      "group": "concept",
+      "order": 7,
+      "title": "07. Acid Chrome Poster",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/07_acid_chrome_poster.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/07_acid_chrome_poster.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 6,
+        "svgCount": 2
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-08",
+      "group": "concept",
+      "order": 8,
+      "title": "08. Risograph Print Zine",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/08_risograph_print_zine.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/08_risograph_print_zine.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 7,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-09",
+      "group": "concept",
+      "order": 9,
+      "title": "09. Archival Specimen",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/09_archival_specimen.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/09_archival_specimen.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 8,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-10",
+      "group": "concept",
+      "order": 10,
+      "title": "10. Neo-Bauhaus Construct",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/10_neo_bauhaus_construct.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/10_neo_bauhaus_construct.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 9,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-11",
+      "group": "concept",
+      "order": 11,
+      "title": "11. Thermal Receipt Punk",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/11_thermal_receipt_punk.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/11_thermal_receipt_punk.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 10,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-12",
+      "group": "concept",
+      "order": 12,
+      "title": "12. Neo-Tokyo Brutalist Obi",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/12_neo_tokyo_obi_poster.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/12_neo_tokyo_obi_poster.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 11,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-13",
+      "group": "concept",
+      "order": 13,
+      "title": "13. Surrealist Dada Collage",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/13_surrealist_dada_collage.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/13_surrealist_dada_collage.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 12,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-14",
+      "group": "concept",
+      "order": 14,
+      "title": "14. Art Déco Haute Couture",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/14_haute_couture_art_deco.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/14_haute_couture_art_deco.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 13,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-15",
+      "group": "concept",
+      "order": 15,
+      "title": "15. 1979 Cassette Futurism",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/15_1979_cassette_futurism.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/15_1979_cassette_futurism.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 14,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-16",
+      "group": "concept",
+      "order": 16,
+      "title": "16. Cyanotype Blueprint",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/16_cyanotype_blueprint.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/16_cyanotype_blueprint.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 15,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-17",
+      "group": "concept",
+      "order": 17,
+      "title": "17. Chromatic Aura Portal",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/17_chromatic_aura_portal.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/17_chromatic_aura_portal.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 16,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-18",
+      "group": "concept",
+      "order": 18,
+      "title": "18. Pop Art Halftone Comic",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/18_pop_art_comic.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/18_pop_art_comic.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 17,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-19",
+      "group": "concept",
+      "order": 19,
+      "title": "19. Constructivist Wedge",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/19_constructivist_wedge.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/19_constructivist_wedge.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 18,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-20",
+      "group": "concept",
+      "order": 20,
+      "title": "20. Neo-Art Nouveau Mucha",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/20_neo_art_nouveau_mucha.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/20_neo_art_nouveau_mucha.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 19,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-21",
+      "group": "concept",
+      "order": 21,
+      "title": "21. 1968 Psychedelic Groove",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/21_psychedelic_groove.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/21_psychedelic_groove.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 20,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-22",
+      "group": "concept",
+      "order": 22,
+      "title": "22. Punk Xerox Fanzine 1977",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/22_punk_xerox_fanzine_77.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/22_punk_xerox_fanzine_77.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 21,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-23",
+      "group": "concept",
+      "order": 23,
+      "title": "23. Memphis Milano 1981",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/23_memphis_milano_1981.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/23_memphis_milano_1981.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 22,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-24",
+      "group": "concept",
+      "order": 24,
+      "title": "24. Wes Anderson Symmetrical",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/24_wes_anderson_symmetrical.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/24_wes_anderson_symmetrical.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 23,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-25",
+      "group": "concept",
+      "order": 25,
+      "title": "25. Blue Note Records 1959",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/25_blue_note_hard_bop.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/25_blue_note_hard_bop.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 24,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-26",
+      "group": "concept",
+      "order": 26,
+      "title": "26. A24 Widescreen Noir",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/26_a24_cinematic_title_card.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/26_a24_cinematic_title_card.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 25,
+        "svgCount": 0
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-27",
+      "group": "concept",
+      "order": 27,
+      "title": "27. Factory Records Pulsar",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/27_factory_records_pulsar.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/27_factory_records_pulsar.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 26,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-28",
+      "group": "concept",
+      "order": 28,
+      "title": "28. Swiss Haute Horlogerie",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/28_swiss_haute_horlogerie.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/28_swiss_haute_horlogerie.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 27,
+        "svgCount": 1
+      },
+      "capabilities": null
+    },
+    {
+      "id": "acervo82-concept-29",
+      "group": "concept",
+      "order": 29,
+      "title": "29. Neo-Seoul Cyberpunk 2099",
+      "sourceKind": "html-css-svg",
+      "preview": "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/29_neo_seoul_cyberpunk_2099.png",
+      "evidenceImages": [
+        "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/29_neo_seoul_cyberpunk_2099.png"
+      ],
+      "source": {
+        "path": "designs/acervo82/sources/showcase-original.html",
+        "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+        "selector": "#portfolio-future .ratio-4-5",
+        "index": 28,
+        "svgCount": 0
+      },
+      "capabilities": null
+    }
+  ],
+  "files": [
+    {
+      "path": "designs/acervo82/sources/assets/0969f7f69e7316f03c30dcaf33d56ec70959a0cbf11ac43a114b21b93a2c0d89.jpg",
+      "sha256": "0969f7f69e7316f03c30dcaf33d56ec70959a0cbf11ac43a114b21b93a2c0d89",
+      "bytes": 105283
+    },
+    {
+      "path": "designs/acervo82/sources/assets/26cddb4e2fc7713d7fd23720cd7c393bed293e33fbc25cb87d39193a7ed9d459.jpg",
+      "sha256": "26cddb4e2fc7713d7fd23720cd7c393bed293e33fbc25cb87d39193a7ed9d459",
+      "bytes": 102515
+    },
+    {
+      "path": "designs/acervo82/sources/assets/30457c0466e12ee702f927e1f63aa17ff983ab89157d18336bd2126fd136f836.jpg",
+      "sha256": "30457c0466e12ee702f927e1f63aa17ff983ab89157d18336bd2126fd136f836",
+      "bytes": 82753
+    },
+    {
+      "path": "designs/acervo82/sources/assets/33da41e87f88c759cd32a50760dc16b6676e10a1d3c82628dd8d415951149b17.jpg",
+      "sha256": "33da41e87f88c759cd32a50760dc16b6676e10a1d3c82628dd8d415951149b17",
+      "bytes": 140748
+    },
+    {
+      "path": "designs/acervo82/sources/assets/387fe273-d725-4398-8617-988b9320f127.png",
+      "sha256": "f496802bb7482230f92636cfc18754bd249704871853dc70d1b0f7e70fe03a54",
+      "bytes": 2000575
+    },
+    {
+      "path": "designs/acervo82/sources/assets/3a0e7089-efe0-48ca-8d08-aa7ead8a2c86.png",
+      "sha256": "9eb4fc4fb221022382cb1fcfa0e72761391b785be5541e7be37f95c35905e7f8",
+      "bytes": 114252
+    },
+    {
+      "path": "designs/acervo82/sources/assets/3db17c64-45a3-4950-80c9-968717f04934.png",
+      "sha256": "056f955a5a195dcbaf168c2a809fc14c995a995a589daf3f916adfb71046161e",
+      "bytes": 78420
+    },
+    {
+      "path": "designs/acervo82/sources/assets/4a14f8ed699a118df094b560fa96baa3a2f307248b172626952ddfaf4cda3634.jpg",
+      "sha256": "4a14f8ed699a118df094b560fa96baa3a2f307248b172626952ddfaf4cda3634",
+      "bytes": 129091
+    },
+    {
+      "path": "designs/acervo82/sources/assets/51ca3088-efb3-478f-8d38-b7262915f160.png",
+      "sha256": "a9cd8fe54d75fab084e2accbcb065c6871bc3ba3cfb8362f9c7ae0644e391eb0",
+      "bytes": 47851
+    },
+    {
+      "path": "designs/acervo82/sources/assets/5ce2a65cedf229b5f3100a7b919d2f40007d2f691d4e71a45df326966b808d1a.jpg",
+      "sha256": "5ce2a65cedf229b5f3100a7b919d2f40007d2f691d4e71a45df326966b808d1a",
+      "bytes": 92261
+    },
+    {
+      "path": "designs/acervo82/sources/assets/5d19a43b468d31dd6ae751c0786568b4ae63c9ceab8624674c57792708e7d60b.jpg",
+      "sha256": "5d19a43b468d31dd6ae751c0786568b4ae63c9ceab8624674c57792708e7d60b",
+      "bytes": 70559
+    },
+    {
+      "path": "designs/acervo82/sources/assets/66249f56-9268-498a-8933-8914e22a217a.png",
+      "sha256": "b50303185d89eb512ac57690d74d09df4bc48ab5219fc48b0bde3e6c6834ab78",
+      "bytes": 25404
+    },
+    {
+      "path": "designs/acervo82/sources/assets/672dc994c914686f86d7c2166d3eee0f7fc89ceb41e8c0e374b34ef984ae6a71.jpg",
+      "sha256": "672dc994c914686f86d7c2166d3eee0f7fc89ceb41e8c0e374b34ef984ae6a71",
+      "bytes": 56738
+    },
+    {
+      "path": "designs/acervo82/sources/assets/688f7408-5580-465b-8725-bf2919835227.png",
+      "sha256": "e06dc0ac182e3d7a1e8992f2d06e46da9bb48b28d990880763a6d5e39cb94f7a",
+      "bytes": 58276
+    },
+    {
+      "path": "designs/acervo82/sources/assets/6e72f0fc2a36d2b62a817ebc42dbca7ec2071991a31118ab333f9be38cc22777.jpg",
+      "sha256": "6e72f0fc2a36d2b62a817ebc42dbca7ec2071991a31118ab333f9be38cc22777",
+      "bytes": 121437
+    },
+    {
+      "path": "designs/acervo82/sources/assets/6eb19a4374a47e1b5d8a1d1243a773845f15576d18c706daba4eeca38c13a01a.jpg",
+      "sha256": "6eb19a4374a47e1b5d8a1d1243a773845f15576d18c706daba4eeca38c13a01a",
+      "bytes": 77692
+    },
+    {
+      "path": "designs/acervo82/sources/assets/6ec018ac-81bc-4eac-8461-f189b582a5ef.png",
+      "sha256": "41541a158a75d1a40dc98af0c7f3e50a6a4b19f5e3e05a3ae740c2f5795d8227",
+      "bytes": 104598
+    },
+    {
+      "path": "designs/acervo82/sources/assets/7707568f-5426-49ca-8e35-6eaa7fa641d4.png",
+      "sha256": "2b3477078d00d18cf6407d24342b3f086d9c542eff47f2ca4170ddc05aa33bd7",
+      "bytes": 156523
+    },
+    {
+      "path": "designs/acervo82/sources/assets/934e05a35a05736028d49e8aa7200dfea6614fb7b54225dbe04db56af24bc365.jpg",
+      "sha256": "934e05a35a05736028d49e8aa7200dfea6614fb7b54225dbe04db56af24bc365",
+      "bytes": 115157
+    },
+    {
+      "path": "designs/acervo82/sources/assets/939fc42e810c42015102910079be246fda0bb5390f638ee9fe7c34da4e63573e.jpg",
+      "sha256": "939fc42e810c42015102910079be246fda0bb5390f638ee9fe7c34da4e63573e",
+      "bytes": 227925
+    },
+    {
+      "path": "designs/acervo82/sources/assets/984850e43e1b939e2408e6d7a8c735fa27216565e31e710099824a30ffddfb12.jpg",
+      "sha256": "984850e43e1b939e2408e6d7a8c735fa27216565e31e710099824a30ffddfb12",
+      "bytes": 68536
+    },
+    {
+      "path": "designs/acervo82/sources/assets/9f1e29c050514175085b1178d45126f5373e92c02464f9232fa8784dd3fc816c.png",
+      "sha256": "9f1e29c050514175085b1178d45126f5373e92c02464f9232fa8784dd3fc816c",
+      "bytes": 38364
+    },
+    {
+      "path": "designs/acervo82/sources/assets/a4e806b88540533b40995ff861c820c12b45283f9ad11da3d72f34e7157b1d7e.jpg",
+      "sha256": "a4e806b88540533b40995ff861c820c12b45283f9ad11da3d72f34e7157b1d7e",
+      "bytes": 152349
+    },
+    {
+      "path": "designs/acervo82/sources/assets/ae0bb7244366f324baf27dc149997915c41fef4b3608a2eb399fd8d21c2dff19.png",
+      "sha256": "ae0bb7244366f324baf27dc149997915c41fef4b3608a2eb399fd8d21c2dff19",
+      "bytes": 88151
+    },
+    {
+      "path": "designs/acervo82/sources/assets/b2323a34ccb8f5342555a8abab1e30db100e07ef2daf8ab522ce31912c58f23f.jpg",
+      "sha256": "b2323a34ccb8f5342555a8abab1e30db100e07ef2daf8ab522ce31912c58f23f",
+      "bytes": 239575
+    },
+    {
+      "path": "designs/acervo82/sources/assets/b831ae11-a652-4415-89d4-42986b90764b.png",
+      "sha256": "4cb7c9a7f4ea060b8e84c89f1970320f46d74d31365a3a8b14a843dc6cc5f230",
+      "bytes": 87567
+    },
+    {
+      "path": "designs/acervo82/sources/assets/b89e69868d0ba81d21a4dcd570b870a95451c659dbaf5dad86714ee1ffaf5107.jpg",
+      "sha256": "b89e69868d0ba81d21a4dcd570b870a95451c659dbaf5dad86714ee1ffaf5107",
+      "bytes": 176734
+    },
+    {
+      "path": "designs/acervo82/sources/assets/ba778f422aefc0430be59f171b28c87e4f90f8c10ac678ae3fd4863064d00f08.jpg",
+      "sha256": "ba778f422aefc0430be59f171b28c87e4f90f8c10ac678ae3fd4863064d00f08",
+      "bytes": 126207
+    },
+    {
+      "path": "designs/acervo82/sources/assets/c0b41b8c-9324-48e6-81c0-42fbd3e44abb.png",
+      "sha256": "3a0c9052e9974c752f96627e80d5e1c5bb62dfaa07313c5d0b9c4f3c065ba8ed",
+      "bytes": 117378
+    },
+    {
+      "path": "designs/acervo82/sources/assets/c662545a8a5bde43f29f2d40ffa43dc4fe18ac65afef27a75799595f94c3229e.jpg",
+      "sha256": "c662545a8a5bde43f29f2d40ffa43dc4fe18ac65afef27a75799595f94c3229e",
+      "bytes": 90570
+    },
+    {
+      "path": "designs/acervo82/sources/assets/c7ef2ad21a65e564d2e0fdc117f4551aa681305a9f97228c4288fefb70e3afc6.jpg",
+      "sha256": "c7ef2ad21a65e564d2e0fdc117f4551aa681305a9f97228c4288fefb70e3afc6",
+      "bytes": 69380
+    },
+    {
+      "path": "designs/acervo82/sources/assets/d810dc67407277c498d36d145f98844a11d50ced4e8f6db84ad455932a0955c9.jpg",
+      "sha256": "d810dc67407277c498d36d145f98844a11d50ced4e8f6db84ad455932a0955c9",
+      "bytes": 134871
+    },
+    {
+      "path": "designs/acervo82/sources/assets/da11051946323f104f08bc8dd380a97588baf0aa0a3c7315066ba6c47773c6a1.jpg",
+      "sha256": "da11051946323f104f08bc8dd380a97588baf0aa0a3c7315066ba6c47773c6a1",
+      "bytes": 77120
+    },
+    {
+      "path": "designs/acervo82/sources/assets/e44fd969-9142-44a4-8c97-0677de2f6060.png",
+      "sha256": "ca2e236053ea21e321c63aaa0e06576b302336eb568a117d47febf96313c05dd",
+      "bytes": 98898
+    },
+    {
+      "path": "designs/acervo82/sources/assets/e7cba7e2-8eb7-403d-8a8e-4c93f65d2a95.png",
+      "sha256": "4d1b2a851147b4b0d16155c63233d7febcf0ea4130b48ef5709e820c8f18cc85",
+      "bytes": 2763920
+    },
+    {
+      "path": "designs/acervo82/sources/assets/f523e0f4bde6f05eabd102f4642f27e96d122f6a3dfbaa45bfa20d1c41c91b09.jpg",
+      "sha256": "f523e0f4bde6f05eabd102f4642f27e96d122f6a3dfbaa45bfa20d1c41c91b09",
+      "bytes": 225364
+    },
+    {
+      "path": "designs/acervo82/sources/assets/f6606a1e-0b7f-4f09-8006-ebec2fbd6604.png",
+      "sha256": "90797f4cf1f338666837f5c7472c92b035ab20e56ecad9cc387459e2229e654b",
+      "bytes": 127078
+    },
+    {
+      "path": "designs/acervo82/sources/integrity.json",
+      "sha256": "9c68ba01eb8b16773cf7fcf2b92d3f5fb3fd429e865106fbc746b1e6dc1f8e70",
+      "bytes": 6852
+    },
+    {
+      "path": "designs/acervo82/sources/showcase-original.html",
+      "sha256": "521765921f5726ef3b222b7e1cab97b98a7de5c9513077f93fb4bba6e932da6b",
+      "bytes": 246256
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/01_gravar_criativos_anuncio_laranja_card_curadoria.png",
+      "sha256": "682473f9f1b0cc2c2f98fdbd96f4a0c57607872d38de624ef939b15ee80bce99",
+      "bytes": 979523
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/01_gravar_criativos_anuncio_laranja_foto.jpg",
+      "sha256": "939fc42e810c42015102910079be246fda0bb5390f638ee9fe7c34da4e63573e",
+      "bytes": 227925
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/01_gravar_criativos_anuncio_laranja_render.png",
+      "sha256": "ca2e236053ea21e321c63aaa0e06576b302336eb568a117d47febf96313c05dd",
+      "bytes": 98898
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/02_perguntas_antes_do_design_papel_empilhado_card_curadoria.png",
+      "sha256": "854b0230d334afda9c8980df8099414e74d7a1fc317b9b017f35ff8c281f243f",
+      "bytes": 645782
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/02_perguntas_antes_do_design_papel_empilhado_foto.jpg",
+      "sha256": "c662545a8a5bde43f29f2d40ffa43dc4fe18ac65afef27a75799595f94c3229e",
+      "bytes": 90570
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/02_perguntas_antes_do_design_papel_empilhado_render.png",
+      "sha256": "f496802bb7482230f92636cfc18754bd249704871853dc70d1b0f7e70fe03a54",
+      "bytes": 2000575
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/03_truth_about_creative_people_azul_e_amarelo_card_curadoria.png",
+      "sha256": "559bc2696241de8e698af0c952c7b6fa32c403ba076cb4909b15527ab1755b93",
+      "bytes": 1030983
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/03_truth_about_creative_people_azul_e_amarelo_foto.jpg",
+      "sha256": "6e72f0fc2a36d2b62a817ebc42dbca7ec2071991a31118ab333f9be38cc22777",
+      "bytes": 121437
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/04_brutalism_editorial_vermelho_card_curadoria.png",
+      "sha256": "1f34780caffc0d097f27cc8d69585f974a9fafec5bf4b239d4c9560c6fd2cc85",
+      "bytes": 1098877
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/04_brutalism_editorial_vermelho_foto.jpg",
+      "sha256": "b2323a34ccb8f5342555a8abab1e30db100e07ef2daf8ab522ce31912c58f23f",
+      "bytes": 239575
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/05_prompt_retrato_editorial_com_legenda_card_curadoria.png",
+      "sha256": "37d64097e052a7e07ace6c388d93552f072037cfc139d2a50ac083554c8f5b61",
+      "bytes": 945695
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/05_prompt_retrato_editorial_com_legenda_foto.jpg",
+      "sha256": "4a14f8ed699a118df094b560fa96baa3a2f307248b172626952ddfaf4cda3634",
+      "bytes": 129091
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/06_janelas_sobrepostas_matriz_reutilizavel_adaptacao_card_curadoria.png",
+      "sha256": "e74ac3310f95f00f691ff5eba6388b7ef1f779bd707337a584aa54041cbd228d",
+      "bytes": 540396
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/06_janelas_sobrepostas_matriz_reutilizavel_adaptacao_foto.jpg",
+      "sha256": "b89e69868d0ba81d21a4dcd570b870a95451c659dbaf5dad86714ee1ffaf5107",
+      "bytes": 176734
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/06_janelas_sobrepostas_matriz_reutilizavel_adaptacao_render.png",
+      "sha256": "3a0c9052e9974c752f96627e80d5e1c5bb62dfaa07313c5d0b9c4f3c065ba8ed",
+      "bytes": 117378
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/07_a_internet_trouxe_muita_coisa_boa_computador_retro_card_curadoria.png",
+      "sha256": "44cc33511d8bc97eff19a4e8f215ca7d80801bd31905ba3045d0b3d24fda0f59",
+      "bytes": 697944
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/07_a_internet_trouxe_muita_coisa_boa_computador_retro_foto.jpg",
+      "sha256": "30457c0466e12ee702f927e1f63aa17ff983ab89157d18336bd2126fd136f836",
+      "bytes": 82753
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/07_a_internet_trouxe_muita_coisa_boa_computador_retro_render.png",
+      "sha256": "4d1b2a851147b4b0d16155c63233d7febcf0ea4130b48ef5709e820c8f18cc85",
+      "bytes": 2763920
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/08_why_do_you_actually_exist_pergunta_editorial_card_curadoria.png",
+      "sha256": "1833c52a36bd69e11cf8c274a439507a7b36a6470c6004c5629fa4e2e5d1b09c",
+      "bytes": 409099
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/08_why_do_you_actually_exist_pergunta_editorial_foto.jpg",
+      "sha256": "c7ef2ad21a65e564d2e0fdc117f4551aa681305a9f97228c4288fefb70e3afc6",
+      "bytes": 69380
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/08_why_do_you_actually_exist_pergunta_editorial_render.png",
+      "sha256": "90797f4cf1f338666837f5c7472c92b035ab20e56ecad9cc387459e2229e654b",
+      "bytes": 127078
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/09_brutalist_web_design_poster_comercial_card_curadoria.png",
+      "sha256": "4b4a3e7b01e6be53f8dac2991bd0ff3a96733fcc0d8658494bd7aff7373c7321",
+      "bytes": 657946
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/09_brutalist_web_design_poster_comercial_foto.jpg",
+      "sha256": "a4e806b88540533b40995ff861c820c12b45283f9ad11da3d72f34e7157b1d7e",
+      "bytes": 152349
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/10_pieces_retrato_com_mosaico_acido_card_curadoria.png",
+      "sha256": "b5dcb8457d89f853b4ebb19cebb6bfe88726542b6ad6296ece811afdca963737",
+      "bytes": 671774
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/10_pieces_retrato_com_mosaico_acido_foto.jpg",
+      "sha256": "5d19a43b468d31dd6ae751c0786568b4ae63c9ceab8624674c57792708e7d60b",
+      "bytes": 70559
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/10_pieces_retrato_com_mosaico_acido_render.png",
+      "sha256": "b50303185d89eb512ac57690d74d09df4bc48ab5219fc48b0bde3e6c6834ab78",
+      "bytes": 25404
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/11_atalho_para_criar_conteudo_tarjas_azuis_card_curadoria.png",
+      "sha256": "37748930c6644258166cd1bb5f04b9d0cbd28e8806414172c5f620fe70f88c48",
+      "bytes": 931350
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/11_atalho_para_criar_conteudo_tarjas_azuis_foto.jpg",
+      "sha256": "0969f7f69e7316f03c30dcaf33d56ec70959a0cbf11ac43a114b21b93a2c0d89",
+      "bytes": 105283
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/12_seu_direct_e_uma_mina_de_ouro_card_curadoria.png",
+      "sha256": "2b95afa26febc1c7f02ff771da1dd6a30597ebd0e6b25e0069e0b969f9ce658f",
+      "bytes": 755968
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/12_seu_direct_e_uma_mina_de_ouro_foto.jpg",
+      "sha256": "5ce2a65cedf229b5f3100a7b919d2f40007d2f691d4e71a45df326966b808d1a",
+      "bytes": 92261
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/12_seu_direct_e_uma_mina_de_ouro_render.png",
+      "sha256": "9eb4fc4fb221022382cb1fcfa0e72761391b785be5541e7be37f95c35905e7f8",
+      "bytes": 114252
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/13_voce_muda_fazendo_card_curadoria.png",
+      "sha256": "abcfe0e4e08bcb272ba97045d1a653a1a5897e9eb6c1acf8ff2795a764082111",
+      "bytes": 192208
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/13_voce_muda_fazendo_foto.png",
+      "sha256": "9f1e29c050514175085b1178d45126f5373e92c02464f9232fa8784dd3fc816c",
+      "bytes": 38364
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/14_grid_systems_card_curadoria.png",
+      "sha256": "9e19366f716bea1e98cbfc691d630f8e5343c9e54dad615ead11ad6640f42fca",
+      "bytes": 455343
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/14_grid_systems_foto.png",
+      "sha256": "ae0bb7244366f324baf27dc149997915c41fef4b3608a2eb399fd8d21c2dff19",
+      "bytes": 88151
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/14_grid_systems_render.png",
+      "sha256": "e06dc0ac182e3d7a1e8992f2d06e46da9bb48b28d990880763a6d5e39cb94f7a",
+      "bytes": 58276
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/15_marca_diferente_resolver_a_dor_certa_card_curadoria.png",
+      "sha256": "444e20e521bc33771ac2db9a27bf14c8b5f6779eb75c84e3263d58bf9eca868c",
+      "bytes": 665849
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/15_marca_diferente_resolver_a_dor_certa_foto.jpg",
+      "sha256": "da11051946323f104f08bc8dd380a97588baf0aa0a3c7315066ba6c47773c6a1",
+      "bytes": 77120
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/15_marca_diferente_resolver_a_dor_certa_render.png",
+      "sha256": "41541a158a75d1a40dc98af0c7f3e50a6a4b19f5e3e05a3ae740c2f5795d8227",
+      "bytes": 104598
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/16_no_skill_no_seat_tipografia_extrudada_card_curadoria.png",
+      "sha256": "f598e73a3045fbcb601678d762e9d30a90f0f0d11f5deb417e1c07b490f47826",
+      "bytes": 407119
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/16_no_skill_no_seat_tipografia_extrudada_foto.jpg",
+      "sha256": "984850e43e1b939e2408e6d7a8c735fa27216565e31e710099824a30ffddfb12",
+      "bytes": 68536
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/16_no_skill_no_seat_tipografia_extrudada_render.png",
+      "sha256": "2b3477078d00d18cf6407d24342b3f086d9c542eff47f2ca4170ddc05aa33bd7",
+      "bytes": 156523
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/17_caos_no_escritorio_fotografia_integral_card_curadoria.png",
+      "sha256": "f9a1994cccb135b79067810c1181308a1988d480cf9fe4074bb39f6471191dc4",
+      "bytes": 921333
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/17_caos_no_escritorio_fotografia_integral_foto.jpg",
+      "sha256": "934e05a35a05736028d49e8aa7200dfea6614fb7b54225dbe04db56af24bc365",
+      "bytes": 115157
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/18_marketing_that_gets_talked_about_imprensa_acido_card_curadoria.png",
+      "sha256": "b998c58c1824df59248d2448ca5ac0ea472135455ce69c1776c40153c080c402",
+      "bytes": 552003
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/18_marketing_that_gets_talked_about_imprensa_acido_foto.jpg",
+      "sha256": "6eb19a4374a47e1b5d8a1d1243a773845f15576d18c706daba4eeca38c13a01a",
+      "bytes": 77692
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/18_marketing_that_gets_talked_about_imprensa_acido_render.png",
+      "sha256": "056f955a5a195dcbaf168c2a809fc14c995a995a589daf3f916adfb71046161e",
+      "bytes": 78420
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/19_papel_rasgado_revelacao_card_curadoria.png",
+      "sha256": "ba2631efddfac93092663a84020a444a3f8a9c51fc4df6ec03a7f9b477c1754b",
+      "bytes": 494860
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/19_papel_rasgado_revelacao_foto.jpg",
+      "sha256": "672dc994c914686f86d7c2166d3eee0f7fc89ceb41e8c0e374b34ef984ae6a71",
+      "bytes": 56738
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/20_editorial_graphic_design_card_curadoria.png",
+      "sha256": "c35b34fd1221ab8174fa3426f243cf14c902cf3fd307d9751d28f8c25a59897a",
+      "bytes": 581310
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/20_editorial_graphic_design_foto.jpg",
+      "sha256": "33da41e87f88c759cd32a50760dc16b6676e10a1d3c82628dd8d415951149b17",
+      "bytes": 140748
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/21_contraste_while_others_blur_card_curadoria.png",
+      "sha256": "70019247f6c1544094125e358c3d12b89b89225039ae3441f67932f2b6989512",
+      "bytes": 622878
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/21_contraste_while_others_blur_foto.jpg",
+      "sha256": "26cddb4e2fc7713d7fd23720cd7c393bed293e33fbc25cb87d39193a7ed9d459",
+      "bytes": 102515
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/22_editorial_holding_my_life_together_card_curadoria.png",
+      "sha256": "00cb382b994fd6cdf1413df51b7dd43e16d6a2c8cd99df7d1abd2749e6d80c69",
+      "bytes": 695248
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/22_editorial_holding_my_life_together_foto.jpg",
+      "sha256": "d810dc67407277c498d36d145f98844a11d50ced4e8f6db84ad455932a0955c9",
+      "bytes": 134871
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/22_editorial_holding_my_life_together_render.png",
+      "sha256": "a9cd8fe54d75fab084e2accbcb065c6871bc3ba3cfb8362f9c7ae0644e391eb0",
+      "bytes": 47851
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/23_contraste_editorial_seu_negocio_card_curadoria.png",
+      "sha256": "74943af944cc10eec01657210608bd4bc0b0264aa57bc7d39a48fe9cbc39fe56",
+      "bytes": 1087761
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/23_contraste_editorial_seu_negocio_foto.jpg",
+      "sha256": "f523e0f4bde6f05eabd102f4642f27e96d122f6a3dfbaa45bfa20d1c41c91b09",
+      "bytes": 225364
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/23_contraste_editorial_seu_negocio_render.png",
+      "sha256": "4cb7c9a7f4ea060b8e84c89f1970320f46d74d31365a3a8b14a843dc6cc5f230",
+      "bytes": 87567
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/24_catalogo_tipografico_duas_colunas_card_curadoria.png",
+      "sha256": "dea50450c306c3f046e913bd7778afffd20165ff38d9b43adaf54156806ac35d",
+      "bytes": 467811
+    },
+    {
+      "path": "designs/showcase_consolidado/01_referencias_curadas_r4/24_catalogo_tipografico_duas_colunas_foto.jpg",
+      "sha256": "ba778f422aefc0430be59f171b28c87e4f90f8c10ac678ae3fd4863064d00f08",
+      "bytes": 126207
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/01_editorial_holding_my_life.png",
+      "sha256": "8969331b3604dceea18b5e08848797d3c78c5d9f0374c7306ac33a95642245fc",
+      "bytes": 56546
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/02_brutal_split_4_5.png",
+      "sha256": "b16fbb3aa0f9fb18d530303b309019421cc0bd29494a7615f42b22f50e53cb33",
+      "bytes": 40882
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/03_versus_mito_vs_verdade.png",
+      "sha256": "4965fb34c56a2363b22ae4109b1d1e33f74baa19a953417243452b0c54dbbd00",
+      "bytes": 38966
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/04_presentes_com_significado.png",
+      "sha256": "575238e9691456e0d9fe8e5e06d1cc2ddb0f4252853f17ddea935f4f264a7a75",
+      "bytes": 30752
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/05_sua_ideia_em_movimento_papel.png",
+      "sha256": "c924a2596f56b7cff4c759f07b98783d940303db105e7bc78d54d0f8eb62b1cf",
+      "bytes": 47206
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/06_sua_ideia_em_movimento_janela.png",
+      "sha256": "6e9ab9a6f26a2647122f06d07bea5442f3864ba95f2fe53575196ed32e096509",
+      "bytes": 36586
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/07_criar_com_intencao_janela.png",
+      "sha256": "b3dbfd73cd30e0a14923d801437a9a0435f393cc173292d3a2f75cc90984050b",
+      "bytes": 37084
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/08_janelas_tarjas_azuis.png",
+      "sha256": "d2d729377dfe8ffdc77ead79131a5c57af08d51ebad166cf6fb58362e14ece52",
+      "bytes": 40269
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/09_why_do_you_actually_exist.png",
+      "sha256": "c9810356e77c527bf3f61ba8911388199e25e8d00b9df426cdde0f9ec8df70f9",
+      "bytes": 41999
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/10_criar_com_intencao_papel.png",
+      "sha256": "b15b359ebbd79c78dc802aa69522690cb2fe1df21ab178b07e201af2587e0ead",
+      "bytes": 46988
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/11_minimal_air_4_5.png",
+      "sha256": "c5e222ada24bba2a760d13abcd97e7f1970e2d80da3e3718c3d27b02b68dc926",
+      "bytes": 42967
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/12_grid_systems_suico.png",
+      "sha256": "17b4c71bfefd0d5f1e22e5c4057361e28d56335750cf45f8e6b32c71023c0448",
+      "bytes": 36427
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/13_criar_com_intencao_janela_v2.png",
+      "sha256": "77c49d019e4d1c0a80a9fb55769cd75900a7cf27fd315de57c72ed2a5787a651",
+      "bytes": 33383
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/14_presentes_foto_de_fundo.png",
+      "sha256": "d31de719387954f438ce727669f25f8b85e86c691cac117b04b839a26bceeadb",
+      "bytes": 44764
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/15_chromatic_block_4_5.png",
+      "sha256": "abdc0e74bd3dd8d31260ddad3c133a80697e3644f7f728fdb90ee539b7dbca70",
+      "bytes": 38384
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/16_stroke_impact_4_5.png",
+      "sha256": "b04a39ae2d8ce6051ef535abaedfef72b04be903e2071bec0c2dbbafdafeeb72",
+      "bytes": 30194
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/17_glitch_signal_4_5.png",
+      "sha256": "8550beb04acff302e4f7e41fa5c0482dd3c06bd9176733bdc590b0f9dc05fc50",
+      "bytes": 33223
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/18_janelas_janelas.png",
+      "sha256": "55e4a17ada2a2d76cdafb52a171d4dcb5a88fb11663a0d2c68e22b6e22f32fc8",
+      "bytes": 34230
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/19_sua_ideia_janela_v2.png",
+      "sha256": "5874112e2d1629573de21e33a07048acad080ac20f96e81a37f9d746df75959b",
+      "bytes": 35417
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/20_data_punch_4_5.png",
+      "sha256": "04b95d66f61697a4b500d33c4a9a2283b485976c76de825a905617b340cfd1f4",
+      "bytes": 47092
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/21_mosaic_grid_4_5.png",
+      "sha256": "326621390824109bcc9f52b560a4661664e5c8ccfff94afffd09397898f1c3f6",
+      "bytes": 40238
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/22_kinetic_type_4_5.png",
+      "sha256": "e11ef4ba56a2c8d76247abe1157a884df6895a2b8c3caf73c0b464c4a824914b",
+      "bytes": 39058
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/23_poster_de_cinema_4_5.png",
+      "sha256": "0c952bb1610c8966f003d7be966ca15588acb1fb0357b7a75aab6f1a4204f3b0",
+      "bytes": 37740
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/24_criar_com_intencao_papel_v2.png",
+      "sha256": "1569a905703b4d230bbf92ae25c2b74c6bf9037fe4e8f5a86583d4fe46f33280",
+      "bytes": 42033
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/25_sua_ideia_papel_v2.png",
+      "sha256": "008140de74113e9eaeaf165b851dec49e280180ef6b9772da5e33c0023963d3e",
+      "bytes": 38736
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/26_papel_empilhado_papel.png",
+      "sha256": "1c2e60596fb73cc5869ff276785dcbde2a1126eeca8fd0075f3985a89a438f83",
+      "bytes": 54620
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/27_papel_empilhado_janelas.png",
+      "sha256": "e6105504c303474cdb22e765cd4e398c1d7362910e73bd59f86c16348bace9dc",
+      "bytes": 40048
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/28_janelas_papel_empilhado.png",
+      "sha256": "86749509e432f3c5ff5843221e9f2bd2748026bc9a6df24ebdb3acd46078f637",
+      "bytes": 34498
+    },
+    {
+      "path": "designs/showcase_consolidado/02_catalogo_oficial_r9/29_papel_empilhado_tarjas_azuis.png",
+      "sha256": "9e09e034b8d9fd047c4bf03d4a16f66433391c806006906de6f1f32ea27d048e",
+      "bytes": 44033
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/01_linear_bento.png",
+      "sha256": "94a184c5d02ea4689414f8cc7c8c9c40c4f90dd0ceedb00b5ea191f5bd5e61a3",
+      "bytes": 86683
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/02_warm_editorial.png",
+      "sha256": "3253e247213d8793505f3c120bff7a1a9c1b36e82a14d0aef88d491845083544",
+      "bytes": 82660
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/03_asymmetric_swiss.png",
+      "sha256": "01f6014b0816cf9777afbc84adbf8cd800cb685e52587bb716aef53047d3a17f",
+      "bytes": 55200
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/04_floating_note.png",
+      "sha256": "cf360b133af77a4f83a79b4970611c1051bb1b76913eca01cb258e6db40e43db",
+      "bytes": 237123
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_1_brutalism_bauhaus/05_dual_split.png",
+      "sha256": "f3446d4d0d3f667f3468aa2de7e071daa166954c9975a286819e531d95dd4b42",
+      "bytes": 73899
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/06_industrial_tech_spec.png",
+      "sha256": "33c19f32bd3d1e6d7abe3e31006e3eb4bc8a573505062b33c5e4d5388fca3669",
+      "bytes": 68464
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/07_acid_chrome_poster.png",
+      "sha256": "76ada79d8a94151a81f23d88089577eb454672bbb7a1bd99c67d64c4466de3b6",
+      "bytes": 181556
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/08_risograph_print_zine.png",
+      "sha256": "89df038ccc70c3167cdb7bc596e6401efb26ef1280481753133ab467b8773542",
+      "bytes": 93119
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/09_archival_specimen.png",
+      "sha256": "e0c22eee45912441362e6fda4a53265b97296e221bd301f7ac415a78cd49af53",
+      "bytes": 71233
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/10_neo_bauhaus_construct.png",
+      "sha256": "565858c5aaa0c5ab00762c1fe78b803ef065fd2811fea71be342e428d9a5441a",
+      "bytes": 69756
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/11_thermal_receipt_punk.png",
+      "sha256": "79538070dff9999f6745ddeda9941359e3ad6645ce411bc1fa37638bf5547672",
+      "bytes": 64873
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/12_neo_tokyo_obi_poster.png",
+      "sha256": "35943b5fb7eabe314b0c957a4d2959a64c84b2079c3bc184275a3cde2f4f9f6d",
+      "bytes": 89663
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/13_surrealist_dada_collage.png",
+      "sha256": "7979ab6a874c2d7261f7347605d8f10140e4087eecd9816a24cbc26197c96910",
+      "bytes": 103042
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/14_haute_couture_art_deco.png",
+      "sha256": "771ae26aabd29f8b9b60360e4033a62bd369905dd47f9f4d388e30a4f7475a87",
+      "bytes": 92055
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/15_1979_cassette_futurism.png",
+      "sha256": "64d1a0c8ca3d4da50bc536a049fd11199d6cf5e9bf3c0c495ea286fa450042f6",
+      "bytes": 50033
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/16_cyanotype_blueprint.png",
+      "sha256": "64906e78176650c16b332ca90fac67929583bc9e73482169daf1a965bbd21bbc",
+      "bytes": 106916
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_3_neo_pop_playful/17_chromatic_aura_portal.png",
+      "sha256": "3804368c269a0b620ca8bb27cc8bf388f38fe440f014b9007eec555d2bbc2118",
+      "bytes": 148473
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/18_pop_art_comic.png",
+      "sha256": "0c71c8802660e26c10536fcf3b7b9f00aaeaf0eefc0a6c7ddc91c162f03bd003",
+      "bytes": 68286
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/19_constructivist_wedge.png",
+      "sha256": "9bd204d26a265588436810dd1e9d8e5eabb2cdffecfbc7e9a0d5d5ea44a91320",
+      "bytes": 98333
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/20_neo_art_nouveau_mucha.png",
+      "sha256": "d88be4bf9fc9f7a7bd550c6339a6dbbb08a1338c21d97a3ff5d5d751067877cd",
+      "bytes": 120730
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/21_psychedelic_groove.png",
+      "sha256": "3cf4e15630139cde945d5e3ccfdbe0494a4c1460e4e95d19bac055edde5f5f0b",
+      "bytes": 87027
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/22_punk_xerox_fanzine_77.png",
+      "sha256": "655fe00ef3fe521981e23d649a1566dfbb1002d08582424be30cce161526c0a7",
+      "bytes": 84276
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_4_dark_luxury_glass/23_memphis_milano_1981.png",
+      "sha256": "550c8bfb44ef5b57b173964971989b83252992bf09258188363854cee19f8537",
+      "bytes": 75947
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/24_wes_anderson_symmetrical.png",
+      "sha256": "e0758cac73a03d9e2b143cbe7f3b1bb79bc8e8f6e65950f06b090132285cea6b",
+      "bytes": 67149
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/25_blue_note_hard_bop.png",
+      "sha256": "20e9e01eb57e609f0527415a51429fd04b7a5c7cfaaaf51a463a568db1624a75",
+      "bytes": 54681
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/26_a24_cinematic_title_card.png",
+      "sha256": "1bfd56e69bd043b13df64f29205f33b333a3d622de474b8887cb5cc96423236b",
+      "bytes": 51803
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/27_factory_records_pulsar.png",
+      "sha256": "6c251d67bf7efb307e07652da2eb64c82ac494ea57eec1f33d8a3f1a0d0dc542",
+      "bytes": 55872
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/28_swiss_haute_horlogerie.png",
+      "sha256": "82085213d2d1b13b0be58fd51424a7409b0965de55def2282f62253b2dc68148",
+      "bytes": 142095
+    },
+    {
+      "path": "designs/showcase_consolidado/03_novos_conceitos/serie_5_high_ticket_executive/29_neo_seoul_cyberpunk_2099.png",
+      "sha256": "0681919be79e589969bd91a8ee7d741107be47aa54c828014163c9331647c334",
+      "bytes": 78738
+    }
+  ],
+  "externalDependencies": [
+    "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700;800&family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,600;0,800;1,400&family=Archivo+Black&family=Bebas+Neue&family=Anton&family=Cinzel:wght@600;800&family=Syne:wght@700;800&family=Montserrat:wght@600;800&family=Inter:wght@400;500;600;700;800&display=swap",
+    "https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"
+  ],
+  "policy": {
+    "legacyCatalogEligible": false,
+    "inheritTopicRestrictions": false,
+    "sampleCopyIsFactualEvidence": false,
+    "automaticVisualApproval": false
+  }
+}

@@ -30,7 +30,17 @@
     "generation:worker": "tsx --env-file-if-exists=.env server/ai/workflows/generationWorker.ts",
     "build:review-renderer": "node scripts/build-review-renderer.mjs",
     "predev": "pnpm build:review-renderer",
-    "generation:setup-browser": "playwright-core install chromium"
+    "generation:setup-browser": "playwright-core install chromium",
+    "acervo82:inventory": "node --require ./scripts/testing/block-network.cjs scripts/acervo82/inventory.mjs --write",
+    "acervo82:verify": "node --require ./scripts/testing/block-network.cjs scripts/acervo82/inventory.mjs",
+    "acervo82:test": "node --require ./scripts/testing/block-network.cjs --test scripts/acervo82/preparation.test.mjs",
+    "acervo82:init": "node scripts/acervo82/local.mjs init",
+    "acervo82:doctor": "node scripts/acervo82/local.mjs doctor",
+    "acervo82:dev": "pnpm build:review-renderer && node scripts/acervo82/local.mjs dev",
+    "acervo82:db:start": "node scripts/acervo82/supabase.mjs start",
+    "acervo82:db:status": "node scripts/acervo82/supabase.mjs status",
+    "acervo82:db:stop": "node scripts/acervo82/supabase.mjs stop",
+    "acervo82:db:env": "node scripts/acervo82/supabase.mjs env"
   },
   "dependencies": {
     "@google/genai": "^1.41.0",
@@ -131,6 +141,7 @@
     "pnpm": "^10.15.1",
     "postcss": "^8.4.47",
     "prettier": "^3.6.2",
+    "supabase": "3.0.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.19.1",
     "tw-animate-css": "^1.4.0",

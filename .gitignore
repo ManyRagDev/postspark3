@@ -179,3 +179,8 @@ designs/inbox/*
 .postspark-local/
 
 !docs/generation-model-rollout.md
+
+# Dedicated local environment and Supabase runtime for acervo 82
+.acervo82-local/
+supabase/.temp/
+supabase/.branches/

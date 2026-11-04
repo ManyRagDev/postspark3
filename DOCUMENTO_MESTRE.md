@@ -3679,3 +3679,10 @@ visual 4 usado pelo localhost possui a revisão editorial
 `982d68db-eeaf-44ad-9766-4a9783b3374f`, com 14 intenções e 29 origens. Essa
 publicação não promove o catálogo visual nem implanta o código nos executores
 de produção; outras revisões visuais precisam de suas próprias anotações.
+
+
+## Acervo definitivo de 82 entradas — preparação isolada (2026-11-04)
+
+Decisão do proprietário: as 24 referências, 29 representações R9 e 29 conceitos do showcase formam o novo rol definitivo, substituindo integralmente o catálogo selecionável anterior. Famílias históricas não limitam a autoria dessas entradas. A preparação ocorre na branch `codex/acervo-82`, com fontes preservadas e hashes em `designs/acervo82/manifest.json`; o processo está em `designs/acervo82/workflow.json` e `docs/reforma/acervo-82.md`.
+
+O perfil local dedicado é iniciado por `pnpm acervo82:dev`, usa somente endpoints locais e permanece com admissão de geração pausada durante a preparação. As verificações de inventário não aprovam estética nem comprovam a jornada. Não há ativação remota ou nova seleção produtiva nesta preparação. O documento autoritativo continua `CanvasPostModel`, renderizado pelo `CanvasPostStage` e salvo em `canvas_model`.

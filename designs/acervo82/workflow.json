@@ -1,0 +1,30 @@
+{
+  "format": "postspark.acervo82.workflow",
+  "version": 1,
+  "roster": "designs/acervo82/manifest.json",
+  "goal": "Replace the complete selection catalogue with all 82 authored entries",
+  "canonicalDocument": "CanvasPostModel",
+  "renderer": "CanvasPostStage",
+  "persistence": "canvas_model",
+  "legacySelectionAllowed": false,
+  "paidCallsEnabled": false,
+  "phases": [
+    { "id": "source_preserved", "evidence": ["source hashes", "preview", "source code or original raster"] },
+    { "id": "authored", "evidence": ["complete immutable composition", "native content bindings", "font and media manifests", "declared adaptations"] },
+    { "id": "technically_verified", "evidence": ["canonical schema and hashes", "verified font bytes", "original and alternate copy renders", "content fit"] },
+    { "id": "visually_reviewed", "evidence": ["comparison against the selected showcase appearance", "decision tied to exact definition and PNG hashes", "known differences"] },
+    { "id": "journey_verified", "evidence": ["selection from new catalogue", "gallery", "edit", "save and reopen", "PNG and carousel ZIP when applicable"] },
+    { "id": "ready_for_release", "evidence": ["coverage of all 82 identities", "existing catalogue publication gates", "compatible application version", "recovery package"] }
+  ],
+  "rules": [
+    "Work each entry independently; previous family names do not restrict the new collection.",
+    "HTML/CSS/SVG is source geometry; translate to native layers and verified decorative assets without flattening editable text.",
+    "Freeze a 1080x1350 artboard, fonts and animation frame before evaluating visual fidelity.",
+    "Topic labels and example copy are not exclusive use restrictions or factual evidence.",
+    "Validate content bindings before promising roles such as cover, development, list or closing.",
+    "A technical pass is not visual approval; a missing renderer feature is an adaptation task rather than automatic rejection.",
+    "Record the reason and next action for every unresolved entry; do not silently remove it from the roster.",
+    "Preparatory receipt validation checks coverage and shape only; it cannot publish or authenticate review evidence.",
+    "The previous catalogue is recovery evidence and saved-document compatibility material, never a fallback source for new selections."
+  ]
+}

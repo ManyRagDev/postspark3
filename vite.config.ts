@@ -13,7 +13,9 @@ export default defineConfig({
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },
-  envDir: path.resolve(import.meta.dirname),
+  envDir: process.env.POSTSPARK_ACERVO82_LOCAL === "true"
+    ? path.resolve(process.env.POSTSPARK_ENV_DIR || path.join(import.meta.dirname, ".acervo82-local"))
+    : path.resolve(import.meta.dirname),
   root: path.resolve(import.meta.dirname, "client"),
   publicDir: path.resolve(import.meta.dirname, "client", "public"),
   build: {
