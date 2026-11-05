@@ -166,3 +166,22 @@ Verificação sem inferência paga: 36 consultas com modelo real, metade sem ano
 Novas gerações permanecem pausadas, sem ativação do catálogo ou ampliação do orçamento do piloto. A autoria das outras 76 fontes e uma avaliação humana com briefings reservados continuam necessárias para homologar o novo acervo completo.
 
 Regressões finais: 220 testes em 16 arquivos, TypeScript, inventário 82/158 e os quatro testes offline de preparação aprovados. A jornada real local confirmou 16 verificações de Auth/API/DB/Storage, incluindo salvar/editar/reabrir pelo adapter oficial, isolamento por proprietário e RLS. O harness passou a comparar a contagem de pedidos antes/depois, preservando os cinco pedidos históricos do piloto. Esta rodada não executou nova geração paga nem nova inspeção visual no navegador. Resumo preservado em `designs/acervo82/retrieval-results.json`.
+
+## Serviço real em uma rodada independente
+
+O launcher aceita `POSTSPARK_ACERVO82_PILOT_SESSION` com um nome simples, por exemplo `retrieval-live-01`. Cada nome conserva configuração privada e ledger próprios; omitir a variável mantém o piloto original. Os cinco pedidos e US$0,870384144 anteriores não foram apagados ou reutilizados. A sessão nomeada conserva os mesmos tetos de US$10, 120 chamadas e cinco admissões, com escopo restrito à conta local e revisão experimental. Gemini, Claude e DeepSeek da interface possuem cotações de transporte, além dos modelos de mídia/revisão. Modelos ainda não cotados são bloqueados.
+
+```bash
+pnpm acervo82:pilot:prepare
+POSTSPARK_ACERVO82_PILOT_SESSION=retrieval-live-01 pnpm acervo82:pilot:configure
+POSTSPARK_ACERVO82_PILOT_SESSION=retrieval-live-01 pnpm acervo82:pilot:dev '/caminho/privado/arquivo-com-OPENROUTER_API_KEY'
+# Em outro terminal; inicia um pedido real e usa uma admissão da sessão:
+POSTSPARK_ACERVO82_PILOT_SESSION=retrieval-live-01 pnpm acervo82:pilot:smoke static
+# Consultam somente um UUID existente:
+POSTSPARK_ACERVO82_PILOT_SESSION=retrieval-live-01 pnpm acervo82:pilot:verify UUID static
+POSTSPARK_ACERVO82_PILOT_SESSION=retrieval-live-01 pnpm acervo82:pilot:audit --id UUID --output artifacts/acervo82/pilot/sessions/retrieval-live-01/evidence.json
+```
+
+Repetir `smoke` para o mesmo caso e sessão usa a chave de idempotência persistida e não compra outro pedido. `configure` atualiza as cotações de uma sessão nomeada apenas enquanto ela não tiver admissões ou chamadas; sessões usadas preservam cotações e recibos. Para retomar após alterações de código, `configure` atualiza o fingerprint sem reiniciar o orçamento. Não abrir outro nome para contornar os limites de uma rodada em andamento.
+
+Por solicitação do proprietário, o serviço real da sessão `retrieval-live-01` foi habilitado na porta 3182. O perfil base permanece pausado; iniciar `acervo82:dev` volta à condição base. A revisão de catálogo continua sem ativação global, utilizando apenas as seis fontes do staging. O pedido real `9da1b108-c81d-41c5-91ca-faadc132355f` terminou com três propostas, revisões aprovadas pelo provedor e renderização CanvasPostStage conferida. Foram oito chamadas reais, US$0,082706862 e nenhuma pendência de custo. A auditoria passou 71 verificações e confirmou o protocolo novo: cinco famílias tecnicamente elegíveis, cinco avaliadas em um lote de 23.402 bytes, sem expansão. Com esse catálogo pequeno, o caminho não exige embeddings; essa rodada não prova recall com centenas de designs distintos. Restaram quatro admissões na sessão após a conferência. Evidências em `artifacts/acervo82/pilot/sessions/retrieval-live-01` e renders em `artifacts/acervo82/pilot/runs/9da1b108-c81d-41c5-91ca-faadc132355f`.

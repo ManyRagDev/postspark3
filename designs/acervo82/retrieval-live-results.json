@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "session": "retrieval-live-01",
+  "localUrl": "http://127.0.0.1:3182/thevoid",
+  "requestId": "9da1b108-c81d-41c5-91ca-faadc132355f",
+  "status": "completed",
+  "case": "static",
+  "generationModel": "google/gemini-3.8-flash",
+  "proposals": [
+    {
+      "slot": 0,
+      "family": "acervo82-r9-11"
+    },
+    {
+      "slot": 1,
+      "family": "acervo82-r9-20"
+    },
+    {
+      "slot": 2,
+      "family": "acervo82-concept-10"
+    }
+  ],
+  "providerEvidence": {
+    "complete": true,
+    "missingOperationKeys": []
+  },
+  "auditChecks": 71,
+  "auditPassed": true,
+  "designElection": {
+    "method": "hybrid_retrieval_then_scored_families",
+    "eligibleFamilies": 5,
+    "evaluatedFamilies": 5,
+    "transport": {
+      "bytes": 23402,
+      "batches": 1,
+      "largestRequestBytes": 23402
+    },
+    "indexUsed": false
+  },
+  "paidCalls": 8,
+  "actualUsd": 0.082706862,
+  "uncertainCalls": 0,
+  "sessionRequests": 1,
+  "limits": {
+    "usd": 10,
+    "calls": 120,
+    "requests": 5
+  },
+  "originalPilotLedgerSha256": "63d28db803f5c967beb31d1bb506d3a3fc197ebcd0ba35ae6752c1b5fa296c1c",
+  "limitsOfEvidence": [
+    "Six source pilot; only five eligible for the no-photo case.",
+    "This live test does not exercise retrieval against a large diverse catalogue.",
+    "Real CanvasPostStage renders inspected; browser journey not repeated."
+  ],
+  "artifacts": "artifacts/acervo82/pilot/sessions/retrieval-live-01"
+}

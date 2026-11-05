@@ -17,7 +17,10 @@ const account = JSON.parse(
   await fs.readFile(".acervo82-local/test-account.json", "utf8")
 );
 const config = JSON.parse(
-  await fs.readFile(".acervo82-local/pilot.json", "utf8")
+  await fs.readFile(
+    process.env.POSTSPARK_ACERVO82_PILOT_CONFIG ?? ".acervo82-local/pilot.json",
+    "utf8"
+  )
 );
 const requestId = process.argv[2];
 assert(

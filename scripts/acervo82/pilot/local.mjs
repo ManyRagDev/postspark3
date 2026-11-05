@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
 import path from "node:path";
@@ -8,10 +8,22 @@ import { readLocalEnvironment, sanitizedEnvironment } from "../environment.mjs";
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const base = await readLocalEnvironment(root),
   action = process.argv[2];
-if (!["stage", "configure", "dev", "test", "review"].includes(action))
+if (
+  !["stage", "configure", "dev", "test", "review", "smoke", "audit"].includes(
+    action
+  )
+)
   throw new Error("pilot_action_invalid");
 const env = sanitizedEnvironment(base);
-const configFile = path.join(root, ".acervo82-local/pilot.json");
+const session = process.env.POSTSPARK_ACERVO82_PILOT_SESSION ?? "pilot";
+if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(session))
+  throw new Error("pilot_session_invalid");
+const configFile = path.join(
+  root,
+  ".acervo82-local",
+  session === "pilot" ? "pilot.json" : `pilot-${session}.json`
+);
+env.POSTSPARK_ACERVO82_PILOT_CONFIG = configFile;
 if (action === "configure") {
   const stage = JSON.parse(
     await readFile(
@@ -35,6 +47,9 @@ if (action === "configure") {
     "google/gemini-3.8-flash",
     "openai/gpt-5.4-mini",
     "google/gemini-3.1-flash-image",
+    "anthropic/claude-haiku-5.5",
+    "deepseek/deepseek-v4.1-flash",
+    "openai/gpt-6.1-sol",
   ];
   const quotes = ids.map(id => {
     const q = all.find(q => q.id === id);
@@ -58,7 +73,13 @@ if (action === "configure") {
   });
   const hash = x =>
     createHash("sha256").update(JSON.stringify(x)).digest("hex");
-  const budgetFile = path.join(root, "artifacts/acervo82/pilot/budget.json");
+  const budgetFile = path.join(
+    root,
+    "artifacts/acervo82/pilot",
+    ...(session === "pilot" ? [] : ["sessions", session]),
+    "budget.json"
+  );
+  await mkdir(path.dirname(budgetFile), { recursive: true, mode: 0o700 });
   try {
     await readFile(budgetFile);
   } catch (e) {
@@ -96,6 +117,17 @@ if (action === "configure") {
   );
   await withBudgetFileLock(budgetFile, async () => {
     const state = await readSharedBudget(budgetFile);
+    // A session with no admissions or provider effects can refresh its public
+    // quotes. Used sessions keep their prices and every historical receipt.
+    if (
+      session !== "pilot" &&
+      !state.calls.length &&
+      !(state.pilotRequests ?? []).length
+    ) {
+      state.quotes = quotes;
+      state.quotesHash = hash(quotes);
+      await writeFile(budgetFile, JSON.stringify(state, null, 2));
+    }
     if (state.campaigns["acervo82-pilot"].maxExecutions === 4) {
       state.campaigns["acervo82-pilot"].maxExecutions = 5;
       state.pilotExtension = {
@@ -116,6 +148,7 @@ if (action === "configure") {
     JSON.stringify(
       {
         authorization: "user-authorized-acervo82-pilot",
+        session,
         actor: stage.actor,
         revision: stage.revision,
         supabaseUrl: base.SUPABASE_URL,
@@ -133,6 +166,7 @@ if (action === "configure") {
   console.log(
     JSON.stringify({
       configured: true,
+      session,
       localOnly: true,
       revision: stage.revision,
       maxUsd: 10,
@@ -146,6 +180,8 @@ const programs = {
   dev: ["server/_core/index.ts"],
   test: ["scripts/acervo82/pilot/test.ts"],
   review: ["scripts/acervo82/pilot/review.ts"],
+  smoke: ["scripts/acervo82/pilot/smoke.ts"],
+  audit: ["scripts/inspectGenerationRun.ts"],
 };
 if (action === "dev" || action === "review") {
   const keyFile = process.argv[3];
@@ -153,7 +189,6 @@ if (action === "dev" || action === "review") {
   const source = parse(await readFile(keyFile, "utf8"));
   if (!source.OPENROUTER_API_KEY) throw new Error("openrouter_key_missing");
   env.OPENROUTER_API_KEY = source.OPENROUTER_API_KEY;
-  env.POSTSPARK_ACERVO82_PILOT_CONFIG = configFile;
   env.NODE_OPTIONS = `--import=tsx --import=${pathToFileURL(path.join(root, "scripts/acervo82/pilot/preload.mjs")).href}`;
 }
 if (action === "dev") {
@@ -179,7 +214,9 @@ const child = spawn(
     "--import",
     "tsx",
     ...programs[action],
-    ...(["test", "stage"].includes(action) ? process.argv.slice(3) : []),
+    ...(["test", "stage", "smoke", "audit"].includes(action)
+      ? process.argv.slice(3)
+      : []),
   ],
   { cwd: root, env, stdio: "inherit" }
 );

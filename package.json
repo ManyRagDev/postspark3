@@ -53,6 +53,8 @@
     "acervo82:pilot:dev": "node --import tsx scripts/acervo82/pilot/local.mjs dev",
     "acervo82:pilot:verify": "node --import tsx scripts/acervo82/pilot/local.mjs test",
     "acervo82:pilot:review": "node --import tsx scripts/acervo82/pilot/local.mjs review",
+    "acervo82:pilot:smoke": "node --import tsx scripts/acervo82/pilot/local.mjs smoke",
+    "acervo82:pilot:audit": "node --import tsx scripts/acervo82/pilot/local.mjs audit",
     "acervo82:retrieval:model": "node scripts/provisionEditorialModel.mjs retrieval-e5 .postspark-local/design-retrieval/model",
     "acervo82:retrieval:index": "node scripts/acervo82/retrieval.mjs",
     "acervo82:retrieval:verify": "node scripts/acervo82/retrieval.mjs --verify"
