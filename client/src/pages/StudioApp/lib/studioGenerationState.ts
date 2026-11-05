@@ -133,6 +133,7 @@ export function messageGenerationProposalFailure(reason?: string, failure?: Gene
     case "catalog_variant_unavailable": return "Este design ainda não possui todos os slides revisados para este pedido. Aguarde a atualização do acervo.";
     case "catalog_component_ineligible": return "Um design ficou indisponível durante a entrega. As outras propostas continuam disponíveis.";
     case "catalog_coverage_incomplete": return "Não foi possível conferir todas as opções do acervo. A seleção não foi concluída; use a referência do pedido para diagnóstico.";
+    case "catalog_retrieval_unavailable": return "O índice de busca do acervo está indisponível ou desatualizado. A geração foi interrompida antes da seleção; o índice precisa ser preparado.";
     case "preparation_contract_incompatible": return "Este pedido usa uma preparação anterior incompatível. Aguarde a atualização do ambiente antes de criar outro.";
     case "review_evidence_invalid": return "Não foi possível concluir a conferência desta proposta. Isso não confirma um problema no conteúdo.";
     case "review_response_truncated": return "A resposta da revisão foi interrompida pelo limite de geração. Esta proposta não foi concluída como revisada.";

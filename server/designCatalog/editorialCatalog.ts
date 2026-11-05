@@ -6,6 +6,7 @@ import {
   type FrozenEditorialCatalog,
 } from "@shared/editorialIntent";
 import { getDb } from "../db";
+import { ENV } from "../_core/env";
 
 type EditorialHead = { revision: string; hash: string };
 export interface EditorialCatalogPersistence {
@@ -131,4 +132,11 @@ const persistence: EditorialCatalogPersistence = {
 };
 const store = createEditorialCatalogStore(persistence);
 export const readEditorialCatalog = (catalogRevision: string) => store.read(catalogRevision);
-export const publishEditorialCatalog = (catalogRevision: string, document: EditorialCatalogDocument) => store.publish(catalogRevision, document);
+export const publishEditorialCatalog = async (catalogRevision: string, document: EditorialCatalogDocument) => {
+  const result = await store.publish(catalogRevision, document);
+  if (ENV.designRetrievalDirectory) {
+    const { prepareCatalogSearchIndex } = await import("./familySearchIndex");
+    await prepareCatalogSearchIndex(catalogRevision);
+  }
+  return result;
+};

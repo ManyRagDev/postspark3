@@ -159,6 +159,7 @@ import { z } from "zod";
 export const generationFailureSchema = z.object({
   code: z.enum([
     "catalog_variant_unavailable",
+    "catalog_retrieval_unavailable",
     "selection_insufficient_fit",
     "planning_response_invalid",
     "catalog_component_ineligible",

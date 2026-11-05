@@ -1,0 +1,110 @@
+[
+  {
+    "id": "compare-cafe",
+    "text": "Compare café coado e espresso em dois lados, explicando as diferenças.",
+    "intents": ["comparar_alternativas"],
+    "expected": ["acervo82-r9-03"]
+  },
+  {
+    "id": "compare-software",
+    "text": "Apresente duas opções de software lado a lado, com suas diferenças.",
+    "intents": ["comparar_alternativas"],
+    "expected": ["acervo82-r9-03"]
+  },
+  {
+    "id": "myth-correction",
+    "text": "Contraponha um mito sobre criatividade à explicação correta.",
+    "intents": ["esclarecer_equivoco"],
+    "expected": ["acervo82-r9-03"]
+  },
+  {
+    "id": "comparison-untagged-request",
+    "text": "Mostre o que muda entre trabalhar sozinho e trabalhar em equipe, em duas colunas.",
+    "intents": [],
+    "expected": ["acervo82-r9-03"]
+  },
+  {
+    "id": "provided-number",
+    "text": "Dê protagonismo ao dado fornecido de 18% de redução de consumo, com contexto e unidade.",
+    "intents": ["destacar_dado"],
+    "expected": ["acervo82-r9-20"]
+  },
+  {
+    "id": "number-another-topic",
+    "text": "Destaque a métrica informada de 42 livros lidos, com um número grande e explicação curta.",
+    "intents": ["destacar_dado"],
+    "expected": ["acervo82-r9-20"]
+  },
+  {
+    "id": "number-paraphrase",
+    "text": "A informação principal é o resultado numérico fornecido. Faça esse valor dominar a hierarquia visual.",
+    "intents": [],
+    "expected": ["acervo82-r9-20"]
+  },
+  {
+    "id": "photo-workshop",
+    "text": "Apresente uma oficina de desenho com fotografia protagonista e uma frase curta.",
+    "intents": ["apresentar_com_imagem"],
+    "expected": ["acervo82-reference-03"]
+  },
+  {
+    "id": "photo-bread",
+    "text": "Uma fotografia de pão artesanal deve ocupar a maior parte da arte, acompanhada por poucas palavras.",
+    "intents": ["comentar_imagem"],
+    "expected": ["acervo82-reference-03"]
+  },
+  {
+    "id": "photo-paraphrase",
+    "text": "Deixe a cena comunicar o contexto e coloque somente uma mensagem breve acima dela.",
+    "intents": [],
+    "expected": ["acervo82-reference-03"]
+  },
+  {
+    "id": "minimal-space",
+    "text": "Quero uma frase clara com bastante espaço em branco, silêncio visual e tipografia discreta.",
+    "intents": [],
+    "expected": ["acervo82-r9-11"]
+  },
+  {
+    "id": "minimal-gardening",
+    "text": "Explique uma ideia de jardinagem com visual contido, muito respiro e hierarquia simples.",
+    "intents": ["explicar_raciocinio"],
+    "expected": ["acervo82-r9-11"]
+  },
+  {
+    "id": "minimal-reflection",
+    "text": "Proponha uma reflexão breve sobre atenção, com equilíbrio e clareza, sem excesso visual.",
+    "intents": ["estimular_reflexao"],
+    "expected": ["acervo82-r9-11", "acervo82-concept-10"]
+  },
+  {
+    "id": "industrial-manifesto",
+    "text": "Crie um manifesto com estética industrial, sinalização de atenção e aparência de ficha técnica.",
+    "intents": ["afirmar_mensagem"],
+    "expected": ["acervo82-concept-06"]
+  },
+  {
+    "id": "industrial-food",
+    "text": "Apresente uma mensagem sobre culinária usando linguagem visual de especificação industrial, código de barras e contraste laranja.",
+    "intents": [],
+    "expected": ["acervo82-concept-06"]
+  },
+  {
+    "id": "bauhaus-geometry",
+    "text": "Use geometria, círculos, blocos diagonais e cores primárias para destacar uma ideia.",
+    "intents": ["afirmar_mensagem"],
+    "expected": ["acervo82-concept-10"]
+  },
+  {
+    "id": "bauhaus-gardening",
+    "text": "Fale sobre jardinagem com cartaz geométrico inspirado na Bauhaus e faixas inclinadas.",
+    "intents": [],
+    "expected": ["acervo82-concept-10"]
+  },
+  {
+    "id": "bauhaus-reflection",
+    "text": "Uma reflexão breve em composição geométrica, com formas primárias e título em bloco diagonal.",
+    "intents": ["estimular_reflexao"],
+    "expected": ["acervo82-concept-10"]
+  }
+]

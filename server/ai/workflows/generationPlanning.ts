@@ -73,6 +73,10 @@ import { readEditorialCatalog } from "../../designCatalog/editorialCatalog";
 import { buildFamilySelectionCandidates } from "@shared/designFamilySelection";
 import { shortlistDesignFamilies } from "../../designCatalog/familyShortlist";
 import type { GenerationPlanningReceipt } from "@shared/generationPlan";
+import { FAMILY_RETRIEVAL_POLICY } from "@shared/familyRetrieval";
+import { retrieveFamilyCandidates, familySearchQuery, assertFamilyRetrieval } from "../../designCatalog/familyRetrieval";
+import { readSearchIndex, sourceSearchDocument } from "../../designCatalog/familySearchIndex";
+import { boundedFamilyShortlist } from "../../designCatalog/boundedFamilyShortlist";
 
 const narrativePlanningGuidance = [
   "Distribua primeiro o conteúdo essencial pelo número de páginas solicitado, considerando a capacidade real das variantes, antes de acrescentar seções.",
@@ -309,6 +313,24 @@ export async function preparePlannedGeneration(
     tone: input.tone,
   });
   const editorialEnabled = deps.generationConfig.editorialIntentVersion === 1;
+  const preliminary = resolveDesignFamilyRepertoires(cards, {
+    slideCount: count, contentMode: executionBrief?.interventionLevel === "visual_only" ? "literal" : "compose", instructions: requestText,
+  }).filter(r => repertoireMeetsMedia(r, imageObligation));
+  let semanticIndex: Awaited<ReturnType<typeof readSearchIndex>> | undefined;
+  const loadSemanticIndex = async (catalog: Parameters<typeof readSearchIndex>[1]) => {
+    try {
+      const revision = pinnedCatalogRevision() ?? catalog?.catalogRevision ?? ENV.localCatalogRevision;
+      semanticIndex = await (deps.familySearchIndex ? deps.familySearchIndex(catalog) : readSearchIndex(revision, catalog));
+      for (const repertoire of preliminary) {
+        const root = repertoire.slides.flatMap(s => s.variants).find(c => c.id === repertoire.sourceId)!;
+        const document = sourceSearchDocument(root, catalog), indexed = semanticIndex.index.documents.find(d => d.id === root.id);
+        if (!indexed || indexed.sourceHash !== document.sourceHash || indexed.textHash !== document.textHash) throw new Error("stale_index");
+      }
+      return semanticIndex;
+    } catch {
+      throw new GenerationFailureError("catalog_retrieval_unavailable", "catalog");
+    }
+  };
   const expectedInput = {
     brief: "Pedido e fontes no contexto editorial referenciado.",
     requirements: resolvedEditorialContext(editorialContext).requirements,
@@ -327,7 +349,12 @@ export async function preparePlannedGeneration(
         const editorialCatalog = deps.readEditorialCatalog
           ? await deps.readEditorialCatalog()
           : revision ? await readEditorialCatalog(revision) : null;
-        return { ...expectedInput, editorialCatalog, familyRankingVersion: 1 as const };
+        // Fail before the paid interpretation if a large catalogue has no
+        // complete local index. A replay uses the recorded receipt instead.
+        const large = new Set(preliminary.map(r => r.family)).size > FAMILY_RETRIEVAL_POLICY.initialFamilies;
+        const semantic = large ? await loadSemanticIndex(editorialCatalog) : undefined;
+        return { ...expectedInput, editorialCatalog, familyRankingVersion: 1 as const, familyRetrievalVersion: 1 as const,
+          ...(semantic ? { familyRetrievalIndex: { hash: semantic.index.hash, modelFingerprint: semantic.index.modelFingerprint } } : {}) };
       }
       const observation = await safeObserveEditorialAffinity(
         { input, cards, imageObligation, repertoireInstructions: requestText, signal: deps.signal, deadlineMs },
@@ -341,6 +368,8 @@ export async function preparePlannedGeneration(
     throw new GenerationFailureError("preparation_contract_incompatible", "selection");
   const editorialCatalog = selectionInput.editorialCatalog ?? null;
   const familyFirst = selectionInput.familyRankingVersion === 1;
+  const boundedRetrieval = selectionInput.familyRetrievalVersion === 1;
+  if (boundedRetrieval && !familyFirst) throw new GenerationFailureError("preparation_contract_incompatible", "selection");
   assertPinnedReviewConfig(selectionInput.reviewExecutionConfig);
   if (
     selectionInput.reviewExecutionConfig.policyVersion !== 10 ||
@@ -506,8 +535,41 @@ export async function preparePlannedGeneration(
     ? { version: 1, candidates: [], ranking: [], shortlistedIds: [] } : undefined;
   const runShortlist: NonNullable<PreparationDeps["shortlist"]> = async params => {
     if (!familyFirst) return deps.shortlist(params);
-    const result = await shortlistDesignFamilies(params, families, deps.shortlist);
+    if (!boundedRetrieval) {
+      const result = await shortlistDesignFamilies(params, families, deps.shortlist);
+      familyElection = result.familyElection;
+      return result;
+    }
+    const visualQuery = args.visualPreference.enabled ? args.visualPreference.language ?? "" : "";
+    const query = familySearchQuery(intent, editorialCatalog, visualQuery);
+    const retrieval = await deps.operation("family_retrieval", async () => {
+      if (families.length > FAMILY_RETRIEVAL_POLICY.initialFamilies && !semanticIndex) await loadSemanticIndex(editorialCatalog);
+      const pinned = selectionInput.familyRetrievalIndex;
+      if (semanticIndex && pinned && (semanticIndex.index.hash !== pinned.hash || semanticIndex.index.modelFingerprint !== pinned.modelFingerprint))
+        throw new GenerationFailureError("preparation_contract_incompatible", "selection");
+      return retrieveFamilyCandidates({ families, intent, catalog: editorialCatalog, visualPreference: visualQuery,
+        mixedMedia: args.requestedPhotoMix, semantic: semanticIndex, signal: deps.signal });
+    });
+    assertFamilyRetrieval(retrieval, families, query);
+    const result = await boundedFamilyShortlist({ input: params, families, retrieval, shortlist: deps.shortlist,
+      sufficient: partial => {
+        const retained = new Set(partial.cards.map(c => c.id));
+        const options = eligible.filter(r => retained.has(r.defaultOffer.offerId));
+        // Account for the same assessed media restoration performed below.
+        for (const photo of args.requestedPhotoMix ? [true, false] : imageObligation.required ? [true] : []) {
+          if (options.some(r => mediaCapable(r) === photo)) continue;
+          const extra = eligible.find(r => mediaCapable(r) === photo && partial.evaluated.some(e => e.id === r.defaultOffer.offerId && e.score >= 2));
+          if (extra) options.push(extra);
+        }
+        return buildHeuristicGenerationPlan({ familyFirst: true, intent, eligible: options, shortlist: partial,
+          imageObligation, requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: args.recentSelections }).slots.every(s => s.status === "viable");
+      } });
     familyElection = result.familyElection;
+    recordGenerationEvent({ stage: "family_retrieval", status: "completed", detail: "hybrid_local_v1", data: {
+      eligibleFamilies: families.length, recovered: retrieval.initialIds.length, expanded: result.familyElection.retrieval?.expanded,
+      evaluatedFamilies: result.familyElection.ranking.length, transport: result.familyElection.retrieval?.transport,
+      indexHash: retrieval.indexHash, queryHash: retrieval.queryHash,
+    } });
     return result;
   };
   if (eligible.length && deps.preflightSelection && !familyFirst) {
@@ -536,7 +598,7 @@ export async function preparePlannedGeneration(
       ),
     });
   }
-  const shortlist = eligible.length
+  const shortlist = eligible.length || boundedRetrieval
     ? await runShortlist({
         ...(editorialEnabled ? { editorialIntentVersion: 1 as const } : {}),
         cards: projections,
@@ -576,7 +638,7 @@ export async function preparePlannedGeneration(
       : []) {
     if (offered.some(r => mediaCapable(r) === photo)) continue;
     const candidate = eligible
-      .filter(r => mediaCapable(r) === photo)
+      .filter(r => mediaCapable(r) === photo && (!boundedRetrieval || shortlist.evaluated.some(e => e.id === r.defaultOffer.offerId && e.score >= 2)))
       .sort((a, b) => {
         const score = (id: string) => {
           const result = shortlist.evaluated.find(e => e.id === id);

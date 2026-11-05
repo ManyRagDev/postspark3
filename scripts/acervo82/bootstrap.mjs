@@ -27,7 +27,7 @@ const skipped = [
 const migrations = (await readdir(path.join(root, "drizzle")))
   .filter(n => /^00\d\d_.+\.sql$/.test(n) && !skipped.includes(n))
   .sort();
-if (migrations.length !== 54 || !migrations.at(-1).startsWith("0055_"))
+if (migrations.length !== 55 || !migrations.at(-1).startsWith("0056_"))
   throw new Error("migration_roster_changed_review_required");
 const steps = [
   ["local-prerequisites", "ops/acervo82/schema-prerequisites.sql"],

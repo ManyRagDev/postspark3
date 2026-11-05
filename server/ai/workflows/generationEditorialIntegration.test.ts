@@ -8,6 +8,8 @@ import { resolveGenerationModelConfig } from "../generationModel";
 import { prepareOrchestratedGeneration, verifyPreparedEligibility } from "./generationPreparation";
 import { shortlistCompleteDesigns } from "../../designCatalog/designShortlist";
 import type { InvokeParams } from "../../_core/llm";
+import { buildSearchIndex, searchDocuments } from "../../designCatalog/familySearchIndex";
+import type { EmbeddingEngine } from "../editorialAffinity/embeddingEngine";
 
 const owner = "00000000-0000-4000-8000-000000000001";
 const definitions = completeDesignTestDefinitions();
@@ -30,7 +32,7 @@ async function fixture(prompt: string, editorial: EditorialIntentReading, frozen
       requirements: [], content: [{ id: "idea", meaning: prompt, requirementIds: [], sourceIds: [] }], editorial }) } }],
   }) as any);
   const evaluate = vi.fn(async (request: any) => ({ id: "jev-fixture", model: request.model,
-    answers: Object.fromEntries(Object.keys(request.questions).map((id, i) => [id, { type: "score" as const, score: 4 - i * 0.2, confidence: 0.9 }])),
+    answers: Object.fromEntries(Object.keys(request.questions).map((id, i) => [id, { type: "score" as const, score: Math.max(2, 4 - i * 0.02), confidence: 0.9 }])),
     usage: { input_tokens: 100, output_tokens: 10, cost: 0 },
   }));
   const observer = vi.fn(async () => { throw new Error("local encoder must stay disabled"); });
@@ -49,6 +51,43 @@ async function fixture(prompt: string, editorial: EditorialIntentReading, frozen
 }
 
 describe("catalog → interpretation → JEV → persisted planning", () => {
+  it("retrieves before JEV in the actual preparation and replays 200 sources without buying or embedding again", async () => {
+    const sources = Array.from({ length: 200 }, (_, i) => createComponentDefinition({ ...definitions[0],
+      id: assemblyIdentity(["large-editorial-integration", i]), source: { ...definitions[0].source, variantKey: `large-${i}` },
+      completeDesign: { ...definitions[0].completeDesign!, family: `large-${i}` } }));
+    const f = await fixture("Explique um conceito", { version: 1, signals: [] }, null, sources);
+    const engine = { metadata: { dimensions: 384, fingerprint: "a".repeat(64) }, embed: vi.fn(async (texts: string[]) => ({
+      vectors: texts.map(() => Float32Array.from({ length: 384 }, (_, i) => i === 0 ? 1 : 0)),
+      inputs: texts.map(() => ({ tokenCount: 1, usedTokens: 1, truncated: false })),
+    })) } as unknown as EmbeddingEngine;
+    const index = await buildSearchIndex(searchDocuments(sources.map(compactComponentCard), null), engine);
+    const load = vi.fn(async () => ({ engine, index }));
+    Object.assign(f.deps, { familySearchIndex: load });
+    const first = await f.run();
+    expect(first.planning?.familyElection?.version).toBe(2);
+    expect(first.planning?.familyElection?.ranking).toHaveLength(24);
+    expect(first.planning?.familyElection?.candidates).toHaveLength(200);
+    expect(first.planning?.slots.every(s => s.status === "viable")).toBe(true);
+    expect(f.evaluate.mock.calls.flatMap(([r]) => Object.keys(r.questions))).toHaveLength(24);
+    expect(f.journal.has("family_retrieval")).toBe(true);
+    load.mockImplementation(async () => { throw new Error("replay must not load today's index"); });
+    f.generate.mockImplementation(async () => { throw new Error("duplicate interpretation"); });
+    f.evaluate.mockImplementation(async () => { throw new Error("duplicate JEV call"); });
+    vi.mocked(engine.embed).mockClear();
+    const reopened = await f.run();
+    expect(JSON.parse(JSON.stringify(reopened.planning))).toEqual(JSON.parse(JSON.stringify(first.planning)));
+    expect(engine.embed).not.toHaveBeenCalled();
+    expect(load).toHaveBeenCalledTimes(1);
+    await expect(verifyPreparedEligibility(JSON.parse(JSON.stringify(reopened)), true, f.deps.hydrate)).resolves.toBeUndefined();
+  });
+  it("fails before interpretation or JEV if a large catalogue has no complete index", async () => {
+    const sources = Array.from({ length: 25 }, (_, i) => createComponentDefinition({ ...definitions[0],
+      id: assemblyIdentity(["missing-index", i]), completeDesign: { ...definitions[0].completeDesign!, family: `missing-${i}` } }));
+    const f = await fixture("Explique", { version: 1, signals: [] }, null, sources);
+    Object.assign(f.deps, { familySearchIndex: async () => { throw new Error("no provisioned index"); } });
+    await expect(f.run()).rejects.toThrow("catalog_retrieval_unavailable");
+    expect(f.generate).not.toHaveBeenCalled(); expect(f.evaluate).not.toHaveBeenCalled();
+  });
   it.each([
     ["Compare A e B", "comparar", "requested", "Compare A e B"],
     ["Quais os pontos negativos do carro X?", "avaliar_limites", "requested", "pontos negativos do carro X"],
@@ -117,7 +156,10 @@ describe("catalog → interpretation → JEV → persisted planning", () => {
     const operation = f.deps.operation;
     f.deps.operation = async (key, work) => operation(key, async () => {
       const value = await work();
-      if (key === "selection_input") delete (value as any).familyRankingVersion;
+      if (key === "selection_input") {
+        delete (value as any).familyRankingVersion;
+        delete (value as any).familyRetrievalVersion;
+      }
       return value;
     });
     const prepared = await f.run();

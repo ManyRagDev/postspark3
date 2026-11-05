@@ -753,6 +753,7 @@ async function executeClaimedGenerationWithinTrace(
           "catalog",
           "definitions",
           "recent_selections",
+          "family_retrieval",
         ].includes(key)
       )(key, work);
     let resumeReviewPolicyVersion:import("./generationPreparation").PreparationDeps["resumeReviewPolicyVersion"];

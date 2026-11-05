@@ -109,6 +109,8 @@ export const selectionInputReceiptSchema = z
     shortlistContextEncoding: z.literal(1).optional(),
     shortlistProfileEncoding: z.literal("repertoire_pages_v1").optional(),
     familyRankingVersion: z.literal(1).optional(),
+    familyRetrievalVersion: z.literal(1).optional(),
+    familyRetrievalIndex: z.object({ hash: z.string(), modelFingerprint: z.string() }).strict().optional(),
     editorialAffinity: editorialAffinityReceiptSchema.optional(),
     editorialCatalog: frozenEditorialCatalogSchema.nullable().optional(),
   })
@@ -141,6 +143,11 @@ export interface PreparedGeneration {
   perProposalImageObligations?: ImageObligation[];
 }
 export interface PreparationDeps {
+  /** Local source-vector lookup. Tests may supply an index without DB or API effects. */
+  familySearchIndex?: (catalog: import("@shared/editorialIntent").FrozenEditorialCatalog | null) => Promise<{
+    index: import("../../designCatalog/familySearchIndex").FamilySearchIndex;
+    engine: import("../editorialAffinity/embeddingEngine").EmbeddingEngine;
+  }>;
   /** Override only for isolated harnesses; production reads the pinned design revision. */
   readEditorialCatalog?: () => Promise<import("@shared/editorialIntent").FrozenEditorialCatalog | null>;
   observeEditorialAffinity?: typeof observeEditorialAffinity;

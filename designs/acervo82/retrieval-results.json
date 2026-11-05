@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "date": "2026-11-04",
+  "scope": "local isolated worktree; six native pilot sources",
+  "indexHash": "b1f46aa6135cd7510263d99d6d210a17457c2ae872da368da49b2f4e35baa198",
+  "modelFingerprint": "9745d8fce0d7f3dad9507713ad14991756076cf4d0805bc3163cdd50cd7424b7",
+  "paidCalls": 0,
+  "admissionPaused": true,
+  "catalogActivated": false,
+  "quality": {
+    "cases": 36,
+    "hitsAt3": 35,
+    "misses": [
+      {
+        "id": "bauhaus-geometry",
+        "annotated": true,
+        "expected": [
+          "acervo82-concept-10"
+        ],
+        "top3": [
+          "acervo82-reference-03",
+          "acervo82-concept-06",
+          "acervo82-r9-11"
+        ],
+        "hitAt3": false,
+        "latencyMs": 7
+      }
+    ],
+    "labels": "provisional engineering fixtures; not human approval; not a diverse 2000-design quality test"
+  },
+  "capacity": [
+    {
+      "families": 200,
+      "providerQuestions": 36,
+      "batches": 3,
+      "totalRequestBytes": 119881,
+      "largestRequestBytes": 45604,
+      "executionMs": 1623,
+      "transportJudgments": "stubbed; six native sources replicated, not a semantic quality test of 2000 designs"
+    },
+    {
+      "families": 1000,
+      "providerQuestions": 36,
+      "batches": 3,
+      "totalRequestBytes": 119899,
+      "largestRequestBytes": 46426,
+      "executionMs": 6577,
+      "transportJudgments": "stubbed; six native sources replicated, not a semantic quality test of 2000 designs"
+    },
+    {
+      "families": 2000,
+      "providerQuestions": 36,
+      "batches": 3,
+      "totalRequestBytes": 119926,
+      "largestRequestBytes": 46313,
+      "executionMs": 11825,
+      "transportJudgments": "stubbed; six native sources replicated, not a semantic quality test of 2000 designs"
+    }
+  ],
+  "verification": {
+    "regressionTests": 220,
+    "typeScript": true,
+    "inventoryEntries": 82,
+    "inventoryFiles": 158,
+    "localApiDbStorageChecks": 16,
+    "providerCallsSimulatedForCapacity": true,
+    "browserRecheck": false
+  },
+  "artifacts": "artifacts/acervo82/scalability"
+}

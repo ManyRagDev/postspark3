@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { editorialCatalogHash, type EditorialCatalogDocument, type FrozenEditorialCatalog } from "@shared/editorialIntent";
 import { createEditorialCatalogStore, readEditorialCatalog, publishEditorialCatalog, type EditorialCatalogPersistence } from "./editorialCatalog";
+import { ENV } from "../_core/env";
+const retrieval = vi.hoisted(() => ({ prepare: vi.fn() }));
+vi.mock("./familySearchIndex", () => ({ prepareCatalogSearchIndex: retrieval.prepare }));
 
 const adapter = vi.hoisted(() => ({ db: null as any }));
 vi.mock("../db", () => ({ getDb: () => {
@@ -176,7 +179,12 @@ describe("editorial catalog cache", () => {
     };
     try {
       expect((await readEditorialCatalog(catalogRevision))!.catalogRevision).toBe(catalogRevision);
+      const directory = ENV.designRetrievalDirectory;
+      ENV.designRetrievalDirectory = "/local/retrieval";
+      try {
       await publishEditorialCatalog(catalogRevision, document);
+      expect(retrieval.prepare).toHaveBeenCalledWith(catalogRevision);
+      } finally { ENV.designRetrievalDirectory = directory; retrieval.prepare.mockReset(); }
       expect(filters).toEqual([["catalog_revision", catalogRevision], ["id", revisionA]]);
       expect(calls[0]).toEqual({ name: "editorial_catalog_head", args: { p_catalog_revision: catalogRevision } });
       expect(calls[1].name).toBe("editorial_catalog_publish");

@@ -13,6 +13,8 @@ import { reconcileCatalogCoverage } from "./designCatalog/catalogCoverage";
 import { inspectPlannedDesignElection } from "./plannedDesignElectionEvidence";
 import { compactComponentCard, createComponentDefinition } from "../shared/componentAssembly";
 import { buildFamilySelectionCandidates } from "../shared/designFamilySelection";
+import { FAMILY_RETRIEVAL_POLICY, familyRetrievalPolicyHash } from "../shared/familyRetrieval";
+import { familyCorpusHash, familySearchQuery } from "./designCatalog/familyRetrieval";
 
 function fixture(editorial = true, projection: "concise" | "full" | "cover" = "concise", empty = false, count = 14, pairFamilies = false) {
   const base = electionCatalogFixture(count);
@@ -117,7 +119,45 @@ function familyFixture(count = 26) {
   return { ...s, families, scoring: op };
 }
 
+function retrievedFixture() {
+  const s = familyFixture(80), planning = s.request.prepared.planning;
+  const ids = s.families.slice(0,24).map(f=>f.id), reserved = s.families.slice(24,36).map(f=>f.id);
+  const query=familySearchQuery(planning.intent,planning.editorialCatalog);
+  const retrieval={version:1,policyHash:familyRetrievalPolicyHash(),catalogHash:familyCorpusHash(s.families),query,queryHash:arsenalHash(query),
+    indexHash:"a".repeat(64),modelFingerprint:"b".repeat(64),eligibleFamilies:40,initialIds:ids,additionalIds:reserved,expanded:false,
+    recovered:[...ids,...reserved].map(id=>({id,lexical:1,semantic:.8,editorial:0,structural:0,reason:"relevance"})),
+    transport:{batches:0,bytes:0,largestRequestBytes:0}};
+  s.operations.push({operation_key:"prepare:family_retrieval",state:"completed",result:structuredClone(retrieval)});
+  Object.assign(s.operations.find(o=>o.operation_key==="prepare:selection_input").result,{familyRetrievalVersion:1,familyRetrievalIndex:{hash:retrieval.indexHash,modelFingerprint:retrieval.modelFingerprint}});
+  planning.familyElection.version=2;planning.familyElection.retrieval={...retrieval,transport:{batches:1,bytes:1000,largestRequestBytes:1000}};
+  planning.familyElection.ranking=planning.familyElection.ranking.filter((r:any)=>ids.includes(r.id));
+  planning.familyElection.shortlistedIds=ids.slice(0,12);
+  planning.selectorIds=s.families.slice(0,12).flatMap(f=>f.repertoires.map(r=>r.defaultOffer.offerId));
+  const members=new Set(s.families.slice(0,24).flatMap(f=>f.repertoires.map(r=>r.defaultOffer.offerId)));
+  planning.ranking=planning.ranking.filter((r:any)=>members.has(r.id));
+  const result=s.scoring.result;result.answers=Object.fromEntries(Object.entries(result.answers).filter(([id])=>ids.includes(id)));
+  result.assessmentContext.questionIds=ids;
+  result.assessmentContext.designHashes=Object.fromEntries(Object.entries(result.assessmentContext.designHashes).filter(([id])=>ids.includes(id)));
+  result.assessmentContext.profileHashes=Object.fromEntries(Object.entries(result.assessmentContext.profileHashes).filter(([id])=>ids.includes(id)));
+  result.assessmentContext.requestBytes=1000;reseal(s);return s;
+}
+
 describe("frozen editorial catalog election evidence", () => {
+  it("distinguishes 40 eligible families, 24 assessed families and sources outside retrieval", () => {
+    const s=retrievedFixture();expect(s.inspect().issues).toEqual([]);
+    expect(s.inspect().eligibleFamilies).toBe(40);expect(s.inspect().evaluatedFamilies).toBe(24);
+    const reopened=JSON.parse(JSON.stringify({request:s.request,operations:s.operations}));
+    expect(inspectPlannedDesignElection(reopened.request,reopened.operations).issues).toEqual([]);
+  });
+  it.each(["query","index","invented_vote","transport","unknown_member"])("rejects resealed retrieval corruption: %s", fault=>{
+    const s=retrievedFixture(),retrieval=s.request.prepared.planning.familyElection.retrieval;
+    if(fault==="query")retrieval.query="Outra consulta";
+    if(fault==="index")retrieval.indexHash="f".repeat(64);
+    if(fault==="invented_vote")s.request.prepared.planning.familyElection.ranking.push({id:s.families[39].id,score:4,confidence:1});
+    if(fault==="transport"){s.scoring.result.assessmentContext.requestBytes=FAMILY_RETRIEVAL_POLICY.maxTotalRequestBytes+1;retrieval.transport.bytes=FAMILY_RETRIEVAL_POLICY.maxTotalRequestBytes+1;}
+    if(fault==="unknown_member")retrieval.initialIds[0]="unknown";
+    reseal(s);expect(s.inspect().issues.length).toBeGreaterThan(0);
+  });
   it.each(["full", "concise", "cover"] as const)("preserves historical %s profiles without adding editorial interpretation", projection => {
     const s = fixture(false, projection);
     expect(s.inspect().issues).toEqual([]);

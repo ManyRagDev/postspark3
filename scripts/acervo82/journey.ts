@@ -128,6 +128,7 @@ const input = (post: CanvasPostModel) =>
   });
 
 await db.connect();
+const initialRequests = (await db.query("select count(*)::int as count from postspark.generation_v5_requests")).rows[0].count;
 try {
   const { api, cookie } = await login(account);
   assert.equal((await api.auth.me.query())?.id, account.id);
@@ -336,7 +337,7 @@ try {
       "select (select active_revision is null from postspark.catalog_state where id=true) as empty_catalog, (select count(*)::int from postspark.generation_v5_requests) as requests"
     );
     assert.equal(safety.rows[0].empty_catalog, true);
-    assert.equal(safety.rows[0].requests, 0);
+    assert.equal(safety.rows[0].requests, initialRequests);
     passed("no-catalog-activation-or-generation");
     const rls = await db.query(
       "select count(*)::int as unprotected from pg_tables t join pg_class c on c.oid=(quote_ident(t.schemaname)||'.'||quote_ident(t.tablename))::regclass where t.schemaname='postspark' and not c.relrowsecurity"

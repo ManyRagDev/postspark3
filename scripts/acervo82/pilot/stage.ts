@@ -17,6 +17,7 @@ import {
 } from "../../../shared/componentAssembly";
 import { arsenalHash } from "../../../shared/arsenalContent";
 import { getDb } from "../../../server/db";
+import { prepareCatalogSearchIndex, closeSearchEngines } from "../../../server/designCatalog/familySearchIndex";
 
 const root = process.argv[2] ?? "artifacts/acervo82/pilot/build-06";
 const actor = JSON.parse(
@@ -61,6 +62,8 @@ try {
 if (prior) {
   assert.equal(prior.identity, identity);
   await readCatalogManifest(prior.revision);
+  await prepareCatalogSearchIndex(prior.revision);
+  await closeSearchEngines();
   console.log(JSON.stringify({ reused: true, ...prior }));
   process.exit(0);
 }
@@ -204,3 +207,4 @@ await fs.writeFile(
   JSON.stringify(receipt, null, 2) + "\n"
 );
 console.log(JSON.stringify(receipt));
+await closeSearchEngines();

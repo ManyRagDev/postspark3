@@ -5,6 +5,15 @@ import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const editorialModelCandidates = {
+  "retrieval-e5": {
+    modelId: "Xenova/multilingual-e5-small",
+    revision: "761b726dd34fb83930e26aab4e9ac3899aa1fa78",
+    dimensions: 384,
+    maxTokens: 512,
+    dtype: "q8",
+    queryPrefix: "query: ",
+    referencePrefix: "passage: ",
+  },
   minilm: {
     modelId: "Xenova/paraphrase-multilingual-MiniLM-L12-v2",
     revision: "2c4055b12046f11709e9df2c122e59ffbdc2f900",

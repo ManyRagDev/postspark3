@@ -80,6 +80,10 @@ export async function withCatalogStaging<T>(
 }
 export async function activateCatalogRevision(revision: string) {
   if (!/^[1-9]\d*$/.test(revision)) throw new Error("catalog_revision_invalid");
+  if (ENV.designRetrievalDirectory) {
+    const { prepareCatalogSearchIndex } = await import("./familySearchIndex");
+    await prepareCatalogSearchIndex(revision);
+  }
   const { data, error } = await getDb().rpc("catalog_activate", {
     p_revision: revision,
   });
@@ -238,7 +242,8 @@ export async function readCatalogSnapshot(
 export async function buildCatalogPublication(
   data: { sourceRevision: string; rows: CatalogRow[] },
   queued: Array<{ definition: ComponentDefinitionV1; actor: string }>,
-  stage: boolean
+  stage: boolean,
+  computeIndexes = stage
 ) {
   const registrations: typeof queued = [];
   const rows: CatalogRow[] = [...data.rows];
@@ -305,7 +310,7 @@ export async function buildCatalogPublication(
       }).length,
     };
   }
-  const stagedIndexes = stage
+  const stagedIndexes = computeIndexes
     ? await (async () => {
         const { describeComponent, COMPONENT_DESCRIPTOR_VERSION } =
           await import("./componentStore");
@@ -337,6 +342,9 @@ export async function buildCatalogPublication(
 }
 export async function publishCatalog(options: { activate?: boolean } = {}) {
   const stage = options.activate === false;
+  // When search is configured, prepare the new revision before exposing it.
+  const indexedPublication = !stage && Boolean(ENV.designRetrievalDirectory);
+  const stageTransport = stage || indexedPublication;
   const data = stage
     ? await readCatalogStagingSource()
     : await (async () => {
@@ -344,7 +352,7 @@ export async function publishCatalog(options: { activate?: boolean } = {}) {
         if (result.error) throw result.error;
         return result.data;
       })();
-  const built = await buildCatalogPublication(data, Array.from(stagingContext.getStore()?.values() ?? []), stage);
+  const built = await buildCatalogPublication(data, Array.from(stagingContext.getStore()?.values() ?? []), stage, stageTransport);
   const { snapshot, registrations, summary } = built;
   const base = stage ? await readCatalogStagingBase(data.sourceRevision) : null;
   const delta = base ? await (async () => {
@@ -354,14 +362,14 @@ export async function publishCatalog(options: { activate?: boolean } = {}) {
     return catalogStageDeltaRows(snapshot.rows, previous.rows);
   })() : null;
   const published = await getDb().rpc(
-    stage ? (base ? "catalog_stage_delta" : "catalog_stage") : "catalog_publish",
+    stageTransport ? (base ? "catalog_stage_delta" : "catalog_stage") : "catalog_publish",
     {
       p_source_revision: data.sourceRevision,
       p_rows: delta ?? snapshot.rows,
       ...(base ? { p_base_revision: base.revision, p_base_hash: base.hash } : {}),
       p_summary: summary,
       p_hash: built.hash,
-      ...(stage
+      ...(stageTransport
         ? {
             // Exact existing definitions were checked against the source-version
             // snapshot above. Reuse their links/evidence; register only new IDs.
@@ -376,7 +384,13 @@ export async function publishCatalog(options: { activate?: boolean } = {}) {
     }
   );
   if (published.error) throw published.error;
-  return String(published.data);
+  const revision = String(published.data);
+  if (ENV.designRetrievalDirectory && !indexedPublication) {
+    const { prepareCatalogSearchIndex } = await import("./familySearchIndex");
+    await prepareCatalogSearchIndex(revision);
+  }
+  if (indexedPublication) await activateCatalogRevision(revision);
+  return revision;
 }
 export async function publishCatalogIfEnabled() {
   if (versionedCatalogEnabled()) await publishCatalog();

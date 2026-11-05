@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.fixture";
 import { createComponentDefinition, compactComponentCard } from "@shared/componentAssembly";
 import { arsenalHash } from "@shared/arsenalContent";
+import { ENV } from "../_core/env";
+const retrieval = vi.hoisted(() => ({ prepare: vi.fn() }));
+vi.mock("./familySearchIndex", () => ({ prepareCatalogSearchIndex: retrieval.prepare }));
 vi.mock("node:fs/promises", () => ({mkdir:vi.fn(),writeFile:vi.fn(),rename:vi.fn(),readFile:vi.fn(async()=>{throw new Error("ENOENT");})}));
 vi.mock("./stagingDelta", async (importOriginal) => ({
   ...await importOriginal<typeof import("./stagingDelta")>(),
@@ -22,10 +25,45 @@ vi.mock("../db", () => ({getDb: () => ({
   },
   from: () => ({select: () => ({eq: () => ({single:async()=>({data:{snapshot:{rows:state.baseRows},content_hash:arsenalHash({rows:state.baseRows})}})}),in: async () => {state.assetReads++;return {data:state.assets.map(manifest => ({id:manifest.id,manifest})),error:state.assetError};}}),upsert: () => {state.writes++;throw new Error("live write forbidden");}}),
 })}));
-import { withCatalogStaging, activateCatalogRevision } from "./versionedCatalog";
+import { withCatalogStaging, activateCatalogRevision, publishCatalog } from "./versionedCatalog";
 import { prepareComponentDraft } from "./componentStore";
 beforeEach(() => {state.calls=[];state.assets=[];state.rows=[];state.writes=0;state.assetReads=0;state.assetError=null;state.base=null;state.baseRows=[];});
 describe("atomic staged catalog importer", () => {
+  it("publishes through staging with SQL structural indexes before search preparation and activation", async () => {
+    const prior = ENV.designRetrievalDirectory;
+    ENV.designRetrievalDirectory = "/local/retrieval";
+    try {
+      const definition = completeDesignTestDefinitions()[0];
+      state.rows = [{component_id:definition.id,definition_hash:definition.hash,definition,card:compactComponentCard(definition),assets:definition.assets,design_components:{status:"approved",definition_hash:definition.hash,source:definition.source}}];
+      retrieval.prepare.mockImplementation(async (revision: string) => { state.calls.push({name:"search_index",args:revision}); });
+      await publishCatalog();
+      expect(state.calls.map(c => c.name)).toEqual(["catalog_staged_snapshot", "catalog_stage", "search_index", "catalog_activate"]);
+      expect(state.calls[1].args.p_indexes[definition.id].descriptor.structure).toHaveLength(48);
+    } finally { ENV.designRetrievalDirectory = prior; retrieval.prepare.mockReset(); }
+  });
+  it("prepares search before activation and leaves the active revision alone on index failure", async () => {
+    const prior = ENV.designRetrievalDirectory;
+    ENV.designRetrievalDirectory = "/local/retrieval";
+    try {
+      retrieval.prepare.mockImplementation(async (revision: string) => { state.calls.push({name:"search_index",args:revision}); });
+      await activateCatalogRevision("8");
+      expect(state.calls.map(c => c.name)).toEqual(["search_index", "catalog_activate"]);
+      state.calls = [];
+      retrieval.prepare.mockRejectedValueOnce(new Error("index unavailable"));
+      await expect(activateCatalogRevision("9")).rejects.toThrow("index unavailable");
+      expect(state.calls).toHaveLength(0);
+    } finally { ENV.designRetrievalDirectory = prior; retrieval.prepare.mockReset(); }
+  });
+  it("automatically indexes a staged publication without activating it", async () => {
+    const prior = ENV.designRetrievalDirectory;
+    ENV.designRetrievalDirectory = "/local/retrieval";
+    try {
+      retrieval.prepare.mockImplementation(async (revision: string) => { state.calls.push({name:"search_index",args:revision}); });
+      await withCatalogStaging(async () => {});
+      expect(state.calls.map(c => c.name)).toEqual(["readCatalogStagingSource", "catalog_stage", "search_index"]);
+      expect(state.calls[2].args).toBe("8");
+    } finally { ENV.designRetrievalDirectory = prior; retrieval.prepare.mockReset(); }
+  });
   it("uses the immutable base for transport, preserving full snapshot hash and newly computed indexes", async () => {
     const definitions=completeDesignTestDefinitions().slice(0,2).map((source,i)=>createComponentDefinition({...source,source:{...source.source,variantKey:`delta-test-${i}`},assets:source.assets.map(a=>({...a,kind:"catalog" as const}))}));
     const row=(definition: typeof definitions[number])=>({component_id:definition.id,definition_hash:definition.hash,definition,card:compactComponentCard(definition),assets:[...definition.assets].sort((a,b)=>a.id.localeCompare(b.id)),design_components:{status:"draft",definition_hash:definition.hash,source:definition.source}});

@@ -272,6 +272,23 @@ afterEach(async () => {
 });
 
 describe("generation V5 PostgreSQL state", () => {
+  it("replays interrupted local family retrieval after 0056 without reopening paid operations or completed receipts", async () => {
+    const migration = readFileSync(new URL("../../../drizzle/0056_family_retrieval_replay.sql", import.meta.url), "utf8");
+    const request = await admit(), lease = await claim();
+    const operation = (key: string, action: string, result: unknown = null) => serviceScalar<any>(
+      "SELECT postspark.generation_v5_operation($1::uuid,$2::uuid,$3,$4,$5::jsonb) AS value",
+      [request.id, lease.leaseToken, key, action, JSON.stringify(result)]);
+    await expect(operation("prepare:family_retrieval", "begin_safe")).rejects.toThrow("Only unpaid preparation reads");
+    await operation("prepare:family_retrieval", "begin");
+    await pg.exec(migration);
+    await pg.exec(migration);
+    expect(await operation("prepare:family_retrieval", "begin_safe")).toMatchObject({ state: "new" });
+    await operation("prepare:family_retrieval", "complete", { frozen: true });
+    expect(await operation("prepare:family_retrieval", "begin_safe")).toMatchObject({ state: "completed", result: { frozen: true } });
+    await expect(operation("prepare:selection", "begin_safe")).rejects.toThrow("Only unpaid preparation reads");
+    const privileges = await scalar<any>("SELECT jsonb_build_object('anon',has_function_privilege('anon',$1,'EXECUTE'),'authenticated',has_function_privilege('authenticated',$1,'EXECUTE'),'service',has_function_privilege('service_role',$1,'EXECUTE')) AS value", [operationSignature]);
+    expect(privileges).toEqual({ anon: false, authenticated: false, service: true });
+  });
   it("needs the replay migration to recover a recent read interrupted under the legacy fallback", async () => {
     const definition = await scalar<string>(
       "SELECT pg_get_functiondef($1::regprocedure) AS value",
