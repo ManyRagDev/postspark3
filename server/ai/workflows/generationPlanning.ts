@@ -77,6 +77,8 @@ import { FAMILY_RETRIEVAL_POLICY } from "@shared/familyRetrieval";
 import { retrieveFamilyCandidates, familySearchQuery, assertFamilyRetrieval } from "../../designCatalog/familyRetrieval";
 import { readSearchIndex, sourceSearchDocument } from "../../designCatalog/familySearchIndex";
 import { boundedFamilyShortlist } from "../../designCatalog/boundedFamilyShortlist";
+import { inspectFamilyPlanFit } from "../../designCatalog/familyPlanFit";
+import { FAMILY_RECOVERY_REASON } from "@shared/familyRecovery";
 
 const narrativePlanningGuidance = [
   "Distribua primeiro o conteúdo essencial pelo número de páginas solicitado, considerando a capacidade real das variantes, antes de acrescentar seções.",
@@ -353,7 +355,7 @@ export async function preparePlannedGeneration(
         // complete local index. A replay uses the recorded receipt instead.
         const large = new Set(preliminary.map(r => r.family)).size > FAMILY_RETRIEVAL_POLICY.initialFamilies;
         const semantic = large ? await loadSemanticIndex(editorialCatalog) : undefined;
-        return { ...expectedInput, editorialCatalog, familyRankingVersion: 1 as const, familyRetrievalVersion: 1 as const,
+        return { ...expectedInput, editorialCatalog, familyRankingVersion: 1 as const, familyRetrievalVersion: 1 as const, familyRecoveryVersion: 1 as const,
           ...(semantic ? { familyRetrievalIndex: { hash: semantic.index.hash, modelFingerprint: semantic.index.modelFingerprint } } : {}) };
       }
       const observation = await safeObserveEditorialAffinity(
@@ -369,6 +371,8 @@ export async function preparePlannedGeneration(
   const editorialCatalog = selectionInput.editorialCatalog ?? null;
   const familyFirst = selectionInput.familyRankingVersion === 1;
   const boundedRetrieval = selectionInput.familyRetrievalVersion === 1;
+  const recoveryEnabled = selectionInput.familyRecoveryVersion === 1;
+  if (recoveryEnabled && !boundedRetrieval) throw new GenerationFailureError("preparation_contract_incompatible", "selection");
   if (boundedRetrieval && !familyFirst) throw new GenerationFailureError("preparation_contract_incompatible", "selection");
   assertPinnedReviewConfig(selectionInput.reviewExecutionConfig);
   if (
@@ -552,7 +556,12 @@ export async function preparePlannedGeneration(
     });
     assertFamilyRetrieval(retrieval, families, query);
     const result = await boundedFamilyShortlist({ input: params, families, retrieval, shortlist: deps.shortlist,
+      ...(recoveryEnabled ? { recovery: { inspect: (ids: string[], scores: Array<{id: string; score: number; confidence: number}>) => inspectFamilyPlanFit({
+        families, ids, scores, intent, imageObligation, requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: args.recentSelections,
+      }) } } : {}),
       sufficient: partial => {
+        if (recoveryEnabled) return inspectFamilyPlanFit({ families, ids: partial.familyElection.shortlistedIds, scores: partial.familyElection.ranking,
+          intent, imageObligation, requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: args.recentSelections }).viableSlots.length === 3;
         const retained = new Set(partial.cards.map(c => c.id));
         const options = eligible.filter(r => retained.has(r.defaultOffer.offerId));
         // Account for the same assessed media restoration performed below.
@@ -569,6 +578,7 @@ export async function preparePlannedGeneration(
       eligibleFamilies: families.length, recovered: retrieval.initialIds.length, expanded: result.familyElection.retrieval?.expanded,
       evaluatedFamilies: result.familyElection.ranking.length, transport: result.familyElection.retrieval?.transport,
       indexHash: retrieval.indexHash, queryHash: retrieval.queryHash,
+      ...(result.familyElection.recovery ? { recovery: result.familyElection.recovery } : {}),
     } });
     return result;
   };
@@ -701,6 +711,11 @@ export async function preparePlannedGeneration(
   const slots: GenerationSlotPlan[] = selection.slots
     .slice()
     .sort((a, b) => a.slot - b.slot);
+  if (familyElection?.recovery?.recoveredIds.length) {
+    const recoveredMembers = new Set(families.filter(f => familyElection!.recovery!.recoveredIds.includes(f.id)).flatMap(f => f.repertoires.map(r => r.defaultOffer.offerId)));
+    for (const slot of slots) if (slot.status === "viable" && recoveredMembers.has(slot.candidateId))
+      slot.reason = FAMILY_RECOVERY_REASON;
+  }
   const offers = slots.map((slot, index) => {
     if (slot.status !== "viable") return null;
     const rejectSlot = (violations: string[]) => {

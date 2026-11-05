@@ -38,6 +38,8 @@ import { combineEditorialDesignProfile, editorialRequestEvidence, frozenEditoria
 import { buildFamilySelectionCandidates } from "../shared/designFamilySelection";
 import { FAMILY_RETRIEVAL_POLICY as retrievalPolicy } from "../shared/familyRetrieval";
 import { assertFamilyRetrieval, familySearchQuery } from "./designCatalog/familyRetrieval";
+import { planFamilyRecovery, FAMILY_RECOVERY_REASON } from "../shared/familyRecovery";
+import { inspectFamilyPlanFit } from "./designCatalog/familyPlanFit";
 
 type Row = Record<string, any>;
 const row = (v: unknown): Row =>
@@ -72,6 +74,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
   const selectionInput = completed("prepare:selection_input");
   const familyRanking = selectionInput?.familyRankingVersion === 1;
   const boundedRetrieval = selectionInput?.familyRetrievalVersion === 1;
+  const recoveryEnabled = selectionInput?.familyRecoveryVersion === 1;
   const familyElection = row(row(planning).familyElection);
   const catalog = completed("prepare:catalog"),
     parsedCoverage = catalogCoverageSchema.safeParse(catalog?.coverage);
@@ -109,7 +112,9 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
   try {
     check(selectionInput?.familyRankingVersion === undefined || familyRanking, "family_ranking_protocol_unsupported");
     check(selectionInput?.familyRetrievalVersion === undefined || boundedRetrieval, "family_retrieval_protocol_unsupported");
-    check(familyRanking ? familyElection.version === (boundedRetrieval ? 2 : 1) : !Object.hasOwn(planning, "familyElection"), "family_ranking_protocol_mismatch");
+    check(selectionInput?.familyRecoveryVersion === undefined || recoveryEnabled && boundedRetrieval, "family_recovery_protocol_unsupported");
+    check(familyRanking ? familyElection.version === (recoveryEnabled ? 3 : boundedRetrieval ? 2 : 1) : !Object.hasOwn(planning, "familyElection"), "family_ranking_protocol_mismatch");
+    check(recoveryEnabled || familyElection.recovery === undefined, "family_recovery_unpinned");
     check(config.editorialIntentVersion === undefined || editorialEnabled, "editorial_protocol_unsupported");
     if (editorialEnabled) {
       if (!selectionInput || !Object.prototype.hasOwnProperty.call(selectionInput, "editorialCatalog") ||
@@ -366,11 +371,23 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       const perProposalMedia = list(prepared.perProposalImageObligations);
       const permitsMediaRestoration = obligation.required ||
         (perProposalMedia.some(item => item.required === true) && perProposalMedia.some(item => item.policy === "forbidden"));
-      check(shortlistedIds.length <= Math.min(permitsMediaRestoration ? 14 : 12, familyCandidates.length), "family_shortlist_unjustified_extension");
+      let recoveredIds: string[] = [];
+      if (recoveryEnabled) {
+        const recent = completed("prepare:recent_selections");
+        const expected = planFamilyRecovery(ranking, ids => inspectFamilyPlanFit({
+          families: familyCandidates, ids, scores: ranking, intent, imageObligation: obligation,
+          requestedPhotoMix: perProposalMedia.some(item => item.required === true) && perProposalMedia.some(item => item.policy === "forbidden"),
+          slideCount, recentSelections: list(recent?.selections),
+        }));
+        check(same(expected, familyElection.recovery), "family_recovery_local_evidence_mismatch");
+        recoveredIds = expected.recoveredIds;
+        check([...expected.normalIds, ...recoveredIds].every(id => shortlistedIds.includes(id)), "family_recovery_shortlist_mismatch");
+      }
+      check(shortlistedIds.length <= Math.min((permitsMediaRestoration ? 14 : 12) + recoveredIds.length, familyCandidates.length), "family_shortlist_unjustified_extension");
       const effectiveScore = (score: { score: number; confidence: number }) => score.score * (0.5 + 0.5 * score.confidence);
       const cutoff = acceptable.map(effectiveScore).sort((a, b) => b - a)[minimum - 1];
-      check(shortlistedIds.length >= minimum && shortlistedIds.length <= Math.min(14, familyCandidates.length) &&
-        (!boundedRetrieval || shortlistedIds.every(id => (familyScores.get(id)?.score ?? 0) >= 2)) &&
+      check(shortlistedIds.length >= minimum && shortlistedIds.length <= Math.min(14 + recoveredIds.length, familyCandidates.length) &&
+        (!boundedRetrieval || shortlistedIds.every(id => (familyScores.get(id)?.score ?? 0) >= 2 || recoveredIds.includes(id))) &&
         ranking.filter(r => shortlistedIds.includes(r.id) && effectiveScore(r) >= cutoff).length >= minimum &&
         ranking.filter(r => (!boundedRetrieval || r.score >= 2) && effectiveScore(r) > cutoff).every(r => shortlistedIds.includes(r.id)), "family_shortlist_suitability_coverage_mismatch");
       const expanded = familyCandidates.filter(candidate => shortlistedIds.includes(candidate.id)).flatMap(candidate => candidate.repertoires.map(r => r.defaultOffer.offerId));
@@ -515,7 +532,11 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         );
       };
       if (plan.status === "viable") {
-        check(same(chosen, plan), `selection_plan_mismatch:${slot}`);
+        // The user-facing reason is a canonical projection of the frozen
+        // recovery receipt. Every other selector field must still match exactly.
+        const chosenId = chosen?.status === "viable" ? chosen.candidateId : null;
+        const recovered = recoveryEnabled && familyCandidates.some(f => list(familyElection.recovery?.recoveredIds).includes(f.id) && f.repertoires.some(r => r.defaultOffer.offerId === chosenId));
+        check(same(recovered ? { ...chosen, reason: FAMILY_RECOVERY_REASON } : chosen, plan), `selection_plan_mismatch:${slot}`);
         const materialized = materialize(plan);
         check(
           same(offer, materialized) &&
@@ -687,11 +708,13 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       evaluatedFamilies: familyScores.size,
       shortlistedFamilies: list(familyElection.shortlistedIds).length,
       ...(boundedRetrieval ? { retrieval: familyElection.retrieval } : {}),
+      ...(recoveryEnabled ? { recovery: familyElection.recovery } : {}),
       familyCandidates: familyCandidates.map(candidate => ({
         id: candidate.id, family: candidate.family, signature: candidate.signature,
         profileHash: arsenalHash(candidate.profile), memberIds: candidate.repertoires.map(r => r.defaultOffer.offerId),
         score: familyScores.get(candidate.id)?.score ?? null, confidence: familyScores.get(candidate.id)?.confidence ?? null,
         shortlisted: list(familyElection.shortlistedIds).includes(candidate.id),
+        ...(recoveryEnabled ? { recovered: list(familyElection.recovery?.recoveredIds).includes(candidate.id) } : {}),
         ...(boundedRetrieval ? { assessmentState: familyScores.has(candidate.id) ? "evaluated" : "not_evaluated" } : {}),
       })),
     } : {}),

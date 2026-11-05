@@ -22,6 +22,7 @@ import {
 } from "./familySearchIndex";
 import { boundedFamilyShortlist } from "./boundedFamilyShortlist";
 import { shortlistCompleteDesigns, type JevRequest } from "./designShortlist";
+import { inspectFamilyPlanFit } from "./familyPlanFit";
 
 export function retrievalFixture(count = 200) {
   const source = completeDesignTestDefinitions()[0];
@@ -98,6 +99,22 @@ const answer = (request: JevRequest, score: number) => ({
 });
 
 describe("bounded hybrid family retrieval", () => {
+  it("recovers only after both bounded waves with 2000 families and buys no extra judgments", async () => {
+    const f=retrievalFixture(2000),index=await buildSearchIndex(searchDocuments(f.cards,null),f.engine);
+    const retrieval=await retrieveFamilyCandidates({...f,catalog:null,semantic:{engine:f.engine,index}});
+    const requests:JevRequest[]=[];
+    const result=await boundedFamilyShortlist({families:f.families,retrieval,input:{cards:f.projections,brief:"Ideia",slideCount:1,deadlineMs:null,editorialIntentVersion:1},
+      shortlist:p=>shortlistCompleteDesigns(p,async r=>{requests.push(r);const response=answer(r,1.5);Object.values(response.answers).forEach(a=>a.confidence=.12);return response;}),sufficient:()=>false,
+      recovery:{inspect:(ids,scores)=>{
+        expect(requests.flatMap(r=>Object.keys(r.questions))).toHaveLength(36);
+        return inspectFamilyPlanFit({families:f.families,ids,scores,intent:f.intent,imageObligation:{policy:"optional",required:false,purpose:"none",reason:"Teste",slotTargets:0},requestedPhotoMix:false,slideCount:1,recentSelections:[]});
+      }}});
+    expect(result.familyElection.recovery).toMatchObject({outcome:"recovered",final:{viableSlots:[0,1,2]}});
+    expect(result.familyElection.recovery!.attempts).toHaveLength(1);
+    expect(result.familyElection.ranking).toHaveLength(36);
+    expect(requests.length).toBeLessThanOrEqual(4);
+    expect(requests.reduce((n,r)=>n+Buffer.byteLength(JSON.stringify(r)),0)).toBeLessThanOrEqual(128000);
+  },30_000);
   it.each([200, 1000, 2000])(
     "keeps provider work bounded with %i eligible families",
     async count => {

@@ -110,6 +110,7 @@ export const selectionInputReceiptSchema = z
     shortlistProfileEncoding: z.literal("repertoire_pages_v1").optional(),
     familyRankingVersion: z.literal(1).optional(),
     familyRetrievalVersion: z.literal(1).optional(),
+    familyRecoveryVersion: z.literal(1).optional(),
     familyRetrievalIndex: z.object({ hash: z.string(), modelFingerprint: z.string() }).strict().optional(),
     editorialAffinity: editorialAffinityReceiptSchema.optional(),
     editorialCatalog: frozenEditorialCatalogSchema.nullable().optional(),

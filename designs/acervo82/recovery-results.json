@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "date": "2026-11-05",
+  "requestId": "0bf1f8e0-064a-4f9f-9867-1e33ec6ed4f4",
+  "sourceFailedRequest": "c5a8a8af-9af0-4f8c-aac0-fc34514ffc21",
+  "samePromptAndExecutionMode": true,
+  "status": "completed",
+  "proposals": 3,
+  "photographyInEveryProposal": true,
+  "providerReviewsPassed": true,
+  "audit": {
+    "passed": true,
+    "checks": 89,
+    "issues": [],
+    "providerEvidence": {
+      "complete": true,
+      "missingOperationKeys": []
+    }
+  },
+  "recovery": {
+    "final": {
+      "planHash": "9e95423aa94a824a115e49dcc4d1ef9fb063ee273f96d18177199695d21a4719",
+      "viableSlots": [
+        0,
+        1,
+        2
+      ]
+    },
+    "outcome": "recovered",
+    "version": 1,
+    "attempts": [
+      {
+        "id": "8ff21ff8-a2c8-4f36-803f-4c5d72bceb68",
+        "fit": {
+          "planHash": "9e95423aa94a824a115e49dcc4d1ef9fb063ee273f96d18177199695d21a4719",
+          "viableSlots": [
+            0,
+            1,
+            2
+          ]
+        },
+        "score": 1.81,
+        "reason": "verified_gain",
+        "accepted": true,
+        "confidence": 0
+      }
+    ],
+    "baseline": {
+      "planHash": "5cd4e05ce4b8f1aa15bbebd72a7c42490f0e29c62b2d8c10cd367605e181598b",
+      "viableSlots": []
+    },
+    "normalIds": [],
+    "policyHash": "b9f1940746a7d02f4946c22ae4c5a201fd99d446bb6a73fa81d44a40ccfd5176",
+    "recoveredIds": [
+      "8ff21ff8-a2c8-4f36-803f-4c5d72bceb68"
+    ]
+  },
+  "transport": {
+    "bytes": 15272,
+    "batches": 1,
+    "largestRequestBytes": 15272
+  },
+  "actualPaidCalls": 12,
+  "actualUsd": 0.31952548,
+  "uncertainCalls": 0,
+  "sessionRequests": 3,
+  "remainingSessionRequests": 2,
+  "originalPilotLedgerUnchanged": true,
+  "persistence": {
+    "postId": 10,
+    "canonicalModelHash": "210b58e41e359f2a543e7feb5e20b6a47cdc860559559a7b9c2b2535c73e44f3",
+    "nativeCompositionHash": "ae04d4f619a0952e95e9d42d2f8fa431e840023a843b016ce3893bcee61f215e",
+    "reopenedNativeCompositionHash": "ae04d4f619a0952e95e9d42d2f8fa431e840023a843b016ce3893bcee61f215e",
+    "nativeCompositionRoundTripExact": true,
+    "editedHeadline": "CRIAR EM\nGRUPO.",
+    "captionAndProvenancePreserved": true,
+    "browserOpenedEditedSavedAndReopened": true,
+    "screenshot": "recovery-editor-reopened.png",
+    "normalization": "The official adapter adds optional legacy defaults; full object byte equality is not asserted.",
+    "originalDeliveryEqualityExpected": false,
+    "reason": "The native title was intentionally edited in CanvasLab; the original-delivery equality check correctly reports a mismatch."
+  },
+  "verification": {
+    "regressionTests": 206,
+    "typeScript": true,
+    "inventoryEntries": 82,
+    "inventoryFiles": 158,
+    "localNativeReplayPreservedOriginalScores": true,
+    "syntheticCapacityFamilies": 2000
+  },
+  "limits": [
+    "Pilot contains six native sources; one technically eligible photographic family.",
+    "Scores/confidences are not calibrated probabilities; recovery band is a versioned engineering policy.",
+    "Local feasibility precedes copy; render and provider review were still performed.",
+    "Edited post intentionally differs from original delivery; native composition, caption and provenance round-trip were verified separately."
+  ],
+  "artifacts": "artifacts/acervo82/pilot/sessions/retrieval-live-01"
+}

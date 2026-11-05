@@ -209,7 +209,8 @@ export interface GenerationPlanningReceipt {
   editorialCatalog?: FrozenEditorialCatalog | null;
   /** One provider judgment per family; member scores below are projections. */
   familyElection?: {
-    version: 1 | 2;
+    version: 1 | 2 | 3;
+    recovery?: import("./familyRecovery").FamilyRecoveryReceipt;
     retrieval?: import("./familyRetrieval").FamilyRetrievalReceipt;
     candidates: Array<{ id: string; family: string; signature: string; profileHash: string; memberIds: string[] }>;
     ranking: Array<{ id: string; score: number; confidence: number }>;

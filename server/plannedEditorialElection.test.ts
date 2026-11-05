@@ -5,7 +5,7 @@ import { z } from "zod";
 import { arsenalHash } from "../shared/arsenalContent";
 import { describeConciseDesignFamilyRepertoire, describeCoverOnlyDesignFamilyRepertoire, describeDesignFamilyRepertoire } from "../shared/compactDesignProfile";
 import { combineEditorialDesignProfile, editorialCatalogHash, type FrozenEditorialCatalog } from "../shared/editorialIntent";
-import { resolveDesignFamilyRepertoires } from "../shared/designRepertoire";
+import { resolveDesignFamilyRepertoires, materializeDesignFamilyOffer } from "../shared/designRepertoire";
 import { generationEditorialIntentSchema, generationIntentLegacySchema, sealGenerationPlanningReceipt } from "../shared/generationPlan";
 import { preparationReceipt } from "../shared/generationPreparationReceipt";
 import { electionCatalogFixture, electionCatalogRequest } from "./designCatalog/designElection.fixture";
@@ -15,6 +15,9 @@ import { compactComponentCard, createComponentDefinition } from "../shared/compo
 import { buildFamilySelectionCandidates } from "../shared/designFamilySelection";
 import { FAMILY_RETRIEVAL_POLICY, familyRetrievalPolicyHash } from "../shared/familyRetrieval";
 import { familyCorpusHash, familySearchQuery } from "./designCatalog/familyRetrieval";
+import { planFamilyRecovery, FAMILY_RECOVERY_REASON } from "../shared/familyRecovery";
+import { inspectFamilyPlanFit } from "./designCatalog/familyPlanFit";
+import { buildHeuristicGenerationPlan } from "./ai/workflows/heuristicPlanBuilder";
 
 function fixture(editorial = true, projection: "concise" | "full" | "cover" = "concise", empty = false, count = 14, pairFamilies = false) {
   const base = electionCatalogFixture(count);
@@ -86,7 +89,7 @@ function fixture(editorial = true, projection: "concise" | "full" | "cover" = "c
       },
     } },
   ];
-  return { request, operations, inspect: () => inspectPlannedDesignElection(request, operations), repertoires };
+  return { request, operations, inspect: () => inspectPlannedDesignElection(request, operations), repertoires, definitions };
 }
 
 function reseal(s: ReturnType<typeof fixture>) {
@@ -143,6 +146,38 @@ function retrievedFixture() {
 }
 
 describe("frozen editorial catalog election evidence", () => {
+  it("verifies the canonical recovery reason but still rejects a changed assignment after resealing",()=>{
+    const s=familyFixture(2),p=s.request.prepared.planning,obligation=s.request.prepared.imageObligation;
+    const query=familySearchQuery(p.intent,p.editorialCatalog),id=s.families[0].id;
+    const retrieval={version:1,policyHash:familyRetrievalPolicyHash(),catalogHash:familyCorpusHash(s.families),query,queryHash:arsenalHash(query),indexHash:null,modelFingerprint:null,eligibleFamilies:1,initialIds:[id],additionalIds:[],expanded:false,recovered:[{id,lexical:1,semantic:null,editorial:0,structural:0,reason:"relevance"}],transport:{batches:0,bytes:0,largestRequestBytes:0}};
+    s.operations.push({operation_key:"prepare:family_retrieval",state:"completed",result:structuredClone(retrieval)});
+    Object.assign(s.operations.find(o=>o.operation_key==="prepare:selection_input").result,{familyRetrievalVersion:1,familyRecoveryVersion:1});
+    p.familyElection.version=3;p.familyElection.retrieval={...retrieval,transport:{batches:1,bytes:1000,largestRequestBytes:1000}};
+    p.familyElection.ranking.forEach((r:any)=>{r.score=1.5;r.confidence=.12;});
+    p.ranking.forEach((r:any)=>{r.score=1.5;r.confidence=.12;});
+    Object.values(s.scoring.result.answers).forEach((r:any)=>{r.score=1.5;r.confidence=.12;});s.scoring.result.assessmentContext.requestBytes=1000;
+    p.familyElection.recovery=planFamilyRecovery(p.familyElection.ranking,ids=>inspectFamilyPlanFit({families:s.families,ids,scores:p.familyElection.ranking,intent:p.intent,imageObligation:obligation,requestedPhotoMix:false,slideCount:1,recentSelections:[]}));
+    const evaluated=s.repertoires.map(r=>({id:r.defaultOffer.offerId,hash:r.defaultOffer.signature,score:1.5,confidence:.12}));
+    const selected=buildHeuristicGenerationPlan({familyFirst:true,intent:p.intent,eligible:s.repertoires,shortlist:{cards:[],evaluated,batches:1,inputTokens:0,outputTokens:0,costUsd:0},imageObligation:obligation,slideCount:1});
+    s.operations.find(o=>o.operation_key==="prepare:selection").result.slots=structuredClone(selected.slots);
+    p.slots=selected.slots.map(slot=>({...slot,reason:FAMILY_RECOVERY_REASON}));
+    p.offers=p.slots.map((slot:any)=>materializeDesignFamilyOffer(s.repertoires.find(r=>r.defaultOffer.offerId===slot.candidateId)!,slot.pages.map((page:any)=>page.componentId)));
+    s.request.prepared.selectedDefinitions=p.offers.map((o:any)=>o.slides.map((slide:any)=>s.definitions.find(d=>d.id===slide.componentId)));
+    reseal(s);expect(s.inspect().issues).toEqual([]);
+    p.slots[0].pages[0].assignments[0].instruction="Different assignment";reseal(s);
+    expect(s.inspect().issues).toContain("selection_plan_mismatch:0");
+  });
+  it("reconstructs the pinned recovery policy and refuses a resealed fabricated attempt", () => {
+    const s=retrievedFixture(),planning=s.request.prepared.planning;
+    s.operations.find(o=>o.operation_key==="prepare:selection_input").result.familyRecoveryVersion=1;
+    planning.familyElection.version=3;
+    planning.familyElection.recovery=planFamilyRecovery(planning.familyElection.ranking,ids=>inspectFamilyPlanFit({families:s.families,ids,scores:planning.familyElection.ranking,intent:planning.intent,imageObligation:s.request.prepared.imageObligation,requestedPhotoMix:false,slideCount:1,recentSelections:[]}));
+    planning.familyElection.shortlistedIds=planning.familyElection.recovery.normalIds;
+    planning.selectorIds=s.families.filter(f=>planning.familyElection.shortlistedIds.includes(f.id)).flatMap(f=>f.repertoires.map(r=>r.defaultOffer.offerId));
+    reseal(s);expect(s.inspect().issues).toEqual([]);
+    planning.familyElection.recovery.attempts.push({id:s.families[39].id,score:1.5,confidence:.1,fit:{viableSlots:[0,1,2],planHash:"a".repeat(64)},accepted:true,reason:"verified_gain"});
+    reseal(s);expect(s.inspect().issues).toContain("family_recovery_local_evidence_mismatch");
+  });
   it("distinguishes 40 eligible families, 24 assessed families and sources outside retrieval", () => {
     const s=retrievedFixture();expect(s.inspect().issues).toEqual([]);
     expect(s.inspect().eligibleFamilies).toBe(40);expect(s.inspect().evaluatedFamilies).toBe(24);

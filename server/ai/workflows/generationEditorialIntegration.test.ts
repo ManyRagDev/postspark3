@@ -51,6 +51,29 @@ async function fixture(prompt: string, editorial: EditorialIntentReading, frozen
 }
 
 describe("catalog → interpretation → JEV → persisted planning", () => {
+  it("recovers an uncertain 1.5 judgement through actual planning, retaining scores and replaying without provider calls", async () => {
+    const f=await fixture("Apresente uma ideia",{version:1,signals:[]},null,[definitions[0]]);
+    f.evaluate.mockImplementation(async request=>({id:"jev-low",model:request.model,answers:Object.fromEntries(Object.keys(request.questions).map(id=>[id,{type:"score" as const,score:1.5,confidence:.12}])),usage:{input_tokens:100,output_tokens:10,cost:0}}));
+    const p=await f.run();
+    expect(p.planning?.familyElection).toMatchObject({version:3,recovery:{outcome:"recovered",attempts:[{score:1.5,confidence:.12,accepted:true}]}});
+    expect(p.planning?.slots.every(s=>s.status==="viable")).toBe(true);
+    expect(p.planning?.ranking.every(s=>s.score===1.5)).toBe(true);
+    expect(p.selectionReasons.every(r=>r.includes("recuperada"))).toBe(true);
+    const count=f.evaluate.mock.calls.length;
+    expect((await f.run()).planning).toEqual(p.planning);
+    expect(f.evaluate).toHaveBeenCalledTimes(count);
+    await expect(verifyPreparedEligibility(p,true,f.deps.hydrate)).resolves.toBeUndefined();
+  });
+  it("preserves the old bounded protocol when the recovery marker was not recorded", async () => {
+    const f=await fixture("Apresente uma ideia",{version:1,signals:[]},null,[definitions[0]]);
+    const operation=f.deps.operation;
+    f.deps.operation=async(key,work)=>operation(key,async()=>{const value=await work();if(key==="selection_input")delete(value as any).familyRecoveryVersion;return value;});
+    f.evaluate.mockImplementation(async request=>({id:"jev-low",model:request.model,answers:Object.fromEntries(Object.keys(request.questions).map(id=>[id,{type:"score" as const,score:1.5,confidence:.12}])),usage:{input_tokens:100,output_tokens:10,cost:0}}));
+    const p=await f.run();
+    expect(p.planning?.familyElection?.version).toBe(2);
+    expect(p.planning?.familyElection?.recovery).toBeUndefined();
+    expect(p.planning?.slots.every(s=>s.status==="insufficient_fit")).toBe(true);
+  });
   it("retrieves before JEV in the actual preparation and replays 200 sources without buying or embedding again", async () => {
     const sources = Array.from({ length: 200 }, (_, i) => createComponentDefinition({ ...definitions[0],
       id: assemblyIdentity(["large-editorial-integration", i]), source: { ...definitions[0].source, variantKey: `large-${i}` },
@@ -64,7 +87,7 @@ describe("catalog → interpretation → JEV → persisted planning", () => {
     const load = vi.fn(async () => ({ engine, index }));
     Object.assign(f.deps, { familySearchIndex: load });
     const first = await f.run();
-    expect(first.planning?.familyElection?.version).toBe(2);
+    expect(first.planning?.familyElection?.version).toBe(3);
     expect(first.planning?.familyElection?.ranking).toHaveLength(24);
     expect(first.planning?.familyElection?.candidates).toHaveLength(200);
     expect(first.planning?.slots.every(s => s.status === "viable")).toBe(true);
@@ -159,6 +182,7 @@ describe("catalog → interpretation → JEV → persisted planning", () => {
       if (key === "selection_input") {
         delete (value as any).familyRankingVersion;
         delete (value as any).familyRetrievalVersion;
+        delete (value as any).familyRecoveryVersion;
       }
       return value;
     });

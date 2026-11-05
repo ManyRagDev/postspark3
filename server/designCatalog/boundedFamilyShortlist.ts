@@ -8,6 +8,12 @@ import type {
 } from "./designShortlist";
 import { shortlistDesignFamilies } from "./familyShortlist";
 import type { GenerationPlanningReceipt } from "@shared/generationPlan";
+import {
+  planFamilyRecovery,
+  normalFamilyIds,
+  type FamilyPlanFit,
+  type FamilyScore,
+} from "@shared/familyRecovery";
 
 type Result = DesignShortlistResult & {
   familyElection: NonNullable<GenerationPlanningReceipt["familyElection"]>;
@@ -20,6 +26,9 @@ export async function boundedFamilyShortlist(args: {
   retrieval: FamilyRetrievalReceipt;
   shortlist: (input: DesignShortlistInput) => Promise<DesignShortlistResult>;
   sufficient: (result: Result) => boolean;
+  recovery?: {
+    inspect: (ids: string[], scores: FamilyScore[]) => FamilyPlanFit;
+  };
 }): Promise<Result> {
   const { input, families, shortlist } = args;
   const retrieval = structuredClone(args.retrieval);
@@ -39,16 +48,12 @@ export async function boundedFamilyShortlist(args: {
   let inputTokens = 0,
     outputTokens = 0,
     costUsd = 0;
+  let recovery: ReturnType<typeof planFamilyRecovery> | undefined;
   const aggregate = (): Result => {
-    const strongest = Array.from(familyScores.values())
-      .filter(r => r.score >= 2)
-      .sort(
-        (a, b) =>
-          b.score * (0.5 + 0.5 * b.confidence) -
-            a.score * (0.5 + 0.5 * a.confidence) || a.id.localeCompare(b.id)
-      )
-      .slice(0, 12);
-    const selected = new Set(strongest.map(r => r.id));
+    const selected = new Set([
+      ...normalFamilyIds(Array.from(familyScores.values())),
+      ...(recovery?.recoveredIds ?? []),
+    ]);
     const memberIds = new Set(
       families
         .filter(f => selected.has(f.id))
@@ -67,7 +72,8 @@ export async function boundedFamilyShortlist(args: {
       outputTokens,
       costUsd,
       familyElection: {
-        version: 2,
+        version: args.recovery ? 3 : 2,
+        ...(recovery ? { recovery } : {}),
         candidates: families.map(f => ({
           id: f.id,
           family: f.family,
@@ -111,6 +117,12 @@ export async function boundedFamilyShortlist(args: {
     inputTokens += result.inputTokens;
     outputTokens += result.outputTokens;
     costUsd += result.costUsd;
+  }
+  if (args.recovery) {
+    const scores = Array.from(familyScores.values());
+    recovery = planFamilyRecovery(scores, ids =>
+      args.recovery!.inspect(ids, scores)
+    );
   }
   return aggregate();
 }
