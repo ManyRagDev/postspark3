@@ -422,6 +422,8 @@ describe("orchestrated preparation", () => {
       "Inclua uma foto do produto",
       "Mostre imagens da coleção",
       "Adicione ilustração do espaço",
+      "Use obrigatoriamente uma fotografia editorial gerada de uma mesa de trabalho",
+      "Inclua necessariamente imagens da equipe",
     ])(
       "current explicit image request overrides saved typographic taste: %s",
       content => {

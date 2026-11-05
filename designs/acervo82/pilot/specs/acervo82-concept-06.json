@@ -1,0 +1,918 @@
+{
+  "stem": "acervo82-concept-06",
+  "title": "Industrial Tech-Spec · manifesto",
+  "background": "#FF4400",
+  "width": 1080,
+  "height": 1350,
+  "layers": [
+    {
+      "kind": "rect",
+      "id": "header",
+      "x": 58,
+      "y": 58,
+      "width": 964,
+      "height": 105,
+      "fill": "#F4F1EA",
+      "strokeColor": "#0A0A0A",
+      "strokeWidth": 5
+    },
+    {
+      "kind": "rect",
+      "id": "header-dark",
+      "x": 58,
+      "y": 58,
+      "width": 310,
+      "height": 105,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "text",
+      "id": "eyebrow",
+      "text": "CAUTION // 06",
+      "x": 82,
+      "y": 83,
+      "width": 275,
+      "height": 58,
+      "fontSize": 30,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#FF4400",
+      "lineHeight": 1.16,
+      "groupId": "eyebrow",
+      "fieldId": "eyebrow",
+      "minScale": 0.68
+    },
+    {
+      "kind": "text",
+      "id": "brand",
+      "text": "SPEC-SHEET",
+      "x": 400,
+      "y": 83,
+      "width": 360,
+      "height": 58,
+      "fontSize": 30,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#0A0A0A",
+      "lineHeight": 1.16,
+      "groupId": "brand",
+      "fieldId": "brand",
+      "minScale": 0.68
+    },
+    {
+      "kind": "text",
+      "id": "edition",
+      "text": "ISO-9001",
+      "x": 770,
+      "y": 83,
+      "width": 225,
+      "height": 58,
+      "fontSize": 30,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#0A0A0A",
+      "lineHeight": 1.16,
+      "groupId": "edition",
+      "fieldId": "edition",
+      "minScale": 0.68,
+      "align": "right"
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-0",
+      "x": 58,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-1",
+      "x": 112,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-2",
+      "x": 166,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-3",
+      "x": 220,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-4",
+      "x": 274,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-5",
+      "x": 328,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-6",
+      "x": 382,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-7",
+      "x": 436,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-8",
+      "x": 490,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-9",
+      "x": 544,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-10",
+      "x": 598,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-11",
+      "x": 652,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-12",
+      "x": 706,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-13",
+      "x": 760,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-14",
+      "x": 814,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-15",
+      "x": 868,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-16",
+      "x": 922,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "hazard-17",
+      "x": 976,
+      "y": 163,
+      "width": 54,
+      "height": 20,
+      "fill": "#0A0A0A",
+      "points": [
+        0,
+        20,
+        22,
+        0,
+        48,
+        0,
+        26,
+        20
+      ]
+    },
+    {
+      "kind": "rect",
+      "id": "tag-bg",
+      "x": 58,
+      "y": 425,
+      "width": 525,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "text",
+      "id": "label",
+      "text": "MANIFESTO DE PRODUTO",
+      "x": 78,
+      "y": 431,
+      "width": 490,
+      "height": 42,
+      "fontSize": 29,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#FF4400",
+      "lineHeight": 1.16,
+      "groupId": "label",
+      "fieldId": "label",
+      "minScale": 0.68
+    },
+    {
+      "kind": "rect",
+      "id": "highlight",
+      "x": 61,
+      "y": 595,
+      "width": 490,
+      "height": 86,
+      "fill": "#F4F1EA",
+      "strokeColor": "#0A0A0A",
+      "strokeWidth": 3
+    },
+    {
+      "kind": "text",
+      "id": "headline",
+      "text": "NÃO É SOBRE ESTÉTICA BONITA. É SOBRE TENSÃO VISUAL.",
+      "x": 58,
+      "y": 495,
+      "width": 964,
+      "height": 355,
+      "fontSize": 82,
+      "fontFamily": "Archivo Black",
+      "fontWeight": 400,
+      "fill": "#0A0A0A",
+      "lineHeight": 0.97,
+      "groupId": "headline",
+      "fieldId": "headline",
+      "minScale": 0.68,
+      "letterSpacing": -1.5
+    },
+    {
+      "kind": "rect",
+      "id": "seal",
+      "x": 875,
+      "y": 830,
+      "width": 150,
+      "height": 150,
+      "fill": "#F4F1EA",
+      "cornerRadiusPx": 75,
+      "strokeColor": "#0A0A0A",
+      "strokeWidth": 4
+    },
+    {
+      "kind": "text",
+      "id": "seal-text",
+      "text": "100% RAW",
+      "x": 888,
+      "y": 865,
+      "width": 126,
+      "height": 90,
+      "fontSize": 29,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#0A0A0A",
+      "lineHeight": 1.16,
+      "groupId": "seal-text",
+      "fieldId": "seal-text",
+      "minScale": 0.68,
+      "align": "center",
+      "rotationDeg": 12
+    },
+    {
+      "kind": "rect",
+      "id": "footer",
+      "x": 58,
+      "y": 1080,
+      "width": 964,
+      "height": 210,
+      "fill": "#F4F1EA",
+      "strokeColor": "#0A0A0A",
+      "strokeWidth": 5
+    },
+    {
+      "kind": "text",
+      "id": "body",
+      "text": "PESO: 900 BLK   ORIGEM: LAB-SP   LOTE: #2026-X",
+      "x": 86,
+      "y": 1105,
+      "width": 905,
+      "height": 80,
+      "fontSize": 27,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#0A0A0A",
+      "lineHeight": 1.4,
+      "groupId": "body",
+      "fieldId": "body",
+      "minScale": 0.68
+    },
+    {
+      "kind": "rect",
+      "id": "footer-rule",
+      "x": 86,
+      "y": 1195,
+      "width": 905,
+      "height": 4,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-0",
+      "x": 100,
+      "y": 1220,
+      "width": 2,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-1",
+      "x": 111,
+      "y": 1220,
+      "width": 3,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-2",
+      "x": 122,
+      "y": 1220,
+      "width": 4,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-3",
+      "x": 133,
+      "y": 1220,
+      "width": 5,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-4",
+      "x": 144,
+      "y": 1220,
+      "width": 2,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-5",
+      "x": 155,
+      "y": 1220,
+      "width": 3,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-6",
+      "x": 166,
+      "y": 1220,
+      "width": 4,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-7",
+      "x": 177,
+      "y": 1220,
+      "width": 5,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-8",
+      "x": 188,
+      "y": 1220,
+      "width": 2,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-9",
+      "x": 199,
+      "y": 1220,
+      "width": 3,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-10",
+      "x": 210,
+      "y": 1220,
+      "width": 4,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-11",
+      "x": 221,
+      "y": 1220,
+      "width": 5,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-12",
+      "x": 232,
+      "y": 1220,
+      "width": 2,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-13",
+      "x": 243,
+      "y": 1220,
+      "width": 3,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-14",
+      "x": 254,
+      "y": 1220,
+      "width": 4,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-15",
+      "x": 265,
+      "y": 1220,
+      "width": 5,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-16",
+      "x": 276,
+      "y": 1220,
+      "width": 2,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-17",
+      "x": 287,
+      "y": 1220,
+      "width": 3,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-18",
+      "x": 298,
+      "y": 1220,
+      "width": 4,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-19",
+      "x": 309,
+      "y": 1220,
+      "width": 5,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-20",
+      "x": 320,
+      "y": 1220,
+      "width": 2,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-21",
+      "x": 331,
+      "y": 1220,
+      "width": 3,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-22",
+      "x": 342,
+      "y": 1220,
+      "width": 4,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-23",
+      "x": 353,
+      "y": 1220,
+      "width": 5,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-24",
+      "x": 364,
+      "y": 1220,
+      "width": 2,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-25",
+      "x": 375,
+      "y": 1220,
+      "width": 3,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-26",
+      "x": 386,
+      "y": 1220,
+      "width": 4,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-27",
+      "x": 397,
+      "y": 1220,
+      "width": 5,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-28",
+      "x": 408,
+      "y": 1220,
+      "width": 2,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "rect",
+      "id": "barcode-29",
+      "x": 419,
+      "y": 1220,
+      "width": 3,
+      "height": 50,
+      "fill": "#0A0A0A"
+    },
+    {
+      "kind": "text",
+      "id": "cta",
+      "text": "SWIPE // →",
+      "x": 700,
+      "y": 1220,
+      "width": 290,
+      "height": 55,
+      "fontSize": 29,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#0A0A0A",
+      "lineHeight": 1.16,
+      "groupId": "cta",
+      "fieldId": "cta",
+      "minScale": 0.68,
+      "align": "right"
+    }
+  ],
+  "groups": [
+    {
+      "id": "eyebrow",
+      "label": "eyebrow",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "brand",
+      "label": "brand",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "edition",
+      "label": "edition",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "label",
+      "label": "label",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "headline",
+      "label": "headline",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "seal-text",
+      "label": "seal-text",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "body",
+      "label": "body",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "cta",
+      "label": "cta",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    }
+  ],
+  "authorship": {
+    "recipeId": "acervo82-concept-06-pilot-v1",
+    "createdAt": "2026-11-04T23:44:49.502Z"
+  },
+  "notes": [
+    "Piloto acervo82; fonte preservada no manifesto; não equivale à aprovação do catálogo definitivo.",
+    "Selo e metadados industriais são campos editáveis. ISO-9001 e 100% são exemplos da referência, nunca prova de certificação ou desempenho. A faixa clara é uma decoração fixa, não um destaque semântico automático de palavras."
+  ],
+  "sourcePath": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/06_industrial_tech_spec.png",
+  "originalHash": "33c19f32bd3d1e6d7abe3e31006e3eb4bc8a573505062b33c5e4d5388fca3669"
+}

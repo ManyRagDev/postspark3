@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "authoredAt": "2026-11-04T23:44:49.502Z",
+  "scope": "isolated-pilot-not-final-catalogue",
+  "sources": [
+    {
+      "id": "acervo82-reference-03",
+      "title": "Creative People · cartaz fotográfico",
+      "sourceHash": "6e72f0fc2a36d2b62a817ebc42dbca7ec2071991a31118ab333f9be38cc22777"
+    },
+    {
+      "id": "acervo82-r9-03",
+      "title": "Versus · mito e verdade",
+      "sourceHash": "4965fb34c56a2363b22ae4109b1d1e33f74baa19a953417243452b0c54dbbd00"
+    },
+    {
+      "id": "acervo82-r9-11",
+      "title": "Minimal Air · clareza e respiro",
+      "sourceHash": "c5e222ada24bba2a760d13abcd97e7f1970e2d80da3e3718c3d27b02b68dc926"
+    },
+    {
+      "id": "acervo82-r9-20",
+      "title": "Data Punch · destaque numérico",
+      "sourceHash": "04b95d66f61697a4b500d33c4a9a2283b485976c76de825a905617b340cfd1f4"
+    },
+    {
+      "id": "acervo82-concept-06",
+      "title": "Industrial Tech-Spec · manifesto",
+      "sourceHash": "33c19f32bd3d1e6d7abe3e31006e3eb4bc8a573505062b33c5e4d5388fca3669"
+    },
+    {
+      "id": "acervo82-concept-10",
+      "title": "Neo-Bauhaus · composição geométrica",
+      "sourceHash": "565858c5aaa0c5ab00762c1fe78b803ef065fd2811fea71be342e428d9a5441a"
+    }
+  ],
+  "authorship": "native editable layers; compare against archived reference; no automatic visual approval"
+}

@@ -1,0 +1,187 @@
+{
+  "stem": "acervo82-r9-20",
+  "title": "Data Punch · destaque numérico",
+  "background": "#0D1117",
+  "width": 1080,
+  "height": 1350,
+  "layers": [
+    {
+      "kind": "text",
+      "id": "eyebrow",
+      "text": "DADOS EM DESTAQUE",
+      "x": 65,
+      "y": 72,
+      "width": 930,
+      "height": 65,
+      "fontSize": 30,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#58A6FF",
+      "lineHeight": 1.16,
+      "groupId": "eyebrow",
+      "fieldId": "eyebrow",
+      "minScale": 0.68
+    },
+    {
+      "kind": "text",
+      "id": "metric",
+      "text": "+340%",
+      "x": 65,
+      "y": 460,
+      "width": 940,
+      "height": 190,
+      "fontSize": 142,
+      "fontFamily": "Space Grotesk",
+      "fontWeight": 700,
+      "fill": "#58A6FF",
+      "lineHeight": 1.16,
+      "groupId": "metric",
+      "fieldId": "metric",
+      "minScale": 0.68
+    },
+    {
+      "kind": "text",
+      "id": "headline",
+      "text": "Crescimento de autoridade percebida.",
+      "x": 65,
+      "y": 660,
+      "width": 940,
+      "height": 185,
+      "fontSize": 56,
+      "fontFamily": "Space Grotesk",
+      "fontWeight": 700,
+      "fill": "#FFFFFF",
+      "lineHeight": 1.16,
+      "groupId": "headline",
+      "fieldId": "headline",
+      "minScale": 0.68
+    },
+    {
+      "kind": "text",
+      "id": "body",
+      "text": "Números grandes e dados em destaque de alto impacto.",
+      "x": 65,
+      "y": 850,
+      "width": 940,
+      "height": 115,
+      "fontSize": 32,
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fill": "#94A3B8",
+      "lineHeight": 1.5,
+      "groupId": "body",
+      "fieldId": "body",
+      "minScale": 0.68
+    },
+    {
+      "kind": "rect",
+      "id": "footer-line",
+      "x": 65,
+      "y": 1215,
+      "width": 950,
+      "height": 2,
+      "fill": "#273244"
+    },
+    {
+      "kind": "text",
+      "id": "brand",
+      "text": "SPACE GROTESK",
+      "x": 65,
+      "y": 1240,
+      "width": 520,
+      "height": 55,
+      "fontSize": 30,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#94A3B8",
+      "lineHeight": 1.16,
+      "groupId": "brand",
+      "fieldId": "brand",
+      "minScale": 0.68
+    },
+    {
+      "kind": "text",
+      "id": "cta",
+      "text": "CASE STUDY →",
+      "x": 620,
+      "y": 1240,
+      "width": 395,
+      "height": 55,
+      "fontSize": 30,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#58A6FF",
+      "lineHeight": 1.16,
+      "groupId": "cta",
+      "fieldId": "cta",
+      "minScale": 0.68,
+      "align": "right"
+    }
+  ],
+  "groups": [
+    {
+      "id": "eyebrow",
+      "label": "eyebrow",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "metric",
+      "label": "metric",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "headline",
+      "label": "headline",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "body",
+      "label": "body",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "brand",
+      "label": "brand",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "cta",
+      "label": "cta",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    }
+  ],
+  "authorship": {
+    "recipeId": "acervo82-r9-20-pilot-v1",
+    "createdAt": "2026-11-04T23:44:49.502Z"
+  },
+  "notes": [
+    "Piloto acervo82; fonte preservada no manifesto; não equivale à aprovação do catálogo definitivo.",
+    "O número +340% é apenas o texto da referência. Todo dado da geração deve vir do briefing; nenhum resultado comercial pode ser inferido do exemplo."
+  ],
+  "sourcePath": "designs/showcase_consolidado/02_catalogo_oficial_r9/20_data_punch_4_5.png",
+  "originalHash": "04b95d66f61697a4b500d33c4a9a2283b485976c76de825a905617b340cfd1f4"
+}

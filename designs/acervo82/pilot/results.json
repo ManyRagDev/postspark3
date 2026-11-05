@@ -1,0 +1,400 @@
+{
+  "version": 1,
+  "completedAt": "2026-11-05T00:18:38.016Z",
+  "scope": "local-pilot-not-final-release",
+  "catalog": {
+    "revision": "2",
+    "identity": "a9e25389f21c6ccf02c0d627638a59acc40cfb050b6252e7fddbb7ef23176d50",
+    "sources": 6,
+    "definitions": 30,
+    "assets": 5,
+    "activeRevision": null,
+    "independentRebuildIdentical": true,
+    "technicalBlockingIssues": 0,
+    "definitionsIdentity": [
+      {
+        "id": "a395f643-2ef4-4096-8cea-25e826284f7a",
+        "hash": "ee5cb481b86f361de066ad3e46ebb2f24e226084d002b0369da4ba3e06d3a19d"
+      },
+      {
+        "id": "64311a86-00a1-43ce-838e-5ac9c6f9c584",
+        "hash": "dfa001778a5c1ae2e70e77811db7ffe06aa500ca2731b59eaf7489cd8b394b52"
+      },
+      {
+        "id": "c284b015-ef40-49c2-83a8-d24b9f7b3210",
+        "hash": "cd4f0b932cf0a920ab93c9923f8392956bc31deeaa0a931b58d24f479875c0fa"
+      },
+      {
+        "id": "3fc49bcb-5093-46e7-8db6-78948a8d53d7",
+        "hash": "062dd6c85cbd809468ff60d8caf36598142cb6e9b2b3ae6a14ea9469b43c73a2"
+      },
+      {
+        "id": "e4e7c5be-319a-4579-8930-9e67b31d837c",
+        "hash": "80a8fba997b7d4b8477c1eb86cbb41a5f49d78c416b752c9515832fd0e5be575"
+      },
+      {
+        "id": "6dbc30e6-87d1-4e76-8af4-bf279c3b25ec",
+        "hash": "2ca1bddc41f4cd7113c644b7b003def77db02cd8e3485693cc3c715f98a490e7"
+      },
+      {
+        "id": "877bb75e-5959-4c4e-81df-bca1f8714bd6",
+        "hash": "536acf6873df5b062076b36392c49535f1cd3fac1f138bab2bc603a2fb18afe6"
+      },
+      {
+        "id": "dfcde113-08da-4998-83a5-ed00fa62f01a",
+        "hash": "f6910a5c955ed5149ecc3f1dc8d8092a890b9f648b78fb42df44532e2e8bfd60"
+      },
+      {
+        "id": "c1713d2d-6d99-4bf5-8dbc-6de9319e101d",
+        "hash": "e1092c48eb907f5e03695039f5c6e9933d1b8d87680d5d33cc511e1467c05da6"
+      },
+      {
+        "id": "7e40a12a-507d-40a7-80c9-69cf67172a41",
+        "hash": "e856544621cfabcc6e37b21440ea2376ac5a49c9f3277e67b5446fb627fe0c97"
+      },
+      {
+        "id": "55840dc0-8b88-4c47-879a-06126a03bb9f",
+        "hash": "76981c80351778f8ba8967e10b3d12a383d70bd2137f2cec21daf105301c441e"
+      },
+      {
+        "id": "80cbc5b8-c4d9-4fcb-8784-89dd6080b04d",
+        "hash": "a8ec037e37a4e0fa07ffa3e3ea22d3080d8cef1ec60e5d02d61e6eaa2e6918d6"
+      },
+      {
+        "id": "6da92fff-6110-425d-8c34-5b22376da3ab",
+        "hash": "c9154c935fa1b6b365e700478ec0cb945f234078395a8fef5e89e51fa9b4672f"
+      },
+      {
+        "id": "6af8f780-8adc-4a4a-8acc-eefcec1e63e1",
+        "hash": "27ef00cfffceb78d3b68b0a43f1dd2163f5b9334ffcf11afc58cfcb481fb628a"
+      },
+      {
+        "id": "57bc2a67-6b48-4932-8c6e-964aa3a6cd4b",
+        "hash": "bff2b1d258c61097cf854a25a54e6372f90a530a89211420df452c645485d4df"
+      },
+      {
+        "id": "763e07a4-fcf1-4080-8184-50fb3826ec55",
+        "hash": "0436ef34ce11002051e8afa8de01de4c76edc2fcb56422f7c90fb24dae455376"
+      },
+      {
+        "id": "6c96b75a-4e32-417f-8001-072f16e9921f",
+        "hash": "6eb5f89ba4d79259030569053fa2a84753bb977bfe81950d4eb465a397f27801"
+      },
+      {
+        "id": "8edce2c2-e4d6-4b1e-8665-d7a1d7ab9b82",
+        "hash": "3c54174bdee2f00f442f88cb119c5887dec10e6991acd2efc068a297c36a0722"
+      },
+      {
+        "id": "a8b23488-e9d4-407f-8ca6-23d17337e15d",
+        "hash": "f5c7ce8e4f407cf0f3496688de3180cb342ddefe841fc07c2dfec1f971548bfb"
+      },
+      {
+        "id": "453ce8bc-f971-4fbd-8c36-9e2f607b5a68",
+        "hash": "274e1af21b3496f3cb77be2d77a07067b4ecc2771b06212d56f67874c9041300"
+      },
+      {
+        "id": "8dc5c4e2-d8b3-4d8e-88d7-3316c7430dbc",
+        "hash": "fc129ba2668b8308f183bf9d7e0fcbff19a15c24d3dcfef464cdf585a3db0501"
+      },
+      {
+        "id": "5bef1102-9886-4cd1-8f3e-bfa025156c41",
+        "hash": "fa6ce7ceb7a8fe944e82dc0d2bf0b9ee20880c29fef94054812a787f2bc55ccb"
+      },
+      {
+        "id": "9030f9f0-1c65-42a5-81b5-a6c8de5ab640",
+        "hash": "b1de36dc0ac508f84314d0938e32a0306cf23baceb2e7a3609cbc5719d2104f6"
+      },
+      {
+        "id": "e3b2065f-2832-4516-8c57-2c17ed899d94",
+        "hash": "e106bd157c5518e10ee3e92b02c4988a2d1015366599d43f36ae58def1eefff9"
+      },
+      {
+        "id": "59b6e420-0f80-4dc3-874d-b828807e4d21",
+        "hash": "47f74522633aca8ce9bff70a377498dcc6f5734da43f6bdb29d30b928cbfb33b"
+      },
+      {
+        "id": "94625a7f-b960-4977-8d50-597a8ad4d61e",
+        "hash": "cc7b0c3e4c3248067292b919d6fe6bd4f00df60be5c98a0884902a625996b4d6"
+      },
+      {
+        "id": "ca7b4365-2fcf-4aae-803c-3c65f5ccc515",
+        "hash": "0eee0560fe2f5a81e476e8b7be1df1f877f690fd2b8e81bb309bbddb9ad7cc3e"
+      },
+      {
+        "id": "6228e993-45c4-4c0a-82e8-453ff47ac4c2",
+        "hash": "ea6d106eae1a87e1b8f7d26f6db4112414df3dc20119d8f975ca75f011d063e6"
+      },
+      {
+        "id": "3722050f-4c84-4b55-84ba-5d48365e6ecc",
+        "hash": "dbcb39cfca09d821c6548f165466406e2d1819136c9168a678de78c58b202c6b"
+      },
+      {
+        "id": "6d1bda72-f1f0-4941-8d3d-d3e0ce46bd03",
+        "hash": "d6a79a6a188f3bc66876ed75b30892a16b3c9b8727144c77b3a2b666d62852e4"
+      }
+    ]
+  },
+  "liveCases": [
+    {
+      "case": "static",
+      "requestId": "338dc1bd-497c-45ad-894c-f6aa7e39058f",
+      "revision": "2",
+      "completed": true,
+      "proposals": 3,
+      "slides": 3,
+      "providerReviewsPassed": true,
+      "realCanvasRenderer": true,
+      "paidCallsStartedByVerifier": 0,
+      "families": [
+        "acervo82-r9-11",
+        "acervo82-concept-10",
+        "acervo82-r9-20"
+      ],
+      "snapshotSha256": "bc91c556717e3454653416acd5829895c97e078cdfc261d155436c885e814b6f",
+      "contact": "artifacts/acervo82/pilot/runs/338dc1bd-497c-45ad-894c-f6aa7e39058f/CONTACT.png"
+    },
+    {
+      "case": "carousel",
+      "requestId": "0e78ad61-b68e-41e4-afcf-06af2940597a",
+      "revision": "2",
+      "completed": true,
+      "proposals": 3,
+      "slides": 15,
+      "providerReviewsPassed": true,
+      "realCanvasRenderer": true,
+      "paidCallsStartedByVerifier": 0,
+      "families": [
+        "acervo82-concept-10",
+        "acervo82-r9-03",
+        "acervo82-concept-06"
+      ],
+      "snapshotSha256": "855251dec42cbd20af47e25fd8b1769ae746d9267a6116c647de9879953f9384",
+      "contact": "artifacts/acervo82/pilot/runs/0e78ad61-b68e-41e4-afcf-06af2940597a/CONTACT.png"
+    },
+    {
+      "case": "photo",
+      "requestId": "13b46dab-fbd2-47c5-9abc-32d1b3d3589d",
+      "revision": "2",
+      "completed": true,
+      "proposals": 3,
+      "slides": 3,
+      "providerReviewsPassed": true,
+      "realCanvasRenderer": true,
+      "paidCallsStartedByVerifier": 0,
+      "families": [
+        "acervo82-reference-03",
+        "acervo82-reference-03",
+        "acervo82-reference-03"
+      ],
+      "snapshotSha256": "54d5967e46cb3e3378d6b7736b241289588c27c507c7d1643b59b593fea21651",
+      "contact": "artifacts/acervo82/pilot/runs/13b46dab-fbd2-47c5-9abc-32d1b3d3589d/CONTACT.png"
+    }
+  ],
+  "priorAttempts": [
+    {
+      "requestId": "e2a2972a-5f1f-4537-8189-ba6fff1a7d95",
+      "status": "failed",
+      "reason": "Page count in a long attributable quote was rejected; corrected and repeated."
+    },
+    {
+      "requestId": "04bb2883-db87-4472-83ab-2a4b8c13f2b3",
+      "status": "partial",
+      "ready": 1,
+      "reason": "Mandatory photography with an intervening adverb was not recognized before design selection; corrected and repeated."
+    }
+  ],
+  "budget": {
+    "maxUsd": 10,
+    "maxCalls": 120,
+    "maxAdmissions": 5,
+    "admissions": 5,
+    "calls": 42,
+    "actualUsd": 0.870384144,
+    "uncertainCalls": 0,
+    "byModel": {
+      "google/gemini-3.8-flash": {
+        "calls": 34,
+        "usd": 0.599046
+      },
+      "typesafe/jev-1.13": {
+        "calls": 4,
+        "usd": 0.001152144
+      },
+      "google/gemini-3.1-flash-image": {
+        "calls": 4,
+        "usd": 0.270186
+      }
+    }
+  },
+  "visualReview": {
+    "providerId": "gen-1793836450-K6kksAGFV7IHGOie2uUI",
+    "results": {
+      "designs": [
+        {
+          "id": "acervo82-reference-03",
+          "identityPreserved": false,
+          "legible": true,
+          "majorDifferences": [
+            "Awaiting photographic asset; native replaceable media placeholder container utilized as intended.",
+            "Primary title 'CREATIVE PEOPLE' lacks the retro 3D extruded volume, perspective warp, inline contours, and drop shadow of the source, appearing as standard flat vector typography.",
+            "The transitional 'ABOUT' pill badge between 'TRUTH' and 'CREATIVE' is omitted.",
+            "The 'NEXT SLIDE' indicator lost its pill-shaped vector outline container."
+          ],
+          "nextAction": "Recreate layered vector display styling for 'CREATIVE PEOPLE', re-insert the 'ABOUT' badge, and restore the pill enclosure around 'NEXT SLIDE'."
+        },
+        {
+          "id": "acervo82-r9-03",
+          "identityPreserved": true,
+          "legible": true,
+          "majorDifferences": [
+            "Card borders and surface fills reproduce the comparison layout accurately.",
+            "Body typography within comparison cards shows minor kerning and font-weight discrepancies compared to reference Inter typography.",
+            "Footer tracking and alignment slightly expanded."
+          ],
+          "nextAction": "Fine-tune card border stroke opacity and verify typography tracking across metadata elements."
+        },
+        {
+          "id": "acervo82-r9-11",
+          "identityPreserved": true,
+          "legible": true,
+          "majorDifferences": [
+            "Visual hierarchy, blue accent dot, and negative space balance match the reference with high fidelity.",
+            "Slight line-height variance in the secondary explanatory paragraph."
+          ],
+          "nextAction": "Approve pilot baseline; confirm line-height and baseline grid alignment."
+        },
+        {
+          "id": "acervo82-r9-20",
+          "identityPreserved": true,
+          "legible": true,
+          "majorDifferences": [
+            "Primary metric display '+340%' and hierarchy accurately captured.",
+            "Monospaced bracketed eyebrow '[DADOS EM DESTAQUE]' and bottom footer links exhibit minor letter-spacing shifts."
+          ],
+          "nextAction": "Adjust tracking on mono metadata elements to align strictly with Space Grotesk styling."
+        },
+        {
+          "id": "acervo82-concept-06",
+          "identityPreserved": true,
+          "legible": true,
+          "majorDifferences": [
+            "Hazard striping, high-contrast banner highlights, and tabular spec card are well reconstructed.",
+            "Bottom barcode graphic aspect ratio is slightly condensed horizontally.",
+            "The circular '100% RAW' stamp features a slightly lighter border weight and text placement."
+          ],
+          "nextAction": "Normalize barcode bounding dimensions and adjust stroke weight on the circular badge."
+        },
+        {
+          "id": "acervo82-concept-10",
+          "identityPreserved": true,
+          "legible": true,
+          "majorDifferences": [
+            "Bauhaus geometric primitives (yellow quarter-circle, red semi-arc, dark blue diamond) and rotated header banner are correctly translated into native geometry.",
+            "Minor rotation angle and layering offset variance between the tilted black banner and the underlying cream container.",
+            "Lower color swatch squares and module indicator exhibit minor sub-pixel padding differences."
+          ],
+          "nextAction": "Verify precise rotation angle of the central banner and calibrate the radius curvature of the upper quarter-circle elements."
+        }
+      ],
+      "overallAssessment": "The reconstruction pilot demonstrates high vector and typographical fidelity on minimalist, editorial, and geometric layouts (r9-03, r9-11, r9-20, concept-06, concept-10). The primary area requiring manual design intervention is acervo82-reference-03, where complex retro 3D display lettering was flattened into standard sans-serif text. Placeholder handling for photographic areas conforms to expectations."
+    },
+    "releaseApproval": false
+  },
+  "persistence": {
+    "ownerScoped": true,
+    "postIds": [
+      5,
+      6,
+      7
+    ],
+    "staticEdited": true,
+    "carouselSlide2Edited": true,
+    "photoMediaPrivate": true,
+    "activeCatalogRevision": null
+  },
+  "exports": {
+    "origin": "official CanvasLab exportZip4K via user browser UI, saved post reopened",
+    "zipBytes": 2852310,
+    "zipSha256": "19d0ef63b70fc53898929da6716ca7d7dc2fd5868c1398d5f9828e88a9d59d59",
+    "crc32Verified": true,
+    "files": [
+      {
+        "name": "slide-1.png",
+        "bytes": 577890,
+        "width": 3072,
+        "height": 3840,
+        "sha256": "b62f603cda335f0ec0bcb8254cdad05c9d5f64f173e6a7babcb531e0d2b09aaf"
+      },
+      {
+        "name": "slide-2.png",
+        "bytes": 580015,
+        "width": 3072,
+        "height": 3840,
+        "sha256": "60aa78ac19860400a227b021a4f55eeb71bcea32bed1860169c3e51a28c79a41"
+      },
+      {
+        "name": "slide-3.png",
+        "bytes": 591516,
+        "width": 3072,
+        "height": 3840,
+        "sha256": "4b010e5644e99beeebe73014757986c455c7f46c27ec796b65ee7a6d77f85714"
+      },
+      {
+        "name": "slide-4.png",
+        "bytes": 597678,
+        "width": 3072,
+        "height": 3840,
+        "sha256": "8ae486a0c3b8d8521a403843a9215ef79aeca9c3539eb2f2ccae890b0839a41c"
+      },
+      {
+        "name": "slide-5.png",
+        "bytes": 504699,
+        "width": 3072,
+        "height": 3840,
+        "sha256": "ebfacf9f509b11f6d91d4b244268a94ab53d155e832fe873098a9842a1fdcca5"
+      }
+    ],
+    "standalone": {
+      "origin": "official CanvasLab exportPng4K via user browser UI after Blob download fix",
+      "bytes": 579665,
+      "width": 3072,
+      "height": 3840,
+      "sha256": "e698cd713244819d271ee21cc667c1d7dd3386907730a089b616b8761a4afccb"
+    },
+    "photo": {
+      "origin": "official export of saved and reopened photo post via browser",
+      "bytes": 9264702,
+      "width": 3072,
+      "height": 3840,
+      "sha256": "a777e27a92e51786a4b30f68edaa7c6b6149aaecca65b84f68fcbe284f2dfa44"
+    }
+  },
+  "verification": {
+    "targetedRegressionTests": 108,
+    "authoringIdentityTests": 1,
+    "typeScript": true,
+    "frozenRosterEntries": 82,
+    "verifiedSourceFiles": 158,
+    "realBrowser": true,
+    "realSupabase": true,
+    "realCanvasPostStage": true
+  },
+  "remaining": [
+    "Author and validate the other 76 source entries.",
+    "Restore reference-03 display lettering volume, ABOUT badge and outline details; human visual approval remains pending.",
+    "Human review of carousel rhythm and simplified development scenes.",
+    "Reject or clearly qualify hypothetical numerical examples and unsupported absolute claims before publication.",
+    "Local DEV tests do not certify paid-plan Sparks billing or hosted deployment."
+  ],
+  "evidenceSha256": {
+    "artifacts/acervo82/pilot/visual-review.json": "7a8df685e9caf9df41c26af294361c1adc0277a29927a49b98c1aedc0afb7954",
+    "artifacts/acervo82/pilot/exports/receipt.json": "f07b489d3d34be43f0dd8678f7e7af5390756f47c72b6a6db21881e64229138c",
+    "artifacts/acervo82/pilot/persisted-models.json": "323590f6f379cc480236577c9fdf6478772dd956bd0934d671f87686c363a8df",
+    "artifacts/acervo82/pilot/persistence-receipt.json": "43d78f236e467b52a1b61404ead62835f8d219d6215f722dd373c56c3e324bd2",
+    "artifacts/acervo82/pilot/regressions.log": "6cc27cce7cf883a06f09c70e3cd1a915b964be771bf615f834abd84fe2ffe43e",
+    "artifacts/acervo82/pilot/photo-saved-reopened.png": "74d9aece01c0cb3d7a866e9f8cc73b26a25a9363af944141ea97386979efd1a4",
+    "artifacts/acervo82/pilot/carousel-saved-reopened.png": "fc9d9344d2119b7dd06de75d9ccae32ff4c3d39c72a0bae2c981b02681104037",
+    "artifacts/acervo82/pilot/static-saved-reopened.png": "5fde18ac65d74c8686378d9b2024b36f39dca6fbc45b9862b02bfcde8699a6cc"
+  },
+  "finalEnvironment": "Base local profile, admission paused, no paid credential in the app process."
+}

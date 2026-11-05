@@ -45,7 +45,14 @@
     "acervo82:db:start": "node scripts/acervo82/supabase.mjs start",
     "acervo82:db:status": "node scripts/acervo82/supabase.mjs status",
     "acervo82:db:stop": "node scripts/acervo82/supabase.mjs stop",
-    "acervo82:db:env": "node scripts/acervo82/supabase.mjs env"
+    "acervo82:db:env": "node scripts/acervo82/supabase.mjs env",
+    "acervo82:pilot:prepare": "node scripts/acervo82/pilot/prepare.mjs",
+    "acervo82:pilot:author": "node --import tsx scripts/acervo82/pilot/author.ts",
+    "acervo82:pilot:stage": "node --import tsx scripts/acervo82/pilot/local.mjs stage",
+    "acervo82:pilot:configure": "node --import tsx scripts/acervo82/pilot/local.mjs configure",
+    "acervo82:pilot:dev": "node --import tsx scripts/acervo82/pilot/local.mjs dev",
+    "acervo82:pilot:verify": "node --import tsx scripts/acervo82/pilot/local.mjs test",
+    "acervo82:pilot:review": "node --import tsx scripts/acervo82/pilot/local.mjs review"
   },
   "dependencies": {
     "@google/genai": "^1.41.0",

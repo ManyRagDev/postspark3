@@ -349,7 +349,7 @@ export function determineImageObligation(
   }
 
   const photoRequestedRegex =
-    /\b(?:com|use|utilize|inclua|incluir|mostre|mostrar|adicione|adicionar|insira|inserir|quero|preciso\s+de)\s+(?:(?:uma?|as?|o|os|esta|essa|este|esse|minha|meu)\s+)?(?:fotos?|imagem|imagens|fotografias?|ilustra[çc][aã]o|ilustra[çc][oõ]es)\b/i;
+    /\b(?:com|use|utilize|inclua|incluir|mostre|mostrar|adicione|adicionar|insira|inserir|quero|preciso\s+de)\s+(?:(?:obrigatoriamente|necessariamente)\s+)?(?:(?:uma?|as?|o|os|esta|essa|este|esse|minha|meu)\s+)?(?:fotos?|imagem|imagens|fotografias?|ilustra[çc][aã]o|ilustra[çc][oõ]es)\b/i;
   if (photoRequestedRegex.test(combined)) {
     return {
       policy: "required",

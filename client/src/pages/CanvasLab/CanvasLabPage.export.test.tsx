@@ -35,7 +35,7 @@ beforeEach(() => {
   vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
   vi.spyOn(window, "confirm").mockImplementation(() => { throw new Error("Native confirmation must not be called"); });
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-  vi.stubGlobal("URL", { createObjectURL: () => "blob:export", revokeObjectURL: () => {} });
+  vi.stubGlobal("URL", { createObjectURL: vi.fn(() => "blob:export"), revokeObjectURL: vi.fn() });
   exports.png.mockReset().mockReturnValue("data:image/png;base64,aW1hZ2U=");
   exports.zip.mockReset().mockResolvedValue(new Blob(["zip"]));
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
@@ -81,4 +81,19 @@ it("ZIP counts the entire carousel and never starts rendering before approval", 
   await click("Exportar mesmo assim");
   expect(exports.zip).toHaveBeenCalledTimes(1);
   expect(window.confirm).not.toHaveBeenCalled();
+});
+
+it("downloads PNG as a file Blob with the exact renderer bytes, then releases the URL", async () => {
+  const png = createCanvas(20, 20).toBuffer("image/png");
+  exports.png.mockReturnValue(`data:image/png;base64,${png.toString("base64")}`);
+  await act(async () => { root.render(<CanvasLabPage initialPost={structuredClone(INITIAL_POST)} />); });
+  await click("PNG");
+  expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+  const blob = vi.mocked(URL.createObjectURL).mock.calls[0][0] as Blob;
+  expect(blob.type).toBe("image/png");
+  expect(Buffer.from(await blob.arrayBuffer())).toEqual(png);
+  const anchor = vi.mocked(HTMLAnchorElement.prototype.click).mock.instances[0] as unknown as HTMLAnchorElement;
+  expect(anchor.href).toBe("blob:export");
+  expect(anchor.download).toMatch(/^postspark-.*\.png$/);
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:export");
 });

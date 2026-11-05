@@ -1,0 +1,237 @@
+{
+  "stem": "acervo82-r9-03",
+  "title": "Versus · mito e verdade",
+  "background": "#0F0F12",
+  "width": 1080,
+  "height": 1350,
+  "layers": [
+    {
+      "kind": "text",
+      "id": "eyebrow",
+      "text": "COMPARATIVO OFICIAL",
+      "x": 70,
+      "y": 65,
+      "width": 940,
+      "height": 70,
+      "fontSize": 35,
+      "fontFamily": "Montserrat",
+      "fontWeight": 800,
+      "fill": "#10B981",
+      "lineHeight": 1.16,
+      "groupId": "eyebrow",
+      "fieldId": "eyebrow",
+      "minScale": 0.68,
+      "align": "center"
+    },
+    {
+      "kind": "rect",
+      "id": "left-card",
+      "x": 58,
+      "y": 555,
+      "width": 470,
+      "height": 225,
+      "fill": "#181820",
+      "cornerRadiusPx": 30,
+      "strokeColor": "#79343E",
+      "strokeWidth": 2
+    },
+    {
+      "kind": "rect",
+      "id": "right-card",
+      "x": 550,
+      "y": 555,
+      "width": 470,
+      "height": 225,
+      "fill": "#181820",
+      "cornerRadiusPx": 30,
+      "strokeColor": "#087A5C",
+      "strokeWidth": 2
+    },
+    {
+      "kind": "text",
+      "id": "left-label",
+      "text": "O MITO",
+      "x": 90,
+      "y": 590,
+      "width": 400,
+      "height": 45,
+      "fontSize": 29,
+      "fontFamily": "Inter",
+      "fontWeight": 700,
+      "fill": "#F87171",
+      "lineHeight": 1.16,
+      "groupId": "left-label",
+      "fieldId": "left-label",
+      "minScale": 0.68
+    },
+    {
+      "kind": "text",
+      "id": "left-body",
+      "text": "Design bonito resolve conteúdo fraco",
+      "x": 90,
+      "y": 650,
+      "width": 400,
+      "height": 110,
+      "fontSize": 35,
+      "fontFamily": "Montserrat",
+      "fontWeight": 600,
+      "fill": "#E2E8F0",
+      "lineHeight": 1.16,
+      "groupId": "left-body",
+      "fieldId": "left-body",
+      "minScale": 0.68
+    },
+    {
+      "kind": "text",
+      "id": "right-label",
+      "text": "A VERDADE",
+      "x": 582,
+      "y": 590,
+      "width": 400,
+      "height": 45,
+      "fontSize": 29,
+      "fontFamily": "Inter",
+      "fontWeight": 700,
+      "fill": "#10B981",
+      "lineHeight": 1.16,
+      "groupId": "right-label",
+      "fieldId": "right-label",
+      "minScale": 0.68
+    },
+    {
+      "kind": "text",
+      "id": "right-body",
+      "text": "Estrutura e clareza geram retenção real",
+      "x": 582,
+      "y": 650,
+      "width": 400,
+      "height": 150,
+      "fontSize": 35,
+      "fontFamily": "Montserrat",
+      "fontWeight": 800,
+      "fill": "#FFFFFF",
+      "lineHeight": 1.16,
+      "groupId": "right-body",
+      "fieldId": "right-body",
+      "minScale": 0.68
+    },
+    {
+      "kind": "rect",
+      "id": "footer-line",
+      "x": 58,
+      "y": 1210,
+      "width": 964,
+      "height": 2,
+      "fill": "#273244"
+    },
+    {
+      "kind": "text",
+      "id": "brand",
+      "text": "INTER",
+      "x": 58,
+      "y": 1240,
+      "width": 470,
+      "height": 55,
+      "fontSize": 30,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#94A3B8",
+      "lineHeight": 1.16,
+      "groupId": "brand",
+      "fieldId": "brand",
+      "minScale": 0.68
+    },
+    {
+      "kind": "text",
+      "id": "cta",
+      "text": "COMPARAÇÃO →",
+      "x": 580,
+      "y": 1240,
+      "width": 440,
+      "height": 55,
+      "fontSize": 30,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#10B981",
+      "lineHeight": 1.16,
+      "groupId": "cta",
+      "fieldId": "cta",
+      "minScale": 0.68,
+      "align": "right"
+    }
+  ],
+  "groups": [
+    {
+      "id": "eyebrow",
+      "label": "eyebrow",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "left-label",
+      "label": "left-label",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "left-body",
+      "label": "left-body",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "right-label",
+      "label": "right-label",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "right-body",
+      "label": "right-body",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "brand",
+      "label": "brand",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "cta",
+      "label": "cta",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    }
+  ],
+  "authorship": {
+    "recipeId": "acervo82-r9-03-pilot-v1",
+    "createdAt": "2026-11-04T23:44:49.502Z"
+  },
+  "notes": [
+    "Piloto acervo82; fonte preservada no manifesto; não equivale à aprovação do catálogo definitivo."
+  ],
+  "sourcePath": "designs/showcase_consolidado/02_catalogo_oficial_r9/03_versus_mito_vs_verdade.png",
+  "originalHash": "4965fb34c56a2363b22ae4109b1d1e33f74baa19a953417243452b0c54dbbd00"
+}

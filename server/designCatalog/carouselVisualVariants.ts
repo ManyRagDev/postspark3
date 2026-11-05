@@ -39,6 +39,10 @@ export function authorCarouselVisualVariant(
     W = base.artboard.width,
     H = base.artboard.height;
   const textBindings = base.bindings.filter(b => b.kind !== "media");
+  const labelCount = textBindings.filter(b => /:(?:label|eyebrow|sectionLabel):/.test(b.source)).length;
+  const labelColumns = Math.min(3, Math.max(1, labelCount));
+  const labelRows = Math.ceil(labelCount / labelColumns);
+  const extraHeaderHeight = Math.max(0, labelRows - 1) * 0.06;
   const headline =
     textBindings.find(b => /:headline:/.test(b.source)) ?? textBindings[0];
   if (!headline) throw new Error("carousel_variant_missing_headline");
@@ -165,7 +169,7 @@ export function authorCarouselVisualVariant(
     i => source.pieces[i.pieceHash].kind === "media" && !backgroundMedia.includes(i)
   );
   for (const i of backgroundMedia) add(i.id, source.pieces[i.pieceHash], i.x, i.y, i.width, i.height, -1);
-  const mediaTop = H * 0.31,
+  const mediaTop = H * (0.31 + extraHeaderHeight),
     mediaHeight = H * 0.2;
   const columns = Math.min(3, mediaInstances.length),
     rows = Math.ceil(mediaInstances.length / Math.max(1, columns));
@@ -254,22 +258,22 @@ export function authorCarouselVisualVariant(
   for (const [i, b] of Array.from(labels.entries()))
     addText(
       b,
-      W * (0.12 + (i * 0.76) / labels.length),
-      H * (hasPhotoBackground ? 0.36 : 0.105),
-      (W * 0.76) / labels.length - W * 0.012,
-      H * 0.035,
+      W * (0.12 + ((i % labelColumns) * 0.76) / labelColumns),
+      H * ((hasPhotoBackground ? 0.36 : 0.105) + Math.floor(i / labelColumns) * 0.06),
+      (W * 0.76) / labelColumns - W * 0.012,
+      H * 0.05,
       W * 0.022
     );
   addText(
     headline,
     W * 0.12,
-    H * (hasPhotoBackground ? 0.41 : 0.16),
+    H * ((hasPhotoBackground ? 0.41 : 0.16) + extraHeaderHeight),
     W * 0.76,
     H * (mediaInstances.length ? 0.13 : 0.16),
     W * 0.065,
     true
   );
-  const supportTop = hasPhotoBackground ? 0.59 : mediaInstances.length ? 0.55 : 0.36;
+  const supportTop = (hasPhotoBackground ? 0.59 : mediaInstances.length ? 0.55 : 0.36) + extraHeaderHeight;
   const supportBottom = role === "closing" || cta ? 0.75 : 0.87;
   // Title-only covers need room to explain the story on subsequent slides.
   // Literal mode retains exactly the original field contract.

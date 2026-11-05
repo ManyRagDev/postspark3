@@ -51,6 +51,32 @@ function decoratedSource() {
 }
 
 describe("materialized carousel visual variants", () => {
+  it("lays out five metadata fields in readable rows before the headline", () => {
+    const base = decoratedSource();
+    const template = base.fragment.instances.find(i => i.id === "support")!;
+    const labels = Array.from({ length: 5 }, (_, i) => `meta-${i}`);
+    const source = createComponentDefinition({ ...base, fragment: { ...base.fragment,
+      instances: [...base.fragment.instances, ...labels.map(id => ({ ...template, id }))],
+      bindings: [...base.fragment.bindings, ...labels.map((id, i) => ({
+        ...base.fragment.bindings[1], id, label: id, source: `block:label:${i}:text`, targetIds: [id],
+      }))],
+    } });
+    const before = structuredClone(source);
+    const derived = authorCarouselVisualVariant(source, "development");
+    const metadata = derived.fragment.instances.filter(i => labels.includes(i.id));
+    expect(new Set(metadata.map(i => i.y)).size).toBe(2);
+    expect(Math.max(...metadata.map(i => i.y + i.height))).toBeLessThan(
+      derived.fragment.instances.find(i => i.id === source.fragment.bindings[0].targetIds[0])!.y
+    );
+    const scene = resolveArsenalGeometry(instantiateCompleteDesign({ definition: derived,
+      values: completeDesignFields(derived).map(f => ({ fieldId: f.id, value: "METADADO CLARO" })),
+      mediaPrompts: [], runId: assemblyIdentity("five-metadata"), slot: 0, slide: 1,
+      planHash: arsenalHash("five-metadata"), experimental: true,
+    }), { measureText: i => ({ height: i.fontSize * 1.3,
+      lines: [{ width: i.text.length * i.fontSize * 0.62 }], runs: [] }) });
+    expect(scene.issues).toEqual([]);
+    expect(source).toEqual(before);
+  });
   it("retains the exact cover and creates quieter reading and distinct closing scenes with source provenance", () => {
     const source = decoratedSource(),
       before = structuredClone(source);

@@ -8,6 +8,16 @@
   "persistence": "canvas_model",
   "legacySelectionAllowed": false,
   "paidCallsEnabled": false,
+  "authorizedPilot": {
+    "manifest": "designs/acervo82/pilot/manifest.json",
+    "cases": "designs/acervo82/pilot/cases.json",
+    "scope": "local staged catalogue only, separate launcher and shared budget",
+    "paidCallsEnabled": true,
+    "maxUsd": 10,
+    "maxCalls": 120,
+    "maxAdmissions": 5,
+    "releaseApproved": false
+  },
   "phases": [
     { "id": "source_preserved", "evidence": ["source hashes", "preview", "source code or original raster"] },
     { "id": "authored", "evidence": ["complete immutable composition", "native content bindings", "font and media manifests", "declared adaptations"] },

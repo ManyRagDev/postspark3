@@ -103,11 +103,16 @@ export function normalizeGenerationIntent(
         : requirement.requestQuote;
       // The admitted page count is a format constraint. Counts of material
       // items, including a list requested inside a carousel, remain validated.
-      const pages = requestQuote?.trim().match(
-        /^(?:carrossel\s+(?:de|com)\s+)?(?:exatamente\s+)?(\d+)\s+(?:slides?|lâminas?|páginas?|telas?)[.!]?$/i
-      );
-      const itemCount = slideCount > 1 &&
-        requirement.itemCount === slideCount && Number(pages?.[1]) === slideCount
+      // Providers can quote the surrounding sentence as well as "5 slides".
+      // Only an attributable, unambiguous page count may be normalized; counts
+      // of content items and conflicting/unquoted format counts remain errors.
+      const pages = Array.from(requestQuote?.matchAll(
+        /\b(\d+)\s+(?:slides?|lâminas?|páginas?|telas?)\b/gi
+      ) ?? []);
+      const itemCount = slideCount > 1 && requestQuote &&
+        comparableQuote(requestText).includes(comparableQuote(requestQuote)) &&
+        requirement.itemCount === slideCount && pages.length > 0 &&
+        pages.every(page => Number(page[1]) === slideCount)
         ? null : requirement.itemCount;
       return { ...requirement, requestQuote, itemCount };
     }),

@@ -8,6 +8,7 @@ import {
 } from "./designRepertoire";
 import {
   validateGenerationIntent,
+  normalizeGenerationIntent,
   materialGenerationIntent,
   validateGenerationPlan,
   viablePlanSchema,
@@ -80,6 +81,23 @@ function fixture() {
   return { offer, plan };
 }
 describe("joint narrative and visual plan", () => {
+  it("normalizes an admitted slide count within a full quoted sentence, retaining content cardinality", () => {
+    const request = "Crie um carrossel de 5 slides com cinco riscos na arte. Estruture capa, desenvolvimento e encerramento.";
+    const format = { id: "format", description: "Formato do carrossel", kind: "execution" as const,
+      surface: "art" as const, origin: "explicit" as const, requestQuote: request, itemCount: 5 };
+    const input = { ...intent, requirements: [...intent.requirements, format] };
+    const before = structuredClone(input);
+    const normalized = normalizeGenerationIntent(input, 5, new Set(), request);
+    expect(normalized.requirements[1].itemCount).toBeNull();
+    expect(normalized.requirements[0]).toEqual(intent.requirements[0]);
+    expect(validateGenerationIntent(normalized, request, new Set())).toEqual([]);
+    expect(input).toEqual(before);
+    for (const [quote, admitted] of [[request, 4], ["cinco riscos na arte", 5],
+      ["Crie 5 slides ou 6 páginas", 5], ["Produza 5 slides", 5]] as const) {
+      const invalid = normalizeGenerationIntent({ ...input, requirements: [{ ...format, requestQuote: quote }] }, admitted, new Set(), request);
+      expect(validateGenerationIntent(invalid, request, new Set())).toContain("execution_item_count:format");
+    }
+  });
   it("rejects an explicit obligation with no mapped content before choosing any design", () => {
     const requestText = "cinco riscos na arte; use somente os fatos fornecidos";
     const invalid: GenerationIntent = {

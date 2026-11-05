@@ -1,0 +1,168 @@
+{
+  "stem": "acervo82-reference-03",
+  "title": "Creative People · cartaz fotográfico",
+  "background": "#F7F6F0",
+  "width": 1080,
+  "height": 1350,
+  "layers": [
+    {
+      "kind": "text",
+      "id": "eyebrow",
+      "text": "THIS IS THE",
+      "x": 320,
+      "y": 65,
+      "width": 440,
+      "height": 70,
+      "fontSize": 48,
+      "fontFamily": "Archivo Black",
+      "fontWeight": 400,
+      "fill": "#111111",
+      "lineHeight": 1.16,
+      "groupId": "eyebrow",
+      "fieldId": "eyebrow",
+      "minScale": 0.68,
+      "align": "center",
+      "rotationDeg": -3
+    },
+    {
+      "kind": "rect",
+      "id": "yellow-label",
+      "x": 300,
+      "y": 155,
+      "width": 480,
+      "height": 105,
+      "fill": "#EDB42D",
+      "cornerRadiusPx": 25,
+      "rotationDeg": -3,
+      "strokeColor": "#111111",
+      "strokeWidth": 3,
+      "minScale": 0.45
+    },
+    {
+      "kind": "text",
+      "id": "truth",
+      "text": "TRUTH",
+      "x": 310,
+      "y": 160,
+      "width": 460,
+      "height": 115,
+      "fontSize": 76,
+      "fontFamily": "Archivo Black",
+      "fontWeight": 400,
+      "fill": "#FFFFFF",
+      "lineHeight": 1.16,
+      "groupId": "truth",
+      "fieldId": "truth",
+      "minScale": 0.5,
+      "align": "center",
+      "rotationDeg": -3,
+      "strokeColor": "#111111",
+      "strokeWidth": 3
+    },
+    {
+      "kind": "text",
+      "id": "headline",
+      "text": "CREATIVE PEOPLE",
+      "x": 55,
+      "y": 310,
+      "width": 970,
+      "height": 280,
+      "fontSize": 138,
+      "fontFamily": "Archivo Black",
+      "fontWeight": 400,
+      "fill": "#0737D8",
+      "lineHeight": 1,
+      "groupId": "headline",
+      "fieldId": "headline",
+      "minScale": 0.68,
+      "align": "center"
+    },
+    {
+      "kind": "rect",
+      "id": "photo-slot",
+      "x": 0,
+      "y": 680,
+      "width": 1080,
+      "height": 670,
+      "fill": "#D5D5D5",
+      "groupId": "photo",
+      "mediaId": "photo",
+      "role": "Fotografia substituível na metade inferior"
+    },
+    {
+      "kind": "text",
+      "id": "cta",
+      "text": "NEXT SLIDE",
+      "x": 400,
+      "y": 610,
+      "width": 280,
+      "height": 45,
+      "fontSize": 26,
+      "fontFamily": "Archivo Black",
+      "fontWeight": 400,
+      "fill": "#111111",
+      "lineHeight": 1.16,
+      "groupId": "cta",
+      "fieldId": "cta",
+      "minScale": 0.68,
+      "align": "center"
+    }
+  ],
+  "groups": [
+    {
+      "id": "eyebrow",
+      "label": "eyebrow",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "truth",
+      "label": "truth",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "headline",
+      "label": "headline",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "photo",
+      "label": "photo",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "cta",
+      "label": "cta",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    }
+  ],
+  "authorship": {
+    "recipeId": "acervo82-reference-03-pilot-v1",
+    "createdAt": "2026-11-04T23:44:49.502Z"
+  },
+  "notes": [
+    "Piloto acervo82; fonte preservada no manifesto; não equivale à aprovação do catálogo definitivo.",
+    "Textura do papel e contorno irregular do raster são adaptações declaradas. Fotografia de exemplo não integra o design: slot privado substituível."
+  ],
+  "sourcePath": "designs/showcase_consolidado/01_referencias_curadas_r4/03_truth_about_creative_people_azul_e_amarelo_foto.jpg",
+  "originalHash": "6e72f0fc2a36d2b62a817ebc42dbca7ec2071991a31118ab333f9be38cc22777"
+}

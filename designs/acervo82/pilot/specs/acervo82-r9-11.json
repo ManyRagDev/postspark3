@@ -1,0 +1,144 @@
+{
+  "stem": "acervo82-r9-11",
+  "title": "Minimal Air · clareza e respiro",
+  "background": "#F8F9FA",
+  "width": 1080,
+  "height": 1350,
+  "layers": [
+    {
+      "kind": "rect",
+      "id": "dot",
+      "x": 78,
+      "y": 78,
+      "width": 32,
+      "height": 32,
+      "fill": "#2563EB",
+      "cornerRadiusPx": 16
+    },
+    {
+      "kind": "text",
+      "id": "headline",
+      "text": "Menos ruído. Mais clareza.",
+      "x": 78,
+      "y": 475,
+      "width": 924,
+      "height": 210,
+      "fontSize": 82,
+      "fontFamily": "Inter",
+      "fontWeight": 700,
+      "fill": "#1A1A1A",
+      "lineHeight": 1.16,
+      "groupId": "headline",
+      "fieldId": "headline",
+      "minScale": 0.68
+    },
+    {
+      "kind": "text",
+      "id": "body",
+      "text": "Espaço em branco generoso, equilíbrio zen e clareza absoluta para quem prefere a força do silêncio visual.",
+      "x": 78,
+      "y": 715,
+      "width": 924,
+      "height": 160,
+      "fontSize": 33,
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fill": "#475569",
+      "lineHeight": 1.65,
+      "groupId": "body",
+      "fieldId": "body",
+      "minScale": 0.68
+    },
+    {
+      "kind": "rect",
+      "id": "footer-line",
+      "x": 78,
+      "y": 1200,
+      "width": 924,
+      "height": 2,
+      "fill": "#CBD5E1"
+    },
+    {
+      "kind": "text",
+      "id": "brand",
+      "text": "INTER LIGHT",
+      "x": 78,
+      "y": 1230,
+      "width": 470,
+      "height": 55,
+      "fontSize": 31,
+      "fontFamily": "Inter",
+      "fontWeight": 400,
+      "fill": "#64748B",
+      "lineHeight": 1.16,
+      "groupId": "brand",
+      "fieldId": "brand",
+      "minScale": 0.68
+    },
+    {
+      "kind": "text",
+      "id": "cta",
+      "text": "PÁGINA 01 →",
+      "x": 580,
+      "y": 1230,
+      "width": 422,
+      "height": 55,
+      "fontSize": 31,
+      "fontFamily": "Inter",
+      "fontWeight": 700,
+      "fill": "#2563EB",
+      "lineHeight": 1.16,
+      "groupId": "cta",
+      "fieldId": "cta",
+      "minScale": 0.68,
+      "align": "right"
+    }
+  ],
+  "groups": [
+    {
+      "id": "headline",
+      "label": "headline",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "body",
+      "label": "body",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "brand",
+      "label": "brand",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "cta",
+      "label": "cta",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    }
+  ],
+  "authorship": {
+    "recipeId": "acervo82-r9-11-pilot-v1",
+    "createdAt": "2026-11-04T23:44:49.502Z"
+  },
+  "notes": [
+    "Piloto acervo82; fonte preservada no manifesto; não equivale à aprovação do catálogo definitivo."
+  ],
+  "sourcePath": "designs/showcase_consolidado/02_catalogo_oficial_r9/11_minimal_air_4_5.png",
+  "originalHash": "c5e222ada24bba2a760d13abcd97e7f1970e2d80da3e3718c3d27b02b68dc926"
+}

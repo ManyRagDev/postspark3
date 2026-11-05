@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "fonts": [
+    {
+      "family": "Inter",
+      "path": "shared/typography/fonts/files/inter.ttf",
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "license": "OFL-1.1",
+      "source": "https://github.com/google/fonts/tree/main/ofl/inter"
+    },
+    {
+      "family": "Archivo Black",
+      "path": "shared/typography/fonts/files/archivo-black.ttf",
+      "sha256": "dd9a89a019b4849f66ab75455fe7bdf931311042cbb0f0f97acc061539703180",
+      "license": "OFL-1.1",
+      "source": "https://github.com/google/fonts/tree/main/ofl/archivoblack"
+    },
+    {
+      "family": "Space Grotesk",
+      "path": "shared/typography/fonts/files/space-grotesk.ttf",
+      "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+      "license": "OFL-1.1",
+      "source": "https://github.com/google/fonts/tree/main/ofl/spacegrotesk"
+    },
+    {
+      "family": "Space Mono",
+      "path": "shared/typography/fonts/files/space-mono.ttf",
+      "sha256": "95837e182baeeada83368f7748db28357f0a1b75c6b84ff7065b5edf933c8e18",
+      "license": "OFL-1.1",
+      "source": "https://github.com/google/fonts/tree/main/ofl/spacemono"
+    },
+    {
+      "family": "Montserrat",
+      "path": "artifacts/acervo82/pilot/montserrat.ttf",
+      "sha256": "0f7b311b2f3279e4eef9b2f968bcdbab6e28f4daeb1f049f4f278a902bcd82f7",
+      "license": "OFL-1.1",
+      "source": "https://github.com/google/fonts/tree/main/ofl/montserrat",
+      "download": "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf"
+    }
+  ]
+}

@@ -46,7 +46,7 @@ Os pré-requisitos locais incluem `profiles`, mídia, privacidade e tabelas vazi
 
 `acervo82:fixtures` cria pela API autenticada três documentos técnicos (post simples, carrossel e mídia), uma imagem sintética e uma marca fictícia. Reexecutar preserva as edições existentes. IDs e imagem de upload ficam em `.acervo82-local/fixtures.json` e `.acervo82-local/sample-upload.png`. O verificador usa um quarto post dedicado e uma segunda conta local para contraprovas de propriedade; esses são dados de teste. Nenhum deles é uma composição do novo catálogo: não importa referências antigas nem concede aprovação aos 82 designs.
 
-Antes de liberar geração: concluir assets e composições nativas do novo rol e fixar sua revisão no executor local. Schema, Auth, políticas/grants, buckets e persistência `canvas_model` estão preparados para os testes descritos abaixo. Billing externo, SMTP real, captura de site e provedores pagos permanecem sem configuração. A rodada paga de geração é uma etapa futura com orçamento explícito.
+Antes de liberar geração: concluir assets e composições nativas do novo rol e fixar sua revisão no executor local. Schema, Auth, políticas/grants, buckets e persistência `canvas_model` estão preparados para os testes descritos abaixo. Billing externo, SMTP real, captura de site e provedores pagos permanecem sem configuração. A rodada paga autorizada usa o launcher separado descrito abaixo, com orçamento próprio.
 
 ## Autenticação durante a preparação local
 
@@ -65,9 +65,9 @@ Referências: [senha no Supabase](https://supabase.com/docs/guides/auth/password
 - Biblioteca: `http://127.0.0.1:3182/saved-posts`. Abrir um dos documentos, editar texto pelo painel Camadas, salvar atualizando o registro e reabrir pela biblioteca. O carrossel permite testar conteúdo por slide; o post de mídia permite testar carregamento e enquadramento. A imagem sintética está disponível para uploads manuais.
 - Referências das 82 entradas: `designs/showcase_consolidado/index.html` e `designs/acervo82/manifest.json`, preservados na worktree. O inventário verifica os 158 arquivos sem rede. O HTML original usa CDN Tailwind; sua visualização não é uma promessa de funcionamento inteiramente offline.
 - Checagem automática: `acervo82:doctor` deve ficar sem pendências. `acervo82:journey` faz 16 verificações reais de API/DB/Storage: persistência JSON canônica, adaptador oficial de reabertura, biblioteca, marca, imagem exata, privacidade de buckets, isolamento entre proprietários, RLS, preservação dos grants imutáveis. Não chama modelos nem ativa catálogo. O relatório identifica que não verifica navegador ou geração por provedor.
-- Conferência de navegador realizada: título editado no CanvasLab, registro atualizado, biblioteca mostrando a alteração e documento reaberto com o texto preservado. O aplicativo confirmou a produção do PNG 4K, mas a captura automática do arquivo de download expirou no navegador integrado. Inspeção dos bytes/dimensões do PNG baixado e ZIP do carrossel permanecem testes manuais; não são declarados homologados.
+- Conferência de navegador realizada: título editado no CanvasLab, registro atualizado, biblioteca mostrando a alteração e documento reaberto com o texto preservado. O aplicativo confirmou a produção do PNG 4K, mas a captura automática do arquivo de download expirou no navegador integrado. Essa pendência da preparação foi encerrada no piloto abaixo: PNG avulso e cinco PNGs do ZIP foram baixados e verificados após corrigir o download avulso para Blob.
 
-Os 82 designs ainda exigem autoria nativa e revisão. A geração por IA permanece pausada e sem credenciais pagas. O ambiente preparado permite conduzir testes de edição, uploads e persistência e iniciar a autoria controlada; não certifica geração com os 82 nem substituição produtiva do catálogo.
+Os 82 designs ainda exigem autoria nativa e revisão. O perfil base permanece com a geração por IA pausada e sem credenciais pagas; o piloto autorizado usa um processo separado. O ambiente preparado permite conduzir testes de edição, uploads e persistência e iniciar a autoria controlada; não certifica geração com os 82 nem substituição produtiva do catálogo.
 
 ## Execução da autoria
 
@@ -91,3 +91,54 @@ Esta preparação preserva as fontes, cria o inventário, isola configuração e
 ## Verificação desta preparação
 
 Inventário íntegro: 82 entradas e 158 arquivos. Na preparação do schema, quatro testes offline, TypeScript e 33 regressões de catálogo/save adapter/mídia passaram; 16 verificações reais de API/DB/Storage também. O bootstrap completo passou em transação revertida antes da aplicação e a repetição confirmou zero etapas novas. Advisors locais sem achados de segurança. O doctor aponta schema, perfil, Auth e buckets prontos. Evidências em `artifacts/acervo82/preparation/{bootstrap,journey,browser,report}.json` e screenshot `editor-save-reopen.png`. Nenhuma chamada paga ou ativação do catálogo foi executada.
+
+## Piloto com geração real — 04/11/2026
+
+Após autorização expressa para APIs e recursos pagos, foram reconstruídas seis fontes em camadas nativas, com cinco fontes tipográficas verificadas. O piloto contém seis composições estáticas/capas e 24 variantes de desenvolvimento/fechamento, nos modos composto e literal. Não são 30 fontes diferentes. Duas construções independentes produziram as mesmas 30 identidades/hashes; todas passaram pela verificação técnica com texto original e alternativo. As variantes de carrossel foram renderizadas no CanvasPostStage real. As miniaturas diagnósticas das capas não são, isoladamente, prova da jornada de usuário.
+
+| Fonte do novo rol | Dificuldade exercitada | Resultado da comparação visual assistida |
+| --- | --- | --- |
+| reference-03 — Creative People | Fonte raster, lettering, fotografia substituível | Legível; identidade incompleta: falta volume/contorno do lettering, selo ABOUT e acabamento de botões |
+| r9-03 — Versus | Duas colunas e campos independentes | Identidade preservada, ajustes finos de tipografia/borda |
+| r9-11 — Minimal Air | Espaço negativo e hierarquia | Identidade preservada, conferir entrelinha |
+| r9-20 — Data Punch | Destaque de número e metadados | Identidade preservada, conferir tracking |
+| concept-06 — Industrial Tech-Spec | Padrão, selo e metadados | Identidade preservada, conferir código de barras e espessuras |
+| concept-10 — Neo-Bauhaus | Rotação e geometria | Identidade preservada, curva aproximada por polígono |
+
+Essa comparação é uma opinião de provedor sobre imagens identificadas, sem aprovação automática de publicação. A foto da referência original não foi incorporada como asset do catálogo; o slot recebe mídia privada da geração. Textura de papel, sombras CSS e contornos irregulares continuam adaptações declaradas. Números e certificações da referência são exemplos editáveis, nunca evidência factual para a copy.
+
+O staging local fixado está no recibo `artifacts/acervo82/pilot/staged.json` (revisão 2 nesta execução). A revisão ativa continua ausente. Definições locais de ensaios anteriores foram arquivadas, mantendo suas revisões e documentos. O catálogo experimental elegível contém somente as 30 definições destas seis fontes. A taxonomia editorial descreve possibilidades; não limita temas nem recupera famílias antigas para preencher lacunas.
+
+Foram concluídos três casos reais iniciados pelo navegador: post tipográfico, carrossel de cinco slides e post com fotografia gerada. Os casos finais entregaram nove propostas e 21 slides, cobrindo as seis fontes. Cada proposta passou pela revisão de provedor, e o verificador re-renderizou as composições com assets reais; no caso fotográfico, também exige fotografia em todas as propostas. Não houve mocks nessas jornadas. Dois ensaios anteriores foram preservados: o primeiro carrossel falhou no normalizador e o primeiro pedido fotográfico terminou parcial; seus custos estão incluídos.
+
+No navegador, o post tipográfico foi editado/salvo/reaberto (registro 5), assim como o segundo slide do carrossel (registro 6). A fotografia gerada foi salva e reaberta separadamente. O ZIP oficial foi baixado e inspecionado: cinco PNGs de 3072 × 3840, CRC e hashes válidos. O PNG avulso também foi baixado e decodificado nessa resolução. Evidências de navegador, modelos persistidos, renders e recibos estão em `artifacts/acervo82/pilot/`; o resumo versionado está em `designs/acervo82/pilot/results.json`.
+
+Falhas corrigidas durante o piloto: reconhecimento do número de slides em uma citação longa do briefing; reconhecimento de “use obrigatoriamente uma fotografia” antes da escolha do layout; quebra de vários metadados em linhas legíveis nas variantes; download avulso PNG com Blob, preservando os bytes do renderizador. Há regressões para esses casos e para a identidade congelada da autoria.
+
+A aprovação automática ainda exige conferência editorial: no carrossel Versus, um exemplo introduziu desconto de 20% e prazo de cinco dias sem deixar inequívoco que são números hipotéticos; no Industrial, “elimina retrabalho” é uma promessa absoluta sem suporte. Esses resultados não estão aprovados para publicação. Os slides de desenvolvimento também usam uma composição mais simples que a capa; o ritmo e a identidade ao longo da sequência precisam de avaliação humana. A amostra prova viabilidade do mecanismo, sem estimar uma taxa de sucesso das 82 entradas.
+
+## Reexecutar o piloto
+
+```bash
+# Com banco, Auth e schema locais já preparados:
+pnpm acervo82:pilot:prepare
+pnpm acervo82:pilot:author
+pnpm build:review-renderer
+# Usar um diretório de saída novo; o build preserva saídas imutáveis.
+pnpm designs:build --input artifacts/acervo82/pilot/intake --output artifacts/acervo82/pilot/build-06 --carousel-variants
+pnpm acervo82:pilot:stage artifacts/acervo82/pilot/build-06
+pnpm acervo82:pilot:configure
+pnpm acervo82:pilot:dev '/caminho/privado/arquivo-com-OPENROUTER_API_KEY'
+# Iniciar a geração na interface local. O verificador só observa o UUID existente:
+pnpm acervo82:pilot:verify UUID static
+pnpm acervo82:pilot:verify UUID carousel
+pnpm acervo82:pilot:verify UUID photo
+```
+
+`prepare` consulta metadados públicos do OpenRouter e, se faltar, baixa Montserrat do repositório oficial Google Fonts verificando o SHA-256 fixado. Não faz inferência paga. `author` é offline. `stage` usa somente Supabase local, exige as mesmas identidades se houver recibo anterior e não ativa catálogo. Uma nova versão visual exige novo build e revisão/recibo próprios; não remover recibos para aproveitar aprovação antiga.
+
+`configure` fixa fingerprints do pipeline e do renderizador e conserva o orçamento existente. O launcher remove variáveis herdadas, lê somente `OPENROUTER_API_KEY` do arquivo indicado e mantém a chave em memória, sem copiar outros dados da `.env` original. O perfil base não muda. O preload do servidor e dos executores recusa outros destinos, modelos não cotados e admissão fora da conta/revisão experimentais. Servidor e workers compartilham um ledger com lock: US$10, 120 chamadas e cinco admissões. O teto inicial de quatro admissões foi estendido uma vez para a repetição corretiva da foto, sem alterar os limites monetário e de chamadas. Todos os cinco pedidos já foram usados; não apagar o ledger para continuar gerando. A aplicação pode consultar/editar os resultados existentes. Novas rodadas devem ter orçamento e recibos próprios.
+
+Consumo desta rodada: 42 chamadas com custo retornado pelo provedor de US$0,870384144, incluindo JEV, geração de texto/fotografia, revisões, falhas e repetições. Nenhuma chamada ficou com custo incerto. Não foram criados recursos hospedados nem habilitado billing externo. O teste local usa perfil DEV; não comprova cobrança de Sparks de planos pagos.
+
+Verificação: inventário 82/158 íntegro; 108 regressões de planejamento, seleção, compilação, persistência, exportação e orçamento passaram, além do teste de autoria reproduzível e TypeScript. A preparação mantém seus testes offline. Isso não conclui a autoria das outras 76 fontes, não aprova a fidelidade da referência 03 e não ativa a substituição integral do acervo.

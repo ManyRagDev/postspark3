@@ -1,0 +1,337 @@
+{
+  "stem": "acervo82-concept-10",
+  "title": "Neo-Bauhaus · composição geométrica",
+  "background": "#F2ECE1",
+  "width": 1080,
+  "height": 1350,
+  "layers": [
+    {
+      "kind": "rect",
+      "id": "red-circle",
+      "x": 820,
+      "y": -95,
+      "width": 400,
+      "height": 400,
+      "fill": "#D92B2B",
+      "cornerRadiusPx": 200
+    },
+    {
+      "kind": "polygon",
+      "id": "blue-diamond",
+      "x": -60,
+      "y": 850,
+      "width": 300,
+      "height": 300,
+      "fill": "#1D3557",
+      "points": [
+        150,
+        0,
+        300,
+        150,
+        150,
+        300,
+        0,
+        150
+      ]
+    },
+    {
+      "kind": "polygon",
+      "id": "yellow-quarter",
+      "x": 780,
+      "y": 175,
+      "width": 165,
+      "height": 165,
+      "fill": "#E9C46A",
+      "strokeColor": "#111111",
+      "strokeWidth": 4,
+      "points": [
+        165,
+        165,
+        0,
+        165.00000000000003,
+        0.3532776656304293,
+        154.20848367702644,
+        1.4115978733212557,
+        143.46317828369152,
+        3.1704287334669914,
+        132.8100968673388,
+        5.622238662303715,
+        122.29485755808406,
+        8.756528633307568,
+        111.96248822497834,
+        12.559877135637663,
+        101.8572336597602,
+        17.015997647106417,
+        92.02236611386482,
+        22.10580837556759,
+        82.50000000000004,
+        27.80751397008001,
+        73.33091155176568,
+        34.0966988519462,
+        64.55436421356109,
+        40.946431765968725,
+        56.20794050848865,
+        48.327381104219626,
+        48.32738110421967,
+        56.207940508488605,
+        40.946431765968754,
+        64.55436421356106,
+        34.09669885194623,
+        73.33091155176564,
+        27.807513970080038,
+        82.49999999999993,
+        22.105808375567648,
+        92.02236611386478,
+        17.015997647106445,
+        101.85723365976008,
+        12.55987713563772,
+        111.9624882249783,
+        8.756528633307568,
+        122.29485755808409,
+        5.622238662303715,
+        132.81009686733876,
+        3.1704287334669914,
+        143.4631782836915,
+        1.4115978733212842,
+        154.2084836770263,
+        0.3532776656304293,
+        164.99999999999997,
+        0
+      ]
+    },
+    {
+      "kind": "text",
+      "id": "eyebrow",
+      "text": "BAUHAUS // DESSAU",
+      "x": 65,
+      "y": 70,
+      "width": 690,
+      "height": 60,
+      "fontSize": 34,
+      "fontFamily": "Archivo Black",
+      "fontWeight": 400,
+      "fill": "#111111",
+      "lineHeight": 1.16,
+      "groupId": "eyebrow",
+      "fieldId": "eyebrow",
+      "minScale": 0.68,
+      "letterSpacing": 2
+    },
+    {
+      "kind": "rect",
+      "id": "edition-bg",
+      "x": 795,
+      "y": 65,
+      "width": 220,
+      "height": 60,
+      "fill": "#111111"
+    },
+    {
+      "kind": "text",
+      "id": "edition",
+      "text": "1926–2026",
+      "x": 810,
+      "y": 76,
+      "width": 195,
+      "height": 44,
+      "fontSize": 29,
+      "fontFamily": "Space Mono",
+      "fontWeight": 400,
+      "fill": "#F2ECE1",
+      "lineHeight": 1.16,
+      "groupId": "edition",
+      "fieldId": "edition",
+      "minScale": 0.68,
+      "align": "center"
+    },
+    {
+      "kind": "rect",
+      "id": "top-rule",
+      "x": 65,
+      "y": 145,
+      "width": 950,
+      "height": 8,
+      "fill": "#111111"
+    },
+    {
+      "kind": "rect",
+      "id": "headline-bg",
+      "x": 65,
+      "y": 510,
+      "width": 950,
+      "height": 245,
+      "fill": "#111111",
+      "rotationDeg": -3
+    },
+    {
+      "kind": "rect",
+      "id": "red-spine",
+      "x": 65,
+      "y": 510,
+      "width": 22,
+      "height": 245,
+      "fill": "#D92B2B",
+      "rotationDeg": -3
+    },
+    {
+      "kind": "text",
+      "id": "headline",
+      "text": "A FORMA SEGUE A FUNÇÃO.",
+      "x": 105,
+      "y": 540,
+      "width": 865,
+      "height": 205,
+      "fontSize": 83,
+      "fontFamily": "Archivo Black",
+      "fontWeight": 400,
+      "fill": "#F2ECE1",
+      "lineHeight": 1.08,
+      "groupId": "headline",
+      "fieldId": "headline",
+      "minScale": 0.68,
+      "rotationDeg": -3
+    },
+    {
+      "kind": "rect",
+      "id": "body-box",
+      "x": 130,
+      "y": 810,
+      "width": 885,
+      "height": 220,
+      "fill": "#F2ECE1",
+      "strokeColor": "#111111",
+      "strokeWidth": 5
+    },
+    {
+      "kind": "text",
+      "id": "body",
+      "text": "Geometria pura, cores primárias de museu e blocos diagonais que guiam o olhar humano pela lei da Gestalt.",
+      "x": 165,
+      "y": 850,
+      "width": 815,
+      "height": 175,
+      "fontSize": 33,
+      "fontFamily": "Inter",
+      "fontWeight": 700,
+      "fill": "#111111",
+      "lineHeight": 1.55,
+      "groupId": "body",
+      "fieldId": "body",
+      "minScale": 0.68
+    },
+    {
+      "kind": "rect",
+      "id": "footer-rule",
+      "x": 65,
+      "y": 1220,
+      "width": 950,
+      "height": 8,
+      "fill": "#111111"
+    },
+    {
+      "kind": "rect",
+      "id": "footer-shape-0",
+      "x": 65,
+      "y": 1260,
+      "width": 30,
+      "height": 30,
+      "fill": "#D92B2B",
+      "cornerRadiusPx": 15
+    },
+    {
+      "kind": "rect",
+      "id": "footer-shape-1",
+      "x": 113,
+      "y": 1260,
+      "width": 30,
+      "height": 30,
+      "fill": "#1D3557",
+      "cornerRadiusPx": 0
+    },
+    {
+      "kind": "rect",
+      "id": "footer-shape-2",
+      "x": 161,
+      "y": 1260,
+      "width": 30,
+      "height": 30,
+      "fill": "#E9C46A",
+      "cornerRadiusPx": 0
+    },
+    {
+      "kind": "text",
+      "id": "cta",
+      "text": "MÓDULO 01 →",
+      "x": 620,
+      "y": 1250,
+      "width": 395,
+      "height": 60,
+      "fontSize": 31,
+      "fontFamily": "Archivo Black",
+      "fontWeight": 400,
+      "fill": "#111111",
+      "lineHeight": 1.16,
+      "groupId": "cta",
+      "fieldId": "cta",
+      "minScale": 0.68,
+      "align": "right"
+    }
+  ],
+  "groups": [
+    {
+      "id": "eyebrow",
+      "label": "eyebrow",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "edition",
+      "label": "edition",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "headline",
+      "label": "headline",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": -3
+      }
+    },
+    {
+      "id": "body",
+      "label": "body",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    },
+    {
+      "id": "cta",
+      "label": "cta",
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "rotationDeg": 0
+      }
+    }
+  ],
+  "authorship": {
+    "recipeId": "acervo82-concept-10-pilot-v1",
+    "createdAt": "2026-11-04T23:44:49.502Z"
+  },
+  "notes": [
+    "Piloto acervo82; fonte preservada no manifesto; não equivale à aprovação do catálogo definitivo.",
+    "Curva do quarto de círculo convertida em polígono nativo; sombras CSS não são usadas como geometria."
+  ],
+  "sourcePath": "designs/showcase_consolidado/03_novos_conceitos/serie_2_retro_tech_cyberpunk/10_neo_bauhaus_construct.png",
+  "originalHash": "565858c5aaa0c5ab00762c1fe78b803ef065fd2811fea71be342e428d9a5441a"
+}

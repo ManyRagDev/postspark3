@@ -112,6 +112,8 @@ export type CompactSpec = {
   layers: Array<LayerOptions & { id: string; kind: "rect" | "text" | "line" | "polygon"; groupId?: string; fieldId?: string; fieldLabel?: string; minScale?: number; prefix?: string; mediaId?: string }>;
   groups: Array<{ id: string; label: string; transform: MatrixTransform }>;
   missingElements?: RecreationRecipe["missingElements"];
+  /** A frozen authoring identity makes repeated builds byte-reproducible. */
+  authorship?: { recipeId: string; createdAt: string };
 };
 
 /** Alternate compact JSON format: all layer coordinates/rotations are absolute. */
@@ -156,6 +158,10 @@ export function recipeFromSpec(spec: CompactSpec, fonts = localFontPool()): Recr
     layers.filter(l => l.mediaId).forEach(l => b.mediaSlot(l.mediaId!, l.id, l.role ?? l.mediaId));
   });
   const result = b.build();
+  if (spec.authorship) {
+    result.id = spec.authorship.recipeId;
+    result.createdAt = spec.authorship.createdAt;
+  }
   // Preserve author's absolute stacking order, independent of group iteration order.
   result.scene.layers.forEach(l => { l.zIndex = spec.layers.findIndex(s => s.id === l.id); });
   result.missingElements = spec.missingElements ?? [];

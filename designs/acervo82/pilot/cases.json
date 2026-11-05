@@ -1,0 +1,23 @@
+[
+  {
+    "id": "static",
+    "content": "PILOTO ACERVO82 — Café Horizonte. Crie um post único com a mensagem Uma pausa que aproxima. Fatos disponíveis: café coado na hora, atendimento de segunda a sexta e espaço para conversar. Explore uma composição do novo catálogo com leitura clara. Sem fotografia. Não invente preços, percentuais, certificações ou horários.",
+    "postMode": "static",
+    "slides": 1,
+    "media": "forbidden"
+  },
+  {
+    "id": "carousel",
+    "content": "PILOTO ACERVO82 — Crie um carrossel de 5 slides para a marca fictícia Estúdio Claro sobre três práticas para melhorar um briefing: definir o objetivo da peça, listar os fatos disponíveis e descrever o público. Estruture capa, uma prática por slide e encerramento convidando a salvar. Explique cada prática com um exemplo simples. Sem fotografia. Preserve esses três pontos e não invente estatísticas, resultados comerciais ou certificações.",
+    "postMode": "carousel",
+    "slides": 5,
+    "media": "forbidden"
+  },
+  {
+    "id": "photo",
+    "content": "PILOTO ACERVO82 — Post único para a marca fictícia Clube Criativo. Mensagem principal: CRIAR EM GRUPO. Use obrigatoriamente uma fotografia editorial gerada de uma mesa de trabalho com materiais de desenho e mãos colaborando; não represente pessoas reais identificáveis, não inclua texto dentro da fotografia. Integre a fotografia à composição, mantendo título e demais textos em camadas editáveis. Conteúdo de apoio: trocar ideias faz parte do processo. Convite: junte suas ideias. Não invente números, resultados, certificações, preço ou eventos.",
+    "postMode": "static",
+    "slides": 1,
+    "media": "required"
+  }
+]

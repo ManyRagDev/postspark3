@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "intents": [
+    {
+      "id": "afirmar_mensagem",
+      "label": "Destacar uma mensagem central",
+      "description": "Concentrar a peça em uma afirmação, posicionamento ou frase principal de leitura rápida. Exemplos: uma frase forte; manifeste a ideia central. O destaque é editorial e não exige gritos, agressividade ou excesso de texto. Não fragmentar a frase em ideias independentes só porque o título usa várias caixas."
+    },
+    {
+      "id": "analisar_pontos_negativos",
+      "label": "Analisar pontos negativos",
+      "description": "Examinar limitações, falhas, riscos ou desvantagens do assunto, com argumentos sustentados pelo insumo. Exemplos: explique os problemas; destaque os pontos negativos. Pode tratar uma única opção e não exige comparação. Não inferir crítica pelo tema, nem inventar riscos. Sem críticas proíbe esta abordagem; sem comparação não a proíbe."
+    },
+    {
+      "id": "anunciar_novidade",
+      "label": "Anunciar uma novidade",
+      "description": "Comunicar lançamento, atualização, evento ou notícia com uma chamada principal e apoio conciso, se disponível. Exemplos: anuncie a abertura; divulgue a novidade. Não implica desconto, urgência, exagero ou chamada comercial. Não transforme simples explicação em anúncio; sem divulgação proíbe essa finalidade."
+    },
+    {
+      "id": "apresentar_com_imagem",
+      "label": "Apresentar com protagonismo da imagem",
+      "description": "Apresentar pessoa, produto, objeto ou cena deixando a imagem comunicar o contexto, acompanhada por mensagem curta. Diferencia-se de explicar detalhadamente atributos em vários parágrafos. Não exige venda, celebridade ou tema específico. Respeitar pedidos sem foto ou sem imagem e a disponibilidade real de mídia."
+    },
+    {
+      "id": "comentar_imagem",
+      "label": "Comentar uma imagem",
+      "description": "Usar texto breve para interpretar, contextualizar ou chamar atenção a algo mostrado em uma imagem. A relação entre texto e cena faz parte da mensagem; depende de mídia adequada e de slot real. Não inventar o conteúdo de uma imagem indisponível. Sem imagem proíbe o uso; a ausência de foto no pedido é neutra."
+    },
+    {
+      "id": "comparar_alternativas",
+      "label": "Comparar alternativas",
+      "description": "Colocar dois lados, opções ou situações em relação, explicitando diferenças, vantagens ou trade-offs. Exemplos: compare A e B; mostre antes e depois. Pedir apenas os pontos negativos de uma opção não implica comparação. Se o pedido disser sem comparar, registre a proibição específica; a palavra comparação isolada não é um pedido positivo."
+    },
+    {
+      "id": "convidar_participacao",
+      "label": "Convidar à participação",
+      "description": "Encaminhar o público para uma ação de participação, como inscrição, visita, contato ou comentário, com convite explícito. Não inventar prazo, link, benefício ou oferta. Um campo CTA no design é capacidade, não obrigação. Sem CTA ou não convide proíbe o convite; ausência de pedido comercial não significa proibição."
+    },
+    {
+      "id": "destacar_dado",
+      "label": "Destacar um dado fornecido",
+      "description": "Dar protagonismo a um número, resultado ou métrica presente no insumo, conservando unidade e contexto necessários. Exemplo: destaque os 18% informados no relatório. Mencionar um tema quantitativo não autoriza criar uma estatística. Sem números é proibição explícita; ausência de número não é pedido para inventar um."
+    },
+    {
+      "id": "esclarecer_equivoco",
+      "label": "Esclarecer um equívoco",
+      "description": "Contrapor uma afirmação equivocada à explicação ou correção sustentada pelo insumo. Exemplos: mito e realidade; explique por que essa ideia está errada. Não pressupor que uma afirmação seja falsa nem que todo contraste seja uma correção. Sem desmentir é proibição específica desta abordagem."
+    },
+    {
+      "id": "estimular_reflexao",
+      "label": "Estimular uma reflexão breve",
+      "description": "Apresentar uma pergunta, observação ou ideia central para provocar reflexão, com pouco desenvolvimento. Exemplos: proponha uma reflexão; faça uma pergunta para pensar. Não pressupõe motivação, autoajuda ou tom filosófico. Sem pergunta proíbe a forma interrogativa, mas não toda reflexão ou afirmação."
+    },
+    {
+      "id": "explicar_raciocinio",
+      "label": "Explicar um raciocínio",
+      "description": "Desenvolver uma ideia com contexto, causas, razões ou consequências em texto encadeado. Exemplos: explique como funciona; mostre por que acontece. Não obriga listas, comparação, crítica ou tom didático infantil. Sem explicação longa limita o desenvolvimento, sem necessariamente proibir uma frase de apoio."
+    },
+    {
+      "id": "organizar_pontos",
+      "label": "Organizar pontos independentes",
+      "description": "Apresentar recomendações, argumentos ou observações em itens separados e completos, ligados pelo mesmo assunto. Exemplos: liste os motivos; três dicas. Os itens não precisam ser opostos nem formar etapas. Respeitar quantidade e capacidade reais do design. Sem lista proíbe esta organização; não deduzir lista só pelo assunto."
+    },
+    {
+      "id": "orientar_acao",
+      "label": "Orientar uma ação",
+      "description": "Indicar como fazer algo ou qual próximo passo seguir, com instrução útil e compreensível. Pode ser uma orientação curta ou sequência quando o formato comportar. Exemplos: ensine o procedimento; diga como começar. Não confundir com vender ou chamar para clicar. Sem tutorial restringe instruções sequenciais, não toda explicação."
+    },
+    {
+      "id": "sintetizar",
+      "label": "Sintetizar uma conclusão",
+      "description": "Reunir a conclusão ou mensagem essencial de um conteúdo já fornecido, preservando seu sentido. Exemplos: resuma o aprendizado; encerre com uma síntese. Não introduzir fatos nem transformar resumo em convite. Em carrosséis, depende da composição de fechamento disponível; não obriga todo slide a concluir."
+    }
+  ],
+  "designs": [
+    {
+      "sourceId": "a395f643-2ef4-4096-8cea-25e826284f7a",
+      "sourceHash": "ee5cb481b86f361de066ad3e46ebb2f24e226084d002b0369da4ba3e06d3a19d",
+      "intentIds": [
+        "afirmar_mensagem",
+        "apresentar_com_imagem",
+        "comentar_imagem",
+        "convidar_participacao"
+      ],
+      "rationale": "Capacidades nativas verificadas no piloto acervo82-reference-03: 1 regiões de título, 0 apoios textuais, 0 listas semânticas e 1 slots de mídia. 6 camadas em 1080×1350; fontes Archivo Black.. Intenções indicam possibilidades, sem limitar temas e sem transformar o texto da referência em prova factual."
+    },
+    {
+      "sourceId": "6dbc30e6-87d1-4e76-8af4-bf279c3b25ec",
+      "sourceHash": "2ca1bddc41f4cd7113c644b7b003def77db02cd8e3485693cc3c715f98a490e7",
+      "intentIds": ["comparar_alternativas", "esclarecer_equivoco"],
+      "rationale": "Capacidades nativas verificadas no piloto acervo82-r9-03: 1 regiões de título, 1 apoios textuais, 0 listas semânticas e 0 slots de mídia. 10 camadas em 1080×1350; fontes Montserrat, Inter, Space Mono.. Intenções indicam possibilidades, sem limitar temas e sem transformar o texto da referência em prova factual."
+    },
+    {
+      "sourceId": "55840dc0-8b88-4c47-879a-06126a03bb9f",
+      "sourceHash": "76981c80351778f8ba8967e10b3d12a383d70bd2137f2cec21daf105301c441e",
+      "intentIds": [
+        "afirmar_mensagem",
+        "estimular_reflexao",
+        "explicar_raciocinio",
+        "anunciar_novidade"
+      ],
+      "rationale": "Capacidades nativas verificadas no piloto acervo82-r9-11: 1 regiões de título, 1 apoios textuais, 0 listas semânticas e 0 slots de mídia. 6 camadas em 1080×1350; fontes Inter.. Intenções indicam possibilidades, sem limitar temas e sem transformar o texto da referência em prova factual."
+    },
+    {
+      "sourceId": "763e07a4-fcf1-4080-8184-50fb3826ec55",
+      "sourceHash": "0436ef34ce11002051e8afa8de01de4c76edc2fcb56422f7c90fb24dae455376",
+      "intentIds": ["destacar_dado", "explicar_raciocinio"],
+      "rationale": "Capacidades nativas verificadas no piloto acervo82-r9-20: 1 regiões de título, 1 apoios textuais, 0 listas semânticas e 0 slots de mídia. 7 camadas em 1080×1350; fontes Space Mono, Space Grotesk, Inter.. Intenções indicam possibilidades, sem limitar temas e sem transformar o texto da referência em prova factual."
+    },
+    {
+      "sourceId": "8dc5c4e2-d8b3-4d8e-88d7-3316c7430dbc",
+      "sourceHash": "fc129ba2668b8308f183bf9d7e0fcbff19a15c24d3dcfef464cdf585a3db0501",
+      "intentIds": ["afirmar_mensagem", "anunciar_novidade"],
+      "rationale": "Capacidades nativas verificadas no piloto acervo82-concept-06: 1 regiões de título, 1 apoios textuais, 0 listas semânticas e 0 slots de mídia. 63 camadas em 1080×1350; fontes Space Mono, Archivo Black.. Intenções indicam possibilidades, sem limitar temas e sem transformar o texto da referência em prova factual."
+    },
+    {
+      "sourceId": "94625a7f-b960-4977-8d50-597a8ad4d61e",
+      "sourceHash": "cc7b0c3e4c3248067292b919d6fe6bd4f00df60be5c98a0884902a625996b4d6",
+      "intentIds": [
+        "afirmar_mensagem",
+        "explicar_raciocinio",
+        "estimular_reflexao"
+      ],
+      "rationale": "Capacidades nativas verificadas no piloto acervo82-concept-10: 1 regiões de título, 1 apoios textuais, 0 listas semânticas e 0 slots de mídia. 17 camadas em 1080×1350; fontes Archivo Black, Space Mono, Inter.. Intenções indicam possibilidades, sem limitar temas e sem transformar o texto da referência em prova factual."
+    }
+  ]
+}

@@ -1575,11 +1575,25 @@ export default function CanvasLabPage({
       toast.error("Erro ao gerar imagem 4K.");
       return;
     }
-    const link = document.createElement("a");
-    link.download = `postspark-${post.familyId}-${post.aspectRatio.replace(":", "x")}.png`;
-    link.href = dataUrl;
-    link.click();
-    toast.success("Post 4K exportado com sucesso!");
+    // Use the same file download mechanism as ZIP. A large data URL can be
+    // treated as navigation by embedded browsers instead of creating a file.
+    const encoded = dataUrl.match(/^data:image\/png;base64,([A-Za-z0-9+/]+={0,2})$/)?.[1];
+    if (!encoded) {
+      toast.error("Erro ao gerar imagem 4K.");
+      return;
+    }
+    const binary = atob(encoded);
+    const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], { type: "image/png" }));
+    try {
+      const link = document.createElement("a");
+      link.download = `postspark-${post.familyId}-${post.aspectRatio.replace(":", "x")}.png`;
+      link.href = url;
+      link.click();
+      toast.success("Post 4K exportado com sucesso!");
+    } finally {
+      URL.revokeObjectURL(url);
+    }
   };
 
   const exportZip = async () => {
