@@ -1,3 +1,4 @@
+import {designLabel} from "@shared/acervo82Identity";
 import {toast} from "sonner";
 import { aspectRatioHeight } from "@shared/aspectRatios";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -149,8 +150,10 @@ export default function SavedPosts() {
   const [, setLocation] = useLocation();
   const utils=trpc.useUtils();
   const [page,setPage]=useState(0);
+  const [searchDraft,setSearchDraft]=useState('');
+  const [search,setSearch]=useState('');
   const [opening,setOpening]=useState<number|null>(null);
-  const { data, isLoading, error, refetch } = trpc.post.listSummary.useQuery({limit:20,offset:page*20});
+  const { data, isLoading, error, refetch } = trpc.post.listSummary.useQuery({limit:20,offset:page*20,...(search?{search}:{})});
   const posts=data?.items;
 
   const openSavedPost = async (summary: {id:number}) => {
@@ -218,6 +221,7 @@ export default function SavedPosts() {
           </div>
         </motion.div>
 
+        <form onSubmit={event=>{event.preventDefault();setSearch(searchDraft.trim());setPage(0);}} className="flex gap-2"><input aria-label="Buscar posts por título, design ou código" value={searchDraft} onChange={event=>setSearchDraft(event.target.value)} maxLength={120} placeholder="Título, design ou código (REF-03)" className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/20 p-3"/><button type="submit" className="rounded-lg border border-white/15 px-4">Buscar</button></form>
         <div className="mb-4 flex items-center gap-4"><button disabled={page===0} onClick={()=>setPage(p=>p-1)}>Anterior</button><span>Página {page+1}</span><button disabled={(page+1)*20>=(data?.total??0)} onClick={()=>setPage(p=>p+1)}>Próxima</button></div>
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
@@ -285,6 +289,7 @@ export default function SavedPosts() {
                       <span className="text-[11px] text-muted-foreground">{formatDate(post.createdAt)}</span>
                     </div>
                     <h2 className="line-clamp-2 break-words text-base font-semibold tracking-tight text-foreground sm:text-lg">{post.headline || "Sem título"}</h2>
+                    {post.designFamily && post.designName && <p className="text-xs text-muted-foreground">{designLabel({completeDesign:{family:post.designFamily,name:post.designName}})}</p>}
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/6 pt-4">

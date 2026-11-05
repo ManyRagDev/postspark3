@@ -514,7 +514,8 @@ export function resolveArsenalGeometry(
       )
     ) {
       // Background decorations intentionally extend beyond the clipped artboard.
-      if (e.kind === "text" || e.kind === "media")
+      const authoredBleed = e.artboardBleed && (e.kind === "media" || (e.kind === "text" && e.fixedTextRole === "ornament" && !e.bindingId));
+      if (!authoredBleed && (e.kind === "text" || e.kind === "media"))
         issues.push(`overflow:bounds:${e.id}`);
     }
   }

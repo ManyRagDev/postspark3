@@ -1,6 +1,6 @@
 {
   "format": "postspark.acervo82.workflow",
-  "version": 1,
+  "version": 2,
   "roster": "designs/acervo82/manifest.json",
   "goal": "Replace the complete selection catalogue with all 82 authored entries",
   "canonicalDocument": "CanvasPostModel",
@@ -19,12 +19,54 @@
     "releaseApproved": false
   },
   "phases": [
-    { "id": "source_preserved", "evidence": ["source hashes", "preview", "source code or original raster"] },
-    { "id": "authored", "evidence": ["complete immutable composition", "native content bindings", "font and media manifests", "declared adaptations"] },
-    { "id": "technically_verified", "evidence": ["canonical schema and hashes", "verified font bytes", "original and alternate copy renders", "content fit"] },
-    { "id": "visually_reviewed", "evidence": ["comparison against the selected showcase appearance", "decision tied to exact definition and PNG hashes", "known differences"] },
-    { "id": "journey_verified", "evidence": ["selection from new catalogue", "gallery", "edit", "save and reopen", "PNG and carousel ZIP when applicable"] },
-    { "id": "ready_for_release", "evidence": ["coverage of all 82 identities", "existing catalogue publication gates", "compatible application version", "recovery package"] }
+    {
+      "id": "source_preserved",
+      "evidence": [
+        "source hashes",
+        "preview",
+        "frozen source identity"
+      ]
+    },
+    {
+      "id": "authored",
+      "evidence": [
+        "native editable content and media",
+        "immutable definition and verified assets",
+        "declared adaptations"
+      ]
+    },
+    {
+      "id": "technically_verified",
+      "evidence": [
+        "reference and alternate PNG exports",
+        "fit and cardinality",
+        "decoded media and verified font bytes"
+      ]
+    },
+    {
+      "id": "locally_compared",
+      "evidence": [
+        "reference/render comparison",
+        "known differences",
+        "verified subset of carousel roles"
+      ]
+    },
+    {
+      "id": "journey_verified",
+      "evidence": [
+        "controlled browser opening without inference",
+        "authenticated save and reopen with official adapter",
+        "decoded export evidence"
+      ]
+    },
+    {
+      "id": "ready_for_release",
+      "evidence": [
+        "all existing human publication gates",
+        "compatible renderer and selection index",
+        "recovery package"
+      ]
+    }
   ],
   "rules": [
     "Work each entry independently; previous family names do not restrict the new collection.",
@@ -35,6 +77,43 @@
     "A technical pass is not visual approval; a missing renderer feature is an adaptation task rather than automatic rejection.",
     "Record the reason and next action for every unresolved entry; do not silently remove it from the roster.",
     "Preparatory receipt validation checks coverage and shape only; it cannot publish or authenticate review evidence.",
-    "The previous catalogue is recovery evidence and saved-document compatibility material, never a fallback source for new selections."
-  ]
+    "The previous catalogue is recovery evidence and saved-document compatibility material, never a fallback source for new selections.",
+    "Do not convert capability counts to ranking bonuses. The local fit checks exact needs; JEV receives a single profile of each recovered family.",
+    "New requests pin the family identity tie seed, policy, profile, and index. Historical receipts are read with their own policy.",
+    "Keep the original authorized upload when the current request explicitly asks to preserve it; no image generation call for that slot.",
+    "Plan carousel closing separately from development items; treat an explicit page count as a layout requirement.",
+    "The staged local override contains only verified families and roles in selection; archived rows are retained for history."
+  ],
+  "authorshipRegistry": "designs/acervo82/authored/registry.json",
+  "localRevision": {
+    "revision": "3",
+    "stagingReceipt": "artifacts/acervo82/full/staged.json",
+    "staticFamilies": 82,
+    "carouselFamilies": 22,
+    "definitions": 170,
+    "productionApproved": false
+  },
+  "authorizedFullTrial": {
+    "session": "full-catalog-01",
+    "cases": "designs/acervo82/authored/live-cases.json",
+    "scope": "isolated local revision 3 only",
+    "maxUsd": 10,
+    "maxCalls": 240,
+    "maxAdmissions": 12,
+    "retainUncertainReservations": true,
+    "receipt": "artifacts/acervo82/full/sessions/full-catalog-01/results.json",
+    "state": "closed_at_admission_limit",
+    "releaseApproved": false
+  },
+  "retrieval": {
+    "familyProfile": 5,
+    "neutralityPolicy": 1,
+    "indexProjection": 2,
+    "initialFamilies": 24,
+    "additionalFamilies": 12,
+    "maxBatches": 4,
+    "maxRequestBytes": 48000,
+    "maxTotalRequestBytes": 128000,
+    "reservedBriefs": "designs/acervo82/authored/reserved-briefs.json"
+  }
 }

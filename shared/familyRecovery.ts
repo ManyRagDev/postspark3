@@ -35,10 +35,10 @@ export const effectiveFamilyScore = (r: FamilyScore) =>
   r.score * (0.5 + 0.5 * r.confidence);
 export const orderFamilyScores = (a: FamilyScore, b: FamilyScore) =>
   effectiveFamilyScore(b) - effectiveFamilyScore(a) || a.id.localeCompare(b.id);
-export const normalFamilyIds = (scores: FamilyScore[]) =>
+export const normalFamilyIds = (scores: FamilyScore[], tie?: (id:string)=>string) =>
   [...scores]
     .filter(s => s.score >= 2)
-    .sort(orderFamilyScores)
+    .sort((a,b)=>effectiveFamilyScore(b)-effectiveFamilyScore(a)||(tie?tie(a.id).localeCompare(tie(b.id)):a.id.localeCompare(b.id)))
     .slice(0, 12)
     .map(s => s.id);
 
@@ -46,9 +46,10 @@ export const normalFamilyIds = (scores: FamilyScore[]) =>
  * no provider call, new family vote, score rewrite or catalogue expansion. */
 export function planFamilyRecovery(
   scores: FamilyScore[],
-  inspect: (ids: string[]) => FamilyPlanFit
+  inspect: (ids: string[]) => FamilyPlanFit,
+  tie?: (id:string)=>string
 ): FamilyRecoveryReceipt {
-  const normalIds = normalFamilyIds(scores),
+  const normalIds = normalFamilyIds(scores,tie),
     recoveredIds: string[] = [];
   const verify = (ids: string[]) => {
     const fit = inspect(ids);
@@ -70,7 +71,7 @@ export function planFamilyRecovery(
         s.score < FAMILY_RECOVERY_POLICY.normalScore &&
         s.confidence <= FAMILY_RECOVERY_POLICY.maxConfidence
     )
-    .sort(orderFamilyScores);
+    .sort((a,b)=>effectiveFamilyScore(b)-effectiveFamilyScore(a)||(tie?tie(a.id).localeCompare(tie(b.id)):a.id.localeCompare(b.id)));
   for (const candidate of candidates.slice(
     0,
     FAMILY_RECOVERY_POLICY.maxAttempts

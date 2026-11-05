@@ -1,0 +1,923 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-12",
+  "sourceRecipeHash": "75682e131df5a266c951c3bdf797e21a285366ceb67a11ada696a7742a2d525a",
+  "previousReferenceId": "9679d55f99201e6b77de677b5d5ce161",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "c9c4dd73-84cc-4fe6-9b99-21c88a090bbd",
+    "title": "Seu direct é uma mina de ouro",
+    "createdAt": "2026-09-30T23:46:24.495Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 736,
+        "heightPx": 920,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "5ce2a65cedf229b5f3100a7b919d2f40007d2f691d4e71a45df326966b808d1a"
+      },
+      "artboard": {
+        "background": "#8B8371"
+      },
+      "layers": [
+        {
+          "id": "reaction-slot",
+          "kind": "rect",
+          "role": "Foto de reação e ambiente inferior",
+          "zIndex": 0,
+          "x": 0,
+          "y": 650,
+          "width": 736,
+          "height": 270,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#A8A8A8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "orange-one",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 1,
+          "x": 180,
+          "y": 122,
+          "width": 376,
+          "height": 74,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#CA510D",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "orange-two",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 2,
+          "x": 81,
+          "y": 201,
+          "width": 574,
+          "height": 72,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#CA510D",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "gold-one",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 3,
+          "x": 193,
+          "y": 126,
+          "width": 348,
+          "height": 71,
+          "text": "Seu direct é",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 63,
+          "lineHeight": 1,
+          "letterSpacing": -3,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "gold-two",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 4,
+          "x": 100,
+          "y": 207,
+          "width": 537,
+          "height": 69,
+          "text": "uma mina de ouro",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 61,
+          "lineHeight": 1,
+          "letterSpacing": -3,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "aside-text",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 5,
+          "x": 225,
+          "y": 290,
+          "width": 287,
+          "height": 31,
+          "text": "(E VOCÊ TÁ IGNORANDO)",
+          "fontFamily": "Archivo",
+          "fontWeight": 700,
+          "fontSize": 22.56,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "explanation-card",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 6,
+          "x": 163,
+          "y": 331,
+          "width": 410,
+          "height": 77,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F7F7F4",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "explanation-copy",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 7,
+          "x": 173,
+          "y": 338,
+          "width": 390,
+          "height": 29.120000000000005,
+          "text": "As perguntas que te fazem TODO",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 26,
+          "lineHeight": 1.12,
+          "letterSpacing": -1,
+          "align": "center",
+          "fill": "#111111",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "explanation-copy-line-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 8,
+          "x": 173,
+          "y": 367.12,
+          "width": 390,
+          "height": 29.120000000000005,
+          "text": "DIA são conteúdos prontos.",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 26,
+          "lineHeight": 1.12,
+          "letterSpacing": -1,
+          "align": "center",
+          "fill": "#111111",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "question-card-0",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 9,
+          "x": 244,
+          "y": 422,
+          "width": 248,
+          "height": 45,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F7F7F4",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "question-0",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 10,
+          "x": 250,
+          "y": 429,
+          "width": 236,
+          "height": 34,
+          "text": "\"Como você faz X?\"",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 26,
+          "lineHeight": 1,
+          "letterSpacing": -1,
+          "align": "center",
+          "fill": "#111111",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "question-card-1",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 11,
+          "x": 197,
+          "y": 477,
+          "width": 343,
+          "height": 45,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F7F7F4",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "question-1",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 12,
+          "x": 203,
+          "y": 484,
+          "width": 331,
+          "height": 34,
+          "text": "\"Qual ferramenta você usa?\"",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 26,
+          "lineHeight": 1,
+          "letterSpacing": -1,
+          "align": "center",
+          "fill": "#111111",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "question-card-2",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 13,
+          "x": 122,
+          "y": 532,
+          "width": 492,
+          "height": 45,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F7F7F4",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "question-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 14,
+          "x": 128,
+          "y": 539,
+          "width": 480,
+          "height": 34,
+          "text": "\"Isso funciona pra quem tá começando?\"",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 26,
+          "lineHeight": 1,
+          "letterSpacing": -1,
+          "align": "center",
+          "fill": "#111111",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "takeaway-copy",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 15,
+          "x": 137,
+          "y": 592,
+          "width": 464,
+          "height": 28.678,
+          "text": "SUA AUDIÊNCIA JÁ TE DISSE O QUE QUER",
+          "fontFamily": "Archivo",
+          "fontWeight": 700,
+          "fontSize": 22.06,
+          "lineHeight": 1.3,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "takeaway-copy-line-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 16,
+          "x": 137,
+          "y": 620.678,
+          "width": 464,
+          "height": 28.678,
+          "text": "VER, MAS VOCÊ NÃO QUIS OUVIR",
+          "fontFamily": "Archivo",
+          "fontWeight": 700,
+          "fontSize": 22.06,
+          "lineHeight": 1.3,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Inter",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+          "license": "open-source"
+        },
+        {
+          "family": "Archivo",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/archivo/v25/k3k6o8UDI-1M0wlSV9XAw6lQkqWY8Q82sJaRE-NWIDdgffTT0zRZ9xdp.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "abada6cd4c92a9a706f6d7ed3189f322ff43dd78b9402c7d1137465b861d2a04",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Faixas laranja e cartões brancos são elementos editáveis; os três exemplos formam um campo de lista.",
+      "Reação do cachorro e ambiente inferior convertidos em slot retangular, sem recorte do animal.",
+      "Textura do fundo e fonte irregular semelhante a giz aproximadas por superfície lisa e Archivo 700 local.",
+      "Ícone periférico de olhos omitido para não colidir com a frase ao substituir conteúdo.",
+      "Campos multiline convertidos em listas de camadas por linha para permitir compilação no-op: explanation-copy, takeaway-copy."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "reaction-slot",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "orange-one",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "orange-two",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "gold-one",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "gold-two",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "aside-text",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "explanation-card",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "explanation-copy",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "explanation-copy-line-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "question-card-0",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "question-0",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "question-card-1",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "question-1",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "question-card-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "question-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "takeaway-copy",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "takeaway-copy-line-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "reaction-group",
+          "label": "Foto de reação e ambiente inferior",
+          "transform": {
+            "x": 0,
+            "y": 650,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "reaction-slot"
+            }
+          ]
+        },
+        {
+          "id": "headline",
+          "label": "Título em duas faixas",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 180,
+              "y": 122,
+              "rotationDeg": 0,
+              "layerId": "orange-one"
+            },
+            {
+              "x": 81,
+              "y": 201,
+              "rotationDeg": 0,
+              "layerId": "orange-two"
+            },
+            {
+              "x": 193,
+              "y": 126,
+              "rotationDeg": 0,
+              "layerId": "gold-one"
+            },
+            {
+              "x": 100,
+              "y": 207,
+              "rotationDeg": 0,
+              "layerId": "gold-two"
+            }
+          ]
+        },
+        {
+          "id": "aside",
+          "label": "Comentário enfático",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 225,
+              "y": 290,
+              "rotationDeg": 0,
+              "layerId": "aside-text"
+            }
+          ]
+        },
+        {
+          "id": "explanation",
+          "label": "Explicação no cartão branco",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 163,
+              "y": 331,
+              "rotationDeg": 0,
+              "layerId": "explanation-card"
+            },
+            {
+              "x": 173,
+              "y": 338,
+              "rotationDeg": 0,
+              "layerId": "explanation-copy"
+            },
+            {
+              "x": 173,
+              "y": 367.12,
+              "rotationDeg": 0,
+              "layerId": "explanation-copy-line-2"
+            }
+          ]
+        },
+        {
+          "id": "examples",
+          "label": "Lista de exemplos de perguntas",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 244,
+              "y": 422,
+              "rotationDeg": 0,
+              "layerId": "question-card-0"
+            },
+            {
+              "x": 250,
+              "y": 429,
+              "rotationDeg": 0,
+              "layerId": "question-0"
+            },
+            {
+              "x": 197,
+              "y": 477,
+              "rotationDeg": 0,
+              "layerId": "question-card-1"
+            },
+            {
+              "x": 203,
+              "y": 484,
+              "rotationDeg": 0,
+              "layerId": "question-1"
+            },
+            {
+              "x": 122,
+              "y": 532,
+              "rotationDeg": 0,
+              "layerId": "question-card-2"
+            },
+            {
+              "x": 128,
+              "y": 539,
+              "rotationDeg": 0,
+              "layerId": "question-2"
+            }
+          ]
+        },
+        {
+          "id": "takeaway",
+          "label": "Conclusão acima da foto",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 137,
+              "y": 592,
+              "rotationDeg": 0,
+              "layerId": "takeaway-copy"
+            },
+            {
+              "x": 137,
+              "y": 620.678,
+              "rotationDeg": 0,
+              "layerId": "takeaway-copy-line-2"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "headline",
+          "label": "Título em duas linhas",
+          "kind": "list",
+          "groupId": "headline",
+          "layerIds": [
+            "gold-one",
+            "gold-two"
+          ],
+          "baseFontSizes": [
+            63,
+            61
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "aside-text",
+          "label": "(E VOCÊ TÁ IGNORANDO)",
+          "kind": "text",
+          "groupId": "aside",
+          "layerIds": [
+            "aside-text"
+          ],
+          "baseFontSizes": [
+            22.56
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "explanation-copy",
+          "label": "As perguntas que te fazem TODO DIA são conteúdos prontos.",
+          "kind": "list",
+          "groupId": "explanation",
+          "layerIds": [
+            "explanation-copy",
+            "explanation-copy-line-2"
+          ],
+          "baseFontSizes": [
+            26,
+            26
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "questions",
+          "label": "Perguntas frequentes",
+          "kind": "list",
+          "groupId": "examples",
+          "layerIds": [
+            "question-0",
+            "question-1",
+            "question-2"
+          ],
+          "baseFontSizes": [
+            26,
+            26,
+            26
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "takeaway-copy",
+          "label": "SUA AUDIÊNCIA JÁ TE DISSE O QUE QUER VER, MAS VOCÊ NÃO QUIS OUVIR",
+          "kind": "list",
+          "groupId": "takeaway",
+          "layerIds": [
+            "takeaway-copy",
+            "takeaway-copy-line-2"
+          ],
+          "baseFontSizes": [
+            22.06,
+            22.06
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        }
+      ],
+      "media": [
+        {
+          "id": "reaction",
+          "label": "Foto de reação e ambiente inferior",
+          "groupId": "reaction-group",
+          "layerId": "reaction-slot",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        }
+      ]
+    }
+  }
+}

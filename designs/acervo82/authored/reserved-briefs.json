@@ -1,0 +1,2222 @@
+{
+  "format": "postspark.acervo82.reserved-briefs",
+  "version": 1,
+  "rosterHash": "6f65b7110010ce062a5ca55e54dcdede71f82fa31966139a2b364287cc4aa496",
+  "method": "Uma família previamente reconhecida como compatível por caso. Preferência visual descrita sem nome ou código. Mesmos pedidos para medir busca local; não representam interpretações de LLM.",
+  "cases": [
+    {
+      "id": "REF-01-1",
+      "expectedFamily": "acervo82-reference-01",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartaz laranja com letras enormes de fundo e foto pequena embaixo",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartaz laranja com letras enormes de fundo e foto pequena embaixo. Inclua fotografia."
+    },
+    {
+      "id": "REF-01-2",
+      "expectedFamily": "acervo82-reference-01",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartaz laranja com letras enormes de fundo e foto pequena embaixo",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartaz laranja com letras enormes de fundo e foto pequena embaixo. Inclua fotografia."
+    },
+    {
+      "id": "REF-01-3",
+      "expectedFamily": "acervo82-reference-01",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartaz laranja com letras enormes de fundo e foto pequena embaixo",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartaz laranja com letras enormes de fundo e foto pequena embaixo. Inclua fotografia."
+    },
+    {
+      "id": "REF-02-1",
+      "expectedFamily": "acervo82-reference-02",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "papel empilhado com título alinhado à esquerda",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero papel empilhado com título alinhado à esquerda. Sem fotografia."
+    },
+    {
+      "id": "REF-02-2",
+      "expectedFamily": "acervo82-reference-02",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "papel empilhado com título alinhado à esquerda",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero papel empilhado com título alinhado à esquerda. Sem fotografia."
+    },
+    {
+      "id": "REF-02-3",
+      "expectedFamily": "acervo82-reference-02",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "papel empilhado com título alinhado à esquerda",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero papel empilhado com título alinhado à esquerda. Sem fotografia."
+    },
+    {
+      "id": "REF-03-1",
+      "expectedFamily": "acervo82-reference-03",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "retrato na metade inferior, letras azuis pesadas e etiqueta amarela",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero retrato na metade inferior, letras azuis pesadas e etiqueta amarela. Inclua fotografia."
+    },
+    {
+      "id": "REF-03-2",
+      "expectedFamily": "acervo82-reference-03",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "retrato na metade inferior, letras azuis pesadas e etiqueta amarela",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero retrato na metade inferior, letras azuis pesadas e etiqueta amarela. Inclua fotografia."
+    },
+    {
+      "id": "REF-03-3",
+      "expectedFamily": "acervo82-reference-03",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "retrato na metade inferior, letras azuis pesadas e etiqueta amarela",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero retrato na metade inferior, letras azuis pesadas e etiqueta amarela. Inclua fotografia."
+    },
+    {
+      "id": "REF-04-1",
+      "expectedFamily": "acervo82-reference-04",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "editorial vermelho com duas fotografias diagonais",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero editorial vermelho com duas fotografias diagonais. Inclua fotografia."
+    },
+    {
+      "id": "REF-04-2",
+      "expectedFamily": "acervo82-reference-04",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "editorial vermelho com duas fotografias diagonais",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero editorial vermelho com duas fotografias diagonais. Inclua fotografia."
+    },
+    {
+      "id": "REF-04-3",
+      "expectedFamily": "acervo82-reference-04",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "editorial vermelho com duas fotografias diagonais",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero editorial vermelho com duas fotografias diagonais. Inclua fotografia."
+    },
+    {
+      "id": "REF-05-1",
+      "expectedFamily": "acervo82-reference-05",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "retrato escuro com legenda curta em uma área clara",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero retrato escuro com legenda curta em uma área clara. Inclua fotografia."
+    },
+    {
+      "id": "REF-05-2",
+      "expectedFamily": "acervo82-reference-05",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "retrato escuro com legenda curta em uma área clara",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero retrato escuro com legenda curta em uma área clara. Inclua fotografia."
+    },
+    {
+      "id": "REF-05-3",
+      "expectedFamily": "acervo82-reference-05",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "retrato escuro com legenda curta em uma área clara",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero retrato escuro com legenda curta em uma área clara. Inclua fotografia."
+    },
+    {
+      "id": "REF-06-1",
+      "expectedFamily": "acervo82-reference-06",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "interface retrô com janelas sobrepostas em grade amarela",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero interface retrô com janelas sobrepostas em grade amarela. Inclua fotografia."
+    },
+    {
+      "id": "REF-06-2",
+      "expectedFamily": "acervo82-reference-06",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "interface retrô com janelas sobrepostas em grade amarela",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero interface retrô com janelas sobrepostas em grade amarela. Inclua fotografia."
+    },
+    {
+      "id": "REF-06-3",
+      "expectedFamily": "acervo82-reference-06",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "interface retrô com janelas sobrepostas em grade amarela",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero interface retrô com janelas sobrepostas em grade amarela. Inclua fotografia."
+    },
+    {
+      "id": "REF-07-1",
+      "expectedFamily": "acervo82-reference-07",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "computador antigo, papel texturizado e título em pixels",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero computador antigo, papel texturizado e título em pixels. Sem fotografia."
+    },
+    {
+      "id": "REF-07-2",
+      "expectedFamily": "acervo82-reference-07",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "computador antigo, papel texturizado e título em pixels",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero computador antigo, papel texturizado e título em pixels. Sem fotografia."
+    },
+    {
+      "id": "REF-07-3",
+      "expectedFamily": "acervo82-reference-07",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "computador antigo, papel texturizado e título em pixels",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero computador antigo, papel texturizado e título em pixels. Sem fotografia."
+    },
+    {
+      "id": "REF-08-1",
+      "expectedFamily": "acervo82-reference-08",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "pergunta preta sobre página clara com uma palavra marcada em laranja",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero pergunta preta sobre página clara com uma palavra marcada em laranja. Sem fotografia."
+    },
+    {
+      "id": "REF-08-2",
+      "expectedFamily": "acervo82-reference-08",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "pergunta preta sobre página clara com uma palavra marcada em laranja",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero pergunta preta sobre página clara com uma palavra marcada em laranja. Sem fotografia."
+    },
+    {
+      "id": "REF-08-3",
+      "expectedFamily": "acervo82-reference-08",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "pergunta preta sobre página clara com uma palavra marcada em laranja",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero pergunta preta sobre página clara com uma palavra marcada em laranja. Sem fotografia."
+    },
+    {
+      "id": "REF-09-1",
+      "expectedFamily": "acervo82-reference-09",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartaz amarelo denso, com produto enquadrado e pequenos selos coloridos",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartaz amarelo denso, com produto enquadrado e pequenos selos coloridos. Inclua fotografia."
+    },
+    {
+      "id": "REF-09-2",
+      "expectedFamily": "acervo82-reference-09",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartaz amarelo denso, com produto enquadrado e pequenos selos coloridos",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartaz amarelo denso, com produto enquadrado e pequenos selos coloridos. Inclua fotografia."
+    },
+    {
+      "id": "REF-09-3",
+      "expectedFamily": "acervo82-reference-09",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartaz amarelo denso, com produto enquadrado e pequenos selos coloridos",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartaz amarelo denso, com produto enquadrado e pequenos selos coloridos. Inclua fotografia."
+    },
+    {
+      "id": "REF-10-1",
+      "expectedFamily": "acervo82-reference-10",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "retrato recortado com mosaico verde ácido",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero retrato recortado com mosaico verde ácido. Inclua fotografia."
+    },
+    {
+      "id": "REF-10-2",
+      "expectedFamily": "acervo82-reference-10",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "retrato recortado com mosaico verde ácido",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero retrato recortado com mosaico verde ácido. Inclua fotografia."
+    },
+    {
+      "id": "REF-10-3",
+      "expectedFamily": "acervo82-reference-10",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "retrato recortado com mosaico verde ácido",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero retrato recortado com mosaico verde ácido. Inclua fotografia."
+    },
+    {
+      "id": "REF-11-1",
+      "expectedFamily": "acervo82-reference-11",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "frase central partida em tarjas azuis inclinadas",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero frase central partida em tarjas azuis inclinadas. Sem fotografia."
+    },
+    {
+      "id": "REF-11-2",
+      "expectedFamily": "acervo82-reference-11",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "frase central partida em tarjas azuis inclinadas",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero frase central partida em tarjas azuis inclinadas. Sem fotografia."
+    },
+    {
+      "id": "REF-11-3",
+      "expectedFamily": "acervo82-reference-11",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "frase central partida em tarjas azuis inclinadas",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero frase central partida em tarjas azuis inclinadas. Sem fotografia."
+    },
+    {
+      "id": "REF-12-1",
+      "expectedFamily": "acervo82-reference-12",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "título de impacto com chamada para conversa direta",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero título de impacto com chamada para conversa direta. Sem fotografia."
+    },
+    {
+      "id": "REF-12-2",
+      "expectedFamily": "acervo82-reference-12",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "título de impacto com chamada para conversa direta",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero título de impacto com chamada para conversa direta. Sem fotografia."
+    },
+    {
+      "id": "REF-12-3",
+      "expectedFamily": "acervo82-reference-12",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "título de impacto com chamada para conversa direta",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero título de impacto com chamada para conversa direta. Sem fotografia."
+    },
+    {
+      "id": "REF-13-1",
+      "expectedFamily": "acervo82-reference-13",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartaz tipográfico preto com ênfase verde na última linha",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartaz tipográfico preto com ênfase verde na última linha. Sem fotografia."
+    },
+    {
+      "id": "REF-13-2",
+      "expectedFamily": "acervo82-reference-13",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartaz tipográfico preto com ênfase verde na última linha",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartaz tipográfico preto com ênfase verde na última linha. Sem fotografia."
+    },
+    {
+      "id": "REF-13-3",
+      "expectedFamily": "acervo82-reference-13",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartaz tipográfico preto com ênfase verde na última linha",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartaz tipográfico preto com ênfase verde na última linha. Sem fotografia."
+    },
+    {
+      "id": "REF-14-1",
+      "expectedFamily": "acervo82-reference-14",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartaz de grade azul com grandes blocos modulares",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartaz de grade azul com grandes blocos modulares. Sem fotografia."
+    },
+    {
+      "id": "REF-14-2",
+      "expectedFamily": "acervo82-reference-14",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartaz de grade azul com grandes blocos modulares",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartaz de grade azul com grandes blocos modulares. Sem fotografia."
+    },
+    {
+      "id": "REF-14-3",
+      "expectedFamily": "acervo82-reference-14",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartaz de grade azul com grandes blocos modulares",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartaz de grade azul com grandes blocos modulares. Sem fotografia."
+    },
+    {
+      "id": "REF-15-1",
+      "expectedFamily": "acervo82-reference-15",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "editorial de diagnóstico em papel com destaque para o problema",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero editorial de diagnóstico em papel com destaque para o problema. Sem fotografia."
+    },
+    {
+      "id": "REF-15-2",
+      "expectedFamily": "acervo82-reference-15",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "editorial de diagnóstico em papel com destaque para o problema",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero editorial de diagnóstico em papel com destaque para o problema. Sem fotografia."
+    },
+    {
+      "id": "REF-15-3",
+      "expectedFamily": "acervo82-reference-15",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "editorial de diagnóstico em papel com destaque para o problema",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero editorial de diagnóstico em papel com destaque para o problema. Sem fotografia."
+    },
+    {
+      "id": "REF-16-1",
+      "expectedFamily": "acervo82-reference-16",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "palavras monumentais em creme e amarelo com sombra preta tridimensional",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero palavras monumentais em creme e amarelo com sombra preta tridimensional. Sem fotografia."
+    },
+    {
+      "id": "REF-16-2",
+      "expectedFamily": "acervo82-reference-16",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "palavras monumentais em creme e amarelo com sombra preta tridimensional",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero palavras monumentais em creme e amarelo com sombra preta tridimensional. Sem fotografia."
+    },
+    {
+      "id": "REF-16-3",
+      "expectedFamily": "acervo82-reference-16",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "palavras monumentais em creme e amarelo com sombra preta tridimensional",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero palavras monumentais em creme e amarelo com sombra preta tridimensional. Sem fotografia."
+    },
+    {
+      "id": "REF-17-1",
+      "expectedFamily": "acervo82-reference-17",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "uma fotografia de página inteira, com pouquíssimo texto",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero uma fotografia de página inteira, com pouquíssimo texto. Inclua fotografia."
+    },
+    {
+      "id": "REF-17-2",
+      "expectedFamily": "acervo82-reference-17",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "uma fotografia de página inteira, com pouquíssimo texto",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero uma fotografia de página inteira, com pouquíssimo texto. Inclua fotografia."
+    },
+    {
+      "id": "REF-17-3",
+      "expectedFamily": "acervo82-reference-17",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "uma fotografia de página inteira, com pouquíssimo texto",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero uma fotografia de página inteira, com pouquíssimo texto. Inclua fotografia."
+    },
+    {
+      "id": "REF-18-1",
+      "expectedFamily": "acervo82-reference-18",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "página de jornal com chamadas tipográficas em verde ácido",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero página de jornal com chamadas tipográficas em verde ácido. Sem fotografia."
+    },
+    {
+      "id": "REF-18-2",
+      "expectedFamily": "acervo82-reference-18",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "página de jornal com chamadas tipográficas em verde ácido",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero página de jornal com chamadas tipográficas em verde ácido. Sem fotografia."
+    },
+    {
+      "id": "REF-18-3",
+      "expectedFamily": "acervo82-reference-18",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "página de jornal com chamadas tipográficas em verde ácido",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero página de jornal com chamadas tipográficas em verde ácido. Sem fotografia."
+    },
+    {
+      "id": "REF-19-1",
+      "expectedFamily": "acervo82-reference-19",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "papel rasgado sobre uma imagem, como uma revelação",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero papel rasgado sobre uma imagem, como uma revelação. Inclua fotografia."
+    },
+    {
+      "id": "REF-19-2",
+      "expectedFamily": "acervo82-reference-19",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "papel rasgado sobre uma imagem, como uma revelação",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero papel rasgado sobre uma imagem, como uma revelação. Inclua fotografia."
+    },
+    {
+      "id": "REF-19-3",
+      "expectedFamily": "acervo82-reference-19",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "papel rasgado sobre uma imagem, como uma revelação",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero papel rasgado sobre uma imagem, como uma revelação. Inclua fotografia."
+    },
+    {
+      "id": "REF-20-1",
+      "expectedFamily": "acervo82-reference-20",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "editorial gráfico com fotografia e título de revista",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero editorial gráfico com fotografia e título de revista. Inclua fotografia."
+    },
+    {
+      "id": "REF-20-2",
+      "expectedFamily": "acervo82-reference-20",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "editorial gráfico com fotografia e título de revista",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero editorial gráfico com fotografia e título de revista. Inclua fotografia."
+    },
+    {
+      "id": "REF-20-3",
+      "expectedFamily": "acervo82-reference-20",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "editorial gráfico com fotografia e título de revista",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero editorial gráfico com fotografia e título de revista. Inclua fotografia."
+    },
+    {
+      "id": "REF-21-1",
+      "expectedFamily": "acervo82-reference-21",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "palavra amarela muito espaçada sobre foto escura",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero palavra amarela muito espaçada sobre foto escura. Inclua fotografia."
+    },
+    {
+      "id": "REF-21-2",
+      "expectedFamily": "acervo82-reference-21",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "palavra amarela muito espaçada sobre foto escura",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero palavra amarela muito espaçada sobre foto escura. Inclua fotografia."
+    },
+    {
+      "id": "REF-21-3",
+      "expectedFamily": "acervo82-reference-21",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "palavra amarela muito espaçada sobre foto escura",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero palavra amarela muito espaçada sobre foto escura. Inclua fotografia."
+    },
+    {
+      "id": "REF-22-1",
+      "expectedFamily": "acervo82-reference-22",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "três linhas de tipografia sobre uma fotografia embaixo",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero três linhas de tipografia sobre uma fotografia embaixo. Inclua fotografia."
+    },
+    {
+      "id": "REF-22-2",
+      "expectedFamily": "acervo82-reference-22",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "três linhas de tipografia sobre uma fotografia embaixo",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero três linhas de tipografia sobre uma fotografia embaixo. Inclua fotografia."
+    },
+    {
+      "id": "REF-22-3",
+      "expectedFamily": "acervo82-reference-22",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "três linhas de tipografia sobre uma fotografia embaixo",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero três linhas de tipografia sobre uma fotografia embaixo. Inclua fotografia."
+    },
+    {
+      "id": "REF-23-1",
+      "expectedFamily": "acervo82-reference-23",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "composição editorial que contrapõe duas ideias com alto contraste",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero composição editorial que contrapõe duas ideias com alto contraste. Sem fotografia."
+    },
+    {
+      "id": "REF-23-2",
+      "expectedFamily": "acervo82-reference-23",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "composição editorial que contrapõe duas ideias com alto contraste",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero composição editorial que contrapõe duas ideias com alto contraste. Sem fotografia."
+    },
+    {
+      "id": "REF-23-3",
+      "expectedFamily": "acervo82-reference-23",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "composição editorial que contrapõe duas ideias com alto contraste",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero composição editorial que contrapõe duas ideias com alto contraste. Sem fotografia."
+    },
+    {
+      "id": "REF-24-1",
+      "expectedFamily": "acervo82-reference-24",
+      "objective": "Organize três etapas: perguntar, ouvir e registrar.",
+      "visualPreference": "coleção tipográfica em duas colunas alinhadas",
+      "media": "forbidden",
+      "items": 3,
+      "brief": "Organize três etapas: perguntar, ouvir e registrar. Faça um post único. Quero coleção tipográfica em duas colunas alinhadas. Sem fotografia."
+    },
+    {
+      "id": "REF-24-2",
+      "expectedFamily": "acervo82-reference-24",
+      "objective": "Liste três cuidados na oficina: abrir, separar e guardar.",
+      "visualPreference": "coleção tipográfica em duas colunas alinhadas",
+      "media": "forbidden",
+      "items": 3,
+      "brief": "Liste três cuidados na oficina: abrir, separar e guardar. Faça um post único. Quero coleção tipográfica em duas colunas alinhadas. Sem fotografia."
+    },
+    {
+      "id": "REF-24-3",
+      "expectedFamily": "acervo82-reference-24",
+      "objective": "Apresente três pontos de revisão: objetivo, público e mensagem.",
+      "visualPreference": "coleção tipográfica em duas colunas alinhadas",
+      "media": "forbidden",
+      "items": 3,
+      "brief": "Apresente três pontos de revisão: objetivo, público e mensagem. Faça um post único. Quero coleção tipográfica em duas colunas alinhadas. Sem fotografia."
+    },
+    {
+      "id": "R9-01-1",
+      "expectedFamily": "acervo82-r9-01",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "título editorial em área clara separado de uma fotografia retangular",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero título editorial em área clara separado de uma fotografia retangular. Inclua fotografia."
+    },
+    {
+      "id": "R9-01-2",
+      "expectedFamily": "acervo82-r9-01",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "título editorial em área clara separado de uma fotografia retangular",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero título editorial em área clara separado de uma fotografia retangular. Inclua fotografia."
+    },
+    {
+      "id": "R9-01-3",
+      "expectedFamily": "acervo82-r9-01",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "título editorial em área clara separado de uma fotografia retangular",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero título editorial em área clara separado de uma fotografia retangular. Inclua fotografia."
+    },
+    {
+      "id": "R9-02-1",
+      "expectedFamily": "acervo82-r9-02",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartaz dividido ao meio em preto e verde luminoso",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartaz dividido ao meio em preto e verde luminoso. Sem fotografia."
+    },
+    {
+      "id": "R9-02-2",
+      "expectedFamily": "acervo82-r9-02",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartaz dividido ao meio em preto e verde luminoso",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartaz dividido ao meio em preto e verde luminoso. Sem fotografia."
+    },
+    {
+      "id": "R9-02-3",
+      "expectedFamily": "acervo82-r9-02",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartaz dividido ao meio em preto e verde luminoso",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartaz dividido ao meio em preto e verde luminoso. Sem fotografia."
+    },
+    {
+      "id": "R9-03-1",
+      "expectedFamily": "acervo82-r9-03",
+      "objective": "Compare testar uma ideia com definir todo o projeto de antemão.",
+      "visualPreference": "duas colunas em oposição, com rótulos bem distintos",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Compare testar uma ideia com definir todo o projeto de antemão. Faça um post único. Quero duas colunas em oposição, com rótulos bem distintos. Sem fotografia."
+    },
+    {
+      "id": "R9-03-2",
+      "expectedFamily": "acervo82-r9-03",
+      "objective": "Mostre a diferença entre reunir dados e interpretar os dados.",
+      "visualPreference": "duas colunas em oposição, com rótulos bem distintos",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Mostre a diferença entre reunir dados e interpretar os dados. Faça um post único. Quero duas colunas em oposição, com rótulos bem distintos. Sem fotografia."
+    },
+    {
+      "id": "R9-03-3",
+      "expectedFamily": "acervo82-r9-03",
+      "objective": "Contraponha produzir sozinho e dividir a produção em etapas.",
+      "visualPreference": "duas colunas em oposição, com rótulos bem distintos",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Contraponha produzir sozinho e dividir a produção em etapas. Faça um post único. Quero duas colunas em oposição, com rótulos bem distintos. Sem fotografia."
+    },
+    {
+      "id": "R9-04-1",
+      "expectedFamily": "acervo82-r9-04",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartão com fotografia e um recado em papel",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartão com fotografia e um recado em papel. Inclua fotografia."
+    },
+    {
+      "id": "R9-04-2",
+      "expectedFamily": "acervo82-r9-04",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartão com fotografia e um recado em papel",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartão com fotografia e um recado em papel. Inclua fotografia."
+    },
+    {
+      "id": "R9-04-3",
+      "expectedFamily": "acervo82-r9-04",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartão com fotografia e um recado em papel",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartão com fotografia e um recado em papel. Inclua fotografia."
+    },
+    {
+      "id": "R9-05-1",
+      "expectedFamily": "acervo82-r9-05",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "janela de interface sobre um fundo de papel com sensação de movimento",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero janela de interface sobre um fundo de papel com sensação de movimento. Sem fotografia."
+    },
+    {
+      "id": "R9-05-2",
+      "expectedFamily": "acervo82-r9-05",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "janela de interface sobre um fundo de papel com sensação de movimento",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero janela de interface sobre um fundo de papel com sensação de movimento. Sem fotografia."
+    },
+    {
+      "id": "R9-05-3",
+      "expectedFamily": "acervo82-r9-05",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "janela de interface sobre um fundo de papel com sensação de movimento",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero janela de interface sobre um fundo de papel com sensação de movimento. Sem fotografia."
+    },
+    {
+      "id": "R9-06-1",
+      "expectedFamily": "acervo82-r9-06",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "janela leve de interface, com barra superior e fundo claro",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero janela leve de interface, com barra superior e fundo claro. Sem fotografia."
+    },
+    {
+      "id": "R9-06-2",
+      "expectedFamily": "acervo82-r9-06",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "janela leve de interface, com barra superior e fundo claro",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero janela leve de interface, com barra superior e fundo claro. Sem fotografia."
+    },
+    {
+      "id": "R9-06-3",
+      "expectedFamily": "acervo82-r9-06",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "janela leve de interface, com barra superior e fundo claro",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero janela leve de interface, com barra superior e fundo claro. Sem fotografia."
+    },
+    {
+      "id": "R9-07-1",
+      "expectedFamily": "acervo82-r9-07",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "janela única escura com destaque de intenção",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero janela única escura com destaque de intenção. Sem fotografia."
+    },
+    {
+      "id": "R9-07-2",
+      "expectedFamily": "acervo82-r9-07",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "janela única escura com destaque de intenção",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero janela única escura com destaque de intenção. Sem fotografia."
+    },
+    {
+      "id": "R9-07-3",
+      "expectedFamily": "acervo82-r9-07",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "janela única escura com destaque de intenção",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero janela única escura com destaque de intenção. Sem fotografia."
+    },
+    {
+      "id": "R9-08-1",
+      "expectedFamily": "acervo82-r9-08",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "janelas compostas com tarjas azuis e navegação",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero janelas compostas com tarjas azuis e navegação. Sem fotografia."
+    },
+    {
+      "id": "R9-08-2",
+      "expectedFamily": "acervo82-r9-08",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "janelas compostas com tarjas azuis e navegação",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero janelas compostas com tarjas azuis e navegação. Sem fotografia."
+    },
+    {
+      "id": "R9-08-3",
+      "expectedFamily": "acervo82-r9-08",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "janelas compostas com tarjas azuis e navegação",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero janelas compostas com tarjas azuis e navegação. Sem fotografia."
+    },
+    {
+      "id": "R9-09-1",
+      "expectedFamily": "acervo82-r9-09",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "pergunta editorial em preto, com um pequeno destaque",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero pergunta editorial em preto, com um pequeno destaque. Sem fotografia."
+    },
+    {
+      "id": "R9-09-2",
+      "expectedFamily": "acervo82-r9-09",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "pergunta editorial em preto, com um pequeno destaque",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero pergunta editorial em preto, com um pequeno destaque. Sem fotografia."
+    },
+    {
+      "id": "R9-09-3",
+      "expectedFamily": "acervo82-r9-09",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "pergunta editorial em preto, com um pequeno destaque",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero pergunta editorial em preto, com um pequeno destaque. Sem fotografia."
+    },
+    {
+      "id": "R9-10-1",
+      "expectedFamily": "acervo82-r9-10",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "ensaio breve sobre folhas claras de papel",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero ensaio breve sobre folhas claras de papel. Sem fotografia."
+    },
+    {
+      "id": "R9-10-2",
+      "expectedFamily": "acervo82-r9-10",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "ensaio breve sobre folhas claras de papel",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero ensaio breve sobre folhas claras de papel. Sem fotografia."
+    },
+    {
+      "id": "R9-10-3",
+      "expectedFamily": "acervo82-r9-10",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "ensaio breve sobre folhas claras de papel",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero ensaio breve sobre folhas claras de papel. Sem fotografia."
+    },
+    {
+      "id": "R9-11-1",
+      "expectedFamily": "acervo82-r9-11",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "muito espaço vazio e tipografia limpa com uma nota discreta",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero muito espaço vazio e tipografia limpa com uma nota discreta. Sem fotografia."
+    },
+    {
+      "id": "R9-11-2",
+      "expectedFamily": "acervo82-r9-11",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "muito espaço vazio e tipografia limpa com uma nota discreta",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero muito espaço vazio e tipografia limpa com uma nota discreta. Sem fotografia."
+    },
+    {
+      "id": "R9-11-3",
+      "expectedFamily": "acervo82-r9-11",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "muito espaço vazio e tipografia limpa com uma nota discreta",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero muito espaço vazio e tipografia limpa com uma nota discreta. Sem fotografia."
+    },
+    {
+      "id": "R9-12-1",
+      "expectedFamily": "acervo82-r9-12",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "grade suíça precisa com organização modular",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero grade suíça precisa com organização modular. Sem fotografia."
+    },
+    {
+      "id": "R9-12-2",
+      "expectedFamily": "acervo82-r9-12",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "grade suíça precisa com organização modular",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero grade suíça precisa com organização modular. Sem fotografia."
+    },
+    {
+      "id": "R9-12-3",
+      "expectedFamily": "acervo82-r9-12",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "grade suíça precisa com organização modular",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero grade suíça precisa com organização modular. Sem fotografia."
+    },
+    {
+      "id": "R9-13-1",
+      "expectedFamily": "acervo82-r9-13",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "janela de interface com uma chamada de ação bem marcada",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero janela de interface com uma chamada de ação bem marcada. Sem fotografia."
+    },
+    {
+      "id": "R9-13-2",
+      "expectedFamily": "acervo82-r9-13",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "janela de interface com uma chamada de ação bem marcada",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero janela de interface com uma chamada de ação bem marcada. Sem fotografia."
+    },
+    {
+      "id": "R9-13-3",
+      "expectedFamily": "acervo82-r9-13",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "janela de interface com uma chamada de ação bem marcada",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero janela de interface com uma chamada de ação bem marcada. Sem fotografia."
+    },
+    {
+      "id": "R9-14-1",
+      "expectedFamily": "acervo82-r9-14",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "fotografia de fundo com cartão para a mensagem",
+      "media": "required",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero fotografia de fundo com cartão para a mensagem. Inclua fotografia."
+    },
+    {
+      "id": "R9-14-2",
+      "expectedFamily": "acervo82-r9-14",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "fotografia de fundo com cartão para a mensagem",
+      "media": "required",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero fotografia de fundo com cartão para a mensagem. Inclua fotografia."
+    },
+    {
+      "id": "R9-14-3",
+      "expectedFamily": "acervo82-r9-14",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "fotografia de fundo com cartão para a mensagem",
+      "media": "required",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero fotografia de fundo com cartão para a mensagem. Inclua fotografia."
+    },
+    {
+      "id": "R9-15-1",
+      "expectedFamily": "acervo82-r9-15",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "grandes áreas cromáticas em vermelho e texto de cartaz",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero grandes áreas cromáticas em vermelho e texto de cartaz. Sem fotografia."
+    },
+    {
+      "id": "R9-15-2",
+      "expectedFamily": "acervo82-r9-15",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "grandes áreas cromáticas em vermelho e texto de cartaz",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero grandes áreas cromáticas em vermelho e texto de cartaz. Sem fotografia."
+    },
+    {
+      "id": "R9-15-3",
+      "expectedFamily": "acervo82-r9-15",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "grandes áreas cromáticas em vermelho e texto de cartaz",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero grandes áreas cromáticas em vermelho e texto de cartaz. Sem fotografia."
+    },
+    {
+      "id": "R9-16-1",
+      "expectedFamily": "acervo82-r9-16",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "letras enormes apenas com contorno, com contraste forte",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero letras enormes apenas com contorno, com contraste forte. Sem fotografia."
+    },
+    {
+      "id": "R9-16-2",
+      "expectedFamily": "acervo82-r9-16",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "letras enormes apenas com contorno, com contraste forte",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero letras enormes apenas com contorno, com contraste forte. Sem fotografia."
+    },
+    {
+      "id": "R9-16-3",
+      "expectedFamily": "acervo82-r9-16",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "letras enormes apenas com contorno, com contraste forte",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero letras enormes apenas com contorno, com contraste forte. Sem fotografia."
+    },
+    {
+      "id": "R9-17-1",
+      "expectedFamily": "acervo82-r9-17",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "sinal digital com falha visual e pequenos indicadores",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero sinal digital com falha visual e pequenos indicadores. Sem fotografia."
+    },
+    {
+      "id": "R9-17-2",
+      "expectedFamily": "acervo82-r9-17",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "sinal digital com falha visual e pequenos indicadores",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero sinal digital com falha visual e pequenos indicadores. Sem fotografia."
+    },
+    {
+      "id": "R9-17-3",
+      "expectedFamily": "acervo82-r9-17",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "sinal digital com falha visual e pequenos indicadores",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero sinal digital com falha visual e pequenos indicadores. Sem fotografia."
+    },
+    {
+      "id": "R9-18-1",
+      "expectedFamily": "acervo82-r9-18",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "janelas empilhadas como uma interface de computador",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero janelas empilhadas como uma interface de computador. Sem fotografia."
+    },
+    {
+      "id": "R9-18-2",
+      "expectedFamily": "acervo82-r9-18",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "janelas empilhadas como uma interface de computador",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero janelas empilhadas como uma interface de computador. Sem fotografia."
+    },
+    {
+      "id": "R9-18-3",
+      "expectedFamily": "acervo82-r9-18",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "janelas empilhadas como uma interface de computador",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero janelas empilhadas como uma interface de computador. Sem fotografia."
+    },
+    {
+      "id": "R9-19-1",
+      "expectedFamily": "acervo82-r9-19",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartão de ação destacado em uma janela inclinada",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartão de ação destacado em uma janela inclinada. Sem fotografia."
+    },
+    {
+      "id": "R9-19-2",
+      "expectedFamily": "acervo82-r9-19",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartão de ação destacado em uma janela inclinada",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartão de ação destacado em uma janela inclinada. Sem fotografia."
+    },
+    {
+      "id": "R9-19-3",
+      "expectedFamily": "acervo82-r9-19",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartão de ação destacado em uma janela inclinada",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartão de ação destacado em uma janela inclinada. Sem fotografia."
+    },
+    {
+      "id": "R9-20-1",
+      "expectedFamily": "acervo82-r9-20",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "um número enorme com uma explicação curta",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero um número enorme com uma explicação curta. Sem fotografia."
+    },
+    {
+      "id": "R9-20-2",
+      "expectedFamily": "acervo82-r9-20",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "um número enorme com uma explicação curta",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero um número enorme com uma explicação curta. Sem fotografia."
+    },
+    {
+      "id": "R9-20-3",
+      "expectedFamily": "acervo82-r9-20",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "um número enorme com uma explicação curta",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero um número enorme com uma explicação curta. Sem fotografia."
+    },
+    {
+      "id": "R9-21-1",
+      "expectedFamily": "acervo82-r9-21",
+      "objective": "Organize três etapas: perguntar, ouvir e registrar.",
+      "visualPreference": "três cartões independentes com pequenos marcadores numéricos",
+      "media": "forbidden",
+      "items": 3,
+      "brief": "Organize três etapas: perguntar, ouvir e registrar. Faça um post único. Quero três cartões independentes com pequenos marcadores numéricos. Sem fotografia."
+    },
+    {
+      "id": "R9-21-2",
+      "expectedFamily": "acervo82-r9-21",
+      "objective": "Liste três cuidados na oficina: abrir, separar e guardar.",
+      "visualPreference": "três cartões independentes com pequenos marcadores numéricos",
+      "media": "forbidden",
+      "items": 3,
+      "brief": "Liste três cuidados na oficina: abrir, separar e guardar. Faça um post único. Quero três cartões independentes com pequenos marcadores numéricos. Sem fotografia."
+    },
+    {
+      "id": "R9-21-3",
+      "expectedFamily": "acervo82-r9-21",
+      "objective": "Apresente três pontos de revisão: objetivo, público e mensagem.",
+      "visualPreference": "três cartões independentes com pequenos marcadores numéricos",
+      "media": "forbidden",
+      "items": 3,
+      "brief": "Apresente três pontos de revisão: objetivo, público e mensagem. Faça um post único. Quero três cartões independentes com pequenos marcadores numéricos. Sem fotografia."
+    },
+    {
+      "id": "R9-22-1",
+      "expectedFamily": "acervo82-r9-22",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "tipografia grande com sensação de deslocamento",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero tipografia grande com sensação de deslocamento. Sem fotografia."
+    },
+    {
+      "id": "R9-22-2",
+      "expectedFamily": "acervo82-r9-22",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "tipografia grande com sensação de deslocamento",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero tipografia grande com sensação de deslocamento. Sem fotografia."
+    },
+    {
+      "id": "R9-22-3",
+      "expectedFamily": "acervo82-r9-22",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "tipografia grande com sensação de deslocamento",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero tipografia grande com sensação de deslocamento. Sem fotografia."
+    },
+    {
+      "id": "R9-23-1",
+      "expectedFamily": "acervo82-r9-23",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "título monumental com moldura cinematográfica escura",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero título monumental com moldura cinematográfica escura. Sem fotografia."
+    },
+    {
+      "id": "R9-23-2",
+      "expectedFamily": "acervo82-r9-23",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "título monumental com moldura cinematográfica escura",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero título monumental com moldura cinematográfica escura. Sem fotografia."
+    },
+    {
+      "id": "R9-23-3",
+      "expectedFamily": "acervo82-r9-23",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "título monumental com moldura cinematográfica escura",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero título monumental com moldura cinematográfica escura. Sem fotografia."
+    },
+    {
+      "id": "R9-24-1",
+      "expectedFamily": "acervo82-r9-24",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "leitura contínua com área para alguns parágrafos curtos",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero leitura contínua com área para alguns parágrafos curtos. Sem fotografia."
+    },
+    {
+      "id": "R9-24-2",
+      "expectedFamily": "acervo82-r9-24",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "leitura contínua com área para alguns parágrafos curtos",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero leitura contínua com área para alguns parágrafos curtos. Sem fotografia."
+    },
+    {
+      "id": "R9-24-3",
+      "expectedFamily": "acervo82-r9-24",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "leitura contínua com área para alguns parágrafos curtos",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero leitura contínua com área para alguns parágrafos curtos. Sem fotografia."
+    },
+    {
+      "id": "R9-25-1",
+      "expectedFamily": "acervo82-r9-25",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartão de síntese com contraste entre fundo e janela",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartão de síntese com contraste entre fundo e janela. Sem fotografia."
+    },
+    {
+      "id": "R9-25-2",
+      "expectedFamily": "acervo82-r9-25",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartão de síntese com contraste entre fundo e janela",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartão de síntese com contraste entre fundo e janela. Sem fotografia."
+    },
+    {
+      "id": "R9-25-3",
+      "expectedFamily": "acervo82-r9-25",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartão de síntese com contraste entre fundo e janela",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartão de síntese com contraste entre fundo e janela. Sem fotografia."
+    },
+    {
+      "id": "R9-26-1",
+      "expectedFamily": "acervo82-r9-26",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "folhas claras de papel empilhadas e sombras discretas",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero folhas claras de papel empilhadas e sombras discretas. Sem fotografia."
+    },
+    {
+      "id": "R9-26-2",
+      "expectedFamily": "acervo82-r9-26",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "folhas claras de papel empilhadas e sombras discretas",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero folhas claras de papel empilhadas e sombras discretas. Sem fotografia."
+    },
+    {
+      "id": "R9-26-3",
+      "expectedFamily": "acervo82-r9-26",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "folhas claras de papel empilhadas e sombras discretas",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero folhas claras de papel empilhadas e sombras discretas. Sem fotografia."
+    },
+    {
+      "id": "R9-27-1",
+      "expectedFamily": "acervo82-r9-27",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "janela sobre papel com tratamento híbrido de interface",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero janela sobre papel com tratamento híbrido de interface. Sem fotografia."
+    },
+    {
+      "id": "R9-27-2",
+      "expectedFamily": "acervo82-r9-27",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "janela sobre papel com tratamento híbrido de interface",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero janela sobre papel com tratamento híbrido de interface. Sem fotografia."
+    },
+    {
+      "id": "R9-27-3",
+      "expectedFamily": "acervo82-r9-27",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "janela sobre papel com tratamento híbrido de interface",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero janela sobre papel com tratamento híbrido de interface. Sem fotografia."
+    },
+    {
+      "id": "R9-28-1",
+      "expectedFamily": "acervo82-r9-28",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "janelas sobre uma base de papel com boa separação",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero janelas sobre uma base de papel com boa separação. Sem fotografia."
+    },
+    {
+      "id": "R9-28-2",
+      "expectedFamily": "acervo82-r9-28",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "janelas sobre uma base de papel com boa separação",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero janelas sobre uma base de papel com boa separação. Sem fotografia."
+    },
+    {
+      "id": "R9-28-3",
+      "expectedFamily": "acervo82-r9-28",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "janelas sobre uma base de papel com boa separação",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero janelas sobre uma base de papel com boa separação. Sem fotografia."
+    },
+    {
+      "id": "R9-29-1",
+      "expectedFamily": "acervo82-r9-29",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "tarjas de aviso sobre papel, com destaque para as frases",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero tarjas de aviso sobre papel, com destaque para as frases. Sem fotografia."
+    },
+    {
+      "id": "R9-29-2",
+      "expectedFamily": "acervo82-r9-29",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "tarjas de aviso sobre papel, com destaque para as frases",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero tarjas de aviso sobre papel, com destaque para as frases. Sem fotografia."
+    },
+    {
+      "id": "R9-29-3",
+      "expectedFamily": "acervo82-r9-29",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "tarjas de aviso sobre papel, com destaque para as frases",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero tarjas de aviso sobre papel, com destaque para as frases. Sem fotografia."
+    },
+    {
+      "id": "CON-01-1",
+      "expectedFamily": "acervo82-concept-01",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartões técnicos assimétricos com uma métrica e notas menores",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartões técnicos assimétricos com uma métrica e notas menores. Sem fotografia."
+    },
+    {
+      "id": "CON-01-2",
+      "expectedFamily": "acervo82-concept-01",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartões técnicos assimétricos com uma métrica e notas menores",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartões técnicos assimétricos com uma métrica e notas menores. Sem fotografia."
+    },
+    {
+      "id": "CON-01-3",
+      "expectedFamily": "acervo82-concept-01",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartões técnicos assimétricos com uma métrica e notas menores",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartões técnicos assimétricos com uma métrica e notas menores. Sem fotografia."
+    },
+    {
+      "id": "CON-02-1",
+      "expectedFamily": "acervo82-concept-02",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "revista em papel quente com títulos serifados",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero revista em papel quente com títulos serifados. Sem fotografia."
+    },
+    {
+      "id": "CON-02-2",
+      "expectedFamily": "acervo82-concept-02",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "revista em papel quente com títulos serifados",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero revista em papel quente com títulos serifados. Sem fotografia."
+    },
+    {
+      "id": "CON-02-3",
+      "expectedFamily": "acervo82-concept-02",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "revista em papel quente com títulos serifados",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero revista em papel quente com títulos serifados. Sem fotografia."
+    },
+    {
+      "id": "CON-03-1",
+      "expectedFamily": "acervo82-concept-03",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartaz assimétrico com grade e tipografia precisa",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartaz assimétrico com grade e tipografia precisa. Sem fotografia."
+    },
+    {
+      "id": "CON-03-2",
+      "expectedFamily": "acervo82-concept-03",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartaz assimétrico com grade e tipografia precisa",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartaz assimétrico com grade e tipografia precisa. Sem fotografia."
+    },
+    {
+      "id": "CON-03-3",
+      "expectedFamily": "acervo82-concept-03",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartaz assimétrico com grade e tipografia precisa",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartaz assimétrico com grade e tipografia precisa. Sem fotografia."
+    },
+    {
+      "id": "CON-04-1",
+      "expectedFamily": "acervo82-concept-04",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartão de microblog flutuante sobre fundo escuro",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartão de microblog flutuante sobre fundo escuro. Sem fotografia."
+    },
+    {
+      "id": "CON-04-2",
+      "expectedFamily": "acervo82-concept-04",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartão de microblog flutuante sobre fundo escuro",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartão de microblog flutuante sobre fundo escuro. Sem fotografia."
+    },
+    {
+      "id": "CON-04-3",
+      "expectedFamily": "acervo82-concept-04",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartão de microblog flutuante sobre fundo escuro",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartão de microblog flutuante sobre fundo escuro. Sem fotografia."
+    },
+    {
+      "id": "CON-05-1",
+      "expectedFamily": "acervo82-concept-05",
+      "objective": "Compare testar uma ideia com definir todo o projeto de antemão.",
+      "visualPreference": "duas metades claramente opostas para mostrar lados de uma ideia",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Compare testar uma ideia com definir todo o projeto de antemão. Faça um post único. Quero duas metades claramente opostas para mostrar lados de uma ideia. Sem fotografia."
+    },
+    {
+      "id": "CON-05-2",
+      "expectedFamily": "acervo82-concept-05",
+      "objective": "Mostre a diferença entre reunir dados e interpretar os dados.",
+      "visualPreference": "duas metades claramente opostas para mostrar lados de uma ideia",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Mostre a diferença entre reunir dados e interpretar os dados. Faça um post único. Quero duas metades claramente opostas para mostrar lados de uma ideia. Sem fotografia."
+    },
+    {
+      "id": "CON-05-3",
+      "expectedFamily": "acervo82-concept-05",
+      "objective": "Contraponha produzir sozinho e dividir a produção em etapas.",
+      "visualPreference": "duas metades claramente opostas para mostrar lados de uma ideia",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Contraponha produzir sozinho e dividir a produção em etapas. Faça um post único. Quero duas metades claramente opostas para mostrar lados de uma ideia. Sem fotografia."
+    },
+    {
+      "id": "CON-06-1",
+      "expectedFamily": "acervo82-concept-06",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "ficha técnica com marcações industriais e título de impacto",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero ficha técnica com marcações industriais e título de impacto. Sem fotografia."
+    },
+    {
+      "id": "CON-06-2",
+      "expectedFamily": "acervo82-concept-06",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "ficha técnica com marcações industriais e título de impacto",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero ficha técnica com marcações industriais e título de impacto. Sem fotografia."
+    },
+    {
+      "id": "CON-06-3",
+      "expectedFamily": "acervo82-concept-06",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "ficha técnica com marcações industriais e título de impacto",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero ficha técnica com marcações industriais e título de impacto. Sem fotografia."
+    },
+    {
+      "id": "CON-07-1",
+      "expectedFamily": "acervo82-concept-07",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartaz neon com formas metálicas e energia de clube",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartaz neon com formas metálicas e energia de clube. Sem fotografia."
+    },
+    {
+      "id": "CON-07-2",
+      "expectedFamily": "acervo82-concept-07",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartaz neon com formas metálicas e energia de clube",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartaz neon com formas metálicas e energia de clube. Sem fotografia."
+    },
+    {
+      "id": "CON-07-3",
+      "expectedFamily": "acervo82-concept-07",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartaz neon com formas metálicas e energia de clube",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartaz neon com formas metálicas e energia de clube. Sem fotografia."
+    },
+    {
+      "id": "CON-08-1",
+      "expectedFamily": "acervo82-concept-08",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "efeito de impressão desalinhada com azul, rosa e amarelo",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero efeito de impressão desalinhada com azul, rosa e amarelo. Sem fotografia."
+    },
+    {
+      "id": "CON-08-2",
+      "expectedFamily": "acervo82-concept-08",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "efeito de impressão desalinhada com azul, rosa e amarelo",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero efeito de impressão desalinhada com azul, rosa e amarelo. Sem fotografia."
+    },
+    {
+      "id": "CON-08-3",
+      "expectedFamily": "acervo82-concept-08",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "efeito de impressão desalinhada com azul, rosa e amarelo",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero efeito de impressão desalinhada com azul, rosa e amarelo. Sem fotografia."
+    },
+    {
+      "id": "CON-09-1",
+      "expectedFamily": "acervo82-concept-09",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "ficha de coleção em papel bege, com um pequeno emblema",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero ficha de coleção em papel bege, com um pequeno emblema. Sem fotografia."
+    },
+    {
+      "id": "CON-09-2",
+      "expectedFamily": "acervo82-concept-09",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "ficha de coleção em papel bege, com um pequeno emblema",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero ficha de coleção em papel bege, com um pequeno emblema. Sem fotografia."
+    },
+    {
+      "id": "CON-09-3",
+      "expectedFamily": "acervo82-concept-09",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "ficha de coleção em papel bege, com um pequeno emblema",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero ficha de coleção em papel bege, com um pequeno emblema. Sem fotografia."
+    },
+    {
+      "id": "CON-10-1",
+      "expectedFamily": "acervo82-concept-10",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "formas geométricas simples em cartaz e um título forte",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero formas geométricas simples em cartaz e um título forte. Sem fotografia."
+    },
+    {
+      "id": "CON-10-2",
+      "expectedFamily": "acervo82-concept-10",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "formas geométricas simples em cartaz e um título forte",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero formas geométricas simples em cartaz e um título forte. Sem fotografia."
+    },
+    {
+      "id": "CON-10-3",
+      "expectedFamily": "acervo82-concept-10",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "formas geométricas simples em cartaz e um título forte",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero formas geométricas simples em cartaz e um título forte. Sem fotografia."
+    },
+    {
+      "id": "CON-11-1",
+      "expectedFamily": "acervo82-concept-11",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cupom monocromático com estética de impressão térmica",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cupom monocromático com estética de impressão térmica. Sem fotografia."
+    },
+    {
+      "id": "CON-11-2",
+      "expectedFamily": "acervo82-concept-11",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cupom monocromático com estética de impressão térmica",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cupom monocromático com estética de impressão térmica. Sem fotografia."
+    },
+    {
+      "id": "CON-11-3",
+      "expectedFamily": "acervo82-concept-11",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cupom monocromático com estética de impressão térmica",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cupom monocromático com estética de impressão térmica. Sem fotografia."
+    },
+    {
+      "id": "CON-12-1",
+      "expectedFamily": "acervo82-concept-12",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "faixa vertical escura na lateral e editorial em creme e vermelho",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero faixa vertical escura na lateral e editorial em creme e vermelho. Sem fotografia."
+    },
+    {
+      "id": "CON-12-2",
+      "expectedFamily": "acervo82-concept-12",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "faixa vertical escura na lateral e editorial em creme e vermelho",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero faixa vertical escura na lateral e editorial em creme e vermelho. Sem fotografia."
+    },
+    {
+      "id": "CON-12-3",
+      "expectedFamily": "acervo82-concept-12",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "faixa vertical escura na lateral e editorial em creme e vermelho",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero faixa vertical escura na lateral e editorial em creme e vermelho. Sem fotografia."
+    },
+    {
+      "id": "CON-13-1",
+      "expectedFamily": "acervo82-concept-13",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "colagem com recortes de texto sobre arco e tabuleiro",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero colagem com recortes de texto sobre arco e tabuleiro. Sem fotografia."
+    },
+    {
+      "id": "CON-13-2",
+      "expectedFamily": "acervo82-concept-13",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "colagem com recortes de texto sobre arco e tabuleiro",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero colagem com recortes de texto sobre arco e tabuleiro. Sem fotografia."
+    },
+    {
+      "id": "CON-13-3",
+      "expectedFamily": "acervo82-concept-13",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "colagem com recortes de texto sobre arco e tabuleiro",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero colagem com recortes de texto sobre arco e tabuleiro. Sem fotografia."
+    },
+    {
+      "id": "CON-14-1",
+      "expectedFamily": "acervo82-concept-14",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "moldura dourada, simetria axial e serifas claras em fundo preto",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero moldura dourada, simetria axial e serifas claras em fundo preto. Sem fotografia."
+    },
+    {
+      "id": "CON-14-2",
+      "expectedFamily": "acervo82-concept-14",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "moldura dourada, simetria axial e serifas claras em fundo preto",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero moldura dourada, simetria axial e serifas claras em fundo preto. Sem fotografia."
+    },
+    {
+      "id": "CON-14-3",
+      "expectedFamily": "acervo82-concept-14",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "moldura dourada, simetria axial e serifas claras em fundo preto",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero moldura dourada, simetria axial e serifas claras em fundo preto. Sem fotografia."
+    },
+    {
+      "id": "CON-15-1",
+      "expectedFamily": "acervo82-concept-15",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "aparelho analógico com barras coloridas e onda de som",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero aparelho analógico com barras coloridas e onda de som. Sem fotografia."
+    },
+    {
+      "id": "CON-15-2",
+      "expectedFamily": "acervo82-concept-15",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "aparelho analógico com barras coloridas e onda de som",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero aparelho analógico com barras coloridas e onda de som. Sem fotografia."
+    },
+    {
+      "id": "CON-15-3",
+      "expectedFamily": "acervo82-concept-15",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "aparelho analógico com barras coloridas e onda de som",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero aparelho analógico com barras coloridas e onda de som. Sem fotografia."
+    },
+    {
+      "id": "CON-16-1",
+      "expectedFamily": "acervo82-concept-16",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "fundo azul de desenho técnico, grade e curvas finas",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero fundo azul de desenho técnico, grade e curvas finas. Sem fotografia."
+    },
+    {
+      "id": "CON-16-2",
+      "expectedFamily": "acervo82-concept-16",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "fundo azul de desenho técnico, grade e curvas finas",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero fundo azul de desenho técnico, grade e curvas finas. Sem fotografia."
+    },
+    {
+      "id": "CON-16-3",
+      "expectedFamily": "acervo82-concept-16",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "fundo azul de desenho técnico, grade e curvas finas",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero fundo azul de desenho técnico, grade e curvas finas. Sem fotografia."
+    },
+    {
+      "id": "CON-17-1",
+      "expectedFamily": "acervo82-concept-17",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "portal luminoso com transição cromática no fundo",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero portal luminoso com transição cromática no fundo. Sem fotografia."
+    },
+    {
+      "id": "CON-17-2",
+      "expectedFamily": "acervo82-concept-17",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "portal luminoso com transição cromática no fundo",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero portal luminoso com transição cromática no fundo. Sem fotografia."
+    },
+    {
+      "id": "CON-17-3",
+      "expectedFamily": "acervo82-concept-17",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "portal luminoso com transição cromática no fundo",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero portal luminoso com transição cromática no fundo. Sem fotografia."
+    },
+    {
+      "id": "CON-18-1",
+      "expectedFamily": "acervo82-concept-18",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "balão de quadrinhos com retícula azul e tarja vermelha",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero balão de quadrinhos com retícula azul e tarja vermelha. Sem fotografia."
+    },
+    {
+      "id": "CON-18-2",
+      "expectedFamily": "acervo82-concept-18",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "balão de quadrinhos com retícula azul e tarja vermelha",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero balão de quadrinhos com retícula azul e tarja vermelha. Sem fotografia."
+    },
+    {
+      "id": "CON-18-3",
+      "expectedFamily": "acervo82-concept-18",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "balão de quadrinhos com retícula azul e tarja vermelha",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero balão de quadrinhos com retícula azul e tarja vermelha. Sem fotografia."
+    },
+    {
+      "id": "CON-19-1",
+      "expectedFamily": "acervo82-concept-19",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cunha vermelha e diagonais atrás de uma caixa de título inclinada",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cunha vermelha e diagonais atrás de uma caixa de título inclinada. Sem fotografia."
+    },
+    {
+      "id": "CON-19-2",
+      "expectedFamily": "acervo82-concept-19",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cunha vermelha e diagonais atrás de uma caixa de título inclinada",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cunha vermelha e diagonais atrás de uma caixa de título inclinada. Sem fotografia."
+    },
+    {
+      "id": "CON-19-3",
+      "expectedFamily": "acervo82-concept-19",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cunha vermelha e diagonais atrás de uma caixa de título inclinada",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cunha vermelha e diagonais atrás de uma caixa de título inclinada. Sem fotografia."
+    },
+    {
+      "id": "CON-20-1",
+      "expectedFamily": "acervo82-concept-20",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "moldura botânica de linhas douradas sobre verde profundo",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero moldura botânica de linhas douradas sobre verde profundo. Sem fotografia."
+    },
+    {
+      "id": "CON-20-2",
+      "expectedFamily": "acervo82-concept-20",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "moldura botânica de linhas douradas sobre verde profundo",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero moldura botânica de linhas douradas sobre verde profundo. Sem fotografia."
+    },
+    {
+      "id": "CON-20-3",
+      "expectedFamily": "acervo82-concept-20",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "moldura botânica de linhas douradas sobre verde profundo",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero moldura botânica de linhas douradas sobre verde profundo. Sem fotografia."
+    },
+    {
+      "id": "CON-21-1",
+      "expectedFamily": "acervo82-concept-21",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "ondas coloridas na base com título de cores deslocadas",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero ondas coloridas na base com título de cores deslocadas. Sem fotografia."
+    },
+    {
+      "id": "CON-21-2",
+      "expectedFamily": "acervo82-concept-21",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "ondas coloridas na base com título de cores deslocadas",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero ondas coloridas na base com título de cores deslocadas. Sem fotografia."
+    },
+    {
+      "id": "CON-21-3",
+      "expectedFamily": "acervo82-concept-21",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "ondas coloridas na base com título de cores deslocadas",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero ondas coloridas na base com título de cores deslocadas. Sem fotografia."
+    },
+    {
+      "id": "CON-22-1",
+      "expectedFamily": "acervo82-concept-22",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "recortes de jornal e papel fluorescente de alto contraste",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero recortes de jornal e papel fluorescente de alto contraste. Sem fotografia."
+    },
+    {
+      "id": "CON-22-2",
+      "expectedFamily": "acervo82-concept-22",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "recortes de jornal e papel fluorescente de alto contraste",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero recortes de jornal e papel fluorescente de alto contraste. Sem fotografia."
+    },
+    {
+      "id": "CON-22-3",
+      "expectedFamily": "acervo82-concept-22",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "recortes de jornal e papel fluorescente de alto contraste",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero recortes de jornal e papel fluorescente de alto contraste. Sem fotografia."
+    },
+    {
+      "id": "CON-23-1",
+      "expectedFamily": "acervo82-concept-23",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "formas geométricas e pontilhado com caixa amarela de título",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero formas geométricas e pontilhado com caixa amarela de título. Sem fotografia."
+    },
+    {
+      "id": "CON-23-2",
+      "expectedFamily": "acervo82-concept-23",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "formas geométricas e pontilhado com caixa amarela de título",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero formas geométricas e pontilhado com caixa amarela de título. Sem fotografia."
+    },
+    {
+      "id": "CON-23-3",
+      "expectedFamily": "acervo82-concept-23",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "formas geométricas e pontilhado com caixa amarela de título",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero formas geométricas e pontilhado com caixa amarela de título. Sem fotografia."
+    },
+    {
+      "id": "CON-24-1",
+      "expectedFamily": "acervo82-concept-24",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartela simétrica em tons pastel com serifas e emblema central",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartela simétrica em tons pastel com serifas e emblema central. Sem fotografia."
+    },
+    {
+      "id": "CON-24-2",
+      "expectedFamily": "acervo82-concept-24",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartela simétrica em tons pastel com serifas e emblema central",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartela simétrica em tons pastel com serifas e emblema central. Sem fotografia."
+    },
+    {
+      "id": "CON-24-3",
+      "expectedFamily": "acervo82-concept-24",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartela simétrica em tons pastel com serifas e emblema central",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartela simétrica em tons pastel com serifas e emblema central. Sem fotografia."
+    },
+    {
+      "id": "CON-25-1",
+      "expectedFamily": "acervo82-concept-25",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartaz laranja e preto de disco de jazz com título compacto",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartaz laranja e preto de disco de jazz com título compacto. Sem fotografia."
+    },
+    {
+      "id": "CON-25-2",
+      "expectedFamily": "acervo82-concept-25",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartaz laranja e preto de disco de jazz com título compacto",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartaz laranja e preto de disco de jazz com título compacto. Sem fotografia."
+    },
+    {
+      "id": "CON-25-3",
+      "expectedFamily": "acervo82-concept-25",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartaz laranja e preto de disco de jazz com título compacto",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartaz laranja e preto de disco de jazz com título compacto. Sem fotografia."
+    },
+    {
+      "id": "CON-26-1",
+      "expectedFamily": "acervo82-concept-26",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "cartela de cinema minimalista com texto e bordas discretos",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero cartela de cinema minimalista com texto e bordas discretos. Sem fotografia."
+    },
+    {
+      "id": "CON-26-2",
+      "expectedFamily": "acervo82-concept-26",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "cartela de cinema minimalista com texto e bordas discretos",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero cartela de cinema minimalista com texto e bordas discretos. Sem fotografia."
+    },
+    {
+      "id": "CON-26-3",
+      "expectedFamily": "acervo82-concept-26",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "cartela de cinema minimalista com texto e bordas discretos",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero cartela de cinema minimalista com texto e bordas discretos. Sem fotografia."
+    },
+    {
+      "id": "CON-27-1",
+      "expectedFamily": "acervo82-concept-27",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "gráfico de pulsares em cartaz monocromático",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero gráfico de pulsares em cartaz monocromático. Sem fotografia."
+    },
+    {
+      "id": "CON-27-2",
+      "expectedFamily": "acervo82-concept-27",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "gráfico de pulsares em cartaz monocromático",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero gráfico de pulsares em cartaz monocromático. Sem fotografia."
+    },
+    {
+      "id": "CON-27-3",
+      "expectedFamily": "acervo82-concept-27",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "gráfico de pulsares em cartaz monocromático",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero gráfico de pulsares em cartaz monocromático. Sem fotografia."
+    },
+    {
+      "id": "CON-28-1",
+      "expectedFamily": "acervo82-concept-28",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "mostrador circular com marcações finas e tipografia de relojoaria",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero mostrador circular com marcações finas e tipografia de relojoaria. Sem fotografia."
+    },
+    {
+      "id": "CON-28-2",
+      "expectedFamily": "acervo82-concept-28",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "mostrador circular com marcações finas e tipografia de relojoaria",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero mostrador circular com marcações finas e tipografia de relojoaria. Sem fotografia."
+    },
+    {
+      "id": "CON-28-3",
+      "expectedFamily": "acervo82-concept-28",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "mostrador circular com marcações finas e tipografia de relojoaria",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero mostrador circular com marcações finas e tipografia de relojoaria. Sem fotografia."
+    },
+    {
+      "id": "CON-29-1",
+      "expectedFamily": "acervo82-concept-29",
+      "objective": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”.",
+      "visualPreference": "painel neon escuro com indicadores de telemetria e texto ciano",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Anuncie uma oficina de criação coletiva com a mensagem “Ideias ganham forma em grupo”. Faça um post único. Quero painel neon escuro com indicadores de telemetria e texto ciano. Sem fotografia."
+    },
+    {
+      "id": "CON-29-2",
+      "expectedFamily": "acervo82-concept-29",
+      "objective": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício.",
+      "visualPreference": "painel neon escuro com indicadores de telemetria e texto ciano",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero painel neon escuro com indicadores de telemetria e texto ciano. Sem fotografia."
+    },
+    {
+      "id": "CON-29-3",
+      "expectedFamily": "acervo82-concept-29",
+      "objective": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação.",
+      "visualPreference": "painel neon escuro com indicadores de telemetria e texto ciano",
+      "media": "forbidden",
+      "items": null,
+      "brief": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero painel neon escuro com indicadores de telemetria e texto ciano. Sem fotografia."
+    }
+  ]
+}

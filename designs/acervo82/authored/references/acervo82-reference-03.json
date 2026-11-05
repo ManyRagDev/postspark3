@@ -1,0 +1,645 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-03",
+  "sourceRecipeHash": "36b6e2712652cbb60646316565e039fa2dc0dd1bbc34a215548a256ff2b8fb34",
+  "previousReferenceId": "0ee1f7691aaa5e28cfd0eb2c8a36cb23",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "48ffa405-92f3-4a5a-8303-2e8ebc12dd43",
+    "title": "Truth about creative people — azul e amarelo",
+    "createdAt": "2026-09-30T23:43:25.517Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 640,
+        "heightPx": 853,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "6e72f0fc2a36d2b62a817ebc42dbca7ec2071991a31118ab333f9be38cc22777"
+      },
+      "artboard": {
+        "background": "#FAFAF6"
+      },
+      "layers": [
+        {
+          "id": "chamada",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 0,
+          "x": 228.86243764008785,
+          "y": 67.94553841185086,
+          "width": 185,
+          "height": 38,
+          "text": "THIS IS THE",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 27,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": -5,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "selo-verdade",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 1,
+          "x": 184.56880336945784,
+          "y": 100.93150456565142,
+          "width": 265,
+          "height": 54,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FDB91A",
+          "strokeColor": "#191919",
+          "strokeWidth": 1,
+          "rotationDeg": -5,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "verdade",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 2,
+          "x": 197.95511315838883,
+          "y": 104.7794534003906,
+          "width": 240,
+          "height": 48,
+          "text": "TRUTH",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 45,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": "#191919",
+          "strokeWidth": 1,
+          "rotationDeg": -5,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "selo-sobre",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 3,
+          "x": 274.5121787999832,
+          "y": 142.24965089584833,
+          "width": 97,
+          "height": 24,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FDB91A",
+          "strokeColor": "#191919",
+          "strokeWidth": 1,
+          "rotationDeg": -5,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "sobre",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 4,
+          "x": 276.5045681961667,
+          "y": 142.07533941035302,
+          "width": 93,
+          "height": 22,
+          "text": "ABOUT",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 17,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": -5,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "titulo-criativo",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 5,
+          "x": 32,
+          "y": 155,
+          "width": 600,
+          "height": 114,
+          "text": "CREATIVE",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 103,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#0826DA",
+          "strokeColor": "#101010",
+          "strokeWidth": 1,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": {
+            "color": "#111111",
+            "offsetX": 2,
+            "offsetY": 2,
+            "steps": 2
+          },
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "titulo-pessoas",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 6,
+          "x": 75,
+          "y": 265,
+          "width": 514,
+          "height": 122,
+          "text": "PEOPLE",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 114,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#0826DA",
+          "strokeColor": "#101010",
+          "strokeWidth": 1,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": {
+            "color": "#111111",
+            "offsetX": 2,
+            "offsetY": 2,
+            "steps": 2
+          },
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "botao",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 7,
+          "x": 257,
+          "y": 426,
+          "width": 105,
+          "height": 21,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": "#191919",
+          "strokeWidth": 2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "cta",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 8,
+          "x": 264,
+          "y": 430,
+          "width": 91,
+          "height": 15,
+          "text": "NEXT SLIDE",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 12,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "foto-ambiente",
+          "kind": "rect",
+          "role": "Cena doméstica: sofá, pessoa e objetos",
+          "zIndex": 9,
+          "x": 0,
+          "y": 471,
+          "width": 640,
+          "height": 382,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#B8B8B8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Inter",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+          "license": "open-source"
+        },
+        {
+          "family": "Archivo Black",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/archivoblack/v23/HTxqL289NzCGg4MzN6KJ7eW6CYyF_g.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [
+      {
+        "description": "Cena doméstica: sofá, pessoa e objetos",
+        "reason": "Fotografia original não incorporada; slot cinza recebe mídia escolhida pelo usuário.",
+        "box": {
+          "x": 0,
+          "y": 0.552168815943728,
+          "width": 1,
+          "height": 0.447831184056272
+        },
+        "role": "hero",
+        "essential": true
+      },
+      {
+        "description": "Granulado da parede e sombras dos objetos",
+        "reason": "Atmosfera da fotografia permanece ausente até preencher a mídia.",
+        "box": null,
+        "role": "texture",
+        "essential": false
+      }
+    ],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Fotografia de sofá, pessoa e objetos substituída por área cinza na metade inferior.",
+      "Arquivo e tipografia são aproximações: Archivo Black para títulos; letras não são deformadas horizontalmente.",
+      "Textura da parede e nuances da cena dependem da mídia escolhida."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "chamada",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "selo-verdade",
+          "cornerRadiusPx": 15,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "verdade",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "selo-sobre",
+          "cornerRadiusPx": 12,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "sobre",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "titulo-criativo",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "titulo-pessoas",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "botao",
+          "cornerRadiusPx": 11,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "cta",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "foto-ambiente",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "chamada",
+          "label": "Chamada e selo",
+          "transform": {
+            "x": 183,
+            "y": 83,
+            "rotationDeg": -5
+          },
+          "members": [
+            {
+              "x": 47.00000000000002,
+              "y": -11.000000000000002,
+              "rotationDeg": 0,
+              "layerId": "chamada"
+            },
+            {
+              "x": -7.993605777301127e-15,
+              "y": 18.000000000000004,
+              "rotationDeg": 0,
+              "layerId": "selo-verdade"
+            },
+            {
+              "x": 12.999999999999996,
+              "y": 23,
+              "rotationDeg": 0,
+              "layerId": "verdade"
+            },
+            {
+              "x": 85.99999999999999,
+              "y": 66.99999999999999,
+              "rotationDeg": 0,
+              "layerId": "selo-sobre"
+            },
+            {
+              "x": 88,
+              "y": 67,
+              "rotationDeg": 0,
+              "layerId": "sobre"
+            }
+          ]
+        },
+        {
+          "id": "titulo",
+          "label": "Título principal",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 32,
+              "y": 155,
+              "rotationDeg": 0,
+              "layerId": "titulo-criativo"
+            },
+            {
+              "x": 75,
+              "y": 265,
+              "rotationDeg": 0,
+              "layerId": "titulo-pessoas"
+            }
+          ]
+        },
+        {
+          "id": "cta",
+          "label": "Botão de sequência",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 257,
+              "y": 426,
+              "rotationDeg": 0,
+              "layerId": "botao"
+            },
+            {
+              "x": 264,
+              "y": 430,
+              "rotationDeg": 0,
+              "layerId": "cta"
+            }
+          ]
+        },
+        {
+          "id": "ambiente",
+          "label": "Foto de ambiente",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 471,
+              "rotationDeg": 0,
+              "layerId": "foto-ambiente"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "chamada",
+          "label": "Chamada",
+          "kind": "text",
+          "groupId": "chamada",
+          "layerIds": [
+            "chamada"
+          ],
+          "baseFontSizes": [
+            27
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "verdade",
+          "label": "Verdade",
+          "kind": "text",
+          "groupId": "chamada",
+          "layerIds": [
+            "verdade"
+          ],
+          "baseFontSizes": [
+            45
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "sobre",
+          "label": "Sobre",
+          "kind": "text",
+          "groupId": "chamada",
+          "layerIds": [
+            "sobre"
+          ],
+          "baseFontSizes": [
+            17
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "titulo-criativo",
+          "label": "Titulo criativo",
+          "kind": "text",
+          "groupId": "titulo",
+          "layerIds": [
+            "titulo-criativo"
+          ],
+          "baseFontSizes": [
+            103
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "titulo-pessoas",
+          "label": "Titulo pessoas",
+          "kind": "text",
+          "groupId": "titulo",
+          "layerIds": [
+            "titulo-pessoas"
+          ],
+          "baseFontSizes": [
+            114
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "cta",
+          "label": "Cta",
+          "kind": "text",
+          "groupId": "cta",
+          "layerIds": [
+            "cta"
+          ],
+          "baseFontSizes": [
+            12
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        }
+      ],
+      "media": [
+        {
+          "id": "foto-ambiente",
+          "label": "Cena doméstica: sofá, pessoa e objetos",
+          "groupId": "ambiente",
+          "layerId": "foto-ambiente",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        }
+      ]
+    }
+  }
+}

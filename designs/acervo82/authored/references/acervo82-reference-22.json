@@ -1,0 +1,540 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-22",
+  "sourceRecipeHash": "f2783efa422c3d52a4d4bfea322f0a769d8f4b391837b5fa26f354a80bc9cbc6",
+  "previousReferenceId": "f65e1862777e3c9e201442396155f3fa",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "e471edb4-bf4a-4ba0-bfe5-e2f3726956cf",
+    "title": "Editorial — Holding my life together",
+    "createdAt": "2026-09-30T23:43:25.561Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 1080,
+        "heightPx": 1350,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "d810dc67407277c498d36d145f98844a11d50ced4e8f6db84ad455932a0955c9"
+      },
+      "artboard": {
+        "background": "#F8F7F2"
+      },
+      "layers": [
+        {
+          "id": "photo",
+          "kind": "rect",
+          "role": "Fotografia — inserir no Admin2",
+          "zIndex": 0,
+          "x": 0,
+          "y": 410,
+          "width": 1080,
+          "height": 940,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#DEDED9",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "line1",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 1,
+          "x": 246,
+          "y": 88,
+          "width": 624,
+          "height": 115,
+          "text": "Holding my",
+          "fontFamily": "Inter",
+          "fontWeight": 500,
+          "fontSize": 96,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "line2",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 2,
+          "x": 290,
+          "y": 183,
+          "width": 620,
+          "height": 112,
+          "text": "life together",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 96,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "line3",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 3,
+          "x": 208,
+          "y": 280,
+          "width": 730,
+          "height": 115,
+          "text": "by a wax stick",
+          "fontFamily": "Inter",
+          "fontWeight": 500,
+          "fontSize": 96,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "focus",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 4,
+          "x": 586,
+          "y": 425,
+          "width": 137,
+          "height": 139,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFE121",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 0,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "focus-a",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 5,
+          "x": 586,
+          "y": 425,
+          "width": 137,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFE121",
+          "strokeColor": "#FFE121",
+          "strokeWidth": 4,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            137,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "focus-b",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 6,
+          "x": 586,
+          "y": 564,
+          "width": 137,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFE121",
+          "strokeColor": "#FFE121",
+          "strokeWidth": 4,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            137,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "focus-c",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 7,
+          "x": 586,
+          "y": 425,
+          "width": 1,
+          "height": 139,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFE121",
+          "strokeColor": "#FFE121",
+          "strokeWidth": 4,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            139
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "focus-d",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 8,
+          "x": 723,
+          "y": 425,
+          "width": 1,
+          "height": 139,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFE121",
+          "strokeColor": "#FFE121",
+          "strokeWidth": 4,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            139
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Inter",
+          "weight": 500,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "f3779f1efccc4bdcdf9c0a02ab95bf6bd092ed09c48c08cedc725889edd1d19f",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Cena fotográfica integral em área inferior. Pesos mistos dentro da frase são aproximados por linhas. O quadro amarelo é decorativo e precisa ser movido para o produto da nova foto."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "photo",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "line1",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "line2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "line3",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "focus",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "focus-a",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "focus-b",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "focus-c",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "focus-d",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "media",
+          "label": "Fotografia substituível",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 410,
+              "rotationDeg": 0,
+              "layerId": "photo"
+            }
+          ]
+        },
+        {
+          "id": "copy",
+          "label": "Título em três linhas",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 246,
+              "y": 88,
+              "rotationDeg": 0,
+              "layerId": "line1"
+            },
+            {
+              "x": 290,
+              "y": 183,
+              "rotationDeg": 0,
+              "layerId": "line2"
+            },
+            {
+              "x": 208,
+              "y": 280,
+              "rotationDeg": 0,
+              "layerId": "line3"
+            }
+          ]
+        },
+        {
+          "id": "focus",
+          "label": "Marcador de foco ajustável",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 586,
+              "y": 425,
+              "rotationDeg": 0,
+              "layerId": "focus"
+            },
+            {
+              "x": 586,
+              "y": 425,
+              "rotationDeg": 0,
+              "layerId": "focus-a"
+            },
+            {
+              "x": 586,
+              "y": 564,
+              "rotationDeg": 0,
+              "layerId": "focus-b"
+            },
+            {
+              "x": 586,
+              "y": 425,
+              "rotationDeg": 0,
+              "layerId": "focus-c"
+            },
+            {
+              "x": 723,
+              "y": 425,
+              "rotationDeg": 0,
+              "layerId": "focus-d"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "line1",
+          "label": "Holding my",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "line1"
+          ],
+          "baseFontSizes": [
+            96
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "line2",
+          "label": "life together",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "line2"
+          ],
+          "baseFontSizes": [
+            96
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "line3",
+          "label": "by a wax stick",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "line3"
+          ],
+          "baseFontSizes": [
+            96
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        }
+      ],
+      "media": [
+        {
+          "id": "photo",
+          "label": "Fotografia — inserir no Admin2",
+          "groupId": "media",
+          "layerId": "photo",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        }
+      ]
+    }
+  }
+}

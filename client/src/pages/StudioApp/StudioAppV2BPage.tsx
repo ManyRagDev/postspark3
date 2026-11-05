@@ -364,14 +364,18 @@ export default function StudioAppV2BPage() {
     }
     const capabilities=(await generationCapabilities.refetch()).data;
     if (!capabilities?.enabled)throw new Error(labelGenerationCapabilityReason(capabilities?.reason));
+    let catalog: Awaited<ReturnType<typeof cachedCatalog>> | undefined;
     if('catalogRevision' in capabilities&&capabilities.catalogRevision&&capabilities.catalogScope&&capabilities.catalogProject){
       const revision=capabilities.catalogRevision;
-      await cachedCatalog(capabilities.catalogProject,capabilities.ownerId,capabilities.catalogScope,revision,()=>utils.catalog.snapshot.fetch({revision}));
+      catalog=await cachedCatalog(capabilities.catalogProject,capabilities.ownerId,capabilities.catalogScope,revision,()=>utils.catalog.snapshot.fetch({revision}));
     }
     const previousInput = source === "more" ? lastGenerationInput.current : null;
     const executionBrief = previousInput?.executionBrief ?? (brief ? {...creationBriefToExecutionBrief(brief),platform:brief.platform??creationInputOptions.current.platform} : undefined);
     const isUrl = isStandaloneHttpUrl(promptText);
-    const tasteInstruction = !isUrl && declaredFamilyId ? buildTasteInstruction(declaredFamilyId) : "";
+    const preferred=catalog?.families?.find(family=>family.family===declaredFamilyId&&family.capabilities[mode==='carousel'?'carousel':'single']);
+    const tasteInstruction = isUrl || !declaredFamilyId ? "" : preferred
+      ? `\n\nPreferência visual: ${preferred.code} · ${preferred.name}. ${preferred.descriptor}. Considere essa direção quando compatível com o conteúdo, mídia e formato pedidos.`
+      : catalog?.families?.length ? "" : buildTasteInstruction(declaredFamilyId);
     const content = source === "more" && !isUrl
       ? `Crie 3 novos ganchos criativos e direções de arte alternativas sobre: ${promptText}${tasteInstruction}`
       : `${promptText}${tasteInstruction}`;

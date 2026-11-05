@@ -893,7 +893,7 @@ async function executeClaimedGenerationWithinTrace(
           }),
         mediaAdapter: {
           generate: request =>
-            generateProposalMediaForSlot(request, {
+            generateProposalMediaForSlot({...request, preservedImageUrl:prepared.preservedPhoto?.url}, {
               // The proposal graph wraps this entire adapter call in its durable operation.
               runIdempotent: async (_key, work) => work(),
             }),

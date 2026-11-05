@@ -83,7 +83,7 @@ describe("catalog → interpretation → JEV → persisted planning", () => {
       vectors: texts.map(() => Float32Array.from({ length: 384 }, (_, i) => i === 0 ? 1 : 0)),
       inputs: texts.map(() => ({ tokenCount: 1, usedTokens: 1, truncated: false })),
     })) } as unknown as EmbeddingEngine;
-    const index = await buildSearchIndex(searchDocuments(sources.map(compactComponentCard), null), engine);
+    const index = await buildSearchIndex(searchDocuments(sources.map(compactComponentCard), null, 2), engine);
     const load = vi.fn(async () => ({ engine, index }));
     Object.assign(f.deps, { familySearchIndex: load });
     const first = await f.run();
@@ -165,7 +165,7 @@ describe("catalog → interpretation → JEV → persisted planning", () => {
     const questions = f.evaluate.mock.calls.flatMap(([request]) => Object.values(request.questions) as any[]);
     expect(questions).toHaveLength(3);
     expect(new Set(questions.map(q => q.instructions.design.family)).size).toBe(3);
-    expect(questions.every(q => q.instructions.design.version === 4 && !q.instructions.design.variants && !q.instructions.design.sequence)).toBe(true);
+    expect(questions.every(q => q.instructions.design.version === 5 && !q.instructions.design.variants && !q.instructions.design.sequence)).toBe(true);
     expect(f.journal.get("selection_input")).toMatchObject({ familyRankingVersion: 1 });
     expect(prepared.planning!.familyElection!.candidates).toHaveLength(3);
     expect(prepared.planning!.familyElection!.candidates.find(c => c.family === definitions[0].completeDesign!.family)!.memberIds).toHaveLength(2);

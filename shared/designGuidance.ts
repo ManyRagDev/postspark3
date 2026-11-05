@@ -4,6 +4,7 @@ const hash = z.string().regex(/^[a-f0-9]{64}$/);
 export const designGuidanceSchema = z
   .object({
     version: z.literal(1),
+    selection: z.object({version:z.literal(1), description:z.string().min(1).max(400), axes:z.object({organization:z.string().min(1).max(60),density:z.string().min(1).max(60),typography:z.string().min(1).max(60),imageRole:z.string().min(1).max(60)}).strict()}).strict().optional(),
     representation: z
       .object({
         version: z.literal(3),

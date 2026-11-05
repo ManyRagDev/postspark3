@@ -1,0 +1,612 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-05",
+  "sourceRecipeHash": "cf18d055b9e820f5693837ea9ee1d1af1a906701794e4ab9004e3bdf030fba85",
+  "previousReferenceId": "19025ac85b33580e27126420174e7514",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "b3dd0d9e-2516-414e-b8f7-9ad912edbb50",
+    "title": "Prompt — retrato editorial com legenda",
+    "createdAt": "2026-09-30T23:43:25.520Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 736,
+        "heightPx": 1104,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "4a14f8ed699a118df094b560fa96baa3a2f307248b172626952ddfaf4cda3634"
+      },
+      "artboard": {
+        "background": "#1B2926"
+      },
+      "layers": [
+        {
+          "id": "foto-retrato",
+          "kind": "rect",
+          "role": "Retrato editorial em fundo integral",
+          "zIndex": 0,
+          "x": 0,
+          "y": 0,
+          "width": 736,
+          "height": 1104,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#B8B8B8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "painel",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 1,
+          "x": 27,
+          "y": 804,
+          "width": 682,
+          "height": 274,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#12211E",
+          "strokeColor": "#50645C",
+          "strokeWidth": 1,
+          "rotationDeg": 0,
+          "opacity": 0.91,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "titulo",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 2,
+          "x": 39,
+          "y": 824,
+          "width": 650,
+          "height": 94,
+          "text": "PROMPT",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 87,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "descricao",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 3,
+          "x": 40,
+          "y": 920,
+          "width": 638,
+          "height": 13.559999999999999,
+          "text": "ULTRA-REALISTIC EDITORIAL PORTRAIT FROM INPUT PHOTO. VIBE: 70s meets Y2K indie sleaze,",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 12,
+          "lineHeight": 1.13,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#EDEDE7",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "descricao-line-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 4,
+          "x": 40,
+          "y": 933.56,
+          "width": 638,
+          "height": 13.559999999999999,
+          "text": "cinematic raw snapshot. ENVIRONMENT: Retro bathroom with vibrant teal and aquamarine tiles.",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 12,
+          "lineHeight": 1.13,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#EDEDE7",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "descricao-line-3",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 5,
+          "x": 40,
+          "y": 947.12,
+          "width": 638,
+          "height": 13.559999999999999,
+          "text": "LIGHTING: Warm overhead tungsten light mixed with a harsh yellow-tinted camera flash, deep",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 12,
+          "lineHeight": 1.13,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#EDEDE7",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "descricao-line-4",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 6,
+          "x": 40,
+          "y": 960.68,
+          "width": 638,
+          "height": 13.559999999999999,
+          "text": "shadows. STYLING: Oversized heavy brown houndstooth blazer, partially unbuttoned dark burgundy",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 12,
+          "lineHeight": 1.13,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#EDEDE7",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "descricao-line-5",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 7,
+          "x": 40,
+          "y": 974.24,
+          "width": 638,
+          "height": 13.559999999999999,
+          "text": "silk shirt, thick gold chains, yellow-tinted gold aviator glasses. EXPRESSION: Eccentric,",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 12,
+          "lineHeight": 1.13,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#EDEDE7",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "descricao-line-6",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 8,
+          "x": 40,
+          "y": 987.8,
+          "width": 638,
+          "height": 13.559999999999999,
+          "text": "raising eyebrows. TECH: 8mm circular fisheye lens, extreme bird’s-eye view, top-down high",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 12,
+          "lineHeight": 1.13,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#EDEDE7",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "descricao-line-7",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 9,
+          "x": 40,
+          "y": 1001.36,
+          "width": 638,
+          "height": 13.559999999999999,
+          "text": "angle. Subject holding a giant teal ceramic coffee mug right up to the lens. Heavy vintage film",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 12,
+          "lineHeight": 1.13,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#EDEDE7",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "descricao-line-8",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 10,
+          "x": 40,
+          "y": 1014.92,
+          "width": 638,
+          "height": 13.559999999999999,
+          "text": "grain.",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 12,
+          "lineHeight": 1.13,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#EDEDE7",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Archivo Black",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/archivoblack/v23/HTxqL289NzCGg4MzN6KJ7eW6CYyF_g.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [
+      {
+        "description": "Retrato editorial em fundo integral",
+        "reason": "Fotografia original não incorporada; slot cinza recebe mídia escolhida pelo usuário.",
+        "box": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "role": "hero",
+        "essential": true
+      },
+      {
+        "description": "Teal, tons âmbar e distorção óptica da fotografia",
+        "reason": "Primitivas vetoriais não recriam iluminação nem efeitos de lente.",
+        "box": null,
+        "role": "background",
+        "essential": true
+      }
+    ],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Retrato e efeito olho de peixe dependem integralmente da foto escolhida; mídia cover não produz distorção nem recorte de pessoa.",
+      "Painel translúcido é preenchimento vetorial com opacidade; não há blur real.",
+      "Texto técnico inglês conservado como campo de apoio; pequenas marcas no alto dispensadas.",
+      "Campos multiline convertidos em listas de camadas por linha para permitir compilação no-op: descricao."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "foto-retrato",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "painel",
+          "cornerRadiusPx": 16,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "titulo",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "descricao",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "descricao-line-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "descricao-line-3",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "descricao-line-4",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "descricao-line-5",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "descricao-line-6",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "descricao-line-7",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "descricao-line-8",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "retrato",
+          "label": "Fotografia de fundo",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "foto-retrato"
+            }
+          ]
+        },
+        {
+          "id": "legenda",
+          "label": "Painel e prompt",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 27,
+              "y": 804,
+              "rotationDeg": 0,
+              "layerId": "painel"
+            },
+            {
+              "x": 39,
+              "y": 824,
+              "rotationDeg": 0,
+              "layerId": "titulo"
+            },
+            {
+              "x": 40,
+              "y": 920,
+              "rotationDeg": 0,
+              "layerId": "descricao"
+            },
+            {
+              "x": 40,
+              "y": 933.56,
+              "rotationDeg": 0,
+              "layerId": "descricao-line-2"
+            },
+            {
+              "x": 40,
+              "y": 947.12,
+              "rotationDeg": 0,
+              "layerId": "descricao-line-3"
+            },
+            {
+              "x": 40,
+              "y": 960.68,
+              "rotationDeg": 0,
+              "layerId": "descricao-line-4"
+            },
+            {
+              "x": 40,
+              "y": 974.24,
+              "rotationDeg": 0,
+              "layerId": "descricao-line-5"
+            },
+            {
+              "x": 40,
+              "y": 987.8,
+              "rotationDeg": 0,
+              "layerId": "descricao-line-6"
+            },
+            {
+              "x": 40,
+              "y": 1001.36,
+              "rotationDeg": 0,
+              "layerId": "descricao-line-7"
+            },
+            {
+              "x": 40,
+              "y": 1014.92,
+              "rotationDeg": 0,
+              "layerId": "descricao-line-8"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "titulo",
+          "label": "Titulo",
+          "kind": "text",
+          "groupId": "legenda",
+          "layerIds": [
+            "titulo"
+          ],
+          "baseFontSizes": [
+            87
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "descricao",
+          "label": "Descricao",
+          "kind": "list",
+          "groupId": "legenda",
+          "layerIds": [
+            "descricao",
+            "descricao-line-2",
+            "descricao-line-3",
+            "descricao-line-4",
+            "descricao-line-5",
+            "descricao-line-6",
+            "descricao-line-7",
+            "descricao-line-8"
+          ],
+          "baseFontSizes": [
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        }
+      ],
+      "media": [
+        {
+          "id": "foto-retrato",
+          "label": "Retrato editorial em fundo integral",
+          "groupId": "retrato",
+          "layerId": "foto-retrato",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        }
+      ]
+    }
+  }
+}

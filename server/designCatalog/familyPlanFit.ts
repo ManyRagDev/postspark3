@@ -13,6 +13,7 @@ import { buildHeuristicGenerationPlan } from "../ai/workflows/heuristicPlanBuild
 /** Same strict local planner used for final selection. Text fitting and provider
  * review still run after copy; this receipt is structural feasibility only. */
 export function inspectFamilyPlanFit(args: {
+  neutrality?: import("@shared/familyNeutrality").FamilyNeutrality;
   families: FamilySelectionCandidate[];
   ids: string[];
   scores: FamilyScore[];
@@ -63,6 +64,7 @@ export function inspectFamilyPlanFit(args: {
   });
   const plan = buildHeuristicGenerationPlan({
     familyFirst: true,
+    neutrality: args.neutrality,
     intent: args.intent,
     eligible,
     shortlist: {

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { ComponentCardV1 } from "@shared/componentAssembly";
 import type { OrchestratedGenerationInput } from "@shared/generationRequest";
@@ -74,11 +75,13 @@ import { buildFamilySelectionCandidates } from "@shared/designFamilySelection";
 import { shortlistDesignFamilies } from "../../designCatalog/familyShortlist";
 import type { GenerationPlanningReceipt } from "@shared/generationPlan";
 import { FAMILY_RETRIEVAL_POLICY } from "@shared/familyRetrieval";
-import { retrieveFamilyCandidates, familySearchQuery, assertFamilyRetrieval } from "../../designCatalog/familyRetrieval";
+import { retrieveFamilyCandidates, familySearchQuery, familyVisualQuery, assertFamilyRetrieval } from "../../designCatalog/familyRetrieval";
 import { readSearchIndex, sourceSearchDocument } from "../../designCatalog/familySearchIndex";
 import { boundedFamilyShortlist } from "../../designCatalog/boundedFamilyShortlist";
 import { inspectFamilyPlanFit } from "../../designCatalog/familyPlanFit";
 import { FAMILY_RECOVERY_REASON } from "@shared/familyRecovery";
+
+import { requestedPreservedPhoto } from "./proposalMedia";
 
 const narrativePlanningGuidance = [
   "Distribua primeiro o conteúdo essencial pelo número de páginas solicitado, considerando a capacidade real das variantes, antes de acrescentar seções.",
@@ -319,13 +322,13 @@ export async function preparePlannedGeneration(
     slideCount: count, contentMode: executionBrief?.interventionLevel === "visual_only" ? "literal" : "compose", instructions: requestText,
   }).filter(r => repertoireMeetsMedia(r, imageObligation));
   let semanticIndex: Awaited<ReturnType<typeof readSearchIndex>> | undefined;
-  const loadSemanticIndex = async (catalog: Parameters<typeof readSearchIndex>[1]) => {
+  const loadSemanticIndex = async (catalog: Parameters<typeof readSearchIndex>[1], neutral = false) => {
     try {
       const revision = pinnedCatalogRevision() ?? catalog?.catalogRevision ?? ENV.localCatalogRevision;
-      semanticIndex = await (deps.familySearchIndex ? deps.familySearchIndex(catalog) : readSearchIndex(revision, catalog));
+      semanticIndex = await (deps.familySearchIndex ? deps.familySearchIndex(catalog) : readSearchIndex(revision, catalog, undefined, neutral ? 2 : 1));
       for (const repertoire of preliminary) {
         const root = repertoire.slides.flatMap(s => s.variants).find(c => c.id === repertoire.sourceId)!;
-        const document = sourceSearchDocument(root, catalog), indexed = semanticIndex.index.documents.find(d => d.id === root.id);
+        const document = sourceSearchDocument(root, catalog, neutral ? 2 : 1), indexed = semanticIndex.index.documents.find(d => d.id === root.id);
         if (!indexed || indexed.sourceHash !== document.sourceHash || indexed.textHash !== document.textHash) throw new Error("stale_index");
       }
       return semanticIndex;
@@ -354,8 +357,9 @@ export async function preparePlannedGeneration(
         // Fail before the paid interpretation if a large catalogue has no
         // complete local index. A replay uses the recorded receipt instead.
         const large = new Set(preliminary.map(r => r.family)).size > FAMILY_RETRIEVAL_POLICY.initialFamilies;
-        const semantic = large ? await loadSemanticIndex(editorialCatalog) : undefined;
-        return { ...expectedInput, editorialCatalog, familyRankingVersion: 1 as const, familyRetrievalVersion: 1 as const, familyRecoveryVersion: 1 as const,
+        const semantic = large ? await loadSemanticIndex(editorialCatalog, true) : undefined;
+        const preservedPhoto=requestedPreservedPhoto(input,requestText);
+        return { ...expectedInput, editorialCatalog, familyVisualQueryVersion:2 as const, ...(preservedPhoto?{preservedPhoto:{version:1 as const,url:preservedPhoto}}:{}), familyNeutrality: {version:1 as const,seed:randomUUID(),planningVersion:2 as const}, familyRankingVersion: 1 as const, familyRetrievalVersion: 1 as const, familyRecoveryVersion: 1 as const,
           ...(semantic ? { familyRetrievalIndex: { hash: semantic.index.hash, modelFingerprint: semantic.index.modelFingerprint } } : {}) };
       }
       const observation = await safeObserveEditorialAffinity(
@@ -369,6 +373,9 @@ export async function preparePlannedGeneration(
       (pinnedCatalogRevision() && selectionInput.editorialCatalog && selectionInput.editorialCatalog.catalogRevision !== pinnedCatalogRevision())))
     throw new GenerationFailureError("preparation_contract_incompatible", "selection");
   const editorialCatalog = selectionInput.editorialCatalog ?? null;
+  const neutrality = selectionInput.familyNeutrality;
+  if (selectionInput.preservedPhoto && selectionInput.preservedPhoto.url !== requestedPreservedPhoto(input,requestText))
+    throw new GenerationFailureError("preparation_contract_incompatible", "selection");
   const familyFirst = selectionInput.familyRankingVersion === 1;
   const boundedRetrieval = selectionInput.familyRetrievalVersion === 1;
   const recoveryEnabled = selectionInput.familyRecoveryVersion === 1;
@@ -497,7 +504,7 @@ export async function preparePlannedGeneration(
     editorialEnabled ? 6500 : 4500
   );
 
-  const intent = normalizeGenerationIntent(providerIntent, count, factualSourceIds, requestText);
+  const intent = normalizeGenerationIntent(providerIntent, count, factualSourceIds, requestText, neutrality?.planningVersion===2);
   if (
     (editorialEnabled && (!intent.editorial || validateEditorialIntent(intent.editorial, editorialCatalog,
       editorialRequestEvidence({ ...input, executionBrief: executionBrief ?? undefined })).length > 0)) ||
@@ -534,7 +541,7 @@ export async function preparePlannedGeneration(
     id: r.defaultOffer.offerId,
     hash: r.defaultOffer.signature,
   }));
-  const families = familyFirst ? buildFamilySelectionCandidates(eligible, editorialCatalog) : [];
+  const families = familyFirst ? buildFamilySelectionCandidates(eligible, editorialCatalog, Boolean(neutrality)) : [];
   let familyElection: GenerationPlanningReceipt["familyElection"] = familyFirst
     ? { version: 1, candidates: [], ranking: [], shortlistedIds: [] } : undefined;
   const runShortlist: NonNullable<PreparationDeps["shortlist"]> = async params => {
@@ -544,23 +551,23 @@ export async function preparePlannedGeneration(
       familyElection = result.familyElection;
       return result;
     }
-    const visualQuery = args.visualPreference.enabled ? args.visualPreference.language ?? "" : "";
+    const visualQuery = familyVisualQuery(args.visualPreference, selectionInput.familyVisualQueryVersion===2?requestText:"", Boolean(neutrality));
     const query = familySearchQuery(intent, editorialCatalog, visualQuery);
     const retrieval = await deps.operation("family_retrieval", async () => {
-      if (families.length > FAMILY_RETRIEVAL_POLICY.initialFamilies && !semanticIndex) await loadSemanticIndex(editorialCatalog);
+      if (families.length > FAMILY_RETRIEVAL_POLICY.initialFamilies && !semanticIndex) await loadSemanticIndex(editorialCatalog, Boolean(neutrality));
       const pinned = selectionInput.familyRetrievalIndex;
       if (semanticIndex && pinned && (semanticIndex.index.hash !== pinned.hash || semanticIndex.index.modelFingerprint !== pinned.modelFingerprint))
         throw new GenerationFailureError("preparation_contract_incompatible", "selection");
-      return retrieveFamilyCandidates({ families, intent, catalog: editorialCatalog, visualPreference: visualQuery,
+      return retrieveFamilyCandidates({ neutrality, families, intent, catalog: editorialCatalog, visualPreference: visualQuery,
         mixedMedia: args.requestedPhotoMix, semantic: semanticIndex, signal: deps.signal });
     });
     assertFamilyRetrieval(retrieval, families, query);
     const result = await boundedFamilyShortlist({ input: params, families, retrieval, shortlist: deps.shortlist,
       ...(recoveryEnabled ? { recovery: { inspect: (ids: string[], scores: Array<{id: string; score: number; confidence: number}>) => inspectFamilyPlanFit({
-        families, ids, scores, intent, imageObligation, requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: args.recentSelections,
+        neutrality, families, ids, scores, intent, imageObligation, requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: args.recentSelections,
       }) } } : {}),
       sufficient: partial => {
-        if (recoveryEnabled) return inspectFamilyPlanFit({ families, ids: partial.familyElection.shortlistedIds, scores: partial.familyElection.ranking,
+        if (recoveryEnabled) return inspectFamilyPlanFit({ neutrality, families, ids: partial.familyElection.shortlistedIds, scores: partial.familyElection.ranking,
           intent, imageObligation, requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: args.recentSelections }).viableSlots.length === 3;
         const retained = new Set(partial.cards.map(c => c.id));
         const options = eligible.filter(r => retained.has(r.defaultOffer.offerId));
@@ -570,7 +577,7 @@ export async function preparePlannedGeneration(
           const extra = eligible.find(r => mediaCapable(r) === photo && partial.evaluated.some(e => e.id === r.defaultOffer.offerId && e.score >= 2));
           if (extra) options.push(extra);
         }
-        return buildHeuristicGenerationPlan({ familyFirst: true, intent, eligible: options, shortlist: partial,
+        return buildHeuristicGenerationPlan({ neutrality, familyFirst: true, intent, eligible: options, shortlist: partial,
           imageObligation, requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: args.recentSelections }).slots.every(s => s.status === "viable");
       } });
     familyElection = result.familyElection;
@@ -683,7 +690,7 @@ export async function preparePlannedGeneration(
         recordGenerationEvent({ stage: "generation_plan", status: "completed", detail: "deterministic_local", data: { paidEffect: false } });
         return buildHeuristicGenerationPlan({
           familyFirst,
-          intent,
+          neutrality,          intent,
           eligible: offered,
           shortlist,
           imageObligation,
@@ -868,6 +875,7 @@ export async function preparePlannedGeneration(
     visualPreference: args.visualPreference,
     executionBrief,
     imageObligation,
+    ...(selectionInput.preservedPhoto ? {preservedPhoto:selectionInput.preservedPhoto} : {}),
     perProposalImageObligations: args.requestedPhotoMix
       ? slots.map((_, index) => ({
           policy: index < 2 ? "required" : "forbidden",
@@ -921,6 +929,7 @@ export async function replanGenerationSlot(
           shortlist: { cards: [], evaluated: [], batches: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 },
           imageObligation: prepared.perProposalImageObligations?.[slot] ?? prepared.imageObligation,
           slideCount: repertoire.slides.length,
+          neutrality: planning.familyElection?.retrieval?.neutrality,
         });
         recordGenerationEvent({ stage: "generation_plan", status: "completed", detail: "deterministic_local", data: { paidEffect: false, slot, attempt } });
         return { slotPlan: planned.slots[slot] };

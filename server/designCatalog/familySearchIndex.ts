@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
+import { neutralSourceText } from "@shared/familyNeutrality";
 import { arsenalHash } from "@shared/arsenalContent";
 import {
   componentCardV1Schema,
@@ -32,7 +33,8 @@ export interface FamilySearchIndex {
 }
 export function sourceSearchDocument(
   card: ComponentCardV1,
-  catalog: FrozenEditorialCatalog | null
+  catalog: FrozenEditorialCatalog | null,
+  projection: 1 | 2 = 1
 ): SourceSearchDocument {
   const annotation = catalog?.document.designs.find(
     d => d.sourceId === card.id && d.sourceHash === card.hash
@@ -45,7 +47,7 @@ export function sourceSearchDocument(
   // Retrieval describes positive capabilities. Full prohibitions, examples and
   // preservation rules remain in the canonical JEV/planner profiles; including
   // "sem fotografia" as a positive photo match reverses their meaning here.
-  const text = Array.from(
+  const text = projection === 2 ? neutralSourceText(card, catalog) : Array.from(
     new Set(
       [
         card.label,
@@ -77,13 +79,14 @@ export function sourceSearchDocument(
 }
 export function searchDocuments(
   cards: ComponentCardV1[],
-  catalog: FrozenEditorialCatalog | null
+  catalog: FrozenEditorialCatalog | null,
+  projection: 1 | 2 = 1
 ) {
   return cards
     .filter(
       c => c.completeDesign && !c.completeDesign.designGuidance?.carouselVariant
     )
-    .map(c => sourceSearchDocument(c, catalog))
+    .map(c => sourceSearchDocument(c, catalog, projection))
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 /** All text is represented. Segmentation never silently drops the end of a rule. */
@@ -214,20 +217,23 @@ export async function closeSearchEngines() {
 export function searchIndexFile(
   revision: string,
   editorialHash: string | null,
-  directory = ENV.designRetrievalDirectory
+  directory = ENV.designRetrievalDirectory,
+  projection: 1 | 2 = 1
 ) {
   if (!directory) throw new Error("family_retrieval_index_required");
   const key = arsenalHash({
     project: ENV.supabaseUrl,
     revision,
     editorialHash,
+    ...(projection === 2 ? {projection} : {}),
   });
   return join(resolve(directory), "indexes", `${key}.json`);
 }
 export async function readSearchIndex(
   revision: string,
   catalog: FrozenEditorialCatalog | null,
-  directory?: string
+  directory?: string,
+  projection: 1 | 2 = 1
 ) {
   const engine = await searchEngine(directory);
   return {
@@ -235,7 +241,7 @@ export async function readSearchIndex(
     index: validateSearchIndex(
       JSON.parse(
         await readFile(
-          searchIndexFile(revision, catalog?.hash ?? null, directory),
+          searchIndexFile(revision, catalog?.hash ?? null, directory, projection),
           "utf8"
         )
       ),
@@ -246,7 +252,8 @@ export async function readSearchIndex(
 /** Publication prepares immutable revision-specific files. Request handling never builds vectors for the catalogue. */
 export async function prepareCatalogSearchIndex(
   revision: string,
-  directory = ENV.designRetrievalDirectory
+  directory = ENV.designRetrievalDirectory,
+  projection: 1 | 2 = 1
 ) {
   if (!directory) return;
   const [{ readCatalogSnapshot }, { readEditorialCatalog }] = await Promise.all(
@@ -260,8 +267,8 @@ export async function prepareCatalogSearchIndex(
   const cards = snapshot.rows
     .filter(r => ["approved", "draft"].includes(r.design_components.status))
     .map(r => componentCardV1Schema.parse(r.card));
-  const documents = searchDocuments(cards, catalog),
-    file = searchIndexFile(revision, catalog?.hash ?? null, directory);
+  const documents = searchDocuments(cards, catalog, projection),
+    file = searchIndexFile(revision, catalog?.hash ?? null, directory, projection);
   let previous: FamilySearchIndex | undefined;
   try {
     previous = validateSearchIndex(
@@ -279,6 +286,7 @@ export async function prepareCatalogSearchIndex(
   const temporary = `${file}.${randomUUID()}.tmp`;
   await writeFile(temporary, JSON.stringify(index), { mode: 0o600 });
   await rename(temporary, file);
+  if (projection === 1) await prepareCatalogSearchIndex(revision, directory, 2);
   return {
     hash: index.hash,
     sources: index.documents.length,

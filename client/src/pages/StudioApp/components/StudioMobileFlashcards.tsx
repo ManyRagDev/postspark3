@@ -1,3 +1,4 @@
+import {designLabel,savedDesignIdentity} from "@shared/acervo82Identity";
 import { generationAspectRatios, isPortraitRatio, aspectRatioHeight } from "@shared/aspectRatios";
 import { fitPostToAspectRatio } from "@/pages/CanvasLab/lib/guidedComposition";
 import { resolveSlideAppearance } from "@/pages/CanvasLab/lib/slideReplication";
@@ -123,9 +124,9 @@ export default function StudioMobileFlashcards({
             style={{ backgroundColor: currentAppearance.palette.accent }}
           />
           <span className="text-xs font-bold uppercase tracking-wider text-white">
-            {currentAppearance.familyName}
+            {designLabel(currentPost) || currentAppearance.familyName}
           </span>
-          {currentAppearance.familyId === declaredFamilyId ? (
+          {(savedDesignIdentity(currentPost).family ?? currentAppearance.familyId) === declaredFamilyId ? (
             <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-black bg-[oklch(0.78_0.22_48)] px-1.5 py-0.5 rounded-full">
               ✓ Seu gosto
             </span>

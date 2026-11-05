@@ -1,0 +1,423 @@
+[
+  {
+    "family": "Archivo Black",
+    "weight": 400,
+    "sourceUrl": "https://fonts.gstatic.com/s/archivoblack/v23/HTxqL289NzCGg4MzN6KJ7eW6CYyF_g.woff2",
+    "mimeType": "font/woff2",
+    "dataUrl": null,
+    "sha256": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+    "license": "open-source",
+    "file": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30.woff2",
+    "variable": false
+  },
+  {
+    "family": "Inter",
+    "weight": 400,
+    "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2",
+    "mimeType": "font/woff2",
+    "dataUrl": null,
+    "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+    "license": "open-source",
+    "file": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc.woff2",
+    "variable": false
+  },
+  {
+    "family": "Inter",
+    "weight": 700,
+    "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+    "mimeType": "font/woff2",
+    "dataUrl": null,
+    "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+    "license": "open-source",
+    "file": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491.woff2",
+    "variable": false
+  },
+  {
+    "family": "Anton",
+    "weight": 400,
+    "sourceUrl": "https://fonts.gstatic.com/s/anton/v27/1Ptgg87LROyAm3Kz-C8.woff2",
+    "mimeType": "font/woff2",
+    "dataUrl": null,
+    "sha256": "d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+    "license": "open-source",
+    "file": "d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b.woff2",
+    "variable": false
+  },
+  {
+    "family": "Press Start 2P",
+    "weight": 400,
+    "sourceUrl": "https://fonts.gstatic.com/s/pressstart2p/v16/e3t4euO8T-267oIAQAu6jDQyK3nVivM.woff2",
+    "mimeType": "font/woff2",
+    "dataUrl": null,
+    "sha256": "afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548",
+    "license": "open-source",
+    "file": "afec86997fdaf54af1f59358fa2c1e2a0f1d04146edad18e5cd141d0384a7548.woff2",
+    "variable": false
+  },
+  {
+    "family": "Playfair Display",
+    "weight": 600,
+    "sourceUrl": "https://fonts.gstatic.com/s/playfairdisplay/v40/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKebunDXbtM.woff2",
+    "mimeType": "font/woff2",
+    "dataUrl": null,
+    "sha256": "5d2286941a6b02a29387efa94809a064f8917598eafa67b938261cf13bb887cd",
+    "license": "open-source",
+    "file": "5d2286941a6b02a29387efa94809a064f8917598eafa67b938261cf13bb887cd.woff2",
+    "variable": false
+  },
+  {
+    "family": "Archivo",
+    "weight": 700,
+    "sourceUrl": "https://fonts.gstatic.com/s/archivo/v25/k3k6o8UDI-1M0wlSV9XAw6lQkqWY8Q82sJaRE-NWIDdgffTT0zRZ9xdp.woff2",
+    "mimeType": "font/woff2",
+    "dataUrl": null,
+    "sha256": "abada6cd4c92a9a706f6d7ed3189f322ff43dd78b9402c7d1137465b861d2a04",
+    "license": "open-source",
+    "file": "abada6cd4c92a9a706f6d7ed3189f322ff43dd78b9402c7d1137465b861d2a04.woff2",
+    "variable": false
+  },
+  {
+    "family": "Inter",
+    "weight": 500,
+    "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fAZ9hiA.woff2",
+    "mimeType": "font/woff2",
+    "dataUrl": null,
+    "sha256": "f3779f1efccc4bdcdf9c0a02ab95bf6bd092ed09c48c08cedc725889edd1d19f",
+    "license": "open-source",
+    "file": "f3779f1efccc4bdcdf9c0a02ab95bf6bd092ed09c48c08cedc725889edd1d19f.woff2",
+    "variable": false
+  },
+  {
+    "family": "Inter",
+    "weight": 600,
+    "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hiA.woff2",
+    "mimeType": "font/woff2",
+    "dataUrl": null,
+    "sha256": "f9a06e79cd3a2a20951c0f0e28f66dd0e6d3fda73911d640a2125c8fcb78f21a",
+    "license": "open-source",
+    "file": "f9a06e79cd3a2a20951c0f0e28f66dd0e6d3fda73911d640a2125c8fcb78f21a.woff2",
+    "variable": false
+  },
+  {
+    "family": "Space Mono",
+    "weight": 700,
+    "sourceUrl": "https://fonts.gstatic.com/s/spacemono/v17/i7dMIFZifjKcF5UAWdDRaPpZUFWaHg.woff2",
+    "mimeType": "font/woff2",
+    "dataUrl": null,
+    "sha256": "2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+    "license": "open-source",
+    "file": "2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c.woff2",
+    "variable": false
+  },
+  {
+    "family": "Montserrat",
+    "weight": 800,
+    "sourceUrl": "https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCvr73w5aXo.woff2",
+    "mimeType": "font/woff2",
+    "dataUrl": null,
+    "sha256": "ba826fb84c2e961578adf3a08b5778b87905d4443445d1d56d84f9f157d5ea4b",
+    "license": "open-source",
+    "file": "ba826fb84c2e961578adf3a08b5778b87905d4443445d1d56d84f9f157d5ea4b.woff2",
+    "variable": false
+  },
+  {
+    "family": "Space Grotesk",
+    "weight": 400,
+    "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72.ttf",
+    "variable": true
+  },
+  {
+    "family": "Space Grotesk",
+    "weight": 500,
+    "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72.ttf",
+    "variable": true
+  },
+  {
+    "family": "Space Grotesk",
+    "weight": 600,
+    "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72.ttf",
+    "variable": true
+  },
+  {
+    "family": "Space Grotesk",
+    "weight": 700,
+    "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72.ttf",
+    "variable": true
+  },
+  {
+    "family": "Space Grotesk",
+    "weight": 800,
+    "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72.ttf",
+    "variable": true
+  },
+  {
+    "family": "Space Grotesk",
+    "weight": 900,
+    "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72.ttf",
+    "variable": true
+  },
+  {
+    "family": "Bebas Neue",
+    "weight": 400,
+    "sha256": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73.ttf",
+    "variable": false
+  },
+  {
+    "family": "Bebas Neue",
+    "weight": 500,
+    "sha256": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73.ttf",
+    "variable": false
+  },
+  {
+    "family": "Bebas Neue",
+    "weight": 600,
+    "sha256": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73.ttf",
+    "variable": false
+  },
+  {
+    "family": "Bebas Neue",
+    "weight": 700,
+    "sha256": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73.ttf",
+    "variable": false
+  },
+  {
+    "family": "Bebas Neue",
+    "weight": 800,
+    "sha256": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73.ttf",
+    "variable": false
+  },
+  {
+    "family": "Bebas Neue",
+    "weight": 900,
+    "sha256": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73.ttf",
+    "variable": false
+  },
+  {
+    "family": "Plus Jakarta Sans",
+    "weight": 400,
+    "sha256": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8.ttf",
+    "variable": true
+  },
+  {
+    "family": "Plus Jakarta Sans",
+    "weight": 500,
+    "sha256": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8.ttf",
+    "variable": true
+  },
+  {
+    "family": "Plus Jakarta Sans",
+    "weight": 600,
+    "sha256": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8.ttf",
+    "variable": true
+  },
+  {
+    "family": "Plus Jakarta Sans",
+    "weight": 700,
+    "sha256": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8.ttf",
+    "variable": true
+  },
+  {
+    "family": "Plus Jakarta Sans",
+    "weight": 800,
+    "sha256": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8.ttf",
+    "variable": true
+  },
+  {
+    "family": "Plus Jakarta Sans",
+    "weight": 900,
+    "sha256": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8.ttf",
+    "variable": true
+  },
+  {
+    "family": "Cinzel",
+    "weight": 400,
+    "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34.ttf",
+    "variable": true
+  },
+  {
+    "family": "Cinzel",
+    "weight": 500,
+    "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34.ttf",
+    "variable": true
+  },
+  {
+    "family": "Cinzel",
+    "weight": 600,
+    "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34.ttf",
+    "variable": true
+  },
+  {
+    "family": "Cinzel",
+    "weight": 700,
+    "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34.ttf",
+    "variable": true
+  },
+  {
+    "family": "Cinzel",
+    "weight": 800,
+    "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34.ttf",
+    "variable": true
+  },
+  {
+    "family": "Cinzel",
+    "weight": 900,
+    "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34.ttf",
+    "variable": true
+  },
+  {
+    "family": "Syne",
+    "weight": 400,
+    "sha256": "ce5ac77142a65cab2248a1a2ebb740b1d4d9c20b52488877d3ff664d1356104a",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "ce5ac77142a65cab2248a1a2ebb740b1d4d9c20b52488877d3ff664d1356104a.ttf",
+    "variable": true
+  },
+  {
+    "family": "Syne",
+    "weight": 500,
+    "sha256": "ce5ac77142a65cab2248a1a2ebb740b1d4d9c20b52488877d3ff664d1356104a",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "ce5ac77142a65cab2248a1a2ebb740b1d4d9c20b52488877d3ff664d1356104a.ttf",
+    "variable": true
+  },
+  {
+    "family": "Syne",
+    "weight": 600,
+    "sha256": "ce5ac77142a65cab2248a1a2ebb740b1d4d9c20b52488877d3ff664d1356104a",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "ce5ac77142a65cab2248a1a2ebb740b1d4d9c20b52488877d3ff664d1356104a.ttf",
+    "variable": true
+  },
+  {
+    "family": "Syne",
+    "weight": 700,
+    "sha256": "ce5ac77142a65cab2248a1a2ebb740b1d4d9c20b52488877d3ff664d1356104a",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "ce5ac77142a65cab2248a1a2ebb740b1d4d9c20b52488877d3ff664d1356104a.ttf",
+    "variable": true
+  },
+  {
+    "family": "Syne",
+    "weight": 800,
+    "sha256": "ce5ac77142a65cab2248a1a2ebb740b1d4d9c20b52488877d3ff664d1356104a",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "ce5ac77142a65cab2248a1a2ebb740b1d4d9c20b52488877d3ff664d1356104a.ttf",
+    "variable": true
+  },
+  {
+    "family": "Syne",
+    "weight": 900,
+    "sha256": "ce5ac77142a65cab2248a1a2ebb740b1d4d9c20b52488877d3ff664d1356104a",
+    "sourceUrl": null,
+    "mimeType": "font/ttf",
+    "license": "open-source",
+    "file": "ce5ac77142a65cab2248a1a2ebb740b1d4d9c20b52488877d3ff664d1356104a.ttf",
+    "variable": true
+  }
+]

@@ -1,3 +1,4 @@
+import {familyTie} from "@shared/familyNeutrality";
 import { arsenalHash } from "@shared/arsenalContent";
 import type { FamilySelectionCandidate } from "@shared/designFamilySelection";
 import type { FamilyRetrievalReceipt } from "@shared/familyRetrieval";
@@ -32,6 +33,7 @@ export async function boundedFamilyShortlist(args: {
 }): Promise<Result> {
   const { input, families, shortlist } = args;
   const retrieval = structuredClone(args.retrieval);
+  const tie=retrieval.neutrality ? (id:string)=>familyTie(retrieval.neutrality!.seed,families.find(f=>f.id===id)!.family) : undefined;
   const budget = {
     maxRequestBytes: policy.maxRequestBytes,
     maxTotalRequestBytes: policy.maxTotalRequestBytes,
@@ -51,7 +53,7 @@ export async function boundedFamilyShortlist(args: {
   let recovery: ReturnType<typeof planFamilyRecovery> | undefined;
   const aggregate = (): Result => {
     const selected = new Set([
-      ...normalFamilyIds(Array.from(familyScores.values())),
+      ...normalFamilyIds(Array.from(familyScores.values()),tie),
       ...(recovery?.recoveredIds ?? []),
     ]);
     const memberIds = new Set(
@@ -121,7 +123,7 @@ export async function boundedFamilyShortlist(args: {
   if (args.recovery) {
     const scores = Array.from(familyScores.values());
     recovery = planFamilyRecovery(scores, ids =>
-      args.recovery!.inspect(ids, scores)
+      args.recovery!.inspect(ids, scores), tie
     );
   }
   return aggregate();

@@ -92,7 +92,8 @@ export function normalizeGenerationIntent(
   intent: GenerationIntent,
   slideCount: number,
   factualSourceIds: ReadonlySet<string>,
-  requestText: string
+  requestText: string,
+  recognizeWrittenPageCount = false
 ): GenerationIntent {
   return {
     ...intent,
@@ -106,13 +107,15 @@ export function normalizeGenerationIntent(
       // Providers can quote the surrounding sentence as well as "5 slides".
       // Only an attributable, unambiguous page count may be normalized; counts
       // of content items and conflicting/unquoted format counts remain errors.
-      const pages = Array.from(requestQuote?.matchAll(
-        /\b(\d+)\s+(?:slides?|lâminas?|páginas?|telas?)\b/gi
-      ) ?? []);
+      const spoken: Record<string,number>={um:1,uma:1,dois:2,duas:2,três:3,quatro:4,cinco:5,seis:6,sete:7,oito:8,nove:9,dez:10};
+      const matcher=recognizeWrittenPageCount
+        ? /(?:^|\s)(\d+|um|uma|dois|duas|três|quatro|cinco|seis|sete|oito|nove|dez)\s+(?:slides?|lâminas?|páginas?|telas?)\b/gi
+        : /\b(\d+)\s+(?:slides?|lâminas?|páginas?|telas?)\b/gi;
+      const pages=Array.from(requestQuote?.matchAll(matcher)??[],page=>spoken[page[1].toLowerCase()]??Number(page[1]));
       const itemCount = slideCount > 1 && requestQuote &&
         comparableQuote(requestText).includes(comparableQuote(requestQuote)) &&
         requirement.itemCount === slideCount && pages.length > 0 &&
-        pages.every(page => Number(page[1]) === slideCount)
+        pages.every(page => page === slideCount)
         ? null : requirement.itemCount;
       return { ...requirement, requestQuote, itemCount };
     }),

@@ -1,3 +1,4 @@
+import {designLabel,savedDesignIdentity} from "@shared/acervo82Identity";
 import { generationAspectRatios, isPortraitRatio, aspectRatioHeight } from "@shared/aspectRatios";
 import { fitPostToAspectRatio } from "@/pages/CanvasLab/lib/guidedComposition";
 import { resolveSlideAppearance } from "@/pages/CanvasLab/lib/slideReplication";
@@ -182,11 +183,11 @@ export default function StudioGalleryView({
                       style={{ backgroundColor: appearance.palette.accent }}
                     />
                     <span className="text-xs font-bold text-white tracking-wide">
-                      {appearance.familyName}
+                      {designLabel(item) || appearance.familyName}
                     </span>
                   </div>
                   <span className="text-[10px] font-mono text-white/40 uppercase">
-                    {appearance.familyId === declaredFamilyId ? (
+                    {(savedDesignIdentity(item).family ?? appearance.familyId) === declaredFamilyId ? (
                       <span className="text-[oklch(0.78_0.22_48)]">✓ Seu gosto · Opção {optionNumber}</span>
                     ) : (
                       <>Opção {optionNumber}</>

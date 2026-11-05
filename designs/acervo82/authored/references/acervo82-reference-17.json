@@ -1,0 +1,272 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-17",
+  "sourceRecipeHash": "d70f946b389ae8b590ac5ca97160d5494da6c85a183b753b7e266317f15c3068",
+  "previousReferenceId": "cbb2b5fd83ed04a8bd24e7f049be0a01",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "d16a15f4-3011-49b2-9e6a-0eb75576afb7",
+    "title": "Caos no escritório — fotografia integral",
+    "createdAt": "2026-09-30T23:43:25.547Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 736,
+        "heightPx": 1103,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "934e05a35a05736028d49e8aa7200dfea6614fb7b54225dbe04db56af24bc365"
+      },
+      "artboard": {
+        "background": "#184C54"
+      },
+      "layers": [
+        {
+          "id": "office-chaos-slot",
+          "kind": "rect",
+          "role": "Fotografia integral: pessoa e objetos em escritório",
+          "zIndex": 0,
+          "x": 0,
+          "y": 0,
+          "width": 736,
+          "height": 1103,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#A8A8A8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "spark-shape",
+          "kind": "polygon",
+          "role": "decoration",
+          "zIndex": 1,
+          "x": 660,
+          "y": 1032,
+          "width": 48,
+          "height": 48,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#B9D9D9",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            24,
+            0,
+            32,
+            16,
+            48,
+            24,
+            32,
+            32,
+            24,
+            48,
+            16,
+            32,
+            0,
+            24,
+            16,
+            16
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "optional-caption",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 2,
+          "x": 40,
+          "y": 960,
+          "width": 600,
+          "height": 60,
+          "text": "Legenda opcional",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 32,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 0,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Inter",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [
+      {
+        "description": "Cena fotográfica com objetos em suspensão",
+        "reason": "Original não incorporado. Slot vazio integral requer fotografia fornecida pelo usuário; não há uma reconstrução vetorial da cena.",
+        "box": null,
+        "role": "hero",
+        "essential": true
+      }
+    ],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Referência sem título, legendas ou tarjas: a composição inteira é uma fotografia e foi convertida em um único slot integral.",
+      "Papéis, xícara, pessoa e objetos suspensos pertencem à foto. Não foram inventadas camadas de texto ou objetos vetoriais para estes detalhes.",
+      "Símbolo de brilho inferior direito aproximado em vetor. A matriz exige uma fotografia de composição equivalente para recuperar a cena.",
+      "Contrato V3 exige ao menos um campo textual: legenda técnica com opacidade zero foi incluída. Esta legenda não vem da referência e não aparece na composição."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "office-chaos-slot",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "spark-shape",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "optional-caption",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "office-chaos-group",
+          "label": "Fotografia integral: pessoa e objetos em escritório",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "office-chaos-slot"
+            }
+          ]
+        },
+        {
+          "id": "spark",
+          "label": "Brilho decorativo inferior",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 660,
+              "y": 1032,
+              "rotationDeg": 0,
+              "layerId": "spark-shape"
+            }
+          ]
+        },
+        {
+          "id": "optional-caption",
+          "label": "Legenda técnica oculta",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 40,
+              "y": 960,
+              "rotationDeg": 0,
+              "layerId": "optional-caption"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "optional-caption",
+          "label": "Legenda opcional (invisível por padrão)",
+          "kind": "text",
+          "groupId": "optional-caption",
+          "layerIds": [
+            "optional-caption"
+          ],
+          "baseFontSizes": [
+            32
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        }
+      ],
+      "media": [
+        {
+          "id": "office-chaos",
+          "label": "Fotografia integral: pessoa e objetos em escritório",
+          "groupId": "office-chaos-group",
+          "layerId": "office-chaos-slot",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        }
+      ]
+    }
+  }
+}

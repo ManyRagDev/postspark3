@@ -109,6 +109,9 @@ export const selectionInputReceiptSchema = z
     shortlistContextEncoding: z.literal(1).optional(),
     shortlistProfileEncoding: z.literal("repertoire_pages_v1").optional(),
     familyRankingVersion: z.literal(1).optional(),
+    familyVisualQueryVersion: z.literal(2).optional(),
+    preservedPhoto: z.object({version:z.literal(1),url:z.string().regex(/^\/api\/post-media\/[a-f0-9-]{36}\/[a-f0-9]{64}$/i)}).strict().optional(),
+    familyNeutrality: z.object({version:z.literal(1),seed:z.string().min(1),planningVersion:z.literal(2).optional()}).strict().optional(),
     familyRetrievalVersion: z.literal(1).optional(),
     familyRecoveryVersion: z.literal(1).optional(),
     familyRetrievalIndex: z.object({ hash: z.string(), modelFingerprint: z.string() }).strict().optional(),
@@ -141,6 +144,7 @@ export interface PreparedGeneration {
   visualPreference: ReturnType<typeof effectiveStudioPreferences>;
   executionBrief: ReturnType<typeof normalizeExecutionBrief> | null;
   imageObligation: ImageObligation;
+  preservedPhoto?: {version:1;url:string};
   perProposalImageObligations?: ImageObligation[];
 }
 export interface PreparationDeps {

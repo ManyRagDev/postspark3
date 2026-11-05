@@ -167,7 +167,7 @@ export const arsenalTextFragmentSchema = z.object({
 });
 export type ArsenalTextFragment = z.infer<typeof arsenalTextFragmentSchema>;
 
-export const arsenalPieceSchema = z
+const arsenalPieceObjectSchema = z
   .object({
     kind: z.enum(["text", "rect", "line", "polygon", "media"]),
     fill: color,
@@ -186,11 +186,17 @@ export const arsenalPieceSchema = z
     fixedTextRole: z.literal("ornament").optional(),
     /** Verified immutable raster layer, distinct from a generated photo slot. */
     imageAssetId: id.optional(),
+    /** Authored crop at the artboard edge. Content text must remain inside. */
+    artboardBleed: z.literal(true).optional(),
     contentFragment: arsenalContentFragmentSchema.optional(),
     textFragments: z.array(arsenalTextFragmentSchema).max(100).optional(),
     extrusion: z.object({ color, offsetX: n, offsetY: n, steps: n.int().min(1).max(100) }).strict().optional(),
   })
   .strict();
+export const arsenalPieceSchema = arsenalPieceObjectSchema.superRefine((piece, ctx) => {
+    if (piece.artboardBleed && piece.kind !== "media" && !(piece.kind === "text" && piece.fixedTextRole === "ornament"))
+      ctx.addIssue({code:"custom",message:"Sangria permitida apenas para mídia ou texto ornamental fixo"});
+  });
 export type PieceDefinitionV2 = z.infer<typeof arsenalPieceSchema>;
 export const arsenalInstanceSchema = z
   .object({
@@ -526,7 +532,7 @@ export function orderArsenalRelations(
 
 export const arsenalResolvedElementSchema = arsenalInstanceSchema
   .omit({ pieceHash: true })
-  .extend(arsenalPieceSchema.shape)
+  .extend(arsenalPieceObjectSchema.shape)
   .extend({
     text: z.string(),
     bindingId: id.nullable(),

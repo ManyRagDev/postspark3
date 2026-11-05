@@ -3,7 +3,7 @@ import type { SourceRecord } from "./inventory";
 
 export const AUTHORING_VERSION = "component-reference-authoring-v2-native-lists";
 type Role = "headline" | "body" | "eyebrow" | "sectionLabel" | "callToAction" | "label";
-export type Unit = { role: Role; fields: string[]; kind?: "text" | "list"; cardinality?: { min: number; max: number }; prefix?: string };
+export type Unit = { role: Role; fields: string[]; kind?: "text" | "list"; cardinality?: { min: number; max: number }; prefix?: string; required?: boolean };
 export type AuthoredUnit = Unit & { kind: "text" | "list"; source: string; layerIds: string[]; weights: number[]; sampleText: string; sampleItems?: string[]; minScale: number; required: boolean };
 const u = (role: Role, fields: string): Unit => ({ role, fields: fields.split(" ") });
 /** Authored per reference: field names alone do not establish semantic responsibility. */
@@ -60,7 +60,7 @@ export function authorRecipe(record: SourceRecord, recipe: RecreationRecipe, exp
     return { ...unit, kind, prefix, source: `block:${sourceRole}:${index}:${kind === "list" ? "items" : "text"}`, layerIds,
       weights: layers.map(l => Math.max(1, l.text?.trim().split(/\s+/).length ?? 1)),
       sampleText: layers.map(l => l.text ?? "").join(" "), minScale: Math.min(...fields.map(f => f.minScale)),
-      ...(sampleItems ? {sampleItems} : {}), required: unit.role === "headline" || kind === "list" && (unit.cardinality?.min ?? 0) > 0 };
+      ...(sampleItems ? {sampleItems} : {}), required: unit.required ?? (unit.role === "headline" || kind === "list" && (unit.cardinality?.min ?? 0) > 0) };
   });
   const covered = new Set(authored.flatMap(unit => unit.layerIds));
   // Unbound decorative glyphs stay explicit ornament; every other text is authored, never silently copied.

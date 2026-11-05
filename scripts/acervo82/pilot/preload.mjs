@@ -12,21 +12,28 @@ import { writeJson } from "../../../server/benchmarks/generationMatrix/journal.t
 const filename = process.env.POSTSPARK_ACERVO82_PILOT_CONFIG;
 if (!filename) throw new Error("pilot_config_required");
 const config = JSON.parse(await readFile(filename, "utf8"));
+const full = config.authorization === "user-authorized-acervo82-full";
+const campaignId = full ? "acervo82-full" : "acervo82-pilot";
+const maxCalls = full ? 240 : 120, maxAdmissions = full ? 12 : 5;
 if (
-  config.authorization !== "user-authorized-acervo82-pilot" ||
-  config.maxUsd !== 10 ||
-  config.maxCalls !== 120
-)
-  throw new Error("pilot_authorization_or_limits_invalid");
+  (!full && config.authorization !== "user-authorized-acervo82-pilot") ||
+  config.maxUsd !== 10 || config.maxCalls !== maxCalls ||
+  (full && (config.session !== "full-catalog-01" || config.maxAdmissions !== 12 || !config.identity || !config.indexHash))
+) throw new Error("acervo82_authorization_or_limits_invalid");
+if(full){
+  const staged=JSON.parse(await readFile("artifacts/acervo82/full/staged.json","utf8"));
+  if(staged.sources!==82||staged.revision!==config.revision||staged.identity!==config.identity||staged.indexHash!==config.indexHash)
+    throw new Error("acervo82_catalog_scope_invalid");
+}
 if (
   (await localPipelineFingerprint(config.rendererPath)) !== config.pipelineHash
 )
   throw new Error("pilot_pipeline_changed_reconfigure_before_running");
 const { budget, quotes } = await openSharedBudget({
   file: config.budgetFile,
-  campaignId: "acervo82-pilot",
+  campaignId,
   maxUsd: 10,
-  maxCalls: 120,
+  maxCalls,
   live: true,
 });
 const allowed = new URL(config.supabaseUrl);
@@ -53,8 +60,9 @@ installMatrixTransport(budget, new Map(quotes.map(q => [q.id, q])), {
         const state = await readSharedBudget(config.budgetFile);
         state.pilotRequests ??= [];
         if (!state.pilotRequests.includes(b.p_id)) {
-          if (state.pilotRequests.length >= 5)
-            throw new Error("pilot_five_request_limit");
+          const reservedOrSpent=state.calls.reduce((n,call)=>n+(call.actualUsd??call.reservedUsd),0);
+          if (state.pilotRequests.length >= maxAdmissions || state.calls.length >= maxCalls || reservedOrSpent >= 10 || state.interruption)
+            throw new Error("acervo82_session_budget_exhausted");
           state.pilotRequests.push(b.p_id);
           await writeJson(config.budgetFile, state);
         }
@@ -63,9 +71,9 @@ installMatrixTransport(budget, new Map(quotes.map(q => [q.id, q])), {
     return true;
   },
   context: async payload => ({
-    operation: `acervo82-pilot:${getGenerationTrace()?.id ?? "visual-review"}:${randomUUID()}`,
+    operation: `${campaignId}:${getGenerationTrace()?.id ?? "visual-review"}:${randomUUID()}`,
     metadata: {
-      phase: "acervo82-pilot",
+      phase: campaignId,
       generationRequestId: getGenerationTrace()?.id ?? "",
       payloadHash: createHash("sha256")
         .update(JSON.stringify(payload))

@@ -77,12 +77,22 @@ function SlotImage({
         height: e.height / scale,
       }
     : undefined;
+  const radius = Math.min(e.cornerRadius, e.width / 2, e.height / 2);
   return (
-    <Group>
+    <Group clipFunc={radius > 0 ? context => {
+      context.beginPath();
+      context.moveTo(radius, 0);
+      context.arcTo(e.width, 0, e.width, e.height, radius);
+      context.arcTo(e.width, e.height, 0, e.height, radius);
+      context.arcTo(0, e.height, 0, 0, radius);
+      context.arcTo(0, 0, e.width, 0, radius);
+      context.closePath();
+    } : undefined}>
       <Rect
         width={e.width}
         height={e.height}
-        fill={e.fill}
+        cornerRadius={radius}
+        fill={e.imageAssetId ? undefined : e.fill}
         listening={interactive}
         onClick={() => onSelect(e.id)}
         onTap={() => onSelect(e.id)}
@@ -111,6 +121,7 @@ function SlotImage({
           width={e.width}
           height={e.height}
           stroke={e.stroke}
+          cornerRadius={radius}
           strokeWidth={e.strokeWidth}
           listening={false}
         />

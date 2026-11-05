@@ -425,7 +425,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    listSummary: protectedProcedure.input(z.object({limit:z.number().int().min(1).max(50).default(20),offset:z.number().int().min(0).default(0)}).optional()).query(({ctx,input})=>getUserPostSummaries(ctx.user.id,input?.limit,input?.offset)),
+    listSummary: protectedProcedure.input(z.object({limit:z.number().int().min(1).max(50).default(20),offset:z.number().int().min(0).default(0),search:z.string().max(120).optional()}).optional()).query(({ctx,input})=>getUserPostSummaries(ctx.user.id,input?.limit,input?.offset,input?.search)),
     /** List user's posts */
     list: protectedProcedure.query(async ({ ctx }) => {
       return getUserPosts(ctx.user.id);

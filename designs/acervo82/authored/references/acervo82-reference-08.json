@@ -1,0 +1,994 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-08",
+  "sourceRecipeHash": "1693e070ea0960aee936fa85fdea25d9150db734012a0690225066fe62ac3584",
+  "previousReferenceId": "6da56cf3eb349b1ef42ab98eaf610f05",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "2b85a521-dfb2-4bf7-a179-3a6745562ae7",
+    "title": "Why do you actually exist? — pergunta editorial",
+    "createdAt": "2026-09-30T23:43:25.526Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 736,
+        "heightPx": 920,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "c7ef2ad21a65e564d2e0fdc117f4551aa681305a9f97228c4288fefb70e3afc6"
+      },
+      "artboard": {
+        "background": "#F4F5F9"
+      },
+      "layers": [
+        {
+          "id": "circulo",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 0,
+          "x": 320,
+          "y": 110,
+          "width": 95,
+          "height": 95,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F4F5F9",
+          "strokeColor": "#474A4C",
+          "strokeWidth": 2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "indice",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 1,
+          "x": 332,
+          "y": 129,
+          "width": 70,
+          "height": 61,
+          "text": "01",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 53,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "realce",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 2,
+          "x": 423,
+          "y": 238,
+          "width": 130,
+          "height": 80,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#E98963",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "titulo-abertura",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 3,
+          "x": 187,
+          "y": 236,
+          "width": 235,
+          "height": 84,
+          "text": "Why Do",
+          "fontFamily": "Anton",
+          "fontWeight": 400,
+          "fontSize": 78,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "titulo-enfase",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 4,
+          "x": 430,
+          "y": 236,
+          "width": 124,
+          "height": 84,
+          "text": "You",
+          "fontFamily": "Anton",
+          "fontWeight": 400,
+          "fontSize": 78,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "titulo-pergunta",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 5,
+          "x": 141,
+          "y": 326,
+          "width": 457,
+          "height": 86,
+          "text": "Actually Exist?",
+          "fontFamily": "Anton",
+          "fontWeight": 400,
+          "fontSize": 76,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "ponto-realce-1",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 6,
+          "x": 417,
+          "y": 233,
+          "width": 12,
+          "height": 12,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#ED520F",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "ponto-realce-2",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 7,
+          "x": 547,
+          "y": 311,
+          "width": 12,
+          "height": 12,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#ED520F",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "abertura",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 8,
+          "x": 175,
+          "y": 451,
+          "width": 420,
+          "height": 37,
+          "text": "Not “what do you sell” — that’s easy.",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 22,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "corpo-1",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 9,
+          "x": 175,
+          "y": 496,
+          "width": 428,
+          "height": 22.66,
+          "text": "I want to know: What’s the reason you",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 22,
+          "lineHeight": 1.03,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "corpo-1-line-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 10,
+          "x": 175,
+          "y": 518.66,
+          "width": 428,
+          "height": 22.66,
+          "text": "wake up and do this?",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 22,
+          "lineHeight": 1.03,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "corpo-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 11,
+          "x": 175,
+          "y": 563,
+          "width": 423,
+          "height": 22.66,
+          "text": "This isn’t fluffy. It’s the anchor for",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 22,
+          "lineHeight": 1.03,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "corpo-2-line-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 12,
+          "x": 175,
+          "y": 585.66,
+          "width": 423,
+          "height": 22.66,
+          "text": "everything else.",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 22,
+          "lineHeight": 1.03,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "lista-1",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 13,
+          "x": 175,
+          "y": 631,
+          "width": 430,
+          "height": 24,
+          "text": "- Unlocks your purpose",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 22,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "lista-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 14,
+          "x": 175,
+          "y": 654,
+          "width": 430,
+          "height": 24,
+          "text": "- Defines your vision",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 22,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "lista-3",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 15,
+          "x": 175,
+          "y": 677,
+          "width": 430,
+          "height": 24,
+          "text": "- Reveals your core motivation",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 22,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "citacao",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 16,
+          "x": 151,
+          "y": 717,
+          "width": 453,
+          "height": 23.1,
+          "text": "“ Because if you don’t know why you’re",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 22,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BD4D16",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "citacao-line-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 17,
+          "x": 151,
+          "y": 740.1,
+          "width": 453,
+          "height": 23.1,
+          "text": "here, neither will your audience. ”",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 22,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BD4D16",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Inter",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+          "license": "open-source"
+        },
+        {
+          "family": "Anton",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/anton/v27/1Ptgg87LROyAm3Kz-C8.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [
+      {
+        "description": "Grade pontilhada fina no papel",
+        "reason": "Textura repetitiva foi omitida em favor da hierarquia tipográfica.",
+        "box": null,
+        "role": "texture",
+        "essential": false
+      }
+    ],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Grade de pontos omitida como textura; círculo e realce recriados em vetor.",
+      "Título dividido em três campos para preservar a ênfase de YOU.",
+      "Lista permite de um a três itens; corpo e geometria permanecem fixos após substituir conteúdo.",
+      "Marcadores de lista usam hífen, pois o arquivo local da fonte não inclui a seta original.",
+      "Campos multiline convertidos em listas de camadas por linha para permitir compilação no-op: corpo-1, corpo-2, citacao."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "circulo",
+          "cornerRadiusPx": 48,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "indice",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "realce",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "titulo-abertura",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "titulo-enfase",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "titulo-pergunta",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "ponto-realce-1",
+          "cornerRadiusPx": 6,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "ponto-realce-2",
+          "cornerRadiusPx": 6,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "abertura",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "corpo-1",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "corpo-1-line-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "corpo-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "corpo-2-line-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "lista-1",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "lista-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "lista-3",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "citacao",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "citacao-line-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "numero",
+          "label": "Índice da série",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 320,
+              "y": 110,
+              "rotationDeg": 0,
+              "layerId": "circulo"
+            },
+            {
+              "x": 332,
+              "y": 129,
+              "rotationDeg": 0,
+              "layerId": "indice"
+            }
+          ]
+        },
+        {
+          "id": "titulo",
+          "label": "Pergunta e realce",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 423,
+              "y": 238,
+              "rotationDeg": 0,
+              "layerId": "realce"
+            },
+            {
+              "x": 187,
+              "y": 236,
+              "rotationDeg": 0,
+              "layerId": "titulo-abertura"
+            },
+            {
+              "x": 430,
+              "y": 236,
+              "rotationDeg": 0,
+              "layerId": "titulo-enfase"
+            },
+            {
+              "x": 141,
+              "y": 326,
+              "rotationDeg": 0,
+              "layerId": "titulo-pergunta"
+            },
+            {
+              "x": 417,
+              "y": 233,
+              "rotationDeg": 0,
+              "layerId": "ponto-realce-1"
+            },
+            {
+              "x": 547,
+              "y": 311,
+              "rotationDeg": 0,
+              "layerId": "ponto-realce-2"
+            }
+          ]
+        },
+        {
+          "id": "conteudo",
+          "label": "Explicação e lista",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 175,
+              "y": 451,
+              "rotationDeg": 0,
+              "layerId": "abertura"
+            },
+            {
+              "x": 175,
+              "y": 496,
+              "rotationDeg": 0,
+              "layerId": "corpo-1"
+            },
+            {
+              "x": 175,
+              "y": 518.66,
+              "rotationDeg": 0,
+              "layerId": "corpo-1-line-2"
+            },
+            {
+              "x": 175,
+              "y": 563,
+              "rotationDeg": 0,
+              "layerId": "corpo-2"
+            },
+            {
+              "x": 175,
+              "y": 585.66,
+              "rotationDeg": 0,
+              "layerId": "corpo-2-line-2"
+            },
+            {
+              "x": 175,
+              "y": 631,
+              "rotationDeg": 0,
+              "layerId": "lista-1"
+            },
+            {
+              "x": 175,
+              "y": 654,
+              "rotationDeg": 0,
+              "layerId": "lista-2"
+            },
+            {
+              "x": 175,
+              "y": 677,
+              "rotationDeg": 0,
+              "layerId": "lista-3"
+            }
+          ]
+        },
+        {
+          "id": "frase",
+          "label": "Citação final",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 151,
+              "y": 717,
+              "rotationDeg": 0,
+              "layerId": "citacao"
+            },
+            {
+              "x": 151,
+              "y": 740.1,
+              "rotationDeg": 0,
+              "layerId": "citacao-line-2"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "indice",
+          "label": "Indice",
+          "kind": "text",
+          "groupId": "numero",
+          "layerIds": [
+            "indice"
+          ],
+          "baseFontSizes": [
+            53
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "titulo-abertura",
+          "label": "Titulo abertura",
+          "kind": "text",
+          "groupId": "titulo",
+          "layerIds": [
+            "titulo-abertura"
+          ],
+          "baseFontSizes": [
+            78
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "titulo-enfase",
+          "label": "Titulo enfase",
+          "kind": "text",
+          "groupId": "titulo",
+          "layerIds": [
+            "titulo-enfase"
+          ],
+          "baseFontSizes": [
+            78
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "titulo-pergunta",
+          "label": "Titulo pergunta",
+          "kind": "text",
+          "groupId": "titulo",
+          "layerIds": [
+            "titulo-pergunta"
+          ],
+          "baseFontSizes": [
+            76
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "abertura",
+          "label": "Abertura",
+          "kind": "text",
+          "groupId": "conteudo",
+          "layerIds": [
+            "abertura"
+          ],
+          "baseFontSizes": [
+            22
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "corpo-1",
+          "label": "Corpo 1",
+          "kind": "list",
+          "groupId": "conteudo",
+          "layerIds": [
+            "corpo-1",
+            "corpo-1-line-2"
+          ],
+          "baseFontSizes": [
+            22,
+            22
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "corpo-2",
+          "label": "Corpo 2",
+          "kind": "list",
+          "groupId": "conteudo",
+          "layerIds": [
+            "corpo-2",
+            "corpo-2-line-2"
+          ],
+          "baseFontSizes": [
+            22,
+            22
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "beneficios",
+          "label": "Benefícios",
+          "kind": "list",
+          "groupId": "conteudo",
+          "layerIds": [
+            "lista-1",
+            "lista-2",
+            "lista-3"
+          ],
+          "baseFontSizes": [
+            22,
+            22,
+            22
+          ],
+          "minScale": 0.7,
+          "prefix": "- "
+        },
+        {
+          "id": "citacao",
+          "label": "Citacao",
+          "kind": "list",
+          "groupId": "frase",
+          "layerIds": [
+            "citacao",
+            "citacao-line-2"
+          ],
+          "baseFontSizes": [
+            22,
+            22
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        }
+      ],
+      "media": []
+    }
+  }
+}

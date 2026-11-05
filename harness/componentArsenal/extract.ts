@@ -22,7 +22,7 @@ export type ComponentPackage = {
   status:"draft"; automaticGenerationEligible:false; sourceSnapshot:{recipe:RecreationRecipe;previewPath:string};
   components:ComponentDefinitionV1[];
   assetFiles:Array<Omit<AssetFile,"bytes">>;
-  authorship:{version:string;units:ReturnType<typeof authorRecipe>;limitations:string[];semanticSamples?:SemanticPreview[];formatAdaptations?:FormatAdaptation[]};
+  authorship:{version:string;units:ReturnType<typeof authorRecipe>;limitations:string[];semanticSamples?:SemanticPreview[];formatAdaptations?:FormatAdaptation[];nativeSample?:import("../../shared/variableContent").VariableContent};
 };
 const UUID = (seed:string) => { const h=sha256(seed);return `${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-8${h.slice(17,20)}-${h.slice(20,32)}`; };
 export function nativeAspectRatio(width: number, height: number): ResolvedVariantDefinitionV2["aspectRatio"] {

@@ -1,0 +1,640 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-23",
+  "sourceRecipeHash": "da22e3e346dc749f7f9b1e5c31a5c2b17d7caa9de4045531279950920362ba63",
+  "previousReferenceId": "fae145a59682736bc7033d7b60b4bb3c",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "2f93b875-6705-4fcd-aaa4-43d32222955a",
+    "title": "Contraste editorial — Seu negócio",
+    "createdAt": "2026-09-30T23:43:25.563Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 1200,
+        "heightPx": 1500,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "f523e0f4bde6f05eabd102f4642f27e96d122f6a3dfbaa45bfa20d1c41c91b09"
+      },
+      "artboard": {
+        "background": "#756E61"
+      },
+      "layers": [
+        {
+          "id": "photo",
+          "kind": "rect",
+          "role": "Fotografia — inserir no Admin2",
+          "zIndex": 0,
+          "x": 0,
+          "y": 0,
+          "width": 1200,
+          "height": 1500,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#787567",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "seu",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 1,
+          "x": 140,
+          "y": 244,
+          "width": 560,
+          "height": 165,
+          "text": "SEU",
+          "fontFamily": "Playfair Display",
+          "fontWeight": 600,
+          "fontSize": 146,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "blue1",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 2,
+          "x": 145,
+          "y": 421,
+          "width": 540,
+          "height": 157,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#123FD0",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "blue2",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 3,
+          "x": 145,
+          "y": 583,
+          "width": 385,
+          "height": 156,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#123FD0",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "nego",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 4,
+          "x": 149,
+          "y": 411,
+          "width": 538,
+          "height": 173,
+          "text": "NEGÓ",
+          "fontFamily": "Playfair Display",
+          "fontWeight": 600,
+          "fontSize": 145,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "cio",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 5,
+          "x": 149,
+          "y": 574,
+          "width": 382,
+          "height": 173,
+          "text": "CIO",
+          "fontFamily": "Playfair Display",
+          "fontWeight": 600,
+          "fontSize": 145,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "blue3",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 6,
+          "x": 137,
+          "y": 750,
+          "width": 450,
+          "height": 47,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#123FD0",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "nao",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 7,
+          "x": 146,
+          "y": 752,
+          "width": 434,
+          "height": 54,
+          "text": "NÃO É FRACO",
+          "fontFamily": "Playfair Display",
+          "fontWeight": 600,
+          "fontSize": 37,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "lime-label",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 8,
+          "x": 576,
+          "y": 993,
+          "width": 430,
+          "height": 91,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#D9F075",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "ele",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 9,
+          "x": 620,
+          "y": 1003,
+          "width": 345,
+          "height": 81,
+          "text": "ele só",
+          "fontFamily": "Playfair Display",
+          "fontWeight": 600,
+          "fontSize": 68,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#202020",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "parece",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 10,
+          "x": 240,
+          "y": 1082,
+          "width": 786,
+          "height": 230,
+          "text": "parece",
+          "fontFamily": "Playfair Display",
+          "fontWeight": 600,
+          "fontSize": 190,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#143FDA",
+          "strokeColor": "#FFFFFF",
+          "strokeWidth": 8,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": {
+            "color": "#09289D",
+            "offsetX": 8,
+            "offsetY": 12,
+            "steps": 8
+          },
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Playfair Display",
+          "weight": 600,
+          "sourceUrl": "https://fonts.gstatic.com/s/playfairdisplay/v40/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKebunDXbtM.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "5d2286941a6b02a29387efa94809a064f8917598eafa67b938261cf13bb887cd",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Foto de fundo substituível. Oclusão de letras pela pessoa e xícara não é suportada. Serifada aproximada com Playfair Display; adornos e rodapés pequenos omitidos.",
+      "Selo inferior usa texto escuro para manter contraste sobre a superfície clara."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "photo",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "seu",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "blue1",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "blue2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "nego",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "cio",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "blue3",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "nao",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "lime-label",
+          "cornerRadiusPx": 45,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "ele",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "parece",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "media",
+          "label": "Fotografia substituível",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "photo"
+            }
+          ]
+        },
+        {
+          "id": "copy",
+          "label": "Bloco principal",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 140,
+              "y": 244,
+              "rotationDeg": 0,
+              "layerId": "seu"
+            },
+            {
+              "x": 145,
+              "y": 421,
+              "rotationDeg": 0,
+              "layerId": "blue1"
+            },
+            {
+              "x": 145,
+              "y": 583,
+              "rotationDeg": 0,
+              "layerId": "blue2"
+            },
+            {
+              "x": 149,
+              "y": 411,
+              "rotationDeg": 0,
+              "layerId": "nego"
+            },
+            {
+              "x": 149,
+              "y": 574,
+              "rotationDeg": 0,
+              "layerId": "cio"
+            },
+            {
+              "x": 137,
+              "y": 750,
+              "rotationDeg": 0,
+              "layerId": "blue3"
+            },
+            {
+              "x": 146,
+              "y": 752,
+              "rotationDeg": 0,
+              "layerId": "nao"
+            }
+          ]
+        },
+        {
+          "id": "bottom",
+          "label": "Conclusão e selo",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 576,
+              "y": 993,
+              "rotationDeg": 0,
+              "layerId": "lime-label"
+            },
+            {
+              "x": 620,
+              "y": 1003,
+              "rotationDeg": 0,
+              "layerId": "ele"
+            },
+            {
+              "x": 240,
+              "y": 1082,
+              "rotationDeg": 0,
+              "layerId": "parece"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "seu",
+          "label": "SEU",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "seu"
+          ],
+          "baseFontSizes": [
+            146
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "nego",
+          "label": "NEGÓ",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "nego"
+          ],
+          "baseFontSizes": [
+            145
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "cio",
+          "label": "CIO",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "cio"
+          ],
+          "baseFontSizes": [
+            145
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "nao",
+          "label": "NÃO É FRACO",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "nao"
+          ],
+          "baseFontSizes": [
+            37
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "ele",
+          "label": "ele só",
+          "kind": "text",
+          "groupId": "bottom",
+          "layerIds": [
+            "ele"
+          ],
+          "baseFontSizes": [
+            68
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "parece",
+          "label": "parece",
+          "kind": "text",
+          "groupId": "bottom",
+          "layerIds": [
+            "parece"
+          ],
+          "baseFontSizes": [
+            190
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        }
+      ],
+      "media": [
+        {
+          "id": "photo",
+          "label": "Fotografia — inserir no Admin2",
+          "groupId": "media",
+          "layerId": "photo",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        }
+      ]
+    }
+  }
+}

@@ -57,6 +57,7 @@ interface CanvasTopBarProps {
   onTechnical?: () => void;
   onCanvasTools?: () => void;
   onSaveCopy?: () => void;
+  designIdentity?: string;
 }
 
 const iconButton =
@@ -85,6 +86,7 @@ export default function CanvasTopBar({
   onAutoSaveChange,
   onTechnical,
   onCanvasTools,
+  designIdentity,
 }: CanvasTopBarProps) {
   const saveStatus =
     autoSaveState === "saving" || isSaving
@@ -221,6 +223,7 @@ export default function CanvasTopBar({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className={menuClass}>
+            {designIdentity && <><DropdownMenuLabel className="whitespace-normal">Design utilizado: {designIdentity}</DropdownMenuLabel><DropdownMenuSeparator /></>}
             {onSave && (
               <DropdownMenuItem onSelect={onSave}>
                 <BookmarkCheck />

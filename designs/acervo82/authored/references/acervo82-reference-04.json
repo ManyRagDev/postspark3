@@ -1,0 +1,606 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-04",
+  "sourceRecipeHash": "87bb755e6e2feba916c930895952746231e9424966cdaabd1780d648a13118ba",
+  "previousReferenceId": "14516d3436422c5c9d3a85e85b95b22a",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "a5c564a4-bc02-40f8-8469-09212bf4e726",
+    "title": "Brutalism — editorial vermelho",
+    "createdAt": "2026-09-30T23:43:25.519Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 736,
+        "heightPx": 1104,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "b2323a34ccb8f5342555a8abab1e30db100e07ef2daf8ab522ce31912c58f23f"
+      },
+      "artboard": {
+        "background": "#DEDEDB"
+      },
+      "layers": [
+        {
+          "id": "predio-topo",
+          "kind": "rect",
+          "role": "Arquitetura brutalista no alto: mídia diagonal",
+          "zIndex": 0,
+          "x": 131,
+          "y": -89,
+          "width": 620,
+          "height": 280,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#B8B8B8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": -14,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "predio-base",
+          "kind": "rect",
+          "role": "Arquitetura brutalista na base: mídia diagonal",
+          "zIndex": 1,
+          "x": 461,
+          "y": 544,
+          "width": 272,
+          "height": 662,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#B8B8B8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 29,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "chamada",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 2,
+          "x": 18,
+          "y": 237,
+          "width": 620,
+          "height": 51,
+          "text": "/HOW TO USE",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 40,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F5222D",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "titulo-brutal",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 3,
+          "x": 9,
+          "y": 301,
+          "width": 718,
+          "height": 178,
+          "text": "BRUTAL",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 156,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F5222D",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "titulo-ism",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 4,
+          "x": 173,
+          "y": 467,
+          "width": 420,
+          "height": 166,
+          "text": "ISM",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 155,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F5222D",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "hifen",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 5,
+          "x": 29,
+          "y": 525,
+          "width": 57,
+          "height": 26,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F5222D",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "subtitulo",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 6,
+          "x": 18,
+          "y": 645,
+          "width": 628,
+          "height": 57,
+          "text": "IN GRAPHIC DESIGN",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 40,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F5222D",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "serie",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 7,
+          "x": 21,
+          "y": 712,
+          "width": 375,
+          "height": 36.72,
+          "text": "/BEGINNER",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 34,
+          "lineHeight": 1.08,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F5222D",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "serie-line-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 8,
+          "x": 21,
+          "y": 748.72,
+          "width": 375,
+          "height": 36.72,
+          "text": "GUIDE",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 34,
+          "lineHeight": 1.08,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F5222D",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Inter",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+          "license": "open-source"
+        },
+        {
+          "family": "Archivo Black",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/archivoblack/v23/HTxqL289NzCGg4MzN6KJ7eW6CYyF_g.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [
+      {
+        "description": "Arquitetura brutalista no alto: mídia diagonal",
+        "reason": "Fotografia original não incorporada; slot cinza recebe mídia escolhida pelo usuário.",
+        "box": {
+          "x": 0.17798913043478262,
+          "y": 0,
+          "width": 0.842391304347826,
+          "height": 0.2536231884057971
+        },
+        "role": "hero",
+        "essential": true
+      },
+      {
+        "description": "Arquitetura brutalista na base: mídia diagonal",
+        "reason": "Fotografia original não incorporada; slot cinza recebe mídia escolhida pelo usuário.",
+        "box": {
+          "x": 0.626358695652174,
+          "y": 0.4927536231884058,
+          "width": 0.3695652173913043,
+          "height": 0.5996376811594203
+        },
+        "role": "hero",
+        "essential": true
+      },
+      {
+        "description": "Hachuras e textura de impressão",
+        "reason": "Ruído da impressão omitido; não se enumera a textura como centenas de formas.",
+        "box": null,
+        "role": "texture",
+        "essential": false
+      }
+    ],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Prédios fotográficos e hachuras substituídos por duas reservas cinza diagonais.",
+      "Título mantém a separação BRUTAL / ISM; cada linha é campo independente.",
+      "Textura do papel e microassinaturas dispensadas.",
+      "Campos multiline convertidos em listas de camadas por linha para permitir compilação no-op: serie."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "predio-topo",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "predio-base",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "chamada",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "titulo-brutal",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "titulo-ism",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "hifen",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "subtitulo",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "serie",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "serie-line-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "arquitetura-topo",
+          "label": "Foto diagonal superior",
+          "transform": {
+            "x": 131,
+            "y": -89,
+            "rotationDeg": -14
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "predio-topo"
+            }
+          ]
+        },
+        {
+          "id": "arquitetura-base",
+          "label": "Foto diagonal inferior",
+          "transform": {
+            "x": 461,
+            "y": 544,
+            "rotationDeg": 29
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "predio-base"
+            }
+          ]
+        },
+        {
+          "id": "titulo",
+          "label": "Título editorial vermelho",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 18,
+              "y": 237,
+              "rotationDeg": 0,
+              "layerId": "chamada"
+            },
+            {
+              "x": 9,
+              "y": 301,
+              "rotationDeg": 0,
+              "layerId": "titulo-brutal"
+            },
+            {
+              "x": 173,
+              "y": 467,
+              "rotationDeg": 0,
+              "layerId": "titulo-ism"
+            },
+            {
+              "x": 29,
+              "y": 525,
+              "rotationDeg": 0,
+              "layerId": "hifen"
+            }
+          ]
+        },
+        {
+          "id": "apoios",
+          "label": "Subtítulo e série",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 18,
+              "y": 645,
+              "rotationDeg": 0,
+              "layerId": "subtitulo"
+            },
+            {
+              "x": 21,
+              "y": 712,
+              "rotationDeg": 0,
+              "layerId": "serie"
+            },
+            {
+              "x": 21,
+              "y": 748.72,
+              "rotationDeg": 0,
+              "layerId": "serie-line-2"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "chamada",
+          "label": "Chamada",
+          "kind": "text",
+          "groupId": "titulo",
+          "layerIds": [
+            "chamada"
+          ],
+          "baseFontSizes": [
+            40
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "titulo-brutal",
+          "label": "Titulo brutal",
+          "kind": "text",
+          "groupId": "titulo",
+          "layerIds": [
+            "titulo-brutal"
+          ],
+          "baseFontSizes": [
+            156
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "titulo-ism",
+          "label": "Titulo ism",
+          "kind": "text",
+          "groupId": "titulo",
+          "layerIds": [
+            "titulo-ism"
+          ],
+          "baseFontSizes": [
+            155
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "subtitulo",
+          "label": "Subtitulo",
+          "kind": "text",
+          "groupId": "apoios",
+          "layerIds": [
+            "subtitulo"
+          ],
+          "baseFontSizes": [
+            40
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "serie",
+          "label": "Serie",
+          "kind": "list",
+          "groupId": "apoios",
+          "layerIds": [
+            "serie",
+            "serie-line-2"
+          ],
+          "baseFontSizes": [
+            34,
+            34
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        }
+      ],
+      "media": [
+        {
+          "id": "predio-topo",
+          "label": "Arquitetura brutalista no alto: mídia diagonal",
+          "groupId": "arquitetura-topo",
+          "layerId": "predio-topo",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        },
+        {
+          "id": "predio-base",
+          "label": "Arquitetura brutalista na base: mídia diagonal",
+          "groupId": "arquitetura-base",
+          "layerId": "predio-base",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        }
+      ]
+    }
+  }
+}

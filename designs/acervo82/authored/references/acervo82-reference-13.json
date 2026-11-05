@@ -1,0 +1,375 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-13",
+  "sourceRecipeHash": "c19dbd275dc617e34c8d524726de376e9e6f580941215b33130a510ac63190b4",
+  "previousReferenceId": "Screenshot-2026-09-28-23:26:40",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "05c49a8b-9c18-4947-ad54-5c5a8a271ac8",
+    "title": "Você muda fazendo",
+    "createdAt": "2026-09-30T23:43:25.539Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 267,
+        "heightPx": 323,
+        "mimeType": "image/png",
+        "preparedHash": null,
+        "originalHash": "9f1e29c050514175085b1178d45126f5373e92c02464f9232fa8784dd3fc816c"
+      },
+      "artboard": {
+        "background": "#FFFFFF"
+      },
+      "layers": [
+        {
+          "id": "card",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 0,
+          "x": 10,
+          "y": 9,
+          "width": 248,
+          "height": 309,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#EEEDEA",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "first",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 1,
+          "x": 34,
+          "y": 73,
+          "width": 183,
+          "height": 61,
+          "text": "VOCÊ",
+          "fontFamily": "Anton",
+          "fontWeight": 400,
+          "fontSize": 57,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "second",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 2,
+          "x": 34,
+          "y": 128,
+          "width": 207,
+          "height": 61,
+          "text": "MUDA",
+          "fontFamily": "Anton",
+          "fontWeight": 400,
+          "fontSize": 57,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "highlight",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 3,
+          "x": 37,
+          "y": 191,
+          "width": 150,
+          "height": 46,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#ABCB36",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "third",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 4,
+          "x": 34,
+          "y": 181,
+          "width": 213,
+          "height": 61,
+          "text": "FAZENDO",
+          "fontFamily": "Anton",
+          "fontWeight": 400,
+          "fontSize": 55,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "support",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 5,
+          "x": 41,
+          "y": 241,
+          "width": 205,
+          "height": 24,
+          "text": "não pensando em fazer.",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 14,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Anton",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/anton/v27/1Ptgg87LROyAm3Kz-C8.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Captura pequena; geometria aproximada. Anton substitui a fonte condensada original. Microcrédito omitido."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "card",
+          "cornerRadiusPx": 18,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "first",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "second",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "highlight",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "third",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "support",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "copy",
+          "label": "Frase tipográfica",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 34,
+              "y": 73,
+              "rotationDeg": 0,
+              "layerId": "first"
+            },
+            {
+              "x": 34,
+              "y": 128,
+              "rotationDeg": 0,
+              "layerId": "second"
+            },
+            {
+              "x": 37,
+              "y": 191,
+              "rotationDeg": 0,
+              "layerId": "highlight"
+            },
+            {
+              "x": 34,
+              "y": 181,
+              "rotationDeg": 0,
+              "layerId": "third"
+            },
+            {
+              "x": 41,
+              "y": 241,
+              "rotationDeg": 0,
+              "layerId": "support"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "first",
+          "label": "VOCÊ",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "first"
+          ],
+          "baseFontSizes": [
+            57
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "second",
+          "label": "MUDA",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "second"
+          ],
+          "baseFontSizes": [
+            57
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "third",
+          "label": "FAZENDO",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "third"
+          ],
+          "baseFontSizes": [
+            55
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "support",
+          "label": "não pensando em fazer.",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "support"
+          ],
+          "baseFontSizes": [
+            14
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        }
+      ],
+      "media": []
+    }
+  }
+}

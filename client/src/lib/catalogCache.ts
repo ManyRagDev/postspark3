@@ -7,6 +7,7 @@ export type BrowserCatalog = {
   ownerId: string;
   hash: string;
   rows: unknown[];
+  families?: import("@shared/acervo82Directory").Acervo82Family[];
 };
 const database = "postspark-catalog-v1";
 const active = new Map<string, Promise<BrowserCatalog>>();
@@ -52,7 +53,7 @@ export async function cachedCatalog(
   revision: string,
   download: () => Promise<BrowserCatalog>
 ): Promise<BrowserCatalog> {
-  const key = JSON.stringify([project, 1, owner, scope, revision]);
+  const key = JSON.stringify([project, "family-directory-v1", owner, scope, revision]);
   if (active.has(key)) return active.get(key)!;
   const generation = epoch;
   const sessionEpoch = () => {

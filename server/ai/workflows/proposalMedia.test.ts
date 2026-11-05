@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   generateProposalMediaForSlot,
   aspectRatioForProposalSlot,
+  requestedPreservedPhoto,
 } from "./proposalMedia";
 import type { generateImage } from "../../_core/imageGeneration";
 
@@ -11,6 +12,21 @@ const privateAsset = {
 };
 
 describe("proposal media adapter", () => {
+  it("preserves the supplied photo byte identity without invoking the image provider", async () => {
+    const ownerId="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+    const input={ownerId,inputType:"image" as const,content:"Faça um post único usando a própria fotografia enviada como conteúdo principal. Preserve a imagem.",sources:[{id:"upload",kind:"image" as const,purpose:"content" as const,value:privateAsset.url}]};
+    expect(requestedPreservedPhoto(input)).toBe(privateAsset.url);
+    expect(requestedPreservedPhoto({...input,content:"Não use a fotografia enviada. Gere outra."})).toBeUndefined();
+    expect(requestedPreservedPhoto({...input,sources:[{...input.sources[0],purpose:"visual_reference"}]})).toBeUndefined();
+    const generate=vi.fn(), resolve=vi.fn(async()=>({dataUri:"verified-by-owned-loader"}));
+    const request={ownerId,slot,prompt:"Imagem para a área nativa",operationId:"local-preserved-image",preservedImageUrl:requestedPreservedPhoto(input)};
+    expect(await generateProposalMediaForSlot(request,{generateImage:generate,resolveOwnedReference:resolve,runIdempotent:async(_key,work)=>work()})).toEqual(privateAsset);
+    expect(resolve).toHaveBeenCalledWith(privateAsset.url,ownerId,"local-preserved-image",undefined);
+    expect(generate).not.toHaveBeenCalled();
+    await expect(generateProposalMediaForSlot({...request,ownerId:"foreign"},{generateImage:generate,resolveOwnedReference:resolve,runIdempotent:async(_key,work)=>work()})).rejects.toThrow("não pertence");
+    expect(generate).not.toHaveBeenCalled();
+  });
+
   it("derives the nearest supported image proportion from native slot geometry", () => {
     expect(aspectRatioForProposalSlot(400, 300)).toBe("1:1");
     expect(aspectRatioForProposalSlot(160, 90)).toBe("1:1");

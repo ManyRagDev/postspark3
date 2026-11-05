@@ -1,0 +1,2225 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-18",
+  "sourceRecipeHash": "9563fe31493947807d5e8d6ab7c175ccbf8e0ba95792395827b72ecd3dafb834",
+  "previousReferenceId": "ce55b6d7148b388e91a9ff9e14d58df1",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "e8bfd321-3f14-400d-a713-f6c33ee690ef",
+    "title": "Marketing that gets talked about — imprensa ácido",
+    "createdAt": "2026-09-30T23:43:25.548Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 735,
+        "heightPx": 919,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "6eb19a4374a47e1b5d8a1d1243a773845f15576d18c706daba4eeca38c13a01a"
+      },
+      "artboard": {
+        "background": "#D7FB38"
+      },
+      "layers": [
+        {
+          "id": "grid-v-43",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 0,
+          "x": 43,
+          "y": 0,
+          "width": 1,
+          "height": 919,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            919
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-v-108",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 1,
+          "x": 108,
+          "y": 0,
+          "width": 1,
+          "height": 919,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            919
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-v-173",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 2,
+          "x": 173,
+          "y": 0,
+          "width": 1,
+          "height": 919,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            919
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-v-238",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 3,
+          "x": 238,
+          "y": 0,
+          "width": 1,
+          "height": 919,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            919
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-v-303",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 4,
+          "x": 303,
+          "y": 0,
+          "width": 1,
+          "height": 919,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            919
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-v-368",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 5,
+          "x": 368,
+          "y": 0,
+          "width": 1,
+          "height": 919,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            919
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-v-433",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 6,
+          "x": 433,
+          "y": 0,
+          "width": 1,
+          "height": 919,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            919
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-v-498",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 7,
+          "x": 498,
+          "y": 0,
+          "width": 1,
+          "height": 919,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            919
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-v-563",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 8,
+          "x": 563,
+          "y": 0,
+          "width": 1,
+          "height": 919,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            919
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-v-628",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 9,
+          "x": 628,
+          "y": 0,
+          "width": 1,
+          "height": 919,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            919
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-v-693",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 10,
+          "x": 693,
+          "y": 0,
+          "width": 1,
+          "height": 919,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            0,
+            919
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-51",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 11,
+          "x": 0,
+          "y": 51,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-116",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 12,
+          "x": 0,
+          "y": 116,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-181",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 13,
+          "x": 0,
+          "y": 181,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-246",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 14,
+          "x": 0,
+          "y": 246,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-311",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 15,
+          "x": 0,
+          "y": 311,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-376",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 16,
+          "x": 0,
+          "y": 376,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-441",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 17,
+          "x": 0,
+          "y": 441,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-506",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 18,
+          "x": 0,
+          "y": 506,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-571",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 19,
+          "x": 0,
+          "y": 571,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-636",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 20,
+          "x": 0,
+          "y": 636,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-701",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 21,
+          "x": 0,
+          "y": 701,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-766",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 22,
+          "x": 0,
+          "y": 766,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-831",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 23,
+          "x": 0,
+          "y": 831,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "grid-h-896",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 24,
+          "x": 0,
+          "y": 896,
+          "width": 735,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#BAD92D",
+          "strokeColor": "#BAD92D",
+          "strokeWidth": 1.2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            735,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "brand-name",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 25,
+          "x": 37,
+          "y": 44,
+          "width": 183,
+          "height": 57,
+          "text": "elure.",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 50,
+          "lineHeight": 1,
+          "letterSpacing": -2,
+          "align": "left",
+          "fill": "#111111",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "brand-descriptor",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 26,
+          "x": 78,
+          "y": 99,
+          "width": 112,
+          "height": 18,
+          "text": "M e d i a",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 12,
+          "lineHeight": 1,
+          "letterSpacing": 2,
+          "align": "left",
+          "fill": "#111111",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "marketing",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 27,
+          "x": 178,
+          "y": 129,
+          "width": 382,
+          "height": 98,
+          "text": "MARKETING",
+          "fontFamily": "Anton",
+          "fontWeight": 400,
+          "fontSize": 87,
+          "lineHeight": 1,
+          "letterSpacing": -1,
+          "align": "left",
+          "fill": "#111111",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "tagline",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 28,
+          "x": 179,
+          "y": 238,
+          "width": 397,
+          "height": 31,
+          "text": "THAT GETS TALKED ABOUT",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 18,
+          "lineHeight": 1,
+          "letterSpacing": 4.8,
+          "align": "left",
+          "fill": "#111111",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "central-person-slot",
+          "kind": "rect",
+          "role": "Foto central da pessoa",
+          "zIndex": 29,
+          "x": 149,
+          "y": 278,
+          "width": 438,
+          "height": 641,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#A8A8A8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "camera-top-slot",
+          "kind": "rect",
+          "role": "Foto de câmera na lateral esquerda superior",
+          "zIndex": 30,
+          "x": 0,
+          "y": 275,
+          "width": 160,
+          "height": 274,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#A8A8A8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "right-media-slot",
+          "kind": "rect",
+          "role": "Foto de faixa direita: smartphone e bloco de notas",
+          "zIndex": 31,
+          "x": 555,
+          "y": 342,
+          "width": 180,
+          "height": 466,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#A8A8A8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "camera-bottom-slot",
+          "kind": "rect",
+          "role": "Foto de câmera na lateral esquerda inferior",
+          "zIndex": 32,
+          "x": 0,
+          "y": 660,
+          "width": 130,
+          "height": 218,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#A8A8A8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "newspaper-paper",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 33,
+          "x": 182,
+          "y": 438,
+          "width": 374,
+          "height": 269,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#E6E3D8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "masthead",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 34,
+          "x": 248,
+          "y": 459,
+          "width": 253,
+          "height": 29,
+          "text": "THE MARKETING TIMES",
+          "fontFamily": "Playfair Display",
+          "fontWeight": 600,
+          "fontSize": 20,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#181818",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "paper-rule-top",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 35,
+          "x": 194,
+          "y": 485,
+          "width": 350,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#313131",
+          "strokeColor": "#313131",
+          "strokeWidth": 1.5,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            350,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "paper-brand",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 36,
+          "x": 204,
+          "y": 494,
+          "width": 335,
+          "height": 44,
+          "text": "ELURE MEDIA",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 39,
+          "lineHeight": 1,
+          "letterSpacing": -1.5,
+          "align": "center",
+          "fill": "#A0C539",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "paper-bullet-0",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 37,
+          "x": 251,
+          "y": 542,
+          "width": 288,
+          "height": 25,
+          "text": "• Data-Driven Strategies",
+          "fontFamily": "Playfair Display",
+          "fontWeight": 600,
+          "fontSize": 18,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "paper-bullet-1",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 38,
+          "x": 251,
+          "y": 566,
+          "width": 288,
+          "height": 25,
+          "text": "• Creative Execution",
+          "fontFamily": "Playfair Display",
+          "fontWeight": 600,
+          "fontSize": 18,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "paper-bullet-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 39,
+          "x": 251,
+          "y": 590,
+          "width": 288,
+          "height": 25,
+          "text": "• Real Business Results",
+          "fontFamily": "Playfair Display",
+          "fontWeight": 600,
+          "fontSize": 18,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "paper-support",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 40,
+          "x": 211,
+          "y": 623,
+          "width": 323,
+          "height": 26,
+          "text": "Built for brands ready to lead — not follow.",
+          "fontFamily": "Playfair Display",
+          "fontWeight": 600,
+          "fontSize": 16,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#222222",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "paper-cta-box",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 41,
+          "x": 194,
+          "y": 650,
+          "width": 348,
+          "height": 40,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#E6E3D8",
+          "strokeColor": "#404040",
+          "strokeWidth": 1.4,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "paper-cta",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 42,
+          "x": 207,
+          "y": 662,
+          "width": 322,
+          "height": 24,
+          "text": "START YOUR GROWTH JOURNEY",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 16,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#171717",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Archivo Black",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/archivoblack/v23/HTxqL289NzCGg4MzN6KJ7eW6CYyF_g.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+          "license": "open-source"
+        },
+        {
+          "family": "Anton",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/anton/v27/1Ptgg87LROyAm3Kz-C8.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+          "license": "open-source"
+        },
+        {
+          "family": "Playfair Display",
+          "weight": 600,
+          "sourceUrl": "https://fonts.gstatic.com/s/playfairdisplay/v40/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKebunDXbtM.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "5d2286941a6b02a29387efa94809a064f8917598eafa67b938261cf13bb887cd",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [
+      {
+        "description": "Silhuetas recortadas de pessoa, câmeras e mãos",
+        "reason": "Sem recorte de fundo ou máscaras: slots retangulares aproximam as posições, com bordas visíveis.",
+        "box": null,
+        "role": "hero",
+        "essential": true
+      },
+      {
+        "description": "Perspectiva do jornal e interseções das mãos",
+        "reason": "Cartão vetorial plano representa a folha; dobras e mãos não sobrepõem este cartão.",
+        "box": null,
+        "role": "decoration",
+        "essential": false
+      }
+    ],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Grade ácida e títulos são vetores. Pessoa central, duas câmeras à esquerda e faixa de mídia à direita viram quatro slots retangulares sem recorte.",
+      "Slots retangulares substituem fotografias originalmente recortadas; bordas de mídia ficam visíveis e não simulam transparência.",
+      "Jornal reconstruído como cartão claro com manchete, lista, apoio e CTA editáveis. Dobras, perspectiva e mãos que cobrem o jornal não foram reproduzidas.",
+      "Anton local aproxima o título condensado. Playfair Display 600 aproxima a serifada do jornal. Microcréditos da folha e assinatura inferior omitidos."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "grid-v-43",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-v-108",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-v-173",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-v-238",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-v-303",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-v-368",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-v-433",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-v-498",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-v-563",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-v-628",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-v-693",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-51",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-116",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-181",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-246",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-311",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-376",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-441",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-506",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-571",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-636",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-701",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-766",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-831",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "grid-h-896",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "brand-name",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "brand-descriptor",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "marketing",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "tagline",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "central-person-slot",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "camera-top-slot",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "right-media-slot",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "camera-bottom-slot",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "newspaper-paper",
+          "cornerRadiusPx": 2,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "masthead",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "paper-rule-top",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "paper-brand",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "paper-bullet-0",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "paper-bullet-1",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "paper-bullet-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "paper-support",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "paper-cta-box",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "paper-cta",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "grid",
+          "label": "Grade de fundo",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 43,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "grid-v-43"
+            },
+            {
+              "x": 108,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "grid-v-108"
+            },
+            {
+              "x": 173,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "grid-v-173"
+            },
+            {
+              "x": 238,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "grid-v-238"
+            },
+            {
+              "x": 303,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "grid-v-303"
+            },
+            {
+              "x": 368,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "grid-v-368"
+            },
+            {
+              "x": 433,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "grid-v-433"
+            },
+            {
+              "x": 498,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "grid-v-498"
+            },
+            {
+              "x": 563,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "grid-v-563"
+            },
+            {
+              "x": 628,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "grid-v-628"
+            },
+            {
+              "x": 693,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "grid-v-693"
+            },
+            {
+              "x": 0,
+              "y": 51,
+              "rotationDeg": 0,
+              "layerId": "grid-h-51"
+            },
+            {
+              "x": 0,
+              "y": 116,
+              "rotationDeg": 0,
+              "layerId": "grid-h-116"
+            },
+            {
+              "x": 0,
+              "y": 181,
+              "rotationDeg": 0,
+              "layerId": "grid-h-181"
+            },
+            {
+              "x": 0,
+              "y": 246,
+              "rotationDeg": 0,
+              "layerId": "grid-h-246"
+            },
+            {
+              "x": 0,
+              "y": 311,
+              "rotationDeg": 0,
+              "layerId": "grid-h-311"
+            },
+            {
+              "x": 0,
+              "y": 376,
+              "rotationDeg": 0,
+              "layerId": "grid-h-376"
+            },
+            {
+              "x": 0,
+              "y": 441,
+              "rotationDeg": 0,
+              "layerId": "grid-h-441"
+            },
+            {
+              "x": 0,
+              "y": 506,
+              "rotationDeg": 0,
+              "layerId": "grid-h-506"
+            },
+            {
+              "x": 0,
+              "y": 571,
+              "rotationDeg": 0,
+              "layerId": "grid-h-571"
+            },
+            {
+              "x": 0,
+              "y": 636,
+              "rotationDeg": 0,
+              "layerId": "grid-h-636"
+            },
+            {
+              "x": 0,
+              "y": 701,
+              "rotationDeg": 0,
+              "layerId": "grid-h-701"
+            },
+            {
+              "x": 0,
+              "y": 766,
+              "rotationDeg": 0,
+              "layerId": "grid-h-766"
+            },
+            {
+              "x": 0,
+              "y": 831,
+              "rotationDeg": 0,
+              "layerId": "grid-h-831"
+            },
+            {
+              "x": 0,
+              "y": 896,
+              "rotationDeg": 0,
+              "layerId": "grid-h-896"
+            }
+          ]
+        },
+        {
+          "id": "brand",
+          "label": "Marca e assinatura",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 37,
+              "y": 44,
+              "rotationDeg": 0,
+              "layerId": "brand-name"
+            },
+            {
+              "x": 78,
+              "y": 99,
+              "rotationDeg": 0,
+              "layerId": "brand-descriptor"
+            }
+          ]
+        },
+        {
+          "id": "title",
+          "label": "Título e promessa",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 178,
+              "y": 129,
+              "rotationDeg": 0,
+              "layerId": "marketing"
+            },
+            {
+              "x": 179,
+              "y": 238,
+              "rotationDeg": 0,
+              "layerId": "tagline"
+            }
+          ]
+        },
+        {
+          "id": "central-person-group",
+          "label": "Foto central da pessoa",
+          "transform": {
+            "x": 149,
+            "y": 278,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "central-person-slot"
+            }
+          ]
+        },
+        {
+          "id": "camera-top-group",
+          "label": "Foto de câmera na lateral esquerda superior",
+          "transform": {
+            "x": 0,
+            "y": 275,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "camera-top-slot"
+            }
+          ]
+        },
+        {
+          "id": "right-media-group",
+          "label": "Foto de faixa direita: smartphone e bloco de notas",
+          "transform": {
+            "x": 555,
+            "y": 342,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "right-media-slot"
+            }
+          ]
+        },
+        {
+          "id": "camera-bottom-group",
+          "label": "Foto de câmera na lateral esquerda inferior",
+          "transform": {
+            "x": 0,
+            "y": 660,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "camera-bottom-slot"
+            }
+          ]
+        },
+        {
+          "id": "newspaper",
+          "label": "Jornal editável sobre a foto",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 182,
+              "y": 438,
+              "rotationDeg": 0,
+              "layerId": "newspaper-paper"
+            },
+            {
+              "x": 248,
+              "y": 459,
+              "rotationDeg": 0,
+              "layerId": "masthead"
+            },
+            {
+              "x": 194,
+              "y": 485,
+              "rotationDeg": 0,
+              "layerId": "paper-rule-top"
+            },
+            {
+              "x": 204,
+              "y": 494,
+              "rotationDeg": 0,
+              "layerId": "paper-brand"
+            },
+            {
+              "x": 251,
+              "y": 542,
+              "rotationDeg": 0,
+              "layerId": "paper-bullet-0"
+            },
+            {
+              "x": 251,
+              "y": 566,
+              "rotationDeg": 0,
+              "layerId": "paper-bullet-1"
+            },
+            {
+              "x": 251,
+              "y": 590,
+              "rotationDeg": 0,
+              "layerId": "paper-bullet-2"
+            },
+            {
+              "x": 211,
+              "y": 623,
+              "rotationDeg": 0,
+              "layerId": "paper-support"
+            },
+            {
+              "x": 194,
+              "y": 650,
+              "rotationDeg": 0,
+              "layerId": "paper-cta-box"
+            },
+            {
+              "x": 207,
+              "y": 662,
+              "rotationDeg": 0,
+              "layerId": "paper-cta"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "brand-name",
+          "label": "Nome da marca",
+          "kind": "text",
+          "groupId": "brand",
+          "layerIds": [
+            "brand-name"
+          ],
+          "baseFontSizes": [
+            50
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "brand-descriptor",
+          "label": "Descritor da marca",
+          "kind": "text",
+          "groupId": "brand",
+          "layerIds": [
+            "brand-descriptor"
+          ],
+          "baseFontSizes": [
+            12
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "marketing",
+          "label": "Título principal",
+          "kind": "text",
+          "groupId": "title",
+          "layerIds": [
+            "marketing"
+          ],
+          "baseFontSizes": [
+            87
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "tagline",
+          "label": "Promessa",
+          "kind": "text",
+          "groupId": "title",
+          "layerIds": [
+            "tagline"
+          ],
+          "baseFontSizes": [
+            18
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "masthead",
+          "label": "Nome do jornal",
+          "kind": "text",
+          "groupId": "newspaper",
+          "layerIds": [
+            "masthead"
+          ],
+          "baseFontSizes": [
+            20
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "paper-brand",
+          "label": "Manchete do jornal",
+          "kind": "text",
+          "groupId": "newspaper",
+          "layerIds": [
+            "paper-brand"
+          ],
+          "baseFontSizes": [
+            39
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "newspaper-points",
+          "label": "Benefícios no jornal",
+          "kind": "list",
+          "groupId": "newspaper",
+          "layerIds": [
+            "paper-bullet-0",
+            "paper-bullet-1",
+            "paper-bullet-2"
+          ],
+          "baseFontSizes": [
+            18,
+            18,
+            18
+          ],
+          "minScale": 0.7,
+          "prefix": "• "
+        },
+        {
+          "id": "paper-support",
+          "label": "Apoio do jornal",
+          "kind": "text",
+          "groupId": "newspaper",
+          "layerIds": [
+            "paper-support"
+          ],
+          "baseFontSizes": [
+            16
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "paper-cta",
+          "label": "Chamada para ação",
+          "kind": "text",
+          "groupId": "newspaper",
+          "layerIds": [
+            "paper-cta"
+          ],
+          "baseFontSizes": [
+            16
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        }
+      ],
+      "media": [
+        {
+          "id": "central-person",
+          "label": "Foto central da pessoa",
+          "groupId": "central-person-group",
+          "layerId": "central-person-slot",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        },
+        {
+          "id": "camera-top",
+          "label": "Foto de câmera na lateral esquerda superior",
+          "groupId": "camera-top-group",
+          "layerId": "camera-top-slot",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        },
+        {
+          "id": "right-media",
+          "label": "Foto de faixa direita: smartphone e bloco de notas",
+          "groupId": "right-media-group",
+          "layerId": "right-media-slot",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        },
+        {
+          "id": "camera-bottom",
+          "label": "Foto de câmera na lateral esquerda inferior",
+          "groupId": "camera-bottom-group",
+          "layerId": "camera-bottom-slot",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        }
+      ]
+    }
+  }
+}

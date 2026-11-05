@@ -1,0 +1,363 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-20",
+  "sourceRecipeHash": "6ef9239f264d1783efb4f8c60cf1d27014dd5e3ec2a761fc877282330f05765a",
+  "previousReferenceId": "f0aea278d4b4be1a351ad73a5b715bab",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "0d1425dd-ec64-436e-9434-aa4302d2632f",
+    "title": "Editorial — Graphic Design",
+    "createdAt": "2026-09-30T23:43:25.558Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 1200,
+        "heightPx": 1600,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "33da41e87f88c759cd32a50760dc16b6676e10a1d3c82628dd8d415951149b17"
+      },
+      "artboard": {
+        "background": "#F6F5EF"
+      },
+      "layers": [
+        {
+          "id": "photo",
+          "kind": "rect",
+          "role": "Fotografia — inserir no Admin2",
+          "zIndex": 0,
+          "x": 0,
+          "y": 460,
+          "width": 1200,
+          "height": 1140,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#E4E2DC",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "intro",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 1,
+          "x": 290,
+          "y": 124,
+          "width": 228,
+          "height": 83,
+          "text": "What’s",
+          "fontFamily": "Inter",
+          "fontWeight": 500,
+          "fontSize": 65,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "accent",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 2,
+          "x": 525,
+          "y": 124,
+          "width": 126,
+          "height": 83,
+          "text": "hot",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 65,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#E4307D",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "connector",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 3,
+          "x": 670,
+          "y": 124,
+          "width": 170,
+          "height": 83,
+          "text": "in",
+          "fontFamily": "Inter",
+          "fontWeight": 500,
+          "fontSize": 65,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "title",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 4,
+          "x": 142,
+          "y": 224,
+          "width": 958,
+          "height": 130,
+          "text": "Graphic Design",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 120,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#151515",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Inter",
+          "weight": 500,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "f3779f1efccc4bdcdf9c0a02ab95bf6bd092ed09c48c08cedc725889edd1d19f",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Colagem fotográfica inferior reservada como uma única mídia. Itálico, perspectiva e recortes da foto dependem do asset inserido. Fontes aproximadas."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "photo",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "intro",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "accent",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "connector",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "title",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "media",
+          "label": "Fotografia substituível",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 460,
+              "rotationDeg": 0,
+              "layerId": "photo"
+            }
+          ]
+        },
+        {
+          "id": "copy",
+          "label": "Chamadas",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 290,
+              "y": 124,
+              "rotationDeg": 0,
+              "layerId": "intro"
+            },
+            {
+              "x": 525,
+              "y": 124,
+              "rotationDeg": 0,
+              "layerId": "accent"
+            },
+            {
+              "x": 670,
+              "y": 124,
+              "rotationDeg": 0,
+              "layerId": "connector"
+            },
+            {
+              "x": 142,
+              "y": 224,
+              "rotationDeg": 0,
+              "layerId": "title"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "intro",
+          "label": "What’s",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "intro"
+          ],
+          "baseFontSizes": [
+            65
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "accent",
+          "label": "hot",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "accent"
+          ],
+          "baseFontSizes": [
+            65
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "connector",
+          "label": "in",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "connector"
+          ],
+          "baseFontSizes": [
+            65
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "title",
+          "label": "Graphic Design",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "title"
+          ],
+          "baseFontSizes": [
+            120
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        }
+      ],
+      "media": [
+        {
+          "id": "photo",
+          "label": "Fotografia — inserir no Admin2",
+          "groupId": "media",
+          "layerId": "photo",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        }
+      ]
+    }
+  }
+}

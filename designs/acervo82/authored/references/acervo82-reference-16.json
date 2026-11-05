@@ -1,0 +1,833 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-16",
+  "sourceRecipeHash": "270384d6d4c8856c4ad424c68c265ae79d9ca3f10a01f728865abad2de831fdb",
+  "previousReferenceId": "c5d8dcc1ddabea113d4f4a5ea76cde0d",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "cae7bf00-884d-4ced-8bb0-300fe9bc78b2",
+    "title": "No skill, no seat — tipografia extrudada",
+    "createdAt": "2026-09-30T23:46:24.504Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 735,
+        "heightPx": 919,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "984850e43e1b939e2408e6d7a8c735fa27216565e31e710099824a30ffddfb12"
+      },
+      "artboard": {
+        "background": "#F4F1EA"
+      },
+      "layers": [
+        {
+          "id": "motto-one",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 0,
+          "x": 469,
+          "y": 44,
+          "width": 143,
+          "height": 25,
+          "text": "SKILL OPENS",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 19,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#161616",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": -12,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "motto-two",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 1,
+          "x": 585,
+          "y": 73,
+          "width": 86,
+          "height": 25,
+          "text": "DOORS.",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 19,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#161616",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 46,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "motto-three",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 2,
+          "x": 652,
+          "y": 132,
+          "width": 132,
+          "height": 25,
+          "text": "EXCELLENCE",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 16,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#161616",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 82,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "motto-four",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 3,
+          "x": 656,
+          "y": 251,
+          "width": 54,
+          "height": 25,
+          "text": "GETS",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 19,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#161616",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 128,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "no-one",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 4,
+          "x": 84,
+          "y": 40,
+          "width": 364,
+          "height": 202,
+          "text": "NO",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 200.99,
+          "lineHeight": 1,
+          "letterSpacing": -5,
+          "align": "left",
+          "fill": "#F4F1EA",
+          "strokeColor": "#181918",
+          "strokeWidth": 4,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": {
+            "color": "#20211D",
+            "offsetX": 53,
+            "offsetY": 57,
+            "steps": 60
+          },
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "skill",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 5,
+          "x": 78,
+          "y": 235,
+          "width": 596,
+          "height": 172,
+          "text": "SKILL,",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 167,
+          "lineHeight": 1,
+          "letterSpacing": -5,
+          "align": "left",
+          "fill": "#F6BE32",
+          "strokeColor": "#181918",
+          "strokeWidth": 4,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": {
+            "color": "#20211D",
+            "offsetX": 53,
+            "offsetY": 57,
+            "steps": 60
+          },
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "no-two",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 6,
+          "x": 84,
+          "y": 380,
+          "width": 371,
+          "height": 198,
+          "text": "NO",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 197.01,
+          "lineHeight": 1,
+          "letterSpacing": -5,
+          "align": "left",
+          "fill": "#F4F1EA",
+          "strokeColor": "#181918",
+          "strokeWidth": 4,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": {
+            "color": "#20211D",
+            "offsetX": 53,
+            "offsetY": 57,
+            "steps": 60
+          },
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "seat",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 7,
+          "x": 78,
+          "y": 566,
+          "width": 591,
+          "height": 179,
+          "text": "SEAT.",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 172,
+          "lineHeight": 1,
+          "letterSpacing": -5,
+          "align": "left",
+          "fill": "#F6BE32",
+          "strokeColor": "#181918",
+          "strokeWidth": 4,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": {
+            "color": "#20211D",
+            "offsetX": 53,
+            "offsetY": 57,
+            "steps": 60
+          },
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "footer-rule",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 8,
+          "x": 33,
+          "y": 791,
+          "width": 668,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#252525",
+          "strokeColor": "#252525",
+          "strokeWidth": 1,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            668,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "quote-mark",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 9,
+          "x": 47,
+          "y": 808,
+          "width": 36,
+          "height": 36,
+          "text": "“",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 35.82,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#F6BE32",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "quote",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 10,
+          "x": 89,
+          "y": 812,
+          "width": 584,
+          "height": 15.86,
+          "text": "He was the son of a widow from the tribe of Naphtali, and his father was a Tyrian.",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 13,
+          "lineHeight": 1.22,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#161616",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "quote-line-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 11,
+          "x": 89,
+          "y": 827.86,
+          "width": 584,
+          "height": 15.86,
+          "text": "He was skilled in working with bronze and was full of knowledge and understanding",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 13,
+          "lineHeight": 1.22,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#161616",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "quote-line-3",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 12,
+          "x": 89,
+          "y": 843.72,
+          "width": 584,
+          "height": 15.86,
+          "text": "and of ability to do all kinds of bronze work.",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 13,
+          "lineHeight": 1.22,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#161616",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "quote-line-4",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 13,
+          "x": 89,
+          "y": 859.58,
+          "width": 584,
+          "height": 15.86,
+          "text": "He came to King Solomon and did all the work for him.”",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 13,
+          "lineHeight": 1.22,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#161616",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "quote-source",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 14,
+          "x": 89,
+          "y": 886,
+          "width": 200,
+          "height": 22,
+          "text": "1 KINGS 7:14",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 14,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#161616",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Inter",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+          "license": "open-source"
+        },
+        {
+          "family": "Archivo Black",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/archivoblack/v23/HTxqL289NzCGg4MzN6KJ7eW6CYyF_g.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [
+      {
+        "description": "Fonte original com desenho ultra largo",
+        "reason": "Archivo Black embarcada é a aproximação disponível; curvas e proporções das letras não são idênticas.",
+        "box": null,
+        "role": "decoration",
+        "essential": false
+      },
+      {
+        "description": "Parte não legível do lema circular",
+        "reason": "Somente as palavras visíveis foram transcritas. Curvatura aproximada por segmentos de texto rotacionados.",
+        "box": null,
+        "role": "decoration",
+        "essential": false
+      }
+    ],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Extrusão preta é nativa e editável. Archivo Black local aproxima a fonte extremamente larga e pesada da referência.",
+      "Lema superior direito segue uma curva aproximada com quatro caixas rotacionadas; não usa máscara nem arcText.",
+      "Citação de rodapé preservada como conteúdo editorial. Pequeno símbolo de marca inferior omitido.",
+      "Lema periférico é aproximado por segmentos rotacionados; EXCELLENCE foi reduzido para separar os segmentos.",
+      "Campos multiline convertidos em listas de camadas por linha para permitir compilação no-op: quote."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "motto-one",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "motto-two",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "motto-three",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "motto-four",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "no-one",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "skill",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "no-two",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "seat",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "footer-rule",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "quote-mark",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "quote",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "quote-line-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "quote-line-3",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "quote-line-4",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "quote-source",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "motto",
+          "label": "Lema ao redor do título",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 469,
+              "y": 44,
+              "rotationDeg": -12,
+              "layerId": "motto-one"
+            },
+            {
+              "x": 585,
+              "y": 73,
+              "rotationDeg": 46,
+              "layerId": "motto-two"
+            },
+            {
+              "x": 652,
+              "y": 132,
+              "rotationDeg": 82,
+              "layerId": "motto-three"
+            },
+            {
+              "x": 656,
+              "y": 251,
+              "rotationDeg": 128,
+              "layerId": "motto-four"
+            }
+          ]
+        },
+        {
+          "id": "headline",
+          "label": "Título monumental com extrusão",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 84,
+              "y": 40,
+              "rotationDeg": 0,
+              "layerId": "no-one"
+            },
+            {
+              "x": 78,
+              "y": 235,
+              "rotationDeg": 0,
+              "layerId": "skill"
+            },
+            {
+              "x": 84,
+              "y": 380,
+              "rotationDeg": 0,
+              "layerId": "no-two"
+            },
+            {
+              "x": 78,
+              "y": 566,
+              "rotationDeg": 0,
+              "layerId": "seat"
+            }
+          ]
+        },
+        {
+          "id": "citation",
+          "label": "Citação na base",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 33,
+              "y": 791,
+              "rotationDeg": 0,
+              "layerId": "footer-rule"
+            },
+            {
+              "x": 47,
+              "y": 808,
+              "rotationDeg": 0,
+              "layerId": "quote-mark"
+            },
+            {
+              "x": 89,
+              "y": 812,
+              "rotationDeg": 0,
+              "layerId": "quote"
+            },
+            {
+              "x": 89,
+              "y": 827.86,
+              "rotationDeg": 0,
+              "layerId": "quote-line-2"
+            },
+            {
+              "x": 89,
+              "y": 843.72,
+              "rotationDeg": 0,
+              "layerId": "quote-line-3"
+            },
+            {
+              "x": 89,
+              "y": 859.58,
+              "rotationDeg": 0,
+              "layerId": "quote-line-4"
+            },
+            {
+              "x": 89,
+              "y": 886,
+              "rotationDeg": 0,
+              "layerId": "quote-source"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "motto",
+          "label": "Lema em curva aproximada",
+          "kind": "list",
+          "groupId": "motto",
+          "layerIds": [
+            "motto-one",
+            "motto-two",
+            "motto-three",
+            "motto-four"
+          ],
+          "baseFontSizes": [
+            19,
+            19,
+            16,
+            19
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "main-copy",
+          "label": "Título em quatro linhas",
+          "kind": "list",
+          "groupId": "headline",
+          "layerIds": [
+            "no-one",
+            "skill",
+            "no-two",
+            "seat"
+          ],
+          "baseFontSizes": [
+            200.99,
+            167,
+            197.01,
+            172
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "quote",
+          "label": "He was the son of a widow from the tribe of Naphtali, and his father was a Tyrian. He was skilled in",
+          "kind": "list",
+          "groupId": "citation",
+          "layerIds": [
+            "quote",
+            "quote-line-2",
+            "quote-line-3",
+            "quote-line-4"
+          ],
+          "baseFontSizes": [
+            13,
+            13,
+            13,
+            13
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "quote-source",
+          "label": "1 KINGS 7:14",
+          "kind": "text",
+          "groupId": "citation",
+          "layerIds": [
+            "quote-source"
+          ],
+          "baseFontSizes": [
+            14
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        }
+      ],
+      "media": []
+    }
+  }
+}

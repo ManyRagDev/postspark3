@@ -1,3 +1,4 @@
+import { FAMILY_NEUTRALITY_POLICY } from "./familyNeutrality";
 import { arsenalHash } from "./arsenalContent";
 
 /** Pinned in selection_input. Historical requests keep their original election. */
@@ -13,6 +14,7 @@ export const FAMILY_RETRIEVAL_POLICY = Object.freeze({
 export interface FamilyRetrievalReceipt {
   version: 1;
   policyHash: string;
+  neutrality?: import("./familyNeutrality").FamilyNeutrality;
   catalogHash: string;
   query: string;
   queryHash: string;
@@ -33,5 +35,5 @@ export interface FamilyRetrievalReceipt {
   }>;
   transport: { batches: number; bytes: number; largestRequestBytes: number };
 }
-export const familyRetrievalPolicyHash = () =>
-  arsenalHash(FAMILY_RETRIEVAL_POLICY);
+export const familyRetrievalPolicyHash = (neutral = false) =>
+  arsenalHash(neutral ? {retrieval:FAMILY_RETRIEVAL_POLICY,neutrality:FAMILY_NEUTRALITY_POLICY} : FAMILY_RETRIEVAL_POLICY);

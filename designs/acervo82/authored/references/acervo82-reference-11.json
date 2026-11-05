@@ -1,0 +1,836 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-11",
+  "sourceRecipeHash": "8f4f3b12aa6e393cf63c0983d4e29e8871e73f6ef3dad221cd7d5d53fb4037a9",
+  "previousReferenceId": "94e0a100310160059384fb4c6ca5b2c4",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "37113310-6b96-48b3-9bc2-45e2f07fe73b",
+    "title": "Atalho para criar conteúdo — tarjas azuis",
+    "createdAt": "2026-09-30T23:43:25.535Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 735,
+        "heightPx": 920,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "0969f7f69e7316f03c30dcaf33d56ec70959a0cbf11ac43a114b21b93a2c0d89"
+      },
+      "artboard": {
+        "background": "#454A48"
+      },
+      "layers": [
+        {
+          "id": "photo-scrim",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 1,
+          "x": 0,
+          "y": 0,
+          "width": 735,
+          "height": 920,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#111A1E",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 0.26,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "tram-slot",
+          "kind": "rect",
+          "role": "Foto de contexto: bonde e rua",
+          "zIndex": 0,
+          "x": 0,
+          "y": 0,
+          "width": 735,
+          "height": 920,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#A8A8A8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "intro-one",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 2,
+          "x": 226,
+          "y": 307,
+          "width": 285,
+          "height": 44,
+          "text": "Se eu pudesse",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 40.51,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "intro-bold",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 3,
+          "x": 279,
+          "y": 353,
+          "width": 116,
+          "height": 45,
+          "text": "te dar",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 41,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "intro-tail",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 4,
+          "x": 403,
+          "y": 353,
+          "width": 66,
+          "height": 45,
+          "text": "um",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 41,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "ribbon-one-bg",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 5,
+          "x": 207,
+          "y": 419,
+          "width": 318,
+          "height": 70,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#244FDA",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": -5,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "shortcut",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 6,
+          "x": 218,
+          "y": 415,
+          "width": 192,
+          "height": 69,
+          "text": "atalho",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 61,
+          "lineHeight": 1,
+          "letterSpacing": -3,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": -5,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "for",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 7,
+          "x": 413,
+          "y": 398,
+          "width": 112,
+          "height": 70,
+          "text": "pra",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 61,
+          "lineHeight": 1,
+          "letterSpacing": -3,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": -5,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "ribbon-two-bg",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 8,
+          "x": 167,
+          "y": 470,
+          "width": 421,
+          "height": 70,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#244FDA",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 2.4,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "create",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 9,
+          "x": 172,
+          "y": 474,
+          "width": 144,
+          "height": 67,
+          "text": "criar",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 60,
+          "lineHeight": 1,
+          "letterSpacing": -3,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 2.4,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "content",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 10,
+          "x": 317,
+          "y": 480,
+          "width": 267,
+          "height": 67,
+          "text": "conteúdo",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 60,
+          "lineHeight": 1,
+          "letterSpacing": -3,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 2.4,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "closing-before",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 11,
+          "x": 233,
+          "y": 570,
+          "width": 86,
+          "height": 44,
+          "text": "seria",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 37.35,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "closing-bold",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 12,
+          "x": 325,
+          "y": 570,
+          "width": 87,
+          "height": 44,
+          "text": "esse",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 37.45,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "closing-after",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 13,
+          "x": 422,
+          "y": 570,
+          "width": 92,
+          "height": 44,
+          "text": "aqui:",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 38,
+          "lineHeight": 1,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Inter",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Foto integral do bonde convertida em slot. Sobreposição escura sem gradiente mantém a leitura.",
+      "Texto com pesos distintos e tarjas rotacionadas preserva a sequência visual. Inter substitui a sans original não identificada.",
+      "Assinatura profissional pequena no rodapé omitida."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "photo-scrim",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "tram-slot",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "intro-one",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "intro-bold",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "intro-tail",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "ribbon-one-bg",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "shortcut",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "for",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "ribbon-two-bg",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "create",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "content",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "closing-before",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "closing-bold",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "closing-after",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "tram-group",
+          "label": "Foto de contexto: bonde e rua",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "tram-slot"
+            }
+          ]
+        },
+        {
+          "id": "intro",
+          "label": "Abertura central",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 226,
+              "y": 307,
+              "rotationDeg": 0,
+              "layerId": "intro-one"
+            },
+            {
+              "x": 279,
+              "y": 353,
+              "rotationDeg": 0,
+              "layerId": "intro-bold"
+            },
+            {
+              "x": 403,
+              "y": 353,
+              "rotationDeg": 0,
+              "layerId": "intro-tail"
+            }
+          ]
+        },
+        {
+          "id": "ribbon-one",
+          "label": "Tarja azul superior",
+          "transform": {
+            "x": 207,
+            "y": 419,
+            "rotationDeg": -5
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "ribbon-one-bg"
+            },
+            {
+              "x": 11.306764649999833,
+              "y": -3.026065622142742,
+              "rotationDeg": 0,
+              "layerId": "shortcut"
+            },
+            {
+              "x": 207.0463784046004,
+              "y": -2.966005653909072,
+              "rotationDeg": 0,
+              "layerId": "for"
+            }
+          ]
+        },
+        {
+          "id": "ribbon-two",
+          "label": "Tarja azul inferior",
+          "transform": {
+            "x": 167,
+            "y": 470,
+            "rotationDeg": 2.4
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "ribbon-two-bg"
+            },
+            {
+              "x": 5.1631167654110905,
+              "y": 3.7871130517494356,
+              "rotationDeg": 0,
+              "layerId": "create"
+            },
+            {
+              "x": 150.28718105212073,
+              "y": 3.7098802416086416,
+              "rotationDeg": 0,
+              "layerId": "content"
+            }
+          ]
+        },
+        {
+          "id": "closing",
+          "label": "Fechamento abaixo das tarjas",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 233,
+              "y": 570,
+              "rotationDeg": 0,
+              "layerId": "closing-before"
+            },
+            {
+              "x": 325,
+              "y": 570,
+              "rotationDeg": 0,
+              "layerId": "closing-bold"
+            },
+            {
+              "x": 422,
+              "y": 570,
+              "rotationDeg": 0,
+              "layerId": "closing-after"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "intro-one",
+          "label": "Se eu pudesse",
+          "kind": "text",
+          "groupId": "intro",
+          "layerIds": [
+            "intro-one"
+          ],
+          "baseFontSizes": [
+            40.51
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "intro-bold",
+          "label": "te dar",
+          "kind": "text",
+          "groupId": "intro",
+          "layerIds": [
+            "intro-bold"
+          ],
+          "baseFontSizes": [
+            41
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "intro-tail",
+          "label": "um",
+          "kind": "text",
+          "groupId": "intro",
+          "layerIds": [
+            "intro-tail"
+          ],
+          "baseFontSizes": [
+            41
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "shortcut",
+          "label": "atalho",
+          "kind": "text",
+          "groupId": "ribbon-one",
+          "layerIds": [
+            "shortcut"
+          ],
+          "baseFontSizes": [
+            61
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "for",
+          "label": "pra",
+          "kind": "text",
+          "groupId": "ribbon-one",
+          "layerIds": [
+            "for"
+          ],
+          "baseFontSizes": [
+            61
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "create",
+          "label": "criar",
+          "kind": "text",
+          "groupId": "ribbon-two",
+          "layerIds": [
+            "create"
+          ],
+          "baseFontSizes": [
+            60
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "content",
+          "label": "conteúdo",
+          "kind": "text",
+          "groupId": "ribbon-two",
+          "layerIds": [
+            "content"
+          ],
+          "baseFontSizes": [
+            60
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "closing-before",
+          "label": "seria",
+          "kind": "text",
+          "groupId": "closing",
+          "layerIds": [
+            "closing-before"
+          ],
+          "baseFontSizes": [
+            37.35
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "closing-bold",
+          "label": "esse",
+          "kind": "text",
+          "groupId": "closing",
+          "layerIds": [
+            "closing-bold"
+          ],
+          "baseFontSizes": [
+            37.45
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "closing-after",
+          "label": "aqui:",
+          "kind": "text",
+          "groupId": "closing",
+          "layerIds": [
+            "closing-after"
+          ],
+          "baseFontSizes": [
+            38
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        }
+      ],
+      "media": [
+        {
+          "id": "tram",
+          "label": "Foto de contexto: bonde e rua",
+          "groupId": "tram-group",
+          "layerId": "tram-slot",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        }
+      ]
+    }
+  }
+}

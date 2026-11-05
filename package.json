@@ -57,7 +57,16 @@
     "acervo82:pilot:audit": "node --import tsx scripts/acervo82/pilot/local.mjs audit",
     "acervo82:retrieval:model": "node scripts/provisionEditorialModel.mjs retrieval-e5 .postspark-local/design-retrieval/model",
     "acervo82:retrieval:index": "node scripts/acervo82/retrieval.mjs",
-    "acervo82:retrieval:verify": "node scripts/acervo82/retrieval.mjs --verify"
+    "acervo82:retrieval:verify": "node scripts/acervo82/retrieval.mjs --verify",
+    "acervo82:full:author": "node --import tsx scripts/acervo82/full/author.ts",
+    "acervo82:full:verify": "node --import tsx scripts/acervo82/full/verify.ts",
+    "acervo82:full:stage": "POSTSPARK_ACERVO82_CAMPAIGN=full node --import tsx scripts/acervo82/pilot/local.mjs stage",
+    "acervo82:full:configure": "POSTSPARK_ACERVO82_CAMPAIGN=full node --import tsx scripts/acervo82/pilot/local.mjs configure",
+    "acervo82:full:dev": "POSTSPARK_ACERVO82_CAMPAIGN=full node --import tsx scripts/acervo82/pilot/local.mjs dev",
+    "acervo82:full:smoke": "POSTSPARK_ACERVO82_CAMPAIGN=full node --import tsx scripts/acervo82/pilot/local.mjs smoke",
+    "acervo82:full:journeys": "POSTSPARK_ACERVO82_CAMPAIGN=full node --import tsx scripts/acervo82/pilot/local.mjs journeys",
+    "acervo82:full:retrieval": "POSTSPARK_ACERVO82_CAMPAIGN=full node --import tsx scripts/acervo82/pilot/local.mjs retrieval",
+    "acervo82:full:review-dev": "POSTSPARK_ACERVO82_CAMPAIGN=full node --import tsx scripts/acervo82/pilot/local.mjs verify-dev"
   },
   "dependencies": {
     "@google/genai": "^1.41.0",

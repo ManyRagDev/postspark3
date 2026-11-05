@@ -1,3 +1,4 @@
+import { acervo82FamilyFromCode } from "../shared/acervo82Identity";
 import { createClient } from "@supabase/supabase-js";
 import { ENV } from "./_core/env";
 import type { GenerationDebugEvent } from "@shared/postspark";
@@ -982,10 +983,13 @@ export async function getGenerationRunById(
 }
 
 /** Small gallery projection; full CanvasPostModel remains behind owner-scoped get. */
-export async function getUserPostSummaries(userUuid:string,limit=20,offset=0) {
- const {data,error,count}=await getSupabaseDbClient().from('posts')
-  .select('id,headline,platform,postMode,layout,createdAt'+(ENV.localDemandEnabled?',gallery_preview':''),{count:'exact'})
-  .eq('user_uuid',userUuid).order('createdAt',{ascending:false}).order('id',{ascending:false}).range(offset,offset+limit-1);
+export async function getUserPostSummaries(userUuid:string,limit=20,offset=0,search='') {
+ const clean=search.replace(new RegExp('[^\\p{L}\\p{N}\\s-]','gu'),' ').trim().slice(0,120);
+ let query=getSupabaseDbClient().from('posts')
+  .select('id,headline,platform,postMode,layout,createdAt,designFamily:canvas_model->completeDesign->>family,designName:canvas_model->completeDesign->>name'+(ENV.localDemandEnabled?',gallery_preview':''),{count:'exact'})
+  .eq('user_uuid',userUuid);
+ if(clean){const family=acervo82FamilyFromCode(clean);query=query.or(`headline.ilike.%${clean}%,canvas_model->completeDesign->>name.ilike.%${clean}%${family?`,canvas_model->completeDesign->>family.eq.${family}`:''}`);}
+ const {data,error,count}=await query.order('createdAt',{ascending:false}).order('id',{ascending:false}).range(offset,offset+limit-1);
  if(error)throw error;
- return {items:(data??[]) as Array<{id:number;headline:string;gallery_preview?:string|null;platform:string;postMode:string;layout:string;createdAt:string}>,total:count??0};
+ return {items:(data??[]) as Array<{id:number;headline:string;designFamily:string|null;designName:string|null;gallery_preview?:string|null;platform:string;postMode:string;layout:string;createdAt:string}>,total:count??0};
 }

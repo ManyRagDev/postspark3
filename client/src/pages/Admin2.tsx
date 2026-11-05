@@ -1,3 +1,4 @@
+import Acervo82ReviewPanel from "./Admin2/Acervo82ReviewPanel";
 import ComponentArsenalPanel from "./Admin2/ComponentArsenalPanel";
 import { createArsenalFixturePost } from "./CanvasLab/lib/arsenalFixture";
 import MatrixPanel from "./Admin2/MatrixPanel";
@@ -861,6 +862,7 @@ export default function Admin2() {
             </p>
           )}
         </section>
+        <Acervo82ReviewPanel/>
         <ComponentArsenalPanel/>
         <ArsenalPanel/>
         <div

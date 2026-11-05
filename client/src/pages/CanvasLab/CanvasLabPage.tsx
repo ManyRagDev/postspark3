@@ -1,3 +1,4 @@
+import {designLabel} from "@shared/acervo82Identity";
 import {
   applyMediaOperation,
   pendingMediaCount,
@@ -2082,6 +2083,7 @@ export default function CanvasLabPage({
     >
       {/* 1. Top Bar */}
       <CanvasTopBar
+        designIdentity={designLabel(post)}
         aspectRatio={post.aspectRatio}
         onAspectRatioChange={handleAspectRatioChange}
         zoom={zoom}

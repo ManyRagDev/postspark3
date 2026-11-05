@@ -1,0 +1,90 @@
+[
+  {
+    "id": "mensagem",
+    "postMode": "static",
+    "slides": 1,
+    "media": "forbidden",
+    "content": "Crie um post único com uma mensagem breve para o coletivo fictício Oficina Comum: ‘Uma ideia cresce quando é compartilhada’. Use apenas essa ideia, com um título curto. Sem fotografia, sem números e sem assinatura inventada."
+  },
+  {
+    "id": "explicacao",
+    "postMode": "static",
+    "slides": 1,
+    "media": "forbidden",
+    "content": "Faça um post único que explique a utilidade de registrar uma pergunta antes de procurar respostas. O exemplo é uma equipe escolhendo o assunto de uma oficina de desenho. Use uma frase de abertura e uma explicação curta. Sem fotografia e sem dados de mercado."
+  },
+  {
+    "id": "comparacao",
+    "postMode": "static",
+    "slides": 1,
+    "media": "forbidden",
+    "content": "Crie um post único com duas regiões distintas. Compare ‘começar pelo formato’, que decide a aparência antes da mensagem, com ‘começar pela ideia’, que define a mensagem antes de decidir o formato. Sem fotografia. Preserve as duas alternativas, sem inventar números."
+  },
+  {
+    "id": "dado",
+    "postMode": "static",
+    "slides": 1,
+    "media": "forbidden",
+    "content": "Faça um post único sobre um exercício fictício da Oficina Comum. Dado fornecido: 42% das 100 fichas do exercício escolheram ‘desenho coletivo’. Destaque 42% como número principal e identifique o que ele mede. Sem fotografia. Não generalize para o mercado nem inclua outros percentuais."
+  },
+  {
+    "id": "foto-gerada",
+    "postMode": "static",
+    "slides": 1,
+    "media": "required",
+    "content": "Crie um post único com fotografia obrigatória de uma oficina fictícia de criação. Mostre mãos adultas organizando folhas coloridas em uma mesa de madeira, com luz natural, sem rostos nem marcas. Gere essa fotografia. A mensagem é ‘Criar em grupo’. Mantenha o texto da arte breve."
+  },
+  {
+    "id": "foto-enviada",
+    "postMode": "static",
+    "slides": 1,
+    "media": "required",
+    "upload": true,
+    "content": "Faça um post único usando a própria fotografia enviada como conteúdo principal. Preserve a imagem. Escreva apenas uma mensagem curta sobre experimentação criativa, sem mencionar marcas, local, data ou inventar nomes."
+  },
+  {
+    "id": "foto-e-texto",
+    "postMode": "static",
+    "slides": 1,
+    "media": "required",
+    "upload": true,
+    "content": "Use a fotografia enviada em um post único da Oficina Comum. Mensagem: ‘Uma ideia toma forma quando alguém a coloca na mesa’. O texto e a imagem devem se complementar; preserve a fotografia fornecida e não adicione fatos ou pessoas específicas."
+  },
+  {
+    "id": "carrossel-explicacao",
+    "postMode": "carousel",
+    "slides": 5,
+    "media": "forbidden",
+    "content": "Crie um carrossel de cinco lâminas sem fotografia: capa, três explicações e fechamento. Explique como preparar um briefing de oficina: 1. decidir o objetivo; 2. reunir os fatos disponíveis; 3. descrever para quem a oficina é feita. Dê um exemplo fictício curto por etapa. Feche convidando a salvar."
+  },
+  {
+    "id": "carrossel-itens",
+    "postMode": "carousel",
+    "slides": 3,
+    "media": "forbidden",
+    "content": "Crie um carrossel de três lâminas, sem fotografia. Na capa, apresente ‘Três passos antes de publicar’. No desenvolvimento, organize três itens independentes: conferir o título, verificar as fontes dos dados e reler no celular. Feche com um convite para aplicar o roteiro. Não acrescente etapas."
+  },
+  {
+    "id": "carrossel-narrativa",
+    "postMode": "carousel",
+    "slides": 5,
+    "media": "forbidden",
+    "content": "Crie um carrossel narrativo com cinco lâminas sem fotografia. História fictícia: uma oficina começa com uma folha vazia; cada pessoa escreve uma pergunta; as perguntas são agrupadas; o grupo escolhe uma para investigar; feche com a ideia de que ouvir muda o começo. Preserve essa ordem e a progressão."
+  },
+  {
+    "id": "carrossel-gosto",
+    "postMode": "carousel",
+    "slides": 4,
+    "media": "forbidden",
+    "content": "Crie um carrossel de quatro lâminas sobre organizar um rascunho para uma oficina. Capa, uma lâmina sobre separar ideias, uma sobre escolher a prioridade e um fechamento breve. Sem fotografia. Preferência visual: papel creme em camadas, com margens generosas e hierarquia de revista editorial."
+  },
+  {
+    "id": "aberto",
+    "postMode": "static",
+    "slides": 1,
+    "media": "optional",
+    "content": "Proponha um post único para a oficina fictícia ‘Ideias em Comum’. O assunto é trocar experiências entre pessoas que gostam de criar. Use um título breve e um apoio se couber. A fotografia é opcional. Escolha a direção de arte que ajudar a leitura. Não invente preço, horário ou endereço. Se a fotografia ajudar a composição, preserve a fotografia fornecida. A mídia continua opcional.",
+    "upload": true,
+    "sourceAsText": true
+  }
+]

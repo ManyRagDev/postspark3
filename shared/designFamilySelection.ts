@@ -1,3 +1,4 @@
+import { familyAxes } from "./familyNeutrality";
 import { arsenalHash } from "./arsenalContent";
 import { assemblyIdentity, type ComponentCardV1 } from "./componentAssembly";
 import type { DesignFamilyRepertoire } from "./designRepertoire";
@@ -8,9 +9,10 @@ type CountRange = { min: number; max: number };
 /** First election describes a family. Exact compositions remain in repertoires
  * for the subsequent choice; this profile cannot prescribe a slide sequence. */
 export interface FamilySelectionProfile {
-  version: 4;
+  version: 4 | 5;
   kind: "editorial_family";
   family: string;
+  description?: string;
   aesthetic: {
     languages: string[];
     treatments: string[];
@@ -138,7 +140,8 @@ function describeFamily(
 /** No enumeration, merging or materialization of child compositions occurs here. */
 export function buildFamilySelectionCandidates(
   repertoires: DesignFamilyRepertoire[],
-  catalog: FrozenEditorialCatalog | null = null
+  catalog: FrozenEditorialCatalog | null = null,
+  neutral = false
 ): FamilySelectionCandidate[] {
   const groups = new Map<string, Map<string, DesignFamilyRepertoire>>();
   for (const repertoire of repertoires) {
@@ -153,6 +156,13 @@ export function buildFamilySelectionCandidates(
   return Array.from(groups).sort(([a], [b]) => compare(a, b)).map(([family, group]) => {
     const members = Array.from(group.values()).sort((a, b) => compare(a.defaultOffer.offerId, b.defaultOffer.offerId));
     const profile = describeFamily(family, members, catalog);
+    if (neutral) {
+      const axes=familyAxes(rootFor(members[0]));
+      profile.version=5;
+      profile.description=rootFor(members[0]).completeDesign?.designGuidance?.selection?.description;
+      profile.aesthetic={languages:[axes.organization],treatments:[axes.typography],motifs:[],fonts:[],densities:[axes.density],identity:{essential:Object.entries(axes).map(([k,v])=>`${k}: ${v}`),optional:[],adaptable:[]}};
+      profile.editorial.rationales=[];
+    }
     const signature = arsenalHash({
       version: 1,
       family,
@@ -162,3 +172,19 @@ export function buildFamilySelectionCandidates(
     return { id: assemblyIdentity(["editorial-family-selection-v1", signature]), signature, family, repertoires: members, profile };
   });
 }
+
+/** The judge sees capabilities, not inventory or reserve capacity. Exact counts stay local. */
+export function familyAssessmentProfile(profile:FamilySelectionProfile) {
+  if(profile.version===4)return profile;
+  return {
+    version:5 as const,kind:profile.kind,family:profile.family,description:profile.description,
+    aesthetic:profile.aesthetic,editorial:profile.editorial,
+    capabilities:{
+      text:profile.structure.textBlocks.max>0,
+      list:profile.structure.listBlocks.max>0,
+      comparison:profile.structure.relationships.includes('contrast'),
+      photo:profile.structure.mediaSlots.max>0,
+    },
+  };
+}
+export const neutralFamilySelectionLegend = "Family profile v5: one candidacy per family. Characteristics differentiate solutions. Exact format, fields, item capacity and physical fit are checked locally for the requested content. Rate only how this visual organization and the documented capabilities serve the brief. Never reward assets, ornament, font count, variant count, page count, spare capacity or annotation length. When the same needs are met, a simple and an elaborate composition are equally suitable. Editorial affinity is contextual; a missing annotation does not prohibit a topic.";

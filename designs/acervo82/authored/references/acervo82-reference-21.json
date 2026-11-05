@@ -1,0 +1,371 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-21",
+  "sourceRecipeHash": "d88371e35f5b835bafd61ca595ec183a2d9ee804685d98d27b75a3f6d6862b12",
+  "previousReferenceId": "f659cc876f6d0cce3745e91bf2ca5454",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "391ec7bf-80a0-4c62-8f88-cfc5e94b95b7",
+    "title": "Contraste — While Others Blur",
+    "createdAt": "2026-09-30T23:43:25.559Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 1199,
+        "heightPx": 1496,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "26cddb4e2fc7713d7fd23720cd7c393bed293e33fbc25cb87d39193a7ed9d459"
+      },
+      "artboard": {
+        "background": "#262B2C"
+      },
+      "layers": [
+        {
+          "id": "photo",
+          "kind": "rect",
+          "role": "Fotografia — inserir no Admin2",
+          "zIndex": 0,
+          "x": 0,
+          "y": 0,
+          "width": 1199,
+          "height": 1496,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#343A3B",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "intro",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 1,
+          "x": 348,
+          "y": 265,
+          "width": 580,
+          "height": 78,
+          "text": "While Others",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 68,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#EAF066",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "title",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 2,
+          "x": 218,
+          "y": 326,
+          "width": 815,
+          "height": 220,
+          "text": "BLUR",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 205,
+          "lineHeight": 1.05,
+          "letterSpacing": 22,
+          "align": "left",
+          "fill": "#EAF066",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "left",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 3,
+          "x": 213,
+          "y": 528,
+          "width": 360,
+          "height": 76,
+          "text": "We make",
+          "fontFamily": "Inter",
+          "fontWeight": 600,
+          "fontSize": 61,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "right",
+          "kind": "text",
+          "role": "headline",
+          "zIndex": 4,
+          "x": 761,
+          "y": 528,
+          "width": 410,
+          "height": 76,
+          "text": "You clear",
+          "fontFamily": "Inter",
+          "fontWeight": 600,
+          "fontSize": 61,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Inter",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+          "license": "open-source"
+        },
+        {
+          "family": "Archivo Black",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/archivoblack/v23/HTxqL289NzCGg4MzN6KJ7eW6CYyF_g.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 600,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "f9a06e79cd3a2a20951c0f0e28f66dd0e6d3fda73911d640a2125c8fcb78f21a",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "A referência depende de fotografia com movimento e pessoa sobreposta à palavra. Slot único: não há remoção de fundo ou máscara de pessoa. Itálico e desfoque não disponíveis; revisão visual necessária com sua foto."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "photo",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "intro",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "title",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "left",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "right",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "media",
+          "label": "Fotografia substituível",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "photo"
+            }
+          ]
+        },
+        {
+          "id": "copy",
+          "label": "Chamadas sobre fotografia",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 348,
+              "y": 265,
+              "rotationDeg": 0,
+              "layerId": "intro"
+            },
+            {
+              "x": 218,
+              "y": 326,
+              "rotationDeg": 0,
+              "layerId": "title"
+            },
+            {
+              "x": 213,
+              "y": 528,
+              "rotationDeg": 0,
+              "layerId": "left"
+            },
+            {
+              "x": 761,
+              "y": 528,
+              "rotationDeg": 0,
+              "layerId": "right"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "intro",
+          "label": "While Others",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "intro"
+          ],
+          "baseFontSizes": [
+            68
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "title",
+          "label": "BLUR",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "title"
+          ],
+          "baseFontSizes": [
+            205
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "left",
+          "label": "We make",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "left"
+          ],
+          "baseFontSizes": [
+            61
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "right",
+          "label": "You clear",
+          "kind": "text",
+          "groupId": "copy",
+          "layerIds": [
+            "right"
+          ],
+          "baseFontSizes": [
+            61
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        }
+      ],
+      "media": [
+        {
+          "id": "photo",
+          "label": "Fotografia — inserir no Admin2",
+          "groupId": "media",
+          "layerId": "photo",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        }
+      ]
+    }
+  }
+}

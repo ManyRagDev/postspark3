@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
-const root = "artifacts/acervo82/pilot";
+const root = process.env.POSTSPARK_ACERVO82_CAMPAIGN === "full" ? "artifacts/acervo82/full" : "artifacts/acervo82/pilot";
 await fs.mkdir(root, { recursive: true });
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
 const fonts = JSON.parse(

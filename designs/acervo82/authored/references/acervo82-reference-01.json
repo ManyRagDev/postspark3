@@ -1,0 +1,867 @@
+{
+  "format": "postspark.acervo82.native-source",
+  "version": 1,
+  "rosterId": "acervo82-reference-01",
+  "sourceRecipeHash": "261383559f3b01c75caa53f3345165502e50f9736222aec478fed2227d5f9f17",
+  "previousReferenceId": "0196e78997cab5ec7a590ea1718a573f",
+  "recipe": {
+    "format": "postspark.admin2.recipe",
+    "version": 3,
+    "id": "1de4f73b-533a-40b7-a303-9667b80a7150",
+    "title": "Gravar criativos — anúncio laranja",
+    "createdAt": "2026-09-30T23:43:25.498Z",
+    "model": "offline/manual-curation",
+    "provider": null,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0
+    },
+    "scene": {
+      "schemaVersion": 2,
+      "source": {
+        "widthPx": 1080,
+        "heightPx": 1350,
+        "mimeType": "image/jpeg",
+        "preparedHash": null,
+        "originalHash": "939fc42e810c42015102910079be246fda0bb5390f638ee9fe7c34da4e63573e"
+      },
+      "artboard": {
+        "background": "#EE4B00"
+      },
+      "layers": [
+        {
+          "id": "quadrado-preto",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 13,
+          "x": 852,
+          "y": 697,
+          "width": 22,
+          "height": 22,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#080808",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "quadrado-base",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 14,
+          "x": 242,
+          "y": 868,
+          "width": 22,
+          "height": 22,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "eco-topo",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 0,
+          "x": 0,
+          "y": -15,
+          "width": 1400,
+          "height": 300,
+          "text": "GRAVAR",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 265,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FF7518",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 0.58,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "eco-base",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 1,
+          "x": 0,
+          "y": 1134,
+          "width": 1400,
+          "height": 300,
+          "text": "GRAVAR",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 260,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FF7518",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 0.58,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "categoria-1",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 2,
+          "x": 90,
+          "y": 62,
+          "width": 260,
+          "height": 40,
+          "text": "ANÚNCIOS",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 29,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "categoria-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 3,
+          "x": 475,
+          "y": 62,
+          "width": 260,
+          "height": 40,
+          "text": "TRÁFEGO",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 29,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "categoria-3",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 4,
+          "x": 848,
+          "y": 62,
+          "width": 210,
+          "height": 40,
+          "text": "VENDAS",
+          "fontFamily": "Inter",
+          "fontWeight": 400,
+          "fontSize": 29,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "titulo",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 5,
+          "x": 100,
+          "y": 219,
+          "width": 880,
+          "height": 125.55000000000001,
+          "text": "GRAVAR",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 135,
+          "lineHeight": 0.93,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "titulo-line-2",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 6,
+          "x": 100,
+          "y": 344.55,
+          "width": 880,
+          "height": 125.55000000000001,
+          "text": "CRIATIVOS",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 135,
+          "lineHeight": 0.93,
+          "letterSpacing": 0,
+          "align": "center",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "quadrado-branco",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 7,
+          "x": 181,
+          "y": 282,
+          "width": 22,
+          "height": 22,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "apoio",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 8,
+          "x": 236,
+          "y": 475,
+          "width": 730,
+          "height": 67,
+          "text": "não precisa ser um processo",
+          "fontFamily": "Inter",
+          "fontWeight": 700,
+          "fontSize": 43,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "sublinhado",
+          "kind": "line",
+          "role": "decoration",
+          "zIndex": 9,
+          "x": 236,
+          "y": 518,
+          "width": 246,
+          "height": 1,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#191919",
+          "strokeColor": "#191919",
+          "strokeWidth": 2,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [
+            0,
+            0,
+            246,
+            0
+          ],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "tarja",
+          "kind": "rect",
+          "role": "decoration",
+          "zIndex": 10,
+          "x": 137,
+          "y": 574,
+          "width": 798,
+          "height": 132,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#080808",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": -4.6,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "palavra-destaque",
+          "kind": "text",
+          "role": "annotation",
+          "zIndex": 11,
+          "x": 156.3856004501319,
+          "y": 590.498439174293,
+          "width": 768,
+          "height": 108,
+          "text": "COMPLICADO",
+          "fontFamily": "Archivo Black",
+          "fontWeight": 400,
+          "fontSize": 102,
+          "lineHeight": 1.05,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#FFFFFF",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": -4.6,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
+          "id": "camera-foto",
+          "kind": "rect",
+          "role": "Câmera e braço: foto vertical substituível",
+          "zIndex": 12,
+          "x": 299,
+          "y": 725,
+          "width": 467,
+          "height": 610,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#B8B8B8",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 1,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        }
+      ],
+      "fonts": [
+        {
+          "family": "Archivo Black",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/archivoblack/v23/HTxqL289NzCGg4MzN6KJ7eW6CYyF_g.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 400,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+          "license": "open-source"
+        },
+        {
+          "family": "Inter",
+          "weight": 700,
+          "sourceUrl": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hiA.woff2",
+          "mimeType": "font/woff2",
+          "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+          "license": "open-source"
+        }
+      ],
+      "warnings": [],
+      "decoderVersion": "manual-curation-batch-v1",
+      "rendererVersion": "admin2-konva-3"
+    },
+    "missingElements": [
+      {
+        "description": "Câmera e braço: foto vertical substituível",
+        "reason": "Fotografia original não incorporada; slot cinza recebe mídia escolhida pelo usuário.",
+        "box": {
+          "x": 0.27685185185185185,
+          "y": 0.5370370370370371,
+          "width": 0.4324074074074074,
+          "height": 0.45185185185185184
+        },
+        "role": "hero",
+        "essential": true
+      },
+      {
+        "description": "Textura granulada sobre o fundo e letras",
+        "reason": "Textura raster omitida para manter geometria vetorial reutilizável.",
+        "box": null,
+        "role": "texture",
+        "essential": false
+      }
+    ],
+    "notes": [
+      "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+      "Fotografia recortada de câmera e braço substituída por janela cinza vertical; cover não remove fundo.",
+      "Fonte Archivo Black aproxima o sans pesado; papel e ruído fotográfico omitidos.",
+      "Faixa preta mantém sua inclinação e grupo vinculado; textos decorativos de fundo permanecem fixos.",
+      "As duas palavras gigantes do fundo também são substituíveis; são decorativas e não sincronizam automaticamente com o título. Corte fora da prancheta é intencional.",
+      "Campos multiline convertidos em listas de camadas por linha para permitir compilação no-op: titulo."
+    ],
+    "adaptation": {
+      "parentRecipeId": null,
+      "layerStyles": [
+        {
+          "layerId": "quadrado-preto",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "quadrado-base",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "eco-topo",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "eco-base",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "categoria-1",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "categoria-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "categoria-3",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "titulo",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "titulo-line-2",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "quadrado-branco",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "apoio",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "sublinhado",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "tarja",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "palavra-destaque",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
+          "layerId": "camera-foto",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        }
+      ]
+    },
+    "matrix": {
+      "version": 1,
+      "groups": [
+        {
+          "id": "eco-background",
+          "label": "Palavras decorativas do fundo",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": -15,
+              "rotationDeg": 0,
+              "layerId": "eco-topo"
+            },
+            {
+              "x": 0,
+              "y": 1134,
+              "rotationDeg": 0,
+              "layerId": "eco-base"
+            }
+          ]
+        },
+        {
+          "id": "categorias",
+          "label": "Categorias no cabeçalho",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 90,
+              "y": 62,
+              "rotationDeg": 0,
+              "layerId": "categoria-1"
+            },
+            {
+              "x": 475,
+              "y": 62,
+              "rotationDeg": 0,
+              "layerId": "categoria-2"
+            },
+            {
+              "x": 848,
+              "y": 62,
+              "rotationDeg": 0,
+              "layerId": "categoria-3"
+            }
+          ]
+        },
+        {
+          "id": "titulo",
+          "label": "Título e apoio",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 100,
+              "y": 219,
+              "rotationDeg": 0,
+              "layerId": "titulo"
+            },
+            {
+              "x": 100,
+              "y": 344.55,
+              "rotationDeg": 0,
+              "layerId": "titulo-line-2"
+            },
+            {
+              "x": 181,
+              "y": 282,
+              "rotationDeg": 0,
+              "layerId": "quadrado-branco"
+            },
+            {
+              "x": 236,
+              "y": 475,
+              "rotationDeg": 0,
+              "layerId": "apoio"
+            },
+            {
+              "x": 236,
+              "y": 518,
+              "rotationDeg": 0,
+              "layerId": "sublinhado"
+            }
+          ]
+        },
+        {
+          "id": "destaque",
+          "label": "Faixa inclinada",
+          "transform": {
+            "x": 137,
+            "y": 574,
+            "rotationDeg": -4.6
+          },
+          "members": [
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "tarja"
+            },
+            {
+              "x": 17.99999999999999,
+              "y": 18.000000000000036,
+              "rotationDeg": 0,
+              "layerId": "palavra-destaque"
+            }
+          ]
+        },
+        {
+          "id": "camera",
+          "label": "Mídia principal",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "rotationDeg": 0
+          },
+          "members": [
+            {
+              "x": 299,
+              "y": 725,
+              "rotationDeg": 0,
+              "layerId": "camera-foto"
+            }
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "id": "eco-copy",
+          "label": "Palavras do fundo (duas linhas)",
+          "kind": "list",
+          "groupId": "eco-background",
+          "layerIds": [
+            "eco-topo",
+            "eco-base"
+          ],
+          "baseFontSizes": [
+            265,
+            260
+          ],
+          "minScale": 0.6,
+          "prefix": ""
+        },
+        {
+          "id": "categoria-1",
+          "label": "Categoria 1",
+          "kind": "text",
+          "groupId": "categorias",
+          "layerIds": [
+            "categoria-1"
+          ],
+          "baseFontSizes": [
+            29
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "categoria-2",
+          "label": "Categoria 2",
+          "kind": "text",
+          "groupId": "categorias",
+          "layerIds": [
+            "categoria-2"
+          ],
+          "baseFontSizes": [
+            29
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "categoria-3",
+          "label": "Categoria 3",
+          "kind": "text",
+          "groupId": "categorias",
+          "layerIds": [
+            "categoria-3"
+          ],
+          "baseFontSizes": [
+            29
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "titulo",
+          "label": "Titulo",
+          "kind": "list",
+          "groupId": "titulo",
+          "layerIds": [
+            "titulo",
+            "titulo-line-2"
+          ],
+          "baseFontSizes": [
+            135,
+            135
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "apoio",
+          "label": "Apoio",
+          "kind": "text",
+          "groupId": "titulo",
+          "layerIds": [
+            "apoio"
+          ],
+          "baseFontSizes": [
+            43
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        },
+        {
+          "id": "palavra-destaque",
+          "label": "Palavra destaque",
+          "kind": "text",
+          "groupId": "destaque",
+          "layerIds": [
+            "palavra-destaque"
+          ],
+          "baseFontSizes": [
+            102
+          ],
+          "minScale": 0.7,
+          "prefix": ""
+        }
+      ],
+      "media": [
+        {
+          "id": "camera-foto",
+          "label": "Câmera e braço: foto vertical substituível",
+          "groupId": "camera",
+          "layerId": "camera-foto",
+          "fit": "cover",
+          "positionX": 0.5,
+          "positionY": 0.5,
+          "asset": null
+        }
+      ]
+    }
+  }
+}

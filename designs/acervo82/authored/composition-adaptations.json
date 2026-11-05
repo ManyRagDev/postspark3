@@ -1,0 +1,16 @@
+{
+  "format":"postspark.acervo82.authored-geometry",
+  "version":1,
+  "entries":{
+    "REF-01":{"bleed":["eco-topo","eco-base"],"overlaps":[["eco-topo","categoria-1"],["eco-topo","categoria-2"],["eco-topo","categoria-3"],["eco-topo","titulo"]],"reason":"Eco tipográfico escuro ornamental atrás do texto principal; recorte da referência preservado. O conteúdo principal permanece dentro da prancheta."},
+    "REF-03":{"overlaps":[["verdade","sobre"],["sobre","titulo-criativo"],["titulo-criativo","titulo-pessoas"]],"reason":"Etiquetas sobrepostas e entrelinha compacta da referência; caixas lógicas se cruzam sem ocultar a tinta das letras."},
+    "REF-04":{"bleed":["predio-topo","predio-base"],"overlaps":[["titulo-brutal","titulo-ism"]],"reason":"Fotografias diagonais recortadas pela prancheta e título em entrelinha compacta."},
+    "REF-08":{"lineBoxes":[["lista-1","lista-2"],["lista-2","lista-3"]],"reason":"Declaração de caixas adjacentes já presente na receita de origem, preservada para a nova identidade."},
+    "REF-11":{"overlaps":[["intro-tail","for"]],"reason":"Palavras em tarjas rotacionadas com caixas lógicas inclinadas; texto visível separado."},
+    "REF-13":{"lineBoxes":[["first","second"],["second","third"]],"reason":"Título compacto em três linhas; a tinta das letras permanece separada."},
+    "REF-16":{"overlaps":[["motto-two","motto-three"],["motto-three","motto-four"],["motto-three","skill"],["motto-four","skill"],["no-one","skill"],["skill","no-two"],["no-two","seat"]],"reason":"Tipografia extrudada e lema periférico em rotações próprias; sobreposição das caixas de linha prevista pela composição original."},
+    "REF-21":{"overlaps":[["intro","title"],["title","left"],["title","right"]],"reason":"Entrelinha de cartaz compacta em torno do título BLUR; as caixas incluem áreas sem tinta."},
+    "REF-22":{"lineBoxes":[["line1","line2"],["line2","line3"]],"reason":"Declaração de caixas adjacentes da receita de origem preservada."},
+    "R9-02":{"offsets":{"text-4-0":{"y":25}},"reason":"Selo 50/50 afastado 25 pixels nativos para separar sua leitura da última linha do título."}
+  }
+}

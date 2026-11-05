@@ -30,6 +30,7 @@ export interface ProposalMediaRequest {
   purpose?: string;
   postContext?: ImagePostContext;
   references?: ProposalMediaReference[];
+  preservedImageUrl?: string;
   /** Stable key supplied by the proposal runtime for deduplicating a slot operation. */
   operationId: string;
   signal?: AbortSignal;
@@ -167,6 +168,15 @@ export async function generateProposalMediaForSlot(
   ) {
     throw new Error("Slot de mídia inválido");
   }
+  if (request.preservedImageUrl) {
+    const path=PRIVATE_MEDIA_PATH.exec(request.preservedImageUrl);
+    if(path?.[1]!==request.ownerId)throw new Error("A foto preservada não pertence ao proprietário");
+    request.signal?.throwIfAborted();
+    if(deps.resolveOwnedReference)await deps.resolveOwnedReference(request.preservedImageUrl,request.ownerId,request.operationId,request.signal);
+    else await loadOwnedMediaReference(request.preservedImageUrl,request.ownerId,request.signal);
+    request.signal?.throwIfAborted();
+    return {url:request.preservedImageUrl};
+  }
   if (!request.prompt.trim()) throw new Error("Prompt de mídia obrigatório");
 
   const originalImages = await resolveProposalMediaReferences(
@@ -201,4 +211,22 @@ export async function generateProposalMediaForSlot(
     );
   }
   return { url: generated.url! };
+}
+
+/** Freeze explicit preservation of one owned content image. Other source
+ * photographs remain context for interpretation or a requested new image. */
+export function requestedPreservedPhoto(input: Pick<import('@shared/generationRequest').OrchestratedGenerationInput,'ownerId'|'content'|'inputType'|'imageUrl'|'sources'>, brief = input.content): string | undefined {
+  const text=brief.normalize('NFC').toLocaleLowerCase('pt-BR');
+  const target='(?:foto(?:grafia)?|imagem)\\s+(?:enviada|fornecida|anexada|original)';
+  const use='(?:us[ea]|usando|utiliz[ea]|utilizando|preserv[ea]|preservando|mantenha|inclua|reaproveite)';
+  const command=new RegExp(`\\b${use}\\b[^.!?;\\n]{0,48}\\b${target}\\b`,'i');
+  const negative=new RegExp(`\\b(?:não|nunca)\\s+${use}\\b[^.!?;\\n]{0,48}\\b${target}\\b`,'i');
+  if(!command.test(text)||negative.test(text))return;
+  const values=Array.from(new Set([
+    ...(input.sources??[]).filter(s=>s.kind==='image'&&s.purpose==='content').map(s=>s.value),
+    ...(input.inputType==='image'&&input.imageUrl?[input.imageUrl]:[]),
+  ]));
+  if(values.length!==1)return;
+  const match=PRIVATE_MEDIA_PATH.exec(values[0]);
+  return match?.[1]===input.ownerId?values[0]:undefined;
 }

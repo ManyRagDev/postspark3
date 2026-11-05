@@ -1,3 +1,4 @@
+import {familyTie} from "../shared/familyNeutrality";
 import { arsenalHash } from "../shared/arsenalContent";
 import { z } from "zod";
 import { readPreparationResult, preparationExpectationSchema } from "../shared/generationPreparationReceipt";
@@ -35,9 +36,9 @@ import { designHasPhotographicContent } from "../shared/designSelection";
 import { catalogScopeHash } from "./designCatalog/catalogCoverage";
 import { journalOperationWasLocal } from "./ai/workflows/generationJournalTrace";
 import { combineEditorialDesignProfile, editorialRequestEvidence, frozenEditorialCatalogSchema, validateEditorialIntent, type FrozenEditorialCatalog } from "../shared/editorialIntent";
-import { buildFamilySelectionCandidates } from "../shared/designFamilySelection";
+import { buildFamilySelectionCandidates, familyAssessmentProfile } from "../shared/designFamilySelection";
 import { FAMILY_RETRIEVAL_POLICY as retrievalPolicy } from "../shared/familyRetrieval";
-import { assertFamilyRetrieval, familySearchQuery } from "./designCatalog/familyRetrieval";
+import { assertFamilyRetrieval, familySearchQuery, familyVisualQuery } from "./designCatalog/familyRetrieval";
 import { planFamilyRecovery, FAMILY_RECOVERY_REASON } from "../shared/familyRecovery";
 import { inspectFamilyPlanFit } from "./designCatalog/familyPlanFit";
 
@@ -72,6 +73,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
     return op?.state === "completed" ? clean(op.result) : null;
   };
   const selectionInput = completed("prepare:selection_input");
+  const neutrality=selectionInput?.familyNeutrality;
   const familyRanking = selectionInput?.familyRankingVersion === 1;
   const boundedRetrieval = selectionInput?.familyRetrievalVersion === 1;
   const recoveryEnabled = selectionInput?.familyRecoveryVersion === 1;
@@ -207,6 +209,11 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
     ]
       .filter(Boolean)
       .join("\n");
+    if(selectionInput?.preservedPhoto){
+      const url=selectionInput.preservedPhoto.url;
+      const imageOperations=operations.filter(op=>op.state==='completed'&&/:image:\d+:/.test(String(op.operation_key)));
+      check(same(prepared.preservedPhoto,selectionInput.preservedPhoto)&&imageOperations.every(op=>row(op.result).url===url), 'preserved_source_photo_mismatch');
+    }
     const factualSources = new Set<string>(
       list(context.sources)
         .filter(
@@ -223,7 +230,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
     const providerIntent = intentSchema.parse(completed("prepare:intent"));
     const slideCount = input.postMode === "static" ? 1 : (input.slideCount ?? 5);
     check(
-      same(normalizeGenerationIntent(providerIntent, slideCount, factualSources, requestText), intent),
+      same(normalizeGenerationIntent(providerIntent, slideCount, factualSources, requestText, neutrality?.planningVersion===2), intent),
       "intent_operation_mismatch"
     );
     check(
@@ -256,7 +263,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       "planning_candidates_reconstruction_mismatch"
     );
     if (familyRanking) {
-      familyCandidates = buildFamilySelectionCandidates(repertoires, editorialCatalog);
+      familyCandidates = buildFamilySelectionCandidates(repertoires, editorialCatalog, Boolean(neutrality));
       check(same(familyCandidates.map(candidate => ({
         id: candidate.id, family: candidate.family, signature: candidate.signature,
         profileHash: arsenalHash(candidate.profile),
@@ -285,7 +292,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       const valid =
         op.state === "completed" &&
         context.version === 1 &&
-        context.profileVersion === (familyRanking ? 4 : 3) &&
+        context.profileVersion === (familyRanking ? neutrality ? 5 : 4 : 3) &&
         typeof context.requestHash === "string" &&
         String(op.operation_key).endsWith(`:${context.requestHash}`) &&
         ids.length > 0 &&
@@ -299,7 +306,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
             answer = row(answers[id]);
           const family = familyRanking ? familyCandidates.find(candidate => candidate.id === id) : null;
           const identityMatches = familyRanking
-            ? family && family.signature === hashes[id] && arsenalHash(family.profile) === profiles[id]
+            ? family && family.signature === hashes[id] && arsenalHash(familyAssessmentProfile(family.profile)) === profiles[id]
             : repertoire && repertoire.defaultOffer.signature === hashes[id] && profileHash(repertoire) === profiles[id];
           return (
             identityMatches &&
@@ -348,10 +355,11 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       if (boundedRetrieval) {
         const receipt = familyElection.retrieval, recorded = completed("prepare:family_retrieval");
         const visual = row(prepared.visualPreference);
-        assertFamilyRetrieval(recorded as any, familyCandidates, familySearchQuery(intent, editorialCatalog, visual.enabled ? visual.language ?? "" : ""));
+        assertFamilyRetrieval(recorded as any, familyCandidates, familySearchQuery(intent, editorialCatalog, familyVisualQuery(visual, selectionInput?.familyVisualQueryVersion === 2 ? requestText : "", Boolean(neutrality))));
         const { expanded, transport, ...basis } = receipt ?? {};
         const { expanded: _expanded, transport: _transport, ...frozen } = recorded ?? {};
         check(same(basis, frozen) && typeof expanded === "boolean", "family_retrieval_receipt_mismatch");
+        check(same(recorded?.neutrality,neutrality), "family_neutrality_pin_mismatch");
         const pinnedIndex = selectionInput?.familyRetrievalIndex;
         check(!receipt.indexHash || pinnedIndex?.hash === receipt.indexHash && pinnedIndex?.modelFingerprint === receipt.modelFingerprint, "family_retrieval_index_mismatch");
         assessedIds = [...receipt.initialIds, ...(expanded ? receipt.additionalIds : [])];
@@ -375,10 +383,10 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       if (recoveryEnabled) {
         const recent = completed("prepare:recent_selections");
         const expected = planFamilyRecovery(ranking, ids => inspectFamilyPlanFit({
-          families: familyCandidates, ids, scores: ranking, intent, imageObligation: obligation,
+          neutrality, families: familyCandidates, ids, scores: ranking, intent, imageObligation: obligation,
           requestedPhotoMix: perProposalMedia.some(item => item.required === true) && perProposalMedia.some(item => item.policy === "forbidden"),
           slideCount, recentSelections: list(recent?.selections),
-        }));
+        }), neutrality ? id=>familyTie(neutrality.seed,familyCandidates.find(f=>f.id===id)!.family) : undefined);
         check(same(expected, familyElection.recovery), "family_recovery_local_evidence_mismatch");
         recoveredIds = expected.recoveredIds;
         check([...expected.normalIds, ...recoveredIds].every(id => shortlistedIds.includes(id)), "family_recovery_shortlist_mismatch");

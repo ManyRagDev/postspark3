@@ -3,6 +3,7 @@ import BrandCaptureModal from "./BrandCaptureModal";
 import { toast } from "sonner";
 import { GENERATION_MODEL_LABELS, getGenerationModelHint, type GenerationModel } from "@shared/generationModel";
 export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference";generationModel?:GenerationModel};
+import { trpc } from "@/lib/trpc";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Loader2, Sparkles, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
@@ -86,7 +87,16 @@ export default function StudioCreateViewV2B({
   // Estado para a Lente de Inspeção Rápida no Desktop
   const [hoveredSpecimenIndex, setHoveredSpecimenIndex] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const specimens = buildSpecimens();
+  const [designSearch,setDesignSearch]=useState('');
+  const directory=trpc.catalog.acervo82Directory.useQuery(undefined,{enabled:isSpecimensOpen||Boolean(declaredFamilyId?.startsWith('acervo82-')),retry:false,staleTime:30_000});
+  const catalogFamilies=directory.data?.families;
+  const fold=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const catalogSpecimens=catalogFamilies?.map((family):Specimen=>({
+    id:family.family,familyLabel:`${family.code} · ${family.name}`,prompt:`Crie um post sobre [assunto]. Direção visual: ${family.descriptor}.`,
+    art:<img loading="lazy" alt={`Miniatura nativa de ${family.name}`} src={`/api/acervo82/review/${family.family}/render`} className="absolute inset-0 h-full w-full object-cover"/>,
+  }));
+  const allSpecimens=catalogSpecimens??(directory.isFetching?[]:buildSpecimens());
+  const specimens=catalogSpecimens?allSpecimens.filter(s=>fold(s.familyLabel).includes(fold(designSearch.trim()))):allSpecimens;
 
   useEffect(() => {
     SPECIMEN_FONTS.forEach(loadFontByName);
@@ -103,7 +113,7 @@ export default function StudioCreateViewV2B({
   const isEmpty = prompt.trim().length === 0;
   const isUrl = isStandaloneHttpUrl(prompt);
   const canSubmit = !isEmpty && !isLoading;
-  const declaredSpecimen = specimens.find((s) => s.id === declaredFamilyId) ?? null;
+  const declaredSpecimen = allSpecimens.find((s) => s.id === declaredFamilyId) ?? null;
 
   const handleSubmit = () => {
     if (!canSubmit) return;
@@ -120,7 +130,7 @@ export default function StudioCreateViewV2B({
 
   // Toque no espécime: traz a copy e alterna o gosto (liga/desliga/migra).
   const handleSpecimenPick = (specimen: Specimen) => {
-    setPrompt(specimen.prompt);
+    if (!catalogFamilies || !prompt.trim()) setPrompt(specimen.prompt);
     onDeclareFamily(declaredFamilyId === specimen.id ? null : specimen.id);
   };
 
@@ -450,7 +460,7 @@ export default function StudioCreateViewV2B({
                     </span>
                     {/* Exibido apenas em telas maiores que mobile conforme solicitado */}
                     <span className="hidden sm:inline-block text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-[#FF5C00]/20 text-[#FF5C00] border border-[#FF5C00]/30">
-                      06 Modelos
+                      {catalogFamilies ? `${catalogFamilies.length} designs` : "Direções"}
                     </span>
                   </div>
                 </div>
@@ -484,9 +494,11 @@ export default function StudioCreateViewV2B({
                   transition={{ duration: 0.25, ease: "easeInOut" }}
                   className="relative overflow-visible"
                 >
+                  {catalogFamilies&&<input aria-label="Buscar direção de arte" value={designSearch} onChange={event=>{setDesignSearch(event.target.value);setHoveredSpecimenIndex(null);}} placeholder="Buscar código ou nome" className="mb-2 w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-xs"/>}
+                  {catalogFamilies&&specimens.length===0&&<p className="text-xs text-white/60">Nenhum design encontrado.</p>}
                   <div
                     onMouseLeave={() => setHoveredSpecimenIndex(null)}
-                    className="flex md:grid md:grid-cols-6 gap-2 md:gap-2.5 min-h-0 snap-x snap-mandatory overflow-x-auto md:overflow-x-visible overflow-y-hidden pb-1 pt-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    className={catalogFamilies?"grid max-h-[30svh] grid-cols-3 gap-2 overflow-y-auto p-1 sm:grid-cols-6":"flex md:grid md:grid-cols-6 gap-2 md:gap-2.5 min-h-0 snap-x snap-mandatory overflow-x-auto md:overflow-x-visible overflow-y-hidden pb-1 pt-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}
                   >
                     {specimens.map((specimen, index) => (
                       <SpecimenCard
@@ -495,7 +507,8 @@ export default function StudioCreateViewV2B({
                         index={index}
                         onPick={() => handleSpecimenPick(specimen)}
                         onHover={setHoveredSpecimenIndex}
-                        withDisclaimer
+                        withDisclaimer={!catalogFamilies}
+                        widthClass={catalogFamilies?"w-full":undefined}
                         selected={declaredFamilyId === specimen.id}
                       />
                     ))}

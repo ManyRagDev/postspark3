@@ -1,3 +1,4 @@
+import { familyTie, type FamilyNeutrality } from "@shared/familyNeutrality";
 import type { ComponentCardV1 } from "@shared/componentAssembly";
 import { completeDesignFields } from "@shared/completeDesignGeneration";
 import {
@@ -29,6 +30,7 @@ export interface HeuristicPlanBuilderInput {
   recentSelections?: RecentDesignSelection[];
   /** Pinned only by new selection receipts; omitted historical plans stay unchanged. */
   familyFirst?: boolean;
+  neutrality?: FamilyNeutrality;
 }
 
 export interface HeuristicPlanResult {
@@ -217,7 +219,7 @@ function buildFamilyFirstGenerationPlan(input: HeuristicPlanBuilderInput): Heuri
     const familyPenalty = recentSelections.slice(0, 5).reduce((penalty, run, index) =>
       Math.max(penalty, run.selections.some(choice => choice.family === family) ? 0.22 / (index + 1) : 0), 0);
     return { family, members, adjustedScore: effectiveScore - familyPenalty };
-  }).sort((a, b) => b.adjustedScore - a.adjustedScore || compare(a.family, b.family));
+  }).sort((a, b) => b.adjustedScore - a.adjustedScore || (input.neutrality ? familyTie(input.neutrality.seed,a.family).localeCompare(familyTie(input.neutrality.seed,b.family)) : compare(a.family, b.family)));
   const chosenFamilies = new Set<string>();
   const rejected = new Set<string>();
   const slots: GenerationSlotPlan[] = [];
@@ -245,6 +247,8 @@ function buildFamilyFirstGenerationPlan(input: HeuristicPlanBuilderInput): Heuri
           slot, repertoire, intent, slideCount, slotRequiresPhoto, slotForbidsPhoto,
           compositionSelection: {
             recentSelections,
+            neutral: Boolean(input.neutrality),
+            keepClosingSeparate: input.neutrality?.planningVersion===2,
             onFit: value => { fit = value; },
           },
         });
@@ -285,6 +289,8 @@ function buildSlotPagesAndAssignments(input: {
   compositionSelection?: {
     recentSelections: RecentDesignSelection[];
     onFit: (score: number) => void;
+    neutral?: boolean;
+    keepClosingSeparate?: boolean;
   };
 }): ViableGenerationPlan | null {
   const {
@@ -315,7 +321,9 @@ function buildSlotPagesAndAssignments(input: {
     contentPerSlide[0] = [contentItems[0].id];
 
     // Slides intermediários
-    const remainingItems = contentItems.slice(1);
+    const closing = compositionSelection?.keepClosingSeparate && contentItems.length > 2 ? contentItems.at(-1) : undefined;
+    if (closing) contentPerSlide[slideCount - 1] = [closing.id];
+    const remainingItems = contentItems.slice(1, closing ? -1 : undefined);
     const devSlideCount = Math.max(1, slideCount - 2);
 
     for (let i = 0; i < remainingItems.length; i++) {
@@ -417,7 +425,7 @@ function buildSlotPagesAndAssignments(input: {
       // 4. Text-fit aproximado
       const budgets = designTextBudgetsV3(variant);
       const totalChars = budgets.reduce((sum, b) => sum + b.estimatedCharacters, 0);
-      if (totalChars >= 50 && totalChars <= 600) {
+      if (!compositionSelection?.neutral && totalChars >= 50 && totalChars <= 600) {
         score += 20;
       }
 

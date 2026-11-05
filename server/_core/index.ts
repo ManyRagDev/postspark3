@@ -14,6 +14,7 @@ import { serveStatic, setupVite } from "./vite";
 import { getStripe, handleStripeWebhook } from "../billing";
 import { ENV } from "./env";
 import { startLocalGenerationWorker } from "../ai/workflows/localGenerationWorker";
+import { registerAcervo82ReviewRoutes } from "../designCatalog/acervo82Review";
 import { registerUserMediaRoutes } from "../mediaAssets";
 import {
   appendOperationalLog,
@@ -129,6 +130,7 @@ app.post("/api/analytics/event", async (req, res) => {
 registerSupabaseAuthRoutes(app);
 registerGenerationStream(app);
 registerUserMediaRoutes(app);
+registerAcervo82ReviewRoutes(app);
 
 // tRPC API - Support both /api/trpc and /trpc for production robustness
 app.use(

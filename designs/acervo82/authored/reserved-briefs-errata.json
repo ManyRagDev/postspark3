@@ -1,0 +1,8 @@
+{
+  "version":1,
+  "baseSha256":"e40e4c12e6183d923802a6302eb68db1b6da1945ad614eb69a6fa5210bb58d3a",
+  "reason":"Capacidades verificadas na reconstrução anterior à primeira consulta do índice. O corpus congelado é preservado; esta correção evita avaliar pedidos incompatíveis com a própria referência.",
+  "mediaRequired":["REF-11","REF-12","REF-15","REF-18","REF-23"],
+  "mediaForbidden":["REF-19"],
+  "visualPreference":{"REF-19":"rasgo em papel laranja com uma pequena faixa de texto em relevo"}
+}

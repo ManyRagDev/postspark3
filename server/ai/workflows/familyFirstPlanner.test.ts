@@ -3,7 +3,7 @@ import { arsenalHash } from "@shared/arsenalContent";
 import { assemblyIdentity, compactComponentCard, createComponentDefinition } from "@shared/componentAssembly";
 import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.fixture";
 import { materializeDesignFamilyOffer, resolveDesignFamilyRepertoires, type DesignFamilyRepertoire } from "@shared/designRepertoire";
-import { validateGenerationPlan, type GenerationIntent, type ViableGenerationPlan } from "@shared/generationPlan";
+import { normalizeGenerationIntent, validateGenerationPlan, type GenerationIntent, type ViableGenerationPlan } from "@shared/generationPlan";
 import type { RecentDesignSelection } from "@shared/designSelection";
 import { authorFamilyCarouselRepertoire } from "../../designCatalog/familyCarouselRepertoire";
 import { buildHeuristicGenerationPlan, type HeuristicPlanBuilderInput } from "./heuristicPlanBuilder";
@@ -108,6 +108,28 @@ describe("family-first deterministic planner", () => {
     expect(families(result, eligible)).toEqual(["alpha", "beta", "alpha"]);
   });
 
+  it("keeps three requested items on their own slide and reserves the closing for its own message",()=>{
+    const family=repertoire("checklist","three-items",{slideCount:3,listMax:3});
+    const requirement=(id:string,itemCount:number)=>({id,description:id,kind:"content" as const,surface:"art" as const,origin:"explicit" as const,requestQuote:id,itemCount});
+    const request=input([family],{checklist:4});
+    request.neutrality={version:1,seed:"same-brief",planningVersion:2};
+    request.intent={...intent,requirements:[requirement("opening",1),requirement("items",3),requirement("closing",1)],content:[
+      {id:"cover",meaning:"Três passos",sourceIds:[],requirementIds:["opening"]},
+      ...["a","b","c"].map(id=>({id,meaning:id,sourceIds:[],requirementIds:["items"]})),
+      {id:"finish",meaning:"Aplique o roteiro",sourceIds:[],requirementIds:["closing"]},
+    ]};
+    const plan=buildHeuristicGenerationPlan(request).slots[0] as ViableGenerationPlan;
+    expect(plan.status).toBe("viable");
+    expect(plan.pages[1].assignments.find(field=>field.itemCount===3)?.contentIds).toEqual(["a","b","c"]);
+    expect(plan.pages[2].assignments.every(field=>field.contentIds.includes("finish"))).toBe(true);
+  });
+  it("normalizes a written page count only when it matches the admitted format and quotation",()=>{
+    const brief="Crie um carrossel narrativo com cinco lâminas, sem fotografia.";
+    const item={...intent,requirements:[{id:"format",description:"cinco páginas",kind:"execution" as const,surface:"art" as const,origin:"explicit" as const,requestQuote:"com cinco lâminas",itemCount:5}]};
+    expect(normalizeGenerationIntent(item,5,new Set(),brief,true).requirements[0].itemCount).toBeNull();
+    expect(normalizeGenerationIntent(item,4,new Set(),brief,true).requirements[0].itemCount).toBe(5);
+    expect(normalizeGenerationIntent(item,5,new Set(),brief).requirements[0].itemCount).toBe(5);
+  });
   it("preserves the historical branch when the version flag is absent or false", () => {
     const old = repertoire("alpha", "old"), fresh = repertoire("alpha", "fresh"), other = repertoire("beta", "b");
     const eligible = [old, fresh, other];

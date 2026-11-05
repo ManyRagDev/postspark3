@@ -1,3 +1,4 @@
+import { familyAxes, familyDistance, familyTie, requestedIntentAffinity, type FamilyNeutrality } from "@shared/familyNeutrality";
 import { arsenalHash } from "@shared/arsenalContent";
 import type { FamilySelectionCandidate } from "@shared/designFamilySelection";
 import type { GenerationIntent } from "@shared/generationPlan";
@@ -50,6 +51,13 @@ export function familySearchQuery(
     .normalize("NFC")
     .trim();
 }
+/** Keep explicit visual preferences in retrieval even if interpretation focuses on the message. */
+export function familyVisualQuery(visual:{enabled?:boolean;language?:string|null},brief:string,neutral:boolean) {
+  const saved=visual.enabled?visual.language??'':'';
+  if(!neutral)return saved;
+  const explicit=brief.match(/(?:preferência visual|direção visual|estética|estilo visual|paleta)\s*:\s*([^\n]{1,340})/i)?.[1];
+  return [saved,explicit?.trim()].filter(Boolean).join(' ');
+}
 const stop = new Set(
   "a o as os de do da dos das em no na nos nas para por com um uma e ou que se ao aos sobre the and of to for with design composição post peça".split(
     " "
@@ -65,6 +73,7 @@ function tokens(value: string) {
 }
 export interface RetrievalArguments {
   families: FamilySelectionCandidate[];
+  neutrality?: FamilyNeutrality;
   intent: GenerationIntent;
   catalog: FrozenEditorialCatalog | null;
   visualPreference?: string;
@@ -82,7 +91,7 @@ export async function retrieveFamilyCandidates(
       const root = r.slides
         .flatMap(s => s.variants)
         .find(c => c.id === r.sourceId && c.hash === r.sourceHash)!;
-      return sourceSearchDocument(root, catalog);
+      return sourceSearchDocument(root, catalog, args.neutrality ? 2 : 1);
     });
     return {
       family: f,
@@ -159,13 +168,13 @@ export async function retrieveFamilyCandidates(
           })
         )
       : null;
-    const editorial = family.profile.editorial.intents.reduce(
+    const editorial = args.neutrality ? requestedIntentAffinity(family.profile.editorial.intents.map(i=>i.id),requested,suggested) : family.profile.editorial.intents.reduce(
       (sum, item) =>
         sum + (requested.has(item.id) ? 1 : suggested.has(item.id) ? 0.25 : 0),
       0
     );
     const structure = family.profile.structure;
-    const structural =
+    const structural = args.neutrality ? (independentlyRequired > 1 && structure.listItemsPerBlock?.max && structure.listItemsPerBlock.max >= independentlyRequired ? 1 : 0) :
       (independentlyRequired > 1 &&
       structure.listItemsPerBlock?.max &&
       structure.listItemsPerBlock.max >= independentlyRequired
@@ -180,7 +189,8 @@ export async function retrieveFamilyCandidates(
       structural,
       reason: "relevance",
       score: 0,
-      tie: arsenalHash({ query, id: family.id }),
+      tie: args.neutrality ? familyTie(args.neutrality.seed,family.family) : arsenalHash({ query, id: family.id }),
+      axes: familyAxes(family.repertoires[0].slides[0].variants.find(c=>c.id===family.repertoires[0].sourceId)!),
       traits: new Set([
         ...family.profile.aesthetic.motifs,
         ...family.profile.aesthetic.languages,
@@ -239,8 +249,8 @@ export async function retrieveFamilyCandidates(
       .filter(r => !selected.includes(r))
       .sort(
         (a, b) =>
-          Array.from(b.traits).filter(t => !covered.has(t)).length -
-            Array.from(a.traits).filter(t => !covered.has(t)).length ||
+          (args.neutrality ? Math.min(...selected.map(s=>familyDistance(b.axes,s.axes))) - Math.min(...selected.map(s=>familyDistance(a.axes,s.axes))) : Array.from(b.traits).filter(t => !covered.has(t)).length -
+            Array.from(a.traits).filter(t => !covered.has(t)).length) ||
           b.score - a.score ||
           a.tie.localeCompare(b.tie)
       )[0];
@@ -262,7 +272,8 @@ export async function retrieveFamilyCandidates(
   );
   return {
     version: 1,
-    policyHash: familyRetrievalPolicyHash(),
+    ...(args.neutrality ? {neutrality: args.neutrality} : {}),
+    policyHash: familyRetrievalPolicyHash(Boolean(args.neutrality)),
     catalogHash: familyCorpusHash(families),
     query,
     queryHash: arsenalHash(query),
@@ -285,7 +296,8 @@ export function assertFamilyRetrieval(
     allowed = new Set(families.map(f => f.id));
   if (
     receipt.version !== 1 ||
-    receipt.policyHash !== familyRetrievalPolicyHash() ||
+    (receipt.neutrality && (receipt.neutrality.version !== 1 || !receipt.neutrality.seed)) ||
+    receipt.policyHash !== familyRetrievalPolicyHash(Boolean(receipt.neutrality)) ||
     receipt.catalogHash !== familyCorpusHash(families) ||
     receipt.query !== query ||
     receipt.queryHash !== arsenalHash(query) ||

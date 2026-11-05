@@ -121,7 +121,7 @@ export function FormatSelector({
 }
 
 export interface Specimen {
-  id: VisualFamilyId;
+  id: string;
   prompt: string;
   familyLabel: string;
   art: ReactNode;
@@ -297,7 +297,7 @@ export function SpecimenCard({
       className={`${widthClass ?? "w-[102px] md:w-auto md:flex-1"} shrink-0 md:shrink snap-start text-left active:scale-[0.97] transition-transform duration-150 cursor-pointer block`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: 0.08 * index, ease: "easeOut" }}
+      transition={{ duration: 0.35, delay: 0.04 * Math.min(index, 6), ease: "easeOut" }}
       aria-label={`Usar ideia: ${specimen.prompt}`}
     >
       <div
