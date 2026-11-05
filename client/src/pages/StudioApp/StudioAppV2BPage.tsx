@@ -63,7 +63,6 @@ import {
   persistActiveGenerationRequestId,
   persistPendingGenerationStart,
   readPendingGenerationStart,
-  readActiveGenerationRequestId,
   sameGenerationAdmissionBody,
   type PendingGenerationStart,
 } from "./lib/studioGenerationState";
@@ -137,9 +136,12 @@ export default function StudioAppV2BPage() {
     try { return historyRestore ? null : readPendingGenerationStart(window.sessionStorage); } catch { return null; }
   });
   const [pendingGenerationStartError, setPendingGenerationStartError] = useState<string | null>(null);
-  const [activeGenerationRequestId, setActiveGenerationRequestId] = useState<string | null>(() => {
-    try { return historyRestore || readPendingGenerationStart(window.sessionStorage) ? null : readActiveGenerationRequestId(window.sessionStorage); } catch { return null; }
-  });
+  // A normal entry restores only the briefing draft. Deliveries belong to the
+  // current visit or an explicit opening from History / Saved Posts.
+  const [activeGenerationRequestId, setActiveGenerationRequestId] = useState<string | null>(null);
+  useEffect(() => {
+    try { clearActiveGenerationRequestId(window.sessionStorage); } catch { /* Storage may be unavailable. */ }
+  }, []);
   const [generationSnapshot, setGenerationSnapshot] = useState<GenerationCoordinatorSnapshot | null>(null);
   const proposalProgress = useProposalProgress(generationSnapshot?.proposals);
   const [materializedProposalKeys, setMaterializedProposalKeys] = useState<string[]>([]);
@@ -451,7 +453,8 @@ export default function StudioAppV2BPage() {
       toast.info("O pedido pendente pertence a outra conta. Inicie uma nova geração nesta sessão.");
       return;
     }
-    void submitPendingGenerationStart(pendingGenerationStart, generationEpoch.current).catch(() => {});
+    // An uncertain admission retains its exact key, but only an explicit
+    // retry may send it again. Opening Studio must not start or restore posts.
   }, [pendingGenerationStart, generationCapabilities.data?.ownerId]);
 
   useEffect(() => {
@@ -466,7 +469,8 @@ export default function StudioAppV2BPage() {
       const key=`${response.snapshot.requestId}:${response.snapshot.overallStatus}:${Boolean(response.billingPending)}`;
       if(lastBillingRefresh.current!==key){lastBillingRefresh.current=key;void utils.billing.getProfile.invalidate();}
     }
-    // Restore the gallery once on refresh, while later deliveries leave the user's current editor/stage alone.
+    // Show deliveries only for a request followed during this visit; late
+    // deliveries leave the user's current editor/stage alone.
     if (!generationSnapshot && stage !== "editor") setStage("gallery");
     if (response.input && restoredGenerationContextRequestId.current !== response.snapshot.requestId) {
       restoredGenerationContextRequestId.current = response.snapshot.requestId;
@@ -1052,7 +1056,7 @@ export default function StudioAppV2BPage() {
           )}
           {pendingGenerationStart && (
             <div role="status" className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-violet-100/15 pt-3 text-amber-100">
-              <span>{pendingGenerationStartError ?? "Confirmando o início da solicitação salva. Uma nova tentativa reutiliza o mesmo briefing e a mesma chave."}</span>
+              <span>{pendingGenerationStartError ?? "Há uma solicitação anterior sem confirmação de início. Você pode retomá-la ou editar o prompt para criar outra."}</span>
               <button type="button" disabled={generationStart.isPending} onClick={() => void retryPendingGenerationAdmission()} className="rounded border border-violet-200/40 px-3 py-2 disabled:opacity-50">
                 {generationStart.isPending ? "Confirmando…" : "Retomar solicitação"}
               </button>

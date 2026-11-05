@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { INITIAL_POST } from "@/pages/CanvasLab/components/types";
 vi.mock("@/hooks/useGenerationEvents",()=>({useGenerationEvents:()=>({error:false,reconnect:vi.fn()})}));
 import Studio from "./StudioAppV2BPage";
+import { saveBriefDraft } from "./lib/briefDraftStorage";
+import { interpretRawBriefing } from "@shared/postspark";
 import {
   ACTIVE_GENERATION_REQUEST_SESSION_KEY,
   PENDING_GENERATION_START_SESSION_KEY,
@@ -25,6 +27,7 @@ const h = vi.hoisted(() => ({
   start: vi.fn(),
   getData: undefined as any,
   getError: null as any,
+  getOptions: null as any,
   cancel: vi.fn(),
   save: vi.fn(),
   update: vi.fn(),
@@ -43,7 +46,7 @@ vi.mock("@/lib/trpc", () => ({ trpc: {
     resume:{useMutation:()=>({mutate:vi.fn(),isPending:false})},
     capabilities: { useQuery: () => ({ data: { ownerId: h.ownerId, ...h.capabilities, contractVersion: 5 },refetch:async()=>({data:{ownerId:h.ownerId,...h.capabilities,contractVersion:5}}) }) },
     start: { useMutation: () => ({ mutateAsync: h.start, isPending: false }) },
-    get: { useQuery: () => ({ data: h.getData, error: h.getError, refetch: vi.fn() }) },
+    get: { useQuery: (_input: unknown, options: any) => { h.getOptions=options; return { data: h.getData, error: h.getError, refetch: vi.fn() }; } },
     cancel: { useMutation: () => ({ mutateAsync: h.cancel, isPending: false }) },
   },
   designCatalog: {
@@ -132,6 +135,14 @@ let host: HTMLDivElement;
 let root: Root;
 function mount() { act(() => root.render(<Studio />)); }
 async function flush() { await act(async () => { await Promise.resolve(); await Promise.resolve(); }); }
+async function explicitlyResumeStored(input: any) {
+  sessionStorage.setItem(PENDING_GENERATION_START_SESSION_KEY,JSON.stringify({input:{ownerId:h.ownerId,idempotencyKey:"explicit-resume-key",...input},source:"create",promptText:input.executionBrief?.rawInput??input.content,mode:input.postMode,inputType:input.inputType}));
+  h.start.mockResolvedValueOnce({snapshot:h.getData.snapshot,created:false});
+  mount();await flush();
+  expect(h.start).not.toHaveBeenCalled();
+  await act(async()=>{Array.from(host.querySelectorAll("button")).find(b=>b.textContent?.includes("Retomar solicitação"))!.click();await Promise.resolve();});
+  await flush();
+}
 
 beforeEach(() => {
   h.readiness=undefined;
@@ -168,6 +179,21 @@ afterEach(() => {
 });
 
 describe("Studio Generation progressive flow", () => {
+  it.each(["completed","running"] as const)("opens creation with the saved prompt without restoring a %s request",async status=>{
+    saveBriefDraft(interpretRawBriefing("Prompt preservado",{selectedFormat:"static"}),null,"gallery","gemini");
+    sessionStorage.setItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY,requestId);
+    sessionStorage.setItem("postspark.generation_v5.request_id",requestId);
+    h.getData={snapshot:snapshot([ready("old-proposal",0)],status),input:{inputType:"text",content:"Outro prompt do pedido antigo",postMode:"static"}};
+    mount();await flush();
+    expect(host.querySelector('[data-testid="create"]')).toBeTruthy();
+    expect(h.create.initialPrompt).toBe("Prompt preservado");
+    expect(h.getOptions.enabled).toBe(false);
+    expect(h.materialize).not.toHaveBeenCalled();
+    expect(h.start).not.toHaveBeenCalled();
+    expect(host.querySelector('[data-testid="gallery"]')).toBeNull();
+    expect(sessionStorage.getItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY)).toBeNull();
+    expect(sessionStorage.getItem("postspark.generation_v5.request_id")).toBeNull();
+  });
   it("holds the production introduction for five seconds while admission and gallery already run", async () => {
     vi.useFakeTimers();
     h.start.mockResolvedValue({ snapshot: snapshot([running("proposal-a", 0)]), created: true });
@@ -359,18 +385,17 @@ describe("Studio Generation progressive flow", () => {
     expect(h.legacyGenerate).not.toHaveBeenCalled();
   });
 
-  it("restores a private image request, preserves its image type in saved documents and reuses the image for more", async () => {
+  it("explicitly resumes a private image request, preserves its image type in saved documents and reuses the image for more", async () => {
     sessionStorage.setItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY, requestId);
     h.getData = { snapshot: snapshot([ready("proposal-a", 0)], "completed"), input: { inputType: "image", imageUrl: "/api/media/owned-photo", content: "Faça um post desta fotografia", postMode: "static", platform: "instagram", aspectRatio: "4:5" } };
     h.start.mockResolvedValue({ snapshot: { ...snapshot([running("new", 0)]), requestId: secondRequestId }, created: true });
-    mount();
-    await flush();
+    await explicitlyResumeStored(h.getData.input);
     act(() => h.gallery.onSelectVariation(h.gallery.variations[0]));
     await act(async () => { await h.editor.onSave(h.editor.initialPost, "new", "auto"); });
     expect(h.save.mock.calls[0][0]).toMatchObject({ inputType: "image", inputContent: "Faça um post desta fotografia" });
     act(() => h.editor.onBackToGallery(h.editor.initialPost));
     await act(async () => { h.gallery.onGenerateMore(); await Promise.resolve(); });
-    expect(h.start.mock.calls[0][0]).toMatchObject({ inputType: "image", imageUrl: "/api/media/owned-photo" });
+    expect(h.start.mock.calls.at(-1)![0]).toMatchObject({ inputType: "image", imageUrl: "/api/media/owned-photo" });
     expect(h.legacyGenerate).not.toHaveBeenCalled();
   });
 
@@ -463,7 +488,7 @@ describe("Studio Generation progressive flow", () => {
     expect(h.legacyGenerate).not.toHaveBeenCalled();
   });
 
-  it("restores full generation options for generate-more after refresh", async () => {
+  it("restores full generation options for generate-more after an explicit admission retry", async () => {
     sessionStorage.setItem("postspark.generation_v5.request_id", requestId);
     const executionBrief = {
       creationMode: "execution", format: "static", platform: "instagram", objective: "authority",
@@ -476,10 +501,9 @@ describe("Studio Generation progressive flow", () => {
       platform: "instagram", aspectRatio: "9:16", includeDraftDesigns: true, model: "gemini", generationModel: "gpt",
     } };
     h.start.mockResolvedValue({ snapshot: { ...snapshot([running("new", 0)]), requestId: secondRequestId }, created: true });
-    mount();
-    await flush();
+    await explicitlyResumeStored(h.getData.input);
     await act(async () => { h.gallery.onGenerateMore(); await Promise.resolve(); });
-    expect(h.start.mock.calls[0][0]).toMatchObject({ aspectRatio: "9:16", includeDraftDesigns: true, model: "gemini", generationModel: "gpt", generationParentRequestId: requestId, executionBrief });
+    expect(h.start.mock.calls.at(-1)![0]).toMatchObject({ aspectRatio: "9:16", includeDraftDesigns: true, model: "gemini", generationModel: "gpt", generationParentRequestId: requestId, executionBrief });
     expect(sessionStorage.getItem("postspark.generation_v5.request_id")).toBeNull();
     expect(sessionStorage.getItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY)).toBe(secondRequestId);
   });
@@ -505,7 +529,7 @@ describe("Studio Generation progressive flow", () => {
     expect(sessionStorage.getItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY)).toBe(secondRequestId);
   });
 
-  it("replays an unacknowledged start after refresh with the exact stored body and idempotency key", async () => {
+  it("waits for explicit retry after refresh and then reuses the exact stored body and idempotency key", async () => {
     const pending: PendingGenerationStart = {
       input: {
         ownerId: h.ownerId,
@@ -518,6 +542,10 @@ describe("Studio Generation progressive flow", () => {
     sessionStorage.setItem(PENDING_GENERATION_START_SESSION_KEY, JSON.stringify(pending));
     h.start.mockResolvedValue({ snapshot: snapshot([running("proposal-a", 0)]), created: false });
     mount();
+    await flush();
+    expect(h.start).not.toHaveBeenCalled();
+    expect(host.querySelector('[data-testid="create"]')).toBeTruthy();
+    await act(async()=>{Array.from(host.querySelectorAll("button")).find(b=>b.textContent?.includes("Retomar solicitação"))!.click();await Promise.resolve();});
     await flush();
     expect(h.start).toHaveBeenCalledOnce();
     expect(h.start).toHaveBeenCalledWith(pending.input);
@@ -550,7 +578,7 @@ describe("Studio Generation progressive flow", () => {
     expect(sessionStorage.getItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY)).toBeNull();
     expect(host.querySelector('input[type="checkbox"]')).toBeNull();
     expect(host.textContent).not.toContain("Retomar pedido");
-    expect(h.toast.info).toHaveBeenCalledWith("Esta geração não está disponível nesta sessão. Você pode iniciar uma nova.");
+    expect(h.toast.info).not.toHaveBeenCalled();
 
     await act(async () => { h.create.onSubmit("Novo pedido", "static"); await Promise.resolve(); });
     expect(h.start).toHaveBeenCalledOnce();
@@ -570,8 +598,7 @@ describe("Studio Generation progressive flow", () => {
     sessionStorage.setItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY, requestId);
     h.getData = { snapshot: snapshot([running("proposal-a", 0)], "running"), input: { inputType: "text", content: "Brief", postMode: "static" } };
     h.cancel.mockResolvedValue({ snapshot: snapshot([{ ...running("proposal-a", 0), status: "cancelled" }], "cancelled") });
-    mount();
-    await flush();
+    await explicitlyResumeStored(h.getData.input);
     const cancelButton = Array.from(host.querySelectorAll("button")).find((button) => button.textContent?.includes("Cancelar geração"));
     await act(async () => { cancelButton?.click(); await Promise.resolve(); });
     await flush();
@@ -598,7 +625,7 @@ describe("Studio Generation progressive flow", () => {
     expect(h.legacyGenerate).not.toHaveBeenCalled();
   });
 
-  it("restores request context after refresh and recovers a failed ready bundle without another start", async () => {
+  it("recovers a failed ready bundle after explicit retry without another start", async () => {
     const bundle = { marker: "proposal-a", slot: 0 };
     sessionStorage.setItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY, requestId);
     h.getData = {
@@ -608,9 +635,8 @@ describe("Studio Generation progressive flow", () => {
     h.materialize
       .mockResolvedValueOnce(materializedResult([], [{ message: "fonte indisponível" }]))
       .mockResolvedValueOnce(materializedResult([post("recovered-a")]));
-    mount();
-    await flush();
-    expect(h.start).not.toHaveBeenCalled();
+    await explicitlyResumeStored(h.getData.input);
+    expect(h.start).toHaveBeenCalledOnce();
     expect(host.textContent).toContain("Tentar montar este resultado");
     expect(h.materialize.mock.calls[0][0][0].completeDesignV1).toBe(bundle);
 
@@ -618,7 +644,7 @@ describe("Studio Generation progressive flow", () => {
     await act(async () => { retry?.click(); await Promise.resolve(); });
     expect(h.materialize).toHaveBeenCalledTimes(2);
     expect(h.materialize.mock.calls[1][0][0].completeDesignV1).toBe(bundle);
-    expect(h.start).not.toHaveBeenCalled();
+    expect(h.start).toHaveBeenCalledOnce();
     expect(host.querySelector('[data-testid="gallery"]')?.textContent).toContain("recovered-a");
 
     act(() => h.gallery.onBackToCreate());
