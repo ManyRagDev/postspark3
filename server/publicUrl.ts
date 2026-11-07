@@ -80,8 +80,15 @@ export async function publicHtml(
         {
           signal: stop,
           headers: { "User-Agent": "PostSpark/3.0", Accept: "text/html" },
-          lookup: (_hostname, _opts, cb) =>
-            cb(null, address.address, address.family),
+          lookup: (_hostname, opts: any, cb: any) => {
+            const callback = typeof opts === "function" ? opts : cb;
+            const options = typeof opts === "object" ? opts : {};
+            if (options?.all) {
+              callback(null, [{ address: address.address, family: address.family }]);
+            } else {
+              callback(null, address.address, address.family);
+            }
+          },
         },
         res => {
           const type = String(res.headers["content-type"] ?? "");
