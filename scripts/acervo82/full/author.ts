@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import {create as createFont} from 'fontkit';
 import {createCanvas,loadImage,GlobalFonts} from '@napi-rs/canvas';
 import {arsenalHash} from '../../../shared/arsenalContent';
+import {isStandaloneDirectionalGlyph} from '../../../shared/nativeGlyphProjection';
 import {recipeFromSpec,type CompactSpec} from '../../../harness/designBatch/builder';
 import {recreationRecipeSchema,type RecreationRecipe} from '../../../shared/designRecreation';
 import {REFERENCES,type Unit} from '../../../harness/componentArsenal/authoring';
@@ -15,6 +16,7 @@ import {arsenalPieceSchema} from '../../../shared/designArsenal';
 import {verifyArsenalAsset} from '../../../server/designCatalog/arsenalAssets';
 import {createComponentTextMeasurer} from '../../../server/ai/componentTextMeasurer';
 import {nativeScene} from './nativeScene';
+import {closeCssDecoration,paintCssDecoration} from './cssDecoration';
 import {authorNativeSemantics} from './semantics';
 import {resolveArsenalGeometry} from '../../../shared/arsenalGeometry';
 import {partitionArsenalReadinessIssues} from '../../../shared/arsenalReadiness';
@@ -46,8 +48,6 @@ function rgba(value:string):[number,number,number,number]{
  return [nums[0]??0,nums[1]??0,nums[2]??0,nums[3]??1];
 }
 const hex=(v:string)=>'#'+rgba(v).slice(0,3).map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
-const css=(v:string)=>{const [r,g,b,a]=rgba(v);return `rgba(${r},${g},${b},${a})`;};
-const split=(s:string)=>s.split(/,(?![^()]*\))/);
 const palette=(s:string)=>Array.from(s.matchAll(/(?:rgba?\([^)]*\)|okl(?:ab|ch)\([^)]*\)|#[a-f\d]{3,8}|transparent)/gi)).map(m=>m[0]==='transparent'?'rgba(0,0,0,0)':m[0]);
 function angle(g:any,e:any):number {const seen=new Set();let a=0;while(e&&!seen.has(e.id)){seen.add(e.id);const n=(e.style.transform.match(/matrix\(([^)]+)\)/)?.[1]??'').split(',').map(Number);if(n.length===6)a+=Math.atan2(n[1],n[0])*180/Math.PI;a+=px(e.style.rotate);e=g.boxes[e.parent];}return a;}
 function boxGeometry(g:any,e:any){const rotation=angle(g,e),r=rotation*Math.PI/180,scale=1080/g.box.width,C=Math.abs(Math.cos(r)),S=Math.abs(Math.sin(r)),den=C*C-S*S,w=(Math.abs(den)>.01?(C*e.box.width-S*e.box.height)/den:(e.width||e.box.width))*scale,h=(Math.abs(den)>.01?(C*e.box.height-S*e.box.width)/den:(e.height||e.box.height))*scale,cx=(e.box.x+e.box.width/2)*scale,cy=(e.box.y+e.box.height/2)*scale;return{x:cx-Math.cos(r)*w/2+Math.sin(r)*h/2,y:cy-Math.sin(r)*w/2-Math.cos(r)*h/2,width:w,height:h,rotationDeg:rotation};}
@@ -57,6 +57,7 @@ function normalizeRecipe(recipe:RecreationRecipe){const sx=1080/recipe.scene.sou
  for(const s of recipe.adaptation?.layerStyles??[])s.cornerRadiusPx*=sx;
  recipe.scene.source.widthPx=1080;recipe.scene.source.heightPx=1350;return recipe;
 }
+const css=(v:string)=>{const [r,g,b,a]=rgba(v);return `rgba(${r},${g},${b},${a})`;};
 function nativeOutline(e:any,b:any,scale:number):number[]|null {
  const clip=e.style.clipPath;if(clip.startsWith('polygon(')){return clip.slice(8,-1).split(',').flatMap((s:string)=>s.trim().split(/\s+/).map((n:string,i:number)=>n.endsWith('%')?px(n)/100*(i?b.height:b.width):px(n)*scale));}
  const corners=['TopLeft','TopRight','BottomRight','BottomLeft'].map(key=>{
@@ -74,23 +75,26 @@ async function fromHtml(entry:any,g:any){
  const scale=1080/g.box.width, root=g.boxes[0];
  const spec:CompactSpec={stem:entry.id,title:`${entry.code} · ${entry.name}`,width:1080,height:1350,background:hex(root.style.backgroundColor),layers:[],groups:[],authorship:{recipeId:`${entry.id}-native-v1`,createdAt:'2026-11-05T00:00:00.000Z'},notes:['Geometria medida do HTML arquivado com fontes verificadas; referência visual: showcase consolidado.']};
  const addGroup=(id:string)=>{if(!spec.groups.some(g=>g.id===id))spec.groups.push({id,label:id,transform:{x:0,y:0,rotationDeg:0}});};
- const decorations:Array<{id:string,bytes:Buffer,box:any,z:number,opacity:number}>=[];
+ const decorations:Array<{id:string,bytes:Buffer,box:any,z:number,opacity:number,replacementPoints?:number[]}>=[];
  const paint=new Map<string,number>(), richStyles=new Map<string,any[]>();
  for(const e of g.boxes){paint.set(`surface-${e.id}`,e.paint);for(const side of ['Top','Right','Bottom','Left'])paint.set(`border-${e.id}-${side}`,e.paint+.1);const s=e.style,b=boxGeometry(g,e),fill=rgba(s.backgroundColor),outline=nativeOutline(e,b,scale),rounded=px(s.borderTopLeftRadius)>0,uniformBorder=['Right','Bottom','Left'].every(side=>s[`border${side}Width`]===s.borderTopWidth);if(fill[3]&&e.id!==0)spec.layers.push({id:`surface-${e.id}`,kind:outline?'polygon':'rect',...b,...(outline?{points:outline}:{}),fill:hex(s.backgroundColor),opacity:fill[3]*e.opacity,cornerRadiusPx:Math.min(b.width/2,b.height/2,px(s.borderTopLeftRadius)*scale),...(uniformBorder&&(outline||rounded)?{strokeColor:hex(s.borderTopColor),strokeWidth:px(s.borderTopWidth)*scale}:{})});
   if(e.id!==0&&!fill[3]&&outline&&uniformBorder&&px(s.borderTopWidth)){spec.layers.push({id:`border-${e.id}-Top`,kind:'line',...b,points:[...outline,outline[0],outline[1]],fill:hex(s.borderTopColor),strokeColor:hex(s.borderTopColor),strokeWidth:px(s.borderTopWidth)*scale,opacity:rgba(s.borderTopColor)[3]*e.opacity});}
   const sides=[['Top',0,0,b.width,0],['Right',b.width,0,b.width,b.height],['Bottom',0,b.height,b.width,b.height],['Left',0,0,0,b.height]] as const;
   if(e.id!==0&&!(uniformBorder&&(outline||fill[3]&&rounded)))for(const [side,x1,y1,x2,y2]of sides){const width=px(s[`border${side}Width`]);if(width)spec.layers.push({id:`border-${e.id}-${side}`,kind:'line',x:b.x,y:b.y,width:b.width,height:b.height,rotationDeg:b.rotationDeg,points:[x1,y1,x2,y2],fill:hex(s.borderTopColor),strokeColor:hex(s.borderTopColor),strokeWidth:width*scale,opacity:rgba(s.borderTopColor)[3]});}
   if(s.backgroundImage!=='none'&&s.backgroundClip!=='text'){
-   const w=Math.max(1,Math.round(b.width)),h=Math.max(1,Math.round(b.height)),canvas=createCanvas(w,h),ctx=canvas.getContext('2d');
-   if(outline){ctx.beginPath();for(let i=0;i<outline.length;i+=2){if(!i)ctx.moveTo(outline[i],outline[i+1]);else ctx.lineTo(outline[i],outline[i+1]);}ctx.closePath();ctx.clip();}
-   const gradientLayers=split(s.backgroundImage);
-   for(const [index,layer] of gradientLayers.map((layer,index)=>[index,layer] as const).reverse()){const colors=palette(layer);if(!colors.length)continue;const sizes=((split(s.backgroundSize)[index]??s.backgroundSize).match(/[\d.]+px/g)??[]).map(px),tw=(sizes[0]??8)*scale,th=(sizes[1]??sizes[0]??8)*scale;
-    if(/radial-gradient/.test(layer)&&sizes.length){ctx.fillStyle=css(colors[0]);for(let y=0;y<h;y+=th)for(let x=0;x<w;x+=tw){ctx.beginPath();ctx.arc(x+tw/2,y+th/2,Math.max(.8,px(layer.match(/([\d.]+px)/)?.[1])*scale||scale),0,Math.PI*2);ctx.fill();}}
-    else if(/repeating-linear-gradient/.test(layer)){ctx.fillStyle=css(colors[0]);ctx.fillRect(0,0,w,h);ctx.strokeStyle=css(colors[1]??colors[0]);ctx.lineWidth=8*scale;for(let x=-h;x<w+h;x+=16*scale){ctx.beginPath();ctx.moveTo(x,h);ctx.lineTo(x+h,0);ctx.stroke();}}
-    else if(sizes.length&&colors.length>1){ctx.strokeStyle=css(colors[0]);ctx.lineWidth=Math.max(1,scale*.5);if(/to right/.test(layer)){for(let x=0;x<w;x+=tw){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}}else{for(let y=0;y<h;y+=th){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}}}
-    else {const grad=/radial/.test(layer)?ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,Math.max(w,h)/2):ctx.createLinearGradient(0,/to (?:right )?top/.test(layer)?h:0,/to right|90deg/.test(layer)?w:0,/to top|to right|90deg/.test(layer)?0:h);colors.forEach((c,i)=>grad.addColorStop(i/Math.max(1,colors.length-1),css(c)));ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);}
-   }
-   decorations.push({id:`texture-${e.id}`,bytes:canvas.toBuffer('image/png'),box:b,z:e.paint+.2,opacity:e.opacity});
+   // CSS blur paints beyond the box. Include the halo up to the artboard edge.
+   const halo=b.rotationDeg===0 ? 3*px(s.filter.match(/blur\(([\d.]+)px\)/)?.[1]) : 0;
+   const padding={
+    left:Math.max(0,Math.min(halo,b.x/scale)),
+    top:Math.max(0,Math.min(halo,b.y/scale)),
+    right:Math.max(0,Math.min(halo,(1080-b.x-b.width)/scale)),
+    bottom:Math.max(0,Math.min(halo,(1350-b.y-b.height)/scale)),
+   };
+   const bytes=await paintCssDecoration(s,b.width/scale,b.height/scale,padding);
+   const replacementPoints=entry.code==='CON-17'&&e.id===2 ? outline??undefined : undefined;
+   const box={...b,x:b.x-padding.left*scale,y:b.y-padding.top*scale,
+    width:b.width+(padding.left+padding.right)*scale,height:b.height+(padding.top+padding.bottom)*scale};
+   decorations.push({id:`texture-${e.id}`,bytes,box,z:e.paint+.2,opacity:e.opacity,replacementPoints});
   }
  }
  const units:Unit[]=[];
@@ -101,9 +105,10 @@ async function fromHtml(entry:any,g:any){
   if(bs.writingMode==='vertical-rl'){base.x+=base.width;[base.width,base.height]=[base.height,base.width];base.rotationDeg+=90;}
   const pl=px(bs.paddingLeft)*scale,pr=px(bs.paddingRight)*scale,pt=px(bs.paddingTop)*scale,pb=px(bs.paddingBottom)*scale;
   const width=Math.max(1,base.width-pl-pr),height=Math.max(1,base.height-pt-pb),r=base.rotationDeg*Math.PI/180;
+  const ornament=isStandaloneDirectionalGlyph(block.runs.map((run:any)=>run.text??'').join(''));
   const maxSize=Math.max(...block.runs.map((t:any)=>px(t.style.fontSize)));
   let role:Unit['role']=/^H[1-4]$/.test(block.tag)||(!headlineSeen&&maxSize>=24)?'headline':(maxSize>=14||block.tag==='P'&&block.runs.map((t:any)=>t.text).join('').trim().length>=24)?'body':block.runs.some((t:any)=>/➔|→|DESLIZE|SWIPE|AVANÇAR|PRÓXIMO|ENTRAR|APLICAR|CONHEÇA/i.test(t.text))?'callToAction':'label';
-  if(role==='headline')headlineSeen=true;
+  if(role==='headline'&&!ornament)headlineSeen=true;
   const lines:any[][]=[[]];let used=0;
   for(const run of block.runs){if(run.spacer){if(lines.at(-1)!.length)lines.push([]);lines.at(-1)!.push({spacer:run.spacer*scale});lines.push([]);used=0;continue;}const style=run.style;let family=style.fontFamily.split(',')[0].replace(/["']/g,'').trim();if(!Array.from(fontPool.values()).some(f=>f.family===family))family='Inter';let weight=px(style.fontWeight)||400;if(family==='Space Grotesk')weight=Math.min(700,weight);if(family==='Syne')weight=Math.min(800,weight);const font=fontPool.get(`${family}:${weight}`)??Array.from(fontPool.values()).filter(f=>f.family===family).sort((a,b)=>Math.abs(a.weight-weight)-Math.abs(b.weight-weight))[0];fontPool.set(`${family}:${weight}`,{...font,weight});
    const size=px(style.fontSize)*scale;let value=run===block.runs.at(-1)?run.text.trimEnd():run.text;if(style.textTransform==='uppercase')value=value.toLocaleUpperCase('pt-BR');
@@ -119,12 +124,22 @@ async function fromHtml(entry:any,g:any){
    const display=sameFamily?[{...chunks[0],text:chunks.map(t=>t.text).join(''),width:total,chunks}]:chunks.map(t=>({...t,chunks:[t]}));
    for(const t of display){const id=`text-${block.id}-${index++}`,text=t.text.trim();if(text){
     const stroke=px(t.style.webkitTextStrokeWidth)*scale,gradient=t.style.backgroundClip==='text'?palette(t.style.backgroundImage):[],shadow=t.style.textShadow!=='none'?t.style.textShadow.match(/(rgba?\([^)]*\))\s+([\d.-]+)px\s+([\d.-]+)px/):null;
-    spec.layers.push({id,kind:'text',x:base.x+x*Math.cos(r)-y*Math.sin(r),y:base.y+x*Math.sin(r)+y*Math.cos(r),width:Math.max(1,t.width+3),height:lineHeight+2,rotationDeg:base.rotationDeg,text,fontFamily:t.family,fontWeight:t.weight,fontSize:t.size,lineHeight:Math.min(3,Math.max(.5,lineHeight/t.size)),letterSpacing:px(t.style.letterSpacing)*scale,fill:gradient[1]?hex(gradient[1]):stroke&&rgba(t.style.color)[3]===0?spec.background:hex(t.style.color),...(stroke?{strokeColor:hex(t.style.webkitTextStrokeColor),strokeWidth:stroke}:{}),...(shadow?{extrusion:{color:hex(shadow[1]),offsetX:px(shadow[2])*scale,offsetY:px(shadow[3])*scale,steps:2}}:{}),align:'left',groupId:group,fieldId:group,minScale:.65,opacity:e.opacity*(stroke||gradient.length?1:rgba(t.style.color)[3])});
+    spec.layers.push({id,kind:'text',x:base.x+x*Math.cos(r)-y*Math.sin(r),y:base.y+x*Math.sin(r)+y*Math.cos(r),width:Math.max(1,t.width+3),height:lineHeight+2,rotationDeg:base.rotationDeg,text,fontFamily:t.family,fontWeight:t.weight,fontSize:t.size,lineHeight:Math.min(3,Math.max(.5,lineHeight/t.size)),letterSpacing:px(t.style.letterSpacing)*scale,fill:gradient[1]?hex(gradient[1]):stroke&&rgba(t.style.color)[3]===0?spec.background:hex(t.style.color),...(stroke?{strokeColor:hex(t.style.webkitTextStrokeColor),strokeWidth:stroke}:{}),...(shadow?{extrusion:{color:hex(shadow[1]),offsetX:px(shadow[2])*scale,offsetY:px(shadow[3])*scale,steps:2}}:{}),align:'left',groupId:group,...(!ornament?{fieldId:group,minScale:.65}:{}),opacity:e.opacity*(stroke||gradient.length?1:rgba(t.style.color)[3])});
     paint.set(id,e.paint+.5);let start=0;const styles:any[]=[];for(const c of t.chunks){const part=c.text.trimStart(),end=Math.min(text.length,start+part.length);if(end>start)styles.push({start,end,style:{color:hex(c.style.color),sizeScale:c.size/t.size,...(c.weight!==t.weight?{bold:c.weight>=700}:{})}});start=end;}if(styles.length>1)richStyles.set(id,styles);
    }x+=t.width;}
    y+=lineHeight;
   }
-  if(spec.layers.some(l=>l.fieldId===group))units.push({role,fields:[group]});else spec.groups=spec.groups.filter(g=>g.id!==group);
+  // The portal has uniform copy. Keep a flexible native field instead of the reference's individual lines.
+  if(entry.code==='CON-17'&&[6,7,10].includes(block.id)){
+   const layer=spec.layers.find(l=>l.fieldId===group);
+   if(layer){
+    spec.layers=spec.layers.filter(l=>l.fieldId!==group||l===layer);
+    richStyles.delete(layer.id);
+    Object.assign(layer,{x:base.x,y:base.y,width,height,text:block.runs.map((run:any)=>run.text).join('').trim().replace(/\s+/g,' '),align:block.id===10?'right':'center'});
+    if(block.id===10){layer.x-=30;layer.width+=30;}
+   }
+  }
+  if(spec.layers.some(l=>l.fieldId===group))units.push({role,fields:[group]});else if(!spec.layers.some(l=>l.groupId===group))spec.groups=spec.groups.filter(g=>g.id!==group);
  }
  if(!headlineSeen){const best=units.find(u=>u.role==='body')??units[0];if(best)best.role='headline';}
  // Promote the exact source frame to editable media instead of covering it
@@ -153,7 +168,7 @@ try{for(const entry of entries){const source=roster.entries.find((r:any)=>r.id==
  const p=result.package;
  if(previousReferenceId){p.source.referenceId=previousReferenceId;await restoreVisualAssets(result);p.source.referenceId=entry.id;}
  let d=p.components.find(c=>c.fragment.aspectRatio==='4:5')!;if(!d)throw Error('native 4:5 definition absent');
- for(const deco of decorations){const checked=await verifyArsenalAsset(deco.bytes,{license:'curator-provided'}),asset=checked.manifest;await fs.writeFile(path.join(output,'assets',asset.sha256),deco.bytes);d.assets.push(asset);d.fragment.assetIds.push(asset.id);const piece=arsenalPieceSchema.parse({kind:'media',imageAssetId:asset.id,fill:'#FFFFFF',stroke:null,strokeWidth:0,cornerRadius:0,points:[],fontFamily:'Arial',fontAssetId:null,fontSize:12,fontWeight:400,align:'left',lineHeight:1,letterSpacing:0,fixedText:null});const h=arsenalHash(piece);d.pieces[h]=piece;const b=deco.box;d.fragment.instances.push({id:deco.id,pieceHash:h,parentId:null,zIndex:deco.z,x:b.x,y:b.y,width:b.width,height:b.height,rotation:b.rotationDeg,opacity:deco.opacity??1});result.assetFiles.push({manifest:asset,bytes:deco.bytes,relativePath:`assets/${asset.sha256}`,sourceHash:asset.sha256,sourceFamily:'',sourceWeight:400,resolvedWeight:400,sourceUrl:null,adjustment:'Decorative source geometry; no editable text flattened.'});}
+ for(const deco of decorations){const checked=await verifyArsenalAsset(deco.bytes,{license:'curator-provided'}),asset=checked.manifest;await fs.writeFile(path.join(output,'assets',asset.sha256),deco.bytes);d.assets.push(asset);d.fragment.assetIds.push(asset.id);const piece=arsenalPieceSchema.parse({kind:'media',imageAssetId:asset.id,fill:'#FFFFFF',stroke:null,strokeWidth:0,cornerRadius:0,points:deco.replacementPoints??[],...(deco.replacementPoints?{imageReplacement:{label:'Interior do portal',scrimOpacity:.62}}:{}),fontFamily:'Arial',fontAssetId:null,fontSize:12,fontWeight:400,align:'left',lineHeight:1,letterSpacing:0,fixedText:null});const h=arsenalHash(piece);d.pieces[h]=piece;const b=deco.box;d.fragment.instances.push({id:deco.id,pieceHash:h,parentId:null,zIndex:deco.z,x:b.x,y:b.y,width:b.width,height:b.height,rotation:b.rotationDeg,opacity:deco.opacity??1});result.assetFiles.push({manifest:asset,bytes:deco.bytes,relativePath:`assets/${asset.sha256}`,sourceHash:asset.sha256,sourceFamily:'',sourceWeight:400,resolvedWeight:400,sourceUrl:null,adjustment:'Decorative source geometry; no editable text flattened.'});}
  if(htmlPaint){
   for(const i of d.fragment.instances){const styles=htmlStyles?.get(i.id);if(styles){const piece={...d.pieces[i.pieceHash],textFragments:styles},hash=arsenalHash(piece);d.pieces[hash]=piece;i.pieceHash=hash;}i.zIndex=htmlPaint.get(i.id)??decorations.find(x=>x.id===i.id)?.z??-1;}
   d.fragment.instances.sort((a,b)=>a.zIndex-b.zIndex).forEach((i,index)=>{i.zIndex=index;});
@@ -177,6 +192,7 @@ try{for(const entry of entries){const source=roster.entries.find((r:any)=>r.id==
  authorNativeSemantics(entry.code,p,d);
  const axes=entry.axes;
  d.completeDesign!.family=entry.id;
+ if(decorations.some(deco=>deco.id.startsWith('texture-')))d.completeDesign!.authorshipRevision=2;
  d.completeDesign!.designGuidance!.selection={version:1,description:entry.descriptor,axes};
  d.completeDesign!.designGuidance!.familyIdentity={essential:[entry.descriptor],optional:[],adaptable:['Texto e mídia nos campos nativos']};
  d.completeDesign!.baselineVerified=true;
@@ -217,5 +233,5 @@ try{for(const entry of entries){const source=roster.entries.find((r:any)=>r.id==
  console.log(JSON.stringify({code:entry.code,definitions:defs.length,blocking:readiness.blocking}));
  }catch(e){rows.push({id:entry.id,code:entry.code,state:'needs_adjustment',error:(e as Error).message});console.log(JSON.stringify({code:entry.code,error:(e as Error).message}));}
  await fs.writeFile(path.join(output,'inventory.json'),JSON.stringify({format:'postspark.acervo82.build',version:1,sourceCount:entries.length,rows,paidCalls:0},null,2)+'\n');
-}}finally{await closeReviewRenderer();}
+}}finally{await Promise.all([closeReviewRenderer(),closeCssDecoration()]);}
 console.log(JSON.stringify({output,sources:rows.length,rendered:rows.filter(r=>r.render).length,blocked:rows.filter(r=>r.state==='needs_adjustment').length}));

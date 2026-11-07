@@ -267,7 +267,7 @@ export default function StudioMobileFlashcards({
             className="w-full py-2.5 text-xs font-semibold text-white/70 hover:text-white flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
           >
             <RefreshCw size={12} className={isGeneratingMore ? "animate-spin text-[oklch(0.78_0.22_48)]" : ""} />
-            <span>{isGeneratingMore ? "Sintetizando novas ideias..." : "Gerar mais 3 variações"}</span>
+            <span>{isGeneratingMore ? "Sintetizando novas ideias..." : "Gerar mais variações"}</span>
           </button>
         )}
       </footer>

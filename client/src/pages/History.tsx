@@ -76,8 +76,13 @@ function truncateText(text: string, maxLength: number = 80): string {
   return text.slice(0, maxLength) + "...";
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
+function generationTimestamp(record: {created_at?: string; createdAt?: string}) {
+  return record.created_at ?? record.createdAt;
+}
+
+function formatDate(dateString: string | undefined): string {
+  const date = new Date(dateString ?? "");
+  if (!Number.isFinite(date.getTime())) return "Data indisponível";
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
@@ -105,7 +110,7 @@ function filterByTime(generations: any[], timeFilter: TimeFilter): any[] {
   const monthAgo = new Date(today.getTime() - 30 * 86400000);
 
   return generations.filter((gen) => {
-    const genDate = new Date(gen.createdAt);
+    const genDate = new Date(generationTimestamp(gen) ?? "");
     switch (timeFilter) {
       case "today":
         return genDate >= today;
@@ -328,7 +333,7 @@ export default function History() {
                           </span>
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {formatDate(generation.createdAt)}
+                          {formatDate(generationTimestamp(generation))}
                         </span>
                         <span className="text-xs text-muted-foreground">•</span>
                         <span className="text-xs text-muted-foreground">

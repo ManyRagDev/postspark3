@@ -350,3 +350,24 @@ describe("generateBackgroundImage", () => {
     expect(String(fetchMock.mock.calls[1][0])).toContain("openrouter.ai");
   });
 });
+
+
+it("caps new automatic image output and leaves historical transport unchanged", async () => {
+  const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({choices:[{message:{images:[{type:"image_url",image_url:{url:`data:image/png;base64,${pngBytes.toString("base64")}`}}]}}]}),{status:200}));
+  vi.stubGlobal("fetch",fetchMock);
+  await generateBackgroundImage("Proposed editorial scene", "pollinations_hd", "4:5", {routePolicy:"strict",editorialPromptVersion:1,maxOutputTokens:4096});
+  const current=JSON.parse(String(fetchMock.mock.calls[0][1].body));
+  expect(current.max_tokens).toBe(4096);
+  expect(current.messages[0].content[0].text).not.toContain("user-selected scene");
+  expect(current.image_config.aspect_ratio).toBe("4:5");
+  await generateBackgroundImage("Historical scene", "pollinations_hd", "4:5", {routePolicy:"strict"});
+  const historical=JSON.parse(String(fetchMock.mock.calls[1][1].body));
+  expect(historical).not.toHaveProperty("max_tokens");
+  expect(historical.messages[0].content[0].text).toContain("user-selected scene");
+});
+
+it.each([0,-1,1.5,Number.NaN,Number.POSITIVE_INFINITY])("rejects invalid image output budget %s before transport",async maxOutputTokens=>{
+  const fetchMock=vi.fn();vi.stubGlobal("fetch",fetchMock);
+  await expect(generateBackgroundImage("Scene","pollinations_hd","4:5",{routePolicy:"strict",maxOutputTokens})).rejects.toThrow("image_max_output_tokens_invalid");
+  expect(fetchMock).not.toHaveBeenCalled();
+});

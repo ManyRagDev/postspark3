@@ -298,6 +298,7 @@ export async function openSharedBudget(input: {
   live: boolean;
   pipelineHash?: string;
   executionDirectory?: string;
+  suspendLimits?: () => Promise<boolean>;
 }) {
   if (!input.live) throw new Error("shared_budget_live_opt_in_required");
   const file = resolve(input.file),
@@ -346,7 +347,8 @@ export async function openSharedBudget(input: {
         const s = await readSharedBudget(file);
         return { calls: s.calls, interruption: s.interruption };
       },
-    }
+    },
+    input.suspendLimits
   );
   await budget.refresh();
   return {

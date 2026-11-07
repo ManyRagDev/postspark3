@@ -168,3 +168,51 @@ describe("model provider adapters", () => {
     ).toBe(true);
   });
 });
+
+
+describe("verified automatic native schemas", () => {
+  it.each(["anthropic/claude-haiku-5.5", "deepseek/deepseek-v4.1-flash"])("preserves %s field bounds and validates them locally", effectiveModel => {
+    const bounded = { name: "bounded", schema: { type: "object", properties: {
+      text: { type: "string", maxLength: 7 }, optional: { type: "string" },
+    }, required: ["text"], additionalProperties: false } };
+    const messages = [{ role: "user", content: "Ajuste o campo" }];
+    const adapted = adaptRequestForProvider({ provider: "openrouter", effectiveModel, requireNativeSchema: true,
+      messages, responseFormat: { type: "json_schema", json_schema: bounded } });
+    expect(adapted.messages).toEqual(messages);
+    expect(adapted.responseFormat).toEqual({ type: "json_schema", json_schema: { ...bounded, strict: true } });
+    expect(adapted.structuredOutputMode).toBe("native_schema");
+    expect(validateStructuredContent('{"text":"Agora"}', adapted.schema!).valid).toBe(true);
+    expect(validateStructuredContent('{"text":"Texto grande"}', adapted.schema!).valid).toBe(false);
+  });
+
+  it("fails closed instead of downgrading an automatic route to text schema", () => {
+    expect(() => adaptRequestForProvider({ provider: "openrouter", effectiveModel: "anthropic/claude-haiku-5.5", requireNativeSchema: true,
+      forceTextSchema: true, messages: [], responseFormat: { type: "json_schema", json_schema: schema } })).toThrow("supported_native_schema");
+    expect(() => adaptRequestForProvider({ provider: "openrouter", effectiveModel: "unvalidated/model", requireNativeSchema: true,
+      messages: [], responseFormat: { type: "json_schema", json_schema: schema } })).toThrow("supported_native_schema");
+  });
+});
+
+describe("immutable automatic provider routing", () => {
+  const deepseek = { model: "deepseek/deepseek-v4.1-flash", providerEndpoint: "deepinfra/fp8", maxPrice: { prompt: 0.1414, completion: 0.4242 }, reasoningEffort: "none", reasoningEnabled: false, structuredOutputMode: "native_schema", transportTimeoutMs: 60000 } as const;
+  it("keeps V1 endpoint pinning and gives V2 a compatible same-model provider preference", async () => {
+    const { generationTaskProviderOptions } = await import("./modelAdapters");
+    expect(generationTaskProviderOptions(deepseek)).toEqual({ only: ["deepinfra/fp8"], allow_fallbacks: false, require_parameters: true, data_collection: "deny", max_price: deepseek.maxPrice });
+    const task = { ...deepseek, providerEndpoint: "deepinfra" as const, allowProviderFallbacks: true as const };
+    const saved = JSON.stringify(task);
+    const routed = generationTaskProviderOptions(task);
+    expect(routed).toEqual({ order: ["deepinfra"], allow_fallbacks: true, require_parameters: true, data_collection: "deny", max_price: deepseek.maxPrice });
+    expect(routed).not.toHaveProperty("only");
+    expect(routed).not.toHaveProperty("models");
+    expect(JSON.stringify(task)).toBe(saved);
+    const native = adaptRequestForProvider({ provider: "openrouter", effectiveModel: task.model, requireNativeSchema: true, messages: [{role:"user",content:"Preserve o campo"}], responseFormat: {type:"json_schema",json_schema:schema} });
+    expect(native.structuredOutputMode).toBe("native_schema");
+    expect(native.responseFormat).toEqual({type:"json_schema",json_schema:schema});
+  });
+  it("keeps Haiku pinned and rejects an unversioned or price-relaxed DeepSeek task before transport", async () => {
+    const { generationTaskProviderOptions } = await import("./modelAdapters");
+    const copy = { ...deepseek, model:"anthropic/claude-haiku-5.5" as const, providerEndpoint:"anthropic" as const,maxPrice:{prompt:0.101 as const,completion:0.505 as const} };
+    expect(generationTaskProviderOptions(copy)).toEqual({only:["anthropic"],allow_fallbacks:false,require_parameters:true,data_collection:"deny",max_price:copy.maxPrice});
+    for(const task of [{...deepseek,providerEndpoint:"deepinfra"},{...deepseek,allowProviderFallbacks:true},{...deepseek,providerEndpoint:"deepinfra",allowProviderFallbacks:true,maxPrice:{prompt:1,completion:1}},{...copy,allowProviderFallbacks:true}])expect(()=>generationTaskProviderOptions(task as any)).toThrow();
+  });
+});

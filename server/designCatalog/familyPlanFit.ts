@@ -13,6 +13,7 @@ import { buildHeuristicGenerationPlan } from "../ai/workflows/heuristicPlanBuild
 /** Same strict local planner used for final selection. Text fitting and provider
  * review still run after copy; this receipt is structural feasibility only. */
 export function inspectFamilyPlanFit(args: {
+  automatic?: boolean;
   neutrality?: import("@shared/familyNeutrality").FamilyNeutrality;
   families: FamilySelectionCandidate[];
   ids: string[];
@@ -40,7 +41,7 @@ export function inspectFamilyPlanFit(args: {
       .filter(
         f =>
           photo(f) === required &&
-          args.scores.some(s => s.id === f.id && s.score >= 2)
+          args.scores.some(s => s.id === f.id && (args.automatic || s.score >= 2))
       )
       .sort(
         (a, b) =>
@@ -64,7 +65,10 @@ export function inspectFamilyPlanFit(args: {
   });
   const plan = buildHeuristicGenerationPlan({
     familyFirst: true,
-    neutrality: args.neutrality,
+    // Proposal diversity is handled by final selection. This inspection asks
+    // whether content/media can be implemented at all, not whether three
+    // sufficiently different styles exist inside a relative score band.
+    neutrality: args.automatic && args.neutrality ? {...args.neutrality, proposalSelectionVersion: undefined} : args.neutrality,
     intent: args.intent,
     eligible,
     shortlist: {

@@ -2,6 +2,30 @@ import { ENV } from "../../_core/env";
 import { arsenalHash } from "@shared/arsenalContent";
 import type { RequestRecord } from "./generationStore";
 
+/** Counts persisted outcomes only; telemetry never changes readiness or review evidence. */
+export function generationDeliveryMetrics(record: Pick<RequestRecord, "proposals">) {
+  const deliveredCount = record.proposals.filter(p => p.status === "ready").length;
+  const failedCount = record.proposals.filter(p => p.status === "failed" || p.status === "expired").length;
+  const cancelledCount = record.proposals.filter(p => p.status === "cancelled").length;
+  const normalizedReviews = new Set<string>();
+  const recoveredProposals = new Set<string>();
+  for (const proposal of record.proposals) for (const review of proposal.reviews ?? []) {
+    if (!("discardedFields" in review) || !review.discardedFields.some(field =>
+      /^intentChecks\[\d+\]:advisory_idea_not_requirement:.+$/.test(field) ||
+      /^findings\[(?:0|[1-9]\d*)\]:untargeted_non_material_note:[a-f0-9]{64}$(?![\s\S])/.test(field) ||
+      /^unitChecks\[(?:0|[1-9]\d*)\]:visual_loss_requires_correction:u_[a-f0-9]{20}$(?![\s\S])/.test(field))) continue;
+    normalizedReviews.add(JSON.stringify([proposal.proposalId, proposal.revision, review.round, review.inputHash]));
+    recoveredProposals.add(proposal.proposalId);
+  }
+  return {
+    deliveredCount, failedCount, cancelledCount,
+    pendingCount: record.proposals.length - deliveredCount - failedCount - cancelledCount,
+    completedThree: record.proposals.length === 3 && deliveredCount === 3,
+    localNormalizedReviewCount: normalizedReviews.size,
+    localRecoveredProposalCount: recoveredProposals.size,
+  };
+}
+
 /** Local operator evidence, emitted after reading the owner-bound durable state. */
 export function generationTerminalDiagnostic(
   record: RequestRecord,
@@ -15,6 +39,7 @@ export function generationTerminalDiagnostic(
     requestId: record.id,
     ownerId: record.ownerId,
     status: record.status,
+    ...generationDeliveryMetrics(record),
     configurationHash: config?.configurationHash,
     preparationVersion: record.prepared?.preparationVersion,
     contextVersion: context?.version,

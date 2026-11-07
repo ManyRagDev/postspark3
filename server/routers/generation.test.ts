@@ -14,6 +14,8 @@ const state = vi.hoisted(() => ({
   plan: "DEV",
   available: true,
   preparationAvailable: true,
+  taskRoutingAvailable: true,
+  reviewExceptionsAvailable: true,
   approved: 3,
   draft: 0,
   catalogCards: null as any[] | null,
@@ -50,6 +52,8 @@ vi.mock("../ai/workflows/generationStore", () => ({
   createGenerationStore: () => ({
     isAvailable: async () => state.available,
     isPreparationAvailable: async () => state.preparationAvailable,
+    isTaskRoutingAvailable: async () => state.taskRoutingAvailable,
+    isReviewExceptionsAvailable: async () => state.reviewExceptionsAvailable,
     catalogAvailability: async () => ({
       approved: state.approved,
       draft: state.draft,
@@ -72,6 +76,8 @@ afterEach(() => {
   state.plan = "DEV";
   state.available = true;
   state.preparationAvailable = true;
+  state.taskRoutingAvailable = true;
+  state.reviewExceptionsAvailable = true;
   state.getBy.mockResolvedValue(null);
   state.approved = 3;
   state.draft = 0;
@@ -79,6 +85,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 const input = {
+  generationModel: "gemini" as const,
   ownerId: owner,
   inputType: "text" as const,
   content: "Café artesanal",
@@ -113,6 +120,22 @@ function record() {
 }
 
 describe("orchestrated authenticated API", () => {
+  it("defaults new requests to auto and treats media preference as creative direction", async () => {
+    state.admission.mockResolvedValue({record:record(),created:true});
+    await caller().start({...input, generationModel: undefined, content:"Café com uma foto"});
+    expect(state.admission.mock.calls[0][0].generationConfig).toMatchObject({choice:"auto",generationStrategyVersion:2,taskRouting:{policy:"deepseek_haiku_v2"}});
+  });
+  it("refuses auto before reserving Sparks when its database protocol is missing", async () => {
+    state.taskRoutingAvailable=false;
+    await expect(caller().start({...input,generationModel:"auto"})).rejects.toMatchObject({code:"PRECONDITION_FAILED"});
+    expect(state.admission).not.toHaveBeenCalled();
+  });
+  it("blocks automatic admission before billing when exception review migration is missing", async () => {
+    state.reviewExceptionsAvailable=false;
+    await expect(caller().start({...input,generationModel:"auto"})).rejects.toMatchObject({code:"PRECONDITION_FAILED"});
+    expect(state.admission).not.toHaveBeenCalled();
+  });
+
   it("rejects strategy-2 admission before any reservation when preparation migration is absent", async () => {
     ENV.generationStrategyVersion = 2;
     state.preparationAvailable = false;
@@ -539,10 +562,34 @@ describe("orchestrated authenticated API", () => {
 
  it("pauses only new admissions before reserve, preserving idempotent returns, get and cancel",async()=>{
    ENV.generationAdmissionPaused=true;state.available=false;
+   ENV.openRouterApiKey="";
    expect(await caller().capabilities()).toMatchObject({enabled:false,reason:"maintenance"});
-   await expect(caller().start(input)).rejects.toMatchObject({code:"PRECONDITION_FAILED"});expect(state.admission).not.toHaveBeenCalled();
+   await expect(caller().start(input)).rejects.toMatchObject({
+     code:"PRECONDITION_FAILED",
+     failure:{reason:"generation_paused",retryable:false},
+   });
+   expect(state.admission).not.toHaveBeenCalled();
    state.getBy.mockResolvedValueOnce({...record(),inputHash:requestInputHash(orchestratedGenerationInputSchema.parse(input))});
    expect((await caller().start(input)).created).toBe(false);
    state.get.mockResolvedValueOnce(record());expect((await caller().get({requestId:id})).snapshot.requestId).toBe(id);
    state.cancel.mockResolvedValueOnce({...record(),status:"cancelled"});expect((await caller().cancel({requestId:id})).snapshot.overallStatus).toBe("cancelled");
  });
+
+it("refuses new local admissions when the worker pipeline needs reconfiguration", async () => {
+  const workerMode = ENV.generationWorkerMode;
+  ENV.generationWorkerMode = "local-demand";
+  vi.stubGlobal("__acervo82ManualAdmissionReason", async () => "pipeline_reconfiguration_required");
+  try {
+    expect(await caller().capabilities()).toMatchObject({
+      enabled: false, reason: "pipeline_reconfiguration_required",
+    });
+    await expect(caller().start(input)).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+      failure: { reason: "generation_paused", userMessage: expect.stringContaining("reiniciado") },
+    });
+    expect(state.admission).not.toHaveBeenCalled();
+  } finally {
+    ENV.generationWorkerMode = workerMode;
+    vi.unstubAllGlobals();
+  }
+});

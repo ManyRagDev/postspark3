@@ -1,0 +1,37 @@
+[
+  {
+    "id": "minimal-air",
+    "expectedCode": "R9-11",
+    "postMode": "static",
+    "slides": 1,
+    "content": "Apresente a ideia “Uma pergunta muda o percurso” para pessoas que estão aprendendo um ofício. Faça um post único. Quero muito espaço vazio e tipografia limpa com uma nota discreta. Sem fotografia."
+  },
+  {
+    "id": "versus",
+    "expectedCode": "R9-03",
+    "postMode": "static",
+    "slides": 1,
+    "content": "Mostre a diferença entre reunir dados e interpretar os dados. Faça um post único. Quero duas colunas em oposição, com rótulos bem distintos. Sem fotografia."
+  },
+  {
+    "id": "aura",
+    "expectedCode": "CON-17",
+    "postMode": "static",
+    "slides": 1,
+    "content": "Destaque a frase “Comece pelo que já está à mão” em uma publicação sobre experimentação. Faça um post único. Quero portal luminoso com transição cromática no fundo. Sem fotografia."
+  },
+  {
+    "id": "data-punch",
+    "expectedCode": "R9-20",
+    "postMode": "static",
+    "slides": 1,
+    "content": "Faça um post único sobre um exercício fictício da Oficina Comum. Dado fornecido: 42% das 100 fichas do exercício escolheram “desenho coletivo”. Destaque 42% como número principal e identifique o que ele mede. Sem fotografia. Use apenas o percentual fornecido e restrinja a conclusão ao exercício."
+  },
+  {
+    "id": "pergunta-editorial",
+    "expectedCode": "REF-08",
+    "postMode": "carousel",
+    "slides": 5,
+    "content": "Crie um carrossel de cinco lâminas sem fotografia sobre como preparar o briefing de uma oficina. Abra com uma pergunta em tipografia preta condensada, sobre fundo claro, com uma palavra destacada em laranja. Nas três lâminas intermediárias, trate de um ponto por vez: definir o objetivo, reunir os fatos e identificar o público. Em cada uma, coloque um título curto e um exemplo fictício de uma frase. Desenvolva na legenda por que cada etapa importa, seguindo a ordem das lâminas. Feche com um convite para salvar."
+  }
+]

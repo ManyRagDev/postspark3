@@ -87,6 +87,25 @@ afterEach(async () => {
 });
 
 describe("shared budget protocol 3 — offline effects only", () => {
+  it("records effects beyond both limits when suspended and preserves the historical stop", async () => {
+    const f = await fixture();
+    const state = await readSharedBudget(f.file);
+    const interruption = { reason: "budget_exhausted" as const, at: "2026-11-01T01:00:00Z", requiredUsd: 0.8 };
+    await writeJson(f.file, { ...state, maxCalls: 1, interruption });
+    let suspended = true;
+    const { budget } = await openSharedBudget({
+      file: f.file, campaignId: "new-matrix", maxUsd: 1, maxCalls: 1, live: true,
+      suspendLimits: async () => suspended,
+    });
+    expect(await budget.canPrepare(0.8)).toBe(true);
+    await expect(budget.run(quote.id, 0.8, async () => ({ result: "received", actualUsd: 0.75 }))).resolves.toBe("received");
+    const recorded = await readSharedBudget(f.file);
+    expect(recorded.calls).toEqual([...f.calls, expect.objectContaining({ status: "completed", actualUsd: 0.75 })]);
+    expect(recorded.interruption).toEqual(interruption);
+    suspended = false;
+    await expect(budget.run(quote.id, 0.1, async () => ({ result: "unexpected" }))).rejects.toThrow("campaign_stopped");
+  });
+
   it("refuses a declined proposal even with explicit live flags and preserves all inherited spend", async () => {
     const f = await fixture(),
       state = await readSharedBudget(f.file);

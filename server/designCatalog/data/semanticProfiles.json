@@ -1,0 +1,416 @@
+{
+  "version": "compact-design-en-v1",
+  "provenance": "Authored compact English descriptions verified against multilingual phase-1 source descriptors. New or changed descriptors require an authored English profile. No full geometry, fields, slides or example copy.",
+  "profiles": [
+    {
+      "sourceId": "775c9b63-5d21-432d-83b9-8ccd7c0cc9dd",
+      "sourceTextHash": "e04612fbc2df942736fdc0c5cef674ee8a92297a9283bfb3c6f35dee6353424e",
+      "textEn": "A dark asymmetric bento grid, with a central metric and smaller cards for independent facts.\norganization: modular\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a supplied data point\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "bc98b0b5-ed23-4b27-8691-e55d50b5e731",
+      "sourceTextHash": "426b041ad4b4e4a4c410f883254cbbc538b79e8329193ac21043a6e6e0513521",
+      "textEn": "A magazine page on warm paper, with a serif headline, breathing space and a reading composition.\norganization: poster\ndensity: restrained\ntypography: serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection\nExplain reasoning"
+    },
+    {
+      "sourceId": "7fa98917-d375-4e6e-886c-fd88b9f37086",
+      "sourceTextHash": "885bd9663f6d6b429737120b80abfc1290363372dc5c47d8ea07666717071d79",
+      "textEn": "An asymmetric Swiss poster, grid lines, precise typography and controlled color areas.\norganization: modular\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "fb58edd6-ce5b-4a0b-88d3-bf11c66f3c6e",
+      "sourceTextHash": "b8faa670cbef6bdd140c20bd3af3a0e90d448665a32f02651abaeb917f396aa9",
+      "textEn": "A short post card on a nighttime background, with a microblog identity and small indicators.\norganization: window\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "20c8fce4-314f-4b69-8ba1-b91ef1e9d3b5",
+      "sourceTextHash": "9c1a3ad62c6e9b29c48912386ccc1f00c387a9463281aec3ada8fb5f16671767",
+      "textEn": "Halves in opposing colors for two arguments, divided by a central contrast badge.\norganization: opposition\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nCompare alternatives\nHighlight a central message\nClarify a misconception"
+    },
+    {
+      "sourceId": "3b1232a5-8db5-4707-8b9d-3229d016121c",
+      "sourceTextHash": "da2cffdb2e5490008e1a2b3f0a758371038e3d429769a3628757c7cdb90410de",
+      "textEn": "An industrial technical sheet with warning plates, specification lines and a manifesto headline.\norganization: poster\ndensity: intense\ntypography: monospaced\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "8a08d060-153e-480d-8bfe-d637cae1258e",
+      "sourceTextHash": "97876bba516705eeed9baf74a4b2d8145b7aa7dc1a77357b24c4e8da7244134a",
+      "textEn": "A poster with neon and silver energy, chrome shapes and dance-floor typographic hierarchy.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "9df7f9f7-24dc-4dc7-894e-fd63b3b90166",
+      "sourceTextHash": "a54b0c30a66a5a7d48d5590114870541f9041887726d6ff9a93e21f6849a1ad7",
+      "textEn": "Risograph printing, halftone dots and an offset pink duplicate behind blue lettering.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "90b97719-ce28-495a-8276-8ee7f35dc8cd",
+      "sourceTextHash": "fcb903a5090bcec542842a0f20018274c6c56768ecfdd4215abf801a5e9d6cbd",
+      "textEn": "An archival card on beige paper, a stamp, a geometric emblem and a collection caption.\norganization: modular\ndensity: balanced\ntypography: serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection\nExplain reasoning"
+    },
+    {
+      "sourceId": "75ee5546-2735-464d-8b3b-2392dc55cfee",
+      "sourceTextHash": "703ee3d7fd865d5a7ca6e218d0078b68184338a49b2d7b3357b2373a87beee00",
+      "textEn": "A geometric poster in primary colors and diagonal planes, with a heavy headline and a description below.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "1edaa553-aad3-4d11-8365-dfe69172f1a2",
+      "sourceTextHash": "0fae453847aaa5f6ccbf204ffaf60700103bd4f42be1af5299e06c2af843e84c",
+      "textEn": "A black-and-white paper coupon, separator lines, monospaced columns and print marks.\norganization: poster\ndensity: balanced\ntypography: monospaced\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "557f84cb-89d3-4df4-8cc9-391bdc58c7b8",
+      "sourceTextHash": "f71daaded15bb2506828719f1cee83d6e26c73472c57407a74a90ba9a3eff1e2",
+      "textEn": "A cream and red editorial composition with a dark vertical Obi strip and a serif headline.\norganization: poster\ndensity: balanced\ntypography: serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection"
+    },
+    {
+      "sourceId": "33bfb521-e876-47e4-87cf-56a92780a7ca",
+      "sourceTextHash": "f2676d654b13125de8ca50c37649093cba850497b5432de3d74dbf8579585b59",
+      "textEn": "A Dadaist collage with typographic cutouts, a colored arch, an illustrated eye and a checkerboard floor.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nGuide an action"
+    },
+    {
+      "sourceId": "5f13b8c9-719b-430b-8c91-266883eada69",
+      "sourceTextHash": "520cbbf70718d8d5b6042b0e2d573f6f47df35812ceb6c76dec230780fc43071",
+      "textEn": "A symmetrical golden Art Deco frame, high-contrast serifs on black.\norganization: poster\ndensity: restrained\ntypography: serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection"
+    },
+    {
+      "sourceId": "99298915-1e86-45ac-808a-eb3b5001f54a",
+      "sourceTextHash": "12d08f2e0a733f0973b67287f8b208eb8dc7a9ec0546f7e5a7816255dfb2f6d6",
+      "textEn": "An analog device panel on cream paper, color bars and a small audio wave.\norganization: modular\ndensity: balanced\ntypography: monospaced\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "db4f6968-7e6f-4da3-8384-9b12979f5087",
+      "sourceTextHash": "e0d1ec7072621a8ddcb73abbbfd3d3da960d6ae26d8133c83f2ba913ef2ace59",
+      "textEn": "A deep-blue blueprint, an architectural grid and white curves for technical explanation.\norganization: poster\ndensity: balanced\ntypography: serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "b7add298-6e17-459d-840a-20853b224be2",
+      "sourceTextHash": "648ee934a76c7867a5f525d45e411511c6f533a78363b03d951b1fbe497b9627",
+      "textEn": "A chromatic arched portal with a luminous gradient, a star and a central serif headline.\norganization: poster\ndensity: intense\ntypography: serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection"
+    },
+    {
+      "sourceId": "227c2512-19c9-447f-877d-066e6faf9507",
+      "sourceTextHash": "c8882a2513bdc7912e222aed97ffd8acd10290aef0fc83a00521f5a9cf8275e3",
+      "textEn": "A white comic speech balloon on a blue halftone pattern, an impact strip and a thick black outline.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nGuide an action"
+    },
+    {
+      "sourceId": "9d423203-a3de-468a-8b39-52c6ea2ec59a",
+      "sourceTextHash": "303535c6abdd63ad20d509fa3bbc338c09b72f7ac20e8f29db10ca746579a547",
+      "textEn": "A constructivist poster with a red wedge, black diagonals and a tilted foreground card.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "5b48c891-74f5-4f9e-8d70-d1f96ad582c3",
+      "sourceTextHash": "3b9a873e6750637f6c20f7a721a36deefd0127aed6fc7a479c22b345f1052d23",
+      "textEn": "A thin golden botanical frame on deep green, with a light panel and a serif headline.\norganization: poster\ndensity: restrained\ntypography: serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection\nExplain reasoning"
+    },
+    {
+      "sourceId": "a5753afd-8f71-4056-865d-657092969aed",
+      "sourceTextHash": "aef4d00717995d6e5c8d806bd4a4b89f4c78a80ed639dd45ef2d8413b2173573",
+      "textEn": "Chromatic waves at the bottom of a purple poster; a headline offset in layers of color.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "746af3ff-04d5-4bef-8ef1-4199826d9535",
+      "sourceTextHash": "57d17f2ea38e362176d5fd4675013012eac8a204be483c524735237ae247bb44",
+      "textEn": "Black xerographic cutouts, a fluorescent poster and manifesto words on paper strips.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nGuide an action"
+    },
+    {
+      "sourceId": "82655cc3-d89e-4de4-8d75-1e4b596bbaea",
+      "sourceTextHash": "616774fb47176abf3bd93cb2d68855d8da99dfb46313cd4f13fa64e4600e961b",
+      "textEn": "Memphis shapes, a regular dotted pattern and a headline in a yellow box with a black border.\norganization: modular\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "b5539b33-1409-4159-89e4-3703946449b4",
+      "sourceTextHash": "ebf313aae3b6c8fa664791f80fef66461190b07449430b551685d5357d69bcc1",
+      "textEn": "A symmetrical cinematic title card, pastel tones, serifs and a central circular emblem.\norganization: poster\ndensity: restrained\ntypography: serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection"
+    },
+    {
+      "sourceId": "3e712814-a05f-4fdb-80d3-9069dd34a8d8",
+      "sourceTextHash": "438e29040e9e8218bc0f6e5d42bd666b151f5e0557b3682c54c2a8e1958e9c0c",
+      "textEn": "A two-color orange and black jazz poster, with catalog blocks and a tightly spaced headline.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "92ebc774-f034-424a-841d-58af54eb0f99",
+      "sourceTextHash": "134100faf2aee26c2a4b960b33922768cf356b5cb7722c6ede6d3b87edfbe47f",
+      "textEn": "A dark minimalist cinematic title card, with a discreet border and a restrained headline.\norganization: poster\ndensity: restrained\ntypography: serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection"
+    },
+    {
+      "sourceId": "df2b1759-af0e-49a8-8a4c-c0490f79948e",
+      "sourceTextHash": "7a2c15f0328215f25f947d22659789524f80a68c0e4818aae1982edbe72abc0c",
+      "textEn": "A monochrome poster with pulsar lines and a discreet music-record hierarchy.\norganization: poster\ndensity: balanced\ntypography: monospaced\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "42796b26-5f1c-43e5-8042-469f9c8c5544",
+      "sourceTextHash": "ffb80741978e07ddd5ff8409407037ba01f0429d3402fd14cd643ee858c435da",
+      "textEn": "A circular watchmaking dial, fine markings, a sober palette and a serif headline.\norganization: poster\ndensity: restrained\ntypography: serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "349aab31-1192-4f91-8a00-0155b6624774",
+      "sourceTextHash": "97751a0ba22365310a3dc1b919e655ad0110fd34af5f4e8db776e4ff16ad5020",
+      "textEn": "Telemetry on a nighttime background, cyan and pink neon glow, text in a rectangular panel.\norganization: poster\ndensity: intense\ntypography: monospaced\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nGuide an action"
+    },
+    {
+      "sourceId": "75370cf2-82f7-4592-8924-b209326c3502",
+      "sourceTextHash": "cea87d73952f9eb47f617b788d0eedbeda43150afb1bdf5b64b67fb29e2c9cad",
+      "textEn": "An aligned headline on cream paper with a framed photograph below and a small yellow label.\norganization: poster\ndensity: balanced\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message"
+    },
+    {
+      "sourceId": "bf6f682b-ef2d-40a9-8ce2-ae67a315d5ee",
+      "sourceTextHash": "32eeabf6d936684571ffc28d23d209c0d7d00f73d3f2de017b18126e861729e0",
+      "textEn": "A horizontal division between charcoal and luminous green; a poster headline above and an explanation below.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "8d5d6c62-8e15-49c5-8fe3-9828e343aa28",
+      "sourceTextHash": "1c0b15b86a98501a13a7c67efd7da9fb251c728ee6946b1f1c0a2e0d3fae5871",
+      "textEn": "A comparison with opposing columns and distinct labels, two independent ideas in high contrast.\norganization: opposition\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nCompare alternatives\nHighlight a central message\nClarify a misconception"
+    },
+    {
+      "sourceId": "c9d2e0eb-365e-4fd6-835a-be143c74c366",
+      "sourceTextHash": "7f6308fe0428aec5a31a28958f6ebe2d9b831b264d003e3838d3364638a5181b",
+      "textEn": "A framed photograph and a short message on a paper card, with separate media and text areas.\norganization: poster\ndensity: balanced\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message\nGuide an action"
+    },
+    {
+      "sourceId": "2dcac03b-8180-4415-866e-4fb59be1f959",
+      "sourceTextHash": "303f52b95131636e2b3aa1c212534091c8fd41cc111a5e38ce836d7c2dce4af0",
+      "textEn": "A slightly offset window over paper sheets, giving the framing an impression of movement.\norganization: window\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "816b2402-da96-416d-83f0-db401600075e",
+      "sourceTextHash": "f84ebbfcb9c9a5695afbef296d2fd62eb1d285aecd4f2f3996d58c1bea7b9134",
+      "textEn": "A light interface in a window with a title bar and text centered in the usable area.\norganization: window\ndensity: restrained\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "6cc2b926-aeb5-4a78-8eac-c13b40c40e65",
+      "sourceTextHash": "605b5fdc2feb1ecd5645a8bd1de541d747da47da1a7927936d214285caea1532",
+      "textEn": "A dark window interface with a short high-contrast message and generous inner space.\norganization: window\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "72ac9471-69ff-4673-84e0-d2f1cd6ecc2a",
+      "sourceTextHash": "b121ccc716ee2c8ec0e8d8d7e0cb3a5ffa0e736de42882b21e3fc57dd17d0ca2",
+      "textEn": "A set of windows with blue bars and navigation indicators, text in separate areas.\norganization: modular\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "b201835d-37bb-4f09-89e8-914c7ae410da",
+      "sourceTextHash": "0df11150170c8ae8759e68a1359cebfd1e43486060e8af8c6dc9a35811e547a3",
+      "textEn": "An editorial question in black on white with a passage in a marker color and vertical reading.\norganization: poster\ndensity: restrained\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection\nExplain reasoning"
+    },
+    {
+      "sourceId": "57a69cac-8e0f-4381-8dce-8213b92aa387",
+      "sourceTextHash": "474c840b1aca7063eb642a2e89e28aca82cc745e673a67e9557fa4e745ebf8ff",
+      "textEn": "Light paper sheets in layers for a main sentence and a short essay commentary.\norganization: poster\ndensity: restrained\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection\nExplain reasoning"
+    },
+    {
+      "sourceId": "a6109727-b9a3-45a8-83f2-4bf87c782426",
+      "sourceTextHash": "b05540b14c429db18bc17920a6d3454dff80e1e5d3daab5c9085861a1b7c3a76",
+      "textEn": "An almost empty light page, a sans-serif sentence and a discreet footnote.\norganization: poster\ndensity: restrained\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection\nExplain reasoning"
+    },
+    {
+      "sourceId": "f2d50cd4-5239-4a41-81b3-76b3526ae64e",
+      "sourceTextHash": "897358e51ebcdfcb1b5b69eafe3a1b7d72396b697e7e62e31be0b05281920895",
+      "textEn": "A modular composition guided by a Swiss grid, colored blocks and geometric alignment.\norganization: modular\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "af66382d-029e-442f-817d-3515690bf284",
+      "sourceTextHash": "0e6336c34bce93c7f8f2cbefcd368695803536a10d57170455c69428fd820a1c",
+      "textEn": "An interface card with a window bar and a highlighted call to action in the lower area.\norganization: window\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nGuide an action"
+    },
+    {
+      "sourceId": "2913208b-c220-4017-8856-5bf0edaa0ee7",
+      "sourceTextHash": "c1dc72a9b715e2e6eb46ce7833ae25c5bbadee622b3b9528ff9b67690ab5d49b",
+      "textEn": "An image behind the entire composition, with a paper card overlaid to maintain readability.\norganization: poster\ndensity: balanced\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message"
+    },
+    {
+      "sourceId": "cfe00849-e4e9-49ee-895f-cf733a623a20",
+      "sourceTextHash": "9e94205d9a2bd253c8b2b1f1c7a17d2609bfb880fb838eb2abcc41ccdd53e6fd",
+      "textEn": "A poster of red color blocks and a highlight strip, with heavy typography.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "8b6d7dd3-353d-4453-8661-dff2320d3b4f",
+      "sourceTextHash": "52e75782ef8221824948dc9d2865ee3d8a0a27978a349fd9a5b4109014fe618c",
+      "textEn": "Monumental letters with contrasting outlines; texture is produced by the empty space within the headline.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "bfb54f9d-9031-47c1-837c-b929f84a2df1",
+      "sourceTextHash": "7f012aeedc75d6cfb8915689f6df150e9bce63675ed366054bd407b411d33ee6",
+      "textEn": "A digital panel with chromatic glitches, an interface signal and technical microtypography.\norganization: poster\ndensity: intense\ntypography: monospaced\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "a9936b0c-4acc-4a33-8f3a-d76ff8a5144c",
+      "sourceTextHash": "15d5c3939c50055df952ab743f9c97eea68d799138a27f2a3d8f9a6858fdaae0",
+      "textEn": "Stacked offset interface frames forming background and content windows.\norganization: modular\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "018df3a8-378a-4a07-879f-6ca533395731",
+      "sourceTextHash": "48eb7866c087852c0395878acd66bf6daef4637320021a9ae51a7279d175b8c3",
+      "textEn": "A window in motion with a button and an action area; a sense of cropping and displacement.\norganization: window\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nGuide an action"
+    },
+    {
+      "sourceId": "747ff8ce-9417-4d05-89cb-6f7e079812f8",
+      "sourceTextHash": "b10a4fcb4c1cde889cb0f815ec65360d575d295b06afbc90f5263ede982a6417",
+      "textEn": "A large-scale number, a small data label and an area for explanation around it.\norganization: poster\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a supplied data point\nHighlight a central message"
+    },
+    {
+      "sourceId": "e9e29600-4c9d-4c42-808d-9d57f5f4695a",
+      "sourceTextHash": "29e9713eeac3bbcbf766c9bd1e4f7b212dac7ab4d224db2bdfbeb8f4592071cc",
+      "textEn": "Three independent dark horizontal cards, with small numbered markers.\norganization: list\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nList of independent items.\nHighlight a central message\nOrganize independent points"
+    },
+    {
+      "sourceId": "9fdde9ed-7e0f-4aa3-824b-599d2fa7b56f",
+      "sourceTextHash": "93611c78e06cb05be344395453057942e50e4039abcacdd7624b76b739c5faf2",
+      "textEn": "Large words displaced in different directions, a poster of typography in motion.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "29331d31-a11e-44a8-81e0-fd2ed2bb23d5",
+      "sourceTextHash": "fdf9e56fd6a4bb0a43d8bd0af64937bbee780e789efcd9195c2090894062317a",
+      "textEn": "A dark cinematic title card, a monumental headline, a thin frame and dramatic reading.\norganization: poster\ndensity: restrained\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "575a2cbc-1483-47f1-8c08-2ecf086042a9",
+      "sourceTextHash": "4e4e4e50800aa44d28a71fb790bff91766b1344832ff8f8461e9a040787ea958",
+      "textEn": "A page for continuous reading with a headline and successive areas of brief text.\norganization: poster\ndensity: restrained\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection\nExplain reasoning"
+    },
+    {
+      "sourceId": "eeb397d8-95b4-476f-85ac-2ca7546611e6",
+      "sourceTextHash": "bc2c88364fc4556f208f87844c475b629b4e2d3e54b6021b152cf438306a01ce",
+      "textEn": "A summary in an interface card on a contrasting background, with a message in a compact area.\norganization: window\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning\nGuide an action"
+    },
+    {
+      "sourceId": "0815b8fd-e175-4bed-8f33-d21c49e18e4b",
+      "sourceTextHash": "ab254e3f716c3627fe988d12fa67c1a5322015eb1ea8d408f5b55b098fb02092",
+      "textEn": "Overlapping light paper sheets with paper shadows and a low-noise editorial hierarchy.\norganization: poster\ndensity: restrained\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "1d40cab7-b6b5-416d-8dfa-965904140db1",
+      "sourceTextHash": "cc571955052815fdbd40bd75612a9539c0e37deb8192432a919a50171003b2e4",
+      "textEn": "A hybrid composition of paper and interface, using a window frame for the message.\norganization: window\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "7beb7cd9-fe43-4a27-81b2-18822978c102",
+      "sourceTextHash": "5ba5237c2447f8fe32c72af4a351b1b2928342361dd13de4ce5770b6f9bab082",
+      "textEn": "Window boxes on a light paper base; each surface has a distinct visual function.\norganization: window\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "7379babc-0ffb-4fbc-83d9-48d2995c2f4a",
+      "sourceTextHash": "12f729438a5aa3725456d0784419b97d14d566bc08627d447b7b1d384fb8edbf",
+      "textEn": "Graphic bands and notices on a paper base; words in contrasting strips.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "d831c69d-5bcf-4c59-8d57-d4885bf314c2",
+      "sourceTextHash": "8d27f65cca22bdc31ecf0470e45744a2c1e09f947bf2b974866d38bc02bed2f6",
+      "textEn": "Orange advertising poster with dark bleed lettering, a tilted black band and a portrait at the bottom.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message\nGuide an action"
+    },
+    {
+      "sourceId": "08995d21-e0c3-42d0-84d2-f486249e458c",
+      "sourceTextHash": "8f8814a5510d6c2fbbb90108d9c7fb42d0060cc25a809cbc589d651587ec705e",
+      "textEn": "Essay on overlapping paper sheets, with a typographic question and a continuous reading block.\norganization: poster\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection\nExplain reasoning"
+    },
+    {
+      "sourceId": "baf6fabc-9c6d-4bae-8f10-415a906f7f96",
+      "sourceTextHash": "a12d59dff83856ce100e814018f678f9e2783ebf62b7150b4e83ed42336ce8e8",
+      "textEn": "Two-level portrait poster: heavy blue lettering, a tilted yellow badge and a large photograph below.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message"
+    },
+    {
+      "sourceId": "fa1d6871-3b4b-4495-8dcf-964afef540ee",
+      "sourceTextHash": "093ba140cadcb6f2b26050bb8bdec6dd3e9696eeee6b0e89a7698274cd96bb2c",
+      "textEn": "Gray editorial poster, condensed red typography and oblique photographic cutouts.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message"
+    },
+    {
+      "sourceId": "462e8c0e-1476-4c61-8d54-afebda5cefcc",
+      "sourceTextHash": "7733d53fbb2f5f54122d4fb8a7fae43f2348fd5121c60ac42bd089177fe57966",
+      "textEn": "A dominant editorial portrait accompanied by a short caption, like a magazine page.\norganization: poster\ndensity: restrained\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message"
+    },
+    {
+      "sourceId": "ce3d17b1-53ee-40fe-810a-94e07937d861",
+      "sourceTextHash": "e7a78170d94eaf62f965f4fedefb344925b28950b6f8d32e1d2640fb4796c2c1",
+      "textEn": "Retro desktop interface with multiple offset windows, a yellow grid and a cutout portrait.\norganization: modular\ndensity: intense\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message"
+    },
+    {
+      "sourceId": "8df49c98-2143-450b-8805-aa7dc1e5ef61",
+      "sourceTextHash": "0f909c4c14c06536ef70af13f2ccc1bb0913096c35deaab124f2924891d856f7",
+      "textEn": "A CRT computer on textured paper, an old screen and a hierarchy of pixel lettering.\norganization: poster\ndensity: intense\ntypography: monospaced\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "9782ac82-e0bb-4ce7-82cc-043ae5653ad4",
+      "sourceTextHash": "6ba92b3869f0a5cd32a3f0e85fb7c94254a0056808dc95816c9e4e334b9d9076",
+      "textEn": "A question in condensed typography on a light page, a word underlined by an orange mark and list notes.\norganization: list\ndensity: restrained\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nList of independent items.\nHighlight a central message\nEncourage a brief reflection\nExplain reasoning\nOrganize independent points"
+    },
+    {
+      "sourceId": "3f7e9d10-cf64-4927-81ba-f06369fc62f0",
+      "sourceTextHash": "83d3e84d3d7a32b67d37e0762d569592a9d59b481497bf81e7448e5588580521",
+      "textEn": "Yellow brutalist advertisement: a condensed headline, an illustrated product card and badges in primary colors.\norganization: modular\ndensity: intense\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message\nGuide an action"
+    },
+    {
+      "sourceId": "21369444-cbad-4269-8d04-6149628dba5a",
+      "sourceTextHash": "5f45e9cb04414e19f147b2d94a4abc829fb50e7286a780b445622646ff6b2601",
+      "textEn": "A graphic cutout portrait alongside a patchwork grid in citrus green and black.\norganization: modular\ndensity: intense\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message"
+    },
+    {
+      "sourceId": "d776e533-dc84-4e07-8186-02119d8b62dd",
+      "sourceTextHash": "3af8890594c3903d5b7554f812d9c5cb8e83d323820eefeccc8309ebc05367eb",
+      "textEn": "A message in a few fragments, with tilted blue bands on a gray surface and central lettering.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message\nGuide an action"
+    },
+    {
+      "sourceId": "679fdbe9-1096-43d9-8eeb-2c87eae5a62f",
+      "sourceTextHash": "5d7a42606e0568ee7ac6fe309400cb6a9cb4d9714dab1fadeaffeb5c1136a8c3",
+      "textEn": "A headline about direct conversation, editorial promotional language and highlighted words in layers.\norganization: poster\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message\nGuide an action"
+    },
+    {
+      "sourceId": "d89feaf8-3e50-43c2-8f3f-d4d3df796c0c",
+      "sourceTextHash": "51e1b8a7f8d3c280d45a885506d4f1ac2a922d6f32de4aab3070236d16960d58",
+      "textEn": "Three black condensed lines in the center; the last receives a green emphasis strip.\norganization: poster\ndensity: restrained\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nEncourage a brief reflection"
+    },
+    {
+      "sourceId": "2f9dc415-163b-47df-8839-01c1057277d4",
+      "sourceTextHash": "e88a03fd67e39a170342f7119a7868e071ef9338c49474d4bcb7af9491f07c00",
+      "textEn": "A blue modular grid study with geometric elements and text organized into poster blocks.\norganization: modular\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message\nExplain reasoning"
+    },
+    {
+      "sourceId": "2f37700b-159a-49d2-8294-72fbed09a20d",
+      "sourceTextHash": "9243de5bf181cacb339eaf0682861c3920ad3fcc80ec7995fb4b3e50d52df816",
+      "textEn": "An editorial diagnostic page, with tension between the opening sentence and an explanation on paper.\norganization: poster\ndensity: balanced\ntypography: serif\nimageRole: graphics\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message\nEncourage a brief reflection\nExplain reasoning"
+    },
+    {
+      "sourceId": "9cc72c8f-5e41-43ac-8ad8-b6d56cb40db8",
+      "sourceTextHash": "2592f6651537ba85d123945ac0f1b8cce79966b48d89323a31f98f5e66a598eb",
+      "textEn": "A title in extruded cream and yellow letters, a diagonal black shadow and a motto around the poster.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nHighlight a central message"
+    },
+    {
+      "sourceId": "25e96bd8-73ca-4591-81af-b6a5f139c822",
+      "sourceTextHash": "5a7ad3b4cdc55eb310d0d18da45205ed4ee1041cfb67b635f784b9a2668c019f",
+      "textEn": "Full photographic imagery with an editorial poster treatment and minimal typographic intervention.\norganization: poster\ndensity: restrained\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message"
+    },
+    {
+      "sourceId": "40c9603a-2dc9-4a5c-8132-7687ddf789bf",
+      "sourceTextHash": "820bd980167322f2afa06d854416168998b0e568af19dcb5415aecb4622bb76e",
+      "textEn": "A press page with headlines in different weights, a newspaper background and an acid-green accent.\norganization: poster\ndensity: intense\ntypography: serif\nimageRole: graphics\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message\nEncourage a brief reflection\nExplain reasoning"
+    },
+    {
+      "sourceId": "92030512-86ca-443e-8366-026c8bd4b9e6",
+      "sourceTextHash": "cad1e3c16e294f3881e65f16bd0ddd48e3570a6e094ec89eef73242c0429fa1f",
+      "textEn": "A photographic window behind irregular torn-paper edges, with a revealing statement.\norganization: poster\ndensity: intense\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nHighlight a central message\nGuide an action"
+    },
+    {
+      "sourceId": "eedb0a12-78a7-415f-84ba-7369476b6ec0",
+      "sourceTextHash": "1dfab3d63b8454b290baa2dac790527a60eca4025682ff35a2f6668724425816",
+      "textEn": "A graphic-design magazine cover, a treated photograph and an editorial headline.\norganization: poster\ndensity: restrained\ntypography: serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message\nEncourage a brief reflection"
+    },
+    {
+      "sourceId": "056a8d10-e0ff-4812-8cfd-d91abeecadf5",
+      "sourceTextHash": "0049c4cca8d49c16f6db7b814d49cba3fa204b4fb9915b0adb8663fe3363ded4",
+      "textEn": "Widely spaced horizontal yellow lettering, white side sentences and a darkened background image.\norganization: poster\ndensity: restrained\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message\nEncourage a brief reflection"
+    },
+    {
+      "sourceId": "12251ff9-7544-44bc-83c5-c617aac655af",
+      "sourceTextHash": "211a989d5ae2abf7aef9f9704e40d1456b3e6f7aca4143571a19fb5880c2d462",
+      "textEn": "A three-line editorial headline on a light strip; a photograph occupies the lower area.\norganization: poster\ndensity: restrained\ntypography: sans serif\nimageRole: photography\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message\nEncourage a brief reflection"
+    },
+    {
+      "sourceId": "4a759143-b5a3-413b-8f4a-2676e12e2ecb",
+      "sourceTextHash": "164c5a6ce9389365a57171527f04a2295e96d61220cff90198cec9fb21c727e2",
+      "textEn": "Contrast between two ideas on an editorial page, with changes in typographic weight and scale.\norganization: poster\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nPhotograph in a replaceable slot.\nPresent with the image as the protagonist\nComment on an image\nHighlight a central message"
+    },
+    {
+      "sourceId": "4178dbd9-bb95-4652-8adb-683e0152aac3",
+      "sourceTextHash": "74e46e3dfafda428c147d93fe92341686418f27a380b52722701cd240e42b023",
+      "textEn": "Text samples in two regular columns, with a catalog headline and many independent entries.\norganization: list\ndensity: balanced\ntypography: sans serif\nimageRole: graphics\nEditable textual message.\nList of independent items.\nHighlight a central message\nOrganize independent points"
+    }
+  ]
+}

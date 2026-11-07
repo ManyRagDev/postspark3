@@ -67,11 +67,11 @@ export default function MediaSlotPanel({
       mounted.current = false;
     };
   }, []);
-  const [choice, setChoice] = useState(BACKGROUND_SLOT);
   const targets = mediaTargets(post);
+  const [choice, setChoice] = useState<string>();
   const selected = fixedTargetId
     ? targets.find(t => t.id === fixedTargetId)
-    : (targets.find(t => t.id === choice) ?? targets[0]);
+    : (targets.find(t => t.id === choice) ?? targets.find(t => t.replacement) ?? targets[0]);
   const slideId = post.slides[post.currentSlideIndex]?.id;
   const key = `${slideId}:${selected?.id}`;
   const [draft, setDraft] = useState({
@@ -274,7 +274,7 @@ export default function MediaSlotPanel({
             {targets.map(t => (
               <option key={t.id} value={t.id}>
                 {t.label}
-                {t.id !== BACKGROUND_SLOT && !t.url ? " · imagem pendente" : ""}
+                {t.id !== BACKGROUND_SLOT && !t.url && !t.replacement ? " · imagem pendente" : ""}
               </option>
             ))}
           </select>
@@ -285,8 +285,24 @@ export default function MediaSlotPanel({
           ? "Crie uma imagem sobre a arte. O fundo e as fotos existentes serão preservados."
           : selected.id === BACKGROUND_SLOT
             ? "Imagem de fundo deste slide."
-            : `Substituir ${selected.label.toLowerCase()}. As outras imagens serão preservadas.`}
+            : selected.replacement
+              ? "Escolha entre o gradiente original e uma foto no interior do portal."
+              : `Substituir ${selected.label.toLowerCase()}. As outras imagens serão preservadas.`}
       </p>
+      {!addImage && selected.replacement && (
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" className={button} disabled={locked || busy || selected.replacement.originalActive}
+            aria-pressed={selected.replacement.originalActive}
+            onClick={() => onUpdate(capture(), { kind: "background_mode", mode: "original" })}>
+            Usar gradiente original
+          </button>
+          <button type="button" className={button} disabled={locked || busy || !selected.url || !selected.replacement.originalActive}
+            aria-pressed={!selected.replacement.originalActive}
+            onClick={() => onUpdate(capture(), { kind: "background_mode", mode: "photo" })}>
+            Usar foto
+          </button>
+        </div>
+      )}
       {!addImage && selected.url && (
         <div className="space-y-2.5 pt-2 border-t border-white/10">
           <img

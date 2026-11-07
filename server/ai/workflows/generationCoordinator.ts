@@ -2,6 +2,8 @@ import { recoveryAction } from "./generationRecovery";
 import { failureFromError } from "@shared/generationFailure";
 import { Annotation, StateGraph, START, END } from "@langchain/langgraph";
 import type { ComponentDefinitionV1 } from "@shared/componentAssembly";
+import { PROPOSAL_SELECTION_POLICY } from "@shared/familyNeutrality";
+import { firstDeliveryReviewSlot } from "@shared/generationPlan";
 import {
   generationCoordinatorSnapshotSchema,
   proposalDeliverySchema,
@@ -31,6 +33,10 @@ export interface GenerationCoordinatorInput
 }
 export interface GenerationCoordinatorDeps extends ProposalGraphDeps {
   replan?: (slot: number, attempt: number, currentFamilies: string[]) => Promise<{ definitions: ComponentDefinitionV1[]; plan: import("@shared/generationPlan").ViableGenerationPlan } | null>;
+  recoverDelivery?: (
+    input: ProposalExecutionInput,
+    reuseOriginal: boolean,
+  ) => ReturnType<typeof import("./generationDeliveryRecovery").recoverGenerationDelivery>;
   persistUpdate?: (delivery: ProposalDelivery) => Promise<void>;
   /** Authorize exact assets and settle the configured billing policy before public ready. */
   deliver?: (
@@ -59,6 +65,11 @@ export class GenerationCoordinator {
   >();
   private started?: Promise<GenerationCoordinatorSnapshot>;
   private definitions: ComponentDefinitionV1[][];
+  // Reserve a replacement before the first await, including during parallel recovery.
+  private replacementOwners = new Map<string, number>();
+  private get distinctProposals() {
+    return this.input.planning?.proposalSelectionVersion === PROPOSAL_SELECTION_POLICY.version;
+  }
   constructor(
     private input: GenerationCoordinatorInput,
     private deps: GenerationCoordinatorDeps
@@ -70,6 +81,11 @@ export class GenerationCoordinator {
       throw new Error("O coordenador requer três propostas pinadas");
     this.definitions.forEach((_, slot) => {
       const saved = input.savedProposals?.find(p => p.slot === slot);
+      if (this.distinctProposals && saved) {
+        const family = saved.status === "ready" ? saved.bundle.family : saved.attempt?.index
+          ? input.planning?.recoveryRepertoires[slot]?.[saved.attempt.index - 1]?.family : undefined;
+        if (family) this.replacementOwners.set(family, slot);
+      }
       this.proposals.set(
         slot,
         proposalDeliverySchema.parse(
@@ -130,7 +146,13 @@ export class GenerationCoordinator {
       bundle?: unknown;
     };
     const slotPlan = this.input.planning?.slots[slot];
-    if (slotPlan && slotPlan.status !== "viable") {
+    const deliveryRecovery = Boolean(this.input.planning?.deliveryReserves && this.deps.recoverDelivery);
+    const visualTextRepair = this.input.reviewExecutionConfig?.version === 5 &&
+      this.input.reviewExecutionConfig.automaticReviewVersion === 4 &&
+      this.input.reviewExecutionConfig.textFlexibilityVersion === 1 &&
+      this.input.reviewExecutionConfig.visualTextRepairVersion === 1;
+    const startFromReserve = deliveryRecovery && slotPlan?.status === "insufficient_fit" && Boolean(this.input.planning?.deliveryReserves?.[slot]?.length);
+    if (slotPlan && slotPlan.status !== "viable" && !startFromReserve) {
       const code = slotPlan.status === "insufficient_fit" ? "selection_insufficient_fit" : "planning_response_invalid";
       await this.update(proposalDeliverySchema.parse({ ...identity, status: "failed", completedAt: Date.now(), errorReason: code, failure: { code, stage: "selection", retryable: false }, diagnostics: [{ code, target: `slot-${slot}`, evidence: slotPlan.reason }] }));
       return;
@@ -165,39 +187,71 @@ export class GenerationCoordinator {
       this.definitions[slot],
       ...(this.input.alternativeDefinitions?.[slot] ?? []).slice(0, 3),
     ];
-    let attemptIndex = saved.attempt?.index ?? 0;
+    let attemptIndex = saved.attempt?.index ?? (startFromReserve ? 1 : 0);
     const plannedRecoveryCount = this.input.planning?.recoveryRepertoires[slot]?.length ?? 0;
-    const attemptLimit = this.input.reviewPolicyVersion === 10 ? 1 + plannedRecoveryCount : candidates.length;
+    const attemptLimit = deliveryRecovery ? 2 : this.input.reviewPolicyVersion === 10 ? 1 + plannedRecoveryCount : candidates.length;
+    const proposalInput: ProposalExecutionInput = {
+      ...this.input,
+      selectedDefinitions: undefined,
+      firstDeliveryReviewRecovery: slot === firstDeliveryReviewSlot(this.input.planning),
+      generationIntent: this.input.planning?.intent,
+      visualRequirements: this.input.planning?.visualRequirements,
+      ...(this.input.planning?.intent.editorial ? { editorialCatalog: this.input.planning.editorialCatalog ?? null } : {}),
+      imageObligation: this.input.perProposalImageObligations?.[slot] ?? this.input.imageObligation,
+      proposalId: saved.proposalId,
+      slot,
+      revision: saved.revision,
+    };
     while (attemptIndex < attemptLimit) {
       let currentDefs = candidates[attemptIndex];
       let narrativePlan = slotPlan?.status === "viable" ? slotPlan : undefined;
+      let recovered: Awaited<ReturnType<NonNullable<GenerationCoordinatorDeps["recoverDelivery"]>>> = null;
+      let replacementFamily: string | undefined;
+      if (this.distinctProposals && !deliveryRecovery && attemptIndex > 0) {
+        replacementFamily = this.input.planning?.recoveryRepertoires[slot]?.[attemptIndex - 1]?.family;
+        const owner = replacementFamily ? this.replacementOwners.get(replacementFamily) : undefined;
+        if (!replacementFamily || (owner !== undefined && owner !== slot) ||
+            this.input.planning?.offers.some(offer => offer?.family === replacementFamily)) {
+          attemptIndex++;
+          continue;
+        }
+        this.replacementOwners.set(replacementFamily, slot);
+      }
       const attemptSuffix = attemptIndex === 0 ? "" : `-fb${attemptIndex}`;
       const effectiveProposalId = `${saved.proposalId}${attemptSuffix}`;
       const attempt = {index:attemptIndex,id:effectiveProposalId};
-      await this.update(proposalDeliverySchema.parse({...identity,status:attemptIndex?"recovering":"running",attempt}));
+      const previousFailure = result.failure ?? saved.failure;
+      await this.update(proposalDeliverySchema.parse({ ...identity, status: attemptIndex ? "recovering" : "running", attempt,
+        ...(deliveryRecovery && attemptIndex > 0 && previousFailure ? { failure: previousFailure } : {}),
+      }));
       try {
-        if (this.input.reviewPolicyVersion === 10 && attemptIndex > 0) {
+        if (deliveryRecovery && attemptIndex > 0) {
+          recovered = await this.deps.recoverDelivery!(proposalInput, previousFailure?.code === "artwork_unusable" && previousFailure.stage === "copy");
+          if (!recovered) break;
+          currentDefs = recovered.definitions;
+          narrativePlan = recovered.plan;
+        } else if (this.input.reviewPolicyVersion === 10 && attemptIndex > 0) {
           const currentFamilies = Array.from(this.proposals.values()).filter(p => p.slot !== slot).map(p => p.status === "ready" ? p.bundle.family : this.input.planning?.offers[p.slot]?.family).filter((v): v is string => typeof v === "string");
+          if (this.distinctProposals) for (const [family, owner] of Array.from(this.replacementOwners))
+            if (owner !== slot && !currentFamilies.includes(family)) currentFamilies.push(family);
           const replanned = await this.deps.replan?.(slot, attemptIndex, currentFamilies);
           if (!replanned) { attemptIndex++; continue; }
+          if (replacementFamily && (!replanned.definitions.length || replanned.definitions.some(def => def.completeDesign?.family !== replacementFamily)))
+            throw new Error("proposal_replacement_family_mismatch");
           currentDefs = replanned.definitions;
           narrativePlan = replanned.plan;
         }
         result = await executeProposalWorkflow(
           {
-            ...this.input,
+            ...proposalInput,
             selectedDefinitions: currentDefs,
             narrativePlan,
-            generationIntent: this.input.planning?.intent,
-            ...(this.input.planning?.intent.editorial ? { editorialCatalog: this.input.planning.editorialCatalog ?? null } : {}),
-            selectionReason: narrativePlan?.reason ?? this.input.selectionReasons?.[slot],
+            deliveryRecoveryEnabled: deliveryRecovery,
+            deferCopyRepair: !visualTextRepair && deliveryRecovery && (attemptIndex === 0 || !recovered?.recoveryCopy),
+            recoveryCopy: recovered?.recoveryCopy,
+            rewriteForRecovery: recovered?.rewriteForRecovery,
+            selectionReason: recovered ? "Composição compatível escolhida para recuperar a entrega." : narrativePlan?.reason ?? this.input.selectionReasons?.[slot],
             editorialApproach: narrativePlan?.editorialApproach ?? this.input.editorialApproaches?.[slot],
-            imageObligation:
-              this.input.perProposalImageObligations?.[slot] ??
-              this.input.imageObligation,
-            proposalId: saved.proposalId,
-            slot,
-            revision: saved.revision,
           },
           {
             ...this.deps,
@@ -220,6 +274,7 @@ export class GenerationCoordinator {
         result = proposalDeliverySchema.parse({
           ...identity,
           status: "failed",
+          ...(this.distinctProposals ? { attempt } : {}),
           failure: failureFromError(error),
           errorReason: failureFromError(error).code,
         });
@@ -235,7 +290,10 @@ export class GenerationCoordinator {
         result=proposalDeliverySchema.parse({...result,status:"awaiting_reconciliation",attempt,completedAt:undefined});
         break;
       }
-      if((action==="next_template" || this.input.reviewPolicyVersion!==9 && this.input.reviewPolicyVersion!==10 && result.status==="failed" && !["proposal_cancelled","generation_deadline_exceeded"].includes(result.errorReason??"")) && attemptIndex+1<attemptLimit){attemptIndex++;continue;}
+      const recoverableContent = deliveryRecovery && result.status === "failed" &&
+        ["copy_response_invalid", "review_content_rejected", "content_requirement_unmet"].includes(result.failure?.code ?? "") &&
+        (this.input.deadlineMs ?? Infinity) > Date.now() && !this.input.signal?.aborted;
+      if((action==="next_template" || recoverableContent || this.input.reviewPolicyVersion!==9 && this.input.reviewPolicyVersion!==10 && result.status==="failed" && !["proposal_cancelled","generation_deadline_exceeded"].includes(result.errorReason??"")) && attemptIndex+1<attemptLimit){attemptIndex++;continue;}
       break;
     }
     const finalResult = result.status === "planned" ? proposalDeliverySchema.parse({ ...identity, status: "failed", errorReason: "artwork_unusable", failure: { code: "artwork_unusable", stage: "copy", retryable: false } }) : result;
@@ -244,6 +302,7 @@ export class GenerationCoordinator {
         proposalDeliverySchema.parse({
           ...identity,
           status: "delivery_pending",
+          ...(this.distinctProposals ? { attempt: finalResult.attempt } : {}),
         })
       );
       try {

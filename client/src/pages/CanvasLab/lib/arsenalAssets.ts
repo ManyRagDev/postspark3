@@ -1,6 +1,7 @@
 import bundled from "@shared/arsenalBundledAssets.json";
 import {
   arsenalFontMatches,
+  activeArsenalMedia,
   type ArsenalAsset,
   type ArsenalComposition,
 } from "@shared/designArsenal";
@@ -12,6 +13,14 @@ const images = new Map<string, Promise<string>>();
 
 /** Raster ornaments are pinned to verified asset bytes, never a generated media prompt. */
 export function loadArsenalImage(asset: ArsenalAsset): Promise<string> {
+  return loadArsenalImageWithBytes(asset);
+}
+
+export function installArsenalImageBytes(asset: ArsenalAsset, bytes: ArrayBuffer): Promise<string> {
+  return loadArsenalImageWithBytes(asset, bytes);
+}
+
+function loadArsenalImageWithBytes(asset: ArsenalAsset, suppliedBytes?: ArrayBuffer): Promise<string> {
   if (
     asset.kind !== "catalog" ||
     !/^image\/(png|jpeg|webp)$/.test(asset.mimeType)
@@ -21,18 +30,7 @@ export function loadArsenalImage(asset: ArsenalAsset): Promise<string> {
   const existing = images.get(key);
   if (existing) return existing;
   const promise = (async () => {
-    const signal = AbortSignal.timeout(8000);
-    const urls = await arsenalApi.designCatalog.resolveArsenalAssets.query(
-      { ids: [asset.id] },
-      { signal }
-    );
-    const authorized = urls.find(
-      item => item.id === asset.id && item.sha256 === asset.sha256
-    );
-    if (!authorized?.url) throw new Error("Imagem não autorizada");
-    const response = await fetch(authorized.url, { signal, cache: "no-store" });
-    if (!response.ok) throw new Error("Imagem indisponível");
-    const bytes = await response.arrayBuffer();
+    const bytes = suppliedBytes ?? (await fetchArsenalImageBytes(asset));
     const hash = Array.from(
       new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))
     )
@@ -59,12 +57,22 @@ export function loadArsenalImage(asset: ArsenalAsset): Promise<string> {
   return promise;
 }
 
+async function fetchArsenalImageBytes(asset: ArsenalAsset) {
+  const signal = AbortSignal.timeout(8000);
+  const urls = await arsenalApi.designCatalog.resolveArsenalAssets.query({ ids: [asset.id] }, { signal });
+  const authorized = urls.find(item => item.id === asset.id && item.sha256 === asset.sha256);
+  if (!authorized?.url) throw new Error("Imagem não autorizada");
+  const response = await fetch(authorized.url, { signal, cache: "no-store" });
+  if (!response.ok) throw new Error("Imagem indisponível");
+  return response.arrayBuffer();
+}
+
 export async function ensureArsenalCompositionAssets(
   c: ArsenalComposition
 ): Promise<void> {
   const required = new Set(
     c.elements
-      .filter(e => e.imageAssetId && !c.media[e.id])
+      .filter(e => e.imageAssetId && !activeArsenalMedia(c, e))
       .map(e => e.imageAssetId!)
   );
   await Promise.all([

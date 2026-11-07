@@ -101,6 +101,7 @@ export const RUNTIME_MANIFEST: RuntimeManifest = {
       "generation_preparation_expectation",
       "generation_recover_preparation",
       "generation_preparation_available",
+      "generation_task_routing_available",
     ].map(name => ({
       kind: "rpc" as const,
       schema: "postspark",

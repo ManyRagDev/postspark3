@@ -38,11 +38,16 @@ const MODEL_COSTS: Record<string, ModelCostConfig> = {
     outputCostPerMillion: 10,
     platformFeePercent: ENV.openRouterPlatformFeePercent,
   },
-  // Estimativa pelo endpoint DeepSeek no OpenRouter (2026-09-29).
+  // Endpoint prices observed in artifacts/acervo82/model-routing-20261106.
   // O custo real retornado pelo provedor tem precedência em llm.ts.
   "deepseek/deepseek-v4.1-flash": {
-    inputCostPerMillion: 0.15,
-    outputCostPerMillion: 0.6,
+    inputCostPerMillion: 0.14,
+    outputCostPerMillion: 0.42,
+    platformFeePercent: ENV.openRouterPlatformFeePercent,
+  },
+  "anthropic/claude-haiku-5.5": {
+    inputCostPerMillion: 0.1,
+    outputCostPerMillion: 0.5,
     platformFeePercent: ENV.openRouterPlatformFeePercent,
   },
   "openai/gpt-5-mini": {
@@ -80,6 +85,8 @@ const MODEL_COSTS: Record<string, ModelCostConfig> = {
 };
 
 function normalizeModelForCost(model: string): string {
+  if (/^anthropic\/claude-haiku-5\.5(?:$|[-:])/.test(model)) return "anthropic/claude-haiku-5.5";
+  if (/^deepseek\/deepseek-v4\.1-flash(?:$|[-:])/.test(model)) return "deepseek/deepseek-v4.1-flash";
   if (model.startsWith("openai/gpt-6.1-sol")) return "openai/gpt-6.1-sol";
   if (model.startsWith("openai/gpt-5-mini")) return "openai/gpt-5-mini";
   if (model.startsWith("openai/gpt-5.4-mini")) return "openai/gpt-5.4-mini";
@@ -102,9 +109,12 @@ export function estimateModelCostUsd(input: {
   completionTokens: number;
 }): number {
   const costs = getModelCostConfig(input.model);
-  const base =
+  // Anthropic's verified long-context tier starts at 100K input tokens.
+  const longContextMultiplier = normalizeModelForCost(input.model) === "anthropic/claude-haiku-5.5" && input.promptTokens >= 100_000 ? 5 : 1;
+  const base = longContextMultiplier * (
     (input.promptTokens / 1_000_000) * costs.inputCostPerMillion +
-    (input.completionTokens / 1_000_000) * costs.outputCostPerMillion;
+    (input.completionTokens / 1_000_000) * costs.outputCostPerMillion
+  );
   return base * (1 + (costs.platformFeePercent ?? 0) / 100);
 }
 

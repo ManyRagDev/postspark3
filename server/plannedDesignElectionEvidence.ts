@@ -1,4 +1,5 @@
-import {familyTie} from "../shared/familyNeutrality";
+import { compactGenerationIntentSchema, legacyAutomaticGenerationIntentSchema, projectCompactGenerationIntent } from "../shared/compactGenerationIntent";
+import {familyTie, PROPOSAL_SELECTION_POLICY, proposalSelectionHistory} from "../shared/familyNeutrality";
 import { arsenalHash } from "../shared/arsenalContent";
 import { z } from "zod";
 import { readPreparationResult, preparationExpectationSchema } from "../shared/generationPreparationReceipt";
@@ -32,15 +33,18 @@ import {
   type GenerationPlanningReceipt,
 } from "../shared/generationPlan";
 import { imageObligationSchema } from "../shared/generationContracts";
+import { readGenerationVisualRequirements, repertoireMeetsVisualRequirements } from "../shared/generationVisualRequirements";
 import { designHasPhotographicContent } from "../shared/designSelection";
 import { catalogScopeHash } from "./designCatalog/catalogCoverage";
 import { journalOperationWasLocal } from "./ai/workflows/generationJournalTrace";
-import { combineEditorialDesignProfile, editorialRequestEvidence, frozenEditorialCatalogSchema, validateEditorialIntent, type FrozenEditorialCatalog } from "../shared/editorialIntent";
+import { combineEditorialDesignProfile, discardUnattributedEditorialSignals, editorialRequestEvidence, frozenEditorialCatalogSchema, validateEditorialIntent, type FrozenEditorialCatalog } from "../shared/editorialIntent";
 import { buildFamilySelectionCandidates, familyAssessmentProfile } from "../shared/designFamilySelection";
 import { FAMILY_RETRIEVAL_POLICY as retrievalPolicy } from "../shared/familyRetrieval";
-import { assertFamilyRetrieval, familySearchQuery, familyVisualQuery } from "./designCatalog/familyRetrieval";
+import { assertFamilyRetrieval, familySearchQuery, familyVisualQuery, semanticFamilyQuery } from "./designCatalog/familyRetrieval";
 import { planFamilyRecovery, FAMILY_RECOVERY_REASON } from "../shared/familyRecovery";
 import { inspectFamilyPlanFit } from "./designCatalog/familyPlanFit";
+import { buildHeuristicGenerationPlan, deliveryProposalReserves, distinctProposalRecovery } from "./ai/workflows/heuristicPlanBuilder";
+import { DELIVERY_RECOVERY_KEY } from "../shared/generationPlan";
 
 type Row = Record<string, any>;
 const row = (v: unknown): Row =>
@@ -74,6 +78,11 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
   };
   const selectionInput = completed("prepare:selection_input");
   const neutrality=selectionInput?.familyNeutrality;
+  const automatic = selectionInput?.automaticSemanticVersion === 1;
+  const compactAutomatic = automatic && selectionInput?.compactIntentVersion === 1;
+  const distinctProposals = neutrality?.proposalSelectionVersion === PROPOSAL_SELECTION_POLICY.version;
+  const recent = completed("prepare:recent_selections");
+  const proposalHistory = distinctProposals ? proposalSelectionHistory(list(recent?.selections), recent?.parentSelection) : list(recent?.selections);
   const familyRanking = selectionInput?.familyRankingVersion === 1;
   const boundedRetrieval = selectionInput?.familyRetrievalVersion === 1;
   const recoveryEnabled = selectionInput?.familyRecoveryVersion === 1;
@@ -112,6 +121,8 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       preparation: { strategyVersion: 2, pendingOperationKeys: interrupted.map(o => o.operation_key), catalogReceiptHash: coverage?.receiptHash ?? null } };
   }
   try {
+    check(automatic === Boolean(config.taskRouting), "automatic_policy_pin_mismatch");
+    check(automatic ? neutrality?.creativeFlexibility === 1 : neutrality?.creativeFlexibility === undefined, "creative_flexibility_unpinned");
     check(selectionInput?.familyRankingVersion === undefined || familyRanking, "family_ranking_protocol_unsupported");
     check(selectionInput?.familyRetrievalVersion === undefined || boundedRetrieval, "family_retrieval_protocol_unsupported");
     check(selectionInput?.familyRecoveryVersion === undefined || recoveryEnabled && boundedRetrieval, "family_recovery_protocol_unsupported");
@@ -140,11 +151,11 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       check(marker.version === 1 && expectation.success &&
         arsenalHash(marker.expectation) === arsenalHash(operation.expectation) &&
         expectation.data.configurationHash === config.configurationHash &&
-        expectation.data.model === config.model && result.model === config.model &&
+        expectation.data.model === (automatic ? config.taskRouting[key === "prepare:intent" ? "intent" : "copy"].model : config.model) && result.model === expectation.data.model &&
         typeof result.id === "string" && result.id.length > 0,
         `preparation_receipt_identity_mismatch:${key}`);
       if (editorialEnabled && key === "prepare:intent") {
-        const schema = z.toJSONSchema(generationEditorialIntentSchema);
+        const schema = z.toJSONSchema(automatic ? compactAutomatic ? compactGenerationIntentSchema : legacyAutomaticGenerationIntentSchema : generationEditorialIntentSchema);
         delete schema.$schema;
         check(expectation.success && expectation.data.responseFormatHash === arsenalHash({
           type: "json_schema", json_schema: { name: "generation_intent_v1", strict: true, schema },
@@ -154,6 +165,10 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
     check(
       prepared.preparationVersion === 6 && prepared.reviewPolicyVersion === 10,
       "planning_protocol_mismatch"
+    );
+    check(
+      prepared.carouselCaptionPolicy === selectionInput?.carouselCaptionPolicy,
+      "carousel_caption_policy_mismatch"
     );
     const { hash, ...basis } = planning;
     check(
@@ -176,7 +191,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       ),
       "catalog_card_content_mismatch"
     );
-    const intentSchema = editorialEnabled ? generationEditorialIntentSchema : generationIntentLegacySchema;
+    const intentSchema = editorialEnabled && !automatic ? generationEditorialIntentSchema : generationIntentLegacySchema;
     const intent = intentSchema.parse(planning.intent);
     const brief = row(prepared.executionBrief ?? input.executionBrief),
       context = row(prepared.editorialContext);
@@ -190,8 +205,8 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
             request.experimental ?? input.includeDraftDesigns
           ),
           text: prepared.contextContent,
-          brandColors: brief.brandInput?.brandColors,
-          brandFonts: brief.brandInput?.fontHint
+          brandColors: automatic ? undefined : brief.brandInput?.brandColors,
+          brandFonts: !automatic && brief.brandInput?.fontHint
             ? [brief.brandInput.fontHint]
             : [],
         }),
@@ -227,10 +242,20 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         )
         .map(s => s.id)
     );
-    const providerIntent = intentSchema.parse(completed("prepare:intent"));
+    const providerIntent = automatic ? (compactAutomatic ? compactGenerationIntentSchema : legacyAutomaticGenerationIntentSchema).parse(completed("prepare:intent")) : intentSchema.parse(completed("prepare:intent"));
     const slideCount = input.postMode === "static" ? 1 : (input.slideCount ?? 5);
+    const editorialEvidence = editorialRequestEvidence({ content: input.content, tone: input.tone, executionBrief: brief });
+    const projectedIntent = compactAutomatic
+      ? projectCompactGenerationIntent(providerIntent as z.infer<typeof compactGenerationIntentSchema>, {
+        adaptation: brief.interventionLevel === "visual_only" ? "literal" : "controlled", factualSourceIds: factualSources,
+      })
+      : automatic ? (({semanticQuery:_query,...rest})=>rest)(providerIntent as z.infer<typeof legacyAutomaticGenerationIntentSchema>)
+      : providerIntent as z.infer<typeof generationIntentLegacySchema>;
+    const normalizedIntent = normalizeGenerationIntent(projectedIntent, slideCount, factualSources, requestText, (neutrality?.planningVersion ?? 0) >= 2);
+    if (normalizedIntent.editorial && selectionInput?.editorialQuotePolicy === 1)
+      normalizedIntent.editorial = discardUnattributedEditorialSignals(normalizedIntent.editorial, editorialCatalog, editorialEvidence);
     check(
-      same(normalizeGenerationIntent(providerIntent, slideCount, factualSources, requestText, neutrality?.planningVersion===2), intent),
+      same(normalizedIntent, intent),
       "intent_operation_mismatch"
     );
     check(
@@ -238,9 +263,9 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         0,
       "intent_source_or_requirement_mismatch"
     );
-    if (editorialEnabled) {
+    if (editorialEnabled && !automatic) {
       const editorial = generationEditorialIntentSchema.parse(intent).editorial;
-      check(validateEditorialIntent(editorial, editorialCatalog, editorialRequestEvidence({ content: input.content, tone: input.tone, executionBrief: brief })).length === 0, "editorial_intent_evidence_mismatch");
+      check(validateEditorialIntent(editorial, editorialCatalog, editorialEvidence).length === 0, "editorial_intent_evidence_mismatch");
     }
     check(
       intent.adaptation ===
@@ -248,11 +273,16 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       "intent_adaptation_mismatch"
     );
     const obligation = imageObligationSchema.parse(prepared.imageObligation);
+    const visualRequirements = selectionInput?.visualRequirementsVersion === 1
+      ? readGenerationVisualRequirements(brief.rawInput ?? input.content)
+      : undefined;
+    if (visualRequirements || planning.visualRequirements)
+      check(same(visualRequirements, planning.visualRequirements), "visual_requirements_mismatch");
     repertoires = resolveDesignFamilyRepertoires(cards, {
       slideCount: input.postMode === "static" ? 1 : (input.slideCount ?? 5),
       contentMode: intent.adaptation === "literal" ? "literal" : "compose",
       instructions: requestText,
-    }).filter(r => repertoireMeetsMedia(r, obligation));
+    }).filter(r => repertoireMeetsMedia(r, obligation) && repertoireMeetsVisualRequirements(r, visualRequirements));
     const expectedCandidates = repertoires.map(r => ({
       id: r.defaultOffer.offerId,
       signature: r.signature,
@@ -263,7 +293,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       "planning_candidates_reconstruction_mismatch"
     );
     if (familyRanking) {
-      familyCandidates = buildFamilySelectionCandidates(repertoires, editorialCatalog, Boolean(neutrality));
+      familyCandidates = buildFamilySelectionCandidates(repertoires, editorialCatalog, Boolean(neutrality), automatic);
       check(same(familyCandidates.map(candidate => ({
         id: candidate.id, family: candidate.family, signature: candidate.signature,
         profileHash: arsenalHash(candidate.profile),
@@ -330,7 +360,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
               `family_scoring_actual_bytes_mismatch:${op.operation_key}`);
             check(sameIds(Object.keys(questions), ids) && ids.every(id => {
               const family = familyCandidates.find(candidate => candidate.id === id);
-              return family && same(row(questions[id]).instructions?.design, family.profile);
+              return family && same(row(questions[id]).instructions?.design, family.profile.version === 5 ? familyAssessmentProfile(family.profile) : family.profile);
             }), `family_scoring_actual_payload_mismatch:${op.operation_key}`);
           }
       }
@@ -355,13 +385,16 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       if (boundedRetrieval) {
         const receipt = familyElection.retrieval, recorded = completed("prepare:family_retrieval");
         const visual = row(prepared.visualPreference);
-        assertFamilyRetrieval(recorded as any, familyCandidates, familySearchQuery(intent, editorialCatalog, familyVisualQuery(visual, selectionInput?.familyVisualQueryVersion === 2 ? requestText : "", Boolean(neutrality))));
+        const visualQuery = familyVisualQuery(visual, selectionInput?.familyVisualQueryVersion === 2 ? requestText : "", Boolean(neutrality));
+        assertFamilyRetrieval(recorded as any, familyCandidates, automatic ? semanticFamilyQuery(intent, visualQuery, (providerIntent as z.infer<typeof compactGenerationIntentSchema>).semanticQuery) : familySearchQuery(intent, editorialCatalog, visualQuery));
         const { expanded, transport, ...basis } = receipt ?? {};
         const { expanded: _expanded, transport: _transport, ...frozen } = recorded ?? {};
-        check(same(basis, frozen) && typeof expanded === "boolean", "family_retrieval_receipt_mismatch");
+        const stableRetrieval = (value: Row) => automatic && value.semanticRetrieval ? { ...value, semanticRetrieval: Object.fromEntries(Object.entries(value.semanticRetrieval).filter(([key]) => key !== "technicalFit")) } : value;
+        check(same(stableRetrieval(basis), stableRetrieval(frozen)) && typeof expanded === "boolean", "family_retrieval_receipt_mismatch");
+        if (automatic) check(String(request.catalog_revision ?? request.catalogRevision) === receipt.semanticRetrieval?.catalogRevision, "semantic_catalog_revision_mismatch");
         check(same(recorded?.neutrality,neutrality), "family_neutrality_pin_mismatch");
         const pinnedIndex = selectionInput?.familyRetrievalIndex;
-        check(!receipt.indexHash || pinnedIndex?.hash === receipt.indexHash && pinnedIndex?.modelFingerprint === receipt.modelFingerprint, "family_retrieval_index_mismatch");
+        check(automatic || !receipt.indexHash || pinnedIndex?.hash === receipt.indexHash && pinnedIndex?.modelFingerprint === receipt.modelFingerprint, "family_retrieval_index_mismatch");
         assessedIds = [...receipt.initialIds, ...(expanded ? receipt.additionalIds : [])];
         const byteCounts = operations.filter(o => String(o.operation_key).startsWith("prepare:design-shortlist:")).map(o => row(row(o.result).assessmentContext).requestBytes);
         check(byteCounts.every(b => Number.isInteger(b) && b > 0 && b <= retrievalPolicy.maxRequestBytes) &&
@@ -371,21 +404,33 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       check(sameIds(Array.from(familyScores.keys()), assessedIds), "family_scoring_coverage_incomplete");
       const ranking = list(familyElection.ranking), shortlistedIds = list(familyElection.shortlistedIds);
       check(sameIds(ranking.map(r => r.id), assessedIds) && ranking.every(r =>
-        same(familyScores.get(r.id), { score: r.score, confidence: r.confidence })), "family_ranking_mismatch");
+        same(familyScores.get(r.id), { score: r.score, confidence: r.confidence }) && (!automatic || r.score100 === Math.round(r.score * 2500) / 100)), "family_ranking_mismatch");
       check(sameIds(shortlistedIds, Array.from(new Set(shortlistedIds))) &&
         shortlistedIds.every(id => familyCandidates.some(candidate => candidate.id === id)), "family_shortlist_ids_invalid");
-      const acceptable = Array.from(familyScores.values()).filter(r => !boundedRetrieval || r.score >= 2);
+      const acceptable = Array.from(familyScores.values()).filter(r => automatic || !boundedRetrieval || r.score >= 2);
       const minimum = Math.min(12, acceptable.length);
       const perProposalMedia = list(prepared.perProposalImageObligations);
       const permitsMediaRestoration = obligation.required ||
         (perProposalMedia.some(item => item.required === true) && perProposalMedia.some(item => item.policy === "forbidden"));
+      if (automatic) {
+        check(familyElection.recovery === undefined, "automatic_historical_recovery_mismatch");
+        const receipt = familyElection.retrieval;
+        if (recoveryEnabled && receipt.additionalIds.length) {
+          const initialScores = ranking.filter(r => receipt.initialIds.includes(r.id));
+          const fit = inspectFamilyPlanFit({automatic: true, neutrality, families: familyCandidates, ids: receipt.initialIds,
+            scores: initialScores, intent, imageObligation: obligation, requestedPhotoMix: false, slideCount, recentSelections: proposalHistory});
+          const recordedFit = receipt.semanticRetrieval?.technicalFit;
+          check(recordedFit && sameIds(recordedFit.checkedFamilyIds, receipt.initialIds) &&
+            same({viableSlots: recordedFit.viableSlots, planHash: recordedFit.planHash}, fit) &&
+            receipt.expanded === (fit.viableSlots.length < 3), "automatic_technical_expansion_mismatch");
+        } else check(receipt.expanded === false, "automatic_unjustified_expansion");
+      }
       let recoveredIds: string[] = [];
-      if (recoveryEnabled) {
-        const recent = completed("prepare:recent_selections");
+      if (recoveryEnabled && !automatic) {
         const expected = planFamilyRecovery(ranking, ids => inspectFamilyPlanFit({
           neutrality, families: familyCandidates, ids, scores: ranking, intent, imageObligation: obligation,
           requestedPhotoMix: perProposalMedia.some(item => item.required === true) && perProposalMedia.some(item => item.policy === "forbidden"),
-          slideCount, recentSelections: list(recent?.selections),
+          slideCount, recentSelections: proposalHistory,
         }), neutrality ? id=>familyTie(neutrality.seed,familyCandidates.find(f=>f.id===id)!.family) : undefined);
         check(same(expected, familyElection.recovery), "family_recovery_local_evidence_mismatch");
         recoveredIds = expected.recoveredIds;
@@ -395,10 +440,10 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       const effectiveScore = (score: { score: number; confidence: number }) => score.score * (0.5 + 0.5 * score.confidence);
       const cutoff = acceptable.map(effectiveScore).sort((a, b) => b - a)[minimum - 1];
       check(shortlistedIds.length >= minimum && shortlistedIds.length <= Math.min(14 + recoveredIds.length, familyCandidates.length) &&
-        (!boundedRetrieval || shortlistedIds.every(id => (familyScores.get(id)?.score ?? 0) >= 2 || recoveredIds.includes(id))) &&
+        (automatic || !boundedRetrieval || shortlistedIds.every(id => (familyScores.get(id)?.score ?? 0) >= 2 || recoveredIds.includes(id))) &&
         ranking.filter(r => shortlistedIds.includes(r.id) && effectiveScore(r) >= cutoff).length >= minimum &&
-        ranking.filter(r => (!boundedRetrieval || r.score >= 2) && effectiveScore(r) > cutoff).every(r => shortlistedIds.includes(r.id)), "family_shortlist_suitability_coverage_mismatch");
-      const expanded = familyCandidates.filter(candidate => shortlistedIds.includes(candidate.id)).flatMap(candidate => candidate.repertoires.map(r => r.defaultOffer.offerId));
+        ranking.filter(r => (automatic || !boundedRetrieval || r.score >= 2) && effectiveScore(r) > cutoff).every(r => shortlistedIds.includes(r.id)), "family_shortlist_suitability_coverage_mismatch");
+      const expanded = familyCandidates.filter(candidate => automatic ? familyScores.has(candidate.id) : shortlistedIds.includes(candidate.id)).flatMap(candidate => candidate.repertoires.map(r => r.defaultOffer.offerId));
       check(sameIds(expanded, planning.selectorIds), "family_shortlist_expansion_mismatch");
       for (const candidate of familyCandidates) {
         const score = familyScores.get(candidate.id);
@@ -451,6 +496,25 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
     const selection = planning.selectorIds.length
       ? generationPlanResponseSchema.parse(completed("prepare:selection"))
       : null;
+    check(planning.proposalSelectionVersion === neutrality?.proposalSelectionVersion, "proposal_selection_pin_mismatch");
+    check(Boolean(planning.deliveryReserves) === Boolean(neutrality?.deliveryRecoveryVersion) &&
+      (planning.firstDeliveryReviewRecovery === 1) === (neutrality?.deliveryRecoveryVersion === 2), "delivery_recovery_pin_mismatch");
+    if (distinctProposals) {
+      const perProposalMedia = list(prepared.perProposalImageObligations);
+      const selectedFamilies = planning.offers.flatMap(offer => offer ? [offer.family] : []);
+      const deliveredFamilies = list(request.proposals).filter(p => p.status === "ready").map(p => row(p.bundle).family);
+      check(new Set(selectedFamilies).size === selectedFamilies.length && new Set(deliveredFamilies).size === deliveredFamilies.length, "proposal_family_repeated");
+      check(!recent?.parentSelection || recent.parentSelection.requestId === input.generationParentRequestId, "proposal_history_parent_mismatch");
+      const planInput = {
+        familyFirst: true, neutrality, intent, imageObligation: obligation, slideCount, recentSelections: proposalHistory,
+        requestedPhotoMix: perProposalMedia.some(item => item.required === true) && perProposalMedia.some(item => item.policy === "forbidden"),
+        eligible: repertoires.filter(r => planning.selectorIds.includes(r.defaultOffer.offerId)),
+        shortlist: { cards: [], evaluated: planning.ranking.map(r => ({ ...r, hash: "" })), batches: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 },
+      };
+      if (selection) check(same(selection, buildHeuristicGenerationPlan(planInput)), "proposal_selection_replay_mismatch");
+      check(same(planning.recoveryRepertoires, distinctProposalRecovery(planInput, planning.offers)), "proposal_recovery_replay_mismatch");
+      if (planning.deliveryReserves) check(same(planning.deliveryReserves, deliveryProposalReserves({ ...planInput, eligible: repertoires }, planning.offers)), "delivery_reserves_replay_mismatch");
+    }
     check(
       planning.slots.length === 3 &&
         planning.offers.length === 3 &&
@@ -544,7 +608,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         // recovery receipt. Every other selector field must still match exactly.
         const chosenId = chosen?.status === "viable" ? chosen.candidateId : null;
         const recovered = recoveryEnabled && familyCandidates.some(f => list(familyElection.recovery?.recoveredIds).includes(f.id) && f.repertoires.some(r => r.defaultOffer.offerId === chosenId));
-        check(same(recovered ? { ...chosen, reason: FAMILY_RECOVERY_REASON } : chosen, plan), `selection_plan_mismatch:${slot}`);
+        check(same(recovered ? { ...chosen, reason: distinctProposals ? `${chosen!.reason} ${FAMILY_RECOVERY_REASON}` : FAMILY_RECOVERY_REASON } : chosen, plan), `selection_plan_mismatch:${slot}`);
         const materialized = materialize(plan);
         check(
           same(offer, materialized) &&
@@ -597,10 +661,12 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         } else check(false, `planning_status_unknown:${slot}`);
       }
       const proposal = list(request.proposals).find(p => p.slot === slot);
+      const deliveryRecovery = proposal?.attempt?.index === 1 && planning.deliveryReserves
+        ? completed(`${proposal.proposalId}:${DELIVERY_RECOVERY_KEY}`) : null;
       let finalOffer = offer,
         finalPlan: unknown = plan;
       if (proposal?.status === "ready") {
-        check(plan.status === "viable", `ready_from_nonviable_slot:${slot}`);
+        check(plan.status === "viable" || Boolean(deliveryRecovery && plan.status === "insufficient_fit"), `ready_from_nonviable_slot:${slot}`);
         const attempt = row(proposal.attempt),
           index = attempt.index ?? 0;
         check(
@@ -609,7 +675,23 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
               `${proposal.proposalId}${index ? `-fb${index}` : ""}`,
           `attempt_identity_mismatch:${slot}`
         );
-        if (index > 0) {
+        if (deliveryRecovery) {
+          const parsed = generationSlotPlanSchema.safeParse(deliveryRecovery.plan);
+          const reserve = planning.deliveryReserves![slot].find(candidate => same(candidate.plan, deliveryRecovery.plan));
+          const original = plan.status === "viable" && same(plan, deliveryRecovery.plan) && offer;
+          const allowedMode = (deliveryRecovery.mode === "reuse_text" && reserve && deliveryRecovery.copy) ||
+            (deliveryRecovery.mode === "repair_text" && original && deliveryRecovery.copy) ||
+            (deliveryRecovery.mode === "write_for_design" && (reserve || original) && !deliveryRecovery.copy);
+          const repertoire = repertoires.find(r => r.defaultOffer.offerId === deliveryRecovery.plan?.candidateId);
+          check(parsed.success && parsed.data.status === "viable" && allowedMode && repertoire, `delivery_recovery_invalid:${slot}`);
+          if (parsed.success && parsed.data.status === "viable" && repertoire && (reserve || original)) {
+            const recoveryPlan = parsed.data;
+            finalPlan = recoveryPlan;
+            finalOffer = materializeDesignFamilyOffer(repertoire, recoveryPlan.pages.map(page => page.componentId));
+            check(recoveryPlan.slot === slot && validateGenerationPlan(recoveryPlan, finalOffer, intent).length === 0 && mediaValid(finalOffer)
+              && (!reserve || finalOffer.family === reserve.family && same(finalOffer.slides.map(slide => slide.componentHash), reserve.componentHashes)), `delivery_recovery_contract_mismatch:${slot}`);
+          }
+        } else if (index > 0) {
           const replan = completed(
               `${proposal.proposalId}:template_replan:${slot}:${index}`
             ),
@@ -654,7 +736,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
           `final_sequence_mismatch:${slot}`
         );
       }
-      if (proposal && plan.status !== "viable") {
+      if (proposal && plan.status !== "viable" && !(plan.status === "insufficient_fit" && planning.deliveryReserves?.[slot]?.length && proposal.attempt?.index === 1)) {
         check(
           proposal.status === "failed" &&
             row(proposal.failure).code ===
@@ -709,7 +791,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
     eligibleOffers: repertoires.length,
     evaluated: familyRanking ? familyScores.size : scores.size,
     selectorOptions: list(planning.selectorIds).length,
-    method: boundedRetrieval ? "hybrid_retrieval_then_scored_families" : familyRanking ? "scored_family_batches" : repertoires.length > 12 || (editorialEnabled && repertoires.length > 0) ? "scored_batches" : "all_sent_to_selector",
+    method: automatic && boundedRetrieval ? "semantic_retrieval_then_scored_families" : boundedRetrieval ? "hybrid_retrieval_then_scored_families" : familyRanking ? "scored_family_batches" : repertoires.length > 12 || (editorialEnabled && repertoires.length > 0) ? "scored_batches" : "all_sent_to_selector",
     ...(familyRanking ? {
       assessmentUnit: "family" as const,
       eligibleFamilies: familyCandidates.length,

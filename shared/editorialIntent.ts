@@ -91,6 +91,20 @@ export function validateEditorialIntent(reading: EditorialIntentReading, catalog
   return problems;
 }
 
+export function discardUnattributedEditorialSignals(
+  reading: EditorialIntentReading,
+  catalog: FrozenEditorialCatalog | null,
+  requestText: string
+): EditorialIntentReading {
+  const problems = validateEditorialIntent(reading, catalog, requestText);
+  const removable = new Set(reading.signals
+    .filter(signal => signal.state !== "forbidden")
+    .map(signal => `editorial_quote:${signal.intentId}`));
+  if (!problems.length || problems.some(problem => !removable.has(problem))) return reading;
+  const discarded = new Set(problems);
+  return { ...reading, signals: reading.signals.filter(signal => !discarded.has(`editorial_quote:${signal.intentId}`)) };
+}
+
 export const editorialDesignProfileSchema = z.object({
   catalogHash: hash,
   intents: z.array(editorialIntentDefinitionSchema),

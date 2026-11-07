@@ -7,6 +7,8 @@ import {localCatalogRevisionOverride} from "../designCatalog/localCatalogOverrid
 import {enqueueLocal,localExecutorScope} from "../ai/workflows/localDemandSupervisor";
 import { resolveCompleteDesignOffers } from "@shared/completeDesignOffers";
 import { ENV } from "../_core/env";
+import { GenerationFailureError } from "../_core/generationError";
+import { toFailureMetadata } from "@shared/generationFailure";
 import { resolveGenerationModelConfig } from "../ai/generationModel";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -26,19 +28,47 @@ import {
   requestSnapshot,
 } from "../ai/workflows/generationRuntime";
 
+type AdmissionPauseReason = "maintenance" | "manual_session_limit" | "pipeline_reconfiguration_required";
+
+async function admissionPauseReason(actor: string): Promise<AdmissionPauseReason | null> {
+  if (ENV.generationAdmissionPaused) return "maintenance";
+  if (ENV.generationWorkerMode !== "local-demand") return null;
+  const guard = (globalThis as typeof globalThis & {
+    __acervo82ManualAdmissionReason?: (actor: string) => Promise<AdmissionPauseReason | null>;
+  }).__acervo82ManualAdmissionReason;
+  return guard ? guard(actor).catch(() => "maintenance") : null;
+}
+
+function admissionPaused(reason: AdmissionPauseReason) {
+  const failure = toFailureMetadata({ generationRunId: "not-admitted", reason: "generation_paused" });
+  if (reason === "manual_session_limit") {
+    failure.userMessage = "A sessão de testes manuais atingiu seu limite. Nenhum Spark foi reservado.";
+  } else if (reason === "pipeline_reconfiguration_required") {
+    failure.userMessage = "O serviço local de geração precisa ser reiniciado após uma atualização. Seu briefing foi preservado.";
+  }
+  return new GenerationFailureError({ code: "PRECONDITION_FAILED", failure });
+}
+
 export const generationRouter = router({
   capabilities: protectedProcedure.query(async ({ ctx }) => {
     const configured=Boolean(ENV.openRouterApiKey&&ENV.openRouterProposalReviewModel&&ENV.openRouterVisionModel);
     const supported={platforms:["instagram","twitter","linkedin","facebook"] as const,inputTypes:configured?["text","url","image"] as const:[],brandCapture:ENV.aiSiteIntelligenceEnabled};
+    const paused = await admissionPauseReason(ctx.user.id);
+    if (paused) {
+      return {
+        ...supported, ownerId: ctx.user.id, selectable: true, enabled: false,
+        contractVersion: 6 as const, reason: paused,
+        ...(ENV.generationWorkerMode === "local-demand" ? { progressTransport: "events" as const } : {}),
+      };
+    }
     if(!configured)return {...supported,ownerId:ctx.user.id,selectable:true,enabled:false,contractVersion:6 as const,reason:"provider_configuration_required"};
     if(ENV.generationWorkerMode==='local-demand') {
       const base={...supported,ownerId:ctx.user.id,selectable:true,contractVersion:6 as const,progressTransport:'events' as const};
-      if(!ENV.localDemandEnabled||ENV.generationAdmissionPaused)return {...base,enabled:false,reason:ENV.generationAdmissionPaused?'maintenance':'local_activation_required'};
+      if(!ENV.localDemandEnabled)return {...base,enabled:false,reason:'local_activation_required'};
       try{await (await import('../ai/workflows/proposalRenderer')).assertReviewRendererConfigured();}catch{return {...base,enabled:false,reason:'renderer_configuration_required'};}
       try{const m=await readCatalogManifest(localCatalogRevisionOverride()),counts=m.summary[ctx.user.role==='admin'?'experimental':'approved'];return {...base,...counts,catalogRevision:m.revision,catalogScope:ctx.user.role==='admin'?'experimental' as const:'approved' as const,catalogProject:arsenalHash(ENV.supabaseUrl),catalogCount:counts.staticOfferCount+counts.carouselOfferCount,enabled:counts.staticOfferCount+counts.carouselOfferCount>0,reason:'ready'};}
       catch{return {...base,enabled:false,reason:'catalog_publication_required'};}
     }
-    if (ENV.generationAdmissionPaused) return {ownerId:ctx.user.id,selectable:true,enabled:false,contractVersion:6 as const,reason:"maintenance"};
     try {
       const store = createGenerationStore();
       const [available, cards] = await Promise.all([
@@ -51,10 +81,10 @@ export const generationRouter = router({
       return {
         ...supported,ownerId: ctx.user.id,
         selectable: true,
-        enabled: !ENV.generationAdmissionPaused && available && catalogCount > 0,
+        enabled: available && catalogCount > 0,
         catalogCount,staticOfferCount,carouselOfferCount,
         contractVersion: 6 as const,
-        reason: ENV.generationAdmissionPaused ? "maintenance" : !available
+        reason: !available
           ? "durable_worker_required"
           : catalogCount > 0
             ? "ready"
@@ -110,7 +140,8 @@ export const generationRouter = router({
         if(ENV.generationWorkerMode==='local-demand'&&existing.executionMode==='local-demand')await enqueueLocal(existing);
         return { snapshot: requestSnapshot(existing), created: false };
       }
-      if (ENV.generationAdmissionPaused) throw new TRPCError({code:"PRECONDITION_FAILED",message:"A geração está em manutenção. Seus pedidos existentes continuam disponíveis. Nenhum Spark foi reservado."});
+      const paused = await admissionPauseReason(ctx.user.id);
+      if (paused) throw admissionPaused(paused);
       if (input.includeDraftDesigns && ctx.user.role !== "admin")
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -170,6 +201,10 @@ export const generationRouter = router({
       const generationConfig = parent?.generationConfig ?? resolveGenerationModelConfig(input);
       if (generationConfig.preparationBudget && store.isPreparationAvailable && !(await store.isPreparationAvailable()))
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A preparação de geração está em atualização. Nenhum Spark foi reservado." });
+      if (generationConfig.taskRouting && (!store.isTaskRoutingAvailable || !(await store.isTaskRoutingAvailable())))
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A geração automática está em atualização. Nenhum Spark foi reservado." });
+      if (generationConfig.taskRouting && (!store.isReviewExceptionsAvailable || !(await store.isReviewExceptionsAvailable())))
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A revisão de geração está em atualização. Nenhum Spark foi reservado." });
       if (parent?.generationConfig && input.generationModel && input.generationModel !== parent.generationConfig.choice)
         throw new TRPCError({ code: "BAD_REQUEST", message: "Gerar mais mantém o modelo do pedido anterior. Inicie uma nova criação para trocar." });
       const catalogOverride=localCatalogRevisionOverride();
@@ -188,13 +223,13 @@ export const generationRouter = router({
           styleText: input.content,
           slideCount: input.postMode === "static" ? 1 : (input.slideCount ?? 5),
           experimental: input.includeDraftDesigns,
-          brandColors: brief?.brandInput?.brandColors,
-          brandFonts: brief?.brandInput?.fontHint
+          brandColors: generationConfig.taskRouting ? undefined : brief?.brandInput?.brandColors,
+          brandFonts: !generationConfig.taskRouting && brief?.brandInput?.fontHint
             ? [brief.brandInput.fontHint]
             : [],
         });
         const cards=await (manifest?withCatalogRevision(manifest.revision,loadCards):loadCards());
-        if (!eligibleCompleteDesignCardsForRequest(cards, input, generationConfig.generationStrategyVersion).length)
+        if (!eligibleCompleteDesignCardsForRequest(cards, input, generationConfig.generationStrategyVersion, Boolean(generationConfig.taskRouting)).length)
           throw new Error("complete_design_catalog_empty");
       } catch (error) {
         throw new TRPCError({
@@ -263,6 +298,7 @@ export const generationRouter = router({
           error instanceof Error
             ? error.message
             : "Não foi possível iniciar a geração";
+        if (message.includes("acervo82_session_budget_exhausted")) throw admissionPaused("manual_session_limit");
         if ((error as { code?: string }).code === "PT402")
           throw new TRPCError({
             code: "PAYMENT_REQUIRED",

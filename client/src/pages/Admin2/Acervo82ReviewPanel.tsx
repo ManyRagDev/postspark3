@@ -17,7 +17,7 @@ export default function Acervo82ReviewPanel() {
   if(!review.data)return null;
   const entries=review.data.filter(entry=>(filter==='all'||entry.capabilities[filter])&&normalize([entry.code,entry.name,...entry.aliases].join(' ')).includes(normalize(search.trim())));
   const detail=entries.find(entry=>entry.id===selected)??entries[0];
-  async function open(id:string,mode:'static'|'compose'='static') {
+  async function open(id:string,mode:'static'|'compose'|'pilot'='static') {
     setOpening(true);
     try {
       const model=await openingFixture.mutateAsync({id,mode});
@@ -46,6 +46,7 @@ export default function Acervo82ReviewPanel() {
         <p className="text-sm">{detail.status==='ready_for_local_review'?'Disponível para conferência local':'Ajuste pendente'}</p>
         {detail.differences.length>0&&<ul className="space-y-1 text-xs text-slate-400">{detail.differences.map(value=><li key={value}>{value}</li>)}</ul>}
         <div className="flex flex-wrap gap-2">{detail.renderUrl&&<button type="button" disabled={opening} onClick={()=>void open(detail.id)} className="rounded-lg bg-violet-600 px-3 py-2 text-sm text-white disabled:opacity-50">{opening?'Abrindo…':'Abrir no editor'}</button>}
+        {detail.pilotAvailable&&<button type="button" disabled={opening} onClick={()=>void open(detail.id,'pilot')} className="rounded-lg border border-violet-400/50 px-3 py-2 text-sm disabled:opacity-50">Abrir piloto Aura</button>}
         {detail.capabilities.carousel&&<button type="button" disabled={opening} onClick={()=>void open(detail.id,'compose')} className="rounded-lg border border-violet-400/50 px-3 py-2 text-sm disabled:opacity-50">Abrir carrossel</button>}</div>
       </div>:<p>Nenhuma entrada corresponde à busca.</p>}
     </div>

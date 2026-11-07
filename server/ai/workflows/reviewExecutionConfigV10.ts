@@ -1,12 +1,19 @@
+import { NATIVE_GLYPH_MANIFEST_HASH } from "@shared/nativeGlyphProjection";
+import { positiveEditorialInstructions } from "@shared/compactEditorialContract";
 import { z } from "zod";
+import { AUTOMATIC_REVIEW_PROTOCOL, AUTOMATIC_REVIEW_PROTOCOL_V3, AUTOMATIC_REVIEW_PROTOCOL_V4, compactAutomaticReviewInstructionsV4, compactAutomaticReviewInstructions, compactAutomaticReviewInstructionsV3 } from "./automaticReviewProtocol";
+import type { GenerationTaskModelConfig } from "@shared/generationModel";
 import { generationIntentSchema } from "@shared/generationPlan";
 import { arsenalHash } from "@shared/arsenalContent";
 import { GenerationFailureError } from "@shared/generationFailure";
 import {
+  proposalReviewExceptionsResponseV10Schema,
+  proposalReviewExceptionsRecordV10Schema,
   proposalReviewResponseV10Schema,
   proposalReviewRecordV10Schema,
   reviewDurableContextV5Schema,
   reviewExecutionConfigV5Schema,
+  reviewResponseInventorySchemaV10,
 } from "@shared/proposalReviewV10";
 import {
   resolveReviewExecutionConfigV9,
@@ -45,7 +52,9 @@ export function reviewInstructionsV10(
     .filter(Boolean)
     .join("\n");
 }
-export function reviewContractHashV10(includeExecutionKind = false) {
+export const automaticReviewInstructionsV10 = "Na política automática, preferências de estilo visual, composição, ritmo e escolha de design são orientações consultivas. Não crie achado bloqueante por afastamento dessas preferências. Preserve a revisão material de fatos, condições, requisitos de conteúdo, contagens, destinos arte/legenda, legibilidade e mídia obrigatória. O plano é apenas uma distribuição sugerida, nunca evidência factual nem nova obrigação.";
+export function reviewContractHashV10(includeExecutionKind = false, automatic = false, nativeInventoryVersion?: 1, automaticReviewVersion?: 2 | 3 | 4) {
+  if (automaticReviewVersion === 4) return arsenalHash({protocol:AUTOMATIC_REVIEW_PROTOCOL_V4, response:z.toJSONSchema(proposalReviewExceptionsResponseV10Schema), record:z.toJSONSchema(proposalReviewExceptionsRecordV10Schema), context:z.toJSONSchema(reviewDurableContextV5Schema), instructions:[compactAutomaticReviewInstructionsV4(positiveEditorialInstructions),compactAutomaticReviewInstructionsV4(positiveEditorialInstructions,["formal-reason"],"receipt-hash")]});
   // V10 still reviews the historical material-content namespace. The reader
   // also accepts the additive schema emitted during the classification rollout.
   const record = includeExecutionKind ? proposalReviewRecordV10Schema : proposalReviewRecordV10Schema.safeExtend({
@@ -64,9 +73,17 @@ export function reviewContractHashV10(includeExecutionKind = false) {
     response: z.toJSONSchema(proposalReviewResponseV10Schema),
     record: z.toJSONSchema(record),
     receipt: z.toJSONSchema(reviewDurableContextV5Schema),
+    ...(automatic ? { automaticTransport: "compact-native-constraints.v1", automaticInstructions: automaticReviewInstructionsV10 } : {}),
+    ...(automaticReviewVersion === 2 ? { automaticReview: { ...AUTOMATIC_REVIEW_PROTOCOL, instructions: [compactAutomaticReviewInstructions(), compactAutomaticReviewInstructions(["formal-reason"], "receipt-hash")] } } : {}),
+    ...(automaticReviewVersion === 3 ? { automaticReview: { ...AUTOMATIC_REVIEW_PROTOCOL_V3, instructions: [compactAutomaticReviewInstructionsV3(), compactAutomaticReviewInstructionsV3(["formal-reason"], "receipt-hash")] }, nativeFindings: z.toJSONSchema(reviewResponseInventorySchemaV10({requirementChecks: [], intentChecks: []}, 3)) } : {}),
+    ...(nativeInventoryVersion === 1 ? { nativeInventory: {
+      version: 1,
+      empty: z.toJSONSchema(reviewResponseInventorySchemaV10({requirementChecks: [], intentChecks: []})),
+      populated: z.toJSONSchema(reviewResponseInventorySchemaV10({requirementChecks: ["requirement-1", "requirement-2"], intentChecks: ["intent-1", "intent-2"]})),
+    } } : {}),
   });
 }
-export function resolveReviewExecutionConfigV10(textModel?: string) {
+export function resolveReviewExecutionConfigV10(textModel?: string, taskModelConfig?: GenerationTaskModelConfig) {
   const { configurationHash: _hash, ...old } =
     resolveReviewExecutionConfigV9(textModel);
   const data = {
@@ -74,7 +91,8 @@ export function resolveReviewExecutionConfigV10(textModel?: string) {
     version: 5,
     policyVersion: 10,
     editorialGuidanceVersion: 9,
-    contractHash: reviewContractHashV10(),
+    contractHash: reviewContractHashV10(false, Boolean(taskModelConfig), taskModelConfig ? 1 : undefined, taskModelConfig ? 4 : undefined),
+    ...(taskModelConfig ? { taskModelConfig, resolvedModel: taskModelConfig.model, nativeInventoryVersion: 1, automaticReviewVersion: 4, localContrastPolicyVersion: 1, textFlexibilityVersion: 1, visualTextRepairVersion: 1, profileHandlePolicyVersion: 1, nativeGlyphProjection: 1, nativeGlyphManifestHash: NATIVE_GLYPH_MANIFEST_HASH } : {}),
   };
   return reviewExecutionConfigV5Schema.parse({
     ...data,
@@ -91,7 +109,13 @@ export function assertReviewExecutionConfigV10(value: unknown) {
   const { configurationHash, ...data } = r.data;
   if (
     configurationHash !== arsenalHash(data) ||
-    ![reviewContractHashV10(), reviewContractHashV10(true)].includes(data.contractHash)
+    (data.taskModelConfig && data.resolvedModel !== data.taskModelConfig.model) ||
+    (data.nativeInventoryVersion && !data.taskModelConfig) ||
+    (data.automaticReviewVersion && (!data.taskModelConfig || data.nativeInventoryVersion !== 1)) ||
+    (data.visualTextRepairVersion && (data.automaticReviewVersion !== 4 || data.textFlexibilityVersion !== 1 || !data.taskModelConfig)) ||
+    (data.nativeGlyphProjection ? data.nativeGlyphManifestHash !== NATIVE_GLYPH_MANIFEST_HASH : data.nativeGlyphManifestHash !== undefined) ||
+    ((data.localContrastPolicyVersion || data.textFlexibilityVersion || data.profileHandlePolicyVersion || data.nativeGlyphProjection) && data.automaticReviewVersion !== 4) ||
+    ![reviewContractHashV10(false, Boolean(data.taskModelConfig), data.nativeInventoryVersion, data.automaticReviewVersion), reviewContractHashV10(true, Boolean(data.taskModelConfig), data.nativeInventoryVersion, data.automaticReviewVersion)].includes(data.contractHash)
   )
     throw new GenerationFailureError(
       "preparation_contract_incompatible",

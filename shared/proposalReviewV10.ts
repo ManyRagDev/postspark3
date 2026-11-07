@@ -1,7 +1,10 @@
 import { z } from "zod";
+import { generationCopyTaskModelSchema } from "./generationModel";
 import { generationIntentSchema } from "./generationPlan";
 import {
+  materialFindingV7,
   findingV7Schema,
+  proposalReviewRecordV7Schema,
   proposalReviewResponseV7Schema,
 } from "./proposalReviewV7";
 import {
@@ -117,6 +120,36 @@ export const proposalReviewResponseV10Schema = z
   })
   .strict();
 export type ReviewResponseV10 = z.infer<typeof proposalReviewResponseV10Schema>;
+
+/** Native transport narrows only the two requirement namespaces. Exact IDs and
+ * counts reduce invalid provider output; uniqueness, source support and material
+ * correctness remain the responsibility of the unchanged local V10 validator. */
+export function reviewResponseInventorySchemaV10(inventories: {
+  requirementChecks: readonly string[];
+  intentChecks: readonly string[];
+}, automaticReviewVersion?: 2 | 3) {
+  const pinnedId = (ids: readonly string[]) => ids.length
+    ? z.enum([...ids] as [string, ...string[]])
+    : id;
+  const inventorySchema = proposalReviewResponseV10Schema.extend({
+    requirementChecks: z.array(proposalReviewResponseV10Schema.shape.requirementChecks.element.extend({
+      requirementId: pinnedId(inventories.requirementChecks),
+    })).length(inventories.requirementChecks.length),
+    intentChecks: z.array(intentCheckV10Schema.extend({
+      requirementId: pinnedId(inventories.intentChecks),
+    })).length(inventories.intentChecks.length),
+  });
+  if (automaticReviewVersion !== 3) return inventorySchema;
+  // Native grammar prevents a material category from denying its own harm.
+  // Keep the historical schema unchanged: old receipts pin its exact JSON hash.
+  const material = finding.extend({
+    category: z.enum(["unsupported_claim", "factual_contradiction", "entity_changed", "fact_omission", "explicit_requirement", "visible_text_loss", "media_missing"]),
+    consequence: z.enum(["false_claim", "lost_condition", "identity", "explicit_requirement", "meaning_loss", "unusable_art"]),
+  });
+  const aesthetic = finding.extend({ category: z.literal("aesthetic"), consequence: z.literal("none") });
+  const remaining = finding.extend({ category: z.enum(["contrast", "narrative_gap", "narrative_structure"]) });
+  return inventorySchema.extend({ findings: z.array(z.union([material, aesthetic, remaining])).max(40) });
+}
 
 export const proposalReviewRecordV10Schema = z
   .object({
@@ -292,6 +325,20 @@ export const reviewExecutionConfigV5Schema =
     version: z.literal(5),
     policyVersion: z.literal(10),
     editorialGuidanceVersion: z.literal(9),
+    /** Automatic transport overrides legacy sampling fields; absent on historical/manual receipts. */
+    taskModelConfig: generationCopyTaskModelSchema.optional(),
+    /** Absent retains the historical unconstrained native response schema. */
+    nativeInventoryVersion: z.literal(1).optional(),
+    /** New automatic admissions: compact review and conservative local namespace recovery. */
+    automaticReviewVersion: z.union([z.literal(2), z.literal(3), z.literal(4)]).optional(),
+    /** New automatic admissions only; absence preserves historical colors/handles. */
+    localContrastPolicyVersion: z.literal(1).optional(),
+    textFlexibilityVersion: z.literal(1).optional(),
+    /** Uses the pinned vision evaluator for the existing copy recovery purchase. */
+    visualTextRepairVersion: z.literal(1).optional(),
+    profileHandlePolicyVersion: z.literal(1).optional(),
+    nativeGlyphProjection: z.literal(1).optional(),
+    nativeGlyphManifestHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   });
 export type ReviewExecutionConfigV5 = z.infer<
   typeof reviewExecutionConfigV5Schema
@@ -306,3 +353,45 @@ export const reviewDurableContextV5Schema = reviewDurableContextV4Schema.extend(
 export type ProposalReviewDurableContextV5 = z.infer<
   typeof reviewDurableContextV5Schema
 >;
+
+/** Automatic V4 reports exceptions, never synthetic positive per-unit judgments. */
+export const proposalReviewExceptionsResponseV10Schema = z.object({
+  status: z.enum(["reviewed", "partial", "unavailable"]),
+  reviewedSlides: z.array(z.number().int().min(0).max(9)).max(10),
+  limitation: z.string().min(1).max(1500).nullable(),
+  findings: z.array(z.object({
+    targetId: z.string().min(1).max(120),
+    category: findingV7Schema.shape.category.exclude(["aesthetic"]),
+    consequence: findingV7Schema.shape.consequence,
+    certainty: findingV7Schema.shape.certainty,
+    evidenceIds: z.array(z.string().min(1)),
+    detail: z.string().min(1).max(1500),
+    expected: z.string().max(4000),
+  }).strict()).max(40),
+}).strict();
+export type ReviewExceptionsResponseV10 = z.infer<typeof proposalReviewExceptionsResponseV10Schema>;
+export const proposalReviewExceptionsRecordV10Schema = z.object({
+  policyVersion: z.literal(10), automaticReviewVersion: z.literal(4),
+  round: z.enum(["initial", "recheck"]), inputHash: z.string().regex(/^[a-f0-9]{64}$/),
+  status: z.enum(["passed", "correction_required", "inconclusive"]),
+  inspectionStatus: proposalReviewExceptionsResponseV10Schema.shape.status,
+  expectedSlideCount: z.number().int().min(1).max(10),
+  reviewedSlides: proposalReviewExceptionsResponseV10Schema.shape.reviewedSlides,
+  findings: proposalReviewRecordV7Schema.shape.findings,
+  limitation: z.string().max(1500),
+  operationKeys: z.array(z.string().min(1)).max(2),
+  rawResponseHash: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
+  evidenceInventory: z.array(reviewSourceEvidenceV10Schema),
+}).strict().superRefine((r,ctx)=>{
+  const bad=()=>ctx.addIssue({code:"custom",message:"Recibo de revisão por exceções inconsistente"});
+  const complete=r.reviewedSlides.length===r.expectedSlideCount&&new Set(r.reviewedSlides).size===r.expectedSlideCount&&r.reviewedSlides.every((i)=>i<r.expectedSlideCount);
+  const uncertain=r.findings.some(f=>f.effect==="blocking"&&f.certainty==="uncertain");
+  const blocking=r.findings.some(f=>f.effect==="blocking");
+  const expected=r.inspectionStatus!=="reviewed"||r.limitation||uncertain?"inconclusive":blocking?"correction_required":"passed";
+  if(new Set(r.reviewedSlides).size!==r.reviewedSlides.length||r.reviewedSlides.some(i=>i>=r.expectedSlideCount)||r.findings.some(f=>f.effect!==(materialFindingV7(f)?"blocking":"advisory"))||r.status!==expected || (r.inspectionStatus==="reviewed"&&!complete) ||
+    (r.status!=="inconclusive"&&(!r.rawResponseHash||!r.operationKeys.length)) ||
+    (r.status==="inconclusive"&&!r.limitation.trim()) ||
+    new Set(r.operationKeys).size!==r.operationKeys.length ||
+    r.operationKeys.some((key,i)=>i===0?!key.endsWith(`:review:${r.round}:${r.inputHash}`):!new RegExp(`:review_evidence_repair:${r.round}:[a-f0-9]{64}$`).test(key)))bad();
+});
+export type ProposalReviewExceptionsRecordV10 = z.infer<typeof proposalReviewExceptionsRecordV10Schema>;

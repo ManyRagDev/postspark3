@@ -12,6 +12,7 @@ import {
 } from "./componentAssembly";
 import { contentTextRoles, type VariableContent } from "./variableContent";
 import { studioPreferencesSchema } from "./studioPreferences";
+import { nativeGlyphProjection } from "./nativeGlyphProjection";
 
 /** Dedicated transport: resolved catalogue scenes, not instructions to compose a layout. */
 export const completeDesignProvenanceSchema = z
@@ -73,10 +74,13 @@ export type CompleteDesignVariationV1 = z.infer<
 >;
 
 export function completeDesignFields(
-  definition: ComponentDefinitionV1 | ComponentCardV1
+  definition: ComponentDefinitionV1 | ComponentCardV1,
+  nativeGlyphVersion?: 1
 ) {
   const bindings =
     "fragment" in definition ? definition.fragment.bindings : definition.fields;
+  const glyphSources = new Set("fragment" in definition
+    ? nativeGlyphProjection(definition, nativeGlyphVersion)?.bindings.map(binding => binding.source) ?? [] : []);
   return Array.from(
     new Map(
       bindings.filter(b => b.kind !== "media").map(b => [b.source, b])
@@ -96,7 +100,7 @@ export function completeDesignFields(
       required: b.required,
       cardinality: b.cardinality,
     };
-  });
+  }).filter(field => !glyphSources.has(field.source));
 }
 
 /** Only field values vary. All layer/group IDs, shapes, effects, assets and native relations stay intact. */
@@ -109,11 +113,13 @@ export function instantiateCompleteDesign(input: {
   slide: number;
   planHash: string;
   experimental: boolean;
+  nativeGlyphProjection?: 1;
 }): ArsenalComposition {
   const { definition: d } = input;
   if (d.kind !== "content" || !d.completeDesign?.baselineVerified)
     throw new Error("Design completo não elegível");
-  const fields = completeDesignFields(d),
+  const glyphs = nativeGlyphProjection(d, input.nativeGlyphProjection);
+  const fields = completeDesignFields(d, input.nativeGlyphProjection),
     values = new Map(input.values.map(v => [v.fieldId, v.value]));
   if (
     values.size !== input.values.length ||
@@ -149,6 +155,20 @@ export function instantiateCompleteDesign(input: {
     hashtags: [],
   };
   const base = structuredClone(d.fragment);
+  const pieces = structuredClone(d.pieces);
+  if (glyphs) {
+    const bindingIds = new Set(glyphs.bindings.map(binding => binding.id));
+    const glyphTargets = new Set(glyphs.bindings.flatMap(binding => binding.targets.map(target => target.id)));
+    base.bindings = base.bindings.filter(binding => !bindingIds.has(binding.id));
+    base.relations = base.relations.filter(relation => !relation.outputs.some(output => glyphTargets.has(output.targetId)));
+    for (const binding of glyphs.bindings) for (const target of binding.targets) {
+      const instance = base.instances.find(instance => instance.id === target.id)!;
+      const piece = { ...pieces[instance.pieceHash], fixedText: target.text, fixedTextRole: "ornament" as const };
+      const hash = arsenalHash(piece);
+      pieces[hash] = piece;
+      instance.pieceHash = hash;
+    }
+  }
   base.bindings = base.bindings.map(b => {
     const field = fields.find(f => f.source === b.source);
     return field
@@ -187,6 +207,7 @@ export function instantiateCompleteDesign(input: {
     compilerVersion: base.compilerVersion,
     componentAssembly: {
       version: 1 as const,
+      ...(glyphs ? { nativeGlyphProjection: { version: glyphs.version, manifestHash: glyphs.manifestHash } } : {}),
       completeDesign: d.completeDesign,
       planHash: input.planHash,
       componentIds: [d.id],
@@ -203,7 +224,7 @@ export function instantiateCompleteDesign(input: {
     version: 2,
     origin,
     base,
-    pieces: structuredClone(d.pieces),
+    pieces,
     assets: structuredClone(d.assets),
     content,
     userContentHash: arsenalHash(content),

@@ -43,3 +43,15 @@ describe("imageDimensions", () => {
     expect(openRouterImageRatio["4:5"]).toBe("4:5");
   });
 });
+
+
+it("pins the new image protocol without promoting an AI scene or truncating factual text", () => {
+  const request = "Crie uma imagem da cafeteria Lume.";
+  const tail = "Mensagem longa ".repeat(200) + "A promoção vale somente aos sábados.";
+  const prompt = buildImageGenerationPrompt("Uma xícara em uma mesa", {editorialPromptVersion:1,originalRequest:request,finalCopy:{values:[tail],caption:tail}});
+  expect(prompt).toContain(request);
+  expect(prompt).toContain(tail);
+  expect(prompt).toContain("AI art-direction suggestion");
+  expect(prompt).not.toContain("User-selected scene");
+  expect(prompt).not.toContain("unrequested chart");
+});

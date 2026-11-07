@@ -1,5 +1,9 @@
+import { decodeReviewExceptionsV10, normalizeReviewExceptionsV10 } from "./ai/workflows/proposalReviewExceptionsPolicyV10";
+import { decodeReviewV10 } from "./ai/workflows/proposalReviewPolicyV10";
+import { normalizeAutomaticReviewResponse, normalizeAutomaticReviewResponseV3, visualLossCorrectionUnitIdsV3, visualLossCorrectionMarkersV3, isAutomaticReviewNormalizationMarker } from "./ai/workflows/automaticReviewProtocol";
+import { extractTextContent } from "./ai/llmJson";
 import { arsenalHash } from "../shared/arsenalContent";
-import { generationIntentSchema, materialGenerationIntent } from "../shared/generationPlan";
+import { firstDeliveryReviewSlot, generationIntentSchema, materialGenerationIntent, type GenerationPlanningReceipt } from "../shared/generationPlan";
 import { executionBriefSchema } from "../shared/generationRequest";
 import {
   reviewExecutionConfigV4Schema,
@@ -129,16 +133,17 @@ export function inspectModernReviewEvidence(
         String(o.operation_key)
       )
   );
+  const firstDelivery = firstDeliveryReviewSlot(prepared.planning as GenerationPlanningReceipt | undefined) === proposal.slot;
+  const repairs = siblings.filter(o => String(o.operation_key).includes(":review_evidence_repair:"));
+  const repairRounds = repairs.map(o => String(o.operation_key).split(":")[2]);
   check(
     "review_effect_budget",
-    effects.length <= 3 &&
+    effects.length <= (firstDelivery ? 4 : 3) &&
       effects.filter(o => String(o.operation_key).includes(":review:initial:"))
         .length <= 1 &&
       effects.filter(o => String(o.operation_key).includes(":review:recheck:"))
         .length <= 1 &&
-      siblings.filter(o =>
-        String(o.operation_key).includes(":review_evidence_repair:")
-      ).length <= 1
+      repairs.length <= (firstDelivery ? new Set(repairRounds).size : 1)
   );
   if (modern)
     check(
@@ -202,6 +207,8 @@ export function inspectModernReviewEvidence(
   for (const review of proposal.reviews ?? []) {
     check("review_policy_matches_preparation", review.policyVersion === policy);
     if (review.policyVersion !== 9 && review.policyVersion !== 10) continue;
+    const exceptions=config.success && "automaticReviewVersion" in config.data && config.data.automaticReviewVersion===4;
+    check("review_protocol_matches_config", exceptions === ("automaticReviewVersion" in review && review.automaticReviewVersion===4));
     for (const key of review.operationKeys) {
       const op = byKey.get(effectiveEvidenceOperationKey(proposal, key));
       const parsed = (
@@ -238,6 +245,23 @@ export function inspectModernReviewEvidence(
               arsenalHash(anchor.quote) === anchor.textHash
           )
       );
+      if ("automaticReviewVersion" in review) {
+        check("review_source_evidence_matches_context", Boolean(sourceContext && ctx.policyVersion===10 && same(ctx.evidenceInventory,buildSourceEvidenceV10(sourceContext)) && same(review.evidenceInventory,ctx.evidenceInventory)));
+        if(key===review.operationKeys.at(-1)){
+          let consistent=false;
+          try{if(exceptions && sourceContext && ctx.policyVersion===10){
+            const raw=decodeReviewExceptionsV10(extractTextContent(row(op?.result).choices?.[0]?.message?.content));
+            const aliases=buildReviewEvidenceAliases(ctx.anchorInventory.map(({alias:_alias,...anchor})=>anchor));
+            const normalized=normalizeReviewExceptionsV10({response:raw,units:ctx.textUnitInventory,evidenceInventory:ctx.evidenceInventory,context:sourceContext,aliases,
+              slideCount:ctx.renderHashes.length,round:review.round,inputHash:review.inputHash,operationKeys:review.operationKeys});
+            consistent=same(normalized,review);
+          }}catch{/* A malformed/missing receipt cannot certify a declared inspection. */}
+          check("review_exception_record_matches_receipt",consistent);
+        }
+        if(review===proposal.reviews?.at(-1))check("final_review_matches_delivered_text",same(comparableUnits(ctx.textUnitInventory),comparableUnits(finalUnits))&&same(ctx.anchorInventory,finalAliases.inventory)&&same(ctx.aliasMap,finalAliases.aliasMap));
+        firstProfile??=ctx.profile;check("review_profile_unchanged",ctx.profile===firstProfile);
+        continue;
+      }
       check(
         "review_text_units_complete",
         new Set(ctx.textUnitInventory.map(u => u.id)).size ===
@@ -283,6 +307,34 @@ export function inspectModernReviewEvidence(
             same(ctx.aliasMap, finalAliases.aliasMap)
         );
       if (modern && review.policyVersion === 10 && ctx.policyVersion === 10) {
+        if (key === review.operationKeys.at(-1)) {
+          const markers = review.discardedFields.filter(isAutomaticReviewNormalizationMarker);
+          const automaticVersion = config.success && "automaticReviewVersion" in config.data ? config.data.automaticReviewVersion : undefined;
+          const automaticV2 = automaticVersion === 2 || automaticVersion === 3;
+          if (automaticV2 || markers.length) {
+            let consistent = false;
+            try {
+              if (automaticV2 && sourceContext) {
+                const decoded = decodeReviewV10(extractTextContent(row(op?.result).choices?.[0]?.message?.content));
+                const local = (automaticVersion === 3 ? normalizeAutomaticReviewResponseV3 : normalizeAutomaticReviewResponse)(decoded.response, {
+                  generationIntent: materialGenerationIntent(generationIntentSchema.parse(row(prepared.planning).intent)),
+                  units: ctx.textUnitInventory,
+                  contextRequirementIds: sourceContext.requirements.map(r => r.id),
+                });
+                const visualIds = automaticVersion === 3 ? visualLossCorrectionUnitIdsV3(local.response) : [];
+                const visualMarkers = visualIds.length && review.status === "correction_required" ? visualLossCorrectionMarkersV3(local.response, visualIds) : [];
+                consistent = same(markers, [...local.discardedFields, ...visualMarkers]) && same(local.response.unitChecks, review.unitChecks) &&
+                  (automaticVersion !== 3 || local.response.findings.every(raw => review.findings.some(f =>
+                    f.unitId === raw.unitId && f.category === raw.category && f.consequence === (raw.category === "contrast" ? "none" : raw.consequence) &&
+                    f.certainty === raw.certainty && f.expected === raw.expected && f.explanation === raw.explanation))) &&
+                  (!visualMarkers.length || (visualIds.every(id => review.findings.some(f => f.unitId === id && f.category === "visible_text_loss" && f.certainty === "established" && f.effect === "blocking")) &&
+                    !review.findings.some(f => f.unitId && visualIds.includes(f.unitId) && f.category === "unsupported_claim" && f.certainty === "uncertain")));
+              }
+            } catch { /* Missing or altered raw receipts cannot prove normalization. */ }
+            check("review_local_normalization_matches_receipt", consistent);
+          }
+        }
+
         check(
           "review_source_evidence_matches_context",
           Boolean(

@@ -73,3 +73,10 @@ describe("generateImage", () => {
     expect(generateBackgroundImage).not.toHaveBeenCalled();
   });
 });
+
+
+it("forwards the new automatic image version and a bounded output allowance",async()=>{
+  await generateImage({prompt:"AI scene",ownerId:"owner",aspectRatio:"4:5",routePolicy:"strict",postContext:{editorialPromptVersion:1,originalRequest:"Cafeteria Lume",finalCopy:{values:["Conheça a Lume"],caption:"Convite"}}});
+  expect(generateBackgroundImage).toHaveBeenCalledWith(expect.stringContaining("AI art-direction suggestion"),"pollinations_hd","4:5",expect.objectContaining({routePolicy:"strict",editorialPromptVersion:1,maxOutputTokens:4096}));
+  expect(vi.mocked(generateBackgroundImage).mock.calls[0][0]).not.toContain("User-selected scene");
+});

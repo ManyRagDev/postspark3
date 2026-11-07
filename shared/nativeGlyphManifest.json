@@ -1,0 +1,233 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "definitionId": "cfe00849-e4e9-49ee-895f-cf733a623a20",
+      "definitionHash": "0e779b96dcafb34af216026869a75d52e1c47af57d28924d9fbb6a2e640841ca",
+      "recipeHash": "a7d438273dfd3d3642253b60d3ee5d7682afd3c5a313a6a2bf8159ac2a5347ef",
+      "bindings": [
+        {
+          "id": "authored-4",
+          "source": "block:callToAction:0:text",
+          "targets": [
+            {
+              "id": "text-7-0",
+              "pieceHash": "45f6df964a8f4779a41e4499ad64408ca2636a24e32dabd54c03f037461c9870",
+              "instanceHash": "3c4c1623e6e6310438a7bfb72190e0dcd21ba0cd80ac6949e8bebb7c6d34e7b3",
+              "text": "➔➔"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "definitionId": "af66382d-029e-442f-817d-3515690bf284",
+      "definitionHash": "23e9736c6d9e4c17d026a342a2db6790467587f8322e4c920a6b869ed36c3e02",
+      "recipeHash": "4366e7fa2409165f567f3d1353753ba4e0e05e49b1ce9d8194208e4a6c840eea",
+      "bindings": [
+        {
+          "id": "authored-4",
+          "source": "block:callToAction:0:text",
+          "targets": [
+            {
+              "id": "text-11-0",
+              "pieceHash": "da0f600a788e38bcb55dcba0bb7d78cab2b87486fe7c0a56e76d3db7f871b7a4",
+              "instanceHash": "08977ea93475fe69f05496f69fb23151849da287aa7a18ddbd36b046056131a6",
+              "text": "➔"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "definitionId": "bfb54f9d-9031-47c1-837c-b929f84a2df1",
+      "definitionHash": "503194cee15496d36166512125d70fedb266e0d9cb232818df25a6709c95a604",
+      "recipeHash": "d704476e4a5397ae645e5a2749b0e4991a2846b527cf78b6dc82f53ed04856f7",
+      "bindings": [
+        {
+          "id": "authored-5",
+          "source": "block:callToAction:0:text",
+          "targets": [
+            {
+              "id": "text-9-0",
+              "pieceHash": "186fd4a3a25791404cb374ba3f3a03fc16ab89245753c07fc8ebfd1c1502c8a2",
+              "instanceHash": "a332f4203e7662dd34faa4e7f926b25a59286bc91ccf8c9d4d24e35f8b47a8be",
+              "text": "➔"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "definitionId": "72ac9471-69ff-4673-84e0-d2f1cd6ecc2a",
+      "definitionHash": "54656da3ce6aa2ce8d3bfb459415878b02f44874dbbea90fa8aae1187f69543c",
+      "recipeHash": "e7d4cbf100006fd42ecb80d2d0efed0a0b8e52fc78eece4e1d856fd52c29648b",
+      "bindings": [
+        {
+          "id": "authored-3",
+          "source": "block:callToAction:0:text",
+          "targets": [
+            {
+              "id": "text-12-0",
+              "pieceHash": "7c19b41c98b7e0786a5ed9aa40de280b2b18392367c845a46ce4087c8b2c25b6",
+              "instanceHash": "71fab9a65b68a14f84d48d361effcd2dcc82ce766d34a4529540cf39bbb9bb9f",
+              "text": "➔"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "definitionId": "7beb7cd9-fe43-4a27-81b2-18822978c102",
+      "definitionHash": "5814d6b7437e3c79c554e08fcc8745405f98fb12c04b6bc5fb4f5eff8b1418b5",
+      "recipeHash": "d3765887bfe76ca7790bc6d7d53c0151ba758ee5c4e006aac33eccdeaf19bfea",
+      "bindings": [
+        {
+          "id": "authored-3",
+          "source": "block:callToAction:0:text",
+          "targets": [
+            {
+              "id": "text-10-0",
+              "pieceHash": "f034012f414114ce181b0cb9684c3cf46a528ef9c84a7eb87d70df35a07f78be",
+              "instanceHash": "c803365532003be37645e2700b72aa317ef90d678763853726a547fb841519d5",
+              "text": "➔"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "definitionId": "a9936b0c-4acc-4a33-8f3a-d76ff8a5144c",
+      "definitionHash": "910c8e303dcb97fcb661f761dbbf697141e0106d7669383edc8c885239c7306a",
+      "recipeHash": "5a611e0901bb5b6e1a7976e05a9a1b083c8dc1fc0b187637b7d4f48b52a45254",
+      "bindings": [
+        {
+          "id": "authored-3",
+          "source": "block:callToAction:0:text",
+          "targets": [
+            {
+              "id": "text-14-0",
+              "pieceHash": "695c46d84d1f2ae6b80a4f1ad4664010820eef831e96e62e8c14699ffb532a51",
+              "instanceHash": "f1855bcdca778bd0b9cf101c17ffa42a6bb96575039000d78673b48318e6ebd2",
+              "text": "➔"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "definitionId": "1d40cab7-b6b5-416d-8dfa-965904140db1",
+      "definitionHash": "9501f320a90917ab98220a3f8dc76bc3ef4ab10590660ce7291a2882a0334c8f",
+      "recipeHash": "b39358867465e5f239d05078447b100a3a07af0c575185b3ff6c86afd0842780",
+      "bindings": [
+        {
+          "id": "authored-4",
+          "source": "block:callToAction:0:text",
+          "targets": [
+            {
+              "id": "text-13-0",
+              "pieceHash": "da0f600a788e38bcb55dcba0bb7d78cab2b87486fe7c0a56e76d3db7f871b7a4",
+              "instanceHash": "b17021516dc3c50f1c06f6473a432c0793ccb2f5c212fb2371cfa6072795d227",
+              "text": "➔"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "definitionId": "2913208b-c220-4017-8856-5bf0edaa0ee7",
+      "definitionHash": "a5915b5694079659209084bd91d25162ac994fe541849014fbf12e53e631b0aa",
+      "recipeHash": "a3ed34e10b6d7fa7d39c2464de771215aa2ff3883c9449ef40516ff6235698cd",
+      "bindings": [
+        {
+          "id": "authored-3",
+          "source": "block:callToAction:0:text",
+          "targets": [
+            {
+              "id": "text-11-0",
+              "pieceHash": "618d086f5c303458ede8afb4962949bf851495642b5f0bf4a80a0e01f0f2e0a2",
+              "instanceHash": "627b6c213b0485fddee0af09c5bda34662a17a2e532bbc5c9d823cdf23c1d762",
+              "text": "➔"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "definitionId": "0815b8fd-e175-4bed-8f33-d21c49e18e4b",
+      "definitionHash": "afca4e6861fdb9fe1fb271237aaeeb2811af53255ab2ead70548f4d1a893f571",
+      "recipeHash": "5834a1da34569e832af1f901be9abc24ac84facd9aa3e5d7489b249edd925c7a",
+      "bindings": [
+        {
+          "id": "authored-4",
+          "source": "block:callToAction:0:text",
+          "targets": [
+            {
+              "id": "text-8-0",
+              "pieceHash": "ad7aa7592467f726df47f282d6976c83341147a32eb8716a6b3657d05a24442b",
+              "instanceHash": "622431bef90acd655c206e19713e124a536ed79c1ba107214935aa9b2ef2792c",
+              "text": "➔"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "definitionId": "746af3ff-04d5-4bef-8ef1-4199826d9535",
+      "definitionHash": "b3a421e4e92823f42a0c25c2a68060b453ce6a408bb3cdbf935c5e0994daaaca",
+      "recipeHash": "2ae828735eba280374033b37dcde6059f554dd72a4462e5aa97955f79934c268",
+      "bindings": [
+        {
+          "id": "authored-7",
+          "source": "block:callToAction:0:text",
+          "targets": [
+            {
+              "id": "text-14-0",
+              "pieceHash": "f3c44dad8c1b96753125a0d017eaaeab8dc8b1bc1566112acb5f57a41ce63bde",
+              "instanceHash": "062d32299e2635fa698a51206964211fbf444dd8e1af6edcb60021a7d11ad654",
+              "text": "➔"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "definitionId": "f2d50cd4-5239-4a41-81b3-76b3526ae64e",
+      "definitionHash": "c64896a877ed73dd4cb467720e8437a4afdfe0ef2e5886fd8055d4c433d07e92",
+      "recipeHash": "8d9ffed3d8f16ac4fa178e6b0d2cc3d9267eb4240d3e112cadaf55108ac2be6c",
+      "bindings": [
+        {
+          "id": "authored-7",
+          "source": "block:callToAction:0:text",
+          "targets": [
+            {
+              "id": "text-11-0",
+              "pieceHash": "695c46d84d1f2ae6b80a4f1ad4664010820eef831e96e62e8c14699ffb532a51",
+              "instanceHash": "e82b3afceb3b60286d0b83473b6b038ecd7c3eae9373e56e2ed0fb6eb78ab1e0",
+              "text": "➔"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "definitionId": "575a2cbc-1483-47f1-8c08-2ecf086042a9",
+      "definitionHash": "f0222b19b6a9efcfdb458f6786fa07d359fb7fce6870b99b040b72494431b8a0",
+      "recipeHash": "db5d16a81cb03eff3bc03bad869850d82ac568add55dac9b29ebdc348224703f",
+      "bindings": [
+        {
+          "id": "authored-4",
+          "source": "block:callToAction:0:text",
+          "targets": [
+            {
+              "id": "text-7-0",
+              "pieceHash": "691b651573c5323263f6da38900be61245da460431cca3af588cb8cca81b6576",
+              "instanceHash": "f3f47ee24465b6a7b375245bae281037c5f6977f2840a793fe56b347437341cf",
+              "text": "➔"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

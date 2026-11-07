@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyGenerationError,
+  failureFromError,
   isRetryable,
   toFailureMetadata,
   userMessageFor,
@@ -20,6 +21,16 @@ describe("generationFailure taxonomy", () => {
 
   it("classifies format mismatch", () => {
     expect(classifyGenerationError(new Error("format_mismatch"))).toBe("format_mismatch");
+  });
+
+  it("exposes only a recognized provider route rejection as a new-request action", () => {
+    const rejection=Object.assign(new Error("provider_request_rejected:no_allowed_providers:404"),{name:"KnownProviderRejectionError",code:"provider_route_unavailable"});
+    expect(failureFromError(rejection,"selection")).toEqual({code:"provider_route_unavailable",stage:"selection",retryable:true});
+    expect(failureFromError({cause:rejection},"review").code).toBe("provider_route_unavailable");
+    expect(classifyGenerationError(rejection)).toBe("provider_route_unavailable");
+    expect(userMessageFor("provider_route_unavailable")).toContain("novo pedido");
+    expect(failureFromError(Object.assign(new Error("404 No allowed providers"),{name:"ProviderRequestError"})).code).toBe("provider_unavailable");
+    expect(classifyGenerationError(new Error("OpenRouter 404 No allowed providers"))).toBe("provider_unavailable");
   });
 
   it("classifies provider timeout vs unavailable", () => {

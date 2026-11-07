@@ -52,7 +52,7 @@ export default function StudioCreateViewV2B({
   isLoading,
   declaredFamilyId,
   onDeclareFamily,
-  initialPlatform="instagram",initialImage,initialImagePurpose="content",initialGenerationModel="gemini",
+  initialPlatform="instagram",initialImage,initialImagePurpose="content",initialGenerationModel="auto",
   initialPrompt = "",
   initialMode = "static",
   hasSavedDraft = false,
@@ -232,7 +232,7 @@ export default function StudioCreateViewV2B({
                       aria-label="Modelo de geração"
                       disabled={isLoading}
                       className="rounded bg-black/40 border border-white/10 px-2 py-1 text-xs text-white focus:outline-none focus:border-[#FF5C00]/60 transition-colors"
-                      value={options.generationModel ?? "gemini"}
+                      value={options.generationModel ?? "auto"}
                       onChange={(e) => setOptions({ ...options, generationModel: e.target.value as GenerationModel })}
                     >
                       {Object.entries(GENERATION_MODEL_LABELS).map(([value, label]) => (

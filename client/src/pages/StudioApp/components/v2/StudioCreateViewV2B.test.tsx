@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import StudioCreateViewV2B from "./StudioCreateViewV2B";
 
+vi.mock("@/lib/trpc",()=>({trpc:{catalog:{acervo82Directory:{useQuery:()=>({data:{families:[]}})}}}}));
 vi.mock("@/lib/fonts", () => ({ loadFontByName: vi.fn() }));
 vi.mock("@/components/UserTopMenu", () => ({ default: () => null }));
 vi.mock("@/components/SparkLogo", () => ({ default: () => null }));
@@ -39,7 +40,7 @@ describe("StudioCreateViewV2B draft control", () => {
     delete (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT;
   });
 
-  it.each(["claude", "deepseek", "gemini"])("submits the active %s model and keeps legacy GPT hidden", model => {
+  it.each(["auto", "claude", "deepseek", "gemini"])("submits the active %s model and keeps legacy GPT hidden", model => {
     const onSubmit = vi.fn();
     act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={() => {}} initialPrompt="Uma ideia" />));
     const select = container.querySelector<HTMLSelectElement>('select[aria-label="Modelo de geração"]')!;
@@ -50,12 +51,14 @@ describe("StudioCreateViewV2B draft control", () => {
     expect(container.textContent).not.toContain("sub-segundo");
   });
 
-  it("defaults to Gemini and submits an explicit GPT choice with the briefing", () => {
+  it("defaults to automatic and submits an explicit GPT choice with the briefing", () => {
     const onSubmit = vi.fn();
     const props = { onSubmit, isLoading: false, declaredFamilyId: null, onDeclareFamily: vi.fn(), initialPrompt: "Uma ideia" };
     act(() => root.render(<StudioCreateViewV2B {...props} />));
     const select = container.querySelector<HTMLSelectElement>('select[aria-label="Modelo de geração"]')!;
-    expect(select.value).toBe("gemini");
+    expect(select.value).toBe("auto");
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!.click());
+    expect(onSubmit).toHaveBeenCalledWith("Uma ideia", "static", expect.objectContaining({ generationModel: "auto" }));
     act(() => { select.value = "gpt"; select.dispatchEvent(new Event("change", { bubbles: true })); });
     act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!.click());
     expect(onSubmit).toHaveBeenCalledWith("Uma ideia", "static", expect.objectContaining({ generationModel: "gpt" }));

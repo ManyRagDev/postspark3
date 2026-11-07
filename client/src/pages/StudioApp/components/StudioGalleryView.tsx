@@ -240,13 +240,13 @@ export default function StudioGalleryView({
                 status={materializationFailed ? "failed" : proposal?.status ?? "running"}
                 progress={proposal ? proposalProgress?.[`${proposal.proposalId}:${proposal.revision}`] : undefined}
                 statusMessage={materializationFailed ? "Falha ao montar a proposta" : proposal ? labelGenerationStatus(proposal.status) : undefined}
-                errorReason={materializationFailed ? messageGenerationProposalFailure("materialization_failed") : proposal?.errorReason ? messageGenerationProposalFailure(proposal.errorReason) : undefined}
+                errorReason={materializationFailed ? messageGenerationProposalFailure("materialization_failed") : proposal ? messageGenerationProposalFailure(proposal.errorReason, proposal.failure) : undefined}
               />
             );
           })}
         </div>
 
-        {/* Botão para Gerar Mais 3 Opções */}
+        {/* Botão para gerar mais opções */}
         {onGenerateMore && (
           <div className="mt-10 mb-6">
             <button
@@ -256,7 +256,7 @@ export default function StudioGalleryView({
               className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white/6 hover:bg-white/10 text-xs font-semibold text-white border border-white/10 transition-all cursor-pointer hover:border-white/20"
             >
               <RefreshCw size={13} className={isGeneratingMore ? "animate-spin text-[oklch(0.78_0.22_48)]" : ""} />
-              <span>{isGeneratingMore ? "Sintetizando novas ideias..." : "Gerar mais 3 Direções de Arte"}</span>
+              <span>{isGeneratingMore ? "Sintetizando novas ideias..." : "Gerar mais direções de arte"}</span>
             </button>
           </div>
         )}

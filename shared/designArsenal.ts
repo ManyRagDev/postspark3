@@ -78,7 +78,7 @@ export function arsenalEffectivePoints(points:readonly number[],basis:{width:num
 }
 export function resolveArsenalShapePoints(c:ArsenalComposition):void{
   for(const element of c.elements){
-    if(element.kind!=="polygon"&&element.kind!=="line")continue;
+    if(element.kind!=="polygon"&&element.kind!=="line"&&!element.imageReplacement)continue;
     const instance=c.base.instances.find(i=>i.id===element.id);
     const layer=c.version===3?c.authorialLayers?.find(l=>l.id===element.id):undefined;
     const basis=instance ?? layer;
@@ -101,6 +101,7 @@ export const arsenalUserMediaSchema = z
       ),
     focalX: n.min(0).max(1),
     focalY: n.min(0).max(1),
+    useOriginal: z.literal(true).optional(),
   })
   .strict();
 
@@ -186,6 +187,7 @@ const arsenalPieceObjectSchema = z
     fixedTextRole: z.literal("ornament").optional(),
     /** Verified immutable raster layer, distinct from a generated photo slot. */
     imageAssetId: id.optional(),
+    imageReplacement: z.object({ label: z.string().min(1).max(120), scrimOpacity: n.min(0).max(1) }).strict().optional(),
     /** Authored crop at the artboard edge. Content text must remain inside. */
     artboardBleed: z.literal(true).optional(),
     contentFragment: arsenalContentFragmentSchema.optional(),
@@ -194,6 +196,8 @@ const arsenalPieceObjectSchema = z
   })
   .strict();
 export const arsenalPieceSchema = arsenalPieceObjectSchema.superRefine((piece, ctx) => {
+    if (piece.imageReplacement && (piece.kind !== "media" || !piece.imageAssetId || piece.points.length < 6 || piece.points.length % 2 !== 0))
+      ctx.addIssue({code:"custom",message:"Substituição exige imagem original e máscara"});
     if (piece.artboardBleed && piece.kind !== "media" && !(piece.kind === "text" && piece.fixedTextRole === "ornament"))
       ctx.addIssue({code:"custom",message:"Sangria permitida apenas para mídia ou texto ornamental fixo"});
   });
@@ -294,6 +298,15 @@ export const arsenalRelationSchema = z
             maxWidth: n.positive(),
             maxHeight: n.positive(),
             minFontSize: n.positive(),
+            flexibility: z.object({
+              version: z.literal(1), minFontSize: n.positive(),
+              preferredFontSize: n.positive(), maxFontSize: n.positive(),
+            }).strict().superRefine((range, context) => {
+              if ((range.minFontSize !== undefined && range.preferredFontSize !== undefined && range.minFontSize > range.preferredFontSize) ||
+                  (range.preferredFontSize !== undefined && range.maxFontSize !== undefined && range.preferredFontSize > range.maxFontSize) ||
+                  (range.minFontSize !== undefined && range.maxFontSize !== undefined && range.minFontSize > range.maxFontSize))
+                context.addIssue({code:"custom",message:"Invalid authored text flexibility interval"});
+            }).optional(),
           })
           .strict(),
       })
@@ -578,6 +591,7 @@ export const arsenalOriginSchema = z
       experimental: z.literal(true),
     }).strict().optional(),
     componentAssembly: z.object({
+      nativeGlyphProjection: z.object({version:z.literal(1),manifestHash:hash}).strict().optional(),
       completeDesign: z.object({family:z.string().min(1).max(160),authorshipRevision:z.number().int().min(1).optional(),baselineVerified:z.boolean().optional(),colors:z.array(z.string().regex(/^#[a-f\d]{6}$/i)).max(100).optional(),designGuidance:designGuidanceSchema.optional()}).strict().optional(),
       version: z.literal(1),
       planHash: hash,
@@ -785,6 +799,11 @@ export type ArsenalCompositionV2 = z.infer<typeof arsenalCompositionV2Schema>;
 export type ArsenalCompositionV3 = z.infer<typeof arsenalCompositionV3Schema>;
 export type ArsenalComposition = ArsenalCompositionV2 | ArsenalCompositionV3;
 
+export function activeArsenalMedia(c: ArsenalComposition, element: ArsenalElement) {
+  const media = c.media[element.id];
+  return element.imageReplacement && media?.useOriginal ? undefined : media;
+}
+
 export function validatePieceRelations(
   variant: ResolvedVariantDefinitionV2,
   pieces: Record<string, PieceDefinitionV2>,
@@ -878,6 +897,7 @@ export function readArsenalComposition(value: unknown): ArsenalComposition {
     }
   }
   const allowed = new Set([
+    "adaptiveTextFitVersion",
     "x",
     "y",
     "width",
@@ -901,7 +921,8 @@ export function readArsenalComposition(value: unknown): ArsenalComposition {
   ]);
   for (const patch of Object.values(c.overrides))
     for (const key of Object.keys(patch))
-      if (!allowed.has(key)) throw new Error("Override não permitido");
+      if (!allowed.has(key) || (key === "adaptiveTextFitVersion" && patch[key] !== 2))
+        throw new Error("Override não permitido");
   for (const b of c.base.bindings)
     for (const id of b.targetIds) {
       const piece =
@@ -1011,11 +1032,14 @@ export function readArsenalComposition(value: unknown): ArsenalComposition {
       throw new Error("Asset da variante ausente");
   for (const e of c.elements) {
     const instance = c.base.instances.find(i => i.id === e.id);
-    const authoredImage = instance && c.pieces[instance.pieceHash]?.imageAssetId;
+    const authoredPiece = instance && c.pieces[instance.pieceHash];
+    const authoredImage = authoredPiece?.imageAssetId;
     if (e.imageAssetId !== authoredImage)
       throw new Error("Imagem imutável diverge da definição");
     if (e.imageAssetId && (e.kind !== "media" || !c.assets.some(a => a.id === e.imageAssetId && /^image\/(png|jpeg|webp)$/.test(a.mimeType))))
       throw new Error("Imagem imutável sem manifesto correspondente");
+    if (arsenalHash(e.imageReplacement ?? null) !== arsenalHash(authoredPiece?.imageReplacement ?? null))
+      throw new Error("Substituição de imagem diverge da definição");
   }
   // Repair old saved resolved boxes as well: base/overrides remain pinned and only derived points change.
   resolveArsenalShapePoints(c);

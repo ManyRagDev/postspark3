@@ -118,7 +118,9 @@ export function labelGenerationCapabilityReason(reason?: string): string {
     case "local_activation_required": return "O executor local precisa ser ativado antes de gerar.";
     case "catalog_publication_required": return "O catálogo está aguardando uma publicação válida. Tente novamente após a publicação.";
     case "durable_worker_required": return "Aguardando o serviço de geração ficar disponível. A disponibilidade será atualizada automaticamente.";
-    case "maintenance": return "A geração está em manutenção. Seus pedidos anteriores continuam disponíveis.";
+    case "maintenance": return "Novas gerações com IA estão pausadas neste ambiente.";
+    case "pipeline_reconfiguration_required": return "O serviço local de geração precisa ser reiniciado após uma atualização.";
+    case "manual_session_limit": return "A sessão de testes manuais atingiu seu limite de geração.";
     case "catalogue_required": return "Nenhum design está disponível para gerar agora. Tente novamente mais tarde.";
     case "unauthenticated": return "Entre na sua conta para criar seus posts.";
     default: return "Verificando a disponibilidade da geração…";
@@ -126,9 +128,12 @@ export function labelGenerationCapabilityReason(reason?: string): string {
 }
 
 export function messageGenerationProposalFailure(reason?: string, failure?: GenerationFailure): string {
+  if (reason === "generation_deadline_exceeded")
+    return "O prazo deste pedido terminou antes de a proposta ficar pronta.";
   switch (failure?.code ?? historicalGenerationFailure(reason)?.code ?? reason) {
     case "preparation_reconciliation_required": return "O planejamento aguarda confirmação de uma operação anterior. Confira o resultado existente antes de iniciar outro pedido.";
-    case "selection_insufficient_fit": return "Não encontramos uma composição que atenda a esta opção sem perder conteúdo importante. As outras opções viáveis continuam disponíveis.";
+    case "selection_insufficient_fit": return "Não encontramos outra composição adequada para esta opção. As propostas prontas continuam disponíveis.";
+    case "copy_response_invalid": return "O serviço de redação devolveu um texto em formato inválido para esta proposta.";
     case "planning_response_invalid": return "A IA não conseguiu concluir o planejamento desta opção. As outras opções viáveis continuam disponíveis.";
     case "catalog_variant_unavailable": return "Este design ainda não possui todos os slides revisados para este pedido. Aguarde a atualização do acervo.";
     case "catalog_component_ineligible": return "Um design ficou indisponível durante a entrega. As outras propostas continuam disponíveis.";
@@ -149,6 +154,7 @@ export function messageGenerationProposalFailure(reason?: string, failure?: Gene
     case "review_render_failed": return "Não foi possível preparar as imagens para conferência. A proposta não foi concluída como revisada.";
     case "artwork_unusable": return "O conteúdo não coube com legibilidade no design escolhido.";
     case "execution_failed": return "Não foi possível concluir esta proposta. Use a referência do pedido para diagnóstico.";
+    case "provider_route_unavailable": return "O provedor não aceitou a configuração deste pedido. Crie um novo pedido para usar a configuração atual.";
     case "provider_unavailable": return "O serviço de geração está temporariamente indisponível.";
     case "provider_timeout": return "Esta proposta demorou demais para concluir.";
     case "invalid_provider_response": return "A proposta não pôde ser preparada com segurança.";

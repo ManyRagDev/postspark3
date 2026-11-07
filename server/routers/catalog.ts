@@ -20,7 +20,7 @@ const familyProjection=(rows:CatalogRow[],scope:string)=>acervo82FamilyDirectory
 }));
 export const catalogRouter = router({
   acervo82Review: adminProcedure.query(listAcervo82Review),
-  openAcervo82Review: adminProcedure.input(z.object({id:z.string().max(40),mode:z.enum(["static","compose","literal"]).optional()})).mutation(({ctx,input})=>openAcervo82Review(input.id,ctx.user.id,input.mode)),
+  openAcervo82Review: adminProcedure.input(z.object({id:z.string().max(40),mode:z.enum(["static","compose","literal","pilot"]).optional()})).mutation(({ctx,input})=>openAcervo82Review(input.id,ctx.user.id,input.mode)),
   acervo82Directory: protectedProcedure.query(async ({ctx})=>{
     if(!acervo82ReviewEnabled()||!versionedCatalogEnabled()||ctx.user.role!=='admin')return null;
     const revision=localCatalogRevisionOverride();

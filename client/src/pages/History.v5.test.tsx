@@ -28,7 +28,7 @@ beforeEach(() => {
   sessionStorage.clear();
   vi.clearAllMocks();
   const base = {
-    createdAt: new Date().toISOString(),
+    created_at: new Date().toISOString(),
     platform: "instagram",
     post_mode: "static",
     input_type: "text",
@@ -98,4 +98,16 @@ it("filters partial and cancelled runs and restores only committed proposals wit
     { id: "proposal-b", completeDesignV1: { slot: 1 } },
   ]);
   expect(h.navigate).toHaveBeenCalledWith("/thevoid");
+});
+
+it("renders actual Supabase created_at and filters by its date while preserving legacy createdAt", () => {
+  expect(host.textContent).toContain("Agora");
+  expect(host.textContent).not.toContain("Invalid Date");
+  h.generations[1].created_at=undefined;
+  h.generations[1].createdAt=new Date(Date.now()-14*86400000).toISOString();
+  act(()=>root.render(<History />));
+  const select=Array.from(host.querySelectorAll<HTMLSelectElement>("select")).find(select=>Array.from(select.options).some(option=>option.value==="today"))!;
+  act(()=>{select.value="today";select.dispatchEvent(new Event("change",{bubbles:true}));});
+  expect(host.textContent).toContain("Entrega parcial");
+  expect(host.textContent).not.toContain("Cancelamento");
 });

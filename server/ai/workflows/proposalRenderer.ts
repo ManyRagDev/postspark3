@@ -7,11 +7,12 @@ import { loadComponentFontBytes } from "../componentTextMeasurer";
 import { loadOwnedMediaReference } from "../../mediaAssets";
 import { verifyArsenalAsset } from "../../designCatalog/arsenalAssets";
 import { arsenalHash } from "@shared/arsenalContent";
-import type { ArsenalComposition } from "@shared/designArsenal";
+import { activeArsenalMedia, type ArsenalAsset, type ArsenalComposition } from "@shared/designArsenal";
 import type { RenderReviewInput, ReviewScene } from "./proposalReview";
 
 let browserTask: Promise<Browser> | undefined;
 const origin = "http://localhost";
+type InlineAsset = { asset: ArsenalAsset; base64: string };
 export async function resolveReviewBrowser(){
  let executablePath=ENV.reviewChromiumExecutablePath;
  if(!executablePath){for(const candidate of [chromium.executablePath(),'/usr/bin/chromium','/usr/bin/google-chrome']){try{await access(candidate);executablePath=candidate;break;}catch{}}}
@@ -63,7 +64,8 @@ function checkStopped(input: RenderReviewInput) {
  * from a prompt, scene, model response or asset; its route blocks every external request. */
 export async function hydrateReviewComposition(
   composition: ArsenalComposition,
-  input: Pick<RenderReviewInput, "actor" | "signal" | "deadlineMs" | "loadAssetBytes">
+  input: Pick<RenderReviewInput, "actor" | "signal" | "deadlineMs" | "loadAssetBytes">,
+  originalImages = new Map<string, InlineAsset>()
 ): Promise<ArsenalComposition> {
   const copy = structuredClone(composition);
   const urls = new Map<string, Promise<string>>();
@@ -92,12 +94,16 @@ export async function hydrateReviewComposition(
     }
     return task;
   };
+  for (const element of copy.elements) {
+    if (element.imageReplacement && !activeArsenalMedia(copy, element))
+      delete copy.media[element.id];
+  }
   await Promise.all(
     Object.values(copy.media).map(async media => {
       media.url = await hydrate(media.url);
     })
   );
-  await Promise.all(copy.elements.filter(e => e.imageAssetId && !copy.media[e.id]).map(async element => {
+  await Promise.all(copy.elements.filter(e => e.imageAssetId && !activeArsenalMedia(copy, e)).map(async element => {
     checkStopped({ ...input, compositions: [], definitions: [] });
     const asset = copy.assets.find(a => a.id === element.imageAssetId);
     if (!asset || !/^image\/(png|jpeg|webp)$/.test(asset.mimeType)) throw new Error("proposal_review_image_manifest_missing");
@@ -106,7 +112,9 @@ export async function hydrateReviewComposition(
       throw new Error("proposal_review_image_hash_mismatch");
     const verified = await verifyArsenalAsset(bytes, {});
     if (verified.manifest.mimeType !== asset.mimeType) throw new Error("proposal_review_image_signature_mismatch");
-    copy.media[element.id] = {kind:"user",url:`data:${asset.mimeType};base64,${bytes.toString("base64")}`,focalX:0.5,focalY:0.5};
+    const base64 = bytes.toString("base64");
+    if (element.imageReplacement) originalImages.set(arsenalHash(asset), { asset, base64 });
+    else copy.media[element.id] = {kind:"user",url:`data:${asset.mimeType};base64,${base64}`,focalX:0.5,focalY:0.5};
   }));
   if (copy.version === 3) {
     await Promise.all(
@@ -149,8 +157,9 @@ export async function renderReviewScenes(
       return { asset, base64: bytes.toString("base64") };
     })
   );
+  const originalImages = new Map<string, InlineAsset>();
   const compositions = await Promise.all(
-    input.compositions.map(scene => hydrateReviewComposition(scene, input))
+    input.compositions.map(scene => hydrateReviewComposition(scene, input, originalImages))
   );
   checkStopped(input);
   const bundle = await readFile(resolve(ENV.reviewRendererBundle), {
@@ -209,7 +218,7 @@ export async function renderReviewScenes(
           ).renderPostSparkReview;
           return render(payload);
         },
-        { composition, fonts }
+        { composition, fonts, originalImages: Array.from(originalImages.values()) }
       );
       results.push({ ...image, slideIndex, renderer: "CanvasPostStage" });
     }

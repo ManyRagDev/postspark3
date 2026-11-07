@@ -5,20 +5,29 @@ import path from "node:path";
 import { parse } from "dotenv";
 import { createHash } from "node:crypto";
 import { readLocalEnvironment, sanitizedEnvironment } from "../environment.mjs";
+import { manualTrial, promptTrial, readTrialCatalog } from "../full/promptTrial.mjs";
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const base = await readLocalEnvironment(root),
   action = process.argv[2];
 if (
-  !["stage", "configure", "dev", "test", "review", "smoke", "audit", "journeys", "retrieval", "verify-dev"].includes(
+  !["stage", "configure", "dev", "test", "review", "smoke", "audit", "journeys", "retrieval", "verify-dev", "aura-stage", "aura-preview", "aura-catalog"].includes(
     action
   )
 )
   throw new Error("pilot_action_invalid");
 const env = sanitizedEnvironment(base);
 const full = process.env.POSTSPARK_ACERVO82_CAMPAIGN === "full";
-const campaign = full ? "acervo82-full" : "acervo82-pilot";
-const session = full ? "full-catalog-01" : process.env.POSTSPARK_ACERVO82_PILOT_SESSION ?? "pilot";
-const maxCalls = full ? 240 : 120, maxAdmissions = full ? 12 : 5;
+const requestedFullSession = process.env.POSTSPARK_ACERVO82_FULL_SESSION;
+const trial = [promptTrial, manualTrial].find(profile => profile.session === requestedFullSession);
+if (requestedFullSession && (!full || !trial)) {
+  throw new Error("acervo82_full_session_not_authorized");
+}
+if (trial === manualTrial && action === "smoke") throw new Error("acervo82_manual_session_requires_studio");
+const campaign = trial?.campaign ?? (full ? "acervo82-full" : "acervo82-pilot");
+const session = trial?.session ?? (full ? "full-catalog-01" : process.env.POSTSPARK_ACERVO82_PILOT_SESSION ?? "pilot");
+const maxUsd = trial?.maxUsd ?? 10;
+const maxCalls = trial?.maxCalls ?? (full ? 240 : 120);
+const maxAdmissions = trial?.maxAdmissions ?? (full ? 12 : 5);
 const artifacts = full ? "artifacts/acervo82/full" : "artifacts/acervo82/pilot";
 if (full) env.DESIGN_RETRIEVAL_DIRECTORY ||= ".postspark-local/design-retrieval";
 if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(session))
@@ -26,16 +35,11 @@ if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(session))
 const configFile = path.join(
   root,
   ".acervo82-local",
-  full ? "full-catalog-01.json" : session === "pilot" ? "pilot.json" : `pilot-${session}.json`
+  full ? `${session}.json` : session === "pilot" ? "pilot.json" : `pilot-${session}.json`
 );
 env.POSTSPARK_ACERVO82_PILOT_CONFIG = configFile;
 if (action === "configure") {
-  const stage = JSON.parse(
-    await readFile(
-      path.join(root, artifacts, "staged.json"),
-      "utf8"
-    )
-  );
+  const { original, stage } = await readTrialCatalog(root, full, trial);
   const all = JSON.parse(
     await readFile(
       path.join(root, artifacts, "model-quotes.json"),
@@ -78,6 +82,10 @@ if (action === "configure") {
   });
   const hash = x =>
     createHash("sha256").update(JSON.stringify(x)).digest("hex");
+  const casesHash = trial === promptTrial ? hash(JSON.parse(await readFile(path.join(root, trial.casesFile), "utf8"))) : null;
+  const scope = {revision:original.revision,identity:original.identity,
+    ...(trial === promptTrial ? {casesHash} : {}),
+    ...(trial === manualTrial ? {session: manualTrial.session} : {})};
   const budgetFile = path.join(
     root,
     artifacts,
@@ -95,12 +103,12 @@ if (action === "configure") {
         {
           version: 1,
           proposed: true,
-          effectiveAuthorizedLimits: { usd: 10, calls: maxCalls },
-          maxUsd: 10,
+          effectiveAuthorizedLimits: { usd: maxUsd, calls: maxCalls },
+          maxUsd,
           maxCalls,
           origin: {
             directory: path.dirname(budgetFile),
-            manifestHash: hash(full ? {revision:stage.revision,identity:stage.identity} : {}),
+            manifestHash: hash(full ? scope : {}),
             ledgerHash: hash([]),
             inheritedCount: 0,
             inheritedCallsHash: hash([]),
@@ -120,8 +128,26 @@ if (action === "configure") {
   const { withBudgetFileLock, readSharedBudget } = await import(
     "../../../server/benchmarks/generationMatrix/sharedBudget.ts"
   );
+  const { writeJson } = await import("../../../server/benchmarks/generationMatrix/journal.ts");
   await withBudgetFileLock(budgetFile, async () => {
     const state = await readSharedBudget(budgetFile);
+    const sessionCampaign = state.campaigns[campaign];
+    const extendManual = trial === manualTrial &&
+      sessionCampaign?.maxExecutions === manualTrial.previousMaxAdmissions;
+    if (trial && (state.maxUsd !== maxUsd || state.maxCalls !== maxCalls ||
+      (sessionCampaign?.maxExecutions !== maxAdmissions && !extendManual) ||
+      state.origin.manifestHash !== hash(scope))) {
+      throw new Error("acervo82_trial_scope_changed");
+    }
+    if (extendManual) {
+      sessionCampaign.maxExecutions = maxAdmissions;
+      state.manualExtension = {
+        reason: "User requested more local Studio tests after the initial admissions were used.",
+        from: manualTrial.previousMaxAdmissions,
+        to: maxAdmissions,
+      };
+      await writeJson(budgetFile, state);
+    }
     // A session with no admissions or provider effects can refresh its public
     // quotes. Used sessions keep their prices and every historical receipt.
     if (
@@ -153,15 +179,16 @@ if (action === "configure") {
     configFile,
     JSON.stringify(
       {
-        authorization: full ? "user-authorized-acervo82-full" : "user-authorized-acervo82-pilot",
+        authorization: trial?.authorization ?? (full ? "user-authorized-acervo82-full" : "user-authorized-acervo82-pilot"),
         campaign, maxAdmissions,
+        ...(trial === promptTrial ? { casesHash } : {}),
         ...(full ? {identity:stage.identity,indexHash:stage.indexHash} : {}),
         session,
         actor: stage.actor,
         revision: stage.revision,
         supabaseUrl: base.SUPABASE_URL,
         budgetFile,
-        maxUsd: 10,
+        maxUsd,
         maxCalls,
         rendererPath,
         pipelineHash: await localPipelineFingerprint(rendererPath),
@@ -177,8 +204,9 @@ if (action === "configure") {
       session,
       localOnly: true,
       revision: stage.revision,
-      maxUsd: 10,
+      maxUsd,
       maxCalls,
+      maxAdmissions,
     })
   );
   process.exit(0);
@@ -188,6 +216,9 @@ const programs = {
   journeys: ["scripts/acervo82/full/journeys.ts"],
   retrieval: ["scripts/acervo82/full/retrieval.ts"],
   "verify-dev": ["server/_core/index.ts"],
+  "aura-stage": ["scripts/acervo82/full/auraPilot.ts"],
+  "aura-catalog": ["scripts/acervo82/full/auraCatalog.ts"],
+  "aura-preview": ["server/_core/index.ts"],
   dev: ["server/_core/index.ts"],
   test: ["scripts/acervo82/pilot/test.ts"],
   review: ["scripts/acervo82/pilot/review.ts"],
@@ -202,10 +233,14 @@ if (action === "dev" || action === "review") {
   env.OPENROUTER_API_KEY = source.OPENROUTER_API_KEY;
   env.NODE_OPTIONS = `--import=tsx --import=${pathToFileURL(path.join(root, "scripts/acervo82/pilot/preload.mjs")).href}`;
 }
-if (action === "verify-dev") {
+if (action === "verify-dev" || action === "aura-preview") {
   if (!full) throw new Error("full_campaign_required");
   const staged=JSON.parse(await readFile(path.join(root,artifacts,"staged.json"),"utf8"));
   Object.assign(env,{GENERATION_ADMISSION_PAUSED:"true",GENERATION_LOCAL_DEMAND_ENABLED:"true",GENERATION_LOCAL_CATALOG_REVISION:staged.revision});
+  if (action === "aura-preview") {
+    if (env.PORT === "3183") throw new Error("aura_preview_port_conflict");
+    Object.assign(env, {PORT:"3183", POSTSPARK_AURA_PREVIEW:"true"});
+  }
 }
 if (action === "dev") {
   const config = JSON.parse(await readFile(configFile, "utf8"));
@@ -213,6 +248,7 @@ if (action === "dev") {
     GENERATION_ADMISSION_PAUSED: "false",
     GENERATION_LOCAL_DEMAND_ENABLED: "true",
     GENERATION_LOCAL_CATALOG_REVISION: config.revision,
+    ...(trial ? { POSTSPARK_ACERVO82_SERIAL_PROPOSALS: "true" } : {}),
     OPENROUTER_STATIC_MODEL: "google/gemini-3.8-flash",
     OPENROUTER_CAROUSEL_MODEL: "google/gemini-3.8-flash",
     OPENROUTER_VISION_MODEL: "google/gemini-3.8-flash",
@@ -230,7 +266,7 @@ const child = spawn(
     "--import",
     "tsx",
     ...programs[action],
-    ...(["test", "stage", "smoke", "audit", "journeys", "retrieval"].includes(action)
+    ...(["test", "stage", "smoke", "audit", "journeys", "retrieval", "aura-stage"].includes(action)
       ? process.argv.slice(3)
       : []),
   ],

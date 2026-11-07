@@ -1,0 +1,969 @@
+{
+  "id": "2913208b-c220-4017-8856-5bf0edaa0ee7",
+  "hash": "a5915b5694079659209084bd91d25162ac994fe541849014fbf12e53e631b0aa",
+  "kind": "content",
+  "label": "R9-14 · Presentes · fotografia de fundo",
+  "roles": [
+    "static"
+  ],
+  "assets": [
+    {
+      "id": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "kind": "catalog",
+      "bytes": 18612,
+      "family": "Arsenal_d0fa07ff63dd60cb",
+      "sha256": "d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "weight": 400,
+      "license": "open-source",
+      "mimeType": "font/woff2",
+      "sourceFamily": "Anton"
+    },
+    {
+      "id": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "kind": "catalog",
+      "bytes": 23664,
+      "family": "Arsenal_8909904ab6c872eb",
+      "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "weight": 400,
+      "license": "open-source",
+      "mimeType": "font/woff2",
+      "sourceFamily": "Inter"
+    },
+    {
+      "id": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "kind": "catalog",
+      "bytes": 16724,
+      "family": "Arsenal_2d46bd159b53f55c",
+      "sha256": "2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "weight": 700,
+      "license": "open-source",
+      "mimeType": "font/woff2",
+      "sourceFamily": "Space Mono"
+    },
+    {
+      "id": "image-2de74491ef006e8e0a0dcaf6226cdd6db0e14921b86912f3f8fdcbd5d817a024",
+      "kind": "catalog",
+      "bytes": 8832,
+      "sha256": "2de74491ef006e8e0a0dcaf6226cdd6db0e14921b86912f3f8fdcbd5d817a024",
+      "mimeType": "image/png"
+    }
+  ],
+  "pieces": {
+    "133cbd508ae95b263c701c3b34b6510b274a861aeadbe6f66c5b447032164fcc": {
+      "fill": "#27272a",
+      "kind": "media",
+      "align": "left",
+      "points": [],
+      "stroke": null,
+      "fontSize": 24,
+      "fixedText": null,
+      "fontFamily": "Arial",
+      "fontWeight": 400,
+      "lineHeight": 1.15,
+      "fontAssetId": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "letterSpacing": 0
+    },
+    "264b9642742550ae5ab3bbd3b16cb62c1d7ade76c979f5f9efb86170973cea8e": {
+      "fill": "#d4d4d8",
+      "kind": "text",
+      "align": "left",
+      "points": [],
+      "stroke": null,
+      "fontSize": 34.19525065963061,
+      "fixedText": null,
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontWeight": 400,
+      "lineHeight": 1.3333333333333333,
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "letterSpacing": 0,
+      "contentFragment": {
+        "unit": "words",
+        "count": 2,
+        "index": 0,
+        "weights": [
+          8,
+          2
+        ]
+      }
+    },
+    "618d086f5c303458ede8afb4962949bf851495642b5f0bf4a80a0e01f0f2e0a2": {
+      "fill": "#ffffff",
+      "kind": "text",
+      "align": "left",
+      "points": [],
+      "stroke": null,
+      "fontSize": 34.19525065963061,
+      "fixedText": null,
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontWeight": 700,
+      "lineHeight": 1.3333333333333333,
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "letterSpacing": 0
+    },
+    "7382a7e0ae02bdff31b50da9a683e3ae1770785ec44dd3381e99f37dfd1b071f": {
+      "fill": "#ffffff",
+      "kind": "line",
+      "align": "left",
+      "points": [
+        0,
+        0,
+        960.316622691293,
+        0
+      ],
+      "stroke": "#ffffff",
+      "fontSize": 24,
+      "fixedText": null,
+      "fontFamily": "Arial",
+      "fontWeight": 400,
+      "lineHeight": 1.15,
+      "fontAssetId": null,
+      "strokeWidth": 2.849604221635884,
+      "cornerRadius": 0,
+      "letterSpacing": 0
+    },
+    "8bb6e690112e2af9b43c30c8e8b5100ad37d36313e0dd0f0ed7e7b58aad24e59": {
+      "fill": "#ffffff",
+      "kind": "text",
+      "align": "left",
+      "points": [],
+      "stroke": null,
+      "fontSize": 68.39050131926122,
+      "fixedText": null,
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontWeight": 400,
+      "lineHeight": 1.3333333333333333,
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "letterSpacing": 0
+    },
+    "b5eebb1907a37bdd47b81d653a23daf55afeed33fa323720b2220d5b8c0460aa": {
+      "fill": "#d4d4d8",
+      "kind": "text",
+      "align": "left",
+      "points": [],
+      "stroke": null,
+      "fontSize": 34.19525065963061,
+      "fixedText": null,
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontWeight": 400,
+      "lineHeight": 1.3333333333333333,
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "letterSpacing": 0,
+      "contentFragment": {
+        "unit": "words",
+        "count": 2,
+        "index": 1,
+        "weights": [
+          8,
+          2
+        ]
+      }
+    },
+    "e03fde6a9ccff49a5be36d9e996ccc747e278a8d20b9628a52ef9b123f819612": {
+      "fill": "#000000",
+      "kind": "polygon",
+      "align": "left",
+      "points": [
+        0,
+        34.1952506596306,
+        0.2925451097504421,
+        29.73187479901882,
+        1.1651749110651082,
+        25.344868536863665,
+        2.6029584661048126,
+        21.109294766618564,
+        4.581294899613916,
+        17.09762532981531,
+        7.066334326716607,
+        13.378501002762473,
+        10.015557033832046,
+        10.015557033832042,
+        13.378501002762484,
+        7.066334326716603,
+        17.097625329815298,
+        4.581294899613919,
+        21.109294766618568,
+        2.6029584661048126,
+        25.34486853686368,
+        1.1651749110651082,
+        29.73187479901882,
+        0.2925451097504421,
+        34.19525065963061,
+        0,
+        926.1213720316624,
+        0,
+        930.5847478922742,
+        0.2925451097504421,
+        934.9717541544294,
+        1.1651749110651082,
+        939.2073279246745,
+        2.6029584661048126,
+        943.2189973614777,
+        4.581294899613916,
+        946.9381216885306,
+        7.066334326716603,
+        950.301065657461,
+        10.015557033832046,
+        953.2502883645765,
+        13.378501002762487,
+        955.7353277916791,
+        17.097625329815305,
+        957.7136642251883,
+        21.109294766618568,
+        959.151447780228,
+        25.344868536863675,
+        960.0240775815425,
+        29.731874799018815,
+        960.316622691293,
+        34.19525065963061,
+        960.316622691293,
+        256.46437994722953,
+        960.0240775815425,
+        260.9277558078413,
+        959.151447780228,
+        265.31476206999645,
+        957.7136642251883,
+        269.5503358402416,
+        955.7353277916791,
+        273.5620052770448,
+        953.2502883645765,
+        277.28112960409766,
+        950.301065657461,
+        280.6440735730281,
+        946.9381216885306,
+        283.59329628014353,
+        943.2189973614777,
+        286.0783357072462,
+        939.2073279246745,
+        288.0566721407553,
+        934.9717541544294,
+        289.494455695795,
+        930.5847478922742,
+        290.3670854971097,
+        926.1213720316624,
+        290.65963060686016,
+        34.19525065963061,
+        290.65963060686016,
+        29.73187479901882,
+        290.3670854971097,
+        25.34486853686368,
+        289.494455695795,
+        21.109294766618568,
+        288.0566721407553,
+        17.097625329815312,
+        286.0783357072462,
+        13.378501002762484,
+        283.59329628014353,
+        10.015557033832046,
+        280.6440735730281,
+        7.066334326716607,
+        277.28112960409766,
+        4.581294899613923,
+        273.5620052770448,
+        2.6029584661048126,
+        269.5503358402416,
+        1.1651749110651082,
+        265.31476206999645,
+        0.2925451097504421,
+        260.9277558078413,
+        0,
+        256.46437994722953
+      ],
+      "stroke": "#ffffff",
+      "fontSize": 24,
+      "fixedText": null,
+      "fontFamily": "Arial",
+      "fontWeight": 400,
+      "lineHeight": 1.15,
+      "fontAssetId": null,
+      "strokeWidth": 2.849604221635884,
+      "cornerRadius": 34.19525065963061,
+      "letterSpacing": 0
+    },
+    "fc531d270ca1e1c41620b0a7ea61f56dc8e2e9e73457379ad25f55947d5b97f4": {
+      "fill": "#ffffff",
+      "kind": "polygon",
+      "align": "left",
+      "points": [
+        0,
+        11.398416886543535,
+        0.09751503658348071,
+        9.910624933006273,
+        0.3883916370217033,
+        8.448289512287888,
+        0.8676528220349375,
+        7.036431588872855,
+        1.5270982998713052,
+        5.699208443271769,
+        2.3554447755722023,
+        4.459500334254158,
+        3.3385190112773486,
+        3.338519011277347,
+        4.459500334254161,
+        2.3554447755722006,
+        5.699208443271766,
+        1.527098299871307,
+        7.036431588872857,
+        0.8676528220349375,
+        8.448289512287893,
+        0.38839163702170154,
+        9.910624933006273,
+        0.09751503658348071,
+        11.398416886543536,
+        0,
+        11.398416886543536,
+        0,
+        12.886208840080801,
+        0.09751503658348071,
+        14.348544260799182,
+        0.38839163702170154,
+        15.760402184214218,
+        0.8676528220349375,
+        17.097625329815305,
+        1.5270982998713052,
+        18.337333438832914,
+        2.3554447755722006,
+        19.458314761809724,
+        3.3385190112773486,
+        20.44138899751487,
+        4.459500334254162,
+        21.269735473215768,
+        5.699208443271768,
+        21.929180951052135,
+        7.036431588872856,
+        22.40844213606537,
+        8.448289512287891,
+        22.699318736503592,
+        9.910624933006272,
+        22.796833773087073,
+        11.398416886543536,
+        22.796833773087073,
+        11.398416886543536,
+        22.699318736503592,
+        12.8862088400808,
+        22.40844213606537,
+        14.348544260799182,
+        21.929180951052135,
+        15.760402184214218,
+        21.269735473215768,
+        17.097625329815305,
+        20.44138899751487,
+        18.337333438832914,
+        19.458314761809724,
+        19.458314761809724,
+        18.337333438832914,
+        20.44138899751487,
+        17.097625329815305,
+        21.269735473215768,
+        15.760402184214218,
+        21.929180951052135,
+        14.348544260799182,
+        22.40844213606537,
+        12.886208840080801,
+        22.699318736503592,
+        11.398416886543536,
+        22.796833773087073,
+        11.398416886543536,
+        22.796833773087073,
+        9.910624933006273,
+        22.699318736503592,
+        8.448289512287893,
+        22.40844213606537,
+        7.036431588872857,
+        21.929180951052135,
+        5.699208443271771,
+        21.269735473215768,
+        4.459500334254161,
+        20.44138899751487,
+        3.3385190112773486,
+        19.458314761809724,
+        2.3554447755722023,
+        18.337333438832914,
+        1.5270982998713087,
+        17.09762532981531,
+        0.8676528220349375,
+        15.760402184214218,
+        0.38839163702170154,
+        14.34854426079918,
+        0.09751503658348071,
+        12.8862088400808,
+        0,
+        11.398416886543538
+      ],
+      "stroke": "#ffffff",
+      "fontSize": 24,
+      "fixedText": null,
+      "fontFamily": "Arial",
+      "fontWeight": 400,
+      "lineHeight": 1.15,
+      "fontAssetId": null,
+      "strokeWidth": 0,
+      "cornerRadius": 11.398416886543536,
+      "letterSpacing": 0
+    },
+    "fd399e965909cbe21177f14b2d0c2167815d14003639d7c07fb6cb2c11e6c308": {
+      "fill": "#FFFFFF",
+      "kind": "media",
+      "align": "left",
+      "points": [],
+      "stroke": null,
+      "fontSize": 12,
+      "fixedText": null,
+      "fontFamily": "Arial",
+      "fontWeight": 400,
+      "lineHeight": 1,
+      "fontAssetId": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "imageAssetId": "image-2de74491ef006e8e0a0dcaf6226cdd6db0e14921b86912f3f8fdcbd5d817a024",
+      "letterSpacing": 0
+    }
+  },
+  "source": {
+    "kind": "recipe",
+    "fileHash": "a3ed34e10b6d7fa7d39c2464de771215aa2ff3883c9449ef40516ff6235698cd",
+    "recipeHash": "a3ed34e10b6d7fa7d39c2464de771215aa2ff3883c9449ef40516ff6235698cd",
+    "variantKey": "4x5-a3ed34e10b6d",
+    "referenceId": "acervo82-r9-14"
+  },
+  "fragment": {
+    "groups": [
+      {
+        "x": 0,
+        "y": 0,
+        "id": "g-field-7",
+        "label": "field-7",
+        "scale": 1,
+        "width": 1080,
+        "height": 1350,
+        "zIndex": 6,
+        "opacity": 1,
+        "parentId": null,
+        "rotation": 0
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "id": "g-field-8",
+        "label": "field-8",
+        "scale": 1,
+        "width": 1080,
+        "height": 1350,
+        "zIndex": 7,
+        "opacity": 1,
+        "parentId": null,
+        "rotation": 0
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "id": "g-field-10",
+        "label": "field-10",
+        "scale": 1,
+        "width": 1080,
+        "height": 1350,
+        "zIndex": 10,
+        "opacity": 1,
+        "parentId": null,
+        "rotation": 0
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "id": "g-field-11",
+        "label": "field-11",
+        "scale": 1,
+        "width": 1080,
+        "height": 1350,
+        "zIndex": 11,
+        "opacity": 1,
+        "parentId": null,
+        "rotation": 0
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "id": "g-photo",
+        "label": "photo",
+        "scale": 1,
+        "width": 1080,
+        "height": 1350,
+        "zIndex": 0,
+        "opacity": 1,
+        "parentId": null,
+        "rotation": 0
+      }
+    ],
+    "artboard": {
+      "width": 1080,
+      "height": 1350,
+      "background": "#27272a"
+    },
+    "assetIds": [
+      "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "image-2de74491ef006e8e0a0dcaf6226cdd6db0e14921b86912f3f8fdcbd5d817a024"
+    ],
+    "bindings": [
+      {
+        "id": "authored-0",
+        "gap": 0,
+        "kind": "text",
+        "label": "headline: field-7",
+        "prefix": "",
+        "source": "block:headline:0:text",
+        "required": true,
+        "targetIds": [
+          "text-7-0"
+        ],
+        "cardinality": null
+      },
+      {
+        "id": "authored-1",
+        "gap": 0,
+        "kind": "text",
+        "label": "body: field-8",
+        "prefix": "",
+        "source": "block:body:0:text",
+        "required": false,
+        "targetIds": [
+          "text-8-0",
+          "text-8-1"
+        ],
+        "cardinality": null
+      },
+      {
+        "id": "authored-2",
+        "gap": 0,
+        "kind": "text",
+        "label": "label: field-10",
+        "prefix": "",
+        "source": "block:label:0:text",
+        "required": false,
+        "targetIds": [
+          "text-10-0"
+        ],
+        "cardinality": null
+      },
+      {
+        "id": "authored-3",
+        "gap": 0,
+        "kind": "text",
+        "label": "callToAction: field-11",
+        "prefix": "",
+        "source": "block:callToAction:0:text",
+        "required": false,
+        "targetIds": [
+          "text-11-0"
+        ],
+        "cardinality": null
+      },
+      {
+        "id": "photo",
+        "gap": 0,
+        "kind": "media",
+        "label": "Fotografia de fundo substituível",
+        "prefix": "",
+        "source": "media.primary",
+        "required": false,
+        "targetIds": [
+          "photo"
+        ],
+        "cardinality": null
+      }
+    ],
+    "instances": [
+      {
+        "x": 0,
+        "y": 0,
+        "id": "photo",
+        "width": 1080,
+        "height": 1350,
+        "zIndex": 0,
+        "opacity": 1,
+        "parentId": "g-photo",
+        "rotation": 0,
+        "pieceHash": "133cbd508ae95b263c701c3b34b6510b274a861aeadbe6f66c5b447032164fcc"
+      },
+      {
+        "x": 2.8496042216359,
+        "y": 2.8496042216357864,
+        "id": "texture-1",
+        "width": 1074.3007915567282,
+        "height": 1344.3007915567284,
+        "zIndex": 1,
+        "opacity": 1,
+        "parentId": null,
+        "rotation": 0,
+        "pieceHash": "fd399e965909cbe21177f14b2d0c2167815d14003639d7c07fb6cb2c11e6c308"
+      },
+      {
+        "x": 59.84168865435357,
+        "y": 59.84168865435357,
+        "id": "surface-3",
+        "width": 22.796833773087073,
+        "height": 22.796833773087073,
+        "zIndex": 2,
+        "opacity": 0.4,
+        "parentId": null,
+        "rotation": 0,
+        "pieceHash": "fc531d270ca1e1c41620b0a7ea61f56dc8e2e9e73457379ad25f55947d5b97f4"
+      },
+      {
+        "x": 96.88654353562006,
+        "y": 59.84168865435357,
+        "id": "surface-4",
+        "width": 22.796833773087073,
+        "height": 22.796833773087073,
+        "zIndex": 3,
+        "opacity": 0.4,
+        "parentId": null,
+        "rotation": 0,
+        "pieceHash": "fc531d270ca1e1c41620b0a7ea61f56dc8e2e9e73457379ad25f55947d5b97f4"
+      },
+      {
+        "x": 133.93139841688654,
+        "y": 59.84168865435357,
+        "id": "surface-5",
+        "width": 22.796833773087073,
+        "height": 22.796833773087073,
+        "zIndex": 4,
+        "opacity": 0.4,
+        "parentId": null,
+        "rotation": 0,
+        "pieceHash": "fc531d270ca1e1c41620b0a7ea61f56dc8e2e9e73457379ad25f55947d5b97f4"
+      },
+      {
+        "x": 59.841688654353504,
+        "y": 505.44854881266497,
+        "id": "surface-6",
+        "width": 960.316622691293,
+        "height": 290.65963060686016,
+        "zIndex": 5,
+        "opacity": 0.6,
+        "parentId": null,
+        "rotation": 0,
+        "pieceHash": "e03fde6a9ccff49a5be36d9e996ccc747e278a8d20b9628a52ef9b123f819612"
+      },
+      {
+        "x": 108.28496042216358,
+        "y": 553.8918205804749,
+        "id": "text-7-0",
+        "width": 746.1122196569921,
+        "height": 91.18733509234829,
+        "zIndex": 6,
+        "opacity": 1,
+        "parentId": "g-field-7",
+        "rotation": 0,
+        "pieceHash": "8bb6e690112e2af9b43c30c8e8b5100ad37d36313e0dd0f0ed7e7b58aad24e59"
+      },
+      {
+        "x": 108.28496042216358,
+        "y": 656.4775725593668,
+        "id": "text-8-0",
+        "width": 833.002885883905,
+        "height": 45.593667546174146,
+        "zIndex": 7,
+        "opacity": 1,
+        "parentId": "g-field-8",
+        "rotation": 0,
+        "pieceHash": "264b9642742550ae5ab3bbd3b16cb62c1d7ade76c979f5f9efb86170973cea8e"
+      },
+      {
+        "x": 108.28496042216358,
+        "y": 702.0712401055409,
+        "id": "text-8-1",
+        "width": 382.2199868073879,
+        "height": 45.593667546174146,
+        "zIndex": 8,
+        "opacity": 1,
+        "parentId": "g-field-8",
+        "rotation": 0,
+        "pieceHash": "b5eebb1907a37bdd47b81d653a23daf55afeed33fa323720b2220d5b8c0460aa"
+      },
+      {
+        "x": 59.841688654353504,
+        "y": 1218.9182058047493,
+        "id": "border-9-Top",
+        "width": 960.316622691293,
+        "height": 71.2401055408971,
+        "zIndex": 9,
+        "opacity": 0.2,
+        "parentId": null,
+        "rotation": 0,
+        "pieceHash": "7382a7e0ae02bdff31b50da9a683e3ae1770785ec44dd3381e99f37dfd1b071f"
+      },
+      {
+        "x": 59.84168865435356,
+        "y": 1244.5646437994724,
+        "id": "text-10-0",
+        "width": 275.05741424802113,
+        "height": 45.593667546174146,
+        "zIndex": 10,
+        "opacity": 1,
+        "parentId": "g-field-10",
+        "rotation": 0,
+        "pieceHash": "618d086f5c303458ede8afb4962949bf851495642b5f0bf4a80a0e01f0f2e0a2"
+      },
+      {
+        "x": 999.5432058047494,
+        "y": 1244.5646437994724,
+        "id": "text-11-0",
+        "width": 23.927493403693934,
+        "height": 45.593667546174146,
+        "zIndex": 11,
+        "opacity": 1,
+        "parentId": "g-field-11",
+        "rotation": 0,
+        "pieceHash": "618d086f5c303458ede8afb4962949bf851495642b5f0bf4a80a0e01f0f2e0a2"
+      }
+    ],
+    "relations": [
+      {
+        "id": "fit-text-7-0",
+        "kind": "textFit",
+        "inputs": [],
+        "enabled": true,
+        "outputs": [
+          {
+            "targetId": "text-7-0",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "version": 1,
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 746.1122196569921,
+          "maxHeight": 93.18733509234829,
+          "minFontSize": 44.453825857519796
+        }
+      },
+      {
+        "id": "fit-text-8-0",
+        "kind": "textFit",
+        "inputs": [],
+        "enabled": true,
+        "outputs": [
+          {
+            "targetId": "text-8-0",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "version": 1,
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 833.002885883905,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "fit-text-8-1",
+        "kind": "textFit",
+        "inputs": [],
+        "enabled": true,
+        "outputs": [
+          {
+            "targetId": "text-8-1",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "version": 1,
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 382.2199868073879,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "fit-text-10-0",
+        "kind": "textFit",
+        "inputs": [],
+        "enabled": true,
+        "outputs": [
+          {
+            "targetId": "text-10-0",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "version": 1,
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 275.05741424802113,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "fit-text-11-0",
+        "kind": "textFit",
+        "inputs": [],
+        "enabled": true,
+        "outputs": [
+          {
+            "targetId": "text-11-0",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "version": 1,
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 23.927493403693934,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      }
+    ],
+    "mediaSlots": [
+      {
+        "id": "photo",
+        "label": "Fotografia de fundo substituível",
+        "policy": "cover",
+        "prompt": "Imagem para Fotografia de fundo substituível, respeitando a área de mídia do design R9-14 · Presentes · fotografia de fundo.",
+        "deferred": true,
+        "function": "user-replaceable-image"
+      }
+    ],
+    "variantKey": "4x5-a3ed34e10b6d",
+    "aspectRatio": "4:5",
+    "limitations": [
+      "Rascunho de componentes: revisão visual humana e publicação pendentes.",
+      "Geometria autorada preservada. Encaixe limitado às caixas de origem; overflow deve permanecer explícito.",
+      "Fragmentos distribuem palavras completas por capacidade declarada; quebra intrapalavra do exemplo não é reutilizada.",
+      "Fotos de demonstração permanecem apenas no snapshot de origem; slots aguardam mídia do usuário."
+    ],
+    "capabilities": [
+      "text",
+      "rect",
+      "line",
+      "polygon",
+      "media",
+      "groups",
+      "relations",
+      "content-fragments",
+      "extrusion"
+    ],
+    "compilerVersion": "arsenal-v3.0.0",
+    "intentionalOverlaps": []
+  },
+  "densities": [
+    "balanced"
+  ],
+  "colorRoles": {
+    "photo": "preserve",
+    "text-7-0": "preserve",
+    "text-8-0": "preserve",
+    "text-8-1": "preserve",
+    "surface-3": "preserve",
+    "surface-4": "preserve",
+    "surface-5": "preserve",
+    "surface-6": "preserve",
+    "text-10-0": "preserve",
+    "text-11-0": "preserve",
+    "border-9-Top": "preserve"
+  },
+  "description": "1 regiões de título, 1 apoios textuais, 0 listas semânticas e 1 slots de mídia. 11 camadas em 1080×1350; fontes Anton, Inter, Space Mono.",
+  "aspectRatios": [
+    "4:5"
+  ],
+  "schemaVersion": 1,
+  "completeDesign": {
+    "colors": [
+      "#27272a",
+      "#ffffff",
+      "#000000",
+      "#d4d4d8"
+    ],
+    "family": "acervo82-r9-14",
+    "designGuidance": {
+      "motifs": [
+        "polígonos autorados",
+        "superfícies retangulares",
+        "fotografia em slots nativos"
+      ],
+      "summary": "1 regiões de título, 1 apoios textuais, 0 listas semânticas e 1 slots de mídia. 11 camadas em 1080×1350; fontes Anton, Inter, Space Mono.",
+      "version": 1,
+      "preserve": [
+        "Conservar geometria, hierarquia, fontes incorporadas, cores e ornamentos nativos; não substituir a composição pela imagem original.",
+        "static: composição inteira com geometria autorada",
+        "cover: campo de título nativo",
+        "development: campo nativo de apoio ou lista; a capacidade depende da geometria e cada copy exige preflight",
+        "closing: campo nativo de chamada à ação",
+        "example: mídia ou itens independentes autorados permitem mostrar um exemplo; não há aprovação narrativa automática",
+        "density:balanced: 5 regiões de texto; área somada das caixas 9.7% da prancheta (não é limite de palavras nem aprovação de encaixe)"
+      ],
+      "selection": {
+        "axes": {
+          "density": "equilibrada",
+          "imageRole": "fotografia",
+          "typography": "sem serifa",
+          "organization": "cartaz"
+        },
+        "version": 1,
+        "description": "Imagem atrás da composição toda, com cartão de papel sobreposto para manter a leitura."
+      },
+      "mediaRules": [
+        {
+          "slotId": "photo",
+          "instructions": [
+            "Preencher somente o slot nativo Fotografia de fundo substituível; enquadramento cover, ponto focal autorado 0.5,0.5. A imagem original inteira é evidência, nunca fotografia de preenchimento."
+          ]
+        }
+      ],
+      "contentRules": [
+        "Geometria medida do HTML arquivado com fontes verificadas; referência visual: showcase consolidado."
+      ],
+      "familyIdentity": {
+        "optional": [],
+        "adaptable": [
+          "Texto e mídia nos campos nativos"
+        ],
+        "essential": [
+          "Imagem atrás da composição toda, com cartão de papel sobreposto para manter a leitura."
+        ]
+      },
+      "knownLimitations": [
+        "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+        "Geometria medida do HTML arquivado com fontes verificadas; referência visual: showcase consolidado."
+      ]
+    },
+    "baselineVerified": true,
+    "authorshipRevision": 1
+  }
+}

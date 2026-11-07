@@ -29,6 +29,23 @@ describe("review renderer media boundary", () => {
     await expect(hydrateReviewComposition(input,{actor,loadAssetBytes:loader,signal:AbortSignal.abort(new Error("cancelled"))})).rejects.toThrow("cancelled");
     expect(loader).not.toHaveBeenCalled();
   });
+  it("loads the original gradient separately while retaining the private photo reference", async () => {
+    const bytes = createCanvas(32, 32).toBuffer("image/png");
+    const sha256 = createHash("sha256").update(bytes).digest("hex");
+    const asset = { id: `image-${sha256}`, kind: "catalog", sha256, mimeType: "image/png", bytes: bytes.length };
+    const url = `/api/post-media/${actor}/${"a".repeat(64)}`;
+    const input = {
+      version: 2, assets: [asset],
+      elements: [{ id: "portal", kind: "media", imageAssetId: asset.id, imageReplacement: { label: "Portal", scrimOpacity: 0.62 } }],
+      media: { portal: { kind: "user", url, useOriginal: true, focalX: 0.2, focalY: 0.6 } },
+    } as unknown as ArsenalComposition;
+    const originals = new Map();
+    const hydrated = await hydrateReviewComposition(input, { actor, loadAssetBytes: async () => bytes }, originals);
+    expect(hydrated.media).toEqual({});
+    expect(input.media.portal).toMatchObject({ url, useOriginal: true });
+    expect(Array.from(originals.values())).toEqual([{ asset, base64: bytes.toString("base64") }]);
+    expect(owned).not.toHaveBeenCalled();
+  });
   it.each([
     "https://example.com/photo.png",
     "http://169.254.169.254/latest/meta-data/",

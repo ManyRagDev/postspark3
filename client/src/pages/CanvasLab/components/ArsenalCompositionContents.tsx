@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { displayMediaSlotLabel } from "../lib/mediaPresentation";
 import { Group, Rect, Line, Text, Image as KonvaImage } from "react-konva";
+import { activeArsenalMedia } from "@shared/designArsenal";
 import type {
   ArsenalComposition,
   ArsenalElement,
@@ -46,7 +47,8 @@ function SlotImage({
   onSelect: (id: string) => void;
   interactive: boolean;
 }) {
-  const slot = c.media[e.id];
+  const slot = activeArsenalMedia(c, e);
+  const replacement = slot ? e.imageReplacement : undefined;
   const asset = e.imageAssetId ? c.assets.find(a=>a.id===e.imageAssetId) : undefined;
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   useEffect(() => {
@@ -79,7 +81,13 @@ function SlotImage({
     : undefined;
   const radius = Math.min(e.cornerRadius, e.width / 2, e.height / 2);
   return (
-    <Group clipFunc={radius > 0 ? context => {
+    <Group clipFunc={replacement ? context => {
+      context.beginPath();
+      context.moveTo(e.points[0], e.points[1]);
+      for (let i = 2; i < e.points.length; i += 2)
+        context.lineTo(e.points[i], e.points[i + 1]);
+      context.closePath();
+    } : radius > 0 ? context => {
       context.beginPath();
       context.moveTo(radius, 0);
       context.arcTo(e.width, 0, e.width, e.height, radius);
@@ -109,6 +117,10 @@ function SlotImage({
           onClick={() => onSelect(e.id)}
           onTap={() => onSelect(e.id)}
         />
+      )}
+      {image && replacement && (
+        <Rect width={e.width} height={e.height} fill="#0E091C"
+          opacity={replacement.scrimOpacity} listening={false} />
       )}
       {!slot && e.mediaSlot?.deferred && (
         <Group name="editor-media-guide" listening={false}>

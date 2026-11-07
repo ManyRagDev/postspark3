@@ -266,7 +266,7 @@ export function projectEditorLayers(
               : node.kind === "text"
                 ? node.text.trim().slice(0, 36) || "Texto"
                 : node.kind === "media"
-                  ? "Imagem"
+                  ? (node.imageReplacement?.label ?? "Imagem")
                   : "Decoração";
         add(
           node.id,

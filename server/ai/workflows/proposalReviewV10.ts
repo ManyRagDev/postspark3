@@ -1,15 +1,20 @@
+import { reviewProposalExceptionsV10 } from "./proposalReviewExceptionsV10";
+import { compactAutomaticReviewInstructions, compactAutomaticReviewInstructionsV3, compactAutomaticReviewIntent, isAutomaticReviewNormalizationMarker } from "./automaticReviewProtocol";
 import { ENV } from "../../_core/env";
+import { generationPinnedTaskModelCallOptions } from "../generationModel";
 import { z } from "zod";
 import { arsenalHash } from "@shared/arsenalContent";
 import { completeDesignFields } from "@shared/completeDesignGeneration";
 import type { ComponentDefinitionV1 } from "@shared/componentAssembly";
 import type { ArsenalComposition } from "@shared/designArsenal";
-import { GenerationFailureError } from "@shared/generationFailure";
+import { failureFromError, GenerationFailureError } from "@shared/generationFailure";
 import { isFormalReviewFailure } from "@shared/proposalReviewFailure";
 import {
   proposalReviewResponseV10Schema,
+  reviewResponseInventorySchemaV10,
   type ProposalReviewDurableContextV5,
   type ProposalReviewRecordV10,
+  type ProposalReviewExceptionsRecordV10,
 } from "@shared/proposalReviewV10";
 import { recordGenerationEvent } from "../generationTrace";
 import type {
@@ -27,6 +32,7 @@ import {
 import {
   assertReviewExecutionConfigV10,
   reviewInstructionsV10,
+  automaticReviewInstructionsV10,
 } from "./reviewExecutionConfigV10";
 import { validatedEditorialContextV9 } from "./editorialContextV9";
 import {
@@ -44,6 +50,7 @@ import {
 } from "./reviewEvidenceV10";
 import { normalizeReviewV10, decodeReviewV10 } from "./proposalReviewPolicyV10";
 import { materialGenerationIntent } from "@shared/generationPlan";
+import { rendersChromaticPortal } from "@shared/generationVisualRequirements";
 
 export async function reviewProposalV10(
   input: ProposalExecutionInput,
@@ -52,7 +59,14 @@ export async function reviewProposalV10(
   compositions: ArsenalComposition[],
   copy: ReviewCopy,
   round: "initial" | "recheck"
-): Promise<ProposalReviewRecordV10> {
+): Promise<ProposalReviewRecordV10 | ProposalReviewExceptionsRecordV10> {
+  if (input.reviewExecutionConfig?.version === 5 && input.reviewExecutionConfig.automaticReviewVersion === 4) return reviewProposalExceptionsV10(input, deps, definitions, compositions, copy, round);
+  const automatic = Boolean(input.generationConfig?.taskRouting || (input.reviewExecutionConfig?.version === 5 && input.reviewExecutionConfig.taskModelConfig));
+  const portal = automatic ? undefined : input.visualRequirements?.chromaticPortal;
+  if (portal && (compositions.length !== definitions.length ||
+    !compositions.every((composition, index) => rendersChromaticPortal(definitions[index], composition)))) {
+    throw new GenerationFailureError("artwork_unusable", "review", false);
+  }
   input = { ...input, generationIntent: materialGenerationIntent(input.generationIntent) };
   let inputHash = arsenalHash({ policyVersion: 10, copy, compositions, round });
   const operationKeys: string[] = [];
@@ -88,6 +102,9 @@ export async function reviewProposalV10(
     const reviewConfig = assertReviewExecutionConfigV10(
       input.reviewExecutionConfig
     );
+    if(reviewConfig.automaticReviewVersion===4)throw new GenerationFailureError("preparation_contract_incompatible","review");
+    const automaticReviewVersion = reviewConfig.automaticReviewVersion === 2 ? 2 : reviewConfig.automaticReviewVersion === 3 ? 3 : undefined;
+    const automaticV2 = automaticReviewVersion !== undefined;
     const context = validatedEditorialContextV9(input);
     if (input.editorialContextHash !== context.hash)
       throw new GenerationFailureError(
@@ -175,23 +192,33 @@ export async function reviewProposalV10(
       })
     ).sort((a, b) => a.slideIndex - b.slideIndex);
     validateScenes(scenes, compositions.length);
+    const prioritizeDelivery = input.firstDeliveryReviewRecovery === true;
+    const compactRecheck = prioritizeDelivery && round === "recheck";
     const maxCompletionTokens =
       reviewConfig.profiles[profile].maxCompletionTokens;
-    const json = z.toJSONSchema(proposalReviewResponseV10Schema);
+    const checkInventories = {
+      requirementChecks: context.requirements.map(r => r.id),
+      intentChecks: input.generationIntent?.requirements.map(r => r.id) ?? [],
+    };
+    const responseSchema = reviewConfig.nativeInventoryVersion === 1
+      ? reviewResponseInventorySchemaV10(checkInventories, automaticReviewVersion)
+      : proposalReviewResponseV10Schema;
+    const json = z.toJSONSchema(responseSchema);
     delete json.$schema;
     const evidenceInventory = buildSourceEvidenceV10(context);
     const reviewData = {
       context: reviewContextV10(context, evidenceInventory),
-      generationIntent: input.generationIntent,
+      generationIntent: automaticV2 ? compactAutomaticReviewIntent(input.generationIntent) : input.generationIntent,
+      ...(portal ? { visualRequirements: [{
+        requestQuote: portal.quote,
+        check: "Confira na imagem o arco luminoso e a transição de cores no fundo. Se ausentes, registre um achado bloqueante de requisito explícito, citando o briefing.",
+      }] } : {}),
       ...(input.generationIntent?.editorial ? { editorialInterpretation: {
         definitions: input.editorialCatalog?.document.intents.filter(d => input.generationIntent!.editorial!.signals.some(s => s.intentId === d.id)) ?? [],
         rule: "requested exprime pedido; suggested é possibilidade, nunca obrigação; forbidden é proibição explícita. Aspectos ausentes são neutros. Não invente requisitos ou falhas porque a peça não realiza todas as capacidades editoriais do layout.",
       } } : {}),
-      narrativePlan: input.narrativePlan,
-      checkInventories: {
-        requirementChecks: context.requirements.map(r => r.id),
-        intentChecks: input.generationIntent?.requirements.map(r => r.id) ?? [],
-      },
+      narrativePlan: automaticV2 ? undefined : automatic ? input.narrativePlan?.pages.map(page => ({ slideIndex: page.slideIndex, purpose: page.purpose, rhythm: page.rhythm, advisory: true, assignments: page.assignments.map(({fieldId,contentIds,itemCount}) => ({fieldId,contentIds,itemCount})) })) : input.narrativePlan,
+      checkInventories,
       copy: {
         caption: copy.caption,
         hashtags: copy.hashtags,
@@ -201,12 +228,12 @@ export async function reviewProposalV10(
       anchors: aliases.promptInventory,
       nativeConstraints: definitions.map((d, slideIndex) => ({
         slideIndex,
-        fields: completeDesignFields(d),
-        designGuidance: d.completeDesign?.designGuidance,
+        fields: automatic ? completeDesignFields(d).map(({id,role,kind,required,cardinality}) => ({id,role,kind,required,cardinality})) : completeDesignFields(d),
+        ...(automatic ? {} : { designGuidance: d.completeDesign?.designGuidance }),
       })),
       previous: input.previousReviewContext
         ? {
-            previous: input.previousReviewContext.previous,
+            previous: compactRecheck ? { findings: input.previousReviewContext.previous.findings } : input.previousReviewContext.previous,
             changedTargets: input.previousReviewContext.changedTargets,
           }
         : undefined,
@@ -230,6 +257,7 @@ export async function reviewProposalV10(
       sourceImageHashes: input.sourceImages?.map(arsenalHash),
       profile,
       maxCompletionTokens,
+      ...(compactRecheck ? { compactRecheck: 1 } : {}),
     });
     const durableContext: ProposalReviewDurableContextV5 = {
       version: 5,
@@ -294,6 +322,8 @@ export async function reviewProposalV10(
     ) => {
       if (violations)
         phaseDeadline = Date.now() + reviewConfig.extendedTimeoutMs;
+      const compact = compactRecheck || (prioritizeDelivery && Boolean(violations));
+      const instruction = reviewConfig.automaticReviewVersion === 3 ? compactAutomaticReviewInstructionsV3(violations, invalidHash) : automaticV2 ? compactAutomaticReviewInstructions(violations, invalidHash) : [reviewInstructionsV10(violations, invalidHash), ...(automatic ? [automaticReviewInstructionsV10] : [])].join("\n");
       recordGenerationEvent({
         stage: "proposal_review_protocol",
         status: "started",
@@ -333,9 +363,10 @@ export async function reviewProposalV10(
               disableStructuredRepair: true,
               forceTextSchema: true,
               structuredValidationOwner: "caller",
-              reasoningEffort: reviewConfig.reasoningEffort,
-              temperature: reviewConfig.temperature,
+              reasoningEffort: compact ? "low" : reviewConfig.reasoningEffort,
+              ...(reviewConfig.taskModelConfig ? {} : { temperature: reviewConfig.temperature }),
               maxCompletionTokens,
+              ...(reviewConfig.taskModelConfig ? generationPinnedTaskModelCallOptions(reviewConfig.taskModelConfig) : {}),
               response_format: {
                 type: "json_schema",
                 json_schema: {
@@ -347,7 +378,7 @@ export async function reviewProposalV10(
               messages: [
                 {
                   role: "system",
-                  content: reviewInstructionsV10(violations, invalidHash),
+                  content: compact ? `${instruction}\nEm meaning e explanation, use uma frase curta por item. Preserve todos os inventários, critérios de aprovação e a inspeção de cada lâmina. Retorne o JSON completo.` : instruction,
                 },
                 {
                   role: "user",
@@ -356,10 +387,10 @@ export async function reviewProposalV10(
                       type: "text",
                       text: JSON.stringify({
                         ...reviewData,
-                        ...(invalidResponse
+                        ...(violations && (invalidResponse || prioritizeDelivery)
                           ? {
                               formalRepair: {
-                                invalidResponse,
+                                ...(automaticV2 ? {} : {invalidResponse}),
                                 violations,
                                 invalidHash,
                               },
@@ -447,7 +478,7 @@ export async function reviewProposalV10(
         });
       // V10 owns category/judgment consistency and preserves the exact violation
       // for formal repair, instead of losing it behind a generic parse error.
-      return normalizeReviewV10({
+      const review = normalizeReviewV10({
         response,
         units,
         aliases,
@@ -460,7 +491,11 @@ export async function reviewProposalV10(
         round,
         operationKeys: [...operationKeys],
         discardedFields: discarded,
+        ...(automaticV2 ? {automaticReviewVersion} : {}),
       });
+      const localFields = review.discardedFields.filter(isAutomaticReviewNormalizationMarker);
+      if (localFields.length) recordGenerationEvent({stage:"proposal_review_decode",status:"completed",detail:"local_advisory_inventory_normalized",data:{policyVersion:10,proposalId:input.proposalId,round,inputHash,count:localFields.length,paidEffect:false}});
+      return review;
     };
     const key = `review:${round}:${inputHash}`;
     let result = await execute(key);
@@ -492,21 +527,27 @@ export async function reviewProposalV10(
           inputHash,
           invalidHash,
           violations,
+          ...(prioritizeDelivery ? { concise: 1 } : {}),
         });
       const repairKey = `review_evidence_repair:${round}:${repairHash}`;
+      const repairPrefix = prioritizeDelivery ? `review_evidence_repair:${round}:` : "review_evidence_repair:";
       const repairs = (await readReviewOperations(deps, input)).filter(o =>
-        o.operationKey.startsWith("review_evidence_repair:")
+        o.operationKey.startsWith(repairPrefix)
       );
+      const budgetUsed = prioritizeDelivery
+        ? Array.from(deps.reviewRepairBudget ?? []).some(key => key.includes(repairPrefix))
+        : Boolean(deps.reviewRepairBudget?.size);
       if (
         repairs.some(o => o.operationKey !== repairKey) ||
-        (deps.reviewRepairBudget?.size &&
+        (budgetUsed &&
           !repairs.some(o => o.operationKey === repairKey))
       )
         return empty(reason);
       deps.reviewRepairBudget?.add(repairKey);
       const raw = extractTextContent(result.choices?.[0]?.message?.content);
       if (raw.length > 100000) return empty("proposal_review_evidence_invalid");
-      result = await execute(repairKey, violations, invalidHash, raw);
+      result = await execute(repairKey, violations, invalidHash,
+        prioritizeDelivery && reason === "proposal_review_response_truncated" ? undefined : raw);
       try {
         return parse(result, repairKey);
       } catch (repairError) {
@@ -520,6 +561,9 @@ export async function reviewProposalV10(
       }
     }
   } catch (error) {
+    const failure = failureFromError(error, "review");
+    if (failure.code === "provider_route_unavailable")
+      throw Object.assign(new GenerationFailureError(failure.code, "review", true), { cause: error });
     if (input.signal?.aborted || error instanceof GenerationFailureError)
       throw error;
     const e = error as { name?: string; code?: string; message?: string };

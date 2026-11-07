@@ -1,7 +1,7 @@
 import { getDb } from "../../db";
 import { assertPinnedReviewConfig } from "./pinnedReviewConfig";
 import { localDiagnosticsEnabled, writeLocalDiagnostic } from "../localDiagnostics";
-import { generationTerminalDiagnostic } from "./generationTerminalDiagnostic";
+import { generationTerminalDiagnostic, generationDeliveryMetrics } from "./generationTerminalDiagnostic";
 import { failureFromError, historicalGenerationFailure, GenerationFailureError } from "@shared/generationFailure";
 import { createHash } from "node:crypto";
 import { completeSourceContext } from "@shared/sourceContext";
@@ -11,8 +11,11 @@ import {
 } from "@shared/generationContracts";
 import { type OrchestratedGenerationInput } from "@shared/generationRequest";
 import type { SiteIntelligence } from "@shared/postspark";
-import { invokeLLM } from "../../_core/llm";
+import { invokeLLM, knownProviderRejectionReceipt, providerRejectionErrorFromReceipt } from "../../_core/llm";
 import { replanGenerationSlot } from "./generationPlanning";
+import { recoverGenerationDelivery } from "./generationDeliveryRecovery";
+import { extractTextContent, safeJsonParse } from "../llmJson";
+import type { InvokeResult } from "../../_core/llm";
 import { hydrateCompleteDesignComponents } from "../../designCatalog/completeDesignStore";
 import { loadSiteIntelligence } from "../../siteIntelligence";
 import { scrapeUrl } from "../../siteContent";
@@ -36,6 +39,7 @@ import {
   getGenerationTrace,
   runWithGenerationTrace,
   persistGenerationTraceMetrics,
+  summarizeGenerationCallCosts,
   loadPersistedGenerationCalls,
   recordGenerationEvent,
   type GenerationTrace,
@@ -132,7 +136,10 @@ export function durableOperations(
       console.info(
         `[runtime:op] ⏭️ [${record.id.slice(0, 8)}] ${operationKey} já concluída anteriormente no journal.`
       );
-      return readJournalResult<T>(existing.result);
+      const result = readJournalResult<T>(existing.result);
+      const rejection = providerRejectionErrorFromReceipt(result);
+      if (rejection) throw rejection;
+      return result;
     }
     if (existing.state === "uncertain") {
       console.warn(
@@ -174,6 +181,17 @@ export function durableOperations(
           ...operationTrace.calls.map(call => ({ ...call, operationKey }))
         );
         parent.events.push(...operationTrace.events);
+      }
+      const rejection = knownProviderRejectionReceipt(error);
+      if (!resultPersisted && rejection) {
+        try {
+          await store.persistOperationResult(record.id, leaseToken, operationKey,
+            operationTrace ? journalResultWithTrace(rejection, operationTrace) : rejection);
+          resultPersisted = true;
+        } catch (persistenceError) {
+          await store.markOperationUncertain(record.id, leaseToken, operationKey).catch(() => undefined);
+          throw persistenceError;
+        }
       }
       if (!resultPersisted) await store
         .markOperationUncertain(record.id, leaseToken, operationKey)
@@ -545,6 +563,25 @@ export interface RuntimeDeps {
   loadTraceCalls: typeof loadPersistedGenerationCalls;
 }
 
+/** A completed local fit candidate supersedes the original copy only for the pinned visual policy. */
+export function proposalRecoveryCopyFromOperations(
+  operations: readonly { operationKey: string; state: string; result?: unknown }[],
+  proposalId: string,
+  visualTextRepairVersion?: 1,
+): unknown {
+  if (visualTextRepairVersion === 1) {
+    const candidate = operations.find(operation =>
+      operation.operationKey === `${proposalId}:copy_fit_candidate` && operation.state === "completed");
+    const receipt = readJournalResult<{ version?: unknown; copy?: unknown } | undefined>(candidate?.result);
+    if (receipt?.version === 1 && receipt.copy && typeof receipt.copy === "object" && !Array.isArray(receipt.copy))
+      return receipt.copy;
+  }
+  const original = operations.find(operation =>
+    operation.operationKey === `${proposalId}:copy` && operation.state === "completed");
+  const response = readJournalResult<InvokeResult | undefined>(original?.result);
+  return safeJsonParse(extractTextContent(response?.choices?.[0]?.message?.content), null);
+}
+
 /** Any prior repair effect consumes the proposal budget, including an uncertain one. */
 export async function proposalRecoveryOperationKeys(
   store: GenerationStore,
@@ -651,6 +688,8 @@ export async function executeClaimedGeneration(
                 requestId: record.id,
                 status: latest?.status,
                 calls: trace.calls.length,
+                ...(latest ? generationDeliveryMetrics(latest) : {}),
+                ...summarizeGenerationCallCosts(trace.calls),
                 effectiveModels: Array.from(
                   new Set(
                     trace.calls
@@ -816,6 +855,12 @@ async function executeClaimedGenerationWithinTrace(
             : undefined,
           recentSelections: () =>
             deps.store.recentSelections(record.ownerId, record.id),
+          parentDesignSelection: async requestId => {
+            const parent = await deps.store.get(requestId, record.ownerId).catch(() => null);
+            return parent ? { requestId, selections: parent.proposals.flatMap(p => p.status === "ready"
+              ? [{ family: p.bundle.family, designIds: p.bundle.slides.flatMap(s => s.composition.origin.componentAssembly?.componentIds ?? []) }]
+              : []) } : undefined;
+          },
           generate: params =>
             invokeLLM({
               ...params,
@@ -858,6 +903,7 @@ async function executeClaimedGenerationWithinTrace(
         sourceReferences: prepared.sourceReferences,
         selectedDefinitions: prepared.selectedDefinitions,
         planning: prepared.planning,
+        carouselCaptionPolicy: prepared.carouselCaptionPolicy,
         alternativeDefinitions: prepared.alternativeDefinitions,
         selectionReasons: prepared.selectionReasons,
         editorialApproaches: prepared.editorialApproaches,
@@ -899,6 +945,24 @@ async function executeClaimedGenerationWithinTrace(
             }),
         },
         ...deps.graphDeps,
+        ...(prepared.planning?.deliveryReserves ? {
+          recoverDelivery: (input, reuseOriginal) => recoverGenerationDelivery({
+            planning: prepared.planning!,
+            sourceDefinitions: prepared.selectedDefinitions?.[input.slot] ?? [],
+            input,
+            reuseOriginal,
+            graphDeps: deps.graphDeps ?? {},
+            hydrate: hydrateCompleteDesignComponents,
+            operation: durableOperations(deps.store, record, leaseToken, controller.signal, `${input.proposalId}:`, true),
+            readOriginalCopy: async () => {
+              return proposalRecoveryCopyFromOperations(
+                await deps.store.listOperations(record.id, record.ownerId),
+                input.proposalId,
+                input.reviewExecutionConfig?.version === 5 ? input.reviewExecutionConfig.visualTextRepairVersion : undefined,
+              );
+            },
+          }),
+        } : {}),
         ...(record.generationConfig && prepared.planning ? { replan: (slot: number, attempt: number, currentFamilies: string[]) => replanGenerationSlot({ prepared, slot, attempt, currentFamilies, generationConfig: record.generationConfig!, deadlineMs: record.deadlineAt, experimental: record.experimental }, { generate: invokeLLM, hydrate: hydrateCompleteDesignComponents, operation: (key, work) => durableOperations(deps.store, record, leaseToken, controller.signal, `${record.proposals[slot].proposalId}:`)(key, work), signal: controller.signal }) } : {}),
         reviewOperations: async proposalId => (await deps.store.listOperations(record.id, record.ownerId))
           .filter(o => o.operationKey.startsWith(`${proposalId}:review:`) || o.operationKey.startsWith(`${proposalId}:review_evidence_repair:`))
@@ -944,7 +1008,11 @@ async function executeClaimedGenerationWithinTrace(
           )(params.operationKey, work),
       }
     );
-    const snapshot = await coordinator.start();
+    // The tightly capped local prompt trial waits for each proposal's provider
+    // reservations to settle before running the next proposal.
+    const serialLocalTrial = record.executionMode === "local-demand" &&
+      process.env.POSTSPARK_ACERVO82_SERIAL_PROPOSALS === "true";
+    const snapshot = await coordinator.start(serialLocalTrial ? { maxConcurrency: 1 } : undefined);
     if(deps.shutdownSignal?.aborted)throw new Error("local_executor_shutdown");
     console.info(
       `[generationRuntime] 🏁 [${record.id.slice(0, 8)}] Coordenador finalizou geração com status: ${snapshot.overallStatus}`

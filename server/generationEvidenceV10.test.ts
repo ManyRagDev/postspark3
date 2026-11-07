@@ -28,6 +28,7 @@ import {
   electionCatalogFixture,
   electionCatalogRequest,
 } from "./designCatalog/designElection.fixture";
+import { withCatalogRevision } from "./designCatalog/versionedCatalog";
 import { reconcileCatalogCoverage } from "./designCatalog/catalogCoverage";
 import { shortlistCompleteDesigns } from "./designCatalog/designShortlist";
 import { prepareOrchestratedGeneration } from "./ai/workflows/generationPreparation";
@@ -110,6 +111,8 @@ async function scenario(
     ellipticalExecutionQuote?: boolean;
     confidenceRanking?: boolean;
     editorial?: boolean;
+    automatic?: boolean;
+    positiveIdeaReviewError?: boolean;
     measureText?: any;
     renderReviewScenes?: any;
     transport?: (params: InvokeParams, response: any) => Promise<any>;
@@ -147,14 +150,16 @@ async function scenario(
       "Explique como planejar diante de riscos, apenas texto, sem fotografia.",
     platform: "instagram",
     postMode: options.slideCount ? "carousel" : "static",
-    ...(options.slideCount ? { slideCount: options.slideCount, generationModel: "gpt" as const } : {}),
+    // These replay fixtures exercise the historical single-model wire contracts.
+    generationModel: options.automatic ? "auto" : options.slideCount ? "gpt" : "gemini",
+    ...(options.slideCount ? { slideCount: options.slideCount } : {}),
   });
   const old = ENV.generationStrategyVersion;
   ENV.generationStrategyVersion = options.strategy ?? 2;
   // Existing fixtures replay the protocol admitted before editorial sidecars.
   const resolvedConfig = resolveGenerationModelConfig(input);
   const { editorialIntentVersion: _editorialVersion, configurationHash: _currentHash, ...historicalConfig } = resolvedConfig;
-  const generationConfig = options.editorial ? resolvedConfig : { ...historicalConfig, configurationHash: createHash("sha256").update(JSON.stringify(historicalConfig)).digest("hex") };
+  const generationConfig = options.editorial || options.automatic ? resolvedConfig : { ...historicalConfig, configurationHash: createHash("sha256").update(JSON.stringify(historicalConfig)).digest("hex") };
   ENV.generationStrategyVersion = old;
   const operations = new Map<string, any>();
   async function operation<T>(key: string, work: () => Promise<T>): Promise<T> {
@@ -199,14 +204,22 @@ async function scenario(
     return result;
   };
   let initialSlotCopies = 0;
+  let injectedIdeaCheck = false;
   const generate = vi.fn(async (params: InvokeParams): Promise<any> => {
     let result: unknown;
-    if (params.taskRoute === "post_evaluation")
+    if (params.taskRoute === "post_evaluation") {
       result =
         options.strategy === 1
           ? healthyReviewV8Fixture(params)
-          : healthyReviewV10Fixture(params);
-    else if (params.traceLabel?.startsWith("generation_")) {
+          : params.response_format?.type==="json_schema" && params.response_format.json_schema.name==="proposal_review_exceptions_v10"
+            ? {status:"reviewed",reviewedSlides:reviewPayloadV7(params).slides.map((s:any)=>s.index),limitation:null,findings:[]}
+            : healthyReviewV10Fixture(params);
+      if (options.positiveIdeaReviewError && !injectedIdeaCheck) {
+        const review = result as ReturnType<typeof healthyReviewV10Fixture>;
+        review.intentChecks = [{requirementId:"idea-1",status:"met",explanation:"Ideia editorial atendida; erro de namespace controlado.",deliveries:[{contentId:"idea-1",unitIds:[review.unitChecks[0].unitId]}]}];
+        injectedIdeaCheck = true;
+      }
+    } else if (params.traceLabel?.startsWith("generation_")) {
       const data = JSON.parse(
         params.messages.find(m => m.role === "user")!.content as string
       );
@@ -222,7 +235,7 @@ async function scenario(
               })),
             }
           : params.traceLabel.includes("intent")
-            ? options.slideCount ? {
+            ? options.automatic ? {objective:intent.objective,tone:intent.tone.description,semanticQuery:"Planejamento cuidadoso diante de riscos, tipografia clara",ideas:intent.content.map(({meaning,sourceIds})=>({meaning,sourceIds}))} : options.slideCount ? {
                 ...intent,
                 requirements: [{
                   id: "pages",
@@ -308,14 +321,14 @@ async function scenario(
   const hydrate = async (ids: string[]) =>
     definitions.filter(d => ids.includes(d.id));
   const deadlineMs = Date.now() + 600_000;
-  const prepared = await prepareOrchestratedGeneration(
+  const prepare = () => prepareOrchestratedGeneration(
     input,
     actor,
     false,
     deadlineMs,
     {
       generationConfig,
-      useLegacyLlmSelection: !(options.localSelection ?? Boolean(options.slideCount)),
+      useLegacyLlmSelection: !options.automatic && !(options.localSelection ?? Boolean(options.slideCount)),
       generate,
       hydrate,
       operation: (k, w) => operation(`prepare:${k}`, w),
@@ -324,7 +337,7 @@ async function scenario(
       },
       loadContext: async () => input.content,
       preferences: async () => defaultStudioPreferences,
-      ...(options.editorial ? { readEditorialCatalog: async () => frozenEditorialCatalog } : {}),
+      ...(options.automatic ? { readEditorialCatalog: async () => null, automaticSemantic: {engine:{metadata:{modelId:"offline-unavailable"}} as any} } : options.editorial ? { readEditorialCatalog: async () => frozenEditorialCatalog } : {}),
       recentSelections: async () => [],
       retrieve: async () =>
         reconcileCatalogCoverage(
@@ -347,6 +360,7 @@ async function scenario(
         ),
     }
   );
+  const prepared = options.automatic ? await withCatalogRevision("1", prepare) : await prepare();
   const coordinator = new GenerationCoordinator(
     {
       ...prepared,
@@ -420,6 +434,7 @@ async function scenario(
     owner_id: actor,
     input,
     generation_config: generationConfig,
+    ...(options.automatic ? {catalog_revision:1} : {}),
     prepared,
     proposals: snapshot.proposals,
     status: snapshot.overallStatus,
@@ -597,10 +612,29 @@ describe("V10 persisted evidence with controlled providers", () => {
     }
   }, 120_000);
 
-  it.each([false, true])("audits a two-ready partial after PostgreSQL V10 receipt guards, settlement and replay (editorial=%s)", async editorial => {
-    const s = await scenario({ count: 3, editorial }),
+  it.each([false, true, "automatic-v4"] as const)("audits PostgreSQL V10 commit, settlement and replay without repurchase (mode=%s)", async mode => {
+    const automatic = mode === "automatic-v4", editorial = mode === true;
+    const expectedStatus = automatic ? "completed" : "partial", expectedDebit = automatic ? 10 : 7;
+    // Current editorial receipts pin the deterministic selector. Two families
+    // yield a genuine partial; the historical case retains its paid selector.
+    const s = await scenario({ count: editorial ? 2 : 3, editorial, ...(automatic ? {automatic:true,allReady:true,localSelection:true} : editorial ? { localSelection: true } : {}) }),
       pg = await generationReleasePostgresFixture();
     try {
+      if (automatic) {
+        expect(s.prepared.reviewExecutionConfig).toMatchObject({automaticReviewVersion:4,nativeInventoryVersion:1});
+        expect(s.request.proposals.map(p=>p.status)).toEqual(["ready","ready","ready"]);
+        const calls=s.generate.mock.calls.map(([params])=>params);
+        expect(calls.filter(p=>p.traceLabel?.endsWith("_copy"))).toHaveLength(3);
+        expect(calls.filter(p=>p.taskRoute==="post_evaluation")).toHaveLength(3);
+        expect(calls.some(p=>p.traceLabel?.includes("evidence_repair"))).toBe(false);
+        for(const proposal of s.request.proposals){
+          const review=proposal.reviews!.at(-1)!;
+          expect(review).toMatchObject({automaticReviewVersion:4,status:"passed",inspectionStatus:"reviewed"});
+          expect(review).not.toHaveProperty("unitChecks");expect(review).not.toHaveProperty("factualAudit");
+          const raw=s.operations.get(review.operationKeys[0]).result;
+          expect(JSON.parse(raw.choices[0].message.content)).toMatchObject({status:"reviewed",limitation:null,findings:[]});
+        }
+      }
       if (editorial) {
         expect(s.prepared.planning?.intent.editorial).toEqual(s.editorial);
         expect(s.prepared.planning?.editorialCatalog).toEqual(s.frozenEditorialCatalog);
@@ -631,8 +665,10 @@ describe("V10 persisted evidence with controlled providers", () => {
       }
       for (const name of [
         "0044_generation_model_config.sql",
+        ...(automatic ? ["0045_staged_catalog_local_admission.sql"] : []),
         "0046_generation_review_v10.sql",
         "0052_generation_preparation_reconciliation.sql",
+        ...(automatic ? ["0053_generation_model_choices.sql","0057_generation_task_routing.sql","0060_generation_task_routing_v2.sql","0054_generation_execution_requirements.sql","0055_editorial_catalog.sql","0061_generation_review_exceptions.sql"] : []),
       ])
         await pg.exec(
           readFileSync(new URL(`../drizzle/${name}`, import.meta.url), "utf8")
@@ -670,8 +706,15 @@ describe("V10 persisted evidence with controlled providers", () => {
           }
         }
       }
+      let catalogRevision: number | null = null;
+      if (automatic) {
+        for (const definition of s.definitions) await pg.query("INSERT INTO postspark.design_component_search_documents(component_id,definition_hash,card) VALUES($1,$2,$3::jsonb)",[definition.id,definition.hash,JSON.stringify(compactComponentCard(definition))]);
+        const staged = await scalar("SELECT postspark.catalog_staged_snapshot() value");
+        catalogRevision = await scalar("SELECT postspark.catalog_publish($1,$2::jsonb,'{}'::jsonb,$3) value",[staged.sourceRevision,JSON.stringify(staged.rows),arsenalHash(staged.rows)]);
+        expect(catalogRevision).toBe(1);
+      }
       await scalar(
-        "SELECT postspark.generation_admit_configured($1,$2,$3,$4,$5::jsonb,false,now()+interval '5 minutes',$6::jsonb) value",
+        "SELECT postspark.generation_admit_configured($1,$2,$3,$4,$5::jsonb,false,now()+interval '5 minutes',$6::jsonb,NULL,$7::bigint) value",
         [
           runId,
           actor,
@@ -679,6 +722,7 @@ describe("V10 persisted evidence with controlled providers", () => {
           arsenalHash(s.request.input),
           JSON.stringify(s.request.input),
           JSON.stringify(s.request.generation_config),
+          catalogRevision,
         ]
       );
       const claimed = await scalar(
@@ -732,8 +776,8 @@ describe("V10 persisted evidence with controlled providers", () => {
               : null,
         });
       await scalar(
-        "SELECT postspark.generation_v5_finish($1,$2,'partial',NULL) value",
-        [runId, claimed.leaseToken]
+        "SELECT postspark.generation_v5_finish($1,$2,$3,NULL) value",
+        [runId, claimed.leaseToken,expectedStatus]
       );
       const request = await scalar(
         "SELECT to_jsonb(r) value FROM postspark.generation_v5_requests r WHERE id=$1",
@@ -759,24 +803,31 @@ describe("V10 persisted evidence with controlled providers", () => {
         operations,
         reservation,
       });
-      expect(result.checks.filter(c => !c.passed)).toEqual([]);
+      expect(result.checks.filter(c => !c.passed), JSON.stringify(result.designElection.issues)).toEqual([]);
       expect(result).toMatchObject({
         passed: true,
-        status: "partial",
-        billing: { debited: 7 },
+        status: expectedStatus,
+        billing: { debited: expectedDebit },
       });
       expect(
         await scalar(
           "SELECT sparks value FROM postspark.profiles WHERE id=$1",
           [actor]
         )
-      ).toBe(143);
+      ).toBe(150-expectedDebit);
       const count = s.generate.mock.calls.length;
       const replayed = await new GenerationCoordinator(
         { ...coordinatorInput, ...request.prepared, generationConfig: request.generation_config, savedProposals: request.proposals },
         { actor, generateText: s.generate }
       ).start();
-      expect(replayed.overallStatus).toBe("partial");
+      expect(replayed.overallStatus).toBe(expectedStatus);
+      expect(replayed.proposals).toEqual(request.proposals);
+      if (automatic) {
+        const completedReview = operations.find(op=>op.operation_key.includes(":review:") && JSON.parse(op.result.choices[0].message.content).status === "reviewed");
+        expect(completedReview).toBeDefined();
+        const after=(await pg.query<any>("SELECT operation_key,state,result,expectation FROM postspark.generation_v5_operations WHERE request_id=$1",[runId])).rows;
+        expect(after).toEqual(operations);
+      }
       expect(s.generate).toHaveBeenCalledTimes(count);
       await scalar("SELECT postspark.generation_settle($1) value", [runId]);
       expect(
@@ -816,7 +867,7 @@ describe("V10 persisted evidence with controlled providers", () => {
       eligibleOffers: 14,
       selectorOptions: 12,
     });
-    expect(result.checks.filter(c => !c.passed)).toEqual([]);
+    expect(result.checks.filter(c => !c.passed), JSON.stringify(result.designElection.issues)).toEqual([]);
     expect(result.passed).toBe(true);
     expect(result.proposals.map(p => p.status)).toEqual([
       "ready",
@@ -854,7 +905,7 @@ describe("V10 persisted evidence with controlled providers", () => {
     });
     const result = s.inspect();
     expect(result.designElection.issues).toEqual([]);
-    expect(result.checks.filter(c => !c.passed)).toEqual([]);
+    expect(result.checks.filter(c => !c.passed), JSON.stringify(result.designElection.issues)).toEqual([]);
     const reviewOp = s.evidenceInput.operations.find(o =>
       o.operation_key.startsWith(`p-${runId}-0-fb1:review:`)
     )!;

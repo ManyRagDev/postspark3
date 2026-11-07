@@ -234,6 +234,18 @@ describe("Studio Generation progressive flow", () => {
     expect(host.querySelector('[data-testid="production-intro"]')).toBeNull();
   });
 
+  it("shows the pause before sending a new admission", async () => {
+    h.capabilities = { selectable: true, enabled: false, reason: "maintenance" };
+    mount();
+    await act(async () => { h.create.onSubmit("Café artesanal", "static"); });
+    expect(h.failure).toMatchObject({
+      reason: "generation_paused",
+      userMessage: expect.stringContaining("Novas gerações estão pausadas"),
+      retryable: false,
+    });
+    expect(h.start).not.toHaveBeenCalled();
+  });
+
   it("opens the selected history run without resuming or mixing an unrelated session generation", async () => {
     sessionStorage.setItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY, requestId);
     sessionStorage.setItem("postspark.restore_generation", JSON.stringify({
@@ -371,6 +383,28 @@ describe("Studio Generation progressive flow", () => {
     expect(h.start).not.toHaveBeenCalled();
     await act(async () => { h.briefReview.onConfirmGenerate(); await Promise.resolve(); });
     expect(h.start.mock.calls[0][0]).toMatchObject({ postMode: "carousel", slideCount: 3 });
+  });
+
+  it("requires an explicit new submission after a known route rejection with a fresh idempotency key", async () => {
+    const rejected={...running("rejected",0),status:"failed",failure:{code:"provider_route_unavailable",stage:"selection",retryable:true},errorReason:"provider_route_unavailable"};
+    h.start.mockResolvedValueOnce({snapshot:snapshot([rejected],"failed"),created:true})
+      .mockResolvedValueOnce({snapshot:{...snapshot([running("new",0)]),requestId:secondRequestId},created:true});
+    mount();
+    await act(async()=>{h.create.onSubmit("Café artesanal","static");await Promise.resolve();});await flush();
+    const first=h.start.mock.calls[0][0];
+    expect(host.textContent).toContain("novo pedido para usar a configuração atual");
+    expect(h.start).toHaveBeenCalledTimes(1);
+    const fresh=Array.from(host.querySelectorAll("button")).find(b=>b.textContent==="Criar novo pedido")!;
+    expect(fresh).toBeTruthy();act(()=>fresh.click());await flush();
+    expect(h.start).toHaveBeenCalledTimes(1);
+    await act(async()=>{h.create.onSubmit("Café artesanal","static");await Promise.resolve();});await flush();
+    expect(h.start).toHaveBeenCalledTimes(2);
+    const second=h.start.mock.calls[1][0];
+    expect(second.idempotencyKey).not.toBe(first.idempotencyKey);
+    expect(second.generationModel).toBe("auto");
+    expect(second).not.toHaveProperty("generationConfig");
+    expect(second.generationParentRequestId).toBeUndefined();
+    expect(h.legacyGenerate).not.toHaveBeenCalled();
   });
 
   it("keeps URL identity through admission, delivery, editor and save", async () => {
@@ -605,6 +639,32 @@ describe("Studio Generation progressive flow", () => {
 
     expect(host.textContent).toContain("Geração progressiva · Cancelada");
     expect(host.textContent).not.toContain("Geração progressiva · Falhou");
+  });
+
+  it("checks durable progress when an event stream goes quiet and explains an expired dispatch", async () => {
+    const input = { inputType: "text", content: "Café artesanal", postMode: "static" };
+    const planned = { ...running("proposal-a", 0), status: "planned" };
+    h.getData = { snapshot: snapshot([planned]), input, progressTransport: "events" };
+    await explicitlyResumeStored(input);
+
+    expect(h.getOptions.refetchInterval({ state: { data: h.getData } })).toBe(15000);
+    h.getData = { ...h.getData, dispatchError: "local_dispatch_failed" };
+    mount();
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("O executor local não conseguiu continuar");
+    expect(host.textContent).toContain("Execução interrompida");
+    expect(h.gallery.isGeneratingMore).toBe(false);
+    expect(h.gallery.generationProposals).toEqual([]);
+    expect(host.textContent).toContain("Retomar geração");
+
+    h.getData = {
+      ...h.getData,
+      snapshot: snapshot([{ ...planned, status: "expired", errorReason: "generation_deadline_exceeded" }], "failed"),
+    };
+    mount();
+    expect(host.textContent).toContain("O prazo deste pedido terminou");
+    expect(host.textContent).not.toContain("Retomar geração");
+    expect(h.getOptions.refetchInterval({ state: { data: h.getData } })).toBe(false);
+    expect(h.start).toHaveBeenCalledTimes(1);
   });
 
   it("ignores a late materialization after the user starts a new creation", async () => {

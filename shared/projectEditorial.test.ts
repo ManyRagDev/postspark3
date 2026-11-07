@@ -39,13 +39,13 @@ describe("frozen project and affirmative playbooks", () => {
     });
     expect(projectEditorialDefaults().structuredData).toEqual({});
   });
-  it("selects eight principles for the actual Instagram format only", () => {
+  it("selects nine principles for the actual Instagram format only", () => {
     const single = affirmativeSocialPlaybook("instagram", "static")!;
     const carousel = affirmativeSocialPlaybook("instagram", "carousel")!;
-    expect(single.principles).toHaveLength(8);
-    expect(carousel.principles).toHaveLength(8);
+    expect(single.principles).toHaveLength(9);
+    expect(carousel.principles).toHaveLength(9);
     expect(single.principles[3]).toContain("autossuficiente");
-    expect(carousel.principles[3]).toContain("cada página");
+    expect(carousel.principles.some(principle => principle.includes("cada página"))).toBe(true);
     expect(affirmativeSocialPlaybook("linkedin", "static")).toBeNull();
   });
 });

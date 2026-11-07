@@ -12,6 +12,8 @@ import {
   recordLlmTraceCall,
   startGenerationTrace,
   persistGenerationTraceMetrics,
+  buildGenerationDiagnosticSummary,
+  summarizeGenerationCallCosts,
 } from "./generationTrace";
 
 vi.mock("../db", () => ({
@@ -310,5 +312,27 @@ describe("generationTrace", () => {
         },
       })
     );
+  });
+});
+
+
+describe("local final delivery and cost summaries", () => {
+  const call = (costSource: "provider" | "estimate" | "unknown", estimatedCostUsd: number) => ({
+    label:"copy",requestedModel:"model",effectiveModel:"model",provider:"fixture",promptHash:"hash",messages:[],
+    promptTokens:5,completionTokens:3,totalTokens:8,latencyMs:1,costSource,estimatedCostUsd,
+  });
+  it("keeps unknown costs nullable while preserving explicit provider zero and estimates separately", () => {
+    expect(summarizeGenerationCallCosts([call("unknown",0)])).toEqual({knownProviderCostUsd:null,estimatedOnlyCostUsd:null,unknownCostCallCount:1});
+    expect(summarizeGenerationCallCosts([call("provider",0),call("estimate",0.03),call("unknown",0.2)]))
+      .toEqual({knownProviderCostUsd:0,estimatedOnlyCostUsd:0.03,unknownCostCallCount:1});
+    expect(summarizeGenerationCallCosts([]).knownProviderCostUsd).toBeNull();
+    expect(summarizeGenerationCallCosts([{...call("estimate",0.02),costSource:undefined}])).toEqual({knownProviderCostUsd:null,estimatedOnlyCostUsd:0.02,unknownCostCallCount:0});
+  });
+  it("copies the final persisted outcome counts without altering provider receipts", () => {
+    const trace = {id:"request",userUuid:"owner",inputType:"text",inputContent:"",platform:"instagram",postMode:"static",creationMode:"execution",requestedModel:"model",startedAt:0,
+      calls:[call("provider",0.04),call("unknown",0)],events:[{stage:"generation_metrics",status:"completed",detail:"journal_summary",data:{deliveredCount:2,failedCount:1,cancelledCount:0,pendingCount:0,completedThree:false,localNormalizedReviewCount:2,localRecoveredProposalCount:1,unknownCostOperations:["proposal:copy"]}}]} as any;
+    const before=structuredClone(trace);
+    expect(buildGenerationDiagnosticSummary(trace)).toMatchObject({deliveredCount:2,failedCount:1,completedThree:false,localNormalizedReviewCount:2,localRecoveredProposalCount:1,knownProviderCostUsd:0.04,unknownCostCallCount:1,costComplete:false});
+    expect(trace).toEqual(before);
   });
 });

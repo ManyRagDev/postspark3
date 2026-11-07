@@ -51,14 +51,18 @@ async function fixture(prompt: string, editorial: EditorialIntentReading, frozen
 }
 
 describe("catalog → interpretation → JEV → persisted planning", () => {
-  it("recovers an uncertain 1.5 judgement through actual planning, retaining scores and replaying without provider calls", async () => {
+  it("recovers an uncertain 1.5 judgement without duplicating the only family, retaining scores and replaying without provider calls", async () => {
     const f=await fixture("Apresente uma ideia",{version:1,signals:[]},null,[definitions[0]]);
     f.evaluate.mockImplementation(async request=>({id:"jev-low",model:request.model,answers:Object.fromEntries(Object.keys(request.questions).map(id=>[id,{type:"score" as const,score:1.5,confidence:.12}])),usage:{input_tokens:100,output_tokens:10,cost:0}}));
     const p=await f.run();
-    expect(p.planning?.familyElection).toMatchObject({version:3,recovery:{outcome:"recovered",attempts:[{score:1.5,confidence:.12,accepted:true}]}});
-    expect(p.planning?.slots.every(s=>s.status==="viable")).toBe(true);
+    expect(p.planning?.familyElection).toMatchObject({version:3,recovery:{outcome:"partial",attempts:[{score:1.5,confidence:.12,accepted:true}]}});
+    // The current receipt allows one proposal per design identity. A single
+    // recovered family leaves two slots open instead of duplicating its design.
+    const recoveredSlots = p.planning!.slots.filter(s => s.status === "viable");
+    expect(recoveredSlots).toHaveLength(1);
+    expect(p.planning!.slots.filter(s => s.status === "insufficient_fit")).toHaveLength(2);
     expect(p.planning?.ranking.every(s=>s.score===1.5)).toBe(true);
-    expect(p.selectionReasons.every(r=>r.includes("recuperada"))).toBe(true);
+    expect(p.selectionReasons[recoveredSlots[0].slot]).toContain("recuperada");
     const count=f.evaluate.mock.calls.length;
     expect((await f.run()).planning).toEqual(p.planning);
     expect(f.evaluate).toHaveBeenCalledTimes(count);

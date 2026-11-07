@@ -80,6 +80,7 @@ describe("Studio Generation request state", () => {
     expect(labelGenerationCapabilityReason("unauthenticated")).toContain("Entre na sua conta");
     expect(labelGenerationCapabilityReason("catalogue_required")).toContain("Nenhum design está disponível");
     expect(messageGenerationProposalFailure("provider_timeout")).toContain("demorou demais");
+    expect(messageGenerationProposalFailure(undefined, {code:"provider_route_unavailable",stage:"selection",retryable:true})).toContain("novo pedido para usar a configuração atual");
   });
 
   it("distinguishes historical catalog, invalid evidence and material editorial failures with safe guidance", () => {
@@ -92,7 +93,7 @@ describe("Studio Generation request state", () => {
     expect(messageGenerationProposalFailure(undefined, { code: "review_response_truncated", stage: "review", retryable: false })).toContain("interrompida pelo limite de geração");
     expect(messageGenerationProposalFailure(undefined, { code: "review_response_invalid", stage: "review", retryable: false })).toContain("resposta inválida");
     expect(messageGenerationProposalFailure(undefined, { code: "review_reconciliation_required", stage: "review", retryable: false })).toContain("aguarda confirmação de uma operação anterior");
-    expect(labelGenerationCapabilityReason("maintenance")).toContain("manutenção");
+    expect(labelGenerationCapabilityReason("maintenance")).toContain("pausadas");
   });
 });
 

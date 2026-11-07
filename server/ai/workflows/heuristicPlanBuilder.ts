@@ -1,12 +1,14 @@
-import { familyTie, type FamilyNeutrality } from "@shared/familyNeutrality";
+import { familyAxes, familyDistance, familyTie, PROPOSAL_SELECTION_POLICY, type FamilyAxes, type FamilyNeutrality } from "@shared/familyNeutrality";
 import type { ComponentCardV1 } from "@shared/componentAssembly";
 import { completeDesignFields } from "@shared/completeDesignGeneration";
+import type { CompleteDesignOfferV1 } from "@shared/completeDesignOffers";
 import {
   materializeDesignFamilyOffer,
   type DesignFamilyRepertoire,
 } from "@shared/designRepertoire";
 import type {
   GenerationIntent,
+  GenerationPlanningReceipt,
   GenerationSlotPlan,
   ViableGenerationPlan,
 } from "@shared/generationPlan";
@@ -169,6 +171,7 @@ export function buildHeuristicGenerationPlan(
         slideCount,
         slotRequiresPhoto,
         slotForbidsPhoto,
+        surfaceAwareCaption: input.neutrality?.planningVersion === 3,
       });
       if (attemptPlan) {
         viablePlan = attemptPlan;
@@ -201,7 +204,79 @@ export function buildHeuristicGenerationPlan(
 /** A family gets one judgment, regardless of how many root compositions it owns.
  * Concrete sources and their children are only considered after that election. */
 function buildFamilyFirstGenerationPlan(input: HeuristicPlanBuilderInput): HeuristicPlanResult {
+  return inspectFamilyPlans(input);
+}
+
+type ViableFamily = { family: string; score: number; plan: ViableGenerationPlan; axes: FamilyAxes; repertoire: DesignFamilyRepertoire };
+const recentProposalFamilies = (recent: RecentDesignSelection[] = []) => new Set(recent.slice(0, PROPOSAL_SELECTION_POLICY.recentRequests)
+  .flatMap(run => run.selections.map(choice => choice.family)));
+
+function rankProposalFamilies(candidates: ViableFamily[], best: number, peers: FamilyAxes[], recent: Set<string>, seed: string, creativeFlexibility = false) {
+  const distance = (axes: FamilyAxes) => peers.length ? Math.min(...peers.map(peer => familyDistance(axes, peer))) : 0;
+  return candidates.filter(f => creativeFlexibility || best - f.score <= PROPOSAL_SELECTION_POLICY.suitabilityGap + 1e-9)
+    .sort((a, b) => (creativeFlexibility
+      ? (b.score + .25 * distance(b.axes) - .1 * Number(recent.has(b.family))) - (a.score + .25 * distance(a.axes) - .1 * Number(recent.has(a.family)))
+      : distance(b.axes) - distance(a.axes) || Number(recent.has(a.family)) - Number(recent.has(b.family)))
+      || b.score - a.score
+      || familyTie(seed, a.family).localeCompare(familyTie(seed, b.family)));
+}
+
+export function distinctProposalRecovery(input: HeuristicPlanBuilderInput, offers: Array<CompleteDesignOfferV1 | null>) {
+  const occupied = new Set(offers.flatMap(offer => offer ? [offer.family] : []));
+  const recent = recentProposalFamilies(input.recentSelections);
+  const alternatives: DesignFamilyRepertoire[][] = [[], [], []];
+  if (!occupied.size || !input.neutrality) return alternatives;
+  inspectFamilyPlans(input, (slot, viable) => {
+    if (!offers[slot]) return;
+    const unused = viable.filter(f => !occupied.has(f.family));
+    const peers = slot === 2 ? offers.slice(0, 2).flatMap(offer => offer ? [familyAxes(offer.slides[0].card)] : []) : [];
+    const best = Math.max(-Infinity, ...(peers.length === 2 ? viable : unused).map(f => f.score));
+    alternatives[slot] = rankProposalFamilies(unused, best, peers.length === 2 ? peers : [], recent, input.neutrality!.seed, input.neutrality?.creativeFlexibility === 1)
+      .slice(0, 2).map(f => f.repertoire);
+  });
+  return alternatives;
+}
+
+/** Give each reserve one owner so parallel retries cannot deliver the same design. */
+export function deliveryProposalReserves(input: HeuristicPlanBuilderInput, offers: Array<CompleteDesignOfferV1 | null>) {
+  const reserves: NonNullable<GenerationPlanningReceipt["deliveryReserves"]> = [[], [], []];
+  const occupied = new Set(offers.flatMap(offer => offer ? [offer.family] : []));
+  const assessed = new Set(input.shortlist.evaluated.map(result => result.id));
+  const viableBySlot: ViableFamily[][] = [];
+  inspectFamilyPlans(input, (slot, viable) => {
+    viableBySlot[slot] = viable.filter(candidate => !occupied.has(candidate.family))
+      .sort((a, b) => Number(assessed.has(b.plan.candidateId)) - Number(assessed.has(a.plan.candidateId))
+        || b.score - a.score
+        || familyTie(input.neutrality!.seed, a.family).localeCompare(familyTie(input.neutrality!.seed, b.family)));
+  });
+  const active = offers.flatMap((offer, slot) => offer ? [slot] : []);
+  // When the shortlist cannot produce even one plan, rescue a first delivery.
+  if (!active.length) {
+    const slot = viableBySlot.findIndex(viable => viable.length > 0);
+    if (slot >= 0) active.push(slot);
+  }
+  let assigned = true;
+  while (assigned) {
+    assigned = false;
+    for (const slot of active) {
+      const candidate = viableBySlot[slot].find(item => !occupied.has(item.family));
+      if (!candidate) continue;
+      occupied.add(candidate.family);
+      assigned = true;
+      const offer = materializeDesignFamilyOffer(candidate.repertoire, candidate.plan.pages.map(page => page.componentId));
+      reserves[slot].push({ family: candidate.family, plan: candidate.plan, componentHashes: offer.slides.map(slide => slide.componentHash) });
+    }
+  }
+  return reserves;
+}
+
+export function buildDistinctProposalReplacement(input: HeuristicPlanBuilderInput, slot: number): GenerationSlotPlan {
+  return inspectFamilyPlans(input, undefined, [slot]).slots[0];
+}
+
+function inspectFamilyPlans(input: HeuristicPlanBuilderInput, onViable?: (slot: number, families: ViableFamily[]) => void, targetSlots = [0, 1, 2]): HeuristicPlanResult {
   const { intent, eligible, shortlist, imageObligation, requestedPhotoMix, slideCount, recentSelections = [] } = input;
+  const distinct = input.neutrality?.proposalSelectionVersion === PROPOSAL_SELECTION_POLICY.version;
   const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
   const evaluations = new Map(shortlist.evaluated.map(e => [e.id, e]));
   const groups = new Map<string, DesignFamilyRepertoire[]>();
@@ -218,13 +293,24 @@ function buildFamilyFirstGenerationPlan(input: HeuristicPlanBuilderInput): Heuri
     const effectiveScore = (assessment?.score ?? 2.5) * (0.5 + 0.5 * (assessment?.confidence ?? 0.8));
     const familyPenalty = recentSelections.slice(0, 5).reduce((penalty, run, index) =>
       Math.max(penalty, run.selections.some(choice => choice.family === family) ? 0.22 / (index + 1) : 0), 0);
-    return { family, members, adjustedScore: effectiveScore - familyPenalty };
+    return { family, members, effectiveScore, adjustedScore: effectiveScore - familyPenalty };
   }).sort((a, b) => b.adjustedScore - a.adjustedScore || (input.neutrality ? familyTie(input.neutrality.seed,a.family).localeCompare(familyTie(input.neutrality.seed,b.family)) : compare(a.family, b.family)));
   const chosenFamilies = new Set<string>();
+  const chosenAxes: FamilyAxes[] = [];
+  const recentFamilies = recentProposalFamilies(recentSelections);
   const rejected = new Set<string>();
   const slots: GenerationSlotPlan[] = [];
+  const viableBySlot = new Map<number, ViableFamily[]>();
+  const insufficient = (slot: number): GenerationSlotPlan => ({
+    slot,
+    status: "insufficient_fit",
+    reason: distinct
+      ? "Não há outra direção visual com adequação suficiente para esta proposta."
+      : "Não foi possível compor uma sequência válida de lâminas com as capacidades das famílias elegíveis.",
+    unmetRequirementIds: intent.requirements.map(r => r.id),
+  });
 
-  for (let slot = 0; slot < 3; slot++) {
+  for (const slot of targetSlots) {
     const slotRequiresPhoto = requestedPhotoMix ? slot < 2 : imageObligation.required;
     const slotForbidsPhoto = requestedPhotoMix ? slot === 2 : imageObligation.policy === "forbidden";
     const mediaKey = `${slotRequiresPhoto}:${slotForbidsPhoto}`;
@@ -233,8 +319,9 @@ function buildFamilyFirstGenerationPlan(input: HeuristicPlanBuilderInput): Heuri
       ...families.filter(f => chosenFamilies.has(f.family)),
     ];
     let selected: ViableGenerationPlan | null = null;
+    const viableFamilies: ViableFamily[] = [];
     for (const family of orderedFamilies) {
-      const viable: Array<{ plan: ViableGenerationPlan; fit: number; recency: number }> = [];
+      const viable: Array<{ plan: ViableGenerationPlan; fit: number; recency: number; cover: ComponentCardV1; repertoire: DesignFamilyRepertoire }> = [];
       for (const repertoire of family.members) {
         const key = `${repertoire.defaultOffer.offerId}:${mediaKey}`;
         if (rejected.has(key)) continue;
@@ -245,33 +332,74 @@ function buildFamilyFirstGenerationPlan(input: HeuristicPlanBuilderInput): Heuri
         let fit = 0;
         const plan = buildSlotPagesAndAssignments({
           slot, repertoire, intent, slideCount, slotRequiresPhoto, slotForbidsPhoto,
+          surfaceAwareCaption: input.neutrality?.planningVersion === 3,
           compositionSelection: {
             recentSelections,
             neutral: Boolean(input.neutrality),
-            keepClosingSeparate: input.neutrality?.planningVersion===2,
+            keepClosingSeparate: (input.neutrality?.planningVersion ?? 0) >= 2,
             onFit: value => { fit = value; },
           },
         });
         if (!plan) { rejected.add(key); continue; }
         const selectedCards = plan.pages.map(page =>
           repertoire.slides[page.slideIndex].variants.find(card => card.id === page.componentId)!);
+        if (distinct && slotRequiresPhoto && selectedCards.reduce((n, card) => n + card.mediaSlots.length, 0) < Math.max(1, imageObligation.slotTargets)) {
+          rejected.add(key);
+          continue;
+        }
         // Only the concrete sequence receives an exact-component history penalty.
         const recency = Math.max(0, ...selectedCards.map(card => designRecencyPenalty(card, recentSelections)));
-        viable.push({ plan, fit, recency });
+        viable.push({ plan, fit, recency, cover: selectedCards[0], repertoire });
       }
       viable.sort((a, b) => b.fit - a.fit || a.recency - b.recency || compare(a.plan.candidateId, b.plan.candidateId));
       if (viable.length) {
+        if (distinct) {
+          const choice = viable[0];
+          viableFamilies.push({ family: family.family, score: family.effectiveScore, plan: choice.plan, axes: familyAxes(choice.cover), repertoire: choice.repertoire });
+          continue;
+        }
         selected = viable[0].plan;
         chosenFamilies.add(family.family);
         break;
       }
     }
-    slots.push(selected ?? {
-      slot,
-      status: "insufficient_fit",
-      reason: "Não foi possível compor uma sequência válida de lâminas com as capacidades das famílias elegíveis.",
-      unmetRequirementIds: intent.requirements.map(r => r.id),
-    });
+    if (distinct) {
+      onViable?.(slot, viableFamilies);
+      viableBySlot.set(slot, viableFamilies);
+    } else {
+      slots.push(selected ?? insufficient(slot));
+    }
+  }
+
+  for (const slot of distinct ? targetSlots : []) {
+    const viableFamilies = viableBySlot.get(slot)!;
+    const unused = viableFamilies.filter(f => !chosenFamilies.has(f.family));
+    // Compare with the best family for these requirements, including families
+    // already chosen that could also have filled this slot.
+    const visualAlternative = slot === 2 && chosenAxes.length === 2;
+    const best = Math.max(-Infinity, ...(visualAlternative ? viableFamilies : unused).map(f => f.score));
+    const ranked = rankProposalFamilies(unused, best, visualAlternative ? chosenAxes : [], recentFamilies, input.neutrality!.seed, input.neutrality?.creativeFlexibility === 1);
+    // In a mixed request, a flexible photo family may also be the only family
+    // that can fill the photo-free slot. Preserve that choice when fit is similar.
+    const coverage = (family: string, next: number, used: Set<string>): number => {
+      if (!viableBySlot.has(next)) return 0;
+      const reserved = new Set([...Array.from(used), family]);
+      const viable = viableBySlot.get(next)!;
+      const unused = viable.filter(f => !reserved.has(f.family));
+      const ceiling = Math.max(-Infinity, ...(next === 2 && reserved.size === 2 ? viable : unused).map(f => f.score));
+      const remaining = unused.filter(f => input.neutrality?.creativeFlexibility === 1 || ceiling - f.score <= PROPOSAL_SELECTION_POLICY.suitabilityGap + 1e-9);
+      return remaining.length ? Math.max(...remaining.map(f => 1 + coverage(f.family, next + 1, reserved))) : coverage(family, next + 1, used);
+    };
+    if (requestedPhotoMix && slot < 2 && ranked.length > 1)
+      ranked.sort((a, b) => coverage(b.family, slot + 1, chosenFamilies) - coverage(a.family, slot + 1, chosenFamilies));
+    const choice = ranked[0];
+    if (!choice) { slots.push(insufficient(slot)); continue; }
+    const isDifferent = visualAlternative && chosenAxes.every(peer => familyDistance(choice.axes, peer) > 0);
+    chosenFamilies.add(choice.family);
+    chosenAxes.push(choice.axes);
+    slots.push({ ...choice.plan, reason: isDifferent
+      ? "Alternativa visual compatível com o briefing, escolhida pela diferença em relação às outras propostas."
+      : "Composição escolhida por sua adequação ao briefing, ao conteúdo e à mídia solicitada." });
   }
   return { version: 1, slots };
 }
@@ -286,6 +414,7 @@ function buildSlotPagesAndAssignments(input: {
   slideCount: number;
   slotRequiresPhoto: boolean;
   slotForbidsPhoto: boolean;
+  surfaceAwareCaption?: boolean;
   compositionSelection?: {
     recentSelections: RecentDesignSelection[];
     onFit: (score: number) => void;
@@ -300,10 +429,22 @@ function buildSlotPagesAndAssignments(input: {
     slideCount,
     slotRequiresPhoto,
     slotForbidsPhoto,
+    surfaceAwareCaption,
     compositionSelection,
   } = input;
 
-  const contentItems = intent.content;
+  const explicitSurfaceIds = (surface: "art" | "caption") => new Set(
+    intent.requirements.filter(requirement => requirement.origin === "explicit" &&
+      requirement.kind !== "execution" && requirement.surface === surface).map(requirement => requirement.id)
+  );
+  const captionRequirements = explicitSurfaceIds("caption");
+  const artRequirements = explicitSurfaceIds("art");
+  const captionContent = new Set(surfaceAwareCaption
+    ? intent.content.filter(item => item.requirementIds.some(id => captionRequirements.has(id))).map(item => item.id)
+    : []);
+  const contentItems = intent.content.filter(item =>
+    !captionContent.has(item.id) || item.requirementIds.some(id => artRequirements.has(id))
+  );
   if (!contentItems.length) return null;
 
   // Distribuir os conteúdos por slide:
@@ -321,7 +462,8 @@ function buildSlotPagesAndAssignments(input: {
     contentPerSlide[0] = [contentItems[0].id];
 
     // Slides intermediários
-    const closing = compositionSelection?.keepClosingSeparate && contentItems.length > 2 ? contentItems.at(-1) : undefined;
+    const closing = (compositionSelection?.keepClosingSeparate || surfaceAwareCaption) && contentItems.length > 2
+      ? contentItems.at(-1) : undefined;
     if (closing) contentPerSlide[slideCount - 1] = [closing.id];
     const remainingItems = contentItems.slice(1, closing ? -1 : undefined);
     const devSlideCount = Math.max(1, slideCount - 2);
@@ -544,7 +686,7 @@ function buildSlotPagesAndAssignments(input: {
 
   // Conteúdos para a legenda (caption)
   // Inclui conteúdos não exibidos na arte e garante cobertura de requisitos explícitos
-  const captionContentIds: string[] = [];
+  const captionContentIds = Array.from(captionContent);
   for (const c of contentItems) {
     if (!usedContentIds.has(c.id)) {
       captionContentIds.push(c.id);

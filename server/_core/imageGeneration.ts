@@ -39,6 +39,7 @@ export async function generateImage(
   const dataUri = options.routePolicy === "strict"
     ? await generateBackgroundImage(prompt, "pollinations_hd", options.aspectRatio, {
         routePolicy: "strict",
+        ...(options.postContext?.editorialPromptVersion === 1 ? {editorialPromptVersion: 1 as const, maxOutputTokens: 4096} : {}),
         purpose: options.purpose,
         originalImages: options.originalImages,
         signal: options.signal,

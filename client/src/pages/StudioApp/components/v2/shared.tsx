@@ -375,7 +375,7 @@ export function ProductionOverlay({ prompt }: { prompt: string }) {
         </p>
 
         <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/65">
-          Criamos e revisamos três propostas. Esse cuidado pode levar alguns minutos.
+          Criamos e revisamos até três propostas. Esse cuidado pode levar alguns minutos.
         </p>
         <div className="mt-7 w-64 max-w-full">
           <p className="mb-2 text-[10px] uppercase tracking-widest text-white/45">Preparando o acompanhamento</p>

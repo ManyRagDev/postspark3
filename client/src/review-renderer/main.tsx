@@ -8,7 +8,7 @@ import {
 } from "../pages/CanvasLab/components/CanvasPostStage";
 import { INITIAL_POST } from "../pages/CanvasLab/components/types";
 import { putArsenalComposition } from "../pages/CanvasLab/lib/arsenalComposition";
-import { installArsenalFontBytes } from "../pages/CanvasLab/lib/arsenalAssets";
+import { installArsenalFontBytes, installArsenalImageBytes } from "../pages/CanvasLab/lib/arsenalAssets";
 
 // This entry point has no session, API credentials, editor controls or network access.
 // It paints the same authoritative composition and exports through the editor itself.
@@ -16,11 +16,18 @@ const root = createRoot(document.getElementById("root")!);
 async function render(input: {
   composition: ArsenalComposition;
   fonts: Array<{ asset: ArsenalAsset; base64: string }>;
+  originalImages?: Array<{ asset: ArsenalAsset; base64: string }>;
 }) {
   await Promise.all(
     input.fonts.map(({ asset, base64 }) => {
       const bytes = Uint8Array.from(atob(base64), char => char.charCodeAt(0));
       return installArsenalFontBytes(asset, bytes.buffer);
+    })
+  );
+  await Promise.all(
+    (input.originalImages ?? []).map(({ asset, base64 }) => {
+      const bytes = Uint8Array.from(atob(base64), char => char.charCodeAt(0));
+      return installArsenalImageBytes(asset, bytes.buffer);
     })
   );
   const scene = input.composition;

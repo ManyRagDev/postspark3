@@ -763,6 +763,7 @@ export interface PostGenerationResult {
 export type GenerationFailureReason =
   | "insufficient_sparks"
   | "authentication"
+  | "provider_route_unavailable"
   | "provider_unavailable"
   | "provider_timeout"
   | "invalid_provider_response"
@@ -771,6 +772,7 @@ export type GenerationFailureReason =
   | "variations_not_distinct"
   | "persistence_failed"
   | "billing_commit_failed"
+  | "generation_paused"
   | "unknown";
 
 /** Metadados estruturados expostos ao cliente junto a uma falha de geração. */
@@ -798,6 +800,7 @@ export interface GenerationProvenance {
 export const GENERATION_FAILURE_REASONS: GenerationFailureReason[] = [
   "insufficient_sparks",
   "authentication",
+  "provider_route_unavailable",
   "provider_unavailable",
   "provider_timeout",
   "invalid_provider_response",
@@ -806,6 +809,7 @@ export const GENERATION_FAILURE_REASONS: GenerationFailureReason[] = [
   "variations_not_distinct",
   "persistence_failed",
   "billing_commit_failed",
+  "generation_paused",
   "unknown",
 ];
 

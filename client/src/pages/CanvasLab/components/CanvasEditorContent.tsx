@@ -6,7 +6,7 @@ import {
   type VisualFamilyId,
 } from "./types";
 import type { MediaUpdate } from "../lib/mediaSlots";
-import { BACKGROUND_SLOT } from "../lib/mediaSlots";
+import { BACKGROUND_SLOT, mediaTargets } from "../lib/mediaSlots";
 import { registerUserFont, validateFontFile } from "../lib/fontResources";
 import { preflightSavePayload } from "../lib/savePreflight";
 import FontPickerDropdown from "./FontPickerDropdown";
@@ -524,6 +524,7 @@ export function CanvasMediaPanel({
   mode = "replace",
   backgroundColor,
   onBackgroundColorChange,
+  onOpenReplacement,
   children,
 }: {
   post: CanvasPostModel;
@@ -534,6 +535,7 @@ export function CanvasMediaPanel({
   mode?: "add" | "background" | "replace";
   backgroundColor?: string;
   onBackgroundColorChange?: (color: string) => void;
+  onOpenReplacement?: (id: string) => void;
   children?: ReactNode;
   onAddExtraImage?: (
     url: string,
@@ -552,6 +554,12 @@ export function CanvasMediaPanel({
   }, []);
   return (
     <div className="space-y-4">
+      {onOpenReplacement && mediaTargets(post).filter(target => target.replacement).map(target => (
+        <button key={target.id} type="button" className={button + " w-full"}
+          onClick={() => onOpenReplacement(target.id)}>
+          {target.label}
+        </button>
+      ))}
       {mode === "background" && backgroundColor && onBackgroundColorChange && (
         <label className={label}>
           Cor de fundo

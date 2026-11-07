@@ -41,6 +41,11 @@ export interface CampaignStop {
   operation?: string;
   requiredUsd?: number;
 }
+
+export function blocksCampaign(stop: CampaignStop | undefined, limitsSuspended: boolean): boolean {
+  if (!stop) return false;
+  return !limitsSuspended || (stop.reason !== "budget_exhausted" && stop.reason !== "cost_exceeded_reservation");
+}
 /** Conservative pre-dispatch reservation; model prices are fetched and pinned by the operator run. */
 export function reserveQuote(
   payload: Record<string, any>,
@@ -120,7 +125,8 @@ export class MatrixBudget {
     readonly maxCalls: number,
     readonly calls: PaidCall[],
     private persist: (calls: PaidCall[]) => Promise<void>,
-    private accounting?: SharedAccounting
+    private accounting?: SharedAccounting,
+    private suspendLimits?: () => Promise<boolean>
   ) {
     if (
       !Number.isFinite(maxUsd) ||
@@ -158,12 +164,12 @@ export class MatrixBudget {
   }
   async canPrepare(minimumUsd: number) {
     return this.locked(async () => {
+      const limitsSuspended = await this.suspendLimits?.() ?? false;
       if (
-        this.stopped ||
+        blocksCampaign(this.stopped, limitsSuspended) ||
         !Number.isFinite(minimumUsd) ||
         minimumUsd < 0 ||
-        this.calls.length >= this.maxCalls ||
-        this.committedUsd + minimumUsd > this.maxUsd
+        (!limitsSuspended && (this.calls.length >= this.maxCalls || this.committedUsd + minimumUsd > this.maxUsd))
       ) {
         this.stop("budget_exhausted", minimumUsd);
         await this.persist(this.calls);
@@ -222,17 +228,18 @@ export class MatrixBudget {
       operation = paidOperationScope.getStore() ?? "unscoped";
     // Serialize durable accounting only. Provider concurrency and its deadlines
     // must remain those of the production coordinator, with no artificial queue.
-    const call = await this.locked(async () => {
+    const { call, limitsSuspended } = await this.locked(async () => {
       signal?.throwIfAborted();
-      if (this.stopped) {
+      const limitsSuspended = await this.suspendLimits?.() ?? false;
+      signal?.throwIfAborted();
+      if (blocksCampaign(this.stopped, limitsSuspended)) {
         await this.persist(this.calls);
-        throw new Error(`comparison_campaign_stopped:${this.stopped.reason}`);
+        throw new Error(`comparison_campaign_stopped:${this.stopped?.reason}`);
       }
       if (
-        this.calls.length >= this.maxCalls ||
         !Number.isFinite(reserveUsd) ||
         reserveUsd < 0 ||
-        this.committedUsd + reserveUsd > this.maxUsd
+        (!limitsSuspended && (this.calls.length >= this.maxCalls || this.committedUsd + reserveUsd > this.maxUsd))
       ) {
         this.stop("budget_exhausted", reserveUsd);
         await this.persist(this.calls);
@@ -251,7 +258,7 @@ export class MatrixBudget {
       };
       this.calls.push(call);
       await this.persist(this.calls); // Reserve durably before transmission; a crash does not free uncertain spend.
-      return call;
+      return { call, limitsSuspended };
     });
     const start = Date.now();
     try {
@@ -271,10 +278,10 @@ export class MatrixBudget {
           response.actualUsd >= 0
         )
           call.actualUsd = response.actualUsd;
-        if (
+        if (!limitsSuspended && (
           (call.actualUsd ?? 0) > reserveUsd ||
           this.committedUsd > this.maxUsd
-        )
+        ))
           this.stop("cost_exceeded_reservation");
         await this.persist(this.calls);
       });
@@ -359,8 +366,19 @@ export function installMatrixTransport(
     if (!quote) throw new Error(`unquoted_model:${payload.model}`);
     const systemOne = url.pathname.endsWith("/systemone");
     const bound = reserveQuote(payload, quote, systemOne);
-    if (!systemOne)
-      payload.provider = { ...payload.provider, max_price: bound.maxPrice };
+    if (!systemOne) {
+      // Reservation may use a higher context tier; it must never relax the
+      // application's separately pinned endpoint acceptance price.
+      const requested = payload.provider?.max_price ?? {};
+      const maxPrice = { ...requested, ...bound.maxPrice };
+      for (const key of ["prompt", "completion"] as const) {
+        if (requested[key] === undefined) continue;
+        const limit = Number(requested[key]);
+        if (!Number.isFinite(limit) || limit < 0) throw new Error("invalid_requested_max_price");
+        maxPrice[key] = Math.min(bound.maxPrice[key], limit);
+      }
+      payload.provider = { ...payload.provider, max_price: maxPrice };
+    }
     const invoke = () =>
       budget.run(
         payload.model,

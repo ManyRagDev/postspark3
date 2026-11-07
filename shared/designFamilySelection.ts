@@ -10,6 +10,8 @@ type CountRange = { min: number; max: number };
  * for the subsequent choice; this profile cannot prescribe a slide sequence. */
 export interface FamilySelectionProfile {
   version: 4 | 5;
+  /** New automatic transport: expressive description only, no catalogue vocabulary. */
+  compactAssessment?: true;
   kind: "editorial_family";
   family: string;
   description?: string;
@@ -141,7 +143,8 @@ function describeFamily(
 export function buildFamilySelectionCandidates(
   repertoires: DesignFamilyRepertoire[],
   catalog: FrozenEditorialCatalog | null = null,
-  neutral = false
+  neutral = false,
+  compactAssessment = false
 ): FamilySelectionCandidate[] {
   const groups = new Map<string, Map<string, DesignFamilyRepertoire>>();
   for (const repertoire of repertoires) {
@@ -163,6 +166,7 @@ export function buildFamilySelectionCandidates(
       profile.aesthetic={languages:[axes.organization],treatments:[axes.typography],motifs:[],fonts:[],densities:[axes.density],identity:{essential:Object.entries(axes).map(([k,v])=>`${k}: ${v}`),optional:[],adaptable:[]}};
       profile.editorial.rationales=[];
     }
+    if (compactAssessment) profile.compactAssessment = true;
     const signature = arsenalHash({
       version: 1,
       family,
@@ -175,6 +179,8 @@ export function buildFamilySelectionCandidates(
 
 /** The judge sees capabilities, not inventory or reserve capacity. Exact counts stay local. */
 export function familyAssessmentProfile(profile:FamilySelectionProfile) {
+  if (profile.compactAssessment) return { version: 5 as const, kind: profile.kind, family: profile.family,
+    description: profile.description, characteristics: profile.aesthetic.identity.essential };
   if(profile.version===4)return profile;
   return {
     version:5 as const,kind:profile.kind,family:profile.family,description:profile.description,

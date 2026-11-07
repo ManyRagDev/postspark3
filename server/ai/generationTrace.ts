@@ -108,6 +108,18 @@ export async function loadPersistedGenerationCalls(
   return Array.from(unique.values());
 }
 
+/** Reported and estimated costs stay distinct; absent provider usage is not a zero bill. */
+export function summarizeGenerationCallCosts(calls: LlmTraceCall[]) {
+  const valid = (call: LlmTraceCall) => Number.isFinite(call.estimatedCostUsd) && call.estimatedCostUsd >= 0;
+  const reported = calls.filter(call => call.costSource === "provider" && valid(call));
+  const estimated = calls.filter(call => (call.costSource === "estimate" || (!call.costSource && !call.error)) && valid(call));
+  return {
+    knownProviderCostUsd: reported.length ? reported.reduce((sum, call) => sum + call.estimatedCostUsd, 0) : null,
+    estimatedOnlyCostUsd: estimated.length ? estimated.reduce((sum, call) => sum + call.estimatedCostUsd, 0) : null,
+    unknownCostCallCount: calls.length - reported.length - estimated.length,
+  };
+}
+
 /** Small durable operational evidence, independent of prompt/content retention. */
 export function buildGenerationDiagnosticSummary(trace: GenerationTrace) {
   const summary = trace.events.findLast(e => e.stage === "generation_metrics" && e.detail === "journal_summary")?.data as Record<string, unknown> | undefined;
@@ -115,6 +127,11 @@ export function buildGenerationDiagnosticSummary(trace: GenerationTrace) {
     trace.calls.filter(c => c.costSource === "unknown" || c.error && !c.providerId).map(c => c.operationKey ?? c.label);
   return {
     version: 1, requestedModel: trace.requestedModel, generationStrategyVersion: trace.generationStrategyVersion,
+    ...summarizeGenerationCallCosts(trace.calls),
+    ...Object.fromEntries(Object.entries(summary ?? {}).filter(([key]) => [
+      "deliveredCount", "failedCount", "cancelledCount", "pendingCount", "completedThree",
+      "localNormalizedReviewCount", "localRecoveredProposalCount",
+    ].includes(key))),
     costComplete: unknown.length === 0, unknownCostOperations: Array.from(new Set(unknown)),
     knownOrEstimatedCostUsd: trace.calls.reduce((n, c) => n + c.estimatedCostUsd, 0),
     failures: trace.calls.filter(c => c.error).map(c => ({ operationKey: c.operationKey, label: c.label,

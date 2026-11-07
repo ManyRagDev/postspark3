@@ -60,6 +60,21 @@ function makeDb(responses: Record<string, unknown> = {}) {
 }
 
 describe("durable generation store", () => {
+  it("requires the V2 readiness overload before new automatic admission", async () => {
+    const { db, rpc } = makeDb({ generation_task_routing_available: true });
+    expect(await createGenerationStore(db).isTaskRoutingAvailable()).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("generation_task_routing_available", { p_version: 2 });
+    const missing = vi.fn(async () => ({ data: null, error: { message: "function overload not found", code: "PGRST202" } }));
+    expect(await createGenerationStore({ rpc: missing } as any).isTaskRoutingAvailable()).toBe(false);
+  });
+
+  it("checks exception review persistence before a new automatic request", async () => {
+    const { db, rpc } = makeDb({ generation_review_exceptions_available: true });
+    expect(await createGenerationStore(db).isReviewExceptionsAvailable()).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("generation_review_exceptions_available", {});
+    expect(await createGenerationStore(makeDb().db).isReviewExceptionsAvailable()).toBe(false);
+  });
+
   it("admits with a stable request/run id and the persisted 10 minute deadline", async () => {
     const { db, rpc } = makeDb({
       generation_admit: { ...row(), created: true },

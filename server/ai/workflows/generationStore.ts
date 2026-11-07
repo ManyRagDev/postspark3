@@ -97,6 +97,8 @@ export interface GenerationOperationRecord {
 
 export interface GenerationStore {
   isPreparationAvailable?: () => Promise<boolean>;
+  isTaskRoutingAvailable?: () => Promise<boolean>;
+  isReviewExceptionsAvailable?: () => Promise<boolean>;
   persistPreparationExpectation?:(id:string,lease:string,key:string,expectation:import("@shared/generationPreparationReceipt").PreparationExpectation)=>Promise<void>;
   persistReviewExpectation?:(id:string,lease:string,key:string,expectation:unknown)=>Promise<void>;
   admission(input: {
@@ -322,6 +324,8 @@ export function createGenerationStore(
   }
 
   return {
+    async isReviewExceptionsAvailable(){ try { return await rpc("generation_review_exceptions_available", {}) === true; } catch { return false; } },
+    async isTaskRoutingAvailable(){ try { return await rpc("generation_task_routing_available", { p_version: 2 }) === true; } catch { return false; } },
     async isPreparationAvailable(){ try { return await rpc("generation_preparation_available", {}) === true; } catch { return false; } },
     async persistReviewExpectation(id,lease,key,expectation){await rpc("generation_review_expectation",{p_id:id,p_lease:lease,p_key:key,p_expectation:expectation});},
     async persistPreparationExpectation(id,lease,key,expectation){await rpc("generation_preparation_expectation",{p_id:id,p_lease:lease,p_key:key,p_expectation:expectation});},

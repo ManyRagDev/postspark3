@@ -71,14 +71,33 @@ async function prepare(
     | "viable"
     | "insufficient_fit"
     | "unknown_candidate"
-    | "unknown_component" = "viable"
+    | "unknown_component" = "viable",
+  portalBrief?: string
 ) {
+  const cards = portalBrief ? definitions.map((definition, index) => index === 0
+    ? createComponentDefinition({
+        ...definition,
+        completeDesign: {
+          ...definition.completeDesign!,
+          designGuidance: {
+            version: 1,
+            summary: "Portal luminoso",
+            motifs: [],
+            preserve: [],
+            contentRules: [],
+            mediaRules: [],
+            knownLimitations: [],
+            visualFeatures: { chromaticPortal: ["arch", "background"] },
+          },
+        },
+      })
+    : definition) : definitions;
   const calls: InvokeParams[] = [];
   const journal = new Map<string, unknown>();
   const input = orchestratedGenerationInputSchema.parse({
     ownerId: owner,
     inputType: "text",
-    content: "Explique como planejar diante de riscos",
+    content: portalBrief ?? "Explique como planejar diante de riscos",
     platform: "instagram",
     postMode: "static",
     idempotencyKey: "planning",
@@ -113,7 +132,7 @@ async function prepare(
                   unmetRequirementIds: [],
                 }
               : {
-                  ...option(data.catalog[slot], slot),
+                  ...option(data.catalog[portalBrief ? 0 : slot], slot),
                   ...(slot === 0 && status === "unknown_candidate"
                     ? { candidateId: "00000000-0000-4000-8000-000000009999" }
                     : {}),
@@ -135,7 +154,7 @@ async function prepare(
     } as any;
   });
   const hydrate = vi.fn(async (ids: string[]) =>
-    definitions.filter(d => ids.includes(d.id))
+    cards.filter(d => ids.includes(d.id))
   );
   const operation = async <T>(key: string, work: () => Promise<T>) => {
     if (!journal.has(key)) journal.set(key, await work());
@@ -149,7 +168,7 @@ async function prepare(
     operation,
     loadContext: async () => input.content,
     preferences: async () => defaultStudioPreferences,
-    retrieve: async () => definitions.map(compactComponentCard),
+    retrieve: async () => cards.map(compactComponentCard),
     shortlist: vi.fn(async ({ cards }: any) => ({
       cards,
       evaluated: [],
@@ -170,6 +189,14 @@ async function prepare(
 }
 
 describe("planned generation integration", () => {
+  it("offers only portal designs when the creator explicitly requires a chromatic portal", async () => {
+    const { prepared, deps } = await prepare("viable",
+      "Destaque a frase sobre experimentação. Quero portal luminoso com transição cromática no fundo. Sem fotografia.");
+    expect(prepared.planning?.visualRequirements?.chromaticPortal?.quote).toContain("transição cromática");
+    expect(deps.shortlist.mock.calls[0][0].cards).toHaveLength(1);
+    expect(prepared.selectedDefinitions.flat().map(definition => definition.id)).toEqual([definitions[0].id, definitions[0].id]);
+    await expect(verifyPreparedEligibility(prepared, true, deps.hydrate)).resolves.toBeUndefined();
+  });
   it("pins native GPT for interpretation and visual plan, preserving viable siblings", async () => {
     const { prepared, calls, deps } = await prepare();
     expect(prepared.preparationVersion).toBe(6);

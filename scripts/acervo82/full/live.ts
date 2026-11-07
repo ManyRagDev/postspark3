@@ -1,4 +1,4 @@
-/** The single authorized paid campaign. All inference goes through the guarded local app. */
+/** All inference goes through the guarded local app and the configured campaign ledger. */
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -9,12 +9,15 @@ import {getDb} from '../../../server/db';
 import {inspectGenerationEvidence} from '../../../server/generationEvidence';
 import {readSharedBudget} from '../../../server/benchmarks/generationMatrix/sharedBudget';
 import {writeJson} from '../../../server/benchmarks/generationMatrix/journal';
+import {promptTrial} from './promptTrial.mjs';
 
 const json=async(file:string)=>JSON.parse(await fs.readFile(file,'utf8'));
 const stage=await json('artifacts/acervo82/full/staged.json');
 const config=await json(process.env.POSTSPARK_ACERVO82_PILOT_CONFIG??'.acervo82-local/full-catalog-01.json');
-assert.equal(config.authorization,'user-authorized-acervo82-full');assert.equal(stage.sources,82);assert.equal(stage.revision,config.revision);assert.equal(stage.identity,config.identity);
-const cases=await json('designs/acervo82/authored/live-cases.json');assert.equal(cases.length,12);
+const trial = config.authorization === promptTrial.authorization;
+assert.equal(config.authorization,trial?promptTrial.authorization:'user-authorized-acervo82-full');assert.equal(stage.sources,82);assert.equal(stage.revision,config.revision);assert.equal(stage.identity,config.identity);
+const cases=await json(trial ? promptTrial.casesFile : 'designs/acervo82/authored/live-cases.json');
+assert.equal(cases.length,trial?promptTrial.maxAdmissions:12);
 const requested=process.argv.slice(2),targets=requested.length?requested.map(id=>{const c=cases.find((c:any)=>c.id===id);assert(c,`Unknown case: ${id}`);return c;}):cases;
 const directory=path.dirname(config.budgetFile);
 const summaryPath=path.join(directory,'results.json');
@@ -24,7 +27,7 @@ const local=await openLocalApi(),{api}=local;assert.equal(local.actor,config.act
 const caps=await api.generation.capabilities.query();assert(caps.enabled&&'catalogRevision'in caps&&caps.catalogRevision===stage.revision,JSON.stringify(caps));
 const all=await api.catalog.acervo82Directory.query();assert.equal(all?.families.length,82);
 const db=getDb();
-const limit=async()=>{const budget=await readSharedBudget(config.budgetFile) as any,usd=budget.calls.reduce((total:number,call:any)=>total+(call.actualUsd??call.reservedUsd),0);return {admissions:budget.pilotRequests?.length??0,calls:budget.calls.length,usd,unknown:budget.calls.filter((call:any)=>call.actualUsd===undefined).length,stop:budget.interruption??(budget.calls.length>=240?'calls':usd>=10?'usd':(budget.pilotRequests?.length??0)>=12?'admissions':null)};};
+const limit=async()=>{const budget=await readSharedBudget(config.budgetFile) as any,usd=budget.calls.reduce((total:number,call:any)=>total+(call.actualUsd??call.reservedUsd),0);return {admissions:budget.pilotRequests?.length??0,calls:budget.calls.length,usd,unknown:budget.calls.filter((call:any)=>call.actualUsd===undefined).length,stop:budget.interruption??(budget.calls.length>=config.maxCalls?'calls':usd>=config.maxUsd?'usd':(budget.pilotRequests?.length??0)>=config.maxAdmissions?'admissions':null)};};
 try {
  for(const c of targets){
    const caseDir=path.join(directory,c.id);await fs.mkdir(caseDir,{recursive:true,mode:0o700});
@@ -32,7 +35,7 @@ try {
    let receipt=await json(receiptFile).catch(e=>{if(e.code==='ENOENT')return null;throw e;});
    if(result.cases[c.id]?.terminal)continue;
    if(!receipt?.requestId&&(await limit()).stop)break;
-   if(!receipt){receipt={case:c.id,idempotencyKey:`acervo82-full-${c.id}-${randomUUID()}`,catalogRevision:stage.revision};await fs.writeFile(receiptFile,JSON.stringify(receipt,null,2),{flag:'wx',mode:0o600});}
+   if(!receipt){receipt={case:c.id,idempotencyKey:trial?`acervo82-${promptTrial.session}-${c.id}`:`acervo82-full-${c.id}-${randomUUID()}`,catalogRevision:stage.revision};await fs.writeFile(receiptFile,JSON.stringify(receipt,null,2),{flag:'wx',mode:0o600});}
    try {
      if(!receipt.requestId){
        let value:string|undefined;

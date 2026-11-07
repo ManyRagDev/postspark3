@@ -6,7 +6,7 @@ import superjson from 'superjson';
 import type {AppRouter} from '../../../server/routers';
 import {readLocalEnvironment} from '../environment.mjs';
 
-export async function openLocalApi() {
+export async function openLocalApi(options: {port?: number} = {}) {
  const env=await readLocalEnvironment(process.cwd());
  const account=JSON.parse(await fs.readFile('.acervo82-local/test-account.json','utf8'));
  assert.equal(account.supabaseUrl,env.SUPABASE_URL);
@@ -14,7 +14,8 @@ export async function openLocalApi() {
  const signed=await auth.auth.signInWithPassword({email:account.email,password:account.password});
  if(signed.error)throw signed.error;
  assert.equal(signed.data.user.id,account.id);
- const app=`http://127.0.0.1:${env.PORT}`;
+ if(options.port!==undefined) assert(Number.isInteger(options.port)&&options.port>=1024&&options.port<=65535, 'invalid_local_port');
+ const app=`http://127.0.0.1:${options.port??env.PORT}`;
  const bridge=await fetch(`${app}/api/auth/supabase-session`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_token:signed.data.session.access_token})});
  assert.equal(bridge.status,200);
  const cookie=bridge.headers.get('set-cookie')!.split(';')[0];

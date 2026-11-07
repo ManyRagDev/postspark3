@@ -1,3 +1,5 @@
+import { compactGenerationIntentSchema, legacyAutomaticGenerationIntentSchema } from "@shared/compactGenerationIntent";
+import { resolveGenerationTaskModel } from "../generationModel";
 import { arsenalHash } from "@shared/arsenalContent";
 import { ENV } from "../../_core/env";
 import { getDb } from "../../db";
@@ -30,12 +32,12 @@ export function validateRecoveredPreparation(record: RequestRecord, operation: G
   if (record.prepared || record.generationConfig?.generationStrategyVersion !== 2 ||
       !["prepare:intent", "prepare:selection"].includes(operation.operationKey) ||
       expectation.configurationHash !== record.generationConfig.configurationHash ||
-      expectation.model !== record.generationConfig.model || recovered.model !== expectation.model ||
+      expectation.model !== resolveGenerationTaskModel(record.generationConfig, operation.operationKey === "prepare:intent" ? "intent" : "copy").model || recovered.model !== expectation.model ||
       arsenalHash(recovered.messages) !== expectation.messagesHash || !recovered.id ||
       !recovered.completion.trim() || recovered.completion.length > 500_000)
     throw new Error("Recovered preparation identity mismatch");
   const schemas = operation.operationKey === "prepare:intent"
-    ? record.generationConfig.editorialIntentVersion === 1
+    ? record.generationConfig.taskRouting ? [compactGenerationIntentSchema, legacyAutomaticGenerationIntentSchema] : record.generationConfig.editorialIntentVersion === 1
       ? [generationEditorialIntentSchema]
       : [
           generationIntentLegacySchema,
@@ -54,7 +56,7 @@ export function validateRecoveredPreparation(record: RequestRecord, operation: G
   if (!responseFormat)
     throw new Error("Recovered preparation schema mismatch");
   const adapted = adaptRequestForProvider({ provider: "openrouter", effectiveModel: expectation.model,
-    forceTextSchema: record.generationConfig.structuredOutputMode === "text_schema", messages: [], responseFormat });
+    forceTextSchema: record.generationConfig.structuredOutputMode === "text_schema", requireNativeSchema: Boolean(record.generationConfig.taskRouting), messages: [], responseFormat });
   const completion = adapted.normalizeResponseContent?.(recovered.completion) ?? recovered.completion;
   return preparationReceipt({ id: recovered.id, model: recovered.model,
     choices: [{ finish_reason: recovered.finishReason ?? null, message: { role: "assistant", content: completion } }],

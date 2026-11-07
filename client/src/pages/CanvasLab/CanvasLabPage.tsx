@@ -1850,6 +1850,10 @@ export default function CanvasLabPage({
               onMediaUpdate={handleMediaUpdate}
               mediaPreview={mediaPreview}
               onMediaPreview={setMediaPreview}
+              onOpenReplacement={elementId => {
+                setSelectedElementTarget({ slideId: curActiveSlide.id, elementId });
+                changeTool("media");
+              }}
               backgroundColor={String(
                 resolveEditorProperties(post, target).values.fill ||
                   currentViewPost.palette.background

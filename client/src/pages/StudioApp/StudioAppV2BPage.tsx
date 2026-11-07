@@ -106,6 +106,12 @@ interface MaterializationIssueState {
 function extractFailureMetadata(err: unknown): GenerationFailureMetadata {
   const data = (err as { data?: { generationFailure?: GenerationFailureMetadata; code?: string } } | undefined)?.data;
   if (data?.generationFailure) return data.generationFailure;
+  if (err instanceof Error && ["manual_session_limit", "pipeline_reconfiguration_required"].includes(err.message)) {
+    return {
+      generationRunId: "not-admitted", reason: "generation_paused", retryable: false,
+      userMessage: labelGenerationCapabilityReason(err.message),
+    };
+  }
   const reason = classifyGenerationError(data?.code ? { code: data.code, message: err instanceof Error ? err.message : "" } : err);
   return {
     generationRunId: "client-unclassified",
@@ -173,10 +179,17 @@ export default function StudioAppV2BPage() {
     { requestId: activeGenerationRequestId ?? "00000000-0000-0000-0000-000000000000" },
     {
       enabled: Boolean(activeGenerationRequestId),
-      refetchInterval: query => ['running','awaiting_reconciliation'].includes(query.state.data?.snapshot.overallStatus??'') && (query.state.data?.progressTransport==='poll'||(!import.meta.env.DEV&&query.state.data?.progressTransport!=='events')) ? 1500 : false,
+      refetchInterval: query => {
+        const response = query.state.data;
+        const status = response?.snapshot.overallStatus ?? generationSnapshot?.overallStatus;
+        if (!response?.billingPending && status !== "running" && status !== "awaiting_reconciliation") return false;
+        // A connected stream can still miss a worker exit or a deadline.
+        return response?.progressTransport === "poll" ? 1500 : 15000;
+      },
       retry: false,
     },
   );
+  const dispatchInterrupted = Boolean(activeGenerationQuery.data?.dispatchError && generationSnapshot?.overallStatus === "running");
   const generationEvents = useGenerationEvents(activeGenerationRequestId,
     (activeGenerationQuery.data?.progressTransport==='events'||Boolean(generationCapabilities.data&&'progressTransport' in generationCapabilities.data&&generationCapabilities.data.progressTransport==='events'&&activeGenerationQuery.data?.progressTransport!=='poll')) && Boolean(activeGenerationRequestId) && (['running','awaiting_reconciliation'].includes(generationSnapshot?.overallStatus ?? 'running')||activeGenerationQuery.data?.billingPending===true),
     event=>{
@@ -363,7 +376,12 @@ export default function StudioAppV2BPage() {
       return;
     }
     const capabilities=(await generationCapabilities.refetch()).data;
-    if (!capabilities?.enabled)throw new Error(labelGenerationCapabilityReason(capabilities?.reason));
+    if (!capabilities?.enabled) {
+      const reason = capabilities?.reason;
+      if (reason === "maintenance") throw new Error("generation_paused");
+      if (reason === "manual_session_limit" || reason === "pipeline_reconfiguration_required") throw new Error(reason);
+      throw new Error(labelGenerationCapabilityReason(reason));
+    }
     let catalog: Awaited<ReturnType<typeof cachedCatalog>> | undefined;
     if('catalogRevision' in capabilities&&capabilities.catalogRevision&&capabilities.catalogScope&&capabilities.catalogProject){
       const revision=capabilities.catalogRevision;
@@ -411,7 +429,7 @@ export default function StudioAppV2BPage() {
       aspectRatio: previousInput?.aspectRatio ?? assemblyAspectRatio,
       slideCount: mode === "carousel" ? previousInput?.slideCount ?? brief?.slideCount ?? 5 : undefined,
       ...(previousInput?.model ? { model: previousInput.model } : {}),
-      generationModel: previousInput?.generationModel ?? creationInputOptions.current.generationModel ?? "gemini",
+      generationModel: previousInput ? previousInput.generationModel ?? "gemini" : creationInputOptions.current.generationModel ?? "auto",
       generationParentRequestId: source === "more" ? activeGenerationRequestId ?? undefined : undefined,
       creationMode: executionBrief ? "execution" : "ideation",
       executionBrief,
@@ -507,7 +525,7 @@ export default function StudioAppV2BPage() {
       toast.info("Esta geração não está disponível nesta sessão. Você pode iniciar uma nova.");
       return;
     }
-    toast.error("Não foi possível atualizar o progresso agora. Tente novamente para retomar o mesmo pedido.");
+    toast.error("Não foi possível atualizar o progresso agora. Tente novamente para retomar o mesmo pedido.", { id: `generation-progress-${activeGenerationRequestId}` });
   }, [activeGenerationQuery.error, activeGenerationRequestId]);
 
   useEffect(() => {
@@ -564,7 +582,7 @@ export default function StudioAppV2BPage() {
         setDeclaredFamilyId(draft.declaredFamilyId);
       }
       setActiveBrief(draft.brief);
-      const image=draft.brief.sources?.find(s=>s.kind==="image");creationInputOptions.current={platform:draft.brief.platform??"instagram",image:image?.value,imagePurpose:image?.purpose==="visual_reference"?"visual_reference":"content",generationModel:draft.generationModel??"gemini"};
+      const image=draft.brief.sources?.find(s=>s.kind==="image");creationInputOptions.current={platform:draft.brief.platform??"instagram",image:image?.value,imagePurpose:image?.purpose==="visual_reference"?"visual_reference":"content",generationModel:draft.generationModel??"auto"};
     }
   }, []);
 
@@ -1045,7 +1063,6 @@ export default function StudioAppV2BPage() {
     <>
     <AnimatePresence>{productionIntro && <ProductionOverlay prompt={productionIntro.prompt} />}</AnimatePresence>
     <div inert={productionIntro ? true : undefined} className="min-h-screen w-full bg-[#0B0A08] text-white flex flex-col overflow-hidden font-sans">
-      {activeGenerationQuery.data?.dispatchError && (activeGenerationQuery.data.snapshot.overallStatus==='running'||activeGenerationQuery.data.billingPending) && activeGenerationRequestId && <div role="alert">O executor não conseguiu continuar. <button disabled={generationResume.isPending} onClick={()=>generationResume.mutate({requestId:activeGenerationRequestId})}>Retomar geração</button></div>}
       {generationEvents.error && <div role="alert">A conexão com a geração foi interrompida. O trabalho pode continuar no servidor. <button onClick={generationEvents.reconnect}>Reconectar</button></div>}
       {stage === "create" && (!generationCapabilities.data?.enabled || activeGenerationQuery.error || pendingGenerationStart) && (
         <div className="mx-auto mt-4 w-[min(92%,64rem)] rounded-lg border border-violet-300/25 bg-violet-300/5 p-4 text-sm text-violet-100">
@@ -1128,11 +1145,22 @@ export default function StudioAppV2BPage() {
             <section role="status" className="mx-auto mt-4 w-[min(92%,64rem)] rounded-xl border border-violet-300/30 bg-violet-300/10 p-4 text-violet-50">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <strong>Geração progressiva · {labelGenerationStatus(generationSnapshot.overallStatus)}</strong>
+                  <strong>Geração progressiva · {dispatchInterrupted ? "Execução interrompida" : labelGenerationStatus(generationSnapshot.overallStatus)}</strong>
                   <p className="mt-1 text-sm text-violet-100/80">
                     {generationSnapshot.proposals.filter((proposal) => proposal.status === "ready").length} prontas de {generationSnapshot.proposals.length} propostas.
-                    {generationSnapshot.overallStatus === "running" ? " A galeria será atualizada conforme cada proposta terminar." : ""}
+                    {generationSnapshot.overallStatus === "running" && !dispatchInterrupted ? " A galeria será atualizada conforme cada proposta terminar." : ""}
                   </p>
+                  {activeGenerationQuery.data?.dispatchError && activeGenerationRequestId && (
+                    <div role="alert" className="mt-2 text-sm text-amber-200">
+                      <p>O executor local não conseguiu continuar esta geração.</p>
+                      {(generationSnapshot.overallStatus === "running" || activeGenerationQuery.data.billingPending) && (
+                        <button type="button" className="mt-1 underline disabled:opacity-50" disabled={generationResume.isPending}
+                          onClick={() => generationResume.mutate({ requestId: activeGenerationRequestId })}>
+                          {generationResume.isPending ? "Retomando…" : "Retomar geração"}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   {generationSnapshot.overallStatus==="awaiting_reconciliation"&&<><p>Uma etapa da geração ainda precisa ser confirmada. O pedido mantém o prazo original.</p><button disabled={generationReconcile.isPending} onClick={()=>activeGenerationRequestId&&generationReconcile.mutate({requestId:activeGenerationRequestId})}>Conferir resultado existente</button></>}
@@ -1141,7 +1169,7 @@ export default function StudioAppV2BPage() {
                     <button type="button" disabled={generationCancel.isPending} onClick={() => void cancelActiveGeneration()} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm disabled:opacity-50">{generationCancel.isPending ? "Cancelando…" : "Cancelar geração"}</button>
                   )}
                   {generationSnapshot.overallStatus !== "running" && (
-                    <button type="button" onClick={stopResumingGeneration} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm">Voltar à criação</button>
+                    <button type="button" onClick={stopResumingGeneration} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm">{generationSnapshot.proposals.some(proposal => proposal.failure?.code === "provider_route_unavailable") ? "Criar novo pedido" : "Voltar à criação"}</button>
                   )}
                 </div>
               </div>
@@ -1153,8 +1181,8 @@ export default function StudioAppV2BPage() {
                   return (
                     <li key={key} className="rounded-lg border border-violet-100/15 bg-black/15 p-3 text-xs">
                       <div className="font-semibold">Proposta {proposal.slot + 1} · {labelGenerationStatus(proposal.status)}</div>
-                      {proposal.status !== "ready" && !failed && <div className="md:hidden"><ProposalProgress slot={proposal.slot + 1} status={proposal.status} value={proposalProgress[key]} /></div>}
-                      {proposal.status === "failed" && <div className="mt-1 text-rose-200">{messageGenerationProposalFailure(proposal.errorReason, proposal.failure)}</div>}
+                      {proposal.status !== "ready" && !failed && !dispatchInterrupted && <div className="md:hidden"><ProposalProgress slot={proposal.slot + 1} status={proposal.status} value={proposalProgress[key]} /></div>}
+                      {(proposal.status === "failed" || proposal.status === "expired") && <div className="mt-1 text-rose-200">{messageGenerationProposalFailure(proposal.errorReason, proposal.failure)}</div>}
                       {failed && (
                         <div className="mt-2 text-amber-200">
                           {failed.message}
@@ -1195,10 +1223,10 @@ export default function StudioAppV2BPage() {
               setStage("create");
               setDeclaredFamilyId(null);
             }}
-            onGenerateMore={handleGenerateMore}
-            isGeneratingMore={isGeneratingMore || (generationSnapshot?.overallStatus === "running")}
+            onGenerateMore={dispatchInterrupted ? undefined : handleGenerateMore}
+            isGeneratingMore={!dispatchInterrupted && (isGeneratingMore || generationSnapshot?.overallStatus === "running")}
             declaredFamilyId={declaredFamilyId}
-            generationProposals={generationSnapshot?.proposals}
+            generationProposals={dispatchInterrupted ? generationSnapshot?.proposals.filter(proposal => proposal.status === "ready") : generationSnapshot?.proposals}
             proposalProgress={proposalProgress}
             materializedProposalKeys={materializedProposalKeys}
             materializationFailureKeys={proposalMaterializationFailures.map(item => item.key)}

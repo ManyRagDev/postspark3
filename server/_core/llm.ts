@@ -1,12 +1,16 @@
+import { createHash } from "node:crypto";
+import { z } from "zod";
 import { ENV } from "./env";
 import { appendOperationalLog } from "./operationalLog";
 import type { AiModel } from "@shared/postspark";
+import { generationTaskModelSchema, type GenerationTaskModelConfig } from "@shared/generationModel";
 import { TRPCError } from "@trpc/server";
 import { hashPrompt, recordLlmTraceCall } from "../ai/generationTrace";
 import {
   adaptRequestForProvider,
   buildRepairMessages,
   hasMultimodalContent,
+  generationTaskProviderOptions,
   validateStructuredContent,
   type ProviderModelConfig,
 } from "../ai/providers/modelAdapters";
@@ -19,6 +23,87 @@ import {
   resolveTaskModelConfig,
   type AiTaskRoute,
 } from "../ai/modelRouter";
+
+/** A complete, explicit provider rejection is terminal even when its cost is unreported. */
+const rejectionHashes = {
+  requestHash: z.string().regex(/^[a-f0-9]{64}$/), responseHash: z.string().regex(/^[a-f0-9]{64}$/),
+  costStatus: z.literal("unreported"),
+};
+const providerIdsSchema = z.array(z.string().regex(/^[a-z0-9][a-z0-9._/-]{0,99}$/)).max(32)
+  .refine(ids => new Set(ids).size === ids.length);
+export const providerRejectionReceiptSchema = z.object({
+  __providerRejection: z.union([
+    z.object({
+      version: z.literal(1), provider: z.literal("openrouter"), model: z.string().min(1),
+      httpStatus: z.union([z.literal(400), z.literal(422)]), reason: z.literal("invalid_request_error"),
+      providerRequestId: z.string().min(1).max(200), ...rejectionHashes,
+    }).strict(),
+    z.object({
+      version: z.literal(2), provider: z.literal("openrouter"), model: z.string().min(1),
+      httpStatus: z.literal(404), reason: z.literal("no_allowed_providers"),
+      requestedProviders: providerIdsSchema.refine(ids => ids.length > 0),
+      availableProviders: providerIdsSchema, ...rejectionHashes,
+    }).strict().refine(receipt => !receipt.requestedProviders.some(id => receipt.availableProviders.includes(id))),
+  ]),
+}).strict();
+export type ProviderRejectionReceipt = z.infer<typeof providerRejectionReceiptSchema>;
+export class KnownProviderRejectionError extends Error {
+  readonly code?: "provider_route_unavailable";
+  constructor(readonly receipt: ProviderRejectionReceipt) {
+    super(`provider_request_rejected:${receipt.__providerRejection.reason}:${receipt.__providerRejection.httpStatus}`);
+    this.name = "KnownProviderRejectionError";
+    if (receipt.__providerRejection.reason === "no_allowed_providers") this.code = "provider_route_unavailable";
+  }
+}
+export function providerRejectionErrorFromReceipt(value: unknown) {
+  const result = providerRejectionReceiptSchema.safeParse(value);
+  return result.success ? new KnownProviderRejectionError(result.data) : undefined;
+}
+export function knownProviderRejectionReceipt(error: unknown): ProviderRejectionReceipt | undefined {
+  let current = error;
+  for (let depth = 0; depth < 5 && current; depth += 1) {
+    if (current instanceof KnownProviderRejectionError) return providerRejectionReceiptSchema.parse(current.receipt);
+    current = typeof current === "object" && "cause" in current ? current.cause : undefined;
+  }
+}
+/** No inference, body text or assumed zero charge is stored in this receipt. */
+export function knownProviderRejectionFromResponse(input: {
+  provider: string; model: string; httpStatus: number; payload: unknown; responseBody: string;
+}): KnownProviderRejectionError | undefined {
+  if (input.provider !== "openrouter" || ![400, 404, 422].includes(input.httpStatus)) return;
+  try {
+    const body = JSON.parse(input.responseBody);
+    if (body?.error?.code !== input.httpStatus) return;
+    const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+    if (input.httpStatus === 404) {
+      // This observed pre-routing rejection is specific to provider.only. An
+      // ordered route or any other 404 remains uncertain without this proof.
+      const payload = input.payload as { model?: unknown; provider?: { only?: unknown; allow_fallbacks?: unknown } };
+      const requested = providerIdsSchema.safeParse(body.error.metadata?.requested_providers);
+      const available = providerIdsSchema.safeParse(body.error.metadata?.available_providers);
+      const only = providerIdsSchema.safeParse(payload?.provider?.only);
+      if (typeof body.error.message !== "string" ||
+          !body.error.message.startsWith("No allowed providers are available for the selected model.") ||
+          payload?.model !== input.model || payload?.provider?.allow_fallbacks !== false ||
+          !requested.success || !available.success || !only.success || !only.data.length ||
+          only.data.length !== requested.data.length || !only.data.every(id => requested.data.includes(id)) ||
+          body.usage != null || body.choices != null || body.id != null || body.error.metadata?.raw != null) return;
+      return providerRejectionErrorFromReceipt({ __providerRejection: {
+        version: 2, provider: "openrouter", model: input.model, httpStatus: 404, reason: "no_allowed_providers",
+        requestedProviders: requested.data, availableProviders: available.data,
+        requestHash: digest(input.payload), responseHash: digest(body), costStatus: "unreported",
+      } });
+    }
+    const raw = JSON.parse(body?.error?.metadata?.raw);
+    if (raw?.type !== "error" || raw?.error?.type !== "invalid_request_error" ||
+        typeof raw.request_id !== "string" || !raw.request_id || raw.request_id.length > 200) return;
+    return providerRejectionErrorFromReceipt({ __providerRejection: {
+      version: 1, provider: "openrouter", model: input.model, httpStatus: input.httpStatus,
+      reason: "invalid_request_error", providerRequestId: raw.request_id,
+      requestHash: digest(input.payload), responseHash: digest(body), costStatus: "unreported",
+    } });
+  } catch { return; }
+}
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -78,6 +163,8 @@ export type ToolChoice =
 export type InvokeParams = {
   /** Internal model identity from a validated durable configuration; never client input. */
   pinnedModel?: string;
+  /** Internal endpoint/capability receipt for the automatic task policy. */
+  taskModelConfig?: GenerationTaskModelConfig;
   model?: AiModel;
   taskRoute?: AiTaskRoute;
   traceLabel?: string;
@@ -109,6 +196,8 @@ export type InvokeParams = {
   structuredValidationOwner?: "transport" | "caller";
   /** Internal pinned preparation protocol; the journal owns response validation. */
   durablePreparationReceipt?: boolean;
+  /** Proposal copy is validated after the provider response is journaled. */
+  durableProposalCopyReceipt?: boolean;
 };
 
 export type ToolCall = {
@@ -310,13 +399,25 @@ const normalizeResponseFormat = ({
   };
 };
 
+function validatedTaskModelConfig(params: InvokeParams) {
+  if (!params.taskModelConfig) return undefined;
+  const config = generationTaskModelSchema.parse(params.taskModelConfig);
+  if (params.pinnedModel !== config.model || !params.disableFallback ||
+      params.forceTextSchema || params.maxTransportAttempts !== 1 || !params.disableStructuredRepair) {
+    throw new Error("automatic_task_transport_policy_mismatch");
+  }
+  return config;
+}
+
 /** Exact OpenRouter wire messages used to bind a preparation receipt to its request. */
 export function preparationTransportSnapshot(params: InvokeParams) {
   if (!params.pinnedModel || !params.disableFallback)
     throw new Error("pinned_preparation_transport_required");
   const responseFormat = normalizeResponseFormat(params);
+  const taskModelConfig = validatedTaskModelConfig(params);
   return adaptRequestForProvider({
     provider: "openrouter", effectiveModel: params.pinnedModel, forceTextSchema: params.forceTextSchema,
+    requireNativeSchema: Boolean(taskModelConfig),
     messages: params.messages.map(normalizeMessage), responseFormat,
   });
 }
@@ -470,7 +571,7 @@ function realOrEstimatedCostUsd(input: {
   promptTokens: number;
   completionTokens: number;
 }): number {
-  if (typeof input.result?.usage?.cost === "number") {
+  if (typeof input.result?.usage?.cost === "number" && Number.isFinite(input.result.usage.cost) && input.result.usage.cost >= 0) {
     return input.result.usage.cost;
   }
   return estimateModelCostUsd({
@@ -507,6 +608,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       throw new LlmDeadlineExceededError();
     }
   };
+  const taskModelConfig = validatedTaskModelConfig(params);
   const normalizedMessages = messages.map(normalizeMessage);
   const containsMultimodalContent = hasMultimodalContent(normalizedMessages);
   const requestedModel = taskRoute ?? model ?? (containsMultimodalContent ? "vision_analysis" : "static_generation");
@@ -516,14 +618,29 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     const preparationCaller = params.durablePreparationReceipt === true && Boolean(params.pinnedModel) &&
       ["static_generation", "carousel_generation"].includes(effectiveTaskRoute ?? "") &&
       ["generation_intent_v1", "generation_selection_v1"].includes(traceLabel);
+    const proposalCopyCaller = params.durableProposalCopyReceipt === true && Boolean(params.pinnedModel) &&
+      ["static_generation", "carousel_generation"].includes(effectiveTaskRoute ?? "") &&
+      /^proposal_.+_copy(?:_recovery)?$/.test(traceLabel);
+    const completionLimit = params.maxCompletionTokens ?? params.max_completion_tokens ?? params.maxTokens ?? params.max_tokens;
+    // A targeted editorial patch must be journaled before local validation too.
+    // Keep this exception limited to the validated, bounded automatic repair route.
+    const proposalRepairCaller = params.durableProposalCopyReceipt === true &&
+      taskModelConfig?.model === "deepseek/deepseek-v4.1-flash" &&
+      normalizeResponseFormat(params)?.type === "json_schema" &&
+      taskModelConfig.transportTimeoutMs <= 60_000 &&
+      typeof params.transportTimeoutMs === "number" && params.transportTimeoutMs > 0 &&
+      params.transportTimeoutMs <= taskModelConfig.transportTimeoutMs &&
+      typeof completionLimit === "number" && Number.isInteger(completionLimit) && completionLimit > 0 && completionLimit <= 2048 &&
+      ["static_generation", "carousel_generation"].includes(effectiveTaskRoute ?? "") &&
+      /^proposal_.+_editorial_recovery$/.test(traceLabel);
     if (
-      effectiveTaskRoute !== "post_evaluation" && !preparationCaller ||
+      effectiveTaskRoute !== "post_evaluation" && !preparationCaller && !proposalCopyCaller && !proposalRepairCaller ||
       maxTransportAttempts !== 1 ||
       !disableFallback ||
       !disableStructuredRepair
     ) {
       throw new Error(
-        "structuredValidationOwner 'caller' requires post_evaluation route, exactly 1 transport attempt, disableFallback: true, and disableStructuredRepair: true"
+        "structuredValidationOwner 'caller' requires post_evaluation route or a permitted journaled generation, exactly 1 transport attempt, disableFallback: true, and disableStructuredRepair: true"
       );
     }
   }
@@ -607,15 +724,21 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       const reasoningEffort = isGptSol && (!requestedReasoning || ["none", "minimal"].includes(requestedReasoning))
         ? "medium" : requestedReasoning;
       payload.max_tokens = completionTokenLimit;
-      if (!isGptSol) {
+      if (!isGptSol && !taskModelConfig) {
         payload.temperature = params.temperature ?? taskPolicy?.temperature ?? 0.55;
         payload.top_p = params.topP ?? params.top_p ?? taskPolicy?.topP ?? 0.9;
       }
-      if (reasoningEffort) {
+      if (taskModelConfig) {
+        payload.reasoning = { enabled: taskModelConfig.reasoningEnabled };
+      } else if (reasoningEffort) {
         payload.reasoning_effort = reasoningEffort;
         payload.reasoning = { effort: reasoningEffort, exclude: true };
       }
-      if (config.providerOptions) {
+      if (taskModelConfig) {
+        // The immutable task receipt owns the entire provider preference; never
+        // inherit a stale only/order constraint from the default model route.
+        payload.provider = generationTaskProviderOptions(taskModelConfig);
+      } else if (config.providerOptions) {
         payload.provider = isGptSol ? { ...config.providerOptions, require_parameters: true } : config.providerOptions;
       }
     } else {
@@ -782,7 +905,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
         signal: controller.signal,
       });
       if (!response.ok) {
-        const errorBody = (await response.text()).slice(0, 500);
+        const completeErrorBody = await response.text();
+        const errorBody = completeErrorBody.slice(0, 500);
         void appendOperationalLog("AI_PROVIDER_NON_200", {
           provider: config.provider,
           model: config.effectiveModel,
@@ -791,6 +915,9 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
           retryAfter: response.headers.get("retry-after"),
           body: errorBody,
         });
+        const rejected = knownProviderRejectionFromResponse({ provider: config.provider, model: config.effectiveModel,
+          httpStatus: response.status, payload, responseBody: completeErrorBody });
+        if (rejected) throw rejected;
         throw new ProviderRequestError(
           config.provider,
           response.status,
@@ -811,6 +938,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       ensureBeforeDeadline();
       return result;
     } catch (error) {
+      // A complete rejection remains known if cancellation races its body decode.
+      if (error instanceof KnownProviderRejectionError) throw error;
       signal?.throwIfAborted();
       if (deadlineTimerFired || (deadlineMs !== undefined && Date.now() >= deadlineMs)) {
         throw new LlmDeadlineExceededError();
@@ -919,6 +1048,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       adaptRequestForProvider({
         provider: config.provider,
         effectiveModel: config.effectiveModel,
+        requireNativeSchema: Boolean(taskModelConfig),
         forceTextSchema,
         messages: normalizedMessages,
         responseFormat: normalizedResponseFormat,
@@ -1062,6 +1192,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   try {
     return await executeWithRetries(primaryConfig);
   } catch (primaryError) {
+    if (primaryError instanceof KnownProviderRejectionError) throw primaryError;
     if (deadlineMs !== undefined && Date.now() >= deadlineMs) {
       throw primaryError instanceof LlmDeadlineExceededError
         ? primaryError

@@ -198,6 +198,7 @@ export type GenerationSlotPlan =
       unmetRequirementIds: string[];
     };
 export type ViableGenerationPlan = z.infer<typeof viablePlanSchema>;
+export const DELIVERY_RECOVERY_KEY = "delivery_recovery:candidate";
 export const generationPlanResponseSchema = z
   .object({
     version: z.literal(1),
@@ -208,6 +209,15 @@ export const generationPlanResponseSchema = z
 export interface GenerationPlanningReceipt {
   version: 1;
   intent: GenerationIntent;
+  visualRequirements?: import("./generationVisualRequirements").GenerationVisualRequirements;
+  proposalSelectionVersion?: 1;
+  firstDeliveryReviewRecovery?: 1;
+  /** Structurally compatible reserve plans, independent of the JEV shortlist. */
+  deliveryReserves?: Array<Array<{
+    family: string;
+    plan: ViableGenerationPlan;
+    componentHashes: string[];
+  }>>;
   /** Frozen together with the extraction, not resolved again during generation. */
   editorialCatalog?: FrozenEditorialCatalog | null;
   /** One provider judgment per family; member scores below are projections. */
@@ -216,7 +226,7 @@ export interface GenerationPlanningReceipt {
     recovery?: import("./familyRecovery").FamilyRecoveryReceipt;
     retrieval?: import("./familyRetrieval").FamilyRetrievalReceipt;
     candidates: Array<{ id: string; family: string; signature: string; profileHash: string; memberIds: string[] }>;
-    ranking: Array<{ id: string; score: number; confidence: number }>;
+    ranking: Array<{ id: string; score: number; confidence: number; score100?: number }>;
     shortlistedIds: string[];
   };
   slots: GenerationSlotPlan[];
@@ -233,6 +243,12 @@ export function sealGenerationPlanningReceipt(
   value: Omit<GenerationPlanningReceipt, "hash">
 ): GenerationPlanningReceipt {
   return { ...value, hash: arsenalHash(value) };
+}
+
+export function firstDeliveryReviewSlot(planning?: GenerationPlanningReceipt): number {
+  if (planning?.firstDeliveryReviewRecovery !== 1 || !Array.isArray(planning.slots)) return -1;
+  return planning.slots.findIndex((plan, slot) => plan.status === "viable" ||
+    (plan.status === "insufficient_fit" && Boolean(planning.deliveryReserves?.[slot]?.length)));
 }
 
 /** Checks documented structure. Approximate text capacity never becomes a hard gate. */

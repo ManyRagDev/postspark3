@@ -5,6 +5,7 @@ import type { GenerationIntent } from "@shared/generationPlan";
 import type { FrozenEditorialCatalog } from "@shared/editorialIntent";
 import {
   FAMILY_RETRIEVAL_POLICY as policy,
+  SEMANTIC_FAMILY_RETRIEVAL_POLICY,
   familyRetrievalPolicyHash,
   type FamilyRetrievalReceipt,
 } from "@shared/familyRetrieval";
@@ -14,6 +15,8 @@ import {
   type FamilySearchIndex,
 } from "./familySearchIndex";
 import type { EmbeddingEngine } from "../ai/editorialAffinity/embeddingEngine";
+import { retrieveSemanticFamilyCandidates, type AutomaticSemanticOptions } from "./semanticFamilyRetrieval";
+export { semanticFamilyQuery, semanticFamilySources } from "./semanticFamilyRetrieval";
 
 export function familyCorpusHash(families: FamilySelectionCandidate[]) {
   return arsenalHash(
@@ -79,12 +82,14 @@ export interface RetrievalArguments {
   visualPreference?: string;
   mixedMedia?: boolean;
   semantic?: { engine: EmbeddingEngine; index: FamilySearchIndex };
+  automaticSemantic?: AutomaticSemanticOptions;
   signal?: AbortSignal;
 }
 export async function retrieveFamilyCandidates(
   args: RetrievalArguments
 ): Promise<FamilyRetrievalReceipt> {
   const { families, intent, catalog } = args;
+  if (args.automaticSemantic) return retrieveSemanticFamilyCandidates({...args, automaticSemantic: args.automaticSemantic, catalogHash: familyCorpusHash(families)});
   const query = familySearchQuery(intent, catalog, args.visualPreference);
   const documents = families.map(f => {
     const roots = f.repertoires.map(r => {
@@ -294,23 +299,33 @@ export function assertFamilyRetrieval(
 ) {
   const ids = [...receipt.initialIds, ...receipt.additionalIds],
     allowed = new Set(families.map(f => f.id));
+  const automatic = receipt.semanticRetrieval;
+  const activePolicy = automatic ? SEMANTIC_FAMILY_RETRIEVAL_POLICY : policy;
+  if (automatic && (automatic.version !== 1 || automatic.strategy !== "pgvector_compact_e5_v1" ||
+      !["ready", "fallback"].includes(automatic.status) || automatic.alpha !== SEMANTIC_FAMILY_RETRIEVAL_POLICY.alpha ||
+      arsenalHash(automatic.top20Ids) !== arsenalHash(receipt.initialIds) ||
+      (automatic.status === "ready" && (!receipt.indexHash || !receipt.modelFingerprint || !automatic.calibrationHash ||
+        automatic.missingSourceIds.length || automatic.rankings.length !== families.length ||
+        arsenalHash(automatic.rankings.slice(0,activePolicy.initialFamilies).map(r => r.id)) !== arsenalHash(receipt.initialIds))) ||
+      (automatic.status === "fallback" && !automatic.fallbackReason)))
+    throw new Error("family_retrieval_receipt_invalid");
   if (
     receipt.version !== 1 ||
     (receipt.neutrality && (receipt.neutrality.version !== 1 || !receipt.neutrality.seed)) ||
-    receipt.policyHash !== familyRetrievalPolicyHash(Boolean(receipt.neutrality)) ||
+    receipt.policyHash !== (automatic ? arsenalHash(SEMANTIC_FAMILY_RETRIEVAL_POLICY) : familyRetrievalPolicyHash(Boolean(receipt.neutrality))) ||
     receipt.catalogHash !== familyCorpusHash(families) ||
     receipt.query !== query ||
     receipt.queryHash !== arsenalHash(query) ||
     receipt.eligibleFamilies !== families.length ||
     receipt.initialIds.length !==
-      Math.min(policy.initialFamilies, families.length) ||
-    receipt.additionalIds.length > policy.additionalFamilies ||
-    ids.length > policy.maxFamilies ||
+      Math.min(activePolicy.initialFamilies, families.length) ||
+    receipt.additionalIds.length > activePolicy.additionalFamilies ||
+    ids.length > activePolicy.maxFamilies ||
     new Set(ids).size !== ids.length ||
     ids.some(id => !allowed.has(id)) ||
     arsenalHash([...receipt.recovered.map(r => r.id)].sort()) !==
       arsenalHash([...ids].sort()) ||
-    (families.length > policy.initialFamilies &&
+    (!automatic && families.length > policy.initialFamilies &&
       (!receipt.indexHash || !receipt.modelFingerprint))
   )
     throw new Error("family_retrieval_receipt_invalid");

@@ -5,8 +5,9 @@ import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.
 import { materializeDesignFamilyOffer, resolveDesignFamilyRepertoires, type DesignFamilyRepertoire } from "@shared/designRepertoire";
 import { normalizeGenerationIntent, validateGenerationPlan, type GenerationIntent, type ViableGenerationPlan } from "@shared/generationPlan";
 import type { RecentDesignSelection } from "@shared/designSelection";
+import { proposalSelectionHistory, type FamilyAxes } from "@shared/familyNeutrality";
 import { authorFamilyCarouselRepertoire } from "../../designCatalog/familyCarouselRepertoire";
-import { buildHeuristicGenerationPlan, type HeuristicPlanBuilderInput } from "./heuristicPlanBuilder";
+import { buildHeuristicGenerationPlan, deliveryProposalReserves, distinctProposalRecovery, type HeuristicPlanBuilderInput } from "./heuristicPlanBuilder";
 
 const base = completeDesignTestDefinitions()[0];
 const intent: GenerationIntent = {
@@ -17,22 +18,90 @@ const intent: GenerationIntent = {
 const imageObligation: HeuristicPlanBuilderInput["imageObligation"] = {
   policy: "optional", required: false, purpose: "none", reason: "Sem imagem obrigatória", slotTargets: 0,
 };
-function source(family: string, key: string, listMax?: number) {
+function source(family: string, key: string, listMax?: number, axes?: FamilyAxes) {
   return createComponentDefinition({
     ...base, id: assemblyIdentity(["family-first-planner", key]),
-    completeDesign: { ...base.completeDesign!, family },
+    completeDesign: { ...base.completeDesign!, family, ...(axes ? { designGuidance: {
+      version: 1, summary: "Composição de teste", motifs: [], preserve: [], contentRules: [], mediaRules: [], knownLimitations: [],
+      selection: { version: 1, description: "Composição de teste", axes },
+    } } : {}) },
     fragment: { ...base.fragment, bindings: listMax ? [base.fragment.bindings[0], {
       ...base.fragment.bindings[1], kind: "list", source: "block:list:0:items", cardinality: { min: 1, max: listMax },
     }] : base.fragment.bindings },
   });
 }
-function repertoire(family: string, key: string, options: { slideCount?: number; listMax?: number } = {}) {
-  const root = source(family, key, options.listMax);
+function repertoire(family: string, key: string, options: { slideCount?: number; listMax?: number; axes?: FamilyAxes } = {}) {
+  const root = source(family, key, options.listMax, options.axes);
   const count = options.slideCount ?? 1;
   return resolveDesignFamilyRepertoires([root, ...(count > 1 ? authorFamilyCarouselRepertoire(root) : [])].map(compactComponentCard), {
     slideCount: count, contentMode: "compose",
   })[0];
 }
+
+describe("distinct proposal selection v1", () => {
+  const policy = { version: 1, seed: "stable-order", planningVersion: 3, proposalSelectionVersion: 1 } as const;
+  const basic = { organization: "single", density: "light", typography: "sans", imageRole: "type" };
+  const visual = { organization: "grid", density: "dense", typography: "serif", imageRole: "decoration" };
+
+  it("uses continuous automatic suitability across a 4-versus-2 gap without suppressing the third viable proposal", () => {
+    const eligible = [repertoire("a", "flex-a"), repertoire("b", "flex-b"), repertoire("c", "flex-c"), repertoire("d", "flex-d")];
+    const historical = { ...input(eligible, {a:4,b:4,c:2,d:0}), neutrality: policy };
+    expect(families(buildHeuristicGenerationPlan(historical),eligible)).toContain("insufficient_fit");
+    const automatic = {...historical,neutrality:{...policy,creativeFlexibility:1 as const}};
+    const plan=buildHeuristicGenerationPlan(automatic);
+    expect(plan.slots.every(slot=>slot.status==="viable")).toBe(true);
+    expect(new Set(families(plan,eligible))).toEqual(new Set(["a","b","c"]));
+    const offers=plan.slots.map(slot=>slot.status==="viable"?eligible.find(r=>r.defaultOffer.offerId===slot.candidateId)!.defaultOffer:null);
+    expect(distinctProposalRecovery(automatic,offers)[2].map(r=>r.family)).toContain("d");
+    expect(deliveryProposalReserves(automatic,offers).flat().map(r=>r.family)).toContain("d");
+    const onlyTwo=buildHeuristicGenerationPlan({...automatic,eligible:eligible.slice(0,2)});
+    expect(onlyTwo.slots.filter(slot=>slot.status==="viable")).toHaveLength(2);
+  });
+
+  it("pins compatible reserves even when the JEV shortlist leaves no viable design", () => {
+    const eligible = [repertoire("low-score", "low"), repertoire("unassessed", "unassessed")];
+    const request = { ...input(eligible, { "low-score": 0.5 }), neutrality: { ...policy, deliveryRecoveryVersion: 1 as const } };
+    request.shortlist.evaluated = request.shortlist.evaluated.slice(0, 1);
+    const reserves = deliveryProposalReserves(request, [null, null, null]);
+    expect(reserves.map(slot => slot.map(candidate => candidate.family))).toEqual([["low-score", "unassessed"], [], []]);
+    expect(reserves[0][0].componentHashes).toEqual([eligible[0].sourceHash]);
+  });
+
+  it("delivers only one proposal when several sources have the same design identity", () => {
+    const eligible = [repertoire("only", "old"), repertoire("only", "new")];
+    const request = { ...input(eligible, { only: 4 }), neutrality: policy };
+    const result = buildHeuristicGenerationPlan(request);
+    expect(families(result, eligible)).toEqual(["only", "insufficient_fit", "insufficient_fit"]);
+    const slot = result.slots[0] as ViableGenerationPlan;
+    const source = eligible.find(r => r.defaultOffer.offerId === slot.candidateId)!;
+    expect(distinctProposalRecovery(request, [source.defaultOffer, null, null])).toEqual([[], [], []]);
+  });
+
+  it("chooses the most visually distinct compatible third family without lowering the suitability floor", () => {
+    const eligible = [
+      repertoire("a", "a", { axes: basic }), repertoire("b", "b", { axes: { ...basic, organization: "columns" } }),
+      repertoire("near", "near", { axes: { ...basic, organization: "columns" } }),
+      repertoire("contrast", "contrast", { axes: { ...visual, imageRole: "type" } }), repertoire("weak", "weak", { axes: visual }),
+    ];
+    const request = { ...input(eligible, { a: 4, b: 3.95, near: 3.85, contrast: 3.62, weak: 3.59 }), neutrality: policy };
+    const plan = buildHeuristicGenerationPlan(request);
+    expect(families(plan, eligible)).toEqual(["a", "b", "contrast"]);
+    expect(plan.slots[2].reason).toContain("Alternativa visual");
+    expect(buildHeuristicGenerationPlan({ ...request, eligible: [...eligible].reverse() })).toEqual(plan);
+    const offers = plan.slots.map(slot => slot.status === "viable" ? eligible.find(r => r.defaultOffer.offerId === slot.candidateId)!.defaultOffer : null);
+    expect(distinctProposalRecovery(request, offers)[2].map(r => r.family)).toEqual(["near"]);
+    expect(families(buildHeuristicGenerationPlan({ ...request, eligible: [eligible[0], eligible[1], eligible[4]] }), eligible))
+      .toEqual(["a", "b", "insufficient_fit"]);
+  });
+
+  it("rests a recent or parent family only when another family is similarly suitable", () => {
+    const eligible = [repertoire("recent", "recent"), repertoire("fresh", "fresh")];
+    const parent = { requestId: "older-parent", selections: [{ family: "recent", designIds: [] }] };
+    const request = (score: number) => ({ ...input(eligible, { recent: 4, fresh: score }, proposalSelectionHistory([], parent)), neutrality: policy });
+    expect(families(buildHeuristicGenerationPlan(request(3.8)), eligible)).toEqual(["fresh", "recent", "insufficient_fit"]);
+    expect(families(buildHeuristicGenerationPlan(request(3.5)), eligible)).toEqual(["recent", "fresh", "insufficient_fit"]);
+  });
+});
 function input(eligible: DesignFamilyRepertoire[], scores: Record<string, number | [number, number]>, recentSelections: RecentDesignSelection[] = []): HeuristicPlanBuilderInput {
   return { familyFirst: true, intent, eligible, imageObligation, slideCount: eligible[0].slides.length, recentSelections,
     shortlist: { cards: [], evaluated: eligible.map(r => {
@@ -129,6 +198,41 @@ describe("family-first deterministic planner", () => {
     expect(normalizeGenerationIntent(item,5,new Set(),brief,true).requirements[0].itemCount).toBeNull();
     expect(normalizeGenerationIntent(item,4,new Set(),brief,true).requirements[0].itemCount).toBe(5);
     expect(normalizeGenerationIntent(item,5,new Set(),brief).requirements[0].itemCount).toBe(5);
+  });
+
+  it.each([true, false])("plans caption details separately for family-first=%s", familyFirst => {
+    const family = repertoire("editorial", "art-and-caption", { slideCount: 5, listMax: 3 });
+    const requirement = (id: string, surface: "art" | "caption", itemCount: number | null) => ({
+      id, description: id, kind: "content" as const, origin: "explicit" as const, surface,
+      requestQuote: id, itemCount,
+    });
+    const item = (id: string, ...requirementIds: string[]) => ({ id, meaning: id, requirementIds, sourceIds: [] });
+    const request: HeuristicPlanBuilderInput = {
+      ...input([family], { editorial: 4 }),
+      familyFirst,
+      neutrality: { version: 1, seed: "art-and-caption", planningVersion: 3 },
+      intent: {
+        ...intent,
+        requirements: [requirement("opening", "art", null), requirement("steps", "art", 3),
+          requirement("shared-detail", "caption", null), requirement("detail", "caption", 1), requirement("closing", "art", null)],
+        content: [item("cover", "opening"), item("objective", "steps", "shared-detail"),
+          item("facts", "steps"), item("audience", "steps"), item("why", "detail"), item("save", "closing")],
+      },
+    };
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const previous = buildHeuristicGenerationPlan({ ...request, neutrality: { version: 1, seed: "art-and-caption", planningVersion: 2 } });
+      expect(previous.slots.every(slot => slot.status === "insufficient_fit")).toBe(true);
+    } finally { warn.mockRestore(); }
+
+    const plan = buildHeuristicGenerationPlan(request).slots[0];
+    expect(plan.status).toBe("viable");
+    if (plan.status !== "viable") throw new Error(plan.reason);
+    expect(plan.captionContentIds).toEqual(["objective", "why"]);
+    expect(plan.pages.map(page => Array.from(new Set(page.assignments.flatMap(a => a.contentIds)))))
+      .toEqual([["cover"], ["objective"], ["facts"], ["audience"], ["save"]]);
+    const offer = materializeDesignFamilyOffer(family, plan.pages.map(page => page.componentId));
+    expect(validateGenerationPlan(plan, offer, request.intent)).toEqual([]);
   });
   it("preserves the historical branch when the version flag is absent or false", () => {
     const old = repertoire("alpha", "old"), fresh = repertoire("alpha", "fresh"), other = repertoire("beta", "b");

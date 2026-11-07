@@ -1,3 +1,4 @@
+import { isStandaloneDirectionalGlyph } from "../../shared/nativeGlyphProjection";
 import type { RecreationRecipe } from "../../shared/designRecreation";
 import type { SourceRecord } from "./inventory";
 
@@ -64,7 +65,7 @@ export function authorRecipe(record: SourceRecord, recipe: RecreationRecipe, exp
   });
   const covered = new Set(authored.flatMap(unit => unit.layerIds));
   // Unbound decorative glyphs stay explicit ornament; every other text is authored, never silently copied.
-  for (const layer of recipe.scene.layers) if (layer.kind === "text" && layer.text?.trim() && !covered.has(layer.id) && !/^[×✕✖+•●■□▶►→←↗↘↑↓xX"“”‘’]+$/.test(layer.text.trim())) {
+  for (const layer of recipe.scene.layers) if (layer.kind === "text" && layer.text?.trim() && !covered.has(layer.id) && !isStandaloneDirectionalGlyph(layer.text) && !/^[×✕✖+•●■□▶►→←↗↘↑↓xX"“”‘’]+$/.test(layer.text.trim())) {
     const index = ordinals.label ?? 0; ordinals.label = index + 1;
     authored.push({role:"label",kind:"text",fields:[],source:`block:label:${index}:text`,layerIds:[layer.id],weights:[1],sampleText:layer.text,minScale:.7,required:false});
   }

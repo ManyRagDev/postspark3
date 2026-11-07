@@ -3,6 +3,8 @@ import {
   readContentSource,
   contentCoverageIssues,
 } from "./arsenalContent";
+import { adaptArsenalTextToFreeSpace } from "./arsenalAdaptiveTextFit";
+import { textFontFlexibility, largestFittingTextFont } from "./textFieldFlexibility";
 import { subpixelTextOverflowLimit } from "./arsenalReadiness";
 import {
   orderArsenalRelations,
@@ -41,7 +43,25 @@ export type ArsenalGeometryOptions = {
   elasticReduction?: boolean;
   /** Reports small measured text excesses as readiness diagnostics. */
   allowSubpixelTextOverflow?: boolean;
+  /** Opt-in local expansion into proven free space; writes durable overrides. */
+  adaptiveTextFit?: boolean;
+  /** Carries the same authored-box constraint through an adaptive retry. */
+  respectAuthoredTextBox?: boolean;
+  /** New admissions only: largest real font fit within the declared interval. */
+  textFlexibilityVersion?: 1;
 };
+/** A generated adaptive box is a persisted authorial override. Historical
+ * scenes retain their original authored-box audit, including font-only overrides. */
+export function arsenalTextLayoutBox(c: ArsenalComposition, e: ArsenalElement): ArsenalElement {
+  const authored = c.base.instances.find(i => i.id === e.id);
+  return authored && c.overrides[e.id]?.adaptiveTextFitVersion !== 2
+    ? { ...e, width: authored.width, height: authored.height }
+    : e;
+}
+function elementOverrides(patch: ArsenalComposition["overrides"][string] = {}) {
+  const { adaptiveTextFitVersion: _metadata, ...values } = patch;
+  return values;
+}
 export function measureArsenalElement(
   e: ArsenalElement,
   measureText: ArsenalTextMeasurer
@@ -159,7 +179,7 @@ export function resolveArsenalGeometry(
                 c.base.mediaSlots.find(slot => slot.id === i.id)!.prompt,
             }
           : undefined,
-        ...c.overrides[i.id],
+        ...elementOverrides(c.overrides[i.id]),
       } as ArsenalElement;
     });
   if (c.version === 3 && c.authorialLayers?.length) {
@@ -200,7 +220,7 @@ export function resolveArsenalGeometry(
         bindingId: null,
         itemId: null,
         richText: layer.richText ?? c.richText[layer.id],
-        ...c.overrides[layer.id],
+        ...elementOverrides(c.overrides[layer.id]),
       };
       c.elements.push(el);
     }
@@ -330,6 +350,11 @@ export function resolveArsenalGeometry(
         if (r.kind === "textFit" && "text" in e) {
           const p = r.parameters,
             base = c.base.instances.find(i => i.id === o.targetId) ?? e;
+          const maxHeight = c.overrides[id]?.adaptiveTextFitVersion === 2
+            ? e.height
+            : options.adaptiveTextFit || options.respectAuthoredTextBox || options.textFlexibilityVersion === 1
+              ? Math.min(p.maxHeight, base.height)
+              : p.maxHeight;
           const natural = measureText({
             text: e.text,
             richText: e.richText,
@@ -341,10 +366,9 @@ export function resolveArsenalGeometry(
             lineHeight: e.lineHeight,
             letterSpacing: e.letterSpacing,
           });
-          const requestedWidth = Math.min(
-            p.maxWidth,
-            Math.max(base.width, ...natural.lines.map(l => l.width))
-          );
+          const requestedWidth = options.textFlexibilityVersion === 1
+            ? Math.min(p.maxWidth, base.width)
+            : Math.min(p.maxWidth, Math.max(base.width, ...natural.lines.map(l => l.width)));
           write(id, o.properties, { width: requestedWidth });
           let layout = measureArsenalElement(e, measureText);
           // An indivisible token may overflow horizontally while its one-line
@@ -357,15 +381,33 @@ export function resolveArsenalGeometry(
             });
             return measured.lines.some(line => line.width > e.width + tolerance);
           });
-          if (
-            allowReduction &&
+          const manualGeometry = ["x","y","width","height","rotation","scale","fontSize"].some(key => Object.hasOwn(c.overrides[id] ?? {},key));
+          if (options.textFlexibilityVersion === 1 && allowReduction && e.text.trim() && o.properties.includes("fontSize") && !manualGeometry) {
+            const piece = "pieceHash" in base ? c.pieces[base.pieceHash] : undefined;
+            const range = textFontFlexibility({
+              preferredFontSize: piece?.fontSize ?? e.fontSize, authoredMinFontSize:p.minFontSize,
+              artboardWidth:c.artboard.width, worldScale:arsenalWorldGeometry(e,c.groups).scale,
+              authored:p.flexibility,
+            });
+            const originalFont=e.fontSize;
+            const chosen=largestFittingTextFont(range,size=>{
+              e.fontSize=size;
+              layout=measureArsenalElement(e,measureText);
+              return layout.height<=maxHeight && layout.lines.every(line=>line.width<=e.width+.01) && !overflowsTokenWidth();
+            });
+            e.fontSize=chosen.fontSize;
+            layout=measureArsenalElement(e,measureText);
+            reduced ||= e.fontSize!==originalFont;
+            if(chosen.fits) c.overrides[id]={...c.overrides[id],fontSize:e.fontSize};
+          } else if (
+            options.textFlexibilityVersion !== 1 && allowReduction &&
             o.properties.includes("fontSize") &&
             !("fontSize" in (c.overrides[id] ?? {}))
           ) {
             for (
               let attempt = 0;
               attempt < 64 &&
-              (layout.height > p.maxHeight || layout.lines.some(line => line.width > e.width + 0.01) || overflowsTokenWidth()) &&
+              (layout.height > maxHeight || layout.lines.some(line => line.width > e.width + 0.01) || overflowsTokenWidth()) &&
               e.fontSize > p.minFontSize;
               attempt++
             ) {
@@ -387,7 +429,7 @@ export function resolveArsenalGeometry(
                 let attempt = 0;
                 attempt < 32 &&
                 overflowsTokenWidth() &&
-                layout.height <= p.maxHeight &&
+                layout.height <= maxHeight &&
                 e.fontSize > elasticFloor;
                 attempt++
               ) {
@@ -403,10 +445,10 @@ export function resolveArsenalGeometry(
               }
             }
           }
-          if (layout.height > p.maxHeight)
+          if (layout.height > maxHeight)
             reportTextOverflow(
               id,
-              layout.height <= p.maxHeight + textOverflowTolerance(e)
+              layout.height <= maxHeight + textOverflowTolerance(e)
             );
           // The layout engine can wrap graphemes; a wide indivisible token is still an explicit warning.
           const wide = overflowsTokenWidth();
@@ -529,7 +571,18 @@ export function resolveArsenalGeometry(
   c.userContentHash = arsenalHash(c.content);
   if (c.userContentHash !== arsenalHash(source.content))
     throw new Error("Conteúdo alterado pela composição");
-  return c;
+  return options.adaptiveTextFit
+    ? adaptArsenalTextToFreeSpace(c, {
+        measureText,
+        ...(options.textFlexibilityVersion === 1 ? { fontMaximum: (element: ArsenalElement) => {
+          const base=c.base.instances.find(instance=>instance.id===element.id)!;
+          const relation=c.relations.find(relation=>relation.kind==="textFit"&&relation.outputs.some(output=>output.targetId===element.id));
+          return relation?.kind==="textFit" ? textFontFlexibility({preferredFontSize:c.pieces[base.pieceHash].fontSize,authoredMinFontSize:relation.parameters.minFontSize,artboardWidth:c.artboard.width,worldScale:arsenalWorldGeometry(element,c.groups).scale,authored:relation.parameters.flexibility}).max : element.fontSize;
+        } } : {}),
+        world: element => arsenalWorldGeometry(element, c.groups),
+        resolve: candidate => resolveArsenalGeometry(candidate, { ...options, adaptiveTextFit: false, respectAuthoredTextBox: true }),
+      })
+    : c;
 }
 
 export function auditArsenalGeometry(

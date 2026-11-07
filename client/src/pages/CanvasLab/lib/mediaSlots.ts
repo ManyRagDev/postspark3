@@ -2,6 +2,7 @@ import type { CanvasPostModel } from "../components/types";
 import { displayMediaSlotLabel } from "./mediaPresentation";
 import type { ImageAspectRatio } from "@shared/imageGeneration";
 import { imageDimensions } from "@shared/imageGeneration";
+import { activeArsenalMedia, type ArsenalComposition } from "@shared/designArsenal";
 import {
   imageRequestForPost,
   type ImageDirectionId,
@@ -28,6 +29,7 @@ export interface MediaTarget {
 export type MediaOperation =
   | { kind: "apply"; url: string }
   | { kind: "remove" }
+  | { kind: "background_mode"; mode: "original" | "photo" }
   | { kind: "prompt"; prompt: string }
   | { kind: "focal"; focalX?: number; focalY?: number };
 export type MediaUpdate = (
@@ -60,12 +62,14 @@ export function mediaTargets(post: CanvasPostModel) {
             0.5),
       width: c?.artboard.width ?? 360,
       height: c?.artboard.height ?? 360,
+      replacement: undefined,
     },
     ...(c?.elements
-      .filter(e => e.kind === "media" && !e.imageAssetId)
+      .filter(e => e.kind === "media" && (!e.imageAssetId || e.imageReplacement))
       .map((e, index) => ({
         id: e.id,
-        label: displayMediaSlotLabel(e.mediaSlot?.label, `Foto ${index + 1}`),
+        label: e.imageReplacement?.label ?? displayMediaSlotLabel(e.mediaSlot?.label, `Foto ${index + 1}`),
+        replacement: e.imageReplacement ? { originalActive: !activeArsenalMedia(c, e) } : undefined,
         prompt:
           c.mediaSlotPrompts?.[e.id] ??
           (c.version === 3
@@ -91,6 +95,7 @@ export function mediaTargets(post: CanvasPostModel) {
             focalY: image.focalY ?? 0.5,
             width: image.width,
             height: image.height,
+            replacement: undefined,
           })
         )
       : []),
@@ -108,7 +113,7 @@ export function targetExists(
     (target.slotId === BACKGROUND_SLOT ||
       (slide.composition
         ? slide.composition.elements.some(
-            e => e.id === target.slotId && e.kind === "media" && !e.imageAssetId
+            e => e.id === target.slotId && e.kind === "media" && (!e.imageAssetId || e.imageReplacement)
           )
         : resolveSlideExtraImages(post, post.slides.indexOf(slide)).some(
             e => e.id === target.slotId
@@ -138,6 +143,20 @@ export function applyMediaOperation(
     ).locked
   )
     return null;
+  if (operation.kind === "background_mode") {
+    if (!c?.elements.some(e => e.id === target.slotId && e.imageReplacement)) return null;
+    const photo = c.media[target.slotId];
+    if (!photo?.url) return null;
+    const { useOriginal: _, ...reference } = photo;
+    const next = resolveArsenalComposition({
+      ...c,
+      media: {
+        ...c.media,
+        [target.slotId]: operation.mode === "original" ? { ...reference, useOriginal: true } : reference,
+      },
+    });
+    return projectMediaUpdate(post, index, next);
+  }
   if (target.slotId === BACKGROUND_SLOT && operation.kind === "prompt") {
     return {
       ...post,
@@ -269,6 +288,10 @@ export function applyMediaOperation(
       };
     next = resolveArsenalComposition({ ...c, media });
   }
+  return projectMediaUpdate(post, index, next);
+}
+
+function projectMediaUpdate(post: CanvasPostModel, index: number, next: ArsenalComposition) {
   const projected = putArsenalComposition(
     { ...post, currentSlideIndex: index },
     next

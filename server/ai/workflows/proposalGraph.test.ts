@@ -1201,7 +1201,7 @@ describe("Proposal Graph Workflow (canonical V1 delivery)", () => {
         runs: [{ fill: input.fill, fontSize: input.fontSize, fontStyle: input.fontStyle }],
       }),
     });
-    const generationConfig = current ? resolveGenerationModelConfig({ postMode: "static" }) : undefined;
+    const generationConfig = current ? resolveGenerationModelConfig({ generationModel: "gemini", postMode: "static" }) : undefined;
     const result = await executeProposalWorkflow(workflowInput(definition, { generationConfig }), deps);
     expect(result.status, result.errorReason).toBe(status);
     if (status === "ready") {

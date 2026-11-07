@@ -1,5 +1,7 @@
+import { compactGenerationIntentSchema, compactGenerationIntentInstructions, positiveCompactGenerationIntentInstructions, legacyAutomaticGenerationIntentSchema, legacyAutomaticGenerationIntentInstructions, projectCompactGenerationIntent, compactGenerationIntentInput } from "@shared/compactGenerationIntent";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { semanticFamilyQuery } from "../../designCatalog/familyRetrieval";
 import type { ComponentCardV1 } from "@shared/componentAssembly";
 import type { OrchestratedGenerationInput } from "@shared/generationRequest";
 import { arsenalHash } from "@shared/arsenalContent";
@@ -15,7 +17,8 @@ import {
   compactDesignProfileV3Legend,
   type CompactOfferProfileV3,
 } from "@shared/compactDesignProfile";
-import { buildHeuristicGenerationPlan } from "./heuristicPlanBuilder";
+import { buildDistinctProposalReplacement, buildHeuristicGenerationPlan, deliveryProposalReserves, distinctProposalRecovery } from "./heuristicPlanBuilder";
+import { PROPOSAL_SELECTION_POLICY, proposalSelectionHistory } from "@shared/familyNeutrality";
 import {
   encodeGenerationSelectionCatalog,
   type GenerationSelectionCandidate,
@@ -45,6 +48,7 @@ import {
   type GenerationSlotPlan,
 } from "@shared/generationPlan";
 import { GenerationFailureError } from "@shared/generationFailure";
+import { meetsGenerationVisualRequirements, readGenerationVisualRequirements, repertoireMeetsVisualRequirements } from "@shared/generationVisualRequirements";
 import type { CatalogCoverage } from "@shared/designElection";
 import {
   selectionInputReceiptSchema,
@@ -59,7 +63,7 @@ import {
 import { compactSelectionContextV1 } from "./editorialContextTransport";
 import { resolveReviewExecutionConfigV10 } from "./reviewExecutionConfigV10";
 import { assertPinnedReviewConfig } from "./pinnedReviewConfig";
-import { generationModelCallOptions, preparationCallBudget } from "../generationModel";
+import { generationModelCallOptions, generationTaskModelCallOptions, resolveGenerationTaskModel, preparationCallBudget } from "../generationModel";
 import { preparationReceipt, readPreparationResult, type PreparationExpectation } from "@shared/generationPreparationReceipt";
 import { failureFromError } from "@shared/generationFailure";
 import { preparationTransportSnapshot } from "../../_core/llm";
@@ -68,7 +72,7 @@ import { recordGenerationEvent } from "../generationTrace";
 import { ENV } from "../../_core/env";
 import { hydrateCompleteDesignComponents } from "../../designCatalog/completeDesignStore";
 import { safeObserveEditorialAffinity } from "../editorialAffinity/observe";
-import { combineEditorialDesignProfile, editorialIntentInstructions, editorialSelectionGuidance, editorialRequestEvidence, validateEditorialIntent } from "@shared/editorialIntent";
+import { combineEditorialDesignProfile, discardUnattributedEditorialSignals, editorialIntentInstructions, editorialSelectionGuidance, editorialRequestEvidence, validateEditorialIntent } from "@shared/editorialIntent";
 import { pinnedCatalogRevision } from "../../designCatalog/versionedCatalog";
 import { readEditorialCatalog } from "../../designCatalog/editorialCatalog";
 import { buildFamilySelectionCandidates } from "@shared/designFamilySelection";
@@ -104,6 +108,7 @@ export interface PlanningPreparationInput extends Base {
   cards: ComponentCardV1[];
   coverage: CatalogCoverage | null;
   recentSelections: RecentDesignSelection[];
+  parentDesignSelection?: RecentDesignSelection;
   count: number;
   requestedPhotoMix: boolean;
   visualReferenceImages: string[];
@@ -249,6 +254,7 @@ export async function verifyPlannedEligibility(
     if (
       !offer ||
       validateGenerationPlan(selected, offer, plan.intent).length ||
+      offer.slides.some(slide => !meetsGenerationVisualRequirements(slide.card, plan.visualRequirements)) ||
       definitions.length !== offer.slides.length ||
       offer.slides.some(
         (s, i) =>
@@ -317,6 +323,7 @@ export async function preparePlannedGeneration(
     postMode: input.postMode,
     tone: input.tone,
   });
+  const automatic = Boolean(deps.generationConfig.taskRouting);
   const editorialEnabled = deps.generationConfig.editorialIntentVersion === 1;
   const preliminary = resolveDesignFamilyRepertoires(cards, {
     slideCount: count, contentMode: executionBrief?.interventionLevel === "visual_only" ? "literal" : "compose", instructions: requestText,
@@ -341,11 +348,16 @@ export async function preparePlannedGeneration(
     requirements: resolvedEditorialContext(editorialContext).requirements,
     editorialContext,
     reviewExecutionConfig: resolveReviewExecutionConfigV10(
-      deps.generationConfig.model
+      deps.generationConfig.model, deps.generationConfig.taskRouting?.copy
     ),
     jevModel: ENV.openRouterDesignSelectionModel,
     shortlistContextEncoding: 1 as const,
     shortlistProfileEncoding: "repertoire_pages_v1" as const,
+    ...(automatic ? { automaticSemanticVersion: 1 as const, compactIntentVersion: 1 as const } : { visualRequirementsVersion: 1 as const }),
+    ...(input.postMode === "carousel" && count > 1 &&
+      (!executionBrief || executionBrief.interventionLevel === "optimize_structure")
+      ? { carouselCaptionPolicy: 1 as const }
+      : {}),
   };
   const selectionInput = selectionInputReceiptSchema.parse(
     await deps.operation("selection_input", async () => {
@@ -357,9 +369,11 @@ export async function preparePlannedGeneration(
         // Fail before the paid interpretation if a large catalogue has no
         // complete local index. A replay uses the recorded receipt instead.
         const large = new Set(preliminary.map(r => r.family)).size > FAMILY_RETRIEVAL_POLICY.initialFamilies;
-        const semantic = large ? await loadSemanticIndex(editorialCatalog, true) : undefined;
+        const semantic = large && !automatic ? await loadSemanticIndex(editorialCatalog, true) : undefined;
         const preservedPhoto=requestedPreservedPhoto(input,requestText);
-        return { ...expectedInput, editorialCatalog, familyVisualQueryVersion:2 as const, ...(preservedPhoto?{preservedPhoto:{version:1 as const,url:preservedPhoto}}:{}), familyNeutrality: {version:1 as const,seed:randomUUID(),planningVersion:2 as const}, familyRankingVersion: 1 as const, familyRetrievalVersion: 1 as const, familyRecoveryVersion: 1 as const,
+        const surfaceAwarePlan = input.postMode === "carousel" && count > 1 &&
+          executionBrief?.interventionLevel !== "visual_only";
+        return { ...expectedInput, editorialCatalog, editorialQuotePolicy: 1 as const, familyVisualQueryVersion:2 as const, ...(preservedPhoto?{preservedPhoto:{version:1 as const,url:preservedPhoto}}:{}), familyNeutrality: {version:1 as const,seed:randomUUID(),...(automatic ? {creativeFlexibility:1 as const} : {}),planningVersion:surfaceAwarePlan ? 3 as const : 2 as const, proposalSelectionVersion: PROPOSAL_SELECTION_POLICY.version, deliveryRecoveryVersion: 2 as const}, familyRankingVersion: 1 as const, familyRetrievalVersion: 1 as const, familyRecoveryVersion: 1 as const,
           ...(semantic ? { familyRetrievalIndex: { hash: semantic.index.hash, modelFingerprint: semantic.index.modelFingerprint } } : {}) };
       }
       const observation = await safeObserveEditorialAffinity(
@@ -372,8 +386,14 @@ export async function preparePlannedGeneration(
   if (editorialEnabled && (!Object.hasOwn(selectionInput, "editorialCatalog") ||
       (pinnedCatalogRevision() && selectionInput.editorialCatalog && selectionInput.editorialCatalog.catalogRevision !== pinnedCatalogRevision())))
     throw new GenerationFailureError("preparation_contract_incompatible", "selection");
+  if (automatic !== (selectionInput.automaticSemanticVersion === 1) ||
+      automatic && selectionInput.familyNeutrality?.creativeFlexibility !== 1)
+    throw new GenerationFailureError("preparation_contract_incompatible", "selection");
+  const compactAutomatic = automatic && selectionInput.compactIntentVersion === 1;
   const editorialCatalog = selectionInput.editorialCatalog ?? null;
   const neutrality = selectionInput.familyNeutrality;
+  const distinctProposals = neutrality?.proposalSelectionVersion === PROPOSAL_SELECTION_POLICY.version;
+  const proposalHistory = distinctProposals ? proposalSelectionHistory(args.recentSelections, args.parentDesignSelection) : args.recentSelections;
   if (selectionInput.preservedPhoto && selectionInput.preservedPhoto.url !== requestedPreservedPhoto(input,requestText))
     throw new GenerationFailureError("preparation_contract_incompatible", "selection");
   const familyFirst = selectionInput.familyRankingVersion === 1;
@@ -400,26 +420,28 @@ export async function preparePlannedGeneration(
   ): Promise<T> {
     const json = z.toJSONSchema(schema);
     delete json.$schema;
+    const stage = key === "intent" ? "intent" : "copy";
+    const taskModel = resolveGenerationTaskModel(deps.generationConfig!, stage);
     const params: InvokeParams = typeof instruction !== "string" ? instruction : {
       taskRoute: input.postMode === "carousel" ? "carousel_generation" : "static_generation",
       traceLabel: `generation_${key}_v1`, signal: deps.signal,
       maxTransportAttempts: 1, disableStructuredRepair: true,
       messages: [
-        { role: "system", content: `${referenceContextInstructions}\n${instruction}` },
+        { role: "system", content: compactAutomatic && key === "intent" ? instruction : `${referenceContextInstructions}\n${instruction}` },
         { role: "user", content: JSON.stringify(data) },
       ],
       response_format: { type: "json_schema", json_schema: { name: `generation_${key}_v1`, strict: true, schema: json } },
       maxCompletionTokens,
-      ...generationModelCallOptions(deps.generationConfig),
+      ...generationTaskModelCallOptions(deps.generationConfig, stage),
       ...preparationCallBudget(deps.generationConfig!, key === "intent" ? "intent" : "selection", deadlineMs),
     };
     const receiptEnabled = Boolean(deps.generationConfig!.preparationBudget);
     const transport = receiptEnabled ? preparationTransportSnapshot(params) : undefined;
     const expectation: PreparationExpectation = {
       kind: "generation_preparation_v1", configurationHash: deps.generationConfig!.configurationHash,
-      model: deps.generationConfig!.model, messagesHash: arsenalHash(transport?.messages ?? params.messages),
+      model: taskModel.model, messagesHash: arsenalHash(transport?.messages ?? params.messages),
       responseFormatHash: arsenalHash(params.response_format),
-      requestHash: arsenalHash({ messages: params.messages, responseFormat: params.response_format, model: deps.generationConfig!.model,
+      requestHash: arsenalHash({ messages: params.messages, responseFormat: params.response_format, model: taskModel.model,
         reasoningEffort: params.reasoningEffort, maxCompletionTokens: params.maxCompletionTokens }),
     };
     let raw: unknown;
@@ -481,7 +503,18 @@ export async function preparePlannedGeneration(
       )
       .map(s => s.id)
   );
-  const providerIntent = await generate(
+  const providerIntent = compactAutomatic ? await generate(
+    "intent", compactGenerationIntentSchema,
+    selectionInput.reviewExecutionConfig.version === 5 && selectionInput.reviewExecutionConfig.automaticReviewVersion === 4
+      ? positiveCompactGenerationIntentInstructions : compactGenerationIntentInstructions,
+    compactGenerationIntentInput({request: input.content, sources: editorialContext.sources, factualSourceIds}),
+    1500
+  ) : automatic ? await generate(
+    "intent", legacyAutomaticGenerationIntentSchema, legacyAutomaticGenerationIntentInstructions,
+    { editorialContext: compactSelectionContextV1(editorialContext), factualSourceIds: Array.from(factualSourceIds), requestedPages: count,
+      adaptation: executionBrief?.interventionLevel === "visual_only" ? "literal" : "controlled" },
+    3000
+  ) : await generate(
     "intent",
     editorialEnabled ? generationEditorialIntentSchema : generationIntentLegacySchema,
     "Interprete a peça antes de escolher o layout. Identifique objetivo útil, tom contextual e núcleo de conteúdo, distinguindo instrução explícita de inferência. Um tema sério pode pedir cuidado mesmo sem dizer 'sério'; contexto não é licença para inventar restrições. Não imponha engajamento, humor, CTA, suspense ou três teses diferentes. Adaptação controlled preserva identidade e fatos com texto/distribuição adequados; literal preserva texto e ordem expressos. Classifique cada requirement com kind. Use kind=content somente para obrigações de conteúdo que precisam aparecer materialmente na arte ou legenda. Use kind=execution para formato, tom, escolha de mídia e limites factuais (ex.: composição tipográfica, sem foto, usar os fatos fornecidos): essas diretrizes continuam preservadas e verificadas no contexto editorial, com itemCount=null, e não exigem um content próprio. Todo requirement de kind=content explícito deve estar associado a pelo menos um content por requirementIds; requestQuote deve ser trecho literal do pedido para origin=explicit. itemCount só quando uma quantidade exata de itens for exigida. Para cada requisito com N itens, dê exatamente N content IDs distintos (um por item), separados de títulos e fechamento. Cada content descreve uma ideia, não copy final; sourceIds são referências reais para fatos, ou [] para ideia editorial sem suporte factual. Em sourceIds use estritamente os IDs existentes em factualSourceIds: " +
@@ -504,10 +537,19 @@ export async function preparePlannedGeneration(
     editorialEnabled ? 6500 : 4500
   );
 
-  const intent = normalizeGenerationIntent(providerIntent, count, factualSourceIds, requestText, neutrality?.planningVersion===2);
+  const projectedIntent = compactAutomatic
+    ? projectCompactGenerationIntent(providerIntent as z.infer<typeof compactGenerationIntentSchema>, {
+      adaptation: executionBrief?.interventionLevel === "visual_only" ? "literal" : "controlled", factualSourceIds,
+    })
+    : automatic ? (({semanticQuery: _query, ...rest}) => rest)(providerIntent as z.infer<typeof legacyAutomaticGenerationIntentSchema>)
+    : providerIntent as z.infer<typeof generationIntentLegacySchema>;
+  const intent = normalizeGenerationIntent(projectedIntent, count, factualSourceIds, requestText, (neutrality?.planningVersion ?? 0) >= 2);
+  const editorialEvidence = editorialRequestEvidence({ ...input, executionBrief: executionBrief ?? undefined });
+  if (intent.editorial && selectionInput.editorialQuotePolicy === 1)
+    intent.editorial = discardUnattributedEditorialSignals(intent.editorial, editorialCatalog, editorialEvidence);
   if (
-    (editorialEnabled && (!intent.editorial || validateEditorialIntent(intent.editorial, editorialCatalog,
-      editorialRequestEvidence({ ...input, executionBrief: executionBrief ?? undefined })).length > 0)) ||
+    (editorialEnabled && !automatic && (!intent.editorial || validateEditorialIntent(intent.editorial, editorialCatalog,
+      editorialEvidence).length > 0)) ||
     validateGenerationIntent(intent, requestText, factualSourceIds).length ||
     intent.adaptation !==
       (executionBrief?.interventionLevel === "visual_only"
@@ -516,6 +558,9 @@ export async function preparePlannedGeneration(
   )
     throw new GenerationFailureError("planning_response_invalid", "selection");
 
+  const visualRequirements = selectionInput.visualRequirementsVersion === 1
+    ? readGenerationVisualRequirements(executionBrief?.rawInput ?? input.content)
+    : undefined;
   const repertoires = resolveDesignFamilyRepertoires(cards, {
     slideCount: count,
     contentMode: intent.adaptation === "literal" ? "literal" : "compose",
@@ -524,7 +569,7 @@ export async function preparePlannedGeneration(
   const mediaCapable = (r: (typeof repertoires)[number]) =>
     r.slides.some(s => s.variants.some(c => c.mediaSlots.length));
   const eligible = repertoires.filter(r =>
-    repertoireMeetsMedia(r, imageObligation)
+    repertoireMeetsMedia(r, imageObligation) && repertoireMeetsVisualRequirements(r, visualRequirements)
   );
   // The persisted selection input keeps shortlist requests reproducible on retry.
   const describeProfile = selectionInput.shortlistProfileEncoding === "repertoire_pages_v1"
@@ -541,7 +586,7 @@ export async function preparePlannedGeneration(
     id: r.defaultOffer.offerId,
     hash: r.defaultOffer.signature,
   }));
-  const families = familyFirst ? buildFamilySelectionCandidates(eligible, editorialCatalog, Boolean(neutrality)) : [];
+  const families = familyFirst ? buildFamilySelectionCandidates(eligible, editorialCatalog, Boolean(neutrality), automatic) : [];
   let familyElection: GenerationPlanningReceipt["familyElection"] = familyFirst
     ? { version: 1, candidates: [], ranking: [], shortlistedIds: [] } : undefined;
   const runShortlist: NonNullable<PreparationDeps["shortlist"]> = async params => {
@@ -552,23 +597,25 @@ export async function preparePlannedGeneration(
       return result;
     }
     const visualQuery = familyVisualQuery(args.visualPreference, selectionInput.familyVisualQueryVersion===2?requestText:"", Boolean(neutrality));
-    const query = familySearchQuery(intent, editorialCatalog, visualQuery);
+    const semanticQuery = automatic ? (providerIntent as z.infer<typeof compactGenerationIntentSchema>).semanticQuery : undefined;
+    const query = automatic ? semanticFamilyQuery(intent, visualQuery, semanticQuery) : familySearchQuery(intent, editorialCatalog, visualQuery);
     const retrieval = await deps.operation("family_retrieval", async () => {
-      if (families.length > FAMILY_RETRIEVAL_POLICY.initialFamilies && !semanticIndex) await loadSemanticIndex(editorialCatalog, Boolean(neutrality));
+      if (!automatic && families.length > FAMILY_RETRIEVAL_POLICY.initialFamilies && !semanticIndex) await loadSemanticIndex(editorialCatalog, Boolean(neutrality));
       const pinned = selectionInput.familyRetrievalIndex;
       if (semanticIndex && pinned && (semanticIndex.index.hash !== pinned.hash || semanticIndex.index.modelFingerprint !== pinned.modelFingerprint))
         throw new GenerationFailureError("preparation_contract_incompatible", "selection");
       return retrieveFamilyCandidates({ neutrality, families, intent, catalog: editorialCatalog, visualPreference: visualQuery,
-        mixedMedia: args.requestedPhotoMix, semantic: semanticIndex, signal: deps.signal });
+        mixedMedia: args.requestedPhotoMix, semantic: semanticIndex, signal: deps.signal,
+        ...(automatic ? { automaticSemantic: { revision: String(pinnedCatalogRevision() ?? editorialCatalog?.catalogRevision ?? ENV.localCatalogRevision ?? ""), query: semanticQuery, ...deps.automaticSemantic } } : {}) });
     });
     assertFamilyRetrieval(retrieval, families, query);
     const result = await boundedFamilyShortlist({ input: params, families, retrieval, shortlist: deps.shortlist,
       ...(recoveryEnabled ? { recovery: { inspect: (ids: string[], scores: Array<{id: string; score: number; confidence: number}>) => inspectFamilyPlanFit({
-        neutrality, families, ids, scores, intent, imageObligation, requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: args.recentSelections,
+        automatic, neutrality, families, ids, scores, intent, imageObligation, requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: proposalHistory,
       }) } } : {}),
       sufficient: partial => {
-        if (recoveryEnabled) return inspectFamilyPlanFit({ neutrality, families, ids: partial.familyElection.shortlistedIds, scores: partial.familyElection.ranking,
-          intent, imageObligation, requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: args.recentSelections }).viableSlots.length === 3;
+        if (recoveryEnabled) return inspectFamilyPlanFit({ automatic, neutrality, families, ids: partial.familyElection.shortlistedIds, scores: partial.familyElection.ranking,
+          intent, imageObligation, requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: proposalHistory }).viableSlots.length === 3;
         const retained = new Set(partial.cards.map(c => c.id));
         const options = eligible.filter(r => retained.has(r.defaultOffer.offerId));
         // Account for the same assessed media restoration performed below.
@@ -580,8 +627,8 @@ export async function preparePlannedGeneration(
         return buildHeuristicGenerationPlan({ neutrality, familyFirst: true, intent, eligible: options, shortlist: partial,
           imageObligation, requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: args.recentSelections }).slots.every(s => s.status === "viable");
       } });
-    familyElection = result.familyElection;
-    recordGenerationEvent({ stage: "family_retrieval", status: "completed", detail: "hybrid_local_v1", data: {
+    familyElection = automatic ? { ...result.familyElection, ranking: result.familyElection.ranking.map(row => ({ ...row, score100: Math.round(row.score * 2500) / 100 })) } : result.familyElection;
+    recordGenerationEvent({ stage: "family_retrieval", status: "completed", detail: automatic ? "semantic_soft_discount_v1" : "hybrid_local_v1", data: {
       eligibleFamilies: families.length, recovered: retrieval.initialIds.length, expanded: result.familyElection.retrieval?.expanded,
       evaluatedFamilies: result.familyElection.ranking.length, transport: result.familyElection.retrieval?.transport,
       indexHash: retrieval.indexHash, queryHash: retrieval.queryHash,
@@ -623,7 +670,11 @@ export async function preparePlannedGeneration(
         offers: eligible.map(r => r.defaultOffer),
         rankingPolicy: "suitability_first",
         model: selectionInput.jevModel,
-        brief: JSON.stringify({
+        brief: JSON.stringify(automatic ? {
+          request: input.content, objective: intent.objective, tone: intent.tone.description,
+          semanticQuery: (providerIntent as z.infer<typeof compactGenerationIntentSchema>).semanticQuery,
+          creativeDirection: "Style and media preferences are flexible directions. A compelling creative interpretation is welcome. Do not require a literal visual match.",
+        } : {
           editorialContext: compactSelectionContextV1(editorialContext),
           intent,
           ...(editorialEnabled ? { editorialSelectionGuidance } : {}),
@@ -675,6 +726,8 @@ export async function preparePlannedGeneration(
     ...args, intent, editorialContext, generationConfig: deps.generationConfig!, signal: deps.signal,
     catalog: buildGenerationSelectionCatalog(offered, profiles, shortlist.evaluated),
   });
+  const planInput = { familyFirst, neutrality, intent, eligible: offered, shortlist, imageObligation,
+    requestedPhotoMix: args.requestedPhotoMix, slideCount: count, recentSelections: proposalHistory };
   let selection: { version: 1; slots: GenerationSlotPlan[] } = offered.length
     ? deps.useLegacyLlmSelection && !deps.generateSelection
       ? await generate(
@@ -688,24 +741,16 @@ export async function preparePlannedGeneration(
           return deps.generateSelection({ offered, profiles, shortlist, intent });
         }
         recordGenerationEvent({ stage: "generation_plan", status: "completed", detail: "deterministic_local", data: { paidEffect: false } });
-        return buildHeuristicGenerationPlan({
-          familyFirst,
-          neutrality,          intent,
-          eligible: offered,
-          shortlist,
-          imageObligation,
-          requestedPhotoMix: args.requestedPhotoMix,
-          slideCount: count,
-          recentSelections: args.recentSelections,
-        });
+        return buildHeuristicGenerationPlan(planInput);
       })
     : {
         version: 1 as const,
         slots: [0, 1, 2].map(slot => ({
           slot,
           status: "insufficient_fit" as const,
-          reason:
-            "O catálogo não possui uma sequência completa com as capacidades e mídia exigidas.",
+          reason: visualRequirements && !eligible.length
+            ? "O catálogo não possui uma composição que combine o portal cromático com o formato e a mídia solicitados."
+            : "O catálogo não possui uma sequência completa com as capacidades e mídia exigidas.",
           unmetRequirementIds: intent.requirements.map(r => r.id),
         })),
       };
@@ -720,9 +765,12 @@ export async function preparePlannedGeneration(
     .sort((a, b) => a.slot - b.slot);
   if (familyElection?.recovery?.recoveredIds.length) {
     const recoveredMembers = new Set(families.filter(f => familyElection!.recovery!.recoveredIds.includes(f.id)).flatMap(f => f.repertoires.map(r => r.defaultOffer.offerId)));
-    for (const slot of slots) if (slot.status === "viable" && recoveredMembers.has(slot.candidateId))
-      slot.reason = FAMILY_RECOVERY_REASON;
+    slots.forEach((slot, index) => {
+      if (slot.status === "viable" && recoveredMembers.has(slot.candidateId))
+        slots[index] = { ...slot, reason: distinctProposals ? `${slot.reason} ${FAMILY_RECOVERY_REASON}` : FAMILY_RECOVERY_REASON };
+    });
   }
+  const plannedFamilies = new Set<string>();
   const offers = slots.map((slot, index) => {
     if (slot.status !== "viable") return null;
     const rejectSlot = (violations: string[]) => {
@@ -755,6 +803,8 @@ export async function preparePlannedGeneration(
       return rejectSlot(["component_not_offered_or_incompatible"]);
     }
     const violations = validateGenerationPlan(slot, offer, intent);
+    if (offer.slides.some(slide => !meetsGenerationVisualRequirements(slide.card, visualRequirements)))
+      violations.push("visual_requirement");
     const mediaCount = offer.slides.reduce(
       (n, s) => n + s.card.mediaSlots.length,
       0
@@ -770,6 +820,8 @@ export async function preparePlannedGeneration(
     )
       violations.push("media_obligation");
     if (violations.length) return rejectSlot(violations);
+    if (distinctProposals && plannedFamilies.has(offer.family)) return rejectSlot(["proposal_family_repeated"]);
+    plannedFamilies.add(offer.family);
     return offer;
   });
   const ids = Array.from(
@@ -796,6 +848,10 @@ export async function preparePlannedGeneration(
   const planning = sealGenerationPlanningReceipt({
     version: 1,
     intent,
+    ...(visualRequirements ? { visualRequirements } : {}),
+    ...(distinctProposals ? { proposalSelectionVersion: PROPOSAL_SELECTION_POLICY.version } : {}),
+    ...(neutrality?.deliveryRecoveryVersion ? { deliveryReserves: deliveryProposalReserves({ ...planInput, eligible }, offers) } : {}),
+    ...(neutrality?.deliveryRecoveryVersion === 2 ? { firstDeliveryReviewRecovery: 1 as const } : {}),
     ...(editorialEnabled ? { editorialCatalog } : {}),
     ...(familyElection ? { familyElection } : {}),
     slots,
@@ -812,7 +868,7 @@ export async function preparePlannedGeneration(
       score,
       confidence,
     })),
-    recoveryRepertoires: slots.map((slot, index) =>
+    recoveryRepertoires: distinctProposals ? distinctProposalRecovery(planInput, offers) : slots.map((slot, index) =>
       slot.status !== "viable"
         ? []
         : offered
@@ -864,6 +920,7 @@ export async function preparePlannedGeneration(
     editorialContext,
     editorialContextHash: editorialContext.hash,
     planning,
+    ...(selectionInput.carouselCaptionPolicy === 1 ? { carouselCaptionPolicy: 1 } : {}),
     selectedDefinitions,
     selectionReasons: slots.map(s => s.reason),
     editorialApproaches: slots.map(s =>
@@ -912,6 +969,8 @@ export async function replanGenerationSlot(
     attempt > 2
   )
     return null;
+  const distinctProposals = planning.proposalSelectionVersion === PROPOSAL_SELECTION_POLICY.version;
+  if (distinctProposals && args.currentFamilies.includes(repertoire.family)) return null;
   // Native Structured Outputs requires an object at the root, not a union.
   const responseSchema = z
     .object({ slotPlan: generationSlotPlanSchema })
@@ -923,16 +982,19 @@ export async function replanGenerationSlot(
     async () => {
       if (!deps.useLegacyLlmSelection) {
         deps.signal?.throwIfAborted();
-        const planned = buildHeuristicGenerationPlan({
+        const planInput = {
+          familyFirst: distinctProposals,
           intent: planning.intent,
           eligible: [repertoire],
           shortlist: { cards: [], evaluated: [], batches: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 },
           imageObligation: prepared.perProposalImageObligations?.[slot] ?? prepared.imageObligation,
           slideCount: repertoire.slides.length,
           neutrality: planning.familyElection?.retrieval?.neutrality,
-        });
+        };
+        const slotPlan = distinctProposals ? buildDistinctProposalReplacement(planInput, slot) : buildHeuristicGenerationPlan(planInput).slots[slot];
         recordGenerationEvent({ stage: "generation_plan", status: "completed", detail: "deterministic_local", data: { paidEffect: false, slot, attempt } });
-        return { slotPlan: planned.slots[slot] };
+        return { slotPlan: distinctProposals && slotPlan.status === "viable"
+          ? { ...slotPlan, reason: "Outra composição compatível com o briefing, escolhida para recuperar esta proposta." } : slotPlan };
       }
       const response = await deps.generate({
         traceLabel: "generation_template_replan_v1",
@@ -1008,6 +1070,7 @@ export async function replanGenerationSlot(
     plan.pages.map(p => p.componentId)
   );
   if (validateGenerationPlan(plan, offer, planning.intent).length) return null;
+  if (offer.slides.some(slide => !meetsGenerationVisualRequirements(slide.card, planning.visualRequirements))) return null;
   const obligation =
     prepared.perProposalImageObligations?.[slot] ?? prepared.imageObligation;
   const mediaCount = offer.slides.reduce(

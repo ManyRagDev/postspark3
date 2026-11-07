@@ -1,7 +1,7 @@
 import { build } from "esbuild";
 await build({
   entryPoints: ["client/src/review-renderer/main.tsx"],
-  outfile: "dist/review-renderer/renderer.js",
+  outfile: process.env.REVIEW_RENDERER_BUNDLE || "dist/review-renderer/renderer.js",
   bundle: true,
   platform: "browser",
   format: "iife",

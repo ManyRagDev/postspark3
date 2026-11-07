@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ENV } from "../_core/env";
-import { getModelCostConfig, resolveTaskModelConfig } from "./modelRouter";
+import { estimateModelCostUsd, getModelCostConfig, resolveTaskModelConfig } from "./modelRouter";
 
 const original = {
   openRouterApiKey: ENV.openRouterApiKey,
@@ -76,6 +76,10 @@ describe("task model routing", () => {
     ["google/gemini-3.8-flash-20260902", 0.75, 3.75],
     ["openai/gpt-5.4-mini-20260815", 0.75, 4.5],
     ["z-ai/glm-5.3-flash:exacto", 0.075, 0.25],
+    ["anthropic/claude-haiku-5.5", 0.1, 0.5],
+    ["anthropic/claude-haiku-5.5-20261007", 0.1, 0.5],
+    ["deepseek/deepseek-v4.1-flash", 0.14, 0.42],
+    ["deepseek/deepseek-v4.1-flash-20260910", 0.14, 0.42],
   ] as const)(
     "normalizes versioned model %s for cost telemetry",
     (model, inputCost, outputCost) => {
@@ -85,4 +89,11 @@ describe("task model routing", () => {
       });
     }
   );
+});
+
+
+it("estimates Haiku's verified long-context price tier without undercounting it", () => {
+  const fee = 1 + ENV.openRouterPlatformFeePercent / 100;
+  expect(estimateModelCostUsd({ model: "anthropic/claude-haiku-5.5-20261007", promptTokens: 100_001, completionTokens: 1_000 }))
+    .toBeCloseTo((100_001 / 1_000_000 * 0.5 + 1_000 / 1_000_000 * 2.5) * fee, 12);
 });

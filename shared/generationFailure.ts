@@ -14,6 +14,7 @@ import { GENERATION_FAILURE_REASONS } from "./postspark";
  */
 
 const RETRYABLE_REASONS: ReadonlySet<GenerationFailureReason> = new Set<GenerationFailureReason>([
+  "provider_route_unavailable",
   "provider_unavailable",
   "provider_timeout",
   "invalid_provider_response",
@@ -25,9 +26,12 @@ const RETRYABLE_REASONS: ReadonlySet<GenerationFailureReason> = new Set<Generati
 
 /** Mensagem direta, sem stack trace, sem payload sensível. */
 const USER_MESSAGES: Record<GenerationFailureReason, string> = {
+  generation_paused: "Novas gerações estão pausadas neste ambiente. Nenhum Spark foi reservado.",
   insufficient_sparks:
     "Sparks insuficientes. Faça upgrade ou adquira um pacote de recarga.",
   authentication: "Sua sessão expirou. Entre novamente para continuar.",
+  provider_route_unavailable:
+    "O provedor não aceitou a configuração deste pedido. Crie um novo pedido para usar a configuração atual.",
   provider_unavailable:
     "O provedor de IA está indisponível no momento. Tente novamente.",
   provider_timeout:
@@ -70,6 +74,8 @@ export function classifyGenerationError(error: unknown): GenerationFailureReason
   const message = extractErrorMessage(error).toLowerCase();
   const code = extractErrorCode(error);
 
+  if (code === "PROVIDER_ROUTE_UNAVAILABLE" || message === "provider_route_unavailable") return "provider_route_unavailable";
+  if (message === "generation_paused") return "generation_paused";
   if (code === "PAYMENT_REQUIRED" || /insufficient (sparks|balance|credits)/.test(message)) {
     return "insufficient_sparks";
   }
@@ -161,6 +167,7 @@ export const generationFailureSchema = z.object({
     "catalog_variant_unavailable",
     "catalog_retrieval_unavailable",
     "selection_insufficient_fit",
+    "copy_response_invalid",
     "planning_response_invalid",
     "catalog_component_ineligible",
     "catalog_coverage_incomplete",
@@ -170,6 +177,7 @@ export const generationFailureSchema = z.object({
     "review_inconclusive",
     "review_content_rejected",
     "review_deadline_exceeded",
+    "provider_route_unavailable",
     "provider_unavailable",
     "provider_timeout",
     "preparation_reconciliation_required",
@@ -211,7 +219,10 @@ export function historicalGenerationFailure(reason?: string): GenerationFailure 
 export function failureFromError(error: unknown, stage: GenerationFailure["stage"] = "execution"): GenerationFailure {
   if (error instanceof GenerationFailureError) return error.failure;
   if((error as {name?:string})?.name==="SourceContextLimitError")return {code:"source_limitation",stage,retryable:false};
-  const e=error as {name?:string;code?:string;cause?:{name?:string}};
+  const e=error as {name?:string;code?:string;cause?:{name?:string;code?:string}};
+  if ((e?.name === "KnownProviderRejectionError" && e.code === "provider_route_unavailable") ||
+      (e?.cause?.name === "KnownProviderRejectionError" && e.cause.code === "provider_route_unavailable"))
+    return {code:"provider_route_unavailable",stage,retryable:true};
   if (e?.name === "LlmDeadlineExceededError" || e?.name === "LlmTransportTimeoutError" || e?.cause?.name === "LlmTransportTimeoutError" || e?.code === "TIMEOUT") return {code:"provider_timeout",stage,retryable:true};
   if (e?.name === "ProviderRequestError" || e?.cause?.name === "ProviderRequestError" || e?.code === "BAD_GATEWAY" || e?.code === "TOO_MANY_REQUESTS") return {code:"provider_unavailable",stage,retryable:true};
   return historicalGenerationFailure(error instanceof Error ? error.message : undefined) ?? { code: "execution_failed", stage, retryable: false };

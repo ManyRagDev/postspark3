@@ -1,10 +1,11 @@
+import { normalizeAutomaticReviewResponse, normalizeAutomaticReviewResponseV3, visualLossCorrectionUnitIdsV3, visualLossCorrectionMarkersV3 } from "./automaticReviewProtocol";
 import { arsenalHash } from "@shared/arsenalContent";
 import {
   proposalReviewResponseV10Schema,
   proposalReviewRecordV10Schema,
   type ReviewResponseV10,
 } from "@shared/proposalReviewV10";
-import type { ReviewFindingV7 } from "@shared/proposalReviewV7";
+import { reviewDecisionV7, type ReviewFindingV7 } from "@shared/proposalReviewV7";
 import type {
   GenerationIntent,
   ViableGenerationPlan,
@@ -173,9 +174,16 @@ export function normalizeReviewV10(
     response: ReviewResponseV10;
     generationIntent?: GenerationIntent;
     narrativePlan?: ViableGenerationPlan;
+    automaticReviewVersion?: 2 | 3;
   }
 ) {
-  const { response, units, context } = options;
+  const { units, context } = options;
+  const local = options.automaticReviewVersion === 3
+    ? normalizeAutomaticReviewResponseV3(options.response, { generationIntent: options.generationIntent, units, contextRequirementIds: context.requirements.map(r => r.id) })
+    : options.automaticReviewVersion === 2
+    ? normalizeAutomaticReviewResponse(options.response, { generationIntent: options.generationIntent, units, contextRequirementIds: context.requirements.map(r => r.id) })
+    : {response: options.response, discardedFields: []};
+  const {response} = local;
   const evidenceInventory = buildSourceEvidenceV10(context);
   const invalid = invalidReviewV10;
   const canonical = canonicalizeRequirementChecksV10(
@@ -582,9 +590,9 @@ export function normalizeReviewV10(
     )
   )
     invalid("sequence_gap_without_material_target");
-  const normalized = normalizeReviewV9({
+  let normalized = normalizeReviewV9({
     ...options,
-    discardedFields: [...options.discardedFields, ...canonical.discardedFields],
+    discardedFields: [...options.discardedFields, ...canonical.discardedFields, ...local.discardedFields],
     nativeRequirementTargets,
     response: {
       outcome:
@@ -613,6 +621,21 @@ export function normalizeReviewV10(
       },
     },
   });
+  if (options.automaticReviewVersion === 3 && normalized.status === "inconclusive" &&
+      normalized.limitation === "proposal_review_semantic_inconclusive") {
+    const visualUnits = visualLossCorrectionUnitIdsV3(response);
+    if (visualUnits.length) {
+      const findings = normalized.findings.filter(f => !(f.category === "unsupported_claim" &&
+        f.certainty === "uncertain" && f.unitId && visualUnits.includes(f.unitId)));
+      const candidate = {...normalized, findings, limitation: ""};
+      // Never promote to passed, even when all other judgments are positive.
+      // The original unitChecks and factualAudit retain every uncertain claim.
+      if (reviewDecisionV7(candidate) === "correction_required") normalized = {
+        ...candidate, status: "correction_required",
+        discardedFields: [...normalized.discardedFields, ...visualLossCorrectionMarkersV3(response, visualUnits)],
+      };
+    }
+  }
   return proposalReviewRecordV10Schema.parse({
     ...normalized,
     policyVersion: 10,

@@ -21,7 +21,8 @@ import {
 
 export type ImageProvider = "pollinations_fast" | "pollinations_hd";
 
-function wrapPrompt(userPrompt: string): string {
+function wrapPrompt(userPrompt: string, editorialPromptVersion?: 1): string {
+  if (editorialPromptVersion === 1) return userPrompt;
   return (
     `Create a polished, original background image for a social media post. ${userPrompt}\n` +
     "Preserve the user-selected scene as the primary visual intent, including a static product scene when requested. " +
@@ -40,6 +41,8 @@ type ImageCandidate = {
 };
 
 export interface ImageGenerationRouteOptions {
+  editorialPromptVersion?: 1;
+  maxOutputTokens?: number;
   routePolicy?: "legacy" | "strict";
   purpose?: string;
   originalImages?: Array<{ url?: string; b64Json?: string; mimeType?: string }>;
@@ -271,7 +274,9 @@ async function generateWithOpenRouter(
   model: string,
   strictRoute: boolean,
   references: string[] = [],
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  editorialPromptVersion?: 1,
+  maxOutputTokens?: number,
 ): Promise<string> {
   if (!ENV.openRouterApiKey) {
     throw new Error(
@@ -324,6 +329,7 @@ async function generateWithOpenRouter(
       },
       body: JSON.stringify({
         model: normalizedModel,
+        ...(maxOutputTokens === undefined ? {} : {max_tokens: maxOutputTokens}),
         image_config: { aspect_ratio: nativeRatio },
         messages: [
           {
@@ -331,7 +337,7 @@ async function generateWithOpenRouter(
             content: [
               {
                 type: "text",
-                text: `${wrapPrompt(prompt)}
+                text: `${wrapPrompt(prompt, editorialPromptVersion)}
 
 Output requirements:
 - Compose for a ${aspectRatio} social media canvas using the requested ${nativeRatio} native image ratio. Keep important scene elements comfortably within the canvas when practical; do not force a centered subject or reserve blank crop bands.
@@ -518,6 +524,7 @@ export async function generateBackgroundImage(
   aspectRatio: ImageAspectRatio = "1:1",
   routeOptions: ImageGenerationRouteOptions = {}
 ): Promise<string> {
+  if (routeOptions.maxOutputTokens !== undefined && (!Number.isSafeInteger(routeOptions.maxOutputTokens) || routeOptions.maxOutputTokens <= 0)) throw new Error("image_max_output_tokens_invalid");
   const strict = routeOptions.routePolicy === "strict";
   const references = strict
     ? await resolveStrictReferences(routeOptions.originalImages ?? [])
@@ -571,7 +578,9 @@ export async function generateBackgroundImage(
           candidate,
           true,
           references,
-          routeOptions.signal
+          routeOptions.signal,
+          routeOptions.editorialPromptVersion,
+          routeOptions.maxOutputTokens,
         );
         void appendOperationalLog("IMAGE_PROVIDER_200", {
           provider: "openrouter",
@@ -621,7 +630,9 @@ export async function generateBackgroundImage(
       model,
       strict,
       references,
-      routeOptions.signal
+      routeOptions.signal,
+      routeOptions.editorialPromptVersion,
+      routeOptions.maxOutputTokens,
     );
     void appendOperationalLog("IMAGE_PROVIDER_200", {
       provider: "openrouter",

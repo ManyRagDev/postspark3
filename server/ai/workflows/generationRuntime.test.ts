@@ -9,6 +9,7 @@ import {
   requestInputHash,
   requestSnapshot,
   proposalRecoveryOperationKeys,
+  proposalRecoveryCopyFromOperations,
 } from "./generationRuntime";
 import type { GenerationStore, RequestRecord } from "./generationStore";
 import { verifyPreparedEligibility } from "./generationPreparation";
@@ -22,12 +23,43 @@ import {
   recordLlmTraceCall,
   type GenerationTrace,
 } from "../generationTrace";
+import { providerRejectionErrorFromReceipt } from "../../_core/llm";
 import { ENV } from "../../_core/env";
+import { isPaidGenerationOperation, summarizeGenerationJournal } from "./generationJournalTrace";
 import * as localDiagnostics from "../localDiagnostics";
 import { resolveReviewExecutionConfigV7 } from "./reviewExecutionConfigV7";
 import { resolveGenerationModelConfig } from "../generationModel";
 
 describe("uncertain strategy-2 preparation lifecycle", () => {
+  it("terminalizes a known route rejection, preserves a ready slot and never buys the operation on replay", async () => {
+    const generationConfig=resolveGenerationModelConfig({generationModel:"auto",postMode:"static"});
+    const s=setup({generationConfig,prepared:undefined,deadlineAt:Date.now()+600000});
+    // A committed result must remain byte-identical even when another stage fails.
+    const seed=setup();
+    const completed=await executeClaimedGeneration(seed.record(),"seed-lease",{store:seed.store,verifyPrepared:seed.verifyPrepared,graphDeps:seed.graphDeps,persistTrace:vi.fn(async()=>{})});
+    expect(completed.proposals[0].status).toBe("ready");
+    s.record().proposals[0]=structuredClone(completed.proposals[0]);
+    const ready=structuredClone(s.record().proposals[0]);
+    const rejection=providerRejectionErrorFromReceipt({__providerRejection:{version:2,provider:"openrouter",model:"deepseek/deepseek-v4.1-flash",httpStatus:404,reason:"no_allowed_providers",requestedProviders:["deepinfra/fp8"],availableProviders:["morph"],requestHash:"a".repeat(64),responseHash:"b".repeat(64),costStatus:"unreported"}})!;
+    s.store.persistPreparationExpectation=vi.fn(async(_id,_lease,key,expectation)=>{s.journal.set(key,{...s.journal.get(key)!,expectation});});
+    const effect=vi.fn(async()=>{throw rejection;});
+    const prepare=vi.fn(async(_input,_owner,_experimental,_deadline,deps)=>{
+      await deps.operation("intent",async()=>{
+        await deps.expectPreparation("intent",{kind:"generation_preparation_v1",configurationHash:generationConfig.configurationHash,model:generationConfig.taskRouting!.intent.model,messagesHash:"a".repeat(64),responseFormatHash:"b".repeat(64),requestHash:"c".repeat(64)});
+        return effect();
+      });throw new Error("unreachable");
+    });
+    const deps={store:s.store,prepare,persistTrace:vi.fn(async()=>{}),loadTraceCalls:async()=>[]};
+    const first=await executeClaimedGeneration(s.record(),"lease",deps);
+    expect(first.overallStatus).toBe("partial");expect(first.proposals[0]).toEqual(ready);
+    expect(first.proposals.slice(1).every(p=>p.status==="failed"&&p.failure?.code==="provider_route_unavailable")).toBe(true);
+    expect(s.journal.get("prepare:intent")?.state).toBe("completed");
+    expect(s.journal.get("prepare:intent")?.result).toHaveProperty("__providerRejection.costStatus","unreported");
+    expect(s.store.markOperationUncertain).not.toHaveBeenCalled();
+    await expect(durableOperations(s.store,s.record(),"lease",new AbortController().signal,"prepare:")("intent",effect)).rejects.toMatchObject({code:"provider_route_unavailable"});
+    expect(effect).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps preparation pending across restart with zero duplicate effects and preserves timeout phase", async () => {
     const old = ENV.generationStrategyVersion; ENV.generationStrategyVersion = 2;
     const generationConfig = resolveGenerationModelConfig({ generationModel: "gpt", postMode: "static" });
@@ -235,6 +267,7 @@ describe("durable runtime and independent delivery", () => {
         state: "completed",
       },
       { operationKey: `${proposalId}:review:initial:hash`, state: "completed" },
+      { operationKey: `${proposalId}:copy_fit_candidate`, state: "completed" },
       { operationKey: `${proposalId}-other:copy_recovery`, state: "completed" },
     ]);
     expect(
@@ -324,7 +357,7 @@ describe("durable runtime and independent delivery", () => {
     ).toBeCloseTo(0.11);
     expect(
       saved[0].events.find(event => event.stage === "generation_metrics")?.data
-    ).toMatchObject({ costComplete: true, calls: 8 });
+    ).toMatchObject({ costComplete: true, calls: 8, deliveredCount: 3, failedCount: 0, pendingCount: 0, completedThree: true, knownProviderCostUsd: expect.closeTo(0.11), unknownCostCallCount: 0 });
     for (const [key, value] of s.journal)
       if (key.endsWith(":copy") || key.includes(":review:"))
         expect((value.result as any).__generationTrace.calls).toHaveLength(1);
@@ -343,6 +376,9 @@ describe("durable runtime and independent delivery", () => {
     expect(generateText).toHaveBeenCalledTimes(6);
     expect(prepare).toHaveBeenCalledTimes(1);
     expect(saved[1].calls).toEqual(saved[0].calls);
+    expect(saved[1].events.find(event => event.stage === "generation_metrics")?.data).toMatchObject({
+      calls: 8, deliveredCount: 3, failedCount: 0, completedThree: true, knownProviderCostUsd: expect.closeTo(0.11),
+    });
     expect(getGenerationTrace()).toBeUndefined();
   });
   it("preserves a known provider charge before a local failure and keeps it on uncertain replay", async () => {
@@ -705,6 +741,7 @@ describe("C-01: selection handoff and resume protection", () => {
       const result = await executeClaimedGeneration(s.record(),"lease", {store:s.store,verifyPrepared:s.verifyPrepared,graphDeps:s.graphDeps,persistTrace:async()=>{}});
       const terminal = writer.mock.calls.map(c => c[1] as any).find(r => r.kind === "generation_terminal");
       expect(terminal.ownerId).toBe(owner);
+      expect(terminal).toMatchObject({deliveredCount:3,failedCount:0,pendingCount:0,completedThree:true,localNormalizedReviewCount:0,localRecoveredProposalCount:0});
       expect(terminal.status).toBe(result.overallStatus);
       expect(terminal.proposals.map((p:any) => p.status)).toEqual(["ready","ready","ready"]);
       expect(terminal.proposals.every((p:any) => p.stage === "delivery")).toBe(true);
@@ -939,3 +976,42 @@ describe("C-01: selection handoff and resume protection", () => {
 });
 
 
+
+
+describe("visual recovery candidate journal selection", () => {
+  const originalCopy = { caption: "Original", hashtags: [], slides: [{ values: [{ fieldId: "field-0", value: "Long source text" }], mediaPrompts: [] }] };
+  const candidateCopy = { ...originalCopy, caption: "Agent candidate", slides: [{ values: [{ fieldId: "field-0", value: "Shorter candidate" }], mediaPrompts: [] }] };
+  const original = { operationKey: "p:copy", state: "completed", result: {
+    model: "anthropic/claude-haiku-5.5", usage: { prompt_tokens: 15, completion_tokens: 10, total_tokens: 25, cost: 0.00001 },
+    choices: [{ message: { content: JSON.stringify(originalCopy) } }],
+  } };
+  const candidate = { operationKey: "p:copy_fit_candidate", state: "completed", result: { version: 1, copy: candidateCopy,
+    __generationTrace: { version: 1, calls: [], events: [{ stage: "generation_plan", status: "completed", detail: "deterministic_local" }] },
+  } };
+  it("uses the completed candidate only under the new policy without mutating receipts or charging it", () => {
+    const operations = [original, candidate]; const snapshot = JSON.stringify(operations);
+    expect(proposalRecoveryCopyFromOperations(operations, "p", 1)).toEqual(candidateCopy);
+    expect(proposalRecoveryCopyFromOperations(operations, "p")).toEqual(originalCopy);
+    expect(JSON.stringify(operations)).toBe(snapshot);
+    expect(isPaidGenerationOperation(candidate.operationKey)).toBe(false);
+    const summary = summarizeGenerationJournal(operations as any);
+    expect(summary.calls).toHaveLength(1);
+    expect(summary.calls[0].estimatedCostUsd).toBe(0.00001);
+    expect(summary.unknownCostOperations).toEqual([]);
+  });
+  it.each(["started", "uncertain"])("ignores a %s candidate and does not reuse another proposal's copy", state => {
+    const operations = [original, { ...candidate, state }, { ...candidate, operationKey: "p-other:copy_fit_candidate" }];
+    expect(proposalRecoveryCopyFromOperations(operations, "p", 1)).toEqual(originalCopy);
+    expect(proposalRecoveryCopyFromOperations(operations, "absent", 1)).toBeNull();
+  });
+  it.each([{ version: 2, copy: candidateCopy }, { version: 1, copy: null }, { version: 1, copy: "invalid" }])("falls back for an incompatible candidate receipt %j", result => {
+    expect(proposalRecoveryCopyFromOperations([original, { ...candidate, result }], "p", 1)).toEqual(originalCopy);
+  });
+  it("does not erase unknown cost of the paid recovery when a local candidate exists", () => {
+    const operations = [original, candidate, { operationKey: "p:copy_recovery", state: "uncertain" }];
+    const summary = summarizeGenerationJournal(operations as any);
+    expect(summary.calls).toHaveLength(1);
+    expect(summary.unknownCostOperations).toEqual(["p:copy_recovery"]);
+    expect(proposalRecoveryCopyFromOperations(operations, "p", 1)).toEqual(candidateCopy);
+  });
+});

@@ -14,6 +14,7 @@ import {
   normalFamilyIds,
   type FamilyPlanFit,
   type FamilyScore,
+  effectiveFamilyScore,
 } from "@shared/familyRecovery";
 
 type Result = DesignShortlistResult & {
@@ -33,6 +34,7 @@ export async function boundedFamilyShortlist(args: {
 }): Promise<Result> {
   const { input, families, shortlist } = args;
   const retrieval = structuredClone(args.retrieval);
+  const automatic = Boolean(retrieval.semanticRetrieval);
   const tie=retrieval.neutrality ? (id:string)=>familyTie(retrieval.neutrality!.seed,families.find(f=>f.id===id)!.family) : undefined;
   const budget = {
     maxRequestBytes: policy.maxRequestBytes,
@@ -52,13 +54,17 @@ export async function boundedFamilyShortlist(args: {
     costUsd = 0;
   let recovery: ReturnType<typeof planFamilyRecovery> | undefined;
   const aggregate = (): Result => {
+    const ranked = Array.from(familyScores.values()).sort((a,b) => effectiveFamilyScore(b)-effectiveFamilyScore(a) ||
+      (tie ? tie(a.id).localeCompare(tie(b.id)) : a.id.localeCompare(b.id)));
     const selected = new Set([
-      ...normalFamilyIds(Array.from(familyScores.values()),tie),
+      ...(automatic ? ranked.slice(0,12).map(r => r.id) : normalFamilyIds(Array.from(familyScores.values()),tie)),
       ...(recovery?.recoveredIds ?? []),
     ]);
     const memberIds = new Set(
       families
-        .filter(f => selected.has(f.id))
+        // Automatic judgments rank continuously. All assessed families remain
+        // available for local technical fallback, including a score of zero.
+        .filter(f => automatic ? familyScores.has(f.id) : selected.has(f.id))
         .flatMap(f => f.repertoires.map(r => r.defaultOffer.offerId))
     );
     retrieval.transport = {
@@ -94,7 +100,18 @@ export async function boundedFamilyShortlist(args: {
   )) {
     if (!ids.length) continue;
     if (wave === 1) {
-      if (args.sufficient(aggregate())) break;
+      if (automatic) {
+        // A style preference or low provider score is not evidence that the
+        // catalogue cannot implement the content. Only local structural fit
+        // over ALL judged families can justify buying the second bounded wave.
+        if (!args.recovery) break;
+        const checkedIds = Array.from(familyScores.keys());
+        const fit = args.recovery.inspect(checkedIds, Array.from(familyScores.values()));
+        if (!/^[a-f0-9]{64}$/.test(fit.planHash) || new Set(fit.viableSlots).size !== fit.viableSlots.length ||
+            fit.viableSlots.some(s => ![0,1,2].includes(s))) throw new Error("family_recovery_fit_invalid");
+        retrieval.semanticRetrieval!.technicalFit = {checkedFamilyIds: checkedIds, ...fit};
+        if (fit.viableSlots.length === 3) break;
+      } else if (args.sufficient(aggregate())) break;
       retrieval.expanded = true;
     }
     const set = new Set(ids),
@@ -120,7 +137,7 @@ export async function boundedFamilyShortlist(args: {
     outputTokens += result.outputTokens;
     costUsd += result.costUsd;
   }
-  if (args.recovery) {
+  if (args.recovery && !automatic) {
     const scores = Array.from(familyScores.values());
     recovery = planFamilyRecovery(scores, ids =>
       args.recovery!.inspect(ids, scores), tie

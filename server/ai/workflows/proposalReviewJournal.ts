@@ -1,3 +1,4 @@
+import { knownProviderRejectionReceipt, providerRejectionErrorFromReceipt } from "../../_core/llm";
 import { reviewDurableContextV5Schema, type ReviewExecutionConfigV5, type ProposalReviewDurableContextV5 } from "@shared/proposalReviewV10";
 import { reviewDurableContextV4Schema, type ReviewExecutionConfigV4, type ProposalReviewDurableContextV4 } from "@shared/proposalReviewV9";
 import { reviewDurableContextV3Schema, type ReviewExecutionConfigV3, type ProposalReviewDurableContextV3 } from "@shared/proposalReviewV8";
@@ -30,6 +31,7 @@ export function readReviewContext(
   key: string
 ) {
   const value = readJournalResult<Record<string, unknown>>(result);
+  const rejection=providerRejectionErrorFromReceipt(value); if(rejection)throw rejection;
   const parsed = config.policyVersion === 10 ? reviewDurableContextV5Schema.safeParse(value?.__proposalReview) : config.policyVersion === 9 ? reviewDurableContextV4Schema.safeParse(value?.__proposalReview) : config.policyVersion === 8 ? reviewDurableContextV3Schema.safeParse(value?.__proposalReview) : config.policyVersion === 7
     ? reviewDurableContextV2Schema.safeParse(value?.__proposalReview)
     : reviewContextSchema.safeParse(value?.__proposalReview);
@@ -89,11 +91,12 @@ export function initialReviewContext(
   const initial = operations.filter(o =>
     o.operationKey.startsWith("review:initial:")
   );
+  const repairRounds = operations.filter(o => o.operationKey.startsWith("review_evidence_repair:"))
+    .map(o => o.operationKey.split(":")[1]);
   if (
     initial.length > 1 ||
-    operations.length > 3 ||
-    operations.filter(o => o.operationKey.startsWith("review_evidence_repair:"))
-      .length > 1
+    operations.length > (input.firstDeliveryReviewRecovery ? 4 : 3) ||
+    repairRounds.length > (input.firstDeliveryReviewRecovery ? new Set(repairRounds).size : 1)
   )
     throw incompatible();
   for (const op of operations) {
@@ -157,10 +160,10 @@ export async function executeReviewOperation<T>(
       return readJournalResult<T>(existing.result);
     }
     if (
-      operations.length >= 3 ||
+      operations.length >= (input.firstDeliveryReviewRecovery ? 4 : 3) ||
       (match[1] === "review_evidence_repair" &&
         operations.some(o =>
-          o.operationKey.startsWith("review_evidence_repair:")
+          o.operationKey.startsWith(input.firstDeliveryReviewRecovery ? `review_evidence_repair:${match[2]}:` : "review_evidence_repair:")
         ))
     )
       throw new Error("proposal_review_evidence_repair_exhausted");
@@ -181,6 +184,7 @@ export async function executeReviewOperation<T>(
           work
         );
       } catch (error) {
+        if (knownProviderRejectionReceipt(error)) throw error;
         if (input.signal?.aborted) throw error;
         const saved = (
           await readReviewOperations(deps, input).catch(() => [])
@@ -222,9 +226,11 @@ export async function executeReviewOperation<T>(
       });
       return result;
     } catch (error) {
+      const rejection = knownProviderRejectionReceipt(error);
       deps.reviewOperationCache!.set(key, {
         operationKey: key,
-        state: "uncertain",
+        state: rejection ? "completed" : "uncertain",
+        ...(rejection ? { result: rejection } : {}),
       });
       throw error;
     }

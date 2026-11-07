@@ -18,11 +18,14 @@ import {
 import { resolveReviewExecutionConfigV10 } from "./reviewExecutionConfigV10";
 import {
   proposalReviewRecordV10Schema,
+  proposalReviewExceptionsRecordV10Schema,
+  proposalReviewExceptionsResponseV10Schema,
   reviewDurableContextV5Schema,
 } from "@shared/proposalReviewV10";
 import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.fixture";
 import { arsenalHash } from "@shared/arsenalContent";
 import { validateRecoveredReview } from "./generationReconciliation";
+import { resolveGenerationModelConfig } from "../generationModel";
 
 let pg: PGlite;
 const definition = completeDesignTestDefinitions()[0],
@@ -54,6 +57,8 @@ beforeAll(async () => {
     "0044_generation_model_config.sql",
     "0046_generation_review_v10.sql",
     "0054_generation_execution_requirements.sql",
+    "0055_editorial_catalog.sql",
+    "0061_generation_review_exceptions.sql",
   ])
     await pg.exec(
       readFileSync(
@@ -253,7 +258,7 @@ async function setup(attempt = 0) {
 }
 type Scenario = Awaited<ReturnType<typeof setup>>;
 async function expectReview(
-  s: Scenario,
+  s: Pick<Scenario, "id" | "claim" | "key" | "expectation">,
   key = s.key,
   expectation: any = s.expectation
 ) {
@@ -262,7 +267,7 @@ async function expectReview(
     [s.id, s.claim.leaseToken, key, JSON.stringify(expectation)]
   );
 }
-async function completeReview(s: Scenario, key = s.key) {
+async function completeReview(s: Pick<Scenario, "id" | "claim" | "key" | "expectation" | "result">, key = s.key) {
   await expectReview(s, key);
   await value(
     "SELECT postspark.generation_v5_operation($1,$2,$3,'complete',$4::jsonb) AS value",
@@ -271,7 +276,7 @@ async function completeReview(s: Scenario, key = s.key) {
 }
 const commitSql =
   "SELECT postspark.generation_v5_lease_update($1,$2,'commit',$3::jsonb) AS value";
-const commitArgs = (s: Scenario, delivery: any = s.delivery) => [
+const commitArgs = (s: { id: string; claim: Scenario["claim"]; delivery: unknown }, delivery: any = s.delivery) => [
   s.id,
   s.claim.leaseToken,
   JSON.stringify({ delivery, projection: { id: "reviewed-projection" } }),
@@ -599,5 +604,114 @@ describe("V10 durable review PostgreSQL integration", () => {
       commitArgs(s, { ...s.delivery, reviews: [] }),
       "Valid review required"
     );
+  });
+});
+
+
+async function setupExceptions(attempt = 0) {
+  const s = await setup(attempt);
+  const generation = resolveGenerationModelConfig({ generationModel: "auto", postMode: "static" });
+  const reviewConfig = resolveReviewExecutionConfigV10(generation.model, generation.taskRouting!.copy);
+  const prepared = { ...s.prepared, reviewExecutionConfig: reviewConfig };
+  await value("SELECT postspark.generation_v5_lease_update($1,$2,'prepared',$3::jsonb) AS value", [s.id, s.claim.leaseToken, JSON.stringify(prepared)]);
+  const context = { ...s.context, configurationHash: reviewConfig.configurationHash };
+  const expectation = { ...context, transport: { ...s.expectation.transport, model: reviewConfig.resolvedModel, configurationHash: reviewConfig.configurationHash } };
+  const raw = { status: "reviewed", reviewedSlides: [0], limitation: null, findings: [] };
+  const record = proposalReviewExceptionsRecordV10Schema.parse({
+    policyVersion: 10, automaticReviewVersion: 4, round: "initial", inputHash,
+    status: "passed", inspectionStatus: "reviewed", limitation: "", expectedSlideCount: 1,
+    reviewedSlides: [0], findings: [], operationKeys: s.record.operationKeys,
+    rawResponseHash: arsenalHash(raw), evidenceInventory: context.evidenceInventory,
+  });
+  const result = { ...s.result, model: reviewConfig.resolvedModel, __proposalReview: context,
+    choices: [{ message: { role: "assistant", content: JSON.stringify(raw) }, finish_reason: "stop" }] };
+  return { ...s, prepared, context, expectation, raw, record, result, delivery: { ...s.delivery, reviews: [record] } };
+}
+
+describe("V4 exception review PostgreSQL commit guard", () => {
+  it("commits without synthetic positive checks, preserves raw evidence and keeps siblings unchanged", async () => {
+    const s = await setupExceptions();
+    await completeReview(s);
+    const before = await value("SELECT proposals AS value FROM postspark.generation_v5_requests WHERE id=$1", [s.id]);
+    const stored = await value(commitSql, commitArgs(s));
+    expect(stored.proposals[0].status).toBe("ready");
+    expect(stored.proposals[0].reviews).toEqual([s.record]);
+    expect(stored.proposals.slice(1)).toEqual(before.slice(1));
+    expect(s.record).not.toHaveProperty("unitChecks");
+    expect(s.record).not.toHaveProperty("checkedTextUnits");
+    expect(await value("SELECT result AS value FROM postspark.generation_v5_operations WHERE request_id=$1 AND operation_key=$2", [s.id, s.key])).toEqual(s.result);
+    expect(await value("SELECT encode(sha256(convert_to(postspark.editorial_canonical_json($1::jsonb),'UTF8')),'hex') AS value", [JSON.stringify(s.raw)])).toBe(s.record.rawResponseHash);
+    // Resume reuses the same completed operation and immutable terminal proposal.
+    const replay = await value(commitSql, commitArgs(s));
+    expect(replay.proposals).toEqual(stored.proposals);
+    expect(await value("SELECT count(*)::int AS value FROM postspark.generation_v5_operations WHERE request_id=$1", [s.id])).toBe(1);
+  });
+
+  it.each([
+    ["unknown raw hash", { rawResponseHash: "f".repeat(64) }, /raw review evidence mismatch/],
+    ["missing raw hash", { rawResponseHash: null }, /Valid V4 exception review/],
+    ["malformed raw hash", { rawResponseHash: "unknown" }, /Valid V4 exception review/],
+    ["partial inspection", { inspectionStatus: "partial" }, /Valid V4 exception review/],
+    ["non-passed record", { status: "inconclusive" }, /Valid V4 exception review/],
+    ["missing marker", { automaticReviewVersion: undefined }, /Valid V4 exception review/],
+    ["old marker", { automaticReviewVersion: 3 }, /Valid V4 exception review/],
+    ["missing slide", { reviewedSlides: [] }, /Incomplete V4 exception review/],
+    ["wrong slide", { reviewedSlides: [1] }, /Incomplete V4 exception review/],
+    ["negative slide", { reviewedSlides: [-1] }, /Incomplete V4 exception review/],
+    ["wrong expected count", { expectedSlideCount: 2 }, /Valid V4 exception review/],
+    ["altered evidence inventory", { evidenceInventory: [{ id: "invented" }] }, /raw review evidence mismatch/],
+    ["missing operation", { operationKeys: [] }, /Incomplete V4 exception review/],
+  ])("rejects %s in the local record", async (_label, patch, message) => {
+    const s = await setupExceptions();
+    await completeReview(s);
+    await rejected(commitSql, commitArgs(s, { ...s.delivery, reviews: [{ ...s.record, ...patch as object }] }), message as RegExp);
+  });
+
+  it.each([
+    ["partial raw inspection", { status: "partial" }],
+    ["unavailable raw inspection", { status: "unavailable" }],
+    ["raw limitation", { limitation: "Could not inspect the image" }],
+    ["raw slide change", { reviewedSlides: [] }],
+    ["negative raw finding", { findings: [{ targetId: "u1", category: "unsupported_claim", consequence: "false_claim", certainty: "established", evidenceIds: [], detail: "Claim not supported", expected: "Remove claim" }] }],
+  ])("rejects %s even with a freshly matching raw hash", async (_label, patch) => {
+    const s = await setupExceptions();
+    const raw = proposalReviewExceptionsResponseV10Schema.parse({ ...s.raw, ...patch as object });
+    s.result.choices[0].message.content = JSON.stringify(raw);
+    await completeReview(s);
+    await rejected(commitSql, commitArgs(s, { ...s.delivery, reviews: [{ ...s.record, rawResponseHash: arsenalHash(raw) }] }), /V4 raw review evidence mismatch/);
+  });
+
+  it("rejects a changed completed raw response and invalid JSON", async () => {
+    const s = await setupExceptions();
+    s.result.choices[0].message.content = JSON.stringify({ ...s.raw, extra: "tampered" });
+    await completeReview(s);
+    await rejected(commitSql, commitArgs(s), /V4 raw review evidence mismatch/);
+    const malformed = await setupExceptions();
+    malformed.result.choices[0].message.content = "{incomplete";
+    await completeReview(malformed);
+    await rejected(commitSql, commitArgs(malformed), /Invalid V4 raw review response/);
+  });
+
+  it("requires the config marker too and refuses receipts from a different attempt", async () => {
+    const s = await setupExceptions(1);
+    await completeReview(s, `${s.canonical}:review:initial:${inputHash}`);
+    await rejected(commitSql, commitArgs(s), /V4 review receipt mismatch/);
+    await completeReview(s);
+    const prepared = { ...s.prepared, reviewExecutionConfig: { ...s.prepared.reviewExecutionConfig, automaticReviewVersion: 3 } };
+    await value("SELECT postspark.generation_v5_lease_update($1,$2,'prepared',$3::jsonb) AS value", [s.id, s.claim.leaseToken, JSON.stringify(prepared)]);
+    await rejected(commitSql, commitArgs(s), /Valid V4 exception review/);
+  });
+
+  it("advertises readiness only to service_role and detects a disabled guard", async () => {
+    await pg.exec("SET LOCAL ROLE service_role");
+    expect(await value("SELECT postspark.generation_review_exceptions_available() AS value")).toBe(true);
+    await pg.exec("RESET ROLE");
+    for (const role of ["anon", "authenticated"]) {
+      await pg.exec(`SET LOCAL ROLE ${role}`);
+      await rejected("SELECT postspark.generation_review_exceptions_available()", [], /permission denied/);
+      await pg.exec("RESET ROLE");
+    }
+    await pg.exec("ALTER TABLE postspark.generation_v5_requests DISABLE TRIGGER generation_v10_ready_review");
+    expect(await value("SELECT postspark.generation_review_exceptions_available() AS value")).toBe(false);
   });
 });

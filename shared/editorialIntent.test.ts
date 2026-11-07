@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { editorialCatalogDocumentSchema, editorialCatalogHash, frozenEditorialCatalogSchema, validateEditorialIntent, combineEditorialDesignProfile, type FrozenEditorialCatalog, type EditorialIntentReading } from "./editorialIntent";
+import { discardUnattributedEditorialSignals, editorialCatalogDocumentSchema, editorialCatalogHash, frozenEditorialCatalogSchema, validateEditorialIntent, combineEditorialDesignProfile, type FrozenEditorialCatalog, type EditorialIntentReading } from "./editorialIntent";
 import { materialGenerationIntent } from "./generationPlan";
 
 const document = {
@@ -36,6 +36,16 @@ describe("partial editorial reading", () => {
     expect(validateEditorialIntent(reading({ state: "forbidden", requestQuote: "Não compare" }), catalog, "Não compare; explique os limites")).toEqual([]);
     expect(validateEditorialIntent({ version: 1, signals: [] }, null, "Compare A e B")).toEqual([]);
     expect(validateEditorialIntent(reading(), null, "Compare A e B")).toContain("unknown_editorial_intent:comparar");
+  });
+  it("drops a noncontiguous affinity quote while preserving a verified prohibition", () => {
+    const brief = "Compare A. Use uma capa clara. Mostre B. Não discuta os limites.";
+    const valid = reading({ intentId: "avaliar_limites", state: "forbidden", requestQuote: "Não discuta os limites." }).signals[0];
+    const combined = reading({ requestQuote: "Compare A. Mostre B." });
+    const repaired = discardUnattributedEditorialSignals({ ...combined, signals: [...combined.signals, valid] }, catalog, brief);
+    expect(repaired.signals).toEqual([valid]);
+    expect(validateEditorialIntent(repaired, catalog, brief)).toEqual([]);
+    const unsupportedProhibition = reading({ state: "forbidden", requestQuote: "Não compare A." });
+    expect(discardUnattributedEditorialSignals(unsupportedProhibition, catalog, brief)).toEqual(unsupportedProhibition);
   });
   it("preserves the reading without creating material obligations", () => {
     const intent = { version: 1 as const, objective: "Explicar", tone: { description: "Claro", origin: "inferred" as const, rationale: "Didático" }, adaptation: "controlled" as const,

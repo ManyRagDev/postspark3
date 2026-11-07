@@ -50,14 +50,14 @@ describe("pinned strategy-2 preparation transport", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it("returns a known preparation receipt before JSON validation without repair or fallback", async () => {
+  it.each(["selection", "copy"] as const)("returns a known %s receipt before JSON validation without repair or fallback", async operation => {
     ENV.openRouterApiKey = "controlled";
     const fetch = vi.fn(async () => new Response(JSON.stringify({ id: "known", model: "openai/gpt-6.1-sol", choices: [{ message: { content: "{truncated" }, finish_reason: "length" }] }), { status: 200 }));
     vi.stubGlobal("fetch", fetch);
-    const result = await invokeLLM({ taskRoute: "carousel_generation", traceLabel: "generation_selection_v1",
+    const result = await invokeLLM({ taskRoute: "carousel_generation", traceLabel: operation === "copy" ? "proposal_test_copy" : "generation_selection_v1",
       messages: [{ role: "user", content: "controlled" }], pinnedModel: "openai/gpt-6.1-sol",
       maxTransportAttempts: 1, disableFallback: true, disableStructuredRepair: true,
-      structuredValidationOwner: "caller", durablePreparationReceipt: true,
+      structuredValidationOwner: "caller", ...(operation === "copy" ? { durableProposalCopyReceipt: true } : { durablePreparationReceipt: true }),
       response_format: { type: "json_schema", json_schema: { name: "plan", strict: true, schema: { type: "object", properties: { value: { type: "string" } }, required: ["value"], additionalProperties: false } } },
     });
     expect(result.id).toBe("known"); expect(fetch).toHaveBeenCalledTimes(1);

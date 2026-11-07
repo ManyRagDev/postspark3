@@ -110,8 +110,13 @@ export const selectionInputReceiptSchema = z
     shortlistProfileEncoding: z.literal("repertoire_pages_v1").optional(),
     familyRankingVersion: z.literal(1).optional(),
     familyVisualQueryVersion: z.literal(2).optional(),
+    visualRequirementsVersion: z.literal(1).optional(),
+    automaticSemanticVersion: z.literal(1).optional(),
+    compactIntentVersion: z.literal(1).optional(),
+    editorialQuotePolicy: z.literal(1).optional(),
+    carouselCaptionPolicy: z.literal(1).optional(),
     preservedPhoto: z.object({version:z.literal(1),url:z.string().regex(/^\/api\/post-media\/[a-f0-9-]{36}\/[a-f0-9]{64}$/i)}).strict().optional(),
-    familyNeutrality: z.object({version:z.literal(1),seed:z.string().min(1),planningVersion:z.literal(2).optional()}).strict().optional(),
+    familyNeutrality: z.object({version:z.literal(1),seed:z.string().min(1),planningVersion:z.union([z.literal(2),z.literal(3)]).optional(),proposalSelectionVersion:z.literal(1).optional(),creativeFlexibility:z.literal(1).optional(),deliveryRecoveryVersion:z.union([z.literal(1),z.literal(2)]).optional()}).strict().optional(),
     familyRetrievalVersion: z.literal(1).optional(),
     familyRecoveryVersion: z.literal(1).optional(),
     familyRetrievalIndex: z.object({ hash: z.string(), modelFingerprint: z.string() }).strict().optional(),
@@ -128,6 +133,7 @@ export interface PreparedGeneration {
   reviewPolicyVersion?: 5 | 6 | 7 | 8 | 9 | 10;
   reviewExecutionConfig?: ReviewExecutionConfigV1 | import("@shared/proposalReviewV7").ReviewExecutionConfigV2 | import("@shared/proposalReviewV8").ReviewExecutionConfigV3 | import("@shared/proposalReviewV9").ReviewExecutionConfigV4 | import("@shared/proposalReviewV10").ReviewExecutionConfigV5;
   planning?: import("@shared/generationPlan").GenerationPlanningReceipt;
+  carouselCaptionPolicy?: 1;
   editorialContextHash?: string;
   editorialContext?: import("./editorialContextV8").EditorialContext;
   electionReceipt?: AnyElectionDecision;
@@ -148,6 +154,8 @@ export interface PreparedGeneration {
   perProposalImageObligations?: ImageObligation[];
 }
 export interface PreparationDeps {
+  /** Isolated tests may supply the embedding engine and vector store. */
+  automaticSemantic?: Omit<import("../../designCatalog/semanticFamilyRetrieval").AutomaticSemanticOptions, "revision" | "query">;
   /** Local source-vector lookup. Tests may supply an index without DB or API effects. */
   familySearchIndex?: (catalog: import("@shared/editorialIntent").FrozenEditorialCatalog | null) => Promise<{
     index: import("../../designCatalog/familySearchIndex").FamilySearchIndex;
@@ -175,6 +183,7 @@ export interface PreparationDeps {
   ) => Promise<string|import("@shared/generationSourceBundle").GenerationSourceBundle>;
   operation: <T>(key: string, work: () => Promise<T>) => Promise<T>;
   recentSelections?: () => Promise<RecentDesignSelection[]>;
+  parentDesignSelection?: (requestId: string) => Promise<RecentDesignSelection | undefined>;
   resumeReviewPolicyVersion?:5|6|7|8|9|10;
   generateSelection?: (context: any) => Promise<{ version: 1; slots: import("@shared/generationPlan").GenerationSlotPlan[] }> | { version: 1; slots: import("@shared/generationPlan").GenerationSlotPlan[] };
   useLegacyLlmSelection?: boolean;
@@ -313,6 +322,11 @@ export function diversifyDesignSelection(
 }
 
 /** Determine image contract obligations before design selection (Blueprint §6.1 / §21). */
+/** Style/media requests guide ranking and composition, never eliminate a family in automatic mode. */
+export function creativeImagePreference(obligation: ImageObligation): ImageObligation {
+  return { ...obligation, policy: "optional", required: false, slotTargets: 0 };
+}
+
 export function determineImageObligation(
   input: OrchestratedGenerationInput,
   brief: ReturnType<typeof normalizeExecutionBrief> | null,
@@ -685,11 +699,12 @@ export function validateDesignSelection(
 export function eligibleCompleteDesignCardsForRequest(
   cards: ComponentCardV1[],
   input: OrchestratedGenerationInput,
-  generationStrategyVersion: 1 | 2 = 1
+  generationStrategyVersion: 1 | 2 = 1,
+  automatic = false
 ): ComponentCardV1[] {
   if (generationStrategyVersion === 2) {
     const brief = input.executionBrief ? normalizeExecutionBrief(input.executionBrief) : null;
-    const obligation = determineImageObligation(input, brief);
+    const obligation = automatic ? creativeImagePreference(determineImageObligation(input, brief)) : determineImageObligation(input, brief);
     const repertoires = resolveDesignFamilyRepertoires(cards, {
       slideCount: input.postMode === "static" ? 1 : input.slideCount ?? 5,
       contentMode: brief?.interventionLevel === "visual_only" ? "literal" : "compose",
@@ -806,10 +821,15 @@ export async function prepareOrchestratedGeneration(
   // An object preserves trace metadata in the operation journal. Accept historical
   // array results on resume so already completed reads remain immutable.
   const recentHistory = await deps.operation<
-    { selections: RecentDesignSelection[] } | RecentDesignSelection[]
-  >("recent_selections", async () => ({
-    selections: await (deps.recentSelections?.() ?? Promise.resolve([])),
-  }));
+    { selections: RecentDesignSelection[]; parentSelection?: RecentDesignSelection } | RecentDesignSelection[]
+  >("recent_selections", async () => {
+    const selections = await (deps.recentSelections?.() ?? Promise.resolve([]));
+    const parentId = input.generationParentRequestId;
+    const parentSelection = deps.generationConfig?.editorialIntentVersion === 1 && parentId
+      ? selections.find(run => run.requestId === parentId) ?? await deps.parentDesignSelection?.(parentId)
+      : undefined;
+    return { selections, ...(parentSelection ? { parentSelection } : {}) };
+  });
   const recentSelections = Array.isArray(recentHistory)
     ? recentHistory
     : recentHistory.selections;
@@ -822,6 +842,7 @@ export async function prepareOrchestratedGeneration(
       .filter(Boolean)
       .join("\n")
   );
+  const automatic = Boolean(deps.generationConfig?.taskRouting);
   const count = input.postMode === "static" ? 1 : (input.slideCount ?? 5);
   const catalogResult = await deps.operation("catalog", async () => {
     const catalog = await deps.retrieve({
@@ -831,8 +852,8 @@ export async function prepareOrchestratedGeneration(
       styleText: input.content,
       slideCount: count,
       experimental,
-      brandColors: executionBrief?.brandInput?.brandColors,
-      brandFonts: executionBrief?.brandInput?.fontHint
+      brandColors: automatic ? undefined : executionBrief?.brandInput?.brandColors,
+      brandFonts: !automatic && executionBrief?.brandInput?.fontHint
         ? [executionBrief.brandInput.fontHint]
         : [],
     });
@@ -846,7 +867,7 @@ export async function prepareOrchestratedGeneration(
   if (coverage) {
     recordGenerationEvent({ stage: "catalog_coverage", status: coverage.issues.length ? "failed" : "completed", detail: "registered_and_indexed", data: { receiptHash: coverage.receiptHash, registered: coverage.entries.length, indexed: coverage.indexed.length, issues: coverage.issues } });
     assertCatalogCoverage(coverage, cards);
-    if (coverage.scopeHash !== catalogScopeHash({ aspectRatio: input.aspectRatio, postMode: input.postMode, slideCount: count, text: contextContent, experimental, brandColors: executionBrief?.brandInput?.brandColors, brandFonts: executionBrief?.brandInput?.fontHint ? [executionBrief.brandInput.fontHint] : [] })) throw new GenerationFailureError("catalog_coverage_incomplete", "catalog");
+    if (coverage.scopeHash !== catalogScopeHash({ aspectRatio: input.aspectRatio, postMode: input.postMode, slideCount: count, text: contextContent, experimental, brandColors: automatic ? undefined : executionBrief?.brandInput?.brandColors, brandFonts: !automatic && executionBrief?.brandInput?.fontHint ? [executionBrief.brandInput.fontHint] : [] })) throw new GenerationFailureError("catalog_coverage_incomplete", "catalog");
   }
   console.info(
     `[prep] 📚 ${cards.length} designs compatíveis recuperados do catálogo`
@@ -855,10 +876,12 @@ export async function prepareOrchestratedGeneration(
     throw new Error(
       "Não há composições completas compatíveis com este pedido e formato."
     );
-  const imageObligation = determineImageObligation(input, executionBrief, visualPreference);
-  const requestedPhotoMix = requestsPhotoMix(requestImageInstructions(input, executionBrief));
+  const declaredImagePreference = determineImageObligation(input, executionBrief, visualPreference);
+  const imageObligation = automatic ? creativeImagePreference(declaredImagePreference) : declaredImagePreference;
+  const requestedPhotoMix = !automatic && requestsPhotoMix(requestImageInstructions(input, executionBrief));
   if (deps.generationConfig?.generationStrategyVersion === 2) return preparePlannedGeneration({
     input, cards, coverage, recentSelections, count, requestedPhotoMix,
+    parentDesignSelection: Array.isArray(recentHistory) ? undefined : recentHistory.parentSelection,
     visualReferenceImages: visualReferenceImages.images, visualReferenceSites,
     contextContent, sourceReferences, imageSourceReading, visualPreference, executionBrief, imageObligation, experimental, deadlineMs,
   }, deps);

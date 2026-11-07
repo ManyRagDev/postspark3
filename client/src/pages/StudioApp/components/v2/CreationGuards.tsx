@@ -113,6 +113,7 @@ export function GenerationFailureModal({
   onUseLocalFallback: () => void;
   onDismiss: () => void;
 }) {
+  const paused = reason === "generation_paused";
   return (
     <motion.div
       className="fixed inset-0 z-[70] flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm p-4"
@@ -137,10 +138,14 @@ export function GenerationFailureModal({
               <AlertTriangle size={17} color="#FF5C00" />
             </div>
             <div>
-              <div style={{ ...MONO, fontSize: 11, fontWeight: 700 }}>Não foi possível gerar com IA</div>
-              <div className="mt-0.5 text-[12px]" style={{ ...MONO, fontSize: 8.5, color: STUDIO.ink40 }}>
-                motivo // {reason}
+              <div style={{ ...MONO, fontSize: 11, fontWeight: 700 }}>
+                {paused ? "Geração com IA pausada" : "Não foi possível gerar com IA"}
               </div>
+              {!paused && (
+                <div className="mt-0.5 text-[12px]" style={{ ...MONO, fontSize: 8.5, color: STUDIO.ink40 }}>
+                  motivo // {reason}
+                </div>
+              )}
             </div>
           </div>
           <button type="button" onClick={onDismiss} aria-label="Fechar" className="text-white/40 hover:text-white">

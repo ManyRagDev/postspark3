@@ -1,6 +1,12 @@
+import { providerRejectionErrorFromReceipt } from "../../_core/llm";
 import { describe, expect, it, vi } from "vitest";
+import { inspectModernReviewEvidence } from "../../modernGenerationReviewEvidence";
+import { resolveGenerationModelConfig } from "../generationModel";
+import type { GenerationTaskModelConfig } from "@shared/generationModel";
 import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.fixture";
 import { instantiateCompleteDesign } from "@shared/completeDesignGeneration";
+import { createComponentDefinition } from "@shared/componentAssembly";
+import type { ArsenalPiece } from "@shared/designArsenal";
 import { resolveArsenalGeometry } from "@shared/arsenalGeometry";
 import { proposalReviewRecordSchema } from "@shared/proposalReview";
 import { proposalReviewResponseV10Schema } from "@shared/proposalReviewV10";
@@ -12,6 +18,7 @@ import {
   resolveReviewExecutionConfigV10,
   reviewInstructionsV10,
   assertReviewExecutionConfigV10,
+  reviewContractHashV10,
 } from "./reviewExecutionConfigV10";
 import {
   resolveReviewExecutionConfigV9,
@@ -43,8 +50,11 @@ function setup(
     prompt?: string;
     hashtags?: string[];
     bodyTexts?: string[];
+    template?: typeof definition;
+    taskModelConfig?: GenerationTaskModelConfig;
   } = {}
 ) {
+  const template = options.template ?? definition;
   const input: any = {
     requestId: id,
     runId: id,
@@ -59,8 +69,10 @@ function setup(
     platform: "instagram",
     postMode: (options.texts?.length ?? 1) > 1 ? "carousel" : "static",
     reviewPolicyVersion: 10,
-    reviewExecutionConfig: resolveReviewExecutionConfigV10(),
+    reviewExecutionConfig: resolveReviewExecutionConfigV10(undefined, options.taskModelConfig),
   };
+  // These fixtures exercise the immutable V2/V3 protocol, not new admissions.
+  if(options.taskModelConfig){const {configurationHash:_,...data}=input.reviewExecutionConfig;delete data.localContrastPolicyVersion;delete data.textFlexibilityVersion;delete data.visualTextRepairVersion;delete data.profileHandlePolicyVersion;delete data.nativeGlyphProjection;delete data.nativeGlyphManifestHash;data.automaticReviewVersion=3;data.contractHash=reviewContractHashV10(false,true,1,3);input.reviewExecutionConfig={...data,configurationHash:arsenalHash(data)};}
   input.editorialContext = editorialContextV9(input);
   input.editorialContextHash = input.editorialContext.hash;
   const copy: any = {
@@ -80,7 +92,7 @@ function setup(
   const compositions = copy.slides.map((slide: any, i: number) =>
     resolveArsenalGeometry(
       instantiateCompleteDesign({
-        definition,
+        definition: template,
         values: slide.values,
         mediaPrompts: [],
         runId: id,
@@ -122,6 +134,7 @@ function setup(
   return {
     input,
     copy,
+    compositions,
     deps,
     generateText,
     render,
@@ -129,7 +142,7 @@ function setup(
       reviewProposal(
         input,
         deps,
-        copy.slides.map(() => definition),
+        copy.slides.map(() => template),
         compositions,
         copy,
         "initial"
@@ -153,6 +166,13 @@ function targetCheck(
   });
   return target;
 }
+it("retains the explicit route failure through review without a formal repair", async () => {
+  const error=providerRejectionErrorFromReceipt({__providerRejection:{version:2,provider:"openrouter",model:"anthropic/claude-haiku-5.5",httpStatus:404,reason:"no_allowed_providers",requestedProviders:["anthropic"],availableProviders:[],requestHash:"a".repeat(64),responseHash:"b".repeat(64),costStatus:"unreported"}})!;
+  const s=setup({error});
+  await expect(s.review()).rejects.toMatchObject({failure:{code:"provider_route_unavailable",stage:"review",retryable:true}});
+  expect(s.generateText).toHaveBeenCalledTimes(1);
+});
+
 describe("material review V10", () => {
   const fiveIntent: GenerationIntent = {
     version: 1,
@@ -217,6 +237,48 @@ describe("material review V10", () => {
     expect(data.generationIntent.requirements).toEqual([]);
     expect(JSON.stringify(data.context)).toContain("composição tipográfica sem foto");
     expect(s.input.generationIntent.requirements[0].kind).toBe("execution");
+  });
+  it("rejects a composition without the required portal before a reviewer can approve the text", async () => {
+    const s = setup({ prompt: "Quero portal luminoso com transição cromática no fundo." });
+    s.input.visualRequirements = { version: 1, chromaticPortal: { quote: s.input.prompt } };
+    await expect(s.review()).rejects.toMatchObject({ failure: { code: "artwork_unusable" } });
+    expect(s.generateText).not.toHaveBeenCalled();
+  });
+  it("checks the authored portal layers in a generated complete design", async () => {
+    const layers = ["portal-arch", "portal-interior"] as [string, string];
+    const assets = layers.map((id, index) => ({
+      id, kind: "catalog" as const, sha256: String(index + 1).repeat(64), mimeType: "image/png", bytes: 100,
+    }));
+    const exemplar = definition.fragment.instances[0];
+    const pieces = assets.map((asset): ArsenalPiece => ({
+      ...definition.pieces[exemplar.pieceHash], kind: "media",
+      imageAssetId: asset.id, fontAssetId: null, fixedText: null,
+    }));
+    const template = createComponentDefinition({
+      ...definition,
+      completeDesign: {
+        ...definition.completeDesign!,
+        designGuidance: {
+          version: 1, summary: "Portal cromático", motifs: [], preserve: [],
+          contentRules: [], mediaRules: [], knownLimitations: [],
+          visualFeatures: { chromaticPortal: layers },
+        },
+      },
+      assets: [...definition.assets, ...assets],
+      pieces: { ...definition.pieces, ...Object.fromEntries(pieces.map(piece => [arsenalHash(piece), piece])) },
+      fragment: {
+        ...definition.fragment,
+        assetIds: [...definition.fragment.assetIds, ...layers],
+        instances: [...definition.fragment.instances, ...layers.map((id, index) => ({
+          ...exemplar, id, pieceHash: arsenalHash(pieces[index]), zIndex: index - 2,
+        }))],
+      },
+    });
+    const s = setup({ template, prompt: "Quero portal luminoso com transição cromática no fundo." });
+    s.input.visualRequirements = { version: 1, chromaticPortal: { quote: s.input.prompt } };
+    await expect(s.review()).resolves.toMatchObject({ status: "passed" });
+    const data = reviewPayloadV7(s.generateText.mock.calls[0][0]);
+    expect(data.visualRequirements[0].requestQuote).toBe(s.input.prompt);
   });
   it.each([5, 3])(
     "canonicalizes a coherent intent duplicate without inventing any of its %i deliveries",
@@ -779,6 +841,33 @@ describe("material review V10", () => {
     });
     expect((await s.review()).status).toBe("inconclusive");
   });
+  it("pins automatic Haiku native review without changing material criteria and replays its journal", async () => {
+    const task = resolveGenerationModelConfig({generationModel:"auto",postMode:"static"}).taskRouting!.copy;
+    const s = setup({taskModelConfig: task});
+    s.input.visualRequirements = {chromaticPortal:{quote:"arco luminoso",colors:["#FF0000","#00FF00"]}};
+    expect((await s.review()).status).toBe("passed");
+    const params = s.generateText.mock.calls[0][0];
+    expect(params).toMatchObject({ pinnedModel: task.model, taskModelConfig: task, forceTextSchema: false, reasoningEffort: "none", maxTransportAttempts: 1, disableFallback: true, disableStructuredRepair: true });
+    expect(params.temperature).toBeUndefined();
+    expect(params.messages[0].content).toContain("Política postspark.review.v10");
+    expect(params.messages[0].content).toContain("afirmação factual inteira");
+    expect(params.messages[0].content).toContain("orientações consultivas");
+    const payload = reviewPayloadV7(params);
+    expect(s.input.reviewExecutionConfig.nativeInventoryVersion).toBe(1);
+    expect(params.response_format.json_schema.schema.properties.intentChecks).toMatchObject({minItems:0,maxItems:0});
+    expect(payload.visualRequirements).toBeUndefined();
+    expect(payload.nativeConstraints[0].fields[0]).toMatchObject({id:"field-0",role:"headline",kind:"text"});
+    expect(JSON.stringify(payload.nativeConstraints)).not.toContain("source");
+    expect(JSON.stringify(payload.nativeConstraints)).not.toContain("designGuidance");
+    expect(payload.textUnits.length).toBeGreaterThan(0);
+    expect(payload.context.sourceEvidence.length).toBeGreaterThan(0);
+    expect((await s.review()).status).toBe("passed");
+    expect(s.generateText).toHaveBeenCalledTimes(1);
+    const pinned = resolveReviewExecutionConfigV10(undefined, task);
+    expect(assertReviewExecutionConfigV10(pinned)).toEqual(pinned);
+    const {configurationHash: _hash, ...mutated} = {...pinned, resolvedModel:"google/gemini-3.8-flash"};
+    expect(() => assertReviewExecutionConfigV10({...mutated,configurationHash:arsenalHash(mutated)})).toThrow();
+  });
   it("keeps old config contracts readable and pins the same evaluator for either writer", () => {
     const v9 = resolveReviewExecutionConfigV9();
     expect(assertReviewExecutionConfigV9(v9)).toEqual(v9);
@@ -787,6 +876,32 @@ describe("material review V10", () => {
     expect(gemini.resolvedModel).toBe(gpt.resolvedModel);
     expect(assertReviewExecutionConfigV10(gpt)).toEqual(gpt);
     expect(() => assertReviewExecutionConfigV10(v9)).toThrow();
+  });
+  it("preserves all historical V10 hashes and replays automatic receipts without the native inventory version", async () => {
+    expect([reviewContractHashV10(false,false),reviewContractHashV10(true,false),reviewContractHashV10(false,true),reviewContractHashV10(true,true)]).toEqual([
+      "3b572ef0547b9fbaeb845f99574692dabc0225ad809761776727e19d6a27560a", "ae78c347d2c87bc579f11dfc220ba4171206a34674dbc54b6704b5d7f53ede27",
+      "c270670c590264265d7b5ba8d39e1c80581a68542aaadec4891976c35aca77c5", "eff510ea269beaa2e527dcce7d0011b2db21ef9b1fac09e54ecad0dd8422cea9",
+    ]);
+    const task = resolveGenerationModelConfig({generationModel:"auto",postMode:"static"}).taskRouting!.copy;
+    const s = setup({taskModelConfig: task});
+    const {configurationHash:_,nativeInventoryVersion:__,automaticReviewVersion:___,...legacy}=s.input.reviewExecutionConfig;
+    legacy.contractHash=reviewContractHashV10(false,true);
+    s.input.reviewExecutionConfig={...legacy,configurationHash:arsenalHash(legacy)};
+    expect(assertReviewExecutionConfigV10(s.input.reviewExecutionConfig)).toEqual(s.input.reviewExecutionConfig);
+    expect((await s.review()).status).toBe("passed");
+    const schema=s.generateText.mock.calls[0][0].response_format.json_schema.schema;
+    expect(schema.properties.intentChecks.maxItems).toBeUndefined();
+    expect((await s.review()).status).toBe("passed");
+    expect(s.generateText).toHaveBeenCalledTimes(1);
+    const tampered={...legacy,nativeInventoryVersion:1};
+    expect(()=>assertReviewExecutionConfigV10({...tampered,configurationHash:arsenalHash(tampered)})).toThrow();
+  });
+  it("keeps local V10 validation strict if a provider bypasses the pinned empty inventory", async () => {
+    const task=resolveGenerationModelConfig({generationModel:"auto",postMode:"static"}).taskRouting!.copy;
+    const s=setup({taskModelConfig:task,amend:r=>({...r,intentChecks:[{requirementId:"idea-1",status:"met",deliveries:[],explanation:"Inventado"}]})});
+    expect((await s.review()).status).toBe("inconclusive");
+    expect(s.generateText).toHaveBeenCalledTimes(2);
+    for(const [params] of s.generateText.mock.calls) expect(params.response_format.json_schema.schema.properties.intentChecks).toMatchObject({minItems:0,maxItems:0});
   });
   it("audits all 26 actual units and preserves two controlled factual defects among editorial units", async () => {
     const texts = [
@@ -1037,6 +1152,199 @@ describe("material review V10", () => {
         effect: "blocking",
       }),
     ]);
+    expect(s.generateText).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("automatic review v2 local recovery", () => {
+  const task = resolveGenerationModelConfig({generationModel:"auto",postMode:"static"}).taskRouting!.copy;
+  const intent: GenerationIntent = {version:1,objective:"Conhecer o serviço",adaptation:"controlled",tone:{description:"Direto",origin:"inferred",rationale:"Convite"},requirements:[],content:[{id:"idea-1",meaning:"Convite",requirementIds:[],sourceIds:[]}]};
+  const extra = (r: any) => ({...r,intentChecks:[{requirementId:"idea-1",status:"met",explanation:"Ideia atendida",deliveries:[{contentId:"idea-1",unitIds:[r.unitChecks.find((u:any)=>u.verdict==="editorial").unitId]}]}]});
+  it("accepts the known positive idea namespace error locally, keeps the raw receipt and replays without another call", async () => {
+    const s=setup({taskModelConfig:task,intent,amend:extra});
+    const before=arsenalHash(s.copy);
+    const result=await s.review();
+    expect(result.status).toBe("passed");
+    expect(result.intentChecks).toEqual([]);
+    expect(result.discardedFields).toContain("intentChecks[0]:advisory_idea_not_requirement:idea-1");
+    expect(arsenalHash(s.copy)).toBe(before);
+    expect(s.generateText).toHaveBeenCalledTimes(1);
+    const raw=await s.generateText.mock.results[0].value;
+    expect(JSON.parse(raw.choices[0].message.content).intentChecks).toHaveLength(1);
+    expect(await s.review()).toEqual(result);
+    expect(s.generateText).toHaveBeenCalledTimes(1);
+    const params=s.generateText.mock.calls[0][0], data=reviewPayloadV7(params);
+    expect(data.narrativePlan).toBeUndefined();
+    expect(data.generationIntent).toEqual({requirements:[],content:[]});
+    expect(String(params.messages[0].content).length).toBeLessThan(reviewInstructionsV10().length*.6);
+  });
+  it.each(["missing","uncertain","unknown","unknown_unit","duplicate","empty_delivery"])("does not normalize a negative, missing or ambiguous judgment: %s",async fault=>{
+    const s=setup({taskModelConfig:task,intent,amend:r=>{
+      const response=extra(r),check=response.intentChecks[0];
+      if(fault==="missing"||fault==="uncertain") check.status=fault;
+      if(fault==="unknown") check.requirementId="invented";
+      if(fault==="unknown_unit") check.deliveries[0].unitIds=["unknown"];
+      if(fault==="duplicate")response.intentChecks.push({...check});
+      if(fault==="empty_delivery")check.deliveries=[];
+      return response;
+    }});
+    expect((await s.review()).status).toBe("inconclusive");
+    expect(s.generateText).toHaveBeenCalledTimes(2);
+    const repair=reviewPayloadV7(s.generateText.mock.calls[1][0]);
+    expect(repair.formalRepair.violations.length).toBeGreaterThan(0);
+    expect(repair.formalRepair.invalidResponse).toBeUndefined();
+  });
+  it("preserves material failures while normalizing unrelated positive advisory checks",async()=>{
+    const s=setup({taskModelConfig:task,intent,amend:(r,d)=>{
+      const target=targetCheck(r,d,"unsupported");
+      r.findings.push({category:"unsupported_claim",unitId:target.id,slideIndex:null,observedInImage:"",expected:"Remover a garantia sem suporte",explanation:"Garantia sem evidência",consequence:"false_claim",certainty:"established",evidenceIds:[]});
+      return extra(r);
+    }});
+    const result=await s.review();
+    expect(result.status).not.toBe("passed");
+    expect(result.findings.some(f=>f.category==="unsupported_claim")).toBe(true);
+    expect(s.generateText).toHaveBeenCalledTimes(1);
+  });
+  it("proves local normalization against the durable raw receipt and rejects tampering", async () => {
+    const s = setup({ taskModelConfig: task, intent, amend: extra });
+    const review = await s.review();
+    const request = { id, input: { content: s.input.prompt, platform: s.input.platform, postMode: s.input.postMode }, prepared: {
+      preparationVersion: 6, reviewPolicyVersion: 10, reviewExecutionConfig: s.input.reviewExecutionConfig,
+      contextContent: s.input.contextContent, editorialContext: s.input.editorialContext,
+      editorialContextHash: s.input.editorialContextHash, planning: { intent },
+    } };
+    const operations = [...s.deps.reviewOperationCache.values()].map((op: any) => ({
+      operation_key: `${s.input.proposalId}:${op.operationKey}`, state: op.state, result: op.result,
+      expectation: op.result.__proposalReview,
+    }));
+    const proposal: any = { proposalId: s.input.proposalId, revision: 1, slot: 0, status: "ready", reviews: [review], bundle: {
+      caption: s.copy.caption, hashtags: s.copy.hashtags, slides: s.compositions.map((composition: any) => ({ composition })),
+    } };
+    const check = (candidate: any, receipts: any[]) => {
+      const checks: boolean[] = [];
+      inspectModernReviewEvidence(request, receipts, candidate, (code, passed) => {
+        if (code === "review_local_normalization_matches_receipt") checks.push(passed);
+      });
+      return checks;
+    };
+    const before = arsenalHash(operations);
+    expect(check(proposal, operations)).toEqual([true]);
+    const noMarker = structuredClone(proposal);
+    noMarker.reviews[0].discardedFields = [];
+    expect(check(noMarker, operations)).toEqual([false]);
+    const changedJudgment = structuredClone(proposal);
+    changedJudgment.reviews[0].unitChecks[0].explanation = "Julgamento adulterado";
+    expect(check(changedJudgment, operations)).toEqual([false]);
+    const changedReceipt = structuredClone(operations);
+    const raw = JSON.parse(changedReceipt[0].result.choices[0].message.content);
+    raw.intentChecks = [];
+    changedReceipt[0].result.choices[0].message.content = JSON.stringify(raw);
+    expect(check(proposal, changedReceipt)).toEqual([false]);
+    expect(arsenalHash(operations)).toBe(before);
+    expect(s.generateText).toHaveBeenCalledTimes(1);
+  });
+  it("retains the previous automatic version's response interpretation and hash",async()=>{
+    const s=setup({taskModelConfig:task,intent,amend:extra});
+    const {configurationHash:_,automaticReviewVersion:__,...legacy}=s.input.reviewExecutionConfig;
+    legacy.contractHash=reviewContractHashV10(false,true,1);
+    s.input.reviewExecutionConfig={...legacy,configurationHash:arsenalHash(legacy)};
+    expect(assertReviewExecutionConfigV10(s.input.reviewExecutionConfig)).toEqual(s.input.reviewExecutionConfig);
+    expect((await s.review()).status).toBe("inconclusive");
+    expect(s.generateText).toHaveBeenCalledTimes(2);
+    expect(reviewPayloadV7(s.generateText.mock.calls[0][0]).generationIntent.content).toHaveLength(1);
+  });
+});
+
+describe("automatic review v3 material contracts", () => {
+  const task = resolveGenerationModelConfig({generationModel:"auto",postMode:"static"}).taskRouting!.copy;
+  const praise = {category:"aesthetic",expected:"Nenhuma correção necessária.",explanation:"Composição tipográfica limpa.",consequence:"none",certainty:"established",unitId:null,slideIndex:0,observedInImage:"",evidenceIds:[]};
+  const visual = (r: any, d: any) => {
+    const target = targetCheck(r,d,"uncertain");
+    r.unitChecks.find((c:any)=>c.unitId===target.id).explanation="O título está incompleto e precisa de correção.";
+    r.messageAssessment={status:"changed",explanation:"O título perdeu a palavra final."};
+    r.findings=[{category:"visible_text_loss",expected:"Exibir um título completo, preservando o sentido.",explanation:"O título está truncado.",consequence:"meaning_loss",certainty:"established",unitId:target.id,slideIndex:null,observedInImage:"",evidenceIds:[]}];
+    return r;
+  };
+  const pinV2 = (s: ReturnType<typeof setup>) => {
+    const {configurationHash:_,...config}=s.input.reviewExecutionConfig;
+    config.automaticReviewVersion=2;config.contractHash=reviewContractHashV10(false,true,1,2);
+    s.input.reviewExecutionConfig={...config,configurationHash:arsenalHash(config)};
+  };
+  it("prevents contradictory material categories in the versioned native schema, without rewriting old schemas",async()=>{
+    const s=setup({taskModelConfig:task,amend:r=>({...r,findings:[{...praise,category:"visible_text_loss"}]})});
+    await s.review();
+    const raw=JSON.parse((await s.generateText.mock.results[0].value).choices[0].message.content);
+    const {reviewResponseInventorySchemaV10}=await import("@shared/proposalReviewV10");
+    const inventory={requirementChecks:[],intentChecks:[]};
+    expect(reviewResponseInventorySchemaV10(inventory,3).safeParse(raw).success).toBe(false);
+    expect(reviewResponseInventorySchemaV10(inventory,2).safeParse(raw).success).toBe(true);
+    expect(reviewResponseInventorySchemaV10(inventory).safeParse(raw).success).toBe(true);
+    const schema=s.generateText.mock.calls[0][0].response_format.json_schema.schema;
+    expect(schema.properties.findings.items.anyOf).toHaveLength(3);
+    expect(s.input.reviewExecutionConfig.automaticReviewVersion).toBe(3);
+  });
+  it("keeps an untargeted no-action note in the raw receipt and avoids buying formal repair",async()=>{
+    const s=setup({taskModelConfig:task,amend:r=>({...r,findings:[praise]})});
+    const review=await s.review();
+    expect(review.status).toBe("passed");expect(review.findings).toEqual([]);
+    expect(review.discardedFields).toContain(`findings[0]:untargeted_non_material_note:${arsenalHash(praise)}`);
+    expect(JSON.parse((await s.generateText.mock.results[0].value).choices[0].message.content).findings).toEqual([praise]);
+    expect(await s.review()).toEqual(review);expect(s.generateText).toHaveBeenCalledTimes(1);
+  });
+  it.each(["negative_unit","material_finding","action_requested"])("does not erase a negative or actionable finding: %s",async fault=>{
+    const s=setup({taskModelConfig:task,amend:(r,d)=>{
+      r.findings=[{...praise}];
+      if(fault==="negative_unit")targetCheck(r,d,"unsupported");
+      if(fault==="material_finding")r.findings[0]={...praise,category:"visible_text_loss",consequence:"meaning_loss"};
+      if(fault==="action_requested")r.findings[0].expected="Restaurar o título que foi cortado.";
+      return r;
+    }});
+    const r=await s.review();expect(r.status).not.toBe("passed");
+    expect(r.discardedFields.some(v=>v.includes(":untargeted_non_material_note:"))).toBe(false);
+  });
+  it("routes an established broken title to correction while preserving uncertainty and blocking approval",async()=>{
+    const s=setup({taskModelConfig:task,texts:["Comece aos pou"],amend:visual});
+    const result=await s.review();
+    expect(result.status).toBe("correction_required");expect(result.limitation).toBe("");
+    expect(result.findings).toEqual([expect.objectContaining({category:"visible_text_loss",consequence:"meaning_loss",effect:"blocking"})]);
+    expect(result.unitChecks.some(c=>c.verdict==="uncertain")).toBe(true);
+    expect(result.factualAudit.claims.some(c=>c.status==="uncertain")).toBe(true);
+    expect(result.discardedFields.some(v=>v.includes(":visual_loss_requires_correction:"))).toBe(true);
+    expect(proposalReviewRecordSchema.safeParse({...result,status:"passed",findings:[],messageAssessment:{status:"preserved",explanation:"tampered"}}).success).toBe(false);
+    expect(s.generateText).toHaveBeenCalledTimes(1);
+    const raw=await s.generateText.mock.results[0].value;
+    expect(JSON.parse(raw.choices[0].message.content).unitChecks.some((c:any)=>c.verdict==="uncertain")).toBe(true);
+    expect(await s.review()).toEqual(result);expect(s.generateText).toHaveBeenCalledTimes(1);
+  });
+  it.each(["factual_only","explicit_factual_finding","source_conflict","uncertain_loss"])("keeps unresolved material/factual uncertainty inconclusive: %s",async fault=>{
+    const s=setup({taskModelConfig:task,amend:(r,d)=>{
+      visual(r,d);const id=r.findings[0].unitId;
+      if(fault==="factual_only"){r.findings=[];r.messageAssessment={status:"preserved",explanation:"Sem alteração visual"};}
+      if(fault==="explicit_factual_finding")r.findings.push({...r.findings[0],category:"unsupported_claim",consequence:"false_claim",certainty:"uncertain",unitId:id});
+      if(fault==="source_conflict"){r.outcome="inconclusive";r.limitation="source_conflict";}
+      if(fault==="uncertain_loss")r.findings[0].certainty="uncertain";
+      return r;
+    }});
+    const result=await s.review();expect(result.status).toBe("inconclusive");
+    expect(result.discardedFields.some(v=>v.includes(":visual_loss_requires_correction:"))).toBe(false);
+  });
+  it("preserves v2 interpretation and config hashes for both old failure classes",async()=>{
+    const noTarget=setup({taskModelConfig:task,amend:r=>({...r,findings:[praise]})});pinV2(noTarget);
+    expect(assertReviewExecutionConfigV10(noTarget.input.reviewExecutionConfig)).toEqual(noTarget.input.reviewExecutionConfig);
+    expect((await noTarget.review()).status).toBe("inconclusive");expect(noTarget.generateText).toHaveBeenCalledTimes(2);
+    const broken=setup({taskModelConfig:task,texts:["Comece aos pou"],amend:visual});pinV2(broken);
+    const result=await broken.review();expect(result.status).toBe("inconclusive");
+    expect(result.findings.some(f=>f.category==="unsupported_claim")).toBe(true);
+  });
+  it("audits the new no-action marker against raw bytes and rejects its removal",async()=>{
+    const intent:GenerationIntent={version:1,objective:"Convite",adaptation:"controlled",tone:{description:"Direto",origin:"inferred",rationale:"Convite"},requirements:[],content:[{id:"idea-1",meaning:"Convite",requirementIds:[],sourceIds:[]}]};
+    const s=setup({taskModelConfig:task,intent,amend:r=>({...r,findings:[praise]})});const review=await s.review();
+    const request={id,input:{content:s.input.prompt,platform:s.input.platform,postMode:s.input.postMode},prepared:{preparationVersion:6,reviewPolicyVersion:10,reviewExecutionConfig:s.input.reviewExecutionConfig,contextContent:s.input.contextContent,editorialContext:s.input.editorialContext,editorialContextHash:s.input.editorialContextHash,planning:{intent}}};
+    const operations=[...s.deps.reviewOperationCache.values()].map((op:any)=>({operation_key:`${s.input.proposalId}:${op.operationKey}`,state:op.state,result:op.result,expectation:op.result.__proposalReview}));
+    const proposal:any={proposalId:s.input.proposalId,revision:1,slot:0,status:"ready",reviews:[review],bundle:{caption:s.copy.caption,hashtags:s.copy.hashtags,slides:s.compositions.map((composition:any)=>({composition}))}};
+    const check=(p:any)=>{const results:boolean[]=[];inspectModernReviewEvidence(request,operations,p,(code,pass)=>{if(code==="review_local_normalization_matches_receipt")results.push(pass);});return results;};
+    expect(check(proposal)).toEqual([true]);
+    const tampered=structuredClone(proposal);tampered.reviews[0].discardedFields=[];expect(check(tampered)).toEqual([false]);
     expect(s.generateText).toHaveBeenCalledTimes(1);
   });
 });

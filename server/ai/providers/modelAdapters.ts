@@ -1,3 +1,4 @@
+import { generationTaskModelSchema, type GenerationTaskModelConfig } from "../../../shared/generationModel";
 import type {
   JsonSchema,
   Message,
@@ -128,9 +129,27 @@ export function adaptRequestForProvider(input: {
   provider: LlmProvider;
   effectiveModel?: string;
   forceTextSchema?: boolean;
+  /** Validated automatic routing must never silently translate its native contract. */
+  requireNativeSchema?: boolean;
   messages: NormalizedMessage[];
   responseFormat?: ResponseFormat;
 }): AdaptedProviderRequest {
+  if (input.requireNativeSchema) {
+    if (input.provider !== "openrouter" || input.forceTextSchema ||
+        !["anthropic/claude-haiku-5.5", "deepseek/deepseek-v4.1-flash"].includes(input.effectiveModel ?? "") ||
+        input.responseFormat && input.responseFormat.type !== "json_schema") {
+      throw new Error("automatic_route_requires_supported_native_schema");
+    }
+    const schema = input.responseFormat?.type === "json_schema" ? input.responseFormat.json_schema : undefined;
+    // Keep the source schema (including bounds and optional fields) unchanged.
+    // Local validation still applies: native enforcement is not a proof of fit.
+    return {
+      messages: input.messages,
+      responseFormat: schema ? { type: "json_schema", json_schema: { ...schema, strict: true } } : undefined,
+      schema,
+      structuredOutputMode: schema ? "native_schema" : undefined,
+    };
+  }
   if (input.provider === "openrouter" && input.effectiveModel?.startsWith("openai/gpt-6.1-sol") &&
       !input.forceTextSchema && input.responseFormat?.type === "json_schema") {
     const schema = input.responseFormat.json_schema;
@@ -431,4 +450,21 @@ ${input.errors.map((error) => `- ${error}`).join("\n")}
 Corrija a resposta e devolva SOMENTE o objeto JSON completo conforme o schema ${input.schema.name}.`,
     },
   ];
+}
+
+/** Provider failover stays within the admitted model and its price/data/schema
+ * constraints. V1 keeps its exact endpoint; only explicitly versioned V2 tasks
+ * may try compatible providers after the preferred DeepInfra family.
+ * https://openrouter.ai/docs/guides/routing/provider-selection */
+export function generationTaskProviderOptions(taskModelConfig: GenerationTaskModelConfig) {
+  const config = generationTaskModelSchema.parse(taskModelConfig);
+  const routing = "allowProviderFallbacks" in config
+    ? { order: [config.providerEndpoint], allow_fallbacks: true }
+    : { only: [config.providerEndpoint], allow_fallbacks: false };
+  return {
+    ...routing,
+    require_parameters: true,
+    max_price: { ...config.maxPrice },
+    data_collection: "deny",
+  };
 }

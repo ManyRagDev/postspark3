@@ -13,6 +13,8 @@ import { readArsenalComposition } from '@shared/designArsenal';
 import { TRPCError } from '@trpc/server';
 
 const buildPath = /^artifacts\/acervo82\/full\/[a-z0-9][a-z0-9-]*$/;
+const auraId = 'acervo82-concept-17';
+const auraPreviewReceipt = z.object({directory:z.string().regex(buildPath),revision:z.string().regex(/^[1-9]\d*$/)});
 const previewEntry = z.object({
   id: z.string(), code: z.string(), name: z.string(), aliases: z.array(z.string()),
   status: z.enum(['ready_for_local_review','needs_adjustment']),
@@ -37,24 +39,35 @@ async function readReview() {
   } catch(e) { if((e as NodeJS.ErrnoException).code==='ENOENT')return null;throw e; }
 }
 const reviewUrl = (id:string,kind:'reference'|'render') => `/api/acervo82/review/${id}/${kind}`;
-export async function listAcervo82Review() {
-  const review=await readReview();
-  return review?.entries.map(({reference,render,...entry})=>({...entry,referenceUrl:reviewUrl(entry.id,'reference'),renderUrl:render?reviewUrl(entry.id,'render'):null})) ?? null;
+async function readAuraPreview() {
+  if (!acervo82ReviewEnabled() || process.env.POSTSPARK_AURA_PREVIEW !== 'true') return null;
+  try {
+    return auraPreviewReceipt.parse(JSON.parse(await readFile('.acervo82-local/aura-preview.json','utf8')));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw error;
+  }
 }
-export async function openAcervo82Review(id:string,actor:string,mode:'static'|'compose'|'literal'='static') {
+export async function listAcervo82Review() {
+  const [review,aura]=await Promise.all([readReview(),readAuraPreview()]);
+  return review?.entries.map(({reference,render,...entry})=>({...entry,referenceUrl:reviewUrl(entry.id,'reference'),renderUrl:render?reviewUrl(entry.id,'render'):null,pilotAvailable:entry.id===auraId&&Boolean(aura)})) ?? null;
+}
+export async function openAcervo82Review(id:string,actor:string,mode:'static'|'compose'|'literal'|'pilot'='static') {
   const review=await readReview(),entry=review?.entries.find(e=>e.id===id);
-  const revision=localCatalogRevisionOverride();
-  if(!review||!entry||!acervo82Code(id)||!entry.render||!revision)throw new TRPCError({code:'NOT_FOUND'});
+  const source=mode==='pilot'
+    ? (id===auraId?await readAuraPreview():null)
+    : {directory:review?.directory,revision:localCatalogRevisionOverride()};
+  if(!source?.directory||!source.revision||!entry||!acervo82Code(id)||!entry.render)throw new TRPCError({code:'NOT_FOUND'});
   // Opening a controlled fixture grants only its exact, staged components to
   // this authenticated admin. Ordinary save and asset authorization are unchanged.
-  const fixture=mode==='static'?id:`${id}-${mode}`;
-  const model=JSON.parse(await readFile(path.join(review.directory,'fixtures',`${fixture}.json`),'utf8')) as import('../../client/src/pages/CanvasLab/components/types').CanvasPostModel;
+  const fixture=mode==='static'||mode==='pilot'?id:`${id}-${mode}`;
+  const model=JSON.parse(await readFile(path.join(source.directory,'fixtures',`${fixture}.json`),'utf8')) as import('../../client/src/pages/CanvasLab/components/types').CanvasPostModel;
   const grants=new Map<string,{user_uuid:string;asset_id:string;component_id:string}>();
   for(const slide of model.slides){
     const composition=readArsenalComposition(slide.composition);
     const origin=composition.origin.componentAssembly;
     if(origin?.componentIds.length!==1)throw new Error('acervo82_review_origin_invalid');
-    const definition=componentDefinitionV1Schema.parse(await readCatalogDefinition(revision,origin.componentIds[0],origin.componentHashes[0]));
+    const definition=componentDefinitionV1Schema.parse(await readCatalogDefinition(source.revision,origin.componentIds[0],origin.componentHashes[0]));
     if(definition.completeDesign?.family!==id)throw new Error('acervo82_review_origin_invalid');
     for(const asset of definition.assets.filter(a=>a.kind==='catalog'))grants.set(`${definition.id}:${asset.id}`,{user_uuid:actor,asset_id:asset.id,component_id:definition.id});
   }
