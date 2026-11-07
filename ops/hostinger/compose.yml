@@ -1,0 +1,74 @@
+name: postspark
+services:
+  worker:
+    image: postspark-worker:hostinger
+    command: ["node", "--import", "tsx", "server/ai/workflows/generationWorker.ts"]
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 12m
+    env_file:
+      - /opt/postspark/shared/worker.env
+    environment:
+      NODE_ENV: production
+      GENERATION_WORKER_MODE: external
+      GENERATION_LOCAL_DEMAND_ENABLED: "false"
+      REVIEW_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium
+      POSTSPARK_API_WITHOUT_LOCAL_EMBEDDINGS: "0"
+      DESIGN_RETRIEVAL_DIRECTORY: /app/.postspark-local/design-retrieval
+      SCREENSHOT_SERVICE_URL: http://capture:3000
+    volumes:
+      - /opt/postspark/models:/app/.postspark-local/design-retrieval/model:ro
+    shm_size: 1g
+    mem_limit: 12g
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  capture:
+    image: postspark-capture:hostinger
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 15s
+    env_file:
+      - /opt/postspark/shared/capture.env
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      CAPTURE_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium
+    shm_size: 2g
+    mem_limit: 6g
+    ports:
+      - "127.0.0.1:3001:3000"
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  caddy:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /opt/postspark/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/postspark/caddy/data:/data
+      - /opt/postspark/caddy/config:/config
+    depends_on:
+      - capture
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

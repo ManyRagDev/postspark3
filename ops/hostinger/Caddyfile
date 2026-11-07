@@ -1,0 +1,10 @@
+:80 {
+    reverse_proxy capture:3000
+}
+
+capture.postspark.com.br {
+    request_body {
+        max_size 32KB
+    }
+    reverse_proxy capture:3000
+}

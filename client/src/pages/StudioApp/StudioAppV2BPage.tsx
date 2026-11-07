@@ -426,6 +426,9 @@ export default function StudioAppV2BPage() {
       postMode: mode,
       formatIntentConfirmed: formatConfirmed,
       includeDraftDesigns: previousInput?.includeDraftDesigns ?? assemblyPilot,
+      ...((previousInput?.allowAiImages ?? creationInputOptions.current.allowAiImages) !== undefined
+        ? { allowAiImages: previousInput?.allowAiImages ?? creationInputOptions.current.allowAiImages }
+        : {}),
       aspectRatio: previousInput?.aspectRatio ?? assemblyAspectRatio,
       slideCount: mode === "carousel" ? previousInput?.slideCount ?? brief?.slideCount ?? 5 : undefined,
       ...(previousInput?.model ? { model: previousInput.model } : {}),

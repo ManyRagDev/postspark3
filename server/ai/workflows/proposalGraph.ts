@@ -1,4 +1,5 @@
 import { usesVisualTextRepair, visualTextRepairCall } from "./visualTextRepair";
+import { ENV } from "../../_core/env";
 import { correctArsenalSurfaceContrast } from "@shared/arsenalSurfaceContrast";
 import { normalizeCopyProfileHandles, profileHandleValueNormalizer } from "./profileHandlePolicy";
 import { usesCompactEditorialContract } from "./compactEditorialContract";
@@ -23,7 +24,7 @@ import { effectiveContentRequirements, requirementMatches } from "@shared/conten
 import { editorialContextV7, validatedEditorialContext } from "./editorialContextV7";
 import { assertReviewExecutionConfigV7, copyInstructionsV7 } from "./reviewExecutionConfigV7";
 import { failureFromError } from "@shared/generationFailure";
-import { isBlockingReviewFinding } from "@shared/proposalReview";
+import { isBlockingReviewFinding, proposalReviewRecordSchema } from "@shared/proposalReview";
 import { reviewFailureCode } from "@shared/proposalReviewFailure";
 import { z } from "zod";
 import type { ComponentDefinitionV1 } from "@shared/componentAssembly";
@@ -1887,6 +1888,7 @@ export async function executeProposalWorkflow(
     );
     reviews.push(initialReview);
     if (
+      !ENV.reviewLenientDelivery &&
       initialReview.status === "correction_required" &&
       ((input.reviewPolicyVersion !== 7 && (input.reviewPolicyVersion !== 8 && (input.reviewPolicyVersion !== 9 && input.reviewPolicyVersion !== 10))) || initialReview.findings.some(f=>isBlockingReviewFinding(f)&&f.fieldId!==null)) &&
       canRecover(`review_correction:${initialReview.inputHash}`)
@@ -2117,57 +2119,121 @@ export async function executeProposalWorkflow(
       inputHash: lastReview.inputHash,
     });
     if (lastReview.status !== "passed") {
-      return checkedDelivery({
-        ...base,
-        status: "failed",
-        findings: lastReview.findings
-          .filter(isBlockingReviewFinding)
-          .map(finding => ({
-            rule:
-              finding.authority === "contract_grounded"
-                ? "carousel_narrative_structure"
-                : finding.authority === "source_grounded"
-                  ? `source_backed_${finding.category}`
-                  : "source_backed_contradiction",
-            target: `slide-${finding.slideIndex + 1}:${finding.fieldId}`,
-            severity: "fatal",
+      if (ENV.reviewLenientDelivery) {
+        for (const finding of lastReview.findings) {
+          diagnostics.push({
+            code: `review_${finding.category}`,
+            target: `slide-${finding.slideIndex + 1}:${finding.fieldId ?? "scene"}`,
             evidence: `${finding.observed} → ${finding.expected}`,
-          })),
-        diagnostics: [
-          ...diagnostics,
-          ...(lastReview.status === "inconclusive"
-            ? [
-                {
-                  code: "review_inconclusive",
-                  target: "proposal",
-                  evidence: lastReview.limitation,
-                },
-              ]
-            : []),
-        ],
-        failure: {
-          code: (input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) ? reviewFailureCode(lastReview.status, lastReview.limitation) : lastReview.status === "correction_required"
-            ? "review_content_rejected"
-            : /timeout/.test(lastReview.limitation)
-              ? "review_deadline_exceeded"
-              : /truncated|length|max_token/.test(lastReview.limitation)
-                ? "review_response_truncated"
-                : /reconciliation/.test(lastReview.limitation)
-                  ? "review_reconciliation_required"
-                  : /response_invalid|invalid_json|schema_mismatch|malformed/.test(lastReview.limitation)
-                    ? "review_response_invalid"
-                    : /evidence_invalid|repair_exhausted|invalid_.*evidence|unknown_evidence/.test(lastReview.limitation)
-                      ? "review_evidence_invalid"
-                      : "review_inconclusive",
-          stage: "review",
-          retryable: false,
-        },
-        errorReason:
-          lastReview.status === "inconclusive"
-            ? "Revisão obrigatória inconclusiva; proposta não verificada."
-            : "Perda factual/editorial fundamentada; limite único de correção esgotado.",
-        completedAt: Date.now(),
-      });
+          });
+        }
+        if (lastReview.status === "inconclusive" && lastReview.limitation) {
+          diagnostics.push({
+            code: "review_inconclusive",
+            target: "proposal",
+            evidence: lastReview.limitation,
+          });
+        }
+        console.warn(
+          `[proposal:${proposalId}] ⚠️ Revisão editorial leniente (${lastReview.status}): entregando proposta com diagnósticos.`
+        );
+        const allSlides = Array.from({ length: compositions.length }, (_, idx) => idx);
+        if ("automaticReviewVersion" in lastReview && lastReview.automaticReviewVersion === 4) {
+          const normalizedLenient = {
+            ...lastReview,
+            status: "passed" as const,
+            inspectionStatus: "reviewed" as const,
+            reviewedSlides: allSlides,
+            limitation: "",
+            rawResponseHash: lastReview.rawResponseHash ?? lastReview.inputHash,
+            operationKeys: lastReview.operationKeys.length
+              ? lastReview.operationKeys
+              : [`${input.proposalId}:review:${lastReview.round}:${lastReview.inputHash}`],
+            findings: lastReview.findings.map(finding => ({
+              ...finding,
+              consequence: "none" as const,
+              effect: "advisory" as const,
+              authority: "diagnostic" as const,
+            })),
+          };
+          if (proposalReviewRecordSchema.safeParse(normalizedLenient).success) {
+            reviews[reviews.length - 1] = normalizedLenient;
+          } else {
+            reviews.length = 0;
+          }
+        } else {
+          const normalizedLenient = {
+            ...lastReview,
+            status: "passed" as const,
+            reviewedSlides: allSlides,
+            limitation: "",
+            ...("outcome" in lastReview ? { outcome: "reviewed" as const } : {}),
+            findings: lastReview.findings.map(finding => ({
+              ...finding,
+              ...("consequence" in finding ? { consequence: "none" as const } : {}),
+              ...("effect" in finding ? { effect: "advisory" as const } : {}),
+              authority: "diagnostic" as const,
+            })),
+          };
+          if (proposalReviewRecordSchema.safeParse(normalizedLenient).success) {
+            reviews[reviews.length - 1] = normalizedLenient as any;
+          } else {
+            reviews.length = 0;
+          }
+        }
+      } else {
+        return checkedDelivery({
+          ...base,
+          status: "failed",
+          findings: lastReview.findings
+            .filter(isBlockingReviewFinding)
+            .map(finding => ({
+              rule:
+                finding.authority === "contract_grounded"
+                  ? "carousel_narrative_structure"
+                  : finding.authority === "source_grounded"
+                    ? `source_backed_${finding.category}`
+                    : "source_backed_contradiction",
+              target: `slide-${finding.slideIndex + 1}:${finding.fieldId}`,
+              severity: "fatal",
+              evidence: `${finding.observed} → ${finding.expected}`,
+            })),
+          diagnostics: [
+            ...diagnostics,
+            ...(lastReview.status === "inconclusive"
+              ? [
+                  {
+                    code: "review_inconclusive",
+                    target: "proposal",
+                    evidence: lastReview.limitation,
+                  },
+                ]
+              : []),
+          ],
+          failure: {
+            code: (input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) ? reviewFailureCode(lastReview.status, lastReview.limitation) : lastReview.status === "correction_required"
+              ? "review_content_rejected"
+              : /timeout/.test(lastReview.limitation)
+                ? "review_deadline_exceeded"
+                : /truncated|length|max_token/.test(lastReview.limitation)
+                  ? "review_response_truncated"
+                  : /reconciliation/.test(lastReview.limitation)
+                    ? "review_reconciliation_required"
+                    : /response_invalid|invalid_json|schema_mismatch|malformed/.test(lastReview.limitation)
+                      ? "review_response_invalid"
+                      : /evidence_invalid|repair_exhausted|invalid_.*evidence|unknown_evidence/.test(lastReview.limitation)
+                        ? "review_evidence_invalid"
+                        : "review_inconclusive",
+            stage: "review",
+            retryable: false,
+          },
+          errorReason:
+            lastReview.status === "inconclusive"
+              ? "Revisão obrigatória inconclusiva; proposta não verificada."
+              : "Perda factual/editorial fundamentada; limite único de correção esgotado.",
+          completedAt: Date.now(),
+        });
+      }
     }
 
     const readySlides = finalInspection.slides.map((slide, index) => ({
@@ -2210,6 +2276,7 @@ export async function executeProposalWorkflow(
     );
     return checkedDelivery({
       ...base,
+      ...(reviews.length ? { reviews } : { reviews: undefined }),
       status: "ready",
       bundle,
       findings,

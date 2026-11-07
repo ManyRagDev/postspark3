@@ -104,4 +104,17 @@ describe("StudioCreateViewV2B draft control", () => {
     act(()=>container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!.click());expect(onSubmit).toHaveBeenCalledOnce();expect(container.querySelector('[data-testid=brand-capture]')).toBeNull();
   });
 
+  it("defaults AI image generation to false and toggles to true on user click", () => {
+    const onSubmit = vi.fn();
+    act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={() => {}} initialPrompt="Uma ideia sem imagem" />));
+    const toggle = container.querySelector<HTMLButtonElement>('button[aria-label="Gerar imagens com IA"]')!;
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!.click());
+    expect(onSubmit).toHaveBeenLastCalledWith("Uma ideia sem imagem", "static", expect.objectContaining({ allowAiImages: false }));
+    act(() => toggle.click());
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!.click());
+    expect(onSubmit).toHaveBeenLastCalledWith("Uma ideia sem imagem", "static", expect.objectContaining({ allowAiImages: true }));
+  });
+
 });

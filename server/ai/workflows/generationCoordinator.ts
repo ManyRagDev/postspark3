@@ -291,7 +291,7 @@ export class GenerationCoordinator {
         break;
       }
       const recoverableContent = deliveryRecovery && result.status === "failed" &&
-        ["copy_response_invalid", "review_content_rejected", "content_requirement_unmet"].includes(result.failure?.code ?? "") &&
+        ["copy_response_invalid", "review_content_rejected", "content_requirement_unmet", "review_inconclusive", "review_response_invalid", "review_response_truncated"].includes(result.failure?.code ?? "") &&
         (this.input.deadlineMs ?? Infinity) > Date.now() && !this.input.signal?.aborted;
       if((action==="next_template" || recoverableContent || this.input.reviewPolicyVersion!==9 && this.input.reviewPolicyVersion!==10 && result.status==="failed" && !["proposal_cancelled","generation_deadline_exceeded"].includes(result.errorReason??"")) && attemptIndex+1<attemptLimit){attemptIndex++;continue;}
       break;

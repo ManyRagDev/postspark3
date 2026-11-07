@@ -325,6 +325,7 @@ export function diversifyDesignSelection(
 /** Determine image contract obligations before design selection (Blueprint §6.1 / §21). */
 /** Style/media requests guide ranking and composition, never eliminate a family in automatic mode. */
 export function creativeImagePreference(obligation: ImageObligation): ImageObligation {
+  if (obligation.policy === "forbidden") return obligation;
   return { ...obligation, policy: "optional", required: false, slotTargets: 0 };
 }
 
@@ -372,6 +373,16 @@ export function determineImageObligation(
           : "editorial-photo",
       reason: "Referência de imagem fornecida pelo usuário ou marca.",
       slotTargets: 1,
+    };
+  }
+
+  if (input.allowAiImages === false) {
+    return {
+      policy: "forbidden",
+      required: false,
+      purpose: "none",
+      reason: "Geração de imagens por IA desativada pelo usuário no Studio.",
+      slotTargets: 0,
     };
   }
 

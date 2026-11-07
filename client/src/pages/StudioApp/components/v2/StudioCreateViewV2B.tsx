@@ -2,7 +2,7 @@ import { isStandaloneHttpUrl } from "@shared/generationSources";
 import BrandCaptureModal from "./BrandCaptureModal";
 import { toast } from "sonner";
 import { GENERATION_MODEL_LABELS, getGenerationModelHint, type GenerationModel } from "@shared/generationModel";
-export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference";generationModel?:GenerationModel};
+export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference";generationModel?:GenerationModel;allowAiImages?:boolean};
 import { trpc } from "@/lib/trpc";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -62,8 +62,8 @@ export default function StudioCreateViewV2B({
 }: StudioCreateViewV2BProps) {
   const [captureUrl,setCaptureUrl]=useState<string>();
   const [urlAsContent,setUrlAsContent]=useState(false);
-  const [options,setOptions]=useState<CreationInputOptions>({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose,generationModel:initialGenerationModel});
-  useEffect(()=>setOptions({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose,generationModel:initialGenerationModel}),[initialPlatform,initialImage,initialImagePurpose,initialGenerationModel]);
+  const [options,setOptions]=useState<CreationInputOptions>({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose,generationModel:initialGenerationModel,allowAiImages:false});
+  useEffect(()=>setOptions(prev=>({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose,generationModel:initialGenerationModel,allowAiImages:prev.allowAiImages??false})),[initialPlatform,initialImage,initialImagePurpose,initialGenerationModel]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
   const [prompt, setPrompt] = useState(initialPrompt);
@@ -250,6 +250,26 @@ export default function StudioCreateViewV2B({
                   </span>
                 </div>
                 <label>Plataforma <select aria-label="Plataforma" className="rounded bg-black/30 p-2" value={options.platform} onChange={e=>setOptions({...options,platform:e.target.value as CreationInputOptions["platform"]})}>{["instagram","twitter","linkedin","facebook"].map(p=><option key={p} value={p}>{p}</option>)}</select></label>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={Boolean(options.allowAiImages)}
+                  aria-label="Gerar imagens com IA"
+                  disabled={isLoading}
+                  onClick={() => setOptions({ ...options, allowAiImages: !options.allowAiImages })}
+                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors cursor-pointer ${
+                    options.allowAiImages
+                      ? "border-[#FF5C00]/60 bg-[#FF5C00]/20 text-white"
+                      : "border-white/10 bg-black/30 text-white/60 hover:text-white/85"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-2 w-2 rounded-full transition-colors ${
+                      options.allowAiImages ? "bg-[#FF5C00]" : "bg-white/30"
+                    }`}
+                  />
+                  <span>Gerar imagens com IA</span>
+                </button>
                 <label className="cursor-pointer underline">{options.image?"Trocar imagem":"Adicionar imagem"}<input aria-label="Imagem do pedido" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>8_000_000){toast.error("Use uma imagem de até 8 MB.");return;}const r=new FileReader();r.onload=()=>setOptions({...options,image:String(r.result)});r.readAsDataURL(f);}}/></label>
                 {options.image&&<><select aria-label="Finalidade da imagem" value={options.imagePurpose} className="bg-black/30 p-2" onChange={e=>setOptions({...options,imagePurpose:e.target.value as CreationInputOptions["imagePurpose"]})}><option value="content">Imagem como fonte de conteúdo</option><option value="visual_reference">Referência visual</option></select><button onClick={()=>setOptions({...options,image:undefined})}>Remover imagem</button></>}
                 {isUrl&&<label><input type="checkbox" checked={urlAsContent} onChange={e=>setUrlAsContent(e.target.checked)}/> Usar página como conteúdo do post</label>}

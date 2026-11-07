@@ -93,6 +93,7 @@ export const orchestratedGenerationInputSchema = z
     postMode: z.enum(["static", "carousel"]).default("static"),
     formatIntentConfirmed: z.boolean().default(false),
     includeDraftDesigns: z.boolean().default(false),
+    allowAiImages: z.boolean().optional(),
     slideCount: z.number().int().min(2).max(10).optional(),
     aspectRatio: z.enum(["1:1", "4:5", "5:6", "9:16"]).default("4:5"),
     model: z.enum(["gemini", "llama"]).optional(),
