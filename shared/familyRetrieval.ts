@@ -29,7 +29,7 @@ export interface SemanticFamilyRetrievalEvidence {
   calibrationVersion: string | null;
   alpha: number;
   missingSourceIds: string[];
-  fallbackReason?: "compatible_index_missing" | "sources_missing_or_stale" | "index_invalid" | "model_mismatch" | "semantic_unavailable";
+  fallbackReason?: "lexical_configured" | "compatible_index_missing" | "sources_missing_or_stale" | "index_invalid" | "model_mismatch" | "semantic_unavailable";
   rankings: Array<{
     id: string; sourceId: string; profileHash: string; rowHash: string;
     similarity: number; meanAffinity: number; genericExcess: number;

@@ -354,6 +354,7 @@ export async function preparePlannedGeneration(
     shortlistContextEncoding: 1 as const,
     shortlistProfileEncoding: "repertoire_pages_v1" as const,
     ...(automatic ? { automaticSemanticVersion: 1 as const, compactIntentVersion: 1 as const } : { visualRequirementsVersion: 1 as const }),
+    ...(automatic && ENV.generationLexicalRetrieval ? { automaticRetrievalMode: "lexical" as const } : {}),
     ...(input.postMode === "carousel" && count > 1 &&
       (!executionBrief || executionBrief.interventionLevel === "optimize_structure")
       ? { carouselCaptionPolicy: 1 as const }
@@ -606,7 +607,12 @@ export async function preparePlannedGeneration(
         throw new GenerationFailureError("preparation_contract_incompatible", "selection");
       return retrieveFamilyCandidates({ neutrality, families, intent, catalog: editorialCatalog, visualPreference: visualQuery,
         mixedMedia: args.requestedPhotoMix, semantic: semanticIndex, signal: deps.signal,
-        ...(automatic ? { automaticSemantic: { revision: String(pinnedCatalogRevision() ?? editorialCatalog?.catalogRevision ?? ENV.localCatalogRevision ?? ""), query: semanticQuery, ...deps.automaticSemantic } } : {}) });
+        ...(automatic ? { automaticSemantic: {
+          revision: String(pinnedCatalogRevision() ?? editorialCatalog?.catalogRevision ?? ENV.localCatalogRevision ?? ""),
+          query: semanticQuery,
+          ...deps.automaticSemantic,
+          lexicalOnly: selectionInput.automaticRetrievalMode === "lexical",
+        } } : {}) });
     });
     assertFamilyRetrieval(retrieval, families, query);
     const result = await boundedFamilyShortlist({ input: params, families, retrieval, shortlist: deps.shortlist,

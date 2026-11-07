@@ -22,6 +22,7 @@ const envInteger = (
 const isProduction = process.env.NODE_ENV === "production";
 
 export const ENV = {
+  generationLexicalRetrieval: envFlag("GENERATION_LEXICAL_RETRIEVAL", isProduction),
   designRetrievalDirectory: process.env.DESIGN_RETRIEVAL_DIRECTORY ?? "",
   localCatalogRevision: process.env.GENERATION_LOCAL_CATALOG_REVISION ?? "",
   generationStrategyVersion: (process.env.GENERATION_STRATEGY_VERSION === "1" ? 1 : 2) as 1 | 2,

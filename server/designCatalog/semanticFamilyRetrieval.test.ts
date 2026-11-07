@@ -95,6 +95,20 @@ describe("automatic compact semantic retrieval", () => {
     const receipt=await retrieveFamilyCandidates({...f,catalog:null,automaticSemantic:{revision:"7",engine,search}});
     expect(search).not.toHaveBeenCalled();expect(receipt.semanticRetrieval?.fallbackReason).toBe("model_mismatch");
   });
+  it("preserves lexical fallback ordering without invoking the model or vector database", async () => {
+    const f = fixture(32);
+    const search = vi.fn(async () => null);
+    const input = {...f, catalog: null, automaticSemantic: {revision: "6", engine: f.engine, search}};
+    const fallback = await retrieveFamilyCandidates(input);
+    vi.mocked(f.engine.embed).mockClear();
+    search.mockClear();
+    const lexical = await retrieveFamilyCandidates({...input, automaticSemantic: {...input.automaticSemantic, lexicalOnly: true}});
+    expect(lexical.initialIds).toEqual(fallback.initialIds);
+    expect(lexical.additionalIds).toEqual(fallback.additionalIds);
+    expect(lexical.semanticRetrieval?.fallbackReason).toBe("lexical_configured");
+    expect(f.engine.embed).not.toHaveBeenCalled();
+    expect(search).not.toHaveBeenCalled();
+  });
   it("builds from current compact descriptors and immutable 80-query calibration; stale translations cannot publish",async()=>{
     const f=fixture(2);const profiles=f.cards.map(c=>({...semanticSourceDescriptor(c,null),textEn:"An editorial invitation with generous reading space."}));
     const input={revision:"7",cards:f.cards,catalog:null,engine:f.engine,profiles,calibration:{version:"compact-prior-80-v1",provenance:"Synthetic fixture",grandMean:.8,queries:Array.from({length:80},(_,i)=>`Creative invitation ${i}`)}};

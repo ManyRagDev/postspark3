@@ -112,6 +112,7 @@ export const selectionInputReceiptSchema = z
     familyVisualQueryVersion: z.literal(2).optional(),
     visualRequirementsVersion: z.literal(1).optional(),
     automaticSemanticVersion: z.literal(1).optional(),
+    automaticRetrievalMode: z.literal("lexical").optional(),
     compactIntentVersion: z.literal(1).optional(),
     editorialQuotePolicy: z.literal(1).optional(),
     carouselCaptionPolicy: z.literal(1).optional(),

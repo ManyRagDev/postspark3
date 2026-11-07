@@ -343,9 +343,11 @@ async function loadLocalEmbeddingBackend(
 ): Promise<EmbeddingBackend> {
   if (!(await stat(config.modelPath)).isDirectory())
     throw new EmbeddingEngineError("unavailable");
-  const { AutoTokenizer, AutoModel, env } = await import(
-    "@huggingface/transformers"
-  );
+  const transformers = process.env.POSTSPARK_API_WITHOUT_LOCAL_EMBEDDINGS === "1"
+    ? undefined
+    : await import("@huggingface/transformers");
+  if (!transformers) throw new EmbeddingEngineError("unavailable");
+  const { AutoTokenizer, AutoModel, env } = transformers;
   // Defense in depth. Each loader also receives local_files_only, so a missing file
   // cannot fall through to the Hub even if another library user changes env later.
   env.allowRemoteModels = false;

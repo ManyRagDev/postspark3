@@ -37,6 +37,7 @@ export interface AutomaticSemanticOptions {
   revision: string;
   /** Free-language interpretation from the automatic extractor, never catalogue labels. */
   query?: string;
+  lexicalOnly?: boolean;
   engine?: EmbeddingEngine;
   search?: SemanticDesignSearch;
   /** A persisted automatic request can pin an immutable index rather than the latest compatible release. */
@@ -103,22 +104,24 @@ export async function retrieveSemanticFamilyCandidates(args: {
   const sources = semanticFamilySources(args.families, args.catalog);
   const options = args.automaticSemantic;
   let result: SemanticDesignSearchResult | null = null;
-  let fallbackReason: SemanticFamilyRetrievalEvidence["fallbackReason"];
+  let fallbackReason: SemanticFamilyRetrievalEvidence["fallbackReason"] = options.lexicalOnly ? "lexical_configured" : undefined;
   let fingerprint: string | null = null;
-  try {
-    const engine = options.engine ?? await searchEngine();
-    fingerprint = engine.metadata.fingerprint;
-    const vector = await embedCompactSemanticText(engine, query, "query", args.signal);
-    result = await (options.search ?? searchSemanticDesigns)({revision: options.revision, editorialHash: args.catalog?.hash ?? null,
-      fingerprint, vector, sources, indexHash: options.indexHash, signal: args.signal});
-    if (result) assertSearchResult(result, sources, fingerprint, options.indexHash);
-    else fallbackReason = "compatible_index_missing";
-  } catch (error) {
-    if (args.signal?.aborted) throw error;
-    const code = error instanceof Error ? error.message : "";
-    fallbackReason = code === "semantic_design_response_invalid" ? "index_invalid" :
-      code === "semantic_design_model_mismatch" ? "model_mismatch" : "semantic_unavailable";
-    result = null;
+  if (!options.lexicalOnly) {
+    try {
+      const engine = options.engine ?? await searchEngine();
+      fingerprint = engine.metadata.fingerprint;
+      const vector = await embedCompactSemanticText(engine, query, "query", args.signal);
+      result = await (options.search ?? searchSemanticDesigns)({revision: options.revision, editorialHash: args.catalog?.hash ?? null,
+        fingerprint, vector, sources, indexHash: options.indexHash, signal: args.signal});
+      if (result) assertSearchResult(result, sources, fingerprint, options.indexHash);
+      else fallbackReason = "compatible_index_missing";
+    } catch (error) {
+      if (args.signal?.aborted) throw error;
+      const code = error instanceof Error ? error.message : "";
+      fallbackReason = code === "semantic_design_response_invalid" ? "index_invalid" :
+        code === "semantic_design_model_mismatch" ? "model_mismatch" : "semantic_unavailable";
+      result = null;
+    }
   }
   const matched = new Set(result?.matchedSourceIds ?? []);
   const missingSourceIds = Array.from(new Set(sources.filter(s => !matched.has(s.sourceId)).map(s => s.sourceId))).sort();
