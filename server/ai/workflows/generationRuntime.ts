@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { completeSourceContext } from "@shared/sourceContext";
 import {
   generationCoordinatorSnapshotSchema,
+  proposalDeliverySchema,
   type GenerationCoordinatorSnapshot,
 } from "@shared/generationContracts";
 import { type OrchestratedGenerationInput } from "@shared/generationRequest";
@@ -99,7 +100,7 @@ export function requestSnapshot(
         ? "cancelled"
         : record.status==="awaiting_reconciliation"&&!expired ? "awaiting_reconciliation" : active
           ? "running"
-          : ready === 3
+          : ready === proposals.length && ready > 0
             ? "completed"
             : ready
               ? "partial"
@@ -538,13 +539,21 @@ export async function loadGenerationSources(
     addSite("site_capture_guidance",[full.slice(editorialStart,evidenceStart),...lines.filter(isGuidance)].join("\n"),"guidance");
     addSite("site_capture_evidence",full.slice(evidenceStart),"content");
   }
-  const urls = new Set<string>([
+  const safeNormalizeUrl = (raw: string) => (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  const rawUrls = [
     ...(input.inputType==="url"?[input.content]:[]),
     ...(input.sources??[]).filter(s=>s.kind==="url"&&s.purpose==="content").map(s=>s.value),
     ...(input.inputType==="text"?Array.from(input.content.matchAll(/https?:\/\/[^\s<>]+/g),m=>m[0].replace(/[),.;]+$/,"")):[]),
     ...(input.executionBrief?.brandInput?.websiteUrl?[input.executionBrief.brandInput.websiteUrl]:[])
-  ]);
-  for(const url of Array.from(urls)){const page=await scrapeUrl(url,{requireComplete:true});if(!page.content?.trim())throw new GenerationFailureError("source_limitation","copy");add("page","content_page",`Título: ${page.title}\nDescrição: ${page.description}\n${page.content}`,url);}
+  ];
+  const urls = new Set<string>(rawUrls.map(u => safeNormalizeUrl(u)));
+  for(const url of Array.from(urls)){
+    const page=await scrapeUrl(url,{requireComplete:true});
+    const hasContent = Boolean(page.content?.trim() || page.description?.trim() || page.title?.trim());
+    if(!hasContent)throw new GenerationFailureError("source_limitation","copy");
+    const pageContent = page.content?.trim() || [page.description, page.title].filter(Boolean).join(". ").trim();
+    add("page","content_page",`Título: ${page.title}\nDescrição: ${page.description}\n${pageContent}`,url);
+  }
   if(input.inputType!=="url")add("request","piece_request",input.content);
   return {version:1,sources:sections,text:completeSourceContext(sections.map(s=>`ORIGEM: ${s.origin}${s.url?" "+s.url:""}\n${s.text}`).join("\n\n"))};
 }
@@ -779,6 +788,40 @@ async function executeClaimedGenerationWithinTrace(
     }
   }, 10000);
   try {
+    if (record.input.fixedDesign) {
+      const [proposal] = record.proposals;
+      const pinned = record.input.pinnedDesign;
+      if (!pinned || record.proposals.length !== 1)
+        throw new GenerationFailureError("preparation_contract_incompatible", "selection");
+      if (proposal.status !== "ready") {
+        await deps.store.checkpointProposal(record.id, leaseToken, { ...proposal, status: "running" });
+        const signal = controller.signal;
+        const context = await durableOperations(deps.store, record, leaseToken, signal, "prepare:", true)(
+          "context", () => deps.loadContext(record.input, record.ownerId),
+        );
+        const { generateFixedCopy } = await import("./fixedDesignCopy");
+        const post = await generateFixedCopy({
+          pin: pinned, input: record.input, runId: record.id, signal, deadline: record.deadlineAt,
+          model: record.generationConfig?.model,
+          source: typeof context === "string" ? context : context.text,
+          operation: durableOperations(deps.store, record, leaseToken, signal, `${proposal.proposalId}:`),
+          generate: deps.graphDeps?.generateText,
+        });
+        signal.throwIfAborted();
+        const delivery = proposalDeliverySchema.parse({ ...proposal, status: "ready", fixedCanvas: post, completedAt: Date.now() });
+        try {
+          const committed = await deps.store.commitDelivery(record.id, leaseToken, delivery);
+          if (committed.status === "completed") return requestSnapshot(committed);
+        }
+        catch (error) {
+          const latest = await deps.store.get(record.id, record.ownerId).catch(() => null);
+          const committed = latest?.proposals[0];
+          if (committed?.status !== "ready" || !committed.fixedCanvas || arsenalHash(committed.fixedCanvas) !== arsenalHash(post)) throw error;
+          if (latest?.status === "completed") return requestSnapshot(latest);
+        }
+      }
+      return requestSnapshot(await deps.store.finish(record.id, leaseToken, "completed"));
+    }
     const operation = async <T>(key: string, work: () => Promise<T>) =>
       durableOperations(
         deps.store,
@@ -857,7 +900,7 @@ async function executeClaimedGenerationWithinTrace(
             deps.store.recentSelections(record.ownerId, record.id),
           parentDesignSelection: async requestId => {
             const parent = await deps.store.get(requestId, record.ownerId).catch(() => null);
-            return parent ? { requestId, selections: parent.proposals.flatMap(p => p.status === "ready"
+            return parent ? { requestId, selections: parent.proposals.flatMap(p => p.status === "ready" && p.bundle
               ? [{ family: p.bundle.family, designIds: p.bundle.slides.flatMap(s => s.composition.origin.componentAssembly?.componentIds ?? []) }]
               : []) } : undefined;
           },
@@ -918,6 +961,7 @@ async function executeClaimedGenerationWithinTrace(
         model: record.input.model,
         generationConfig: record.generationConfig,
         postMode: record.input.postMode,
+        reviewLenientDelivery: true,
         deadlineMs: record.deadlineAt,
         signal: controller.signal,
         savedProposals: currentProposals,

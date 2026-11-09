@@ -16,19 +16,25 @@ import {renderReviewScenes,closeReviewRenderer} from '../../../server/ai/workflo
 import {createComponentTextMeasurer} from '../../../server/ai/componentTextMeasurer';
 import {INITIAL_POST,type CanvasPostModel} from '../../../client/src/pages/CanvasLab/components/types';
 import {putArsenalComposition} from '../../../client/src/pages/CanvasLab/lib/arsenalComposition';
+import {canvasModelToUpdatePayload,savedPostToCanvasModel} from '../../../client/src/pages/CanvasLab/lib/saveAdapter';
 import {defaultStudioPreferences} from '../../../shared/studioPreferences';
 import type {ComponentPackage} from '../../../harness/componentArsenal/extract';
 import {nativeScene,sampleContent} from './nativeScene';
 
-const [build,directory]=process.argv.slice(2);
+const [build,directory,scope]=process.argv.slice(2);
 assert(build&&directory&&build!==directory,'Use the immutable build and a new evidence directory.');
+assert(scope===undefined||scope==='--concepts','Unsupported verification scope.');
 const json=async(file:string)=>JSON.parse(await fs.readFile(file,'utf8'));
 const sha=(bytes:Buffer)=>createHash('sha256').update(bytes).digest('hex');
 const write=async(file:string,value:unknown)=>fs.writeFile(path.join(directory,file),JSON.stringify(value,null,2)+'\n');
 const inventory=await json(path.join(build,'inventory.json'));
 const registry=await json('designs/acervo82/authored/registry.json');
-assert.equal(inventory.sourceCount,82);
-assert.equal(new Set(inventory.rows.map((r:any)=>r.id)).size,82);
+const entries=scope==='--concepts'
+ ? registry.entries.filter((entry:{code:string})=>entry.code.startsWith('CON-'))
+ : registry.entries;
+assert.equal(entries.length,scope==='--concepts'?29:82);
+assert.equal(inventory.sourceCount,entries.length);
+assert.deepEqual(inventory.rows.map((row:{id:string})=>row.id).sort(),entries.map((entry:{id:string})=>entry.id).sort());
 await fs.mkdir(directory);
 for(const sub of ['fixtures','references','thumbnails','png','zip'])await fs.mkdir(path.join(directory,sub));
 
@@ -79,7 +85,7 @@ function makeModel(entry:any,scenes:Array<{composition:ArsenalComposition;role:'
  return {...model,currentSlideIndex:0,headline:base.headline};
 }
 try{
- for(const entry of registry.entries){
+ for(const entry of entries){
   const row=inventory.rows.find((r:any)=>r.id===entry.id),reference=`references/${path.basename(entry.sourcePreview)}`;
   await fs.copyFile(entry.sourcePreview,path.join(directory,reference));
   const item:any={id:entry.id,code:entry.code,name:entry.name,aliases:entry.aliases,reference,render:null,status:'needs_adjustment',capabilities:defaultCaps,differences:[],definitionHash:null};
@@ -134,6 +140,12 @@ try{
   const card=(scene:ArsenalComposition,role:'static'|'cover'|'development'|'closing')=>({composition:scene,role});
   const standalone=makeModel(entry,[card(first.original,'static')],'post-unico');
   const edited=makeModel(entry,[card(first.alternate,'static')],'post-unico-editado');
+  if(scope==='--concepts'){
+   const payload=canvasModelToUpdatePayload(edited);
+   const reopened=savedPostToCanvasModel({id:1,canvas_model:JSON.parse(JSON.stringify(payload.canvasModel))});
+   assert.equal(arsenalHash(reopened.slides[0].composition),arsenalHash(edited.slides[0].composition));
+   first.proof.documentRoundTrip=true;
+  }
   await write(`fixtures/${entry.id}.json`,standalone);await write(`fixtures/${entry.id}-alternate.json`,edited);
   fixtures.push({code:entry.code,id:entry.id,kind:'static',file:`fixtures/${entry.id}-alternate.json`,definitionHashes:[root.hash]});
   for(const mode of ['compose','literal'] as const){
@@ -153,7 +165,7 @@ try{
   const thumb=createCanvas(360,450);thumb.getContext('2d').drawImage(await loadImage(pngs.get(`${root.id}:reference`)!),0,0,360,450);
   item.render=`thumbnails/${entry.id}.jpg`;await fs.writeFile(path.join(directory,item.render),thumb.toBuffer('image/jpeg',88));
   item.status='ready_for_local_review';item.definitionHash=root.hash;item.capabilities=acervo82FamilyDirectory(ready.map(compactComponentCard))[0].capabilities;
-  item.differences=[...(row.adjustments??[]).filter((a:any)=>a.reason).map((a:any)=>a.reason),...(item.capabilities.photo?['A área de mídia usa uma foto de ensaio substituível. O recorte é nativo; a foto original não é um asset obrigatório da família.']:[]),...(entry.code==='REF-24'?['Amostras recompostas em duas listas editáveis; nem todas as faces anunciadas no original puderam ser identificadas.']:[]),...(entry.code==='CON-07'?['O lettering cromado foi refeito com preenchimento tonal e contorno editáveis.']:[]),...(entry.code==='CON-21'?['A sombra colorida é uma extrusão nativa simplificada.']:[]),...(row.adjustments?.some((a:any)=>a.cause==='verified-native-contrast')?['Ajuste pontual de cor para manter o contraste no CanvasLab.']:[])];
+  item.differences=[...(row.adjustments??[]).filter((a:any)=>a.reason).map((a:any)=>a.reason),...(item.capabilities.photo?['A área de mídia usa uma foto de ensaio substituível. O recorte é nativo; a foto original não é um asset obrigatório da família.']:[]),...(entry.code==='REF-24'?['Amostras recompostas em duas listas editáveis; nem todas as faces anunciadas no original puderam ser identificadas.']:[]),...(entry.code==='CON-07'?['O lettering cromado usa um degradê aplicado ao texto editável.']:[]),...(entry.code==='CON-21'?['A sombra acompanha o texto com três camadas de cor.']:[]),...(row.adjustments?.some((a:any)=>a.cause==='verified-native-contrast')?['Ajuste pontual de cor para manter o contraste no CanvasLab.']:[])];
   if(entry.carouselIntent&&!item.capabilities.carousel)item.differences.push('Carrossel pendente: sequência fora da capacidade verificada; post único disponível.');
   evidence.rootReady=true;evidence.stagedDefinitions=ready.map(d=>d.id);
   console.log(JSON.stringify({code:entry.code,verified:ready.length,carousel:item.capabilities.carousel}));

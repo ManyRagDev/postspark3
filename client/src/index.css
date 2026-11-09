@@ -1,6 +1,20 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/arsenal/fonts/acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72.ttf") format("truetype");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Space Mono";
+  src: url("/arsenal/fonts/2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

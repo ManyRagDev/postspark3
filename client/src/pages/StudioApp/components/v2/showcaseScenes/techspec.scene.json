@@ -1,0 +1,4323 @@
+{
+  "version": 3,
+  "origin": {
+    "candidateId": "e2be8a67-7731-4f48-8801-a69ff16d0314:assembly-0-0-2befcc4fb74f",
+    "blueprintId": "69c2fce1-b089-4030-850d-a24487fd1ab0",
+    "versionId": "e2be8a67-7731-4f48-8801-a69ff16d0314",
+    "version": 1,
+    "definitionHash": "3924497c9bf62a25c035bcf15db3585059e50fc3a0a9499e72c5881f8a4d1f89",
+    "variantKey": "assembly-0-0-2befcc4fb74f",
+    "variantHash": "c1908f31135feb1921891b002d01c3bf183bb9cf51e22a75595873af1b0f697a",
+    "compilerVersion": "arsenal-v3.0.0",
+    "componentAssembly": {
+      "completeDesign": {
+        "family": "acervo82-concept-06",
+        "authorshipRevision": 1,
+        "baselineVerified": true,
+        "colors": [
+          "#ff4400",
+          "#f4f1ea",
+          "#0a0a0a",
+          "#666666"
+        ],
+        "designGuidance": {
+          "version": 1,
+          "selection": {
+            "version": 1,
+            "description": "Ficha técnica industrial com placas de advertência, linhas de especificação e título de manifesto.",
+            "axes": {
+              "organization": "cartaz",
+              "density": "intensa",
+              "typography": "monoespaçada",
+              "imageRole": "grafismo"
+            }
+          },
+          "familyIdentity": {
+            "essential": [
+              "Ficha técnica industrial com placas de advertência, linhas de especificação e título de manifesto."
+            ],
+            "optional": [],
+            "adaptable": [
+              "Texto e mídia nos campos nativos"
+            ]
+          },
+          "summary": "4 regiões de título, 0 apoios textuais, 0 listas semânticas e 0 slots de mídia. 41 camadas em 1080×1350; fontes Space Mono, Archivo Black.",
+          "motifs": [
+            "polígonos autorados",
+            "superfícies retangulares",
+            "camadas inclinadas",
+            "composição sem slot de fotografia"
+          ],
+          "preserve": [
+            "Conservar geometria, hierarquia, fontes incorporadas, cores e ornamentos nativos; não substituir a composição pela imagem original.",
+            "static: composição inteira com geometria autorada",
+            "cover: campo de título nativo",
+            "closing: campo nativo de chamada à ação",
+            "density:expressive: 17 regiões de texto; área somada das caixas 23.0% da prancheta (não é limite de palavras nem aprovação de encaixe)"
+          ],
+          "contentRules": [
+            "Geometria medida do HTML arquivado com fontes verificadas; referência visual: showcase consolidado."
+          ],
+          "mediaRules": [],
+          "knownLimitations": [
+            "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+            "Geometria medida do HTML arquivado com fontes verificadas; referência visual: showcase consolidado."
+          ]
+        }
+      },
+      "version": 1,
+      "planHash": "2befcc4fb74f615bf48167b8e1ef2c8ecac26637d8c2001e90924c9ee4a01bfa",
+      "componentIds": [
+        "3b1232a5-8db5-4707-8b9d-3229d016121c"
+      ],
+      "componentHashes": [
+        "573a11f1b634492eed82cdf9ee98929b7d5a4e38a8c5a7d04622bc4d2b18e9d6"
+      ],
+      "sourceHashes": [
+        "076cac42afdb4df655cc5ef76605e0b9928eb5c1cfb884fe99a58f34d9513c78"
+      ],
+      "experimental": true
+    }
+  },
+  "base": {
+    "variantKey": "assembly-0-0-2befcc4fb74f",
+    "aspectRatio": "4:5",
+    "compilerVersion": "arsenal-v3.0.0",
+    "artboard": {
+      "width": 1080,
+      "height": 1350,
+      "background": "#ff4400"
+    },
+    "instances": [
+      {
+        "id": "c0-fc457c3b48c4ac8c2c32",
+        "pieceHash": "3ce4aeb31d08dddab8ef360d4a611e4eabe33aad1a42104b4c4874d0bda4256f",
+        "parentId": "c0-root",
+        "zIndex": 0,
+        "x": 62.691292875989404,
+        "y": 62.69129287598945,
+        "width": 954.6174142480212,
+        "height": 91.18733509234829,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-7aedb86e867788062b66",
+        "pieceHash": "6f6ca69c3a94f74dec2c7165f0aa1f15e9638e01e64184e083a953b6f59223d9",
+        "parentId": "c0-root",
+        "zIndex": 1,
+        "x": 62.691292875989404,
+        "y": 62.69129287598945,
+        "width": 954.6174142480212,
+        "height": 91.18733509234829,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-742f113bba050fa35372",
+        "pieceHash": "64639c08fd0aaee96d08e246a1b11120dfb55345a8cdf4d5c0aefa5eaab54ce7",
+        "parentId": "c0-root",
+        "zIndex": 2,
+        "x": 62.691292875989404,
+        "y": 62.69129287598945,
+        "width": 954.6174142480212,
+        "height": 91.18733509234829,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-f7e355673f9dd38edd37",
+        "pieceHash": "5c6bbb2d28236ba7072e7ddcc2ce970c153a7df4e2694b0635d8c190f6e01368",
+        "parentId": "c0-root",
+        "zIndex": 3,
+        "x": 62.691292875989404,
+        "y": 62.69129287598945,
+        "width": 954.6174142480212,
+        "height": 91.18733509234829,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-c6124d2465ea8aebb85b",
+        "pieceHash": "10299b22e9187e954df3c210c15cb3ebfd6e307108c2cbe49f0d457ddd18e3b4",
+        "parentId": "c0-root",
+        "zIndex": 4,
+        "x": 62.691292875989404,
+        "y": 62.69129287598945,
+        "width": 954.6174142480212,
+        "height": 91.18733509234829,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-ff0d853320a523c0b613",
+        "pieceHash": "027ae57d1d50d7239cfe18ca34aed61b6622fd4f346460c67b0a1e263a430858",
+        "parentId": "c0-root",
+        "zIndex": 5,
+        "x": 68.39050131926123,
+        "y": 68.39050131926122,
+        "width": 329.08476253298153,
+        "height": 79.78891820580475,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-260a801a0ddd3d487d24",
+        "pieceHash": "58e48a64b032bff997e52a8d26d2545bdb5745326647742241dd82955164c667",
+        "parentId": "c0-6e0c1ecae234537b3bc6",
+        "zIndex": 6,
+        "x": 96.88654353562008,
+        "y": 85.48812664907652,
+        "width": 275.05741424802113,
+        "height": 45.593667546174146,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-588707c9625d24eeecbd",
+        "pieceHash": "985acabd7b9fd036ff150398687764335ece73e1db630fc7cb2ca10448fbc4e7",
+        "parentId": "c0-fa46277514e2cb0cf049",
+        "zIndex": 7,
+        "x": 425.9713060686016,
+        "y": 85.48812664907652,
+        "width": 212.27493403693933,
+        "height": 45.593667546174146,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-0a4b36167c3655d8e679",
+        "pieceHash": "985acabd7b9fd036ff150398687764335ece73e1db630fc7cb2ca10448fbc4e7",
+        "parentId": "c0-92ba6ae23857bf6e6b0c",
+        "zIndex": 8,
+        "x": 815.6546833773087,
+        "y": 85.48812664907652,
+        "width": 170.41994722955147,
+        "height": 45.593667546174146,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-ce743cd649c548dffeef",
+        "pieceHash": "c3945d0c1ad691a041e256b53f18f60b430b04bed2521237d7f632f583ccf33c",
+        "parentId": "c0-root",
+        "zIndex": 9,
+        "x": 62.691292875989404,
+        "y": 153.87862796833775,
+        "width": 954.6174142480212,
+        "height": 28.49604221635884,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-8cb9a4a5e02cdb63e6a1",
+        "pieceHash": "a2ec73a53452df555f1417c2cb61a542e9704ea424d5fd41ea5f3d25242673e8",
+        "parentId": "c0-root",
+        "zIndex": 10,
+        "x": 62.691292875989404,
+        "y": 153.87862796833775,
+        "width": 954.6174142480212,
+        "height": 28.49604221635884,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-059d699c3d2818a592bf",
+        "pieceHash": "b14577a2ea03fc6e1b866f58ac00053e729a2de2efa7ff4527c4c05059444218",
+        "parentId": "c0-root",
+        "zIndex": 11,
+        "x": 62.691292875989404,
+        "y": 153.87862796833775,
+        "width": 954.6174142480212,
+        "height": 28.49604221635884,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-cb48fcac29b5f2533af5",
+        "pieceHash": "ddaa9686292de6488cdb94b7e34386858cc00d9796d0fb53a5eaa37d15241801",
+        "parentId": "c0-root",
+        "zIndex": 12,
+        "x": 62.691292875989404,
+        "y": 153.87862796833775,
+        "width": 954.6174142480212,
+        "height": 28.49604221635884,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-17d9b6ba6a3b1fc6fb75",
+        "pieceHash": "027ae57d1d50d7239cfe18ca34aed61b6622fd4f346460c67b0a1e263a430858",
+        "parentId": "c0-root",
+        "zIndex": 13,
+        "x": 62.69129287598946,
+        "y": 392.88918205804754,
+        "width": 506.0273746701847,
+        "height": 56.99208443271768,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-87daacef4a6914288d5c",
+        "pieceHash": "58e48a64b032bff997e52a8d26d2545bdb5745326647742241dd82955164c667",
+        "parentId": "c0-5ad07b99f4ac15606ec5",
+        "zIndex": 14,
+        "x": 85.48812664907653,
+        "y": 398.5883905013193,
+        "width": 463.4048548812665,
+        "height": 45.593667546174146,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-16c0acf5882d04782d30",
+        "pieceHash": "f4d1cee81d55da39dc89526c49d51f60f0805403c9b8f9a3e585ced70d20c9c8",
+        "parentId": "c0-4ca84eea58bfe552ba1b",
+        "zIndex": 15,
+        "x": 62.691292875989404,
+        "y": 472.67810026385223,
+        "width": 661.087598944591,
+        "height": 81.2137203166227,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-92ddeb944b0a13d8a3e9",
+        "pieceHash": "c82451a48978cd5455f40e4724752847a53c711b7626fd111620b7d7aa4ac2e8",
+        "parentId": "c0-4ca84eea58bfe552ba1b",
+        "zIndex": 16,
+        "x": 62.691292875989404,
+        "y": 553.8918205804749,
+        "width": 891.5635883905013,
+        "height": 81.2137203166227,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-e355261415424ad25158",
+        "pieceHash": "192b78d2c6455fab82b5092ea19beb01e6900434d9135885602feb1874039cce",
+        "parentId": "c0-4ca84eea58bfe552ba1b",
+        "zIndex": 17,
+        "x": 62.691292875989404,
+        "y": 635.1055408970976,
+        "width": 839.8432717678099,
+        "height": 81.2137203166227,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-ba4689f5be7085715fbe",
+        "pieceHash": "3df6f27072eaf665413033a4929d9d55c296d3279fdc9dddfd9df45176aba476",
+        "parentId": "c0-4ca84eea58bfe552ba1b",
+        "zIndex": 18,
+        "x": 62.691292875989404,
+        "y": 716.3192612137203,
+        "width": 369.82955145118734,
+        "height": 81.2137203166227,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-df248827035b70cb769c",
+        "pieceHash": "3ce4aeb31d08dddab8ef360d4a611e4eabe33aad1a42104b4c4874d0bda4256f",
+        "parentId": "c0-root",
+        "zIndex": 19,
+        "x": 61.921474486982596,
+        "y": 558.2916491758101,
+        "width": 503.4003548031055,
+        "height": 92.61213288160748,
+        "rotation": -1,
+        "opacity": 1
+      },
+      {
+        "id": "c0-44d94cbafc461d599b4e",
+        "pieceHash": "d232b842a4f96facc1e1eece73720c75c02a3abdc90dd603d4ce6067dae8da39",
+        "parentId": "c0-root",
+        "zIndex": 20,
+        "x": 61.921474486982596,
+        "y": 558.2916491758101,
+        "width": 503.4003548031055,
+        "height": 92.61213288160748,
+        "rotation": -1,
+        "opacity": 1
+      },
+      {
+        "id": "c0-11a7a1d9234d32ac9b43",
+        "pieceHash": "ca46a3495f8bb3e6c71d3965a9e0d67f667905e31c608f598f42a73e5dd144e4",
+        "parentId": "c0-root",
+        "zIndex": 21,
+        "x": 61.921474486982596,
+        "y": 558.2916491758101,
+        "width": 503.4003548031055,
+        "height": 92.61213288160748,
+        "rotation": -1,
+        "opacity": 1
+      },
+      {
+        "id": "c0-637e62c210fa1e533ebc",
+        "pieceHash": "e09e8ecda3fc49baaec0522d4a7f9a635107a997045605114ad6347710340ddd",
+        "parentId": "c0-root",
+        "zIndex": 22,
+        "x": 61.921474486982596,
+        "y": 558.2916491758101,
+        "width": 503.4003548031055,
+        "height": 92.61213288160748,
+        "rotation": -1,
+        "opacity": 1
+      },
+      {
+        "id": "c0-8752559bd95ec52a7f0e",
+        "pieceHash": "90c05cd0c539a4b82cf896eddcf73564ce2d00780023015372be55f84297ebfe",
+        "parentId": "c0-root",
+        "zIndex": 23,
+        "x": 61.921474486982596,
+        "y": 558.2916491758101,
+        "width": 503.4003548031055,
+        "height": 92.61213288160748,
+        "rotation": -1,
+        "opacity": 1
+      },
+      {
+        "id": "c0-7b1163a966098c1b19ae",
+        "pieceHash": "697c3b45a5f39d75691e7f19d43159b19a1c5d48c2b793ccdb88d931db954a27",
+        "parentId": "c0-root",
+        "zIndex": 24,
+        "x": 878.6827341931632,
+        "y": 666.581979716359,
+        "width": 182.37434797930263,
+        "height": 182.37592864083342,
+        "rotation": 12,
+        "opacity": 1
+      },
+      {
+        "id": "c0-ee52f26645f27acd9937",
+        "pieceHash": "f68bf6c676ea444fb5f5a9b4600e387f79f8971972271ef96b5709a6d66e3b88",
+        "parentId": "c0-5b091bb5d5d885187442",
+        "zIndex": 25,
+        "x": 914.4529091399028,
+        "y": 735.3648581794196,
+        "width": 86.70997361477573,
+        "height": 34.19525065963061,
+        "rotation": 12,
+        "opacity": 1
+      },
+      {
+        "id": "c0-27221a3ac5c9528489b8",
+        "pieceHash": "4a0def4287fce175e0fbfdb6ae247117885f1c9a7c1c7369b5b66712a476dc79",
+        "parentId": "c0-693dafd4f96f9c99541e",
+        "zIndex": 26,
+        "x": 922.7168895825993,
+        "y": 772.0813406992086,
+        "width": 55.31873350923483,
+        "height": 28.49604221635884,
+        "rotation": 12,
+        "opacity": 1
+      },
+      {
+        "id": "c0-a68e15b4e30528195264",
+        "pieceHash": "3ce4aeb31d08dddab8ef360d4a611e4eabe33aad1a42104b4c4874d0bda4256f",
+        "parentId": "c0-root",
+        "zIndex": 27,
+        "x": 62.691292875989404,
+        "y": 1008.0474934036939,
+        "width": 954.6174142480212,
+        "height": 279.2612137203166,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-a8ede84b438e5559e895",
+        "pieceHash": "6f6ca69c3a94f74dec2c7165f0aa1f15e9638e01e64184e083a953b6f59223d9",
+        "parentId": "c0-root",
+        "zIndex": 28,
+        "x": 62.691292875989404,
+        "y": 1008.0474934036939,
+        "width": 954.6174142480212,
+        "height": 279.2612137203166,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-627885fe678b03f2771f",
+        "pieceHash": "e08aa27379a8e1a9d182c2c6ad60d4c9c029972158e2d4827e739899725e7a00",
+        "parentId": "c0-root",
+        "zIndex": 29,
+        "x": 62.691292875989404,
+        "y": 1008.0474934036939,
+        "width": 954.6174142480212,
+        "height": 279.2612137203166,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-f20fd1a85de45b7f8d5e",
+        "pieceHash": "213b54c47c804afb934c9d308a60f6aaea32949cda62f7c9cd071d5473a09901",
+        "parentId": "c0-root",
+        "zIndex": 30,
+        "x": 62.691292875989404,
+        "y": 1008.0474934036939,
+        "width": 954.6174142480212,
+        "height": 279.2612137203166,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-549547042163caa33f6f",
+        "pieceHash": "44ea70c089279eb3de8ff9418476e5577bf3a331167ec6cd4dc02d9da9fd951f",
+        "parentId": "c0-root",
+        "zIndex": 31,
+        "x": 62.691292875989404,
+        "y": 1008.0474934036939,
+        "width": 954.6174142480212,
+        "height": 279.2612137203166,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-ede53b9561fda8b32c31",
+        "pieceHash": "5bc734863346222f96b58a6be2920c05bd99b5b1c28a51f302cdb95694d243c3",
+        "parentId": "c0-root",
+        "zIndex": 32,
+        "x": 96.88654353562004,
+        "y": 1042.2427440633246,
+        "width": 886.2269129287599,
+        "height": 113.98416886543536,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-9eb3f406845b24032f38",
+        "pieceHash": "985acabd7b9fd036ff150398687764335ece73e1db630fc7cb2ca10448fbc4e7",
+        "parentId": "c0-4b87b3d0a9580775d8b0",
+        "zIndex": 33,
+        "x": 96.88654353562004,
+        "y": 1087.8364116094988,
+        "width": 149.49245382585752,
+        "height": 45.593667546174146,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-80648094b13455f1eaad",
+        "pieceHash": "3f70552b3151f85bb946cc21990e32f3d83149919283f3afa022c03569dee8f4",
+        "parentId": "c0-6ac12bd8355268669f91",
+        "zIndex": 34,
+        "x": 96.88654353562004,
+        "y": 1042.2427440633246,
+        "width": 107.63746701846966,
+        "height": 45.593667546174146,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-5e991811f8b32eba6aa3",
+        "pieceHash": "10299b22e9187e954df3c210c15cb3ebfd6e307108c2cbe49f0d457ddd18e3b4",
+        "parentId": "c0-root",
+        "zIndex": 35,
+        "x": 396.09498680738784,
+        "y": 1042.2427440633246,
+        "width": 287.8100263852243,
+        "height": 91.18733509234829,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-859d092c92e2608026d9",
+        "pieceHash": "985acabd7b9fd036ff150398687764335ece73e1db630fc7cb2ca10448fbc4e7",
+        "parentId": "c0-e4fda2e23fa45fd1632f",
+        "zIndex": 36,
+        "x": 418.8918205804749,
+        "y": 1087.8364116094988,
+        "width": 128.5649604221636,
+        "height": 45.593667546174146,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-cdca78f39bba6dc56ffa",
+        "pieceHash": "3f70552b3151f85bb946cc21990e32f3d83149919283f3afa022c03569dee8f4",
+        "parentId": "c0-6b50b66b2e54fefb64a5",
+        "zIndex": 37,
+        "x": 424.5910290237468,
+        "y": 1042.2427440633246,
+        "width": 149.49245382585752,
+        "height": 45.593667546174146,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-661a08faec81bf0da84c",
+        "pieceHash": "10299b22e9187e954df3c210c15cb3ebfd6e307108c2cbe49f0d457ddd18e3b4",
+        "parentId": "c0-root",
+        "zIndex": 38,
+        "x": 695.3034300791558,
+        "y": 1042.2427440633246,
+        "width": 287.8100263852243,
+        "height": 91.18733509234829,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-7d1638a93596d898c78d",
+        "pieceHash": "985acabd7b9fd036ff150398687764335ece73e1db630fc7cb2ca10448fbc4e7",
+        "parentId": "c0-a7543347da2b2b993c96",
+        "zIndex": 39,
+        "x": 718.1002638522428,
+        "y": 1087.8364116094988,
+        "width": 149.49245382585752,
+        "height": 45.593667546174146,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-e623ed246521fc8b3b64",
+        "pieceHash": "3f70552b3151f85bb946cc21990e32f3d83149919283f3afa022c03569dee8f4",
+        "parentId": "c0-83cde70d7ea6c730f50f",
+        "zIndex": 40,
+        "x": 723.7994722955145,
+        "y": 1042.2427440633246,
+        "width": 107.63746701846966,
+        "height": 45.593667546174146,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-122e0c17cdd166e81014",
+        "pieceHash": "be57522aeb067bd01ee4c1f5fbaf5a8e57ef1fc27974e27bcd02b97dc0420a93",
+        "parentId": "c0-root",
+        "zIndex": 41,
+        "x": 96.88654353562006,
+        "y": 1184.722955145119,
+        "width": 410,
+        "height": 68,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "c0-95331b16d28fbbfa821c",
+        "pieceHash": "985acabd7b9fd036ff150398687764335ece73e1db630fc7cb2ca10448fbc4e7",
+        "parentId": "c0-98cefff8ca73882a767e",
+        "zIndex": 42,
+        "x": 774.1573218997362,
+        "y": 1196.1213720316625,
+        "width": 212.27493403693936,
+        "height": 45.593667546174146,
+        "rotation": 0,
+        "opacity": 1
+      }
+    ],
+    "groups": [
+      {
+        "id": "c0-root",
+        "label": "CON-06 · Industrial · ficha técnica",
+        "parentId": null,
+        "zIndex": 20,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-6e0c1ecae234537b3bc6",
+        "label": "field-3",
+        "parentId": "c0-root",
+        "zIndex": 6,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-fa46277514e2cb0cf049",
+        "label": "field-5",
+        "parentId": "c0-root",
+        "zIndex": 7,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-92ba6ae23857bf6e6b0c",
+        "label": "field-6",
+        "parentId": "c0-root",
+        "zIndex": 8,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-5ad07b99f4ac15606ec5",
+        "label": "field-9",
+        "parentId": "c0-root",
+        "zIndex": 14,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-4ca84eea58bfe552ba1b",
+        "label": "field-10",
+        "parentId": "c0-root",
+        "zIndex": 15,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-5b091bb5d5d885187442",
+        "label": "field-13",
+        "parentId": "c0-root",
+        "zIndex": 25,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-693dafd4f96f9c99541e",
+        "label": "field-14",
+        "parentId": "c0-root",
+        "zIndex": 26,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-6ac12bd8355268669f91",
+        "label": "field-18",
+        "parentId": "c0-root",
+        "zIndex": 34,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-4b87b3d0a9580775d8b0",
+        "label": "field-17",
+        "parentId": "c0-root",
+        "zIndex": 33,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-6b50b66b2e54fefb64a5",
+        "label": "field-21",
+        "parentId": "c0-root",
+        "zIndex": 37,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-e4fda2e23fa45fd1632f",
+        "label": "field-20",
+        "parentId": "c0-root",
+        "zIndex": 36,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-83cde70d7ea6c730f50f",
+        "label": "field-24",
+        "parentId": "c0-root",
+        "zIndex": 40,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-a7543347da2b2b993c96",
+        "label": "field-23",
+        "parentId": "c0-root",
+        "zIndex": 39,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "c0-98cefff8ca73882a767e",
+        "label": "field-27",
+        "parentId": "c0-root",
+        "zIndex": 42,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      }
+    ],
+    "bindings": [
+      {
+        "id": "c0-05777edca0b248df8b76",
+        "label": "label: field-3",
+        "kind": "text",
+        "source": "block:label:0:text",
+        "required": false,
+        "targetIds": [
+          "c0-260a801a0ddd3d487d24"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-9118de7b95b368e2dfc0",
+        "label": "label: field-5",
+        "kind": "text",
+        "source": "block:label:1:text",
+        "required": false,
+        "targetIds": [
+          "c0-588707c9625d24eeecbd"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-badfda12d1267d644f6f",
+        "label": "label: field-6",
+        "kind": "text",
+        "source": "block:label:2:text",
+        "required": false,
+        "targetIds": [
+          "c0-0a4b36167c3655d8e679"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-a1ff6476080c8ffda2e5",
+        "label": "label: field-9",
+        "kind": "text",
+        "source": "block:label:3:text",
+        "required": false,
+        "targetIds": [
+          "c0-87daacef4a6914288d5c"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-854d74ad0666f3be106a",
+        "label": "headline: field-10",
+        "kind": "text",
+        "source": "block:headline:0:text",
+        "required": true,
+        "targetIds": [
+          "c0-16c0acf5882d04782d30",
+          "c0-92ddeb944b0a13d8a3e9",
+          "c0-e355261415424ad25158",
+          "c0-ba4689f5be7085715fbe"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-7edd2086cf3150247ea6",
+        "label": "label: field-13",
+        "kind": "text",
+        "source": "block:label:4:text",
+        "required": false,
+        "targetIds": [
+          "c0-ee52f26645f27acd9937"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-867cd8d9adabf30ab767",
+        "label": "label: field-14",
+        "kind": "text",
+        "source": "block:label:5:text",
+        "required": false,
+        "targetIds": [
+          "c0-27221a3ac5c9528489b8"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-b657d5bd1df2dab421e7",
+        "label": "label: field-18",
+        "kind": "text",
+        "source": "block:label:6:text",
+        "required": false,
+        "targetIds": [
+          "c0-80648094b13455f1eaad"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-188b2773494c9a881866",
+        "label": "label: field-17",
+        "kind": "text",
+        "source": "block:label:7:text",
+        "required": false,
+        "targetIds": [
+          "c0-9eb3f406845b24032f38"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-a55e34e4f3e4791332ae",
+        "label": "label: field-21",
+        "kind": "text",
+        "source": "block:label:8:text",
+        "required": false,
+        "targetIds": [
+          "c0-cdca78f39bba6dc56ffa"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-2bd95ef63d003942baba",
+        "label": "label: field-20",
+        "kind": "text",
+        "source": "block:label:9:text",
+        "required": false,
+        "targetIds": [
+          "c0-859d092c92e2608026d9"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-3208dbe54c9a556a095a",
+        "label": "label: field-24",
+        "kind": "text",
+        "source": "block:label:10:text",
+        "required": false,
+        "targetIds": [
+          "c0-e623ed246521fc8b3b64"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-19715adcd042911b2f53",
+        "label": "label: field-23",
+        "kind": "text",
+        "source": "block:label:11:text",
+        "required": false,
+        "targetIds": [
+          "c0-7d1638a93596d898c78d"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "c0-4c3693abeb37df9dbb65",
+        "label": "callToAction: field-27",
+        "kind": "text",
+        "source": "block:callToAction:0:text",
+        "required": false,
+        "targetIds": [
+          "c0-95331b16d28fbbfa821c"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      }
+    ],
+    "relations": [
+      {
+        "id": "c0-b19a532d20ca78c7b388",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-260a801a0ddd3d487d24",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 275.05741424802113,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "c0-038b63ce5615766d9083",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-588707c9625d24eeecbd",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 212.27493403693933,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "c0-66dee043fe7adf140677",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-0a4b36167c3655d8e679",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 170.41994722955147,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "c0-495ac7885cfbcb391052",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-87daacef4a6914288d5c",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 463.4048548812665,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "c0-e47126c8303c6cac90fb",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-16c0acf5882d04782d30",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 661.087598944591,
+          "maxHeight": 83.2137203166227,
+          "minFontSize": 55.56728232189974
+        }
+      },
+      {
+        "id": "c0-8bf259c6e2595128c5cf",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-92ddeb944b0a13d8a3e9",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 891.5635883905013,
+          "maxHeight": 83.2137203166227,
+          "minFontSize": 55.56728232189974
+        }
+      },
+      {
+        "id": "c0-57a4c568b19125ccdc08",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-e355261415424ad25158",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 839.8432717678099,
+          "maxHeight": 83.2137203166227,
+          "minFontSize": 55.56728232189974
+        }
+      },
+      {
+        "id": "c0-35c0ff2b92f7cb56c71f",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-ba4689f5be7085715fbe",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 369.82955145118734,
+          "maxHeight": 83.2137203166227,
+          "minFontSize": 55.56728232189974
+        }
+      },
+      {
+        "id": "c0-57ac56a491a933ab5a2b",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-ee52f26645f27acd9937",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 86.70997361477573,
+          "maxHeight": 36.19525065963061,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "c0-a49b22546379e2a08a0c",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-27221a3ac5c9528489b8",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 55.31873350923483,
+          "maxHeight": 30.49604221635884,
+          "minFontSize": 18.522427440633248
+        }
+      },
+      {
+        "id": "c0-836b1c521ef5098cd6af",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-80648094b13455f1eaad",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 107.63746701846966,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "c0-17258df57ad08a563aba",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-9eb3f406845b24032f38",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 149.49245382585752,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "c0-9aff2c7f432b93dc0b37",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-cdca78f39bba6dc56ffa",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 149.49245382585752,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "c0-35b58a9cffd8bdf1c355",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-859d092c92e2608026d9",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 128.5649604221636,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "c0-1a841726fee6eb138f86",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-e623ed246521fc8b3b64",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 107.63746701846966,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "c0-60810f045b826e7c6e5c",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-7d1638a93596d898c78d",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 149.49245382585752,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      },
+      {
+        "id": "c0-572ab2ad2bd282f8483b",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "c0-95331b16d28fbbfa821c",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 212.27493403693936,
+          "maxHeight": 47.593667546174146,
+          "minFontSize": 22.226912928759898
+        }
+      }
+    ],
+    "assetIds": [
+      "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "image-c5f33150f95f8bff73733ba16f8419d9f8172acc19e0150f7443398d62d42a0e",
+      "image-6544344e43d60a6837db1f652d63f82d5e6c1566284a982c6779f79d5f368ed1"
+    ],
+    "capabilities": [
+      "text",
+      "rect",
+      "line",
+      "polygon",
+      "media",
+      "groups",
+      "relations"
+    ],
+    "mediaSlots": [],
+    "intentionalOverlaps": [],
+    "limitations": []
+  },
+  "pieces": {
+    "3ce4aeb31d08dddab8ef360d4a611e4eabe33aad1a42104b4c4874d0bda4256f": {
+      "kind": "rect",
+      "fill": "#f4f1ea",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "6f6ca69c3a94f74dec2c7165f0aa1f15e9638e01e64184e083a953b6f59223d9": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        954.6174142480212,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "64639c08fd0aaee96d08e246a1b11120dfb55345a8cdf4d5c0aefa5eaab54ce7": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        954.6174142480212,
+        0,
+        954.6174142480212,
+        91.18733509234829
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "5c6bbb2d28236ba7072e7ddcc2ce970c153a7df4e2694b0635d8c190f6e01368": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        91.18733509234829,
+        954.6174142480212,
+        91.18733509234829
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "10299b22e9187e954df3c210c15cb3ebfd6e307108c2cbe49f0d457ddd18e3b4": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        91.18733509234829
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "027ae57d1d50d7239cfe18ca34aed61b6622fd4f346460c67b0a1e263a430858": {
+      "kind": "rect",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "58e48a64b032bff997e52a8d26d2545bdb5745326647742241dd82955164c667": {
+      "kind": "text",
+      "fill": "#ff4400",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "985acabd7b9fd036ff150398687764335ece73e1db630fc7cb2ca10448fbc4e7": {
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "c3945d0c1ad691a041e256b53f18f60b430b04bed2521237d7f632f583ccf33c": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        954.6174142480212,
+        0,
+        954.6174142480212,
+        28.49604221635884
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "a2ec73a53452df555f1417c2cb61a542e9704ea424d5fd41ea5f3d25242673e8": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        28.49604221635884,
+        954.6174142480212,
+        28.49604221635884
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "b14577a2ea03fc6e1b866f58ac00053e729a2de2efa7ff4527c4c05059444218": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        28.49604221635884
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "ddaa9686292de6488cdb94b7e34386858cc00d9796d0fb53a5eaa37d15241801": {
+      "kind": "media",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 12,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "imageAssetId": "image-c5f33150f95f8bff73733ba16f8419d9f8172acc19e0150f7443398d62d42a0e"
+    },
+    "f4d1cee81d55da39dc89526c49d51f60f0805403c9b8f9a3e585ced70d20c9c8": {
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85.48812664907652,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 0.9500000000000001,
+      "letterSpacing": -2.137203166226913,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 4,
+        "unit": "words",
+        "weights": [
+          3,
+          2,
+          3,
+          1
+        ]
+      }
+    },
+    "c82451a48978cd5455f40e4724752847a53c711b7626fd111620b7d7aa4ac2e8": {
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85.48812664907652,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 0.9500000000000001,
+      "letterSpacing": -2.137203166226913,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 4,
+        "unit": "words",
+        "weights": [
+          3,
+          2,
+          3,
+          1
+        ]
+      }
+    },
+    "192b78d2c6455fab82b5092ea19beb01e6900434d9135885602feb1874039cce": {
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85.48812664907652,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 0.9500000000000001,
+      "letterSpacing": -2.137203166226913,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 2,
+        "count": 4,
+        "unit": "words",
+        "weights": [
+          3,
+          2,
+          3,
+          1
+        ]
+      }
+    },
+    "3df6f27072eaf665413033a4929d9d55c296d3279fdc9dddfd9df45176aba476": {
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85.48812664907652,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 0.9500000000000001,
+      "letterSpacing": -2.137203166226913,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 3,
+        "count": 4,
+        "unit": "words",
+        "weights": [
+          3,
+          2,
+          3,
+          1
+        ]
+      }
+    },
+    "d232b842a4f96facc1e1eece73720c75c02a3abdc90dd603d4ce6067dae8da39": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        503.4003548031055,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "ca46a3495f8bb3e6c71d3965a9e0d67f667905e31c608f598f42a73e5dd144e4": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        503.4003548031055,
+        0,
+        503.4003548031055,
+        92.61213288160748
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "e09e8ecda3fc49baaec0522d4a7f9a635107a997045605114ad6347710340ddd": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        92.61213288160748,
+        503.4003548031055,
+        92.61213288160748
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "90c05cd0c539a4b82cf896eddcf73564ce2d00780023015372be55f84297ebfe": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        92.61213288160748
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "697c3b45a5f39d75691e7f19d43159b19a1c5d48c2b793ccdb88d931db954a27": {
+      "kind": "polygon",
+      "fill": "#f4f1ea",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 91.18717398965131,
+      "points": [
+        0,
+        91.1871739896513,
+        0.7801189144119434,
+        79.2848593894748,
+        3.107127606732334,
+        67.58619669205231,
+        6.94121031306689,
+        56.2913532596189,
+        12.216764815301673,
+        45.593586994825664,
+        18.843524913243414,
+        35.67593964444432,
+        26.708104904331307,
+        26.708104904331293,
+        35.675939644444334,
+        18.843524913243414,
+        45.593586994825635,
+        12.216764815301673,
+        56.291353259618916,
+        6.94121031306689,
+        67.58619669205235,
+        3.107127606732334,
+        79.2848593894748,
+        0.7801189144119434,
+        91.18717398965131,
+        0,
+        91.18717398965131,
+        0,
+        103.08948858982784,
+        0.7801189144119434,
+        114.78815128725029,
+        3.107127606732334,
+        126.08299471968371,
+        6.94121031306689,
+        136.78076098447696,
+        12.216764815301673,
+        146.6984083348583,
+        18.843524913243414,
+        155.66624307497133,
+        26.708104904331307,
+        163.5308230660592,
+        35.67593964444435,
+        170.15758316400095,
+        45.59358699482566,
+        175.43313766623572,
+        56.29135325961891,
+        179.2672203725703,
+        67.58619669205235,
+        181.59422906489067,
+        79.28485938947479,
+        182.37434797930263,
+        91.18717398965131,
+        182.37434797930263,
+        91.18875465118211,
+        181.59422906489067,
+        103.09106925135862,
+        179.2672203725703,
+        114.78973194878108,
+        175.43313766623572,
+        126.0845753812145,
+        170.15758316400095,
+        136.78234164600775,
+        163.5308230660592,
+        146.6999889963891,
+        155.66624307497133,
+        155.6678237365021,
+        146.6984083348583,
+        163.53240372759,
+        136.78076098447698,
+        170.15916382553175,
+        126.08299471968371,
+        175.43471832776652,
+        114.78815128725029,
+        179.2688010341011,
+        103.08948858982784,
+        181.59580972642146,
+        91.18717398965131,
+        182.37592864083342,
+        91.18717398965131,
+        182.37592864083342,
+        79.2848593894748,
+        181.59580972642146,
+        67.58619669205235,
+        179.2688010341011,
+        56.291353259618916,
+        175.43471832776652,
+        45.59358699482568,
+        170.15916382553175,
+        35.675939644444334,
+        163.53240372759,
+        26.708104904331307,
+        155.66782373650213,
+        18.843524913243414,
+        146.6999889963891,
+        12.216764815301687,
+        136.7823416460078,
+        6.94121031306689,
+        126.08457538121452,
+        3.107127606732334,
+        114.78973194878107,
+        0.7801189144119434,
+        103.09106925135862,
+        0,
+        91.18875465118212
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "f68bf6c676ea444fb5f5a9b4600e387f79f8971972271ef96b5709a6d66e3b88": {
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "4a0def4287fce175e0fbfdb6ae247117885f1c9a7c1c7369b5b66712a476dc79": {
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 28.49604221635884,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "e08aa27379a8e1a9d182c2c6ad60d4c9c029972158e2d4827e739899725e7a00": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        954.6174142480212,
+        0,
+        954.6174142480212,
+        279.2612137203166
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "213b54c47c804afb934c9d308a60f6aaea32949cda62f7c9cd071d5473a09901": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        279.2612137203166,
+        954.6174142480212,
+        279.2612137203166
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "44ea70c089279eb3de8ff9418476e5577bf3a331167ec6cd4dc02d9da9fd951f": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        279.2612137203166
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "5bc734863346222f96b58a6be2920c05bd99b5b1c28a51f302cdb95694d243c3": {
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        113.98416886543536,
+        886.2269129287599,
+        113.98416886543536
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "3f70552b3151f85bb946cc21990e32f3d83149919283f3afa022c03569dee8f4": {
+      "kind": "text",
+      "fill": "#666666",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "be57522aeb067bd01ee4c1f5fbaf5a8e57ef1fc27974e27bcd02b97dc0420a93": {
+      "kind": "media",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 12,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "imageAssetId": "image-6544344e43d60a6837db1f652d63f82d5e6c1566284a982c6779f79d5f368ed1"
+    }
+  },
+  "assets": [
+    {
+      "id": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "kind": "bundled",
+      "sha256": "2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "mimeType": "font/woff2",
+      "bytes": 16724,
+      "family": "Arsenal_2d46bd159b53f55c",
+      "sourceFamily": "Space Mono",
+      "weight": 700,
+      "license": "open-source"
+    },
+    {
+      "id": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "kind": "bundled",
+      "sha256": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "mimeType": "font/woff2",
+      "bytes": 18604,
+      "family": "Arsenal_25f33e61cf995abd",
+      "sourceFamily": "Archivo Black",
+      "weight": 400,
+      "license": "open-source"
+    },
+    {
+      "id": "image-c5f33150f95f8bff73733ba16f8419d9f8172acc19e0150f7443398d62d42a0e",
+      "kind": "catalog",
+      "sha256": "c5f33150f95f8bff73733ba16f8419d9f8172acc19e0150f7443398d62d42a0e",
+      "mimeType": "image/png",
+      "bytes": 283
+    },
+    {
+      "id": "image-6544344e43d60a6837db1f652d63f82d5e6c1566284a982c6779f79d5f368ed1",
+      "kind": "catalog",
+      "sha256": "6544344e43d60a6837db1f652d63f82d5e6c1566284a982c6779f79d5f368ed1",
+      "mimeType": "image/png",
+      "bytes": 776
+    }
+  ],
+  "content": {
+    "schemaVersion": 3,
+    "blocks": [
+      {
+        "id": "sample-0",
+        "type": "text",
+        "role": "label",
+        "text": "CAUTION // 06"
+      },
+      {
+        "id": "sample-1",
+        "type": "text",
+        "role": "label",
+        "text": "SPEC-SHEET"
+      },
+      {
+        "id": "sample-2",
+        "type": "text",
+        "role": "label",
+        "text": "ISO-9001"
+      },
+      {
+        "id": "sample-3",
+        "type": "text",
+        "role": "label",
+        "text": "\"MANIFESTO DE PRODUTO\""
+      },
+      {
+        "id": "sample-4",
+        "type": "text",
+        "role": "headline",
+        "text": "NÃO É SOBRE ESTÉTICA BONITA. É SOBRE TENSÃO VISUAL."
+      },
+      {
+        "id": "sample-5",
+        "type": "text",
+        "role": "label",
+        "text": "100%"
+      },
+      {
+        "id": "sample-6",
+        "type": "text",
+        "role": "label",
+        "text": "RAW"
+      },
+      {
+        "id": "sample-7",
+        "type": "text",
+        "role": "label",
+        "text": "PESO:"
+      },
+      {
+        "id": "sample-8",
+        "type": "text",
+        "role": "label",
+        "text": "900 BLK"
+      },
+      {
+        "id": "sample-9",
+        "type": "text",
+        "role": "label",
+        "text": "ORIGEM:"
+      },
+      {
+        "id": "sample-10",
+        "type": "text",
+        "role": "label",
+        "text": "LAB-SP"
+      },
+      {
+        "id": "sample-11",
+        "type": "text",
+        "role": "label",
+        "text": "LOTE:"
+      },
+      {
+        "id": "sample-12",
+        "type": "text",
+        "role": "label",
+        "text": "#2026-X"
+      },
+      {
+        "id": "sample-13",
+        "type": "text",
+        "role": "callToAction",
+        "text": "SWIPE // ➔"
+      }
+    ],
+    "caption": "Amostra técnica de autoria. Os textos originais são exemplos, sem valor factual.",
+    "hashtags": []
+  },
+  "userContentHash": "8751db3c3b5f9b662a88ad6226cc6123367505ca9f02592f952a4500256ac676",
+  "generatedContentHash": "8751db3c3b5f9b662a88ad6226cc6123367505ca9f02592f952a4500256ac676",
+  "contentRevision": 0,
+  "elements": [
+    {
+      "id": "c0-fc457c3b48c4ac8c2c32",
+      "parentId": "c0-root",
+      "zIndex": 0,
+      "x": 62.691292875989404,
+      "y": 62.69129287598945,
+      "width": 954.6174142480212,
+      "height": 91.18733509234829,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#f4f1ea",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-7aedb86e867788062b66",
+      "parentId": "c0-root",
+      "zIndex": 1,
+      "x": 62.691292875989404,
+      "y": 62.69129287598945,
+      "width": 954.6174142480212,
+      "height": 91.18733509234829,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        954.6174142480212,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-742f113bba050fa35372",
+      "parentId": "c0-root",
+      "zIndex": 2,
+      "x": 62.691292875989404,
+      "y": 62.69129287598945,
+      "width": 954.6174142480212,
+      "height": 91.18733509234829,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        954.6174142480212,
+        0,
+        954.6174142480212,
+        91.18733509234829
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-f7e355673f9dd38edd37",
+      "parentId": "c0-root",
+      "zIndex": 3,
+      "x": 62.691292875989404,
+      "y": 62.69129287598945,
+      "width": 954.6174142480212,
+      "height": 91.18733509234829,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        91.18733509234829,
+        954.6174142480212,
+        91.18733509234829
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-c6124d2465ea8aebb85b",
+      "parentId": "c0-root",
+      "zIndex": 4,
+      "x": 62.691292875989404,
+      "y": 62.69129287598945,
+      "width": 954.6174142480212,
+      "height": 91.18733509234829,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        91.18733509234829
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-ff0d853320a523c0b613",
+      "parentId": "c0-root",
+      "zIndex": 5,
+      "x": 68.39050131926123,
+      "y": 68.39050131926122,
+      "width": 329.08476253298153,
+      "height": 79.78891820580475,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-260a801a0ddd3d487d24",
+      "parentId": "c0-6e0c1ecae234537b3bc6",
+      "zIndex": 6,
+      "x": 96.88654353562008,
+      "y": 85.48812664907652,
+      "width": 275.05741424802113,
+      "height": 45.593667546174146,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#ff4400",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "CAUTION // 06",
+      "bindingId": "c0-05777edca0b248df8b76",
+      "itemId": null
+    },
+    {
+      "id": "c0-588707c9625d24eeecbd",
+      "parentId": "c0-fa46277514e2cb0cf049",
+      "zIndex": 7,
+      "x": 425.9713060686016,
+      "y": 85.48812664907652,
+      "width": 212.27493403693933,
+      "height": 45.593667546174146,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "SPEC-SHEET",
+      "bindingId": "c0-9118de7b95b368e2dfc0",
+      "itemId": null
+    },
+    {
+      "id": "c0-0a4b36167c3655d8e679",
+      "parentId": "c0-92ba6ae23857bf6e6b0c",
+      "zIndex": 8,
+      "x": 815.6546833773087,
+      "y": 85.48812664907652,
+      "width": 170.41994722955147,
+      "height": 45.593667546174146,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "ISO-9001",
+      "bindingId": "c0-badfda12d1267d644f6f",
+      "itemId": null
+    },
+    {
+      "id": "c0-ce743cd649c548dffeef",
+      "parentId": "c0-root",
+      "zIndex": 9,
+      "x": 62.691292875989404,
+      "y": 153.87862796833775,
+      "width": 954.6174142480212,
+      "height": 28.49604221635884,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        954.6174142480212,
+        0,
+        954.6174142480212,
+        28.49604221635884
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-8cb9a4a5e02cdb63e6a1",
+      "parentId": "c0-root",
+      "zIndex": 10,
+      "x": 62.691292875989404,
+      "y": 153.87862796833775,
+      "width": 954.6174142480212,
+      "height": 28.49604221635884,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        28.49604221635884,
+        954.6174142480212,
+        28.49604221635884
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-059d699c3d2818a592bf",
+      "parentId": "c0-root",
+      "zIndex": 11,
+      "x": 62.691292875989404,
+      "y": 153.87862796833775,
+      "width": 954.6174142480212,
+      "height": 28.49604221635884,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        28.49604221635884
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-cb48fcac29b5f2533af5",
+      "parentId": "c0-root",
+      "zIndex": 12,
+      "x": 62.691292875989404,
+      "y": 153.87862796833775,
+      "width": 954.6174142480212,
+      "height": 28.49604221635884,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "media",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 12,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "imageAssetId": "image-c5f33150f95f8bff73733ba16f8419d9f8172acc19e0150f7443398d62d42a0e",
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-17d9b6ba6a3b1fc6fb75",
+      "parentId": "c0-root",
+      "zIndex": 13,
+      "x": 62.69129287598946,
+      "y": 392.88918205804754,
+      "width": 506.0273746701847,
+      "height": 56.99208443271768,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-87daacef4a6914288d5c",
+      "parentId": "c0-5ad07b99f4ac15606ec5",
+      "zIndex": 14,
+      "x": 85.48812664907653,
+      "y": 398.5883905013193,
+      "width": 463.4048548812665,
+      "height": 45.593667546174146,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#ff4400",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "\"MANIFESTO DE PRODUTO\"",
+      "bindingId": "c0-a1ff6476080c8ffda2e5",
+      "itemId": null
+    },
+    {
+      "id": "c0-16c0acf5882d04782d30",
+      "parentId": "c0-4ca84eea58bfe552ba1b",
+      "zIndex": 15,
+      "x": 62.691292875989404,
+      "y": 472.67810026385223,
+      "width": 661.087598944591,
+      "height": 81.2137203166227,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85.48812664907652,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 0.9500000000000001,
+      "letterSpacing": -2.137203166226913,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 4,
+        "unit": "words",
+        "weights": [
+          3,
+          2,
+          3,
+          1
+        ]
+      },
+      "text": "NÃO É SOBRE ",
+      "bindingId": "c0-854d74ad0666f3be106a",
+      "itemId": null
+    },
+    {
+      "id": "c0-92ddeb944b0a13d8a3e9",
+      "parentId": "c0-4ca84eea58bfe552ba1b",
+      "zIndex": 16,
+      "x": 62.691292875989404,
+      "y": 553.8918205804749,
+      "width": 891.5635883905013,
+      "height": 81.2137203166227,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85.48812664907652,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 0.9500000000000001,
+      "letterSpacing": -2.137203166226913,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 4,
+        "unit": "words",
+        "weights": [
+          3,
+          2,
+          3,
+          1
+        ]
+      },
+      "text": "ESTÉTICA BONITA. ",
+      "bindingId": "c0-854d74ad0666f3be106a",
+      "itemId": null
+    },
+    {
+      "id": "c0-e355261415424ad25158",
+      "parentId": "c0-4ca84eea58bfe552ba1b",
+      "zIndex": 17,
+      "x": 62.691292875989404,
+      "y": 635.1055408970976,
+      "width": 839.8432717678099,
+      "height": 81.2137203166227,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85.48812664907652,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 0.9500000000000001,
+      "letterSpacing": -2.137203166226913,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 2,
+        "count": 4,
+        "unit": "words",
+        "weights": [
+          3,
+          2,
+          3,
+          1
+        ]
+      },
+      "text": "É SOBRE TENSÃO ",
+      "bindingId": "c0-854d74ad0666f3be106a",
+      "itemId": null
+    },
+    {
+      "id": "c0-ba4689f5be7085715fbe",
+      "parentId": "c0-4ca84eea58bfe552ba1b",
+      "zIndex": 18,
+      "x": 62.691292875989404,
+      "y": 716.3192612137203,
+      "width": 369.82955145118734,
+      "height": 81.2137203166227,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85.48812664907652,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 0.9500000000000001,
+      "letterSpacing": -2.137203166226913,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 3,
+        "count": 4,
+        "unit": "words",
+        "weights": [
+          3,
+          2,
+          3,
+          1
+        ]
+      },
+      "text": "VISUAL.",
+      "bindingId": "c0-854d74ad0666f3be106a",
+      "itemId": null
+    },
+    {
+      "id": "c0-df248827035b70cb769c",
+      "parentId": "c0-root",
+      "zIndex": 19,
+      "x": 61.921474486982596,
+      "y": 558.2916491758101,
+      "width": 503.4003548031055,
+      "height": 92.61213288160748,
+      "rotation": -1,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#f4f1ea",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-44d94cbafc461d599b4e",
+      "parentId": "c0-root",
+      "zIndex": 20,
+      "x": 61.921474486982596,
+      "y": 558.2916491758101,
+      "width": 503.4003548031055,
+      "height": 92.61213288160748,
+      "rotation": -1,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        503.4003548031055,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-11a7a1d9234d32ac9b43",
+      "parentId": "c0-root",
+      "zIndex": 21,
+      "x": 61.921474486982596,
+      "y": 558.2916491758101,
+      "width": 503.4003548031055,
+      "height": 92.61213288160748,
+      "rotation": -1,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        503.4003548031055,
+        0,
+        503.4003548031055,
+        92.61213288160748
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-637e62c210fa1e533ebc",
+      "parentId": "c0-root",
+      "zIndex": 22,
+      "x": 61.921474486982596,
+      "y": 558.2916491758101,
+      "width": 503.4003548031055,
+      "height": 92.61213288160748,
+      "rotation": -1,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        92.61213288160748,
+        503.4003548031055,
+        92.61213288160748
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-8752559bd95ec52a7f0e",
+      "parentId": "c0-root",
+      "zIndex": 23,
+      "x": 61.921474486982596,
+      "y": 558.2916491758101,
+      "width": 503.4003548031055,
+      "height": 92.61213288160748,
+      "rotation": -1,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        92.61213288160748
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-7b1163a966098c1b19ae",
+      "parentId": "c0-root",
+      "zIndex": 24,
+      "x": 878.6827341931632,
+      "y": 666.581979716359,
+      "width": 182.37434797930263,
+      "height": 182.37592864083342,
+      "rotation": 12,
+      "opacity": 1,
+      "kind": "polygon",
+      "fill": "#f4f1ea",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 91.18717398965131,
+      "points": [
+        0,
+        91.1871739896513,
+        0.7801189144119434,
+        79.2848593894748,
+        3.107127606732334,
+        67.58619669205231,
+        6.94121031306689,
+        56.2913532596189,
+        12.216764815301673,
+        45.593586994825664,
+        18.843524913243414,
+        35.67593964444432,
+        26.708104904331307,
+        26.708104904331293,
+        35.675939644444334,
+        18.843524913243414,
+        45.593586994825635,
+        12.216764815301673,
+        56.291353259618916,
+        6.94121031306689,
+        67.58619669205235,
+        3.107127606732334,
+        79.2848593894748,
+        0.7801189144119434,
+        91.18717398965131,
+        0,
+        91.18717398965131,
+        0,
+        103.08948858982784,
+        0.7801189144119434,
+        114.78815128725029,
+        3.107127606732334,
+        126.08299471968371,
+        6.94121031306689,
+        136.78076098447696,
+        12.216764815301673,
+        146.6984083348583,
+        18.843524913243414,
+        155.66624307497133,
+        26.708104904331307,
+        163.5308230660592,
+        35.67593964444435,
+        170.15758316400095,
+        45.59358699482566,
+        175.43313766623572,
+        56.29135325961891,
+        179.2672203725703,
+        67.58619669205235,
+        181.59422906489067,
+        79.28485938947479,
+        182.37434797930263,
+        91.18717398965131,
+        182.37434797930263,
+        91.18875465118211,
+        181.59422906489067,
+        103.09106925135862,
+        179.2672203725703,
+        114.78973194878108,
+        175.43313766623572,
+        126.0845753812145,
+        170.15758316400095,
+        136.78234164600775,
+        163.5308230660592,
+        146.6999889963891,
+        155.66624307497133,
+        155.6678237365021,
+        146.6984083348583,
+        163.53240372759,
+        136.78076098447698,
+        170.15916382553175,
+        126.08299471968371,
+        175.43471832776652,
+        114.78815128725029,
+        179.2688010341011,
+        103.08948858982784,
+        181.59580972642146,
+        91.18717398965131,
+        182.37592864083342,
+        91.18717398965131,
+        182.37592864083342,
+        79.2848593894748,
+        181.59580972642146,
+        67.58619669205235,
+        179.2688010341011,
+        56.291353259618916,
+        175.43471832776652,
+        45.59358699482568,
+        170.15916382553175,
+        35.675939644444334,
+        163.53240372759,
+        26.708104904331307,
+        155.66782373650213,
+        18.843524913243414,
+        146.6999889963891,
+        12.216764815301687,
+        136.7823416460078,
+        6.94121031306689,
+        126.08457538121452,
+        3.107127606732334,
+        114.78973194878107,
+        0.7801189144119434,
+        103.09106925135862,
+        0,
+        91.18875465118212
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-ee52f26645f27acd9937",
+      "parentId": "c0-5b091bb5d5d885187442",
+      "zIndex": 25,
+      "x": 914.4529091399028,
+      "y": 735.3648581794196,
+      "width": 86.70997361477573,
+      "height": 34.19525065963061,
+      "rotation": 12,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "100%",
+      "bindingId": "c0-7edd2086cf3150247ea6",
+      "itemId": null
+    },
+    {
+      "id": "c0-27221a3ac5c9528489b8",
+      "parentId": "c0-693dafd4f96f9c99541e",
+      "zIndex": 26,
+      "x": 922.7168895825993,
+      "y": 772.0813406992086,
+      "width": 55.31873350923483,
+      "height": 28.49604221635884,
+      "rotation": 12,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 28.49604221635884,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "RAW",
+      "bindingId": "c0-867cd8d9adabf30ab767",
+      "itemId": null
+    },
+    {
+      "id": "c0-a68e15b4e30528195264",
+      "parentId": "c0-root",
+      "zIndex": 27,
+      "x": 62.691292875989404,
+      "y": 1008.0474934036939,
+      "width": 954.6174142480212,
+      "height": 279.2612137203166,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#f4f1ea",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-a8ede84b438e5559e895",
+      "parentId": "c0-root",
+      "zIndex": 28,
+      "x": 62.691292875989404,
+      "y": 1008.0474934036939,
+      "width": 954.6174142480212,
+      "height": 279.2612137203166,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        954.6174142480212,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-627885fe678b03f2771f",
+      "parentId": "c0-root",
+      "zIndex": 29,
+      "x": 62.691292875989404,
+      "y": 1008.0474934036939,
+      "width": 954.6174142480212,
+      "height": 279.2612137203166,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        954.6174142480212,
+        0,
+        954.6174142480212,
+        279.2612137203166
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-f20fd1a85de45b7f8d5e",
+      "parentId": "c0-root",
+      "zIndex": 30,
+      "x": 62.691292875989404,
+      "y": 1008.0474934036939,
+      "width": 954.6174142480212,
+      "height": 279.2612137203166,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        279.2612137203166,
+        954.6174142480212,
+        279.2612137203166
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-549547042163caa33f6f",
+      "parentId": "c0-root",
+      "zIndex": 31,
+      "x": 62.691292875989404,
+      "y": 1008.0474934036939,
+      "width": 954.6174142480212,
+      "height": 279.2612137203166,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        279.2612137203166
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-ede53b9561fda8b32c31",
+      "parentId": "c0-root",
+      "zIndex": 32,
+      "x": 96.88654353562004,
+      "y": 1042.2427440633246,
+      "width": 886.2269129287599,
+      "height": 113.98416886543536,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        113.98416886543536,
+        886.2269129287599,
+        113.98416886543536
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-9eb3f406845b24032f38",
+      "parentId": "c0-4b87b3d0a9580775d8b0",
+      "zIndex": 33,
+      "x": 96.88654353562004,
+      "y": 1087.8364116094988,
+      "width": 149.49245382585752,
+      "height": 45.593667546174146,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "900 BLK",
+      "bindingId": "c0-188b2773494c9a881866",
+      "itemId": null
+    },
+    {
+      "id": "c0-80648094b13455f1eaad",
+      "parentId": "c0-6ac12bd8355268669f91",
+      "zIndex": 34,
+      "x": 96.88654353562004,
+      "y": 1042.2427440633246,
+      "width": 107.63746701846966,
+      "height": 45.593667546174146,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#666666",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "PESO:",
+      "bindingId": "c0-b657d5bd1df2dab421e7",
+      "itemId": null
+    },
+    {
+      "id": "c0-5e991811f8b32eba6aa3",
+      "parentId": "c0-root",
+      "zIndex": 35,
+      "x": 396.09498680738784,
+      "y": 1042.2427440633246,
+      "width": 287.8100263852243,
+      "height": 91.18733509234829,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        91.18733509234829
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-859d092c92e2608026d9",
+      "parentId": "c0-e4fda2e23fa45fd1632f",
+      "zIndex": 36,
+      "x": 418.8918205804749,
+      "y": 1087.8364116094988,
+      "width": 128.5649604221636,
+      "height": 45.593667546174146,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "LAB-SP",
+      "bindingId": "c0-2bd95ef63d003942baba",
+      "itemId": null
+    },
+    {
+      "id": "c0-cdca78f39bba6dc56ffa",
+      "parentId": "c0-6b50b66b2e54fefb64a5",
+      "zIndex": 37,
+      "x": 424.5910290237468,
+      "y": 1042.2427440633246,
+      "width": 149.49245382585752,
+      "height": 45.593667546174146,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#666666",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "ORIGEM:",
+      "bindingId": "c0-a55e34e4f3e4791332ae",
+      "itemId": null
+    },
+    {
+      "id": "c0-661a08faec81bf0da84c",
+      "parentId": "c0-root",
+      "zIndex": 38,
+      "x": 695.3034300791558,
+      "y": 1042.2427440633246,
+      "width": 287.8100263852243,
+      "height": 91.18733509234829,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#0a0a0a",
+      "stroke": "#0a0a0a",
+      "strokeWidth": 5.699208443271768,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        91.18733509234829
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-7d1638a93596d898c78d",
+      "parentId": "c0-a7543347da2b2b993c96",
+      "zIndex": 39,
+      "x": 718.1002638522428,
+      "y": 1087.8364116094988,
+      "width": 149.49245382585752,
+      "height": 45.593667546174146,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "#2026-X",
+      "bindingId": "c0-19715adcd042911b2f53",
+      "itemId": null
+    },
+    {
+      "id": "c0-e623ed246521fc8b3b64",
+      "parentId": "c0-83cde70d7ea6c730f50f",
+      "zIndex": 40,
+      "x": 723.7994722955145,
+      "y": 1042.2427440633246,
+      "width": 107.63746701846966,
+      "height": 45.593667546174146,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#666666",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "LOTE:",
+      "bindingId": "c0-3208dbe54c9a556a095a",
+      "itemId": null
+    },
+    {
+      "id": "c0-122e0c17cdd166e81014",
+      "parentId": "c0-root",
+      "zIndex": 41,
+      "x": 96.88654353562006,
+      "y": 1184.722955145119,
+      "width": 410,
+      "height": 68,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "media",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 12,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "imageAssetId": "image-6544344e43d60a6837db1f652d63f82d5e6c1566284a982c6779f79d5f368ed1",
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "c0-95331b16d28fbbfa821c",
+      "parentId": "c0-98cefff8ca73882a767e",
+      "zIndex": 42,
+      "x": 774.1573218997362,
+      "y": 1196.1213720316625,
+      "width": 212.27493403693936,
+      "height": 45.593667546174146,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#0a0a0a",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_2d46bd159b53f55c",
+      "fontAssetId": "font-2d46bd159b53f55c41167a4f1540a074649464194fd1e416f5b4694a6c0f282c",
+      "fontSize": 34.19525065963061,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.3333333333333333,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "SWIPE // ➔",
+      "bindingId": "c0-4c3693abeb37df9dbb65",
+      "itemId": null
+    }
+  ],
+  "groups": [
+    {
+      "id": "c0-root",
+      "label": "CON-06 · Industrial · ficha técnica",
+      "parentId": null,
+      "zIndex": 20,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-6e0c1ecae234537b3bc6",
+      "label": "field-3",
+      "parentId": "c0-root",
+      "zIndex": 6,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-fa46277514e2cb0cf049",
+      "label": "field-5",
+      "parentId": "c0-root",
+      "zIndex": 7,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-92ba6ae23857bf6e6b0c",
+      "label": "field-6",
+      "parentId": "c0-root",
+      "zIndex": 8,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-5ad07b99f4ac15606ec5",
+      "label": "field-9",
+      "parentId": "c0-root",
+      "zIndex": 14,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-4ca84eea58bfe552ba1b",
+      "label": "field-10",
+      "parentId": "c0-root",
+      "zIndex": 15,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-5b091bb5d5d885187442",
+      "label": "field-13",
+      "parentId": "c0-root",
+      "zIndex": 25,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-693dafd4f96f9c99541e",
+      "label": "field-14",
+      "parentId": "c0-root",
+      "zIndex": 26,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-6ac12bd8355268669f91",
+      "label": "field-18",
+      "parentId": "c0-root",
+      "zIndex": 34,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-4b87b3d0a9580775d8b0",
+      "label": "field-17",
+      "parentId": "c0-root",
+      "zIndex": 33,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-6b50b66b2e54fefb64a5",
+      "label": "field-21",
+      "parentId": "c0-root",
+      "zIndex": 37,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-e4fda2e23fa45fd1632f",
+      "label": "field-20",
+      "parentId": "c0-root",
+      "zIndex": 36,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-83cde70d7ea6c730f50f",
+      "label": "field-24",
+      "parentId": "c0-root",
+      "zIndex": 40,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-a7543347da2b2b993c96",
+      "label": "field-23",
+      "parentId": "c0-root",
+      "zIndex": 39,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "c0-98cefff8ca73882a767e",
+      "label": "field-27",
+      "parentId": "c0-root",
+      "zIndex": 42,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    }
+  ],
+  "relations": [
+    {
+      "id": "c0-b19a532d20ca78c7b388",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-260a801a0ddd3d487d24",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 275.05741424802113,
+        "maxHeight": 47.593667546174146,
+        "minFontSize": 22.226912928759898
+      }
+    },
+    {
+      "id": "c0-038b63ce5615766d9083",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-588707c9625d24eeecbd",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 212.27493403693933,
+        "maxHeight": 47.593667546174146,
+        "minFontSize": 22.226912928759898
+      }
+    },
+    {
+      "id": "c0-66dee043fe7adf140677",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-0a4b36167c3655d8e679",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 170.41994722955147,
+        "maxHeight": 47.593667546174146,
+        "minFontSize": 22.226912928759898
+      }
+    },
+    {
+      "id": "c0-495ac7885cfbcb391052",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-87daacef4a6914288d5c",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 463.4048548812665,
+        "maxHeight": 47.593667546174146,
+        "minFontSize": 22.226912928759898
+      }
+    },
+    {
+      "id": "c0-e47126c8303c6cac90fb",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-16c0acf5882d04782d30",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 661.087598944591,
+        "maxHeight": 83.2137203166227,
+        "minFontSize": 55.56728232189974
+      }
+    },
+    {
+      "id": "c0-8bf259c6e2595128c5cf",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-92ddeb944b0a13d8a3e9",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 891.5635883905013,
+        "maxHeight": 83.2137203166227,
+        "minFontSize": 55.56728232189974
+      }
+    },
+    {
+      "id": "c0-57a4c568b19125ccdc08",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-e355261415424ad25158",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 839.8432717678099,
+        "maxHeight": 83.2137203166227,
+        "minFontSize": 55.56728232189974
+      }
+    },
+    {
+      "id": "c0-35c0ff2b92f7cb56c71f",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-ba4689f5be7085715fbe",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 369.82955145118734,
+        "maxHeight": 83.2137203166227,
+        "minFontSize": 55.56728232189974
+      }
+    },
+    {
+      "id": "c0-57ac56a491a933ab5a2b",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-ee52f26645f27acd9937",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 86.70997361477573,
+        "maxHeight": 36.19525065963061,
+        "minFontSize": 22.226912928759898
+      }
+    },
+    {
+      "id": "c0-a49b22546379e2a08a0c",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-27221a3ac5c9528489b8",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 55.31873350923483,
+        "maxHeight": 30.49604221635884,
+        "minFontSize": 18.522427440633248
+      }
+    },
+    {
+      "id": "c0-836b1c521ef5098cd6af",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-80648094b13455f1eaad",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 107.63746701846966,
+        "maxHeight": 47.593667546174146,
+        "minFontSize": 22.226912928759898
+      }
+    },
+    {
+      "id": "c0-17258df57ad08a563aba",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-9eb3f406845b24032f38",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 149.49245382585752,
+        "maxHeight": 47.593667546174146,
+        "minFontSize": 22.226912928759898
+      }
+    },
+    {
+      "id": "c0-9aff2c7f432b93dc0b37",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-cdca78f39bba6dc56ffa",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 149.49245382585752,
+        "maxHeight": 47.593667546174146,
+        "minFontSize": 22.226912928759898
+      }
+    },
+    {
+      "id": "c0-35b58a9cffd8bdf1c355",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-859d092c92e2608026d9",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 128.5649604221636,
+        "maxHeight": 47.593667546174146,
+        "minFontSize": 22.226912928759898
+      }
+    },
+    {
+      "id": "c0-1a841726fee6eb138f86",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-e623ed246521fc8b3b64",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 107.63746701846966,
+        "maxHeight": 47.593667546174146,
+        "minFontSize": 22.226912928759898
+      }
+    },
+    {
+      "id": "c0-60810f045b826e7c6e5c",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-7d1638a93596d898c78d",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 149.49245382585752,
+        "maxHeight": 47.593667546174146,
+        "minFontSize": 22.226912928759898
+      }
+    },
+    {
+      "id": "c0-572ab2ad2bd282f8483b",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "c0-95331b16d28fbbfa821c",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 212.27493403693936,
+        "maxHeight": 47.593667546174146,
+        "minFontSize": 22.226912928759898
+      }
+    }
+  ],
+  "overrides": {},
+  "richText": {},
+  "media": {},
+  "seed": 0,
+  "state": "applied",
+  "issues": [],
+  "layoutOrigin": "catalog-variant",
+  "sourceVariantKey": "assembly-0-0-2befcc4fb74f",
+  "effectiveAspectRatio": "4:5",
+  "projection": {
+    "scale": 1,
+    "x": 0,
+    "y": 0
+  },
+  "artboard": {
+    "width": 1080,
+    "height": 1350,
+    "background": "#ff4400"
+  },
+  "authorialLayers": [],
+  "hiddenInstanceIds": [],
+  "userFonts": [],
+  "effects": {}
+}

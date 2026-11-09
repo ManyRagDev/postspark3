@@ -1,0 +1,1070 @@
+{
+  "version": 2,
+  "origin": {
+    "candidateId": "464880ac-187d-400f-8a1c-1ddaee877c39:4x5-75479c3f8be4-a6e9caa71d-closing-compose-synthesis-v3",
+    "blueprintId": "56deb11e-9f26-45b0-8283-ed949569c5b2",
+    "versionId": "464880ac-187d-400f-8a1c-1ddaee877c39",
+    "version": 1,
+    "definitionHash": "a89aa62ecc46a20d1530f5d157ce3df8a25f5be7fd677755137dc5c81e572b3d",
+    "variantKey": "4x5-75479c3f8be4-a6e9caa71d-closing-compose-synthesis-v3",
+    "variantHash": "3ee798d60320a262dee10080fe23008a6a3cfd09d67348e6b58d5aa3a3ccdb68",
+    "compilerVersion": "arsenal-v3.0.0",
+    "componentAssembly": {
+      "completeDesign": {
+        "family": "f65e1862777e3c9e201442396155f3fa",
+        "authorshipRevision": 2,
+        "baselineVerified": true,
+        "colors": [
+          "#F8F7F2",
+          "#DEDED9",
+          "#151515",
+          "#FFE121"
+        ],
+        "designGuidance": {
+          "version": 1,
+          "representation": {
+            "version": 3,
+            "sourceId": "41e6ffb8-ab66-4ea1-86a2-955876ab248d",
+            "sourceHash": "c700105d37b962a83430c737e33370caf82ab716ce1632dfbd12b9ca12c8efb0",
+            "method": "native_semantics_rebuild"
+          },
+          "familyIdentity": {
+            "essential": [
+              "cream-editorial",
+              "product-focus-frame",
+              "hands-and-objects",
+              "photographic-portrait"
+            ],
+            "optional": [
+              "Campos de apoio opcionais podem ficar vazios quando não pertinentes."
+            ],
+            "adaptable": [
+              "Texto e mídia apenas nos campos declarados.",
+              "Ritmo por escolha entre composições do repertório; geometria fixa dentro de cada composição."
+            ]
+          },
+          "fieldRelationships": [
+            {
+              "kind": "emphasis",
+              "sources": [
+                "block:headline:0:text"
+              ],
+              "label": "Título único distribuído entre line1, line2, line3; conferir peso, cor e capacidade de cada fragmento."
+            }
+          ],
+          "carouselVariant": {
+            "version": 3,
+            "role": "closing",
+            "sourceId": "6dc5d744-8940-4eac-8016-1517c7c556c0",
+            "sourceHash": "a6e9caa71dd767f4773c1efc923497dc2a6d265c8f1861b02ab1157380215be2",
+            "contentMode": "compose",
+            "function": "synthesis",
+            "identity": [
+              "cream-editorial",
+              "product-focus-frame",
+              "hands-and-objects",
+              "photographic-portrait"
+            ]
+          },
+          "summary": "Fundo creme, frase preta compacta acima e grande fotografia de pessoa/produto com mãos e objetos na base. Quadro amarelo marca um produto; mídia substituta deve alinhar esse ponto focal ao quadro, que não acompanha objetos automaticamente. 3 regiões de título, 0 apoios textuais, 0 listas semânticas e 1 slots de mídia. 9 camadas em 1080×1350; fontes Inter. Composição nativa para ênfase, repetição intencional ou exemplo.",
+          "motifs": [
+            "cream-editorial",
+            "product-focus-frame",
+            "hands-and-objects",
+            "photographic-portrait"
+          ],
+          "preserve": [
+            "Conservar geometria, hierarquia, fontes incorporadas, cores e ornamentos nativos; não substituir a composição pela imagem original.",
+            "static: composição inteira com geometria autorada",
+            "cover: campo de título nativo",
+            "closing: convite pode usar título/apoio editável; sem caixa de CTA dedicada, conservar capacidade nativa",
+            "example: mídia ou itens independentes autorados permitem mostrar um exemplo; não há aprovação narrativa automática",
+            "density:quiet: 3 regiões de texto; área somada das caixas 15.4% da prancheta (não é limite de palavras nem aprovação de encaixe)"
+          ],
+          "contentRules": [
+            "Cena fotográfica integral em área inferior. Pesos mistos dentro da frase são aproximados por linhas. O quadro amarelo é decorativo e precisa ser movido para o produto da nova foto.",
+            "Selecionar esta composição pela função da página. Repetição é permitida; não inventar texto, rótulos nem CTA para preencher campos."
+          ],
+          "mediaRules": [
+            {
+              "slotId": "photo",
+              "instructions": [
+                "Preencher somente o slot nativo Fotografia — inserir no Admin2; enquadramento cover, ponto focal autorado 0.5,0.5. A imagem original inteira é evidência, nunca fotografia de preenchimento.",
+                "Nota de autoria do design: Cena fotográfica integral em área inferior. Pesos mistos dentro da frase são aproximados por linhas. O quadro amarelo é decorativo e precisa ser movido para o produto da nova foto."
+              ]
+            }
+          ],
+          "knownLimitations": [
+            "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+            "Cena fotográfica integral em área inferior. Pesos mistos dentro da frase são aproximados por linhas. O quadro amarelo é decorativo e precisa ser movido para o produto da nova foto.",
+            "O realce amarelo sobre a fotografia tem posição fixa; não acompanha automaticamente o objeto de uma imagem substituta.",
+            "Capacidade é estimativa geométrica; composição não certifica legibilidade de qualquer texto."
+          ]
+        }
+      },
+      "version": 1,
+      "planHash": "771c42048a89c1b8c262f795f6bb2b2dc53154ce0e67502889973b86595ec4dc",
+      "componentIds": [
+        "56deb11e-9f26-45b0-8283-ed949569c5b2"
+      ],
+      "componentHashes": [
+        "a89aa62ecc46a20d1530f5d157ce3df8a25f5be7fd677755137dc5c81e572b3d"
+      ],
+      "sourceHashes": [
+        "40ad5dc2d89ea97e76209335c965a338ece141c0b8fcf3f64378f09cefc8dde2"
+      ],
+      "experimental": true
+    }
+  },
+  "base": {
+    "variantKey": "4x5-75479c3f8be4-a6e9caa71d-closing-compose-synthesis-v3",
+    "aspectRatio": "4:5",
+    "compilerVersion": "arsenal-v3.0.0",
+    "artboard": {
+      "width": 1080,
+      "height": 1350,
+      "background": "#F8F7F2"
+    },
+    "instances": [
+      {
+        "id": "photo",
+        "pieceHash": "0afddff412455f030300ef8ba83adc8c3c2d127eb4015bf46f50c9c02f1919b0",
+        "parentId": "g-media",
+        "zIndex": 0,
+        "x": 0,
+        "y": 410,
+        "width": 1080,
+        "height": 940,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "line1",
+        "pieceHash": "b37fcc0235457d745a7de119c2bb99c66017030c0d35114201a0d83e2874b1c0",
+        "parentId": "g-copy",
+        "zIndex": 1,
+        "x": 246,
+        "y": 88,
+        "width": 624,
+        "height": 115,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "line2",
+        "pieceHash": "7a3781b5ad86308d16d84d22a6d46ed3305da100fd51715609ca88a8f9f50c8e",
+        "parentId": "g-copy",
+        "zIndex": 2,
+        "x": 290,
+        "y": 183,
+        "width": 620,
+        "height": 112,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "line3",
+        "pieceHash": "890e3cf4cbab5ed6c7d10f485038619515ee2b8b2bf57b710dfc2a44387aa855",
+        "parentId": "g-copy",
+        "zIndex": 3,
+        "x": 208,
+        "y": 280,
+        "width": 730,
+        "height": 115,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "focus",
+        "pieceHash": "39f3584223123f06babc4a8ff7899cfe20959ae6225422a24b5e7740e97b26c0",
+        "parentId": "g-focus",
+        "zIndex": 4,
+        "x": 586,
+        "y": 425,
+        "width": 137,
+        "height": 139,
+        "rotation": 0,
+        "opacity": 0
+      },
+      {
+        "id": "focus-a",
+        "pieceHash": "32e9bc77ee542cebe26684f1b1e2acdd5f81bbbb7b6ffdab031a71d4fcce0183",
+        "parentId": "g-focus",
+        "zIndex": 5,
+        "x": 586,
+        "y": 425,
+        "width": 137,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "focus-b",
+        "pieceHash": "32e9bc77ee542cebe26684f1b1e2acdd5f81bbbb7b6ffdab031a71d4fcce0183",
+        "parentId": "g-focus",
+        "zIndex": 6,
+        "x": 586,
+        "y": 564,
+        "width": 137,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "focus-c",
+        "pieceHash": "fdd96382f5e28f87863fb5ac3d70faf67cb6e899baf2299a557abb2adece9c13",
+        "parentId": "g-focus",
+        "zIndex": 7,
+        "x": 586,
+        "y": 425,
+        "width": 1,
+        "height": 139,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "focus-d",
+        "pieceHash": "fdd96382f5e28f87863fb5ac3d70faf67cb6e899baf2299a557abb2adece9c13",
+        "parentId": "g-focus",
+        "zIndex": 8,
+        "x": 723,
+        "y": 425,
+        "width": 1,
+        "height": 139,
+        "rotation": 0,
+        "opacity": 1
+      }
+    ],
+    "groups": [
+      {
+        "id": "g-media",
+        "label": "Fotografia substituível",
+        "parentId": null,
+        "zIndex": 0,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "g-copy",
+        "label": "Título em três linhas",
+        "parentId": null,
+        "zIndex": 1,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "g-focus",
+        "label": "Marcador de foco ajustável",
+        "parentId": null,
+        "zIndex": 4,
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1350,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      }
+    ],
+    "bindings": [
+      {
+        "id": "semantic-0",
+        "label": "headline: line1, line2, line3",
+        "kind": "text",
+        "source": "content:field-0:text",
+        "required": true,
+        "targetIds": [
+          "line1",
+          "line2",
+          "line3"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "photo",
+        "label": "Fotografia — inserir no Admin2",
+        "kind": "media",
+        "source": "media.primary",
+        "required": false,
+        "targetIds": [
+          "photo"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      }
+    ],
+    "relations": [
+      {
+        "id": "fit-line1",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "line1",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 624,
+          "maxHeight": 115,
+          "minFontSize": 57.599999999999994
+        }
+      },
+      {
+        "id": "fit-line2",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "line2",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 620,
+          "maxHeight": 112,
+          "minFontSize": 57.599999999999994
+        }
+      },
+      {
+        "id": "fit-line3",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "line3",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 730,
+          "maxHeight": 115,
+          "minFontSize": 57.599999999999994
+        }
+      }
+    ],
+    "assetIds": [
+      "font-f3779f1efccc4bdcdf9c0a02ab95bf6bd092ed09c48c08cedc725889edd1d19f",
+      "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491"
+    ],
+    "capabilities": [
+      "text",
+      "rect",
+      "line",
+      "polygon",
+      "media",
+      "groups",
+      "relations",
+      "content-fragments",
+      "extrusion"
+    ],
+    "mediaSlots": [
+      {
+        "id": "photo",
+        "label": "Fotografia — inserir no Admin2",
+        "function": "user-replaceable-image",
+        "prompt": "Imagem para Fotografia — inserir no Admin2, respeitando a área de mídia do design Editorial — Holding my life together.",
+        "deferred": true,
+        "policy": "cover"
+      }
+    ],
+    "lineBoxOverlaps": [
+      {
+        "a": "line1",
+        "b": "line2",
+        "maxOverlapFraction": 0.25,
+        "singleLineOnly": true
+      },
+      {
+        "a": "line2",
+        "b": "line3",
+        "maxOverlapFraction": 0.25,
+        "singleLineOnly": true
+      }
+    ],
+    "intentionalOverlaps": [],
+    "limitations": [
+      "Rascunho de componentes: revisão visual humana e publicação pendentes.",
+      "Geometria autorada preservada. Encaixe limitado às caixas de origem; overflow deve permanecer explícito.",
+      "Fragmentos distribuem palavras completas por capacidade declarada; quebra intrapalavra do exemplo não é reutilizada.",
+      "Fotos de demonstração permanecem apenas no snapshot de origem; slots aguardam mídia do usuário."
+    ]
+  },
+  "pieces": {
+    "0afddff412455f030300ef8ba83adc8c3c2d127eb4015bf46f50c9c02f1919b0": {
+      "kind": "media",
+      "fill": "#DEDED9",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "32e9bc77ee542cebe26684f1b1e2acdd5f81bbbb7b6ffdab031a71d4fcce0183": {
+      "kind": "line",
+      "fill": "#FFE121",
+      "stroke": "#FFE121",
+      "strokeWidth": 4,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        137,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "39f3584223123f06babc4a8ff7899cfe20959ae6225422a24b5e7740e97b26c0": {
+      "kind": "rect",
+      "fill": "#FFE121",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "7a3781b5ad86308d16d84d22a6d46ed3305da100fd51715609ca88a8f9f50c8e": {
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 96,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          2,
+          4
+        ]
+      }
+    },
+    "890e3cf4cbab5ed6c7d10f485038619515ee2b8b2bf57b710dfc2a44387aa855": {
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_f3779f1efccc4bdc",
+      "fontAssetId": "font-f3779f1efccc4bdcdf9c0a02ab95bf6bd092ed09c48c08cedc725889edd1d19f",
+      "fontSize": 96,
+      "fontWeight": 500,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 2,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          2,
+          4
+        ]
+      }
+    },
+    "b37fcc0235457d745a7de119c2bb99c66017030c0d35114201a0d83e2874b1c0": {
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_f3779f1efccc4bdc",
+      "fontAssetId": "font-f3779f1efccc4bdcdf9c0a02ab95bf6bd092ed09c48c08cedc725889edd1d19f",
+      "fontSize": 96,
+      "fontWeight": 500,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          2,
+          4
+        ]
+      }
+    },
+    "fdd96382f5e28f87863fb5ac3d70faf67cb6e899baf2299a557abb2adece9c13": {
+      "kind": "line",
+      "fill": "#FFE121",
+      "stroke": "#FFE121",
+      "strokeWidth": 4,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        139
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    }
+  },
+  "assets": [
+    {
+      "id": "font-f3779f1efccc4bdcdf9c0a02ab95bf6bd092ed09c48c08cedc725889edd1d19f",
+      "kind": "bundled",
+      "sha256": "f3779f1efccc4bdcdf9c0a02ab95bf6bd092ed09c48c08cedc725889edd1d19f",
+      "mimeType": "font/woff2",
+      "bytes": 24272,
+      "family": "Arsenal_f3779f1efccc4bdc",
+      "sourceFamily": "Inter Medium",
+      "weight": 500,
+      "license": "open-source"
+    },
+    {
+      "id": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "kind": "bundled",
+      "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "mimeType": "font/woff2",
+      "bytes": 24356,
+      "family": "Arsenal_6f56409fd3d64bb8",
+      "sourceFamily": "Inter",
+      "weight": 700,
+      "license": "open-source"
+    }
+  ],
+  "content": {
+    "schemaVersion": 3,
+    "blocks": [
+      {
+        "id": "field-0",
+        "type": "text",
+        "role": "headline",
+        "text": "Holding my life together by a wax stick"
+      }
+    ],
+    "caption": "",
+    "hashtags": []
+  },
+  "userContentHash": "cd24db6a0d057ae7c9fb47cfe78c9019f9cf4b57264eb1d3ea051c5abb31bed6",
+  "generatedContentHash": "cd24db6a0d057ae7c9fb47cfe78c9019f9cf4b57264eb1d3ea051c5abb31bed6",
+  "contentRevision": 0,
+  "elements": [
+    {
+      "id": "photo",
+      "parentId": "g-media",
+      "zIndex": 0,
+      "x": 0,
+      "y": 410,
+      "width": 1080,
+      "height": 940,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "media",
+      "fill": "#DEDED9",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null,
+      "mediaSlot": {
+        "id": "photo",
+        "label": "Fotografia — inserir no Admin2",
+        "function": "user-replaceable-image",
+        "prompt": "Imagem para Fotografia — inserir no Admin2, respeitando a área de mídia do design Editorial — Holding my life together.",
+        "deferred": true,
+        "policy": "cover"
+      }
+    },
+    {
+      "id": "line1",
+      "parentId": "g-copy",
+      "zIndex": 1,
+      "x": 246,
+      "y": 88,
+      "width": 624,
+      "height": 100.80000000000001,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_f3779f1efccc4bdc",
+      "fontAssetId": "font-f3779f1efccc4bdcdf9c0a02ab95bf6bd092ed09c48c08cedc725889edd1d19f",
+      "fontSize": 96,
+      "fontWeight": 500,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          2,
+          4
+        ]
+      },
+      "text": "Holding my ",
+      "bindingId": "semantic-0",
+      "itemId": null
+    },
+    {
+      "id": "line2",
+      "parentId": "g-copy",
+      "zIndex": 2,
+      "x": 290,
+      "y": 183,
+      "width": 620,
+      "height": 100.80000000000001,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 96,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          2,
+          4
+        ]
+      },
+      "text": "life together ",
+      "bindingId": "semantic-0",
+      "itemId": null
+    },
+    {
+      "id": "line3",
+      "parentId": "g-copy",
+      "zIndex": 3,
+      "x": 208,
+      "y": 280,
+      "width": 730,
+      "height": 100.80000000000001,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_f3779f1efccc4bdc",
+      "fontAssetId": "font-f3779f1efccc4bdcdf9c0a02ab95bf6bd092ed09c48c08cedc725889edd1d19f",
+      "fontSize": 96,
+      "fontWeight": 500,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 2,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          2,
+          4
+        ]
+      },
+      "text": "by a wax stick",
+      "bindingId": "semantic-0",
+      "itemId": null
+    },
+    {
+      "id": "focus",
+      "parentId": "g-focus",
+      "zIndex": 4,
+      "x": 586,
+      "y": 425,
+      "width": 137,
+      "height": 139,
+      "rotation": 0,
+      "opacity": 0,
+      "kind": "rect",
+      "fill": "#FFE121",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "focus-a",
+      "parentId": "g-focus",
+      "zIndex": 5,
+      "x": 586,
+      "y": 425,
+      "width": 137,
+      "height": 1,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#FFE121",
+      "stroke": "#FFE121",
+      "strokeWidth": 4,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        137,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "focus-b",
+      "parentId": "g-focus",
+      "zIndex": 6,
+      "x": 586,
+      "y": 564,
+      "width": 137,
+      "height": 1,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#FFE121",
+      "stroke": "#FFE121",
+      "strokeWidth": 4,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        137,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "focus-c",
+      "parentId": "g-focus",
+      "zIndex": 7,
+      "x": 586,
+      "y": 425,
+      "width": 1,
+      "height": 139,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#FFE121",
+      "stroke": "#FFE121",
+      "strokeWidth": 4,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        139
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "focus-d",
+      "parentId": "g-focus",
+      "zIndex": 8,
+      "x": 723,
+      "y": 425,
+      "width": 1,
+      "height": 139,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#FFE121",
+      "stroke": "#FFE121",
+      "strokeWidth": 4,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        139
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    }
+  ],
+  "groups": [
+    {
+      "id": "g-media",
+      "label": "Fotografia substituível",
+      "parentId": null,
+      "zIndex": 0,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "g-copy",
+      "label": "Título em três linhas",
+      "parentId": null,
+      "zIndex": 1,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "g-focus",
+      "label": "Marcador de foco ajustável",
+      "parentId": null,
+      "zIndex": 4,
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    }
+  ],
+  "relations": [
+    {
+      "id": "fit-line1",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "line1",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 624,
+        "maxHeight": 115,
+        "minFontSize": 57.599999999999994
+      }
+    },
+    {
+      "id": "fit-line2",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "line2",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 620,
+        "maxHeight": 112,
+        "minFontSize": 57.599999999999994
+      }
+    },
+    {
+      "id": "fit-line3",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "line3",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 730,
+        "maxHeight": 115,
+        "minFontSize": 57.599999999999994
+      }
+    }
+  ],
+  "overrides": {},
+  "richText": {},
+  "media": {},
+  "seed": 0,
+  "state": "applied",
+  "issues": [],
+  "layoutOrigin": "catalog-variant",
+  "sourceVariantKey": "4x5-75479c3f8be4-a6e9caa71d-closing-compose-synthesis-v3",
+  "effectiveAspectRatio": "4:5",
+  "projection": {
+    "scale": 1,
+    "x": 0,
+    "y": 0
+  },
+  "artboard": {
+    "width": 1080,
+    "height": 1350,
+    "background": "#F8F7F2"
+  }
+}

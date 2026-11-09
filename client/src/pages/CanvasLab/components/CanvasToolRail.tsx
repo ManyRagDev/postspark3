@@ -37,7 +37,7 @@ export default function CanvasToolRail({
   return (
     <nav
       aria-label="Ferramentas da prancheta"
-      className="z-20 flex min-h-12 shrink-0 items-center justify-center gap-1 border-b border-white/10 bg-[#10141D] px-2"
+      className="z-20 flex min-h-12 shrink-0 items-center justify-center gap-0 border-b border-white/10 bg-[#10141D] px-1 sm:gap-1 sm:px-2"
     >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

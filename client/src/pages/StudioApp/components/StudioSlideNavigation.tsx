@@ -25,16 +25,16 @@ export default function StudioSlideNavigation({ count, index, onChange }: {
 }) {
   if (count < 2) return null;
   return (
-    <nav aria-label="Páginas do carrossel" className="flex items-center justify-center gap-3 w-full py-2 text-xs text-white/80">
+    <nav aria-label="Páginas do carrossel" className="flex w-full items-center justify-center gap-3 py-1 text-xs text-white/80 md:py-2">
       <button type="button" aria-label="Página anterior do carrossel" disabled={index === 0}
         onClick={event => { event.stopPropagation(); onChange(index - 1); }}
-        className="p-2 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-default">
+        className="grid min-h-11 min-w-11 place-items-center rounded-full border border-white/15 bg-white/5 p-2 hover:bg-white/10 disabled:cursor-default disabled:opacity-30 md:min-h-0 md:min-w-0">
         <ChevronLeft size={16} />
       </button>
       <span aria-live="polite" aria-atomic="true" className="min-w-24 text-center">Página {index + 1} de {count}</span>
       <button type="button" aria-label="Próxima página do carrossel" disabled={index === count - 1}
         onClick={event => { event.stopPropagation(); onChange(index + 1); }}
-        className="p-2 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-default">
+        className="grid min-h-11 min-w-11 place-items-center rounded-full border border-white/15 bg-white/5 p-2 hover:bg-white/10 disabled:cursor-default disabled:opacity-30 md:min-h-0 md:min-w-0">
         <ChevronRight size={16} />
       </button>
     </nav>

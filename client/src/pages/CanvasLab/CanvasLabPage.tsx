@@ -56,6 +56,13 @@ import {
   type EditorCommand,
   type EditorTarget,
 } from "./lib/editorController";
+import SeamlessGhostStripView from "./components/SeamlessGhostStripView";
+import {
+  applySeamlessPanoramaToPost,
+  removeSeamlessPanoramaFromPost,
+  detectActiveSeamlessPanorama,
+  type SeamlessPanoramaMeta,
+} from "./lib/seamlessCarousel";
 import {
   captureInitialVisuals,
   composePost,
@@ -208,7 +215,6 @@ export default function CanvasLabPage({
     slideId: string;
     composition: ArsenalComposition;
   } | null>(null);
-  const [mobileChromeHeight, setMobileChromeHeight] = useState(60);
   const [isTextEditing, setIsTextEditing] = useState(false);
   const [canvasToolsOpen, setCanvasToolsOpen] = useState(false);
   const [pendingTextEdit, setPendingTextEdit] = useState<string | null>(null);
@@ -228,6 +234,9 @@ export default function CanvasLabPage({
   const formatRequest = useRef(0);
   const [mediaPreview, setMediaPreview] = useState<string>();
   const [isEditingBackground, setIsEditingBackground] = useState(false);
+  const [activeSeamlessPanorama, setActiveSeamlessPanorama] = useState<SeamlessPanoramaMeta | null>(null);
+  const [seamlessStartOffset, setSeamlessStartOffset] = useState<number>(0);
+  const [isViewingSeamlessGhost, setIsViewingSeamlessGhost] = useState(false);
   const [history, setHistory] = useState(() =>
     createHistory<CanvasPostModel>(
       captureInitialVisuals(
@@ -237,6 +246,23 @@ export default function CanvasLabPage({
   );
   const post = history.present;
   const arsenalComposition = post.slides[post.currentSlideIndex]?.composition;
+
+  // Detecta se já existe panorama seamless aplicado ao abrir o post
+  useEffect(() => {
+    fetch("/images/backgrounds/manifest.json")
+      .then(r => r.json())
+      .then(data => {
+        if (data?.seamlessCarousels) {
+          const detected = detectActiveSeamlessPanorama(postRef.current, data.seamlessCarousels);
+          if (detected) {
+            setActiveSeamlessPanorama(detected.panorama);
+            setSeamlessStartOffset(detected.startOffset);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const currentViewPost = useMemo(
     () => resolveSlideAppearance(post, post.currentSlideIndex),
     [post]
@@ -527,7 +553,6 @@ export default function CanvasLabPage({
   const [windowDimensions, setWindowDimensions] = useState({
     width: typeof window !== "undefined" ? window.innerWidth : 390,
     height: typeof window !== "undefined" ? window.innerHeight : 844,
-    bottomInset: 0,
   });
 
   useEffect(() => {
@@ -535,14 +560,6 @@ export default function CanvasLabPage({
       setWindowDimensions({
         width: window.innerWidth,
         height: window.visualViewport?.height ?? window.innerHeight,
-        bottomInset: window.visualViewport
-          ? Math.max(
-              0,
-              window.innerHeight -
-                window.visualViewport.height -
-                window.visualViewport.offsetTop
-            )
-          : 0,
       });
     };
     handleResize();
@@ -575,7 +592,7 @@ export default function CanvasLabPage({
     const observer = new ResizeObserver(measure);
     observer.observe(stageArea);
     return () => observer.disconnect();
-  }, [activeTool, post.slides.length, mobileChromeHeight, isTextEditing]);
+  }, []);
 
   const isMobile = windowDimensions.width < 768;
   const baseWidth = 360;
@@ -659,10 +676,7 @@ export default function CanvasLabPage({
     if (input && typeof input === "object" && "kind" in input) {
       if (input.kind === "document") {
         const doc = input.document;
-        const comp =
-          input.composition ??
-          composition ??
-          doc.slides[doc.currentSlideIndex]?.composition;
+        const comp = input.composition ?? composition;
         if (comp) {
           setPost(() => ({
             ...putArsenalComposition(doc, comp),
@@ -1789,11 +1803,9 @@ export default function CanvasLabPage({
     <CanvasEditorChrome
       isTextEditing={isTextEditing}
       mobile={isMobile}
-      mobileBottomInset={windowDimensions.bottomInset}
       mobileViewportHeight={windowDimensions.height}
       activeTool={activeTool}
       onToolChange={changeTool}
-      onPanelHeightChange={setMobileChromeHeight}
       selectionLabel={!isTextEditing ? editorSelection?.label : undefined}
       selectionActions={
         editorSelection?.capabilities.editText ? (
@@ -1848,6 +1860,15 @@ export default function CanvasLabPage({
               post={post}
               mode="background"
               onMediaUpdate={handleMediaUpdate}
+              onApplySeamlessPanorama={panorama => {
+                setActiveSeamlessPanorama(panorama);
+                setSeamlessStartOffset(0);
+                const next = applySeamlessPanoramaToPost(postRef.current, panorama, 0);
+                handleUpdatePost({ kind: "document", document: next });
+                setIsViewingSeamlessGhost(true);
+                toast.success(`Panorama "${panorama.name}" aplicado! Abrindo visualização em fileira.`);
+              }}
+              onOpenGhostView={() => setIsViewingSeamlessGhost(true)}
               mediaPreview={mediaPreview}
               onMediaPreview={setMediaPreview}
               onOpenReplacement={elementId => {
@@ -2140,6 +2161,33 @@ export default function CanvasLabPage({
           style={{ justifyContent: "safe center", alignItems: "safe center" }}
           className="min-w-0 min-h-0 flex-1 bg-[#040508] relative overflow-auto flex items-center justify-center p-2 sm:p-6 custom-scrollbar"
         >
+          {/* MODO FANTASMA EM FILEIRA (SEAMLESS CAROUSEL GHOST VIEW) */}
+          {isViewingSeamlessGhost && activeSeamlessPanorama && (
+            <SeamlessGhostStripView
+              post={post}
+              panorama={activeSeamlessPanorama}
+              startOffset={seamlessStartOffset}
+              onOffsetChange={newOffset => {
+                setSeamlessStartOffset(newOffset);
+                const next = applySeamlessPanoramaToPost(postRef.current, activeSeamlessPanorama, newOffset);
+                handleUpdatePost({ kind: "document", document: next });
+              }}
+              onSelectSlide={idx => {
+                handleSelectSlide(idx);
+              }}
+              onConfirm={() => {
+                setIsViewingSeamlessGhost(false);
+                toast.success(`Visualização concluída! Focando no slide ${post.currentSlideIndex + 1}.`);
+              }}
+              onRemovePanorama={() => {
+                const next = removeSeamlessPanoramaFromPost(postRef.current);
+                handleUpdatePost({ kind: "document", document: next });
+                setActiveSeamlessPanorama(null);
+                setIsViewingSeamlessGhost(false);
+                toast.info("Panorama contínuo removido dos slides.");
+              }}
+            />
+          )}
           {/* BARRA FLUTUANTE DE MODO DE EDIÇÃO DO FUNDO (ESTILO CANVA) */}
           <AnimatePresence>
             {isEditingBackground && (
@@ -2148,13 +2196,12 @@ export default function CanvasLabPage({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-[#10141D]/95 backdrop-blur-2xl border border-[oklch(0.78_0.22_48)]/50 shadow-[0_20px_50px_rgba(0,0,0,0.8)] px-4 py-2.5 rounded-full flex items-center gap-3 text-xs"
+                className="absolute inset-x-2 top-2 z-30 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[oklch(0.78_0.22_48)]/50 bg-[#10141D]/95 px-2 py-1 text-xs shadow-xl backdrop-blur-2xl md:inset-x-auto md:left-1/2 md:top-4 md:-translate-x-1/2 md:flex-nowrap md:gap-3 md:rounded-full md:px-4 md:py-2.5"
               >
                 <div className="flex items-center gap-2 text-white/90">
                   <span className="w-2.5 h-2.5 rounded-full bg-[oklch(0.78_0.22_48)] animate-pulse" />
-                  <span className="font-bold text-white">
-                    Editando Enquadramento do Fundo
-                  </span>
+                  <span className="font-bold text-white md:hidden">Enquadrar fundo</span>
+                  <span className="hidden font-bold text-white md:inline">Editando Enquadramento do Fundo</span>
                   <span className="text-white/40 hidden lg:inline">
                     | Arraste para reposicionar ou use os controladores para
                     redimensionar
@@ -2165,7 +2212,7 @@ export default function CanvasLabPage({
                   <button
                     type="button"
                     onClick={handleResetBgTransform}
-                    className="px-2.5 py-1 rounded-lg bg-white/6 hover:bg-white/12 text-white/70 hover:text-white transition-all text-[11px] flex items-center gap-1.5 cursor-pointer font-medium"
+                    className="min-h-11 px-2.5 py-1 rounded-lg bg-white/6 hover:bg-white/12 text-white/70 hover:text-white transition-all text-[11px] flex items-center gap-1.5 cursor-pointer font-medium md:min-h-0"
                     title="Resetar para o enquadramento padrão"
                   >
                     <RotateCcw size={12} />
@@ -2178,7 +2225,7 @@ export default function CanvasLabPage({
                       setIsEditingBackground(false);
                       toast.success("Enquadramento do fundo salvo!");
                     }}
-                    className="px-3.5 py-1 rounded-lg bg-[oklch(0.78_0.22_48)] hover:brightness-110 text-black font-bold transition-all text-[11px] flex items-center gap-1.5 cursor-pointer shadow-md"
+                    className="min-h-11 px-3.5 py-1 rounded-lg bg-[oklch(0.78_0.22_48)] hover:brightness-110 text-black font-bold transition-all text-[11px] flex items-center gap-1.5 cursor-pointer shadow-md md:min-h-0"
                   >
                     <Check size={13} strokeWidth={3} />
                     <span>Concluir</span>
@@ -2273,16 +2320,7 @@ export default function CanvasLabPage({
             onReorderSlide={handleReorderSlide}
           />
         )}
-      {isMobile && (
-        <>
-          <div
-            style={{ height: mobileChromeHeight }}
-            className="shrink-0"
-            aria-hidden="true"
-          />
-          {editorChrome}
-        </>
-      )}
+      {isMobile && editorChrome}
       {guidedAction && (
         <GuidedEditorDialog
           key={`${curActiveSlide.id}-${guidedAction}`}

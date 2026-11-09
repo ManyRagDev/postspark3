@@ -20,7 +20,9 @@ import UserTopMenu from "@/components/UserTopMenu";
 
 interface StudioGalleryViewProps {
   variations: CanvasPostModel[];
+  mobile?: boolean;
   initialAspectRatio?: AspectRatioType;
+  resumeMobilePost?: Pick<CanvasPostModel, "id" | "aspectRatio">;
   onSelectVariation: (variation: CanvasPostModel) => void;
   onBackToCreate: () => void;
   onGenerateMore?: () => void;
@@ -38,7 +40,9 @@ interface StudioGalleryViewProps {
 
 export default function StudioGalleryView({
   variations,
+  mobile = false,
   initialAspectRatio,
+  resumeMobilePost,
   onSelectVariation,
   onBackToCreate,
   onGenerateMore,
@@ -92,24 +96,27 @@ export default function StudioGalleryView({
     );
   }
 
-  return (
-    <>
-      {downloadPost && <PostDownloadDialog post={downloadPost} onClose={() => setDownloadPost(null)} />}
-      {/* ─── EXPERIÊNCIA MOBILE (FLASHCARDS 3D EMPILHADOS) ─── */}
-      <div className="md:hidden flex-1 flex flex-col h-full w-full">
+  if (mobile) {
+    return (
+      <div className="flex w-full flex-1 flex-col md:hidden">
         <StudioMobileFlashcards
           variations={variations}
-          aspectRatio={aspectRatio}
-          onAspectRatioChange={chooseAspectRatio}
+          initialAspectRatio={variations[0]?.aspectRatio ?? initialAspectRatio ?? "1:1"}
+          resumePost={resumeMobilePost}
           onSelectVariation={onSelectVariation}
           onBackToCreate={onBackToCreate}
           onGenerateMore={onGenerateMore}
+          fixedDesign={expectedCount === 1}
           isGeneratingMore={isGeneratingMore}
           declaredFamilyId={declaredFamilyId}
         />
       </div>
+    );
+  }
 
-      {/* ─── EXPERIÊNCIA DESKTOP (GRADE 3 COLUNAS ORIGINAL INTACTA) ─── */}
+  return (
+    <>
+      {downloadPost && <PostDownloadDialog post={downloadPost} onClose={() => setDownloadPost(null)} />}
       <div className="hidden md:flex flex-1 flex flex-col h-full overflow-hidden select-none">
       {/* Barra Superior da Galeria */}
       <header className="h-14 border-b border-white/10 bg-black/60 backdrop-blur-xl px-6 flex items-center justify-between shrink-0 z-20">
@@ -256,7 +263,7 @@ export default function StudioGalleryView({
               className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white/6 hover:bg-white/10 text-xs font-semibold text-white border border-white/10 transition-all cursor-pointer hover:border-white/20"
             >
               <RefreshCw size={13} className={isGeneratingMore ? "animate-spin text-[oklch(0.78_0.22_48)]" : ""} />
-              <span>{isGeneratingMore ? "Sintetizando novas ideias..." : "Gerar mais direções de arte"}</span>
+              <span>{isGeneratingMore ? "Sintetizando novas ideias..." : expectedCount === 1 ? "Gerar outra versão neste design" : "Gerar mais direções de arte"}</span>
             </button>
           </div>
         )}

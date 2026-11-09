@@ -37,14 +37,16 @@ export function normalizeReviewExceptionsV10(input: {
     if(["narrative_gap","narrative_structure"].includes(f.category)&&!["none","meaning_loss","explicit_requirement"].includes(f.consequence))invalid("category_consequence_inconsistent");
     if(["factual_contradiction","entity_changed","fact_omission"].includes(f.category)&&(!refs.length||refs.some(e=>compactEditorialEvidenceKind(e)!=="content")))invalid("content_evidence_required");
     if(f.category==="explicit_requirement"&&(!refs.length||refs.every(e=>compactEditorialEvidenceKind(e)==="guidance")))invalid("requirement_evidence_required");
-    const consequence=f.category==="contrast"?"none":f.consequence;
-    const material=materialFindingV7({...f,consequence} as any);
+    const isFalseVisualLoss = f.category === "visible_text_loss" && /não (aparece|está|foi) cortad|texto íntegro|sem corte|não há corte/i.test(f.detail);
+    const category = isFalseVisualLoss ? "aesthetic" : f.category;
+    const consequence = (f.category === "contrast" || isFalseVisualLoss) ? "none" : f.consequence;
+    const material = materialFindingV7({ ...f, category, consequence } as any);
     if(material&&!f.expected.trim())invalid("missing_material_correction");
     const source=refs[0];
-    return {category:f.category,unitId:unit?.id??null,slideIndex,fieldId:unit?.fieldId??null,itemIndex:unit?.itemIndex??null,
+    return {category,unitId:unit?.id??null,slideIndex,fieldId:unit?.fieldId??null,itemIndex:unit?.itemIndex??null,
       scope:unit?.scope??"art",observed:unit?.text.slice(0,4000)??f.detail,expected:f.expected,sourceId:source?.sourceId??null,
       sourceQuote:source?.text??"",explanation:f.detail,consequence,certainty:f.certainty,action:"none",effect:material?"blocking":"advisory",
-      authority:material?(f.category==="explicit_requirement"?"contract_grounded":"source_grounded"):"diagnostic"};
+      authority:material?(category==="explicit_requirement"?"contract_grounded":"source_grounded"):"diagnostic"};
   });
   // Existing deterministic literal/surface constraints remain local safeguards.
   // This is not a fabricated model judgment or positive coverage receipt.

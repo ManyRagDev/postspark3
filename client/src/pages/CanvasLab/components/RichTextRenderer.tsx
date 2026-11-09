@@ -26,6 +26,7 @@ interface RichTextRendererProps {
   stroke?: string;
   strokeWidth?: number;
   fillAfterStrokeEnabled?: boolean;
+  fillGradient?: { colors: string[]; start: number; end: number };
   wordBreak?: "word" | "grapheme";
 }
 
@@ -95,6 +96,10 @@ export default function RichTextRenderer({
     letterSpacing,
     wordBreak,
   });
+  const gradient = effectProps.fillGradient;
+  const colorStops = gradient?.colors.flatMap((color, index, colors) => [
+    index / (colors.length - 1), color,
+  ]);
 
   return (
     <Group
@@ -115,6 +120,14 @@ export default function RichTextRenderer({
           fontStyle={run.fontStyle}
           textDecoration={run.underline ? "underline" : undefined}
           fill={run.fill}
+          fillPriority={gradient ? "linear-gradient" : "color"}
+          fillLinearGradientStartPoint={gradient
+            ? { x: 0, y: gradient.start * layout.height - run.y }
+            : undefined}
+          fillLinearGradientEndPoint={gradient
+            ? { x: 0, y: gradient.end * layout.height - run.y }
+            : undefined}
+          fillLinearGradientColorStops={colorStops}
           height={run.height}
           verticalAlign="top"
           letterSpacing={letterSpacing}

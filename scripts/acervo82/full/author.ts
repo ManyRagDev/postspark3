@@ -12,7 +12,7 @@ import {REFERENCES,type Unit} from '../../../harness/componentArsenal/authoring'
 import {extractRecipeComponents,type ComponentPackage} from '../../../harness/componentArsenal/extract';
 import {restoreVisualAssets} from '../../../harness/completeDesigns/restoreVisualAssets';
 import {assemblyIdentity,createComponentDefinition} from '../../../shared/componentAssembly';
-import {arsenalPieceSchema} from '../../../shared/designArsenal';
+import {arsenalPieceSchema,type ArsenalTextFragment,type PieceDefinitionV2} from '../../../shared/designArsenal';
 import {verifyArsenalAsset} from '../../../server/designCatalog/arsenalAssets';
 import {createComponentTextMeasurer} from '../../../server/ai/componentTextMeasurer';
 import {nativeScene} from './nativeScene';
@@ -40,6 +40,18 @@ const entries=registry.entries.filter((e:any)=>!only.size||only.has(e.code));
 await fs.mkdir(output,{recursive:false});for(const d of ['packages','definitions','assets','renders','references','recipes'])await fs.mkdir(path.join(output,d));
 const rows:any[]=[];
 const px=(s:any)=>parseFloat(String(s))||0;
+// Fixed labels retain their original line. Body fields and the Risograph
+// headline reflow as one region, so a replacement cannot wrap twice.
+const continuousConceptFields: Readonly<Record<string,readonly number[]>> = {
+ 'CON-02':[8], 'CON-05':[7,12], 'CON-08':[9],
+ 'CON-17':[6,7,10], 'CON-23':[7],
+};
+const compactConceptLabels: Readonly<Record<string,readonly number[]>> = {
+ 'CON-05':[6,11], 'CON-12':[16], 'CON-18':[4], 'CON-21':[2], 'CON-29':[7],
+};
+const conceptTitleScale: Readonly<Record<string,Readonly<Record<number,number>>>> = {
+ 'CON-21':{5:.92}, 'CON-23':{7:.88},
+};
 function rgba(value:string):[number,number,number,number]{
  const nums=(value.match(/[-+]?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi)??[]).map(Number);
  if(/^#[a-f\d]{3}$/i.test(value))value='#'+value.slice(1).split('').map(c=>c+c).join('');
@@ -71,17 +83,40 @@ function nativeOutline(e:any,b:any,scale:number):number[]|null {
  const points:number[]=[];corners.forEach((r,i)=>{const rx=r.x*factor,ry=r.y*factor,cx=i===0||i===3?rx:b.width-rx,cy=i<2?ry:b.height-ry,start=(-180+i*90)*Math.PI/180;for(let j=0;j<=12;j++){const t=start+j/12*Math.PI/2;points.push(cx+rx*Math.cos(t),cy+ry*Math.sin(t));}});return points;
 
 }
+async function clipDecoration(bytes:Buffer,box:ReturnType<typeof boxGeometry>) {
+ const x=Math.max(0,box.x),y=Math.max(0,box.y);
+ const width=Math.min(1080,box.x+box.width)-x,height=Math.min(1350,box.y+box.height)-y;
+ if(width<=0||height<=0)return null;
+ if(x===box.x&&y===box.y&&width===box.width&&height===box.height)return {bytes,box};
+ const image=await loadImage(bytes),sx=image.width/box.width,sy=image.height/box.height;
+ const canvas=createCanvas(Math.max(1,Math.round(width*sx)),Math.max(1,Math.round(height*sy)));
+ canvas.getContext('2d').drawImage(image,(x-box.x)*sx,(y-box.y)*sy,width*sx,height*sy,0,0,canvas.width,canvas.height);
+ return {bytes:canvas.toBuffer('image/png'),box:{...box,x,y,width,height}};
+}
 async function fromHtml(entry:any,g:any){
  const scale=1080/g.box.width, root=g.boxes[0];
+ const concept=entry.code.startsWith('CON-');
  const spec:CompactSpec={stem:entry.id,title:`${entry.code} · ${entry.name}`,width:1080,height:1350,background:hex(root.style.backgroundColor),layers:[],groups:[],authorship:{recipeId:`${entry.id}-native-v1`,createdAt:'2026-11-05T00:00:00.000Z'},notes:['Geometria medida do HTML arquivado com fontes verificadas; referência visual: showcase consolidado.']};
  const addGroup=(id:string)=>{if(!spec.groups.some(g=>g.id===id))spec.groups.push({id,label:id,transform:{x:0,y:0,rotationDeg:0}});};
  const decorations:Array<{id:string,bytes:Buffer,box:any,z:number,opacity:number,replacementPoints?:number[]}>=[];
- const paint=new Map<string,number>(), richStyles=new Map<string,any[]>();
- for(const e of g.boxes){paint.set(`surface-${e.id}`,e.paint);for(const side of ['Top','Right','Bottom','Left'])paint.set(`border-${e.id}-${side}`,e.paint+.1);const s=e.style,b=boxGeometry(g,e),fill=rgba(s.backgroundColor),outline=nativeOutline(e,b,scale),rounded=px(s.borderTopLeftRadius)>0,uniformBorder=['Right','Bottom','Left'].every(side=>s[`border${side}Width`]===s.borderTopWidth);if(fill[3]&&e.id!==0)spec.layers.push({id:`surface-${e.id}`,kind:outline?'polygon':'rect',...b,...(outline?{points:outline}:{}),fill:hex(s.backgroundColor),opacity:fill[3]*e.opacity,cornerRadiusPx:Math.min(b.width/2,b.height/2,px(s.borderTopLeftRadius)*scale),...(uniformBorder&&(outline||rounded)?{strokeColor:hex(s.borderTopColor),strokeWidth:px(s.borderTopWidth)*scale}:{})});
+ const paint=new Map<string,number>(), visualStyles=new Map<string,Partial<PieceDefinitionV2>>();
+ for(const e of g.boxes){paint.set(`surface-${e.id}`,e.paint);for(const side of ['Top','Right','Bottom','Left'])paint.set(`border-${e.id}-${side}`,e.paint+.1);const s=e.style,b=boxGeometry(g,e),fill=rgba(s.backgroundColor),outline=nativeOutline(e,b,scale),rounded=px(s.borderTopLeftRadius)>0,uniformBorder=['Right','Bottom','Left'].every(side=>s[`border${side}Width`]===s.borderTopWidth);
+  const blurredColor=concept&&fill[3]>0&&px(s.filter.match(/blur\(([\d.]+)px\)/)?.[1])>0;
+  if(fill[3]&&e.id!==0&&!blurredColor)spec.layers.push({id:`surface-${e.id}`,kind:outline?'polygon':'rect',...b,...(outline?{points:outline}:{}),fill:hex(s.backgroundColor),opacity:fill[3]*e.opacity,cornerRadiusPx:Math.min(b.width/2,b.height/2,px(s.borderTopLeftRadius)*scale),...(uniformBorder&&(outline||rounded)?{strokeColor:hex(s.borderTopColor),strokeWidth:px(s.borderTopWidth)*scale}:{})});
   if(e.id!==0&&!fill[3]&&outline&&uniformBorder&&px(s.borderTopWidth)){spec.layers.push({id:`border-${e.id}-Top`,kind:'line',...b,points:[...outline,outline[0],outline[1]],fill:hex(s.borderTopColor),strokeColor:hex(s.borderTopColor),strokeWidth:px(s.borderTopWidth)*scale,opacity:rgba(s.borderTopColor)[3]*e.opacity});}
   const sides=[['Top',0,0,b.width,0],['Right',b.width,0,b.width,b.height],['Bottom',0,b.height,b.width,b.height],['Left',0,0,0,b.height]] as const;
   if(e.id!==0&&!(uniformBorder&&(outline||fill[3]&&rounded)))for(const [side,x1,y1,x2,y2]of sides){const width=px(s[`border${side}Width`]);if(width)spec.layers.push({id:`border-${e.id}-${side}`,kind:'line',x:b.x,y:b.y,width:b.width,height:b.height,rotationDeg:b.rotationDeg,points:[x1,y1,x2,y2],fill:hex(s.borderTopColor),strokeColor:hex(s.borderTopColor),strokeWidth:width*scale,opacity:rgba(s.borderTopColor)[3]});}
-  if(s.backgroundImage!=='none'&&s.backgroundClip!=='text'){
+  if(concept){
+   if(s.mixBlendMode==='multiply')visualStyles.set(`surface-${e.id}`,{blendMode:'multiply'});
+   if((e.classes??'').split(/\s+/).includes('border-dashed')){
+    for(const l of spec.layers.filter(l=>l.strokeWidth&&(
+     l.id===`surface-${e.id}`||l.id.startsWith(`border-${e.id}-`)))) {
+     const strokeWidth=l.strokeWidth??0;
+     visualStyles.set(l.id,{...visualStyles.get(l.id),strokeDash:[strokeWidth*3,strokeWidth*2]});
+    }
+   }
+  }
+  if((blurredColor||s.backgroundImage!=='none')&&s.backgroundClip!=='text'){
    // CSS blur paints beyond the box. Include the halo up to the artboard edge.
    const halo=b.rotationDeg===0 ? 3*px(s.filter.match(/blur\(([\d.]+)px\)/)?.[1]) : 0;
    const padding={
@@ -90,11 +125,14 @@ async function fromHtml(entry:any,g:any){
     right:Math.max(0,Math.min(halo,(1080-b.x-b.width)/scale)),
     bottom:Math.max(0,Math.min(halo,(1350-b.y-b.height)/scale)),
    };
-   const bytes=await paintCssDecoration(s,b.width/scale,b.height/scale,padding);
+   const decorationStyle={...s,backgroundColor:blurredColor?s.backgroundColor:undefined};
+   if(entry.code==='CON-23'&&e.id===11)decorationStyle.backgroundPosition='0 0, 0 8px, 8px -8px, -8px 0';
+   const bytes=await paintCssDecoration(decorationStyle,b.width/scale,b.height/scale,padding);
    const replacementPoints=entry.code==='CON-17'&&e.id===2 ? outline??undefined : undefined;
    const box={...b,x:b.x-padding.left*scale,y:b.y-padding.top*scale,
     width:b.width+(padding.left+padding.right)*scale,height:b.height+(padding.top+padding.bottom)*scale};
-   decorations.push({id:`texture-${e.id}`,bytes,box,z:e.paint+.2,opacity:e.opacity,replacementPoints});
+   const clipped=blurredColor?await clipDecoration(bytes,box):{bytes,box};
+   if(clipped)decorations.push({id:`texture-${e.id}`,...clipped,z:e.paint+.2,opacity:e.opacity,replacementPoints});
   }
  }
  const units:Unit[]=[];
@@ -109,11 +147,15 @@ async function fromHtml(entry:any,g:any){
   const maxSize=Math.max(...block.runs.map((t:any)=>px(t.style.fontSize)));
   let role:Unit['role']=/^H[1-4]$/.test(block.tag)||(!headlineSeen&&maxSize>=24)?'headline':(maxSize>=14||block.tag==='P'&&block.runs.map((t:any)=>t.text).join('').trim().length>=24)?'body':block.runs.some((t:any)=>/➔|→|DESLIZE|SWIPE|AVANÇAR|PRÓXIMO|ENTRAR|APLICAR|CONHEÇA/i.test(t.text))?'callToAction':'label';
   if(role==='headline'&&!ornament)headlineSeen=true;
+  const compactLabel=compactConceptLabels[entry.code]?.includes(block.id);
+  const footer=concept&&block.runs.length===1&&!ornament&&/[➔→]/u.test(block.runs[0].text);
+  const keepLabelTogether=compactLabel||footer;
+  const fontScale=compactLabel ? .86 : footer ? .94 : conceptTitleScale[entry.code]?.[block.id]??1;
   const lines:any[][]=[[]];let used=0;
   for(const run of block.runs){if(run.spacer){if(lines.at(-1)!.length)lines.push([]);lines.at(-1)!.push({spacer:run.spacer*scale});lines.push([]);used=0;continue;}const style=run.style;let family=style.fontFamily.split(',')[0].replace(/["']/g,'').trim();if(!Array.from(fontPool.values()).some(f=>f.family===family))family='Inter';let weight=px(style.fontWeight)||400;if(family==='Space Grotesk')weight=Math.min(700,weight);if(family==='Syne')weight=Math.min(800,weight);const font=fontPool.get(`${family}:${weight}`)??Array.from(fontPool.values()).filter(f=>f.family===family).sort((a,b)=>Math.abs(a.weight-weight)-Math.abs(b.weight-weight))[0];fontPool.set(`${family}:${weight}`,{...font,weight});
-   const size=px(style.fontSize)*scale;let value=run===block.runs.at(-1)?run.text.trimEnd():run.text;if(style.textTransform==='uppercase')value=value.toLocaleUpperCase('pt-BR');
+   const size=px(style.fontSize)*scale*fontScale;let value=run===block.runs.at(-1)?run.text.trimEnd():run.text;if(style.textTransform==='uppercase')value=value.toLocaleUpperCase('pt-BR');
    let face=fontKitPool.get(`${family}:${weight}`)??createFont(Buffer.from(font.dataUrl!.split(',')[1],'base64'));if(face.variationAxes?.wght)face=face.getVariation({wght:weight});const measure=(token:string)=>face.layout(token).positions.reduce((n:number,p:any)=>n+p.xAdvance,0)/face.unitsPerEm*size;
-   for(let token of value.match(/\n|[^\S\n]*[^\s]+[^\S\n]*/g)??[]){if(token==='\n'){if(lines.at(-1)!.length){lines.push([]);used=0;}continue;}if(!used)token=token.trimStart();const advance=measure(token)+token.length*px(style.letterSpacing)*scale;if(height>(px(bs.lineHeight)||px(bs.fontSize)*1.15)*scale*1.3&&used+advance>width+2&&lines.at(-1)!.length){lines.push([]);used=0;token=token.trimStart();}const w=measure(token)+token.length*px(style.letterSpacing)*scale;lines.at(-1)!.push({text:token,width:w,size,weight,family,style});used+=w;}
+   for(let token of value.match(/\n|[^\S\n]*[^\s]+[^\S\n]*/g)??[]){if(token==='\n'){if(lines.at(-1)!.length&&!keepLabelTogether){lines.push([]);used=0;}continue;}if(!used)token=token.trimStart();const advance=measure(token)+token.length*px(style.letterSpacing)*scale;if(!keepLabelTogether&&height>(px(bs.lineHeight)||px(bs.fontSize)*1.15)*scale*1.3&&used+advance>width+2&&lines.at(-1)!.length){lines.push([]);used=0;token=token.trimStart();}const w=measure(token)+token.length*px(style.letterSpacing)*scale;lines.at(-1)!.push({text:token,width:w,size,weight,family,style});used+=w;}
   }
   let y=pt,index=0;
   for(const line of lines.filter(l=>l.length)){if(line[0].spacer){y+=line[0].spacer;continue;}const lineHeight=Math.max(...line.map(t=>(px(t.style.lineHeight)||px(t.style.fontSize)*1.15)*scale));const total=line.reduce((n,t)=>n+t.width,0);let x=pl+(bs.textAlign==='center'?(width-total)/2:bs.textAlign==='right'?width-total:0);
@@ -125,21 +167,66 @@ async function fromHtml(entry:any,g:any){
    for(const t of display){const id=`text-${block.id}-${index++}`,text=t.text.trim();if(text){
     const stroke=px(t.style.webkitTextStrokeWidth)*scale,gradient=t.style.backgroundClip==='text'?palette(t.style.backgroundImage):[],shadow=t.style.textShadow!=='none'?t.style.textShadow.match(/(rgba?\([^)]*\))\s+([\d.-]+)px\s+([\d.-]+)px/):null;
     spec.layers.push({id,kind:'text',x:base.x+x*Math.cos(r)-y*Math.sin(r),y:base.y+x*Math.sin(r)+y*Math.cos(r),width:Math.max(1,t.width+3),height:lineHeight+2,rotationDeg:base.rotationDeg,text,fontFamily:t.family,fontWeight:t.weight,fontSize:t.size,lineHeight:Math.min(3,Math.max(.5,lineHeight/t.size)),letterSpacing:px(t.style.letterSpacing)*scale,fill:gradient[1]?hex(gradient[1]):stroke&&rgba(t.style.color)[3]===0?spec.background:hex(t.style.color),...(stroke?{strokeColor:hex(t.style.webkitTextStrokeColor),strokeWidth:stroke}:{}),...(shadow?{extrusion:{color:hex(shadow[1]),offsetX:px(shadow[2])*scale,offsetY:px(shadow[3])*scale,steps:2}}:{}),align:'left',groupId:group,...(!ornament?{fieldId:group,minScale:.65}:{}),opacity:e.opacity*(stroke||gradient.length?1:rgba(t.style.color)[3])});
-    paint.set(id,e.paint+.5);let start=0;const styles:any[]=[];for(const c of t.chunks){const part=c.text.trimStart(),end=Math.min(text.length,start+part.length);if(end>start)styles.push({start,end,style:{color:hex(c.style.color),sizeScale:c.size/t.size,...(c.weight!==t.weight?{bold:c.weight>=700}:{})}});start=end;}if(styles.length>1)richStyles.set(id,styles);
+    paint.set(id,e.paint+.5);
+    const pieceStyle:Partial<PieceDefinitionV2>={};
+    let start=0;
+    const styles:ArsenalTextFragment[]=[];
+    for(const [chunkIndex,c] of t.chunks.entries()){
+     const part=chunkIndex===0||!concept?c.text.trimStart():c.text;
+     const end=Math.min(text.length,start+part.length);
+     if(end>start)styles.push({start,end,style:{color:hex(c.style.color),sizeScale:c.size/t.size,...(c.weight!==t.weight?{bold:c.weight>=700}:{})}});
+     start=end;
+    }
+    if(styles.length>1)pieceStyle.textFragments=styles;
+    if(concept&&gradient.length>=2)
+     pieceStyle.textGradient={colors:gradient.map(hex),start:(pt-y)/lineHeight,end:(pt+height-y)/lineHeight};
+    if(entry.code==='CON-21'&&block.id===5){
+     const shadows=[...t.style.textShadow.matchAll(/(rgba?\([^)]*\))\s+([\d.-]+)px\s+([\d.-]+)px/g)];
+     const last=shadows.at(-1);
+     if(last)pieceStyle.extrusion={color:hex(shadows[0][1]),colors:shadows.map(s=>hex(s[1])),offsetX:px(last[2])*scale,offsetY:px(last[3])*scale,steps:shadows.length};
+    }
+    if(Object.keys(pieceStyle).length)visualStyles.set(id,pieceStyle);
+    if(keepLabelTogether){
+     const layer=spec.layers.at(-1)!;
+     layer.width=width;
+     layer.align=bs.textAlign==='center'?'center':bs.textAlign==='right'?'right':'left';
+     layer.x=base.x+pl*Math.cos(r)-y*Math.sin(r);
+     layer.y=base.y+pl*Math.sin(r)+y*Math.cos(r);
+    }
    }x+=t.width;}
    y+=lineHeight;
   }
-  // The portal has uniform copy. Keep a flexible native field instead of the reference's individual lines.
-  if(entry.code==='CON-17'&&[6,7,10].includes(block.id)){
+  if(continuousConceptFields[entry.code]?.includes(block.id)){
    const layer=spec.layers.find(l=>l.fieldId===group);
    if(layer){
     spec.layers=spec.layers.filter(l=>l.fieldId!==group||l===layer);
-    richStyles.delete(layer.id);
-    Object.assign(layer,{x:base.x,y:base.y,width,height,text:block.runs.map((run:any)=>run.text).join('').trim().replace(/\s+/g,' '),align:block.id===10?'right':'center'});
-    if(block.id===10){layer.x-=30;layer.width+=30;}
+    visualStyles.delete(layer.id);
+    const portal=entry.code==='CON-17';
+    const align=portal?(block.id===10?'right':'center'):bs.textAlign==='center'?'center':'left';
+    const heightLimit=entry.code==='CON-23'?height*.77:height;
+    Object.assign(layer,{x:base.x+(portal?0:pl),y:base.y+(portal?0:pt),width,height:heightLimit,text:block.runs.map((run:any)=>run.text).join('').trim().replace(/\s+/g,' '),align});
+    if(portal&&block.id===10){layer.x-=30;layer.width+=30;}
+   }
+  }
+  if(entry.code==='CON-06'&&block.id===10){
+   // The highlight is an inline span in the reference. Its surface has to
+   // paint inside the same editable group, below the words it decorates.
+   for(const layer of spec.layers.filter(l=>l.id==='surface-11'||l.id.startsWith('border-11-'))){
+    layer.groupId=group;
+    paint.set(layer.id,e.paint+.25);
    }
   }
   if(spec.layers.some(l=>l.fieldId===group))units.push({role,fields:[group]});else if(!spec.layers.some(l=>l.groupId===group))spec.groups=spec.groups.filter(g=>g.id!==group);
+ }
+ if(entry.code==='CON-23'){
+  // Leave room above the yellow card for the original background motifs.
+  const scaleY=.77,top=g.boxes[5].box.y*scale, shift=125;
+  for(const layer of spec.layers.filter(l=>/^surface-[56]$|^border-[56]-|^text-[67]-/.test(l.id))){
+   layer.y=top+shift+(layer.y-top)*scaleY;
+   if(layer.kind==='text')continue;
+   if(layer.height)layer.height*=scaleY;
+   if(layer.points)layer.points=layer.points.map((value,index)=>index%2?value*scaleY:value);
+  }
  }
  if(!headlineSeen){const best=units.find(u=>u.role==='body')??units[0];if(best)best.role='headline';}
  // Promote the exact source frame to editable media instead of covering it
@@ -154,23 +241,23 @@ async function fromHtml(entry:any,g:any){
  // Preserve DOM stacking between surfaces and content, including SVG backgrounds.
  spec.layers.sort((a,b)=>(paint.get(a.id)??-1)-(paint.get(b.id)??-1));
  if(entry.code==='CON-08')for(const l of spec.layers.filter(l=>l.id.startsWith('text-9-')))l.extrusion={color:'#FF3385',offsetX:4*scale,offsetY:4*scale,steps:1};
- const recipe=recipeFromSpec(spec,fontPool);return {recipe,units,decorations,paint,richStyles};
+ const recipe=recipeFromSpec(spec,fontPool);return {recipe,units,decorations,paint,visualStyles};
 }
 try{for(const entry of entries){const source=roster.entries.find((r:any)=>r.id===entry.id);try{
- let recipe:RecreationRecipe,units:Unit[],decorations:any[]=[];let previousReferenceId:string|undefined;let htmlPaint:Map<string,number>|undefined,htmlStyles:Map<string,any[]>|undefined;
+ let recipe:RecreationRecipe,units:Unit[],decorations:any[]=[];let previousReferenceId:string|undefined;let htmlPaint:Map<string,number>|undefined,htmlStyles:Map<string,Partial<PieceDefinitionV2>>|undefined;
  if(source.group==='reference'){const original=JSON.parse(await fs.readFile(`designs/acervo82/authored/references/${entry.id}.json`,'utf8'));previousReferenceId=original.previousReferenceId;recipe=original.recipe;
   if(recipe.scene.source.originalHash!==sha256(await fs.readFile(source.preview)))throw Error(`reference_recipe_mismatch:${entry.code}`);recipe.scene.fonts=recipe.scene.fonts.map((f:any)=>fontPool.get(`${f.family}:${f.weight}`));recipe=normalizeRecipe(recreationRecipeSchema.parse(recipe));units=structuredClone(REFERENCES[previousReferenceId!]??recipe.matrix!.fields.map(f=>({role:'body' as const,fields:[f.id]})));
   if(!units.some(u=>u.role==='headline')){units[0].role='headline';units[0].required=false;}
   if(entry.code==='REF-24'){const title=recipe.matrix!.fields.find(f=>f.id==='title')!;const columns=[0,1].map(side=>{const layers=recipe.scene.layers.filter(l=>l.kind==='text'&&l.id!=='title'&&(l.x<540?0:1)===side).sort((a,b)=>a.y-b.y);return {id:`column-${side}`,groupId:recipe.matrix!.groups.find(g=>g.members.some(m=>m.layerId===layers[0].id))!.id,label:`Coluna ${side+1}`,kind:'list' as const,layerIds:layers.map(l=>l.id),minScale:.65,prefix:''};});recipe.matrix!.fields=[title,...columns];units=[{role:'headline',fields:['title']},...columns.map(f=>({role:'body' as const,fields:[f.id],kind:'list' as const,cardinality:{min:0,max:f.layerIds.length}}))];}
   recipe.title=`${entry.code} · ${entry.name}`;recipe.id=`${entry.id}-native-v1`;recipe.createdAt='2026-11-05T00:00:00.000Z';
- }else{const result=await fromHtml(entry,geometry.find((g:any)=>g.group===source.group&&g.order===source.order));({recipe,units,decorations}=result);htmlPaint=result.paint;htmlStyles=result.richStyles;}
+ }else{const result=await fromHtml(entry,geometry.find((g:any)=>g.group===source.group&&g.order===source.order));({recipe,units,decorations}=result);htmlPaint=result.paint;htmlStyles=result.visualStyles;}
  const recipeBytes=JSON.stringify(recipe);const fileHash=arsenalHash(recipe);const result=await extractRecipeComponents({id:entry.id,referenceId:entry.id,category:'acervo82',title:recipe.title,manifestPath:'designs/acervo82/manifest.json',recipePath:`recipes/${entry.id}.json`,previewPath:source.preview,fileHash,declaredHash:null,sourceApproval:'local-review',sourceFormat:'original',destination:'composition'},recipe,true,units);
  const p=result.package;
  if(previousReferenceId){p.source.referenceId=previousReferenceId;await restoreVisualAssets(result);p.source.referenceId=entry.id;}
  let d=p.components.find(c=>c.fragment.aspectRatio==='4:5')!;if(!d)throw Error('native 4:5 definition absent');
  for(const deco of decorations){const checked=await verifyArsenalAsset(deco.bytes,{license:'curator-provided'}),asset=checked.manifest;await fs.writeFile(path.join(output,'assets',asset.sha256),deco.bytes);d.assets.push(asset);d.fragment.assetIds.push(asset.id);const piece=arsenalPieceSchema.parse({kind:'media',imageAssetId:asset.id,fill:'#FFFFFF',stroke:null,strokeWidth:0,cornerRadius:0,points:deco.replacementPoints??[],...(deco.replacementPoints?{imageReplacement:{label:'Interior do portal',scrimOpacity:.62}}:{}),fontFamily:'Arial',fontAssetId:null,fontSize:12,fontWeight:400,align:'left',lineHeight:1,letterSpacing:0,fixedText:null});const h=arsenalHash(piece);d.pieces[h]=piece;const b=deco.box;d.fragment.instances.push({id:deco.id,pieceHash:h,parentId:null,zIndex:deco.z,x:b.x,y:b.y,width:b.width,height:b.height,rotation:b.rotationDeg,opacity:deco.opacity??1});result.assetFiles.push({manifest:asset,bytes:deco.bytes,relativePath:`assets/${asset.sha256}`,sourceHash:asset.sha256,sourceFamily:'',sourceWeight:400,resolvedWeight:400,sourceUrl:null,adjustment:'Decorative source geometry; no editable text flattened.'});}
  if(htmlPaint){
-  for(const i of d.fragment.instances){const styles=htmlStyles?.get(i.id);if(styles){const piece={...d.pieces[i.pieceHash],textFragments:styles},hash=arsenalHash(piece);d.pieces[hash]=piece;i.pieceHash=hash;}i.zIndex=htmlPaint.get(i.id)??decorations.find(x=>x.id===i.id)?.z??-1;}
+  for(const i of d.fragment.instances){const styles=htmlStyles?.get(i.id);if(styles){const piece=arsenalPieceSchema.parse({...d.pieces[i.pieceHash],...styles}),hash=arsenalHash(piece);d.pieces[hash]=piece;i.pieceHash=hash;}i.zIndex=htmlPaint.get(i.id)??decorations.find(x=>x.id===i.id)?.z??-1;}
   d.fragment.instances.sort((a,b)=>a.zIndex-b.zIndex).forEach((i,index)=>{i.zIndex=index;});
   for(const group of d.fragment.groups)group.zIndex=Math.min(...d.fragment.instances.filter(i=>i.parentId===group.id).map(i=>i.zIndex));
  }
@@ -192,7 +279,8 @@ try{for(const entry of entries){const source=roster.entries.find((r:any)=>r.id==
  authorNativeSemantics(entry.code,p,d);
  const axes=entry.axes;
  d.completeDesign!.family=entry.id;
- if(decorations.some(deco=>deco.id.startsWith('texture-')))d.completeDesign!.authorshipRevision=2;
+ if(entry.code.startsWith('CON-'))d.completeDesign!.authorshipRevision=3;
+ else if(decorations.some(deco=>deco.id.startsWith('texture-')))d.completeDesign!.authorshipRevision=2;
  d.completeDesign!.designGuidance!.selection={version:1,description:entry.descriptor,axes};
  d.completeDesign!.designGuidance!.familyIdentity={essential:[entry.descriptor],optional:[],adaptable:['Texto e mídia nos campos nativos']};
  d.completeDesign!.baselineVerified=true;

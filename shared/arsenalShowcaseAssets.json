@@ -1,0 +1,90 @@
+{
+  "showcase-font-acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72": {
+    "id": "showcase-font-acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "kind": "bundled",
+    "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+    "mimeType": "font/ttf",
+    "bytes": 136676,
+    "family": "Arsenal_acad6de1fc93436f",
+    "sourceFamily": "Space Grotesk Light",
+    "weight": 300,
+    "weightRange": {
+      "min": 300,
+      "max": 700
+    },
+    "license": "open-source",
+    "path": "/arsenal/fonts/acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72.ttf"
+  },
+  "showcase-font-89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8": {
+    "id": "showcase-font-89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8",
+    "kind": "bundled",
+    "sha256": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8",
+    "mimeType": "font/ttf",
+    "bytes": 176288,
+    "family": "Arsenal_89b3fb38aa0d275d",
+    "sourceFamily": "Plus Jakarta Sans",
+    "weight": 400,
+    "weightRange": {
+      "min": 200,
+      "max": 800
+    },
+    "license": "open-source",
+    "path": "/arsenal/fonts/89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8.ttf"
+  },
+  "image-1acb536fdcd798dbc3ae18eebc066bfd9317c0f7c02a7c712fb558d815a5aa77": {
+    "id": "image-1acb536fdcd798dbc3ae18eebc066bfd9317c0f7c02a7c712fb558d815a5aa77",
+    "kind": "bundled",
+    "sha256": "1acb536fdcd798dbc3ae18eebc066bfd9317c0f7c02a7c712fb558d815a5aa77",
+    "mimeType": "image/png",
+    "bytes": 828,
+    "path": "/arsenal/images/1acb536fdcd798dbc3ae18eebc066bfd9317c0f7c02a7c712fb558d815a5aa77.png"
+  },
+  "image-6544344e43d60a6837db1f652d63f82d5e6c1566284a982c6779f79d5f368ed1": {
+    "id": "image-6544344e43d60a6837db1f652d63f82d5e6c1566284a982c6779f79d5f368ed1",
+    "kind": "bundled",
+    "sha256": "6544344e43d60a6837db1f652d63f82d5e6c1566284a982c6779f79d5f368ed1",
+    "mimeType": "image/png",
+    "bytes": 776,
+    "path": "/arsenal/images/6544344e43d60a6837db1f652d63f82d5e6c1566284a982c6779f79d5f368ed1.png"
+  },
+  "image-da32747b1c04806ec8de5bffd0290453e88d9b45998edf6cb3dae4e6dca597ef": {
+    "id": "image-da32747b1c04806ec8de5bffd0290453e88d9b45998edf6cb3dae4e6dca597ef",
+    "kind": "bundled",
+    "sha256": "da32747b1c04806ec8de5bffd0290453e88d9b45998edf6cb3dae4e6dca597ef",
+    "mimeType": "image/png",
+    "bytes": 44584,
+    "path": "/arsenal/images/da32747b1c04806ec8de5bffd0290453e88d9b45998edf6cb3dae4e6dca597ef.png"
+  },
+  "image-5df59afc0525488546097c36f7d3f4b4cff4f2f2a08c432d7fb4115b69c264a4": {
+    "id": "image-5df59afc0525488546097c36f7d3f4b4cff4f2f2a08c432d7fb4115b69c264a4",
+    "kind": "bundled",
+    "sha256": "5df59afc0525488546097c36f7d3f4b4cff4f2f2a08c432d7fb4115b69c264a4",
+    "mimeType": "image/png",
+    "bytes": 267182,
+    "path": "/arsenal/images/5df59afc0525488546097c36f7d3f4b4cff4f2f2a08c432d7fb4115b69c264a4.png"
+  },
+  "image-e5eeac367103c3b245fbdda134357ba540a3c19234a412a2fba3146ff0912de2": {
+    "id": "image-e5eeac367103c3b245fbdda134357ba540a3c19234a412a2fba3146ff0912de2",
+    "kind": "bundled",
+    "sha256": "e5eeac367103c3b245fbdda134357ba540a3c19234a412a2fba3146ff0912de2",
+    "mimeType": "image/png",
+    "bytes": 11426,
+    "path": "/arsenal/images/e5eeac367103c3b245fbdda134357ba540a3c19234a412a2fba3146ff0912de2.png"
+  },
+  "image-939afaea1915d80464439caa82c55b5f74a04a8d77d9c998114fbe64715d3375": {
+    "id": "image-939afaea1915d80464439caa82c55b5f74a04a8d77d9c998114fbe64715d3375",
+    "kind": "bundled",
+    "sha256": "939afaea1915d80464439caa82c55b5f74a04a8d77d9c998114fbe64715d3375",
+    "mimeType": "image/png",
+    "bytes": 5586,
+    "path": "/arsenal/images/939afaea1915d80464439caa82c55b5f74a04a8d77d9c998114fbe64715d3375.png"
+  },
+  "image-ec149ab4d5fe5e4c2fca4acf88e3162d1e2a0012a62228da8a1e594a9a6c3e7f": {
+    "id": "image-ec149ab4d5fe5e4c2fca4acf88e3162d1e2a0012a62228da8a1e594a9a6c3e7f",
+    "kind": "bundled",
+    "sha256": "ec149ab4d5fe5e4c2fca4acf88e3162d1e2a0012a62228da8a1e594a9a6c3e7f",
+    "mimeType": "image/png",
+    "bytes": 18834,
+    "path": "/arsenal/images/ec149ab4d5fe5e4c2fca4acf88e3162d1e2a0012a62228da8a1e594a9a6c3e7f.png"
+  }
+}

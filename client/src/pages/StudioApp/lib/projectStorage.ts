@@ -8,6 +8,7 @@ export interface LocalBrandProject {
   structuredData: ProjectStructuredData;
   compiledDocument: string;
   isDefault: boolean;
+  visualPreferences?: import("@shared/brandProjects").BrandProjectRecord["visualPreferences"];
   createdAt: string;
   updatedAt: string;
   isLocalOnly?: boolean;

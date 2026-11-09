@@ -12,6 +12,7 @@ import { layoutToAdvanced } from "@/lib/layoutToAdvanced";
 import { savedPostToCanvasModel } from "@/pages/CanvasLab/lib/saveAdapter";
 import { CanvasPostStage, type CanvasPostStageRef } from "@/pages/CanvasLab/components/CanvasPostStage";
 import PostRenderer from "@/components/PostRenderer";
+import { TemplateIngestionModal } from "@/pages/TemplateIngestion/TemplateIngestionModal";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "Sem data";
@@ -153,6 +154,7 @@ export default function SavedPosts() {
   const [searchDraft,setSearchDraft]=useState('');
   const [search,setSearch]=useState('');
   const [opening,setOpening]=useState<number|null>(null);
+  const [isIngestOpen, setIsIngestOpen] = useState(false);
   const { data, isLoading, error, refetch } = trpc.post.listSummary.useQuery({limit:20,offset:page*20,...(search?{search}:{})});
   const posts=data?.items;
 
@@ -182,15 +184,15 @@ export default function SavedPosts() {
   };
 
   return (
-    <div className="min-h-screen bg-soul-deep px-4 py-12 text-foreground">
+    <div className="min-h-screen bg-soul-deep px-4 pb-12 pt-16 text-foreground md:py-12">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-        <button onClick={() => setLocation("/")} className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+        <button onClick={() => setLocation("/")} className="flex min-h-11 items-center gap-2 self-start text-sm text-muted-foreground transition-colors hover:text-foreground md:min-h-0">
           <ArrowLeft className="h-4 w-4" />
           Voltar
         </button>
 
         <motion.div
-          className="rounded-3xl border p-6"
+          className="rounded-3xl border p-4 sm:p-6"
           style={{
             background: "oklch(0.08 0.02 280)",
             borderColor: "oklch(1 0 0 / 8%)",
@@ -208,15 +210,25 @@ export default function SavedPosts() {
               <h1 className="text-2xl font-semibold tracking-tight text-foreground">Sua biblioteca</h1>
               <p className="max-w-2xl text-sm text-muted-foreground">Acesse rapidamente os posts que você já consolidou no PostSpark.</p>
             </div>
-            <div
-              className="rounded-2xl border px-4 py-3 text-right"
-              style={{
-                background: "oklch(1 0 0 / 4%)",
-                borderColor: "oklch(1 0 0 / 8%)",
-              }}
-            >
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Total</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">{data?.total ?? 0}</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsIngestOpen(true)}
+                className="h-10 px-3.5 rounded-xl border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-medium inline-flex items-center gap-2 transition shadow-sm"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span>Replicar Design (Ingest)</span>
+              </button>
+              <div
+                className="rounded-2xl border px-4 py-3 text-right"
+                style={{
+                  background: "oklch(1 0 0 / 4%)",
+                  borderColor: "oklch(1 0 0 / 8%)",
+                }}
+              >
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Total</p>
+                <p className="mt-1 text-2xl font-bold text-foreground">{data?.total ?? 0}</p>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -224,7 +236,7 @@ export default function SavedPosts() {
         <form onSubmit={event=>{event.preventDefault();setSearch(searchDraft.trim());setPage(0);}} className="flex gap-2"><input aria-label="Buscar posts por título, design ou código" value={searchDraft} onChange={event=>setSearchDraft(event.target.value)} maxLength={120} placeholder="Título, design ou código (REF-03)" className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/20 p-3"/><button type="submit" className="rounded-lg border border-white/15 px-4">Buscar</button></form>
         <div className="mb-4 flex items-center gap-4"><button disabled={page===0} onClick={()=>setPage(p=>p-1)}>Anterior</button><span>Página {page+1}</span><button disabled={(page+1)*20>=(data?.total??0)} onClick={()=>setPage(p=>p+1)}>Próxima</button></div>
         {isLoading ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
             {[1, 2, 3, 4].map(item => (
               <div
                 key={item}
@@ -259,7 +271,7 @@ export default function SavedPosts() {
             </div>
           </motion.div>
         ) : posts && posts.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
             {posts.map(post => (
               <motion.article
                 key={post.id}
@@ -299,7 +311,7 @@ export default function SavedPosts() {
                     </div>
                     <button
                       disabled={opening!==null} onClick={() => void openSavedPost(post)}
-                      className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-semibold text-thermal-orange transition-colors hover:bg-thermal-orange/10"
+                      className="inline-flex min-h-11 items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold text-thermal-orange transition-colors hover:bg-thermal-orange/10 sm:min-h-0 sm:text-[11px]"
                       style={{ borderColor: "oklch(0.7 0.22 40 / 35%)" }}
                     >
                       Abrir
@@ -328,6 +340,16 @@ export default function SavedPosts() {
           </motion.div>
         )}
       </div>
+
+      {isIngestOpen && (
+        <TemplateIngestionModal
+          isOpen={isIngestOpen}
+          onClose={() => {
+            setIsIngestOpen(false);
+            void refetch();
+          }}
+        />
+      )}
     </div>
   );
 }

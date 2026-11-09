@@ -1,4 +1,5 @@
 import { generationFailureSchema } from "./generationFailure";
+import type { CanvasPostModel } from "../client/src/pages/CanvasLab/components/types";
 import { z } from "zod";
 import { proposalReviewRecordSchema } from "./proposalReview";
 import {
@@ -111,7 +112,11 @@ export const proposalDeliverySchema = z
     proposalDeliveryBase
       .extend({
         status: z.literal("ready"),
-        bundle: completeDesignVariationV1Schema,
+        bundle: completeDesignVariationV1Schema.optional(),
+        fixedCanvas: z.custom<CanvasPostModel>(value => {
+          const model = value as Partial<CanvasPostModel> | null;
+          return Boolean(model && typeof model.id === "string" && Array.isArray(model.slides) && model.slides.length);
+        }).optional(),
       })
       .strict(),
     proposalDeliveryBase.extend({ status: z.literal("awaiting_reconciliation") }).strict(),
@@ -131,6 +136,16 @@ export const proposalDeliverySchema = z
   ])
   .superRefine((delivery, ctx) => {
     if (delivery.status !== "ready") return;
+    if (delivery.fixedCanvas && !delivery.bundle) {
+      if (delivery.slot !== 0 || delivery.fixedCanvas.id !== `design-${delivery.runId}-0`)
+        ctx.addIssue({ code: "custom", message: "Identidade da composição fixa divergente" });
+      return;
+    }
+    const bundle = delivery.bundle;
+    if (!bundle || delivery.fixedCanvas) {
+      ctx.addIssue({ code: "custom", message: "A entrega deve ter exatamente uma composição" });
+      return;
+    }
     if (delivery.reviews && delivery.reviews.at(-1)?.status !== "passed")
       ctx.addIssue({
         code: "custom",
@@ -140,11 +155,11 @@ export const proposalDeliverySchema = z
     const lastReview = delivery.reviews?.at(-1);
     if (
       lastReview &&
-      (lastReview.reviewedSlides.length !== delivery.bundle.slides.length ||
+      (lastReview.reviewedSlides.length !== bundle.slides.length ||
         new Set(lastReview.reviewedSlides).size !==
-          delivery.bundle.slides.length ||
+          bundle.slides.length ||
         lastReview.reviewedSlides.some(
-          index => index >= delivery.bundle.slides.length
+          index => index >= bundle.slides.length
         ))
     )
       ctx.addIssue({
@@ -152,19 +167,19 @@ export const proposalDeliverySchema = z
         path: ["reviews"],
         message: "Revisão não cobre todos os slides da entrega",
       });
-    if (delivery.bundle.runId !== delivery.runId)
+    if (bundle.runId !== delivery.runId)
       ctx.addIssue({
         code: "custom",
         path: ["bundle", "runId"],
         message: "Bundle runId diverge da entrega",
       });
-    if (delivery.bundle.traceId !== delivery.runId)
+    if (bundle.traceId !== delivery.runId)
       ctx.addIssue({
         code: "custom",
         path: ["bundle", "traceId"],
         message: "Bundle traceId diverge da entrega",
       });
-    if (delivery.bundle.slot !== delivery.slot)
+    if (bundle.slot !== delivery.slot)
       ctx.addIssue({
         code: "custom",
         path: ["bundle", "slot"],

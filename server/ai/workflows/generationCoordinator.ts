@@ -82,7 +82,7 @@ export class GenerationCoordinator {
     this.definitions.forEach((_, slot) => {
       const saved = input.savedProposals?.find(p => p.slot === slot);
       if (this.distinctProposals && saved) {
-        const family = saved.status === "ready" ? saved.bundle.family : saved.attempt?.index
+        const family = saved.status === "ready" ? saved.bundle?.family : saved.attempt?.index
           ? input.planning?.recoveryRepertoires[slot]?.[saved.attempt.index - 1]?.family : undefined;
         if (family) this.replacementOwners.set(family, slot);
       }
@@ -231,7 +231,7 @@ export class GenerationCoordinator {
           currentDefs = recovered.definitions;
           narrativePlan = recovered.plan;
         } else if (this.input.reviewPolicyVersion === 10 && attemptIndex > 0) {
-          const currentFamilies = Array.from(this.proposals.values()).filter(p => p.slot !== slot).map(p => p.status === "ready" ? p.bundle.family : this.input.planning?.offers[p.slot]?.family).filter((v): v is string => typeof v === "string");
+          const currentFamilies = Array.from(this.proposals.values()).filter(p => p.slot !== slot).map(p => p.status === "ready" ? p.bundle?.family : this.input.planning?.offers[p.slot]?.family).filter((v): v is string => typeof v === "string");
           if (this.distinctProposals) for (const [family, owner] of Array.from(this.replacementOwners))
             if (owner !== slot && !currentFamilies.includes(family)) currentFamilies.push(family);
           const replanned = await this.deps.replan?.(slot, attemptIndex, currentFamilies);

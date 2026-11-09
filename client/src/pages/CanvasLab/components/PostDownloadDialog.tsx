@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { aspectRatioHeight } from "@shared/aspectRatios";
 import { CanvasPostStage, type CanvasPostStageRef } from "./CanvasPostStage";
 import type { CanvasPostModel } from "./types";
 
@@ -15,6 +16,20 @@ export default function PostDownloadDialog({
   const [index, setIndex] = useState(post.currentSlideIndex);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [previewZoom, setPreviewZoom] = useState(0.75);
+  useEffect(() => {
+    const fitPreview = () => {
+      if (window.innerWidth >= 768) {
+        setPreviewZoom(0.75);
+        return;
+      }
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      setPreviewZoom(Math.min(0.75, (window.innerWidth - 68) / 360, Math.max(140, viewportHeight * 0.48) / aspectRatioHeight(post.aspectRatio)));
+    };
+    fitPreview();
+    window.addEventListener("resize", fitPreview);
+    return () => window.removeEventListener("resize", fitPreview);
+  }, [post.aspectRatio]);
   const download = async (zip: boolean) => {
     if (!stage.current || busy) return;
     setBusy(true);
@@ -64,7 +79,7 @@ export default function PostDownloadDialog({
             <CanvasPostStage
               ref={stage}
               post={{ ...post, currentSlideIndex: index }}
-              zoom={0.75}
+              zoom={previewZoom}
               isReadOnly
             />
           </div>

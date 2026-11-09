@@ -56,6 +56,7 @@ async function admit(
     id?: string;
     deadlineAt?: string;
     postMode?: "static" | "carousel";
+    fixed?: boolean;
   } = {}
 ) {
   const id =
@@ -74,6 +75,10 @@ async function admit(
         postMode: options.postMode ?? "static",
         ownerId: options.owner ?? owner,
         idempotencyKey,
+        ...(options.fixed ? {
+          fixedDesign: { kind: "showcase", id: "risograph" },
+          pinnedDesign: { revision: hash, canvas: { id: "risograph", slides: Array.from({ length: options.postMode === "carousel" ? 3 : 1 }, () => ({})) } },
+        } : {}),
       }),
       options.deadlineAt ?? new Date(Date.now() + 600_000).toISOString(),
     ]
@@ -284,6 +289,7 @@ beforeEach(async () => {
     "0034_orchestrated_generation.sql",
     "0035_generation_lease_conflict.sql",
     "0036_generation_billing.sql",
+    "0063_generation_fixed_design.sql",
   ]) {
     await pg.exec(
       readFileSync(
@@ -299,6 +305,33 @@ afterEach(async () => {
 });
 
 describe("atomic durable generation finances on the existing Next ledger", () => {
+  it.each([["static", 4], ["carousel", 16]] as const)("finishes a fixed %s with one delivery and the corresponding hold", async (postMode, cost) => {
+    const req = await admit({ fixed: true, postMode, key: "fixed" });
+    expect(req.proposals).toHaveLength(1);
+    expect(req.billing_reserved).toBe(cost);
+    const duplicate = await admit({ fixed: true, postMode, key: "fixed" });
+    expect(duplicate.id).toBe(req.id);
+    expect(duplicate.created).toBe(false);
+    const lease = await claim();
+    const canvas = { id: `design-${req.id}-0`, slides: Array.from({ length: postMode === "carousel" ? 3 : 1 }, () => ({})) };
+    const delivery = { ...req.proposals[0], status: "ready", fixedCanvas: canvas };
+    const commitFixed = (token: string, payload: unknown) => serviceScalar(
+      "SELECT postspark.generation_commit_fixed_design($1::uuid,$2::uuid,$3::jsonb,$4::jsonb) AS value",
+      [req.id, token, JSON.stringify(payload), JSON.stringify({ fixedCanvas: canvas })],
+    );
+    await expect(commitFixed(otherOwner, delivery)).rejects.toThrow(/lease lost/i);
+    await expect(commitFixed(lease.leaseToken, { ...delivery, slot: 1 })).rejects.toThrow(/invalid fixed design/i);
+    await expect(commitFixed(lease.leaseToken, delivery)).rejects.toThrow(/review required/i);
+    for (const [action, payload] of [["begin", null], ["complete", { issues: [] }]] as const) {
+      await serviceScalar("SELECT postspark.generation_v5_operation($1,$2,$3,$4,$5::jsonb) AS value",
+        [req.id, lease.leaseToken, `${delivery.proposalId}:review`, action, JSON.stringify(payload)]);
+    }
+    const done = await commitFixed(lease.leaseToken, delivery);
+    expect(done.status).toBe("completed");
+    expect(done.proposals).toHaveLength(1);
+    await expect(commitFixed(lease.leaseToken, delivery)).rejects.toThrow(/lease lost/i);
+    expect(await scalar("SELECT billing_debited AS value FROM postspark.generation_v5_requests WHERE id=$1", [req.id])).toBe(cost);
+  });
   it("admits once, links the actual reservation, and never refunds an admitted request on retry/collision", async () => {
     const [a, b] = await Promise.all([
       admit({ key: "same" }),

@@ -103,6 +103,10 @@ export const orchestratedGenerationInputSchema = z
     executionBrief: executionBriefSchema.optional(),
     siteIntelligenceId: z.string().uuid().optional(),
     projectId: z.string().max(64).optional(),
+    fixedDesign: z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("showcase"), id: z.string().max(80) }).strict(),
+      z.object({ kind: z.literal("project"), id: z.string().uuid() }).strict(),
+    ]).optional(),
     projectDossier: z.string().max(24000).optional(),
     projectSnapshot: generationProjectSnapshotSchema.optional(),
     idempotencyKey: z.string().min(1).max(128),

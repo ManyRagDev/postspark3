@@ -211,10 +211,12 @@ import { retrieveCatalog } from "./designCatalog/retrieval";
 import { designDnaRouter } from "./routers/designDna";
 import { privacyRouter } from "./routers/privacy";
 import { brandProjectsRouter } from "./routers/brandProjects";
+import { templateIngestionRouter } from "./routers/templateIngestion";
 
 export const appRouter = router({
   generation: generationRouter,
   catalog: catalogRouter,
+  templateIngestion: templateIngestionRouter,
   system: systemRouter,
   billing: billingRouter,
   admin: adminRouter,

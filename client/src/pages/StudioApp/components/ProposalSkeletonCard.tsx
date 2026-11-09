@@ -40,6 +40,7 @@ export interface ProposalSkeletonCardProps {
   onRetry?: () => void;
   disableShimmer?: boolean;
   className?: string;
+  compactOnMobile?: boolean;
 }
 
 export default function ProposalSkeletonCard({
@@ -53,6 +54,7 @@ export default function ProposalSkeletonCard({
   onRetry,
   disableShimmer = false,
   className = "",
+  compactOnMobile = false,
 }: ProposalSkeletonCardProps) {
   const stageWidth = 360 * cardScale; // ~259.2px
   const stageHeight = aspectRatioHeight(aspectRatio) * cardScale;
@@ -75,7 +77,7 @@ export default function ProposalSkeletonCard({
       aria-label={`Opção 0${slot}: ${statusMessage || defaultStatusMessage}`}
       className={`group relative flex flex-col items-center bg-white/[0.03] ${
         isFailed ? "border-red-500/20" : "border-white/10"
-      } border rounded-3xl p-5 shadow-2xl transition-all duration-300 ${className}`}
+      } border rounded-3xl p-5 shadow-2xl transition-all duration-300 ${compactOnMobile ? "max-md:rounded-xl max-md:p-3" : ""} ${className}`}
     >
       {/* Header do Card */}
       <div className="w-full flex items-center justify-between mb-3 px-1">
@@ -105,7 +107,7 @@ export default function ProposalSkeletonCard({
       <div
         className={`relative flex flex-col items-center justify-between p-5 my-2 rounded-2xl ${
           isFailed ? "bg-red-950/[0.12] border-red-500/20" : "bg-white/[0.04] border-white/5"
-        } border ${shimmerClass} overflow-hidden transition-all duration-200 select-none`}
+        } border ${shimmerClass} overflow-hidden transition-all duration-200 select-none ${compactOnMobile ? "max-md:hidden" : ""}`}
         style={{ width: stageWidth, height: stageHeight }}
       >
         {isFailed ? (
@@ -174,14 +176,15 @@ export default function ProposalSkeletonCard({
             <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
           </span>
         )}
-        <span className="text-[11px] font-medium tracking-wide truncate">
+        <span className={`text-[11px] font-medium tracking-wide ${compactOnMobile ? "min-w-0 break-words md:truncate" : "truncate"}`}>
           {statusMessage || defaultStatusMessage}
         </span>
       </div>
+      {compactOnMobile && errorReason && <p className="mt-2 text-xs text-rose-200 md:hidden">{errorReason}</p>}
 
       {/* Botões Placeholders Desabilitados: shimmer apenas se estiver carregando */}
       {!isFailed ? (
-        <div className="w-full space-y-2 mt-4 pointer-events-none">
+        <div className={`pointer-events-none mt-4 w-full space-y-2 ${compactOnMobile ? "max-md:hidden" : ""}`}>
           <div className={`w-full h-8 rounded-xl bg-white/10 ${shimmerClass}`} />
           <div className={`w-full h-8 rounded-xl bg-white/5 ${shimmerClass}`} />
         </div>

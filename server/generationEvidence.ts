@@ -110,6 +110,7 @@ export function inspectGenerationEvidence(input: GenerationEvidenceInput) {
     const proposal = parsed.data,
       { bundle } = proposal;
     check("request_identity", proposal.runId === request.id, scope);
+    if (!bundle) return { slot: proposal.slot, status: proposal.status, canonical: Boolean(proposal.fixedCanvas), source: "fixed_design" };
     const review = proposal.reviews?.at(-1);
     check(
       "all_slides_review_passed",

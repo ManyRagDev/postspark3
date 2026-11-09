@@ -57403,3 +57403,3476 @@ generationRunId: 00000000-0000-4000-8000-000000000002
 [2026-11-07T20:58:13.098Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
 generationRunId: 00000000-0000-4000-8000-000000000002
 
+[2026-11-08T02:06:00.006Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:00.101Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:00.310Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:00.442Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:00.550Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:00.581Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:00.673Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:00.728Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:00.843Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:00.872Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:01.065Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:01.166Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:01.282Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:01.295Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:01.310Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:01.329Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:01.349Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:01.380Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:01.407Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:01.489Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:01.578Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:01.611Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-08T02:06:06.440Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000001-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ff557a424a98362beb6c0fb235f659313180912257bbe442c26396a1eed9da95
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 3
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-08T02:06:06.446Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000001-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 4e66aaec06e26ab100d3ae8fa3d672b3c273cd10e6d8bc10a58962d6d50e4248
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 2
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-08T02:06:06.449Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000001-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 04159a9323f45b8f4b9213c32ab2c6344c6a3e6c4dca172bb8fc91546ed3fb2e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 2
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-08T02:06:06.918Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e71310cde843d79b2a3c3ae4bac51277a412d19709392768747e1964449f223e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-08T02:06:06.921Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 5262f30863a47dad1e7c95532bc47015b1ca8103c62b85ba09dee789a184fe10
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-08T02:06:07.224Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 250
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b1eb1c64183a64841b14b3552134b337efae048ae6615a820603193bcd27e63c
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 2
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-08T02:06:08.102Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000002-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ff557a424a98362beb6c0fb235f659313180912257bbe442c26396a1eed9da95
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 2
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-08T02:06:08.109Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000002-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 4e66aaec06e26ab100d3ae8fa3d672b3c273cd10e6d8bc10a58962d6d50e4248
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 3
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-08T02:06:08.115Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000002-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 04159a9323f45b8f4b9213c32ab2c6344c6a3e6c4dca172bb8fc91546ed3fb2e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 4
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-08T02:06:08.462Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e71310cde843d79b2a3c3ae4bac51277a412d19709392768747e1964449f223e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-08T02:06:08.464Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 5262f30863a47dad1e7c95532bc47015b1ca8103c62b85ba09dee789a184fe10
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-08T02:06:08.705Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 250
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b1eb1c64183a64841b14b3552134b337efae048ae6615a820603193bcd27e63c
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 4
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-08T02:06:09.209Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000003-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ff557a424a98362beb6c0fb235f659313180912257bbe442c26396a1eed9da95
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-08T02:06:09.214Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000003-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 4e66aaec06e26ab100d3ae8fa3d672b3c273cd10e6d8bc10a58962d6d50e4248
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 2
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-08T02:06:09.229Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000003-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 04159a9323f45b8f4b9213c32ab2c6344c6a3e6c4dca172bb8fc91546ed3fb2e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 14
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-08T02:06:09.557Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e71310cde843d79b2a3c3ae4bac51277a412d19709392768747e1964449f223e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-08T02:06:09.560Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 5262f30863a47dad1e7c95532bc47015b1ca8103c62b85ba09dee789a184fe10
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-08T02:06:09.714Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 250
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b1eb1c64183a64841b14b3552134b337efae048ae6615a820603193bcd27e63c
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-08T02:06:10.029Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000004-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ff557a424a98362beb6c0fb235f659313180912257bbe442c26396a1eed9da95
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 2
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-08T02:06:10.046Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000004-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 4e66aaec06e26ab100d3ae8fa3d672b3c273cd10e6d8bc10a58962d6d50e4248
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-08T02:06:10.048Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000004-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 04159a9323f45b8f4b9213c32ab2c6344c6a3e6c4dca172bb8fc91546ed3fb2e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-08T02:06:10.385Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e71310cde843d79b2a3c3ae4bac51277a412d19709392768747e1964449f223e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-08T02:06:10.387Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 5262f30863a47dad1e7c95532bc47015b1ca8103c62b85ba09dee789a184fe10
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-08T02:06:10.537Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 250
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b1eb1c64183a64841b14b3552134b337efae048ae6615a820603193bcd27e63c
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-08T02:06:10.808Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000005-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ff557a424a98362beb6c0fb235f659313180912257bbe442c26396a1eed9da95
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-08T02:06:10.811Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000005-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 4e66aaec06e26ab100d3ae8fa3d672b3c273cd10e6d8bc10a58962d6d50e4248
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-08T02:06:10.814Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000005-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 04159a9323f45b8f4b9213c32ab2c6344c6a3e6c4dca172bb8fc91546ed3fb2e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-08T02:06:11.151Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e71310cde843d79b2a3c3ae4bac51277a412d19709392768747e1964449f223e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-08T02:06:11.154Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 5262f30863a47dad1e7c95532bc47015b1ca8103c62b85ba09dee789a184fe10
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-08T02:06:11.345Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 250
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b1eb1c64183a64841b14b3552134b337efae048ae6615a820603193bcd27e63c
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 6
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-08T02:06:11.612Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000006-0_copy
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 221
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b5ef45f5c0a006d90ee270678e884910ca863101f649d56d6d813e18ca9812dc
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-08T02:06:11.613Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000006-1_copy
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 258
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ce184ca540cf87b6572d913cd1bd441b8b364ad56040c547fa6dd8288e91a9d9
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-08T02:06:11.615Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000006-2_copy
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 301
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: c08ee12e2d73edd852134692cb44b112d7ed93a0b4b6e65136a2812131bee13e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-08T02:06:11.806Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 197
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 30fe84c879403b7979f77318665a854fc4225232b5b7a18306eb194bed29f3fa
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-08T02:06:11.809Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 207
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: f049bb68f2024915720f1f5c5eab232fad1bf0c7644077ea0911ecd33860c7bc
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-08T02:06:11.921Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 202
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 65c1ddb4da4b1868ff0483fc469eee3b188cc67c1d20ccad13818cf4ec00ce7e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-08T02:06:12.442Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000007-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 6c238d5f12d0f0302b503c0cbc141dbee491ec6c3985932c2ffaf892ceacd588
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-08T02:06:12.445Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000007-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 0b88864bceceaa224b3c7c3598600b4e05ae458cd914579d6e47ff07ffac7db1
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-08T02:06:12.447Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000007-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 6fd496880d9d19e9f04c86b9c15e8475e3df57b1d6381821d65de959fb96c7bb
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-08T02:06:12.775Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 330bd0429075d1de26829f717d457e7e315fa3b3fa15ca722fcdcb8ca5d99be3
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-08T02:06:12.778Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d9ce2ab870c53a9285dd45bb6af65d8a79456d300305fda771c9a4ec0c483708
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-08T02:06:13.039Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 250
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 33f53748cbcc0eed46afabee79d4c1751665a75f64d08229e2840124284d79fe
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-08T02:06:13.475Z] AI_PROVIDER_REQUEST_ERROR
+provider: openrouter
+model: google/gemini-3.8-flash
+error: Error: simulated_provider_failure_for_slot
+    at controlledGenerate (/home/emanuel/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/carouselDelivery.postgres.test.ts:208:17)
+    at /home/emanuel/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/carouselDelivery.postgres.test.ts:258:26
+    at mockCall (file:///home/emanuel/Documentos/Projetos%20linux/PostSpark%203/node_modules/.pnpm/@vitest+spy@2.1.9/node_modules/@vitest/spy/dist/index.js:61:17)
+    at spy (file:///home/emanuel/Documentos/Projetos%20linux/PostSpark%203/node_modules/.pnpm/tinyspy@3.0.2/node_modules/tinyspy/dist/index.js:45:80)
+    at callProvider (/home/emanuel/Documentos/Projetos linux/PostSpark 3/server/_core/llm.ts:897:30)
+    at executeWithRetries (/home/emanuel/Documentos/Projetos linux/PostSpark 3/server/_core/llm.ts:1074:30)
+    at Object.invokeLLM [as generateText] (/home/emanuel/Documentos/Projetos linux/PostSpark 3/server/_core/llm.ts:1193:18)
+    at /home/emanuel/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:1180:25
+    at /home/emanuel/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationRuntime.ts:158:11
+    at Module.executeProposalWorkflow (/home/emanuel/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:1168:123)
+
+[2026-11-08T02:06:13.506Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000008-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 6c238d5f12d0f0302b503c0cbc141dbee491ec6c3985932c2ffaf892ceacd588
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 31
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed simulated_provider_failure_for_slot
+
+[2026-11-08T02:06:13.529Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000008-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 0b88864bceceaa224b3c7c3598600b4e05ae458cd914579d6e47ff07ffac7db1
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 14
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-08T02:06:13.531Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000008-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 6fd496880d9d19e9f04c86b9c15e8475e3df57b1d6381821d65de959fb96c7bb
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-08T02:06:13.890Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 330bd0429075d1de26829f717d457e7e315fa3b3fa15ca722fcdcb8ca5d99be3
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-08T02:06:13.894Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d9ce2ab870c53a9285dd45bb6af65d8a79456d300305fda771c9a4ec0c483708
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-08T02:06:26.951Z] GENERATION_TRACE_SCHEMA_INCOMPATIBLE
+generationRunId: be0e2bf0-0b3a-4b71-ad98-237c29b5735b
+userUuid: 00000000-0000-0000-0000-000000000001
+error: column generation_runs.events does not exist
+fallback: createGenerationRunMinimal
+
+[2026-11-08T02:06:26.961Z] GENERATION_TRACE_MINIMAL_PERSISTED
+generationRunId: be0e2bf0-0b3a-4b71-ad98-237c29b5735b
+userUuid: 00000000-0000-0000-0000-000000000001
+status: failed
+
+[2026-11-09T14:45:07.838Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:07.945Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.035Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.066Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.096Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.102Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.131Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.147Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.197Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.209Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.310Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.336Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.375Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.387Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.398Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.405Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.417Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.426Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.437Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.481Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.516Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:45:08.526Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.416Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.508Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.612Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.656Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.688Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.696Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.725Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.741Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.791Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.803Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.898Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.937Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.983Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:43.994Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:44.005Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:44.014Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:44.022Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:44.034Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:44.045Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:44.086Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:44.124Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:47:44.137Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:57.690Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:57.790Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:57.923Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:57.960Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:57.988Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:57.994Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.019Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.034Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.077Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.087Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.175Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.206Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.253Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.260Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.269Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.276Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.282Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.293Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.300Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.333Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.373Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T14:48:58.382Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:29.370Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:29.592Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:29.854Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:29.917Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.008Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.023Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.119Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.190Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.294Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.336Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.658Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.733Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.833Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.872Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.912Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.924Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.951Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.963Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:30.993Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:31.072Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:31.183Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:31.198Z] GENERATION_TRACE_METRICS_PERSIST_FAILED
+generationRunId: 00000000-0000-4000-8000-000000000002
+
+[2026-11-09T22:35:34.097Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000001-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ff557a424a98362beb6c0fb235f659313180912257bbe442c26396a1eed9da95
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 21
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-09T22:35:34.102Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000001-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 4e66aaec06e26ab100d3ae8fa3d672b3c273cd10e6d8bc10a58962d6d50e4248
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 2
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-09T22:35:34.107Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000001-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 04159a9323f45b8f4b9213c32ab2c6344c6a3e6c4dca172bb8fc91546ed3fb2e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-09T22:35:34.527Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e71310cde843d79b2a3c3ae4bac51277a412d19709392768747e1964449f223e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 2
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-09T22:35:34.531Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 5262f30863a47dad1e7c95532bc47015b1ca8103c62b85ba09dee789a184fe10
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-09T22:35:34.846Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 250
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b1eb1c64183a64841b14b3552134b337efae048ae6615a820603193bcd27e63c
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 2
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-09T22:35:36.057Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000002-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ff557a424a98362beb6c0fb235f659313180912257bbe442c26396a1eed9da95
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-09T22:35:36.060Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000002-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 4e66aaec06e26ab100d3ae8fa3d672b3c273cd10e6d8bc10a58962d6d50e4248
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 2
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-09T22:35:36.069Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000002-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 04159a9323f45b8f4b9213c32ab2c6344c6a3e6c4dca172bb8fc91546ed3fb2e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 3
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-09T22:35:36.340Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e71310cde843d79b2a3c3ae4bac51277a412d19709392768747e1964449f223e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-09T22:35:36.343Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 5262f30863a47dad1e7c95532bc47015b1ca8103c62b85ba09dee789a184fe10
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-09T22:35:36.528Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 250
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b1eb1c64183a64841b14b3552134b337efae048ae6615a820603193bcd27e63c
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-09T22:35:36.876Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000003-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ff557a424a98362beb6c0fb235f659313180912257bbe442c26396a1eed9da95
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-09T22:35:36.879Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000003-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 4e66aaec06e26ab100d3ae8fa3d672b3c273cd10e6d8bc10a58962d6d50e4248
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-09T22:35:36.881Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000003-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 04159a9323f45b8f4b9213c32ab2c6344c6a3e6c4dca172bb8fc91546ed3fb2e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-09T22:35:37.123Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e71310cde843d79b2a3c3ae4bac51277a412d19709392768747e1964449f223e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-09T22:35:37.127Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 5262f30863a47dad1e7c95532bc47015b1ca8103c62b85ba09dee789a184fe10
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 2
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-09T22:35:37.345Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 250
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b1eb1c64183a64841b14b3552134b337efae048ae6615a820603193bcd27e63c
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-09T22:35:37.722Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000004-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ff557a424a98362beb6c0fb235f659313180912257bbe442c26396a1eed9da95
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-09T22:35:37.726Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000004-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 4e66aaec06e26ab100d3ae8fa3d672b3c273cd10e6d8bc10a58962d6d50e4248
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 2
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-09T22:35:37.728Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000004-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 04159a9323f45b8f4b9213c32ab2c6344c6a3e6c4dca172bb8fc91546ed3fb2e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-09T22:35:38.098Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e71310cde843d79b2a3c3ae4bac51277a412d19709392768747e1964449f223e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-09T22:35:38.101Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 5262f30863a47dad1e7c95532bc47015b1ca8103c62b85ba09dee789a184fe10
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-09T22:35:38.271Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 250
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b1eb1c64183a64841b14b3552134b337efae048ae6615a820603193bcd27e63c
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-09T22:35:38.571Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000005-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ff557a424a98362beb6c0fb235f659313180912257bbe442c26396a1eed9da95
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-09T22:35:38.579Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000005-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 4e66aaec06e26ab100d3ae8fa3d672b3c273cd10e6d8bc10a58962d6d50e4248
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-09T22:35:38.582Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000005-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 04159a9323f45b8f4b9213c32ab2c6344c6a3e6c4dca172bb8fc91546ed3fb2e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-09T22:35:38.871Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: e71310cde843d79b2a3c3ae4bac51277a412d19709392768747e1964449f223e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-09T22:35:38.879Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 5262f30863a47dad1e7c95532bc47015b1ca8103c62b85ba09dee789a184fe10
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-09T22:35:39.066Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 250
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b1eb1c64183a64841b14b3552134b337efae048ae6615a820603193bcd27e63c
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-09T22:35:39.372Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000006-0_copy
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 221
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: b5ef45f5c0a006d90ee270678e884910ca863101f649d56d6d813e18ca9812dc
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-09T22:35:39.374Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000006-1_copy
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 258
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: ce184ca540cf87b6572d913cd1bd441b8b364ad56040c547fa6dd8288e91a9d9
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-09T22:35:39.376Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000006-2_copy
+requestedModel: static_generation
+taskRoute: static_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.4,
+  top_p: 0.85,
+  reasoning: { effort: 'minimal', exclude: true },
+  reasoning_effort: 'minimal',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 301
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: c08ee12e2d73edd852134692cb44b112d7ed93a0b4b6e65136a2812131bee13e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-09T22:35:39.493Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 197
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 30fe84c879403b7979f77318665a854fc4225232b5b7a18306eb194bed29f3fa
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-09T22:35:39.499Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 207
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: f049bb68f2024915720f1f5c5eab232fad1bf0c7644077ea0911ecd33860c7bc
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-09T22:35:39.628Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 202
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 65c1ddb4da4b1868ff0483fc469eee3b188cc67c1d20ccad13818cf4ec00ce7e
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-09T22:35:39.926Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000007-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 672
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 6c238d5f12d0f0302b503c0cbc141dbee491ec6c3985932c2ffaf892ceacd588
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-09T22:35:39.928Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000007-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 0b88864bceceaa224b3c7c3598600b4e05ae458cd914579d6e47ff07ffac7db1
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-09T22:35:39.930Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000007-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 6fd496880d9d19e9f04c86b9c15e8475e3df57b1d6381821d65de959fb96c7bb
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-09T22:35:40.220Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 330bd0429075d1de26829f717d457e7e315fa3b3fa15ca722fcdcb8ca5d99be3
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+
+[2026-11-09T22:35:40.227Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d9ce2ab870c53a9285dd45bb6af65d8a79456d300305fda771c9a4ec0c483708
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-5
+error: undefined
+
+[2026-11-09T22:35:40.495Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 250
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 33f53748cbcc0eed46afabee79d4c1751665a75f64d08229e2840124284d79fe
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-6
+error: undefined
+
+[2026-11-09T22:35:41.073Z] AI_PROVIDER_REQUEST_ERROR
+provider: openrouter
+model: google/gemini-3.8-flash
+error: Error: simulated_provider_failure_for_slot
+    at controlledGenerate (/home/emanuel/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/carouselDelivery.postgres.test.ts:208:17)
+    at /home/emanuel/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/carouselDelivery.postgres.test.ts:258:26
+    at mockCall (file:///home/emanuel/Documentos/Projetos%20linux/PostSpark%203/node_modules/.pnpm/@vitest+spy@2.1.9/node_modules/@vitest/spy/dist/index.js:61:17)
+    at spy (file:///home/emanuel/Documentos/Projetos%20linux/PostSpark%203/node_modules/.pnpm/tinyspy@3.0.2/node_modules/tinyspy/dist/index.js:45:80)
+    at callProvider (/home/emanuel/Documentos/Projetos linux/PostSpark 3/server/_core/llm.ts:897:30)
+    at executeWithRetries (/home/emanuel/Documentos/Projetos linux/PostSpark 3/server/_core/llm.ts:1074:30)
+    at Object.invokeLLM [as generateText] (/home/emanuel/Documentos/Projetos linux/PostSpark 3/server/_core/llm.ts:1193:18)
+    at /home/emanuel/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:1182:25
+    at /home/emanuel/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/generationRuntime.ts:159:11
+    at Module.executeProposalWorkflow (/home/emanuel/Documentos/Projetos linux/PostSpark 3/server/ai/workflows/proposalGraph.ts:1170:123)
+
+[2026-11-09T22:35:41.103Z] AI_PROVIDER_ATTEMPT_FAILED
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000008-0_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: undefined
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 6c238d5f12d0f0302b503c0cbc141dbee491ec6c3985932c2ffaf892ceacd588
+promptTokens: 0
+completionTokens: 0
+totalTokens: 0
+latencyMs: 30
+estimatedCostUsd: 0
+responseId: undefined
+error: openrouter API failed simulated_provider_failure_for_slot
+
+[2026-11-09T22:35:41.107Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000008-1_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 848
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 0b88864bceceaa224b3c7c3598600b4e05ae458cd914579d6e47ff07ffac7db1
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-1
+error: undefined
+
+[2026-11-09T22:35:41.109Z] AI_PROVIDER_200
+traceLabel: proposal_p-30000000-0000-4000-8000-000000000008-2_copy
+requestedModel: carousel_generation
+taskRoute: carousel_generation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.45,
+  top_p: 0.85,
+  reasoning: { effort: 'low', exclude: true },
+  reasoning_effort: 'low',
+  max_tokens: 5000,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 608
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 6fd496880d9d19e9f04c86b9c15e8475e3df57b1d6381821d65de959fb96c7bb
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-2
+error: undefined
+
+[2026-11-09T22:35:41.385Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 274
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: 330bd0429075d1de26829f717d457e7e315fa3b3fa15ca722fcdcb8ca5d99be3
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 1
+estimatedCostUsd: 0.001
+responseId: fixture-provider-3
+error: undefined
+
+[2026-11-09T22:35:41.388Z] AI_PROVIDER_200
+traceLabel: proposal_review_initial
+requestedModel: post_evaluation
+taskRoute: post_evaluation
+provider: openrouter
+effectiveModel: google/gemini-3.8-flash
+attempt: 1
+fallbackFrom: undefined
+translatedSchema: true
+structuredOutputMode: text_schema
+payloadOptions: {
+  temperature: 0.1,
+  top_p: 0.85,
+  reasoning: { effort: 'medium', exclude: true },
+  reasoning_effort: 'medium',
+  max_tokens: 9216,
+  max_completion_tokens: undefined
+}
+reasoningTokens: undefined
+finishReason: undefined
+nativeFinishReason: undefined
+contentLength: 238
+structuredFailureType: undefined
+repairedOutput: undefined
+promptHash: d9ce2ab870c53a9285dd45bb6af65d8a79456d300305fda771c9a4ec0c483708
+promptTokens: 10
+completionTokens: 20
+totalTokens: 30
+latencyMs: 0
+estimatedCostUsd: 0.001
+responseId: fixture-provider-4
+error: undefined
+

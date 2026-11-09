@@ -1,5 +1,5 @@
 import { readArsenalComposition } from "../../shared/designArsenal";
-import manifest from "../../shared/arsenalBundledAssets.json";
+import { arsenalBundledManifest } from "@shared/arsenalBundledManifest";
 import { authorizeArsenalAssets } from "./arsenalAssets";
 import { arsenalHash } from "@shared/arsenalContent";
 
@@ -20,26 +20,17 @@ export function validateArsenalSaveModel(value: unknown): void {
       throw new Error("Formato da composição divergente do documento");
     for (const asset of c.assets) {
       if (asset.kind === "catalog") continue; // Async ownership/manifest validation in the authenticated mutation.
-      const entry = (
-        manifest as Record<
-          string,
-          {
-            sha256: string;
-            family: string;
-            weight: number;
-            bytes: number;
-            mimeType: string;
-          }
-        >
-      )[asset.id];
+      const entry = arsenalBundledManifest[asset.id];
       if (
         asset.kind !== "bundled" ||
         !entry ||
-        ["sha256", "family", "weight", "bytes", "mimeType"].some(
-          key =>
-            (asset as unknown as Record<string, unknown>)[key] !==
-            (entry as unknown as Record<string, unknown>)[key]
-        )
+        asset.sha256 !== entry.sha256 ||
+        asset.family !== entry.family ||
+        asset.weight !== entry.weight ||
+        asset.bytes !== entry.bytes ||
+        asset.mimeType !== entry.mimeType ||
+        asset.weightRange?.min !== entry.weightRange?.min ||
+        asset.weightRange?.max !== entry.weightRange?.max
       )
         throw new Error("Asset do arsenal não autorizado no manifesto M1");
     }

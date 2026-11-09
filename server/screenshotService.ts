@@ -11,10 +11,9 @@ import { publicUrl,publicHtml } from "./publicUrl";
  * All functions return null / empty on failure — the pipeline continues gracefully.
  */
 
-const SCREENSHOT_SERVICE_URL = process.env.SCREENSHOT_SERVICE_URL;
-// The remote browser must enforce public destinations for redirects and every subresource.
-// Without that deployment guarantee use safe HTML/CSS extraction and mark vision unavailable.
-const PUBLIC_NETWORK_ONLY=process.env.SCREENSHOT_PUBLIC_NETWORK_ONLY === "true";
+function isConfigured(): boolean {
+  return Boolean(process.env.SCREENSHOT_SERVICE_URL && process.env.SCREENSHOT_PUBLIC_NETWORK_ONLY === "true");
+}
 const DEFAULT_TIMEOUT_MS = 30_000;
 const BATCH_TIMEOUT_MS = 90_000;
 
@@ -29,7 +28,7 @@ export interface DiscoveredPage {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function serviceUrl(path: string): string {
-  return `${SCREENSHOT_SERVICE_URL}${path}`;
+  return `${process.env.SCREENSHOT_SERVICE_URL}${path}`;
 }
 
 function serviceHeaders(): Record<string, string> {
@@ -56,7 +55,7 @@ export async function captureScreenshot(
     type: 'desktop' | 'mobile' = 'desktop',
 ): Promise<ArrayBuffer | null> {
     console.log(`[screenshotService] Capturing ${type} screenshot for: ${url}`);
-    if (!SCREENSHOT_SERVICE_URL || !PUBLIC_NETWORK_ONLY) return warnMissing('captureScreenshot');
+    if (!isConfigured()) return warnMissing('captureScreenshot');
 
     const endpoint = type === 'mobile' ? '/screenshot/mobile' : '/screenshot';
 
@@ -95,7 +94,7 @@ export async function captureMultipleScreenshots(
     viewport = { width: 1440, height: 900 },
     maxPages = 5,
 ): Promise<Record<string, ArrayBuffer>> {
-    if (!SCREENSHOT_SERVICE_URL || !PUBLIC_NETWORK_ONLY) {
+    if (!isConfigured()) {
         warnMissing('captureMultipleScreenshots');
         return {};
     }
@@ -151,7 +150,7 @@ export async function captureElements(
     selectors: string[],
     viewport = { width: 1440, height: 900 },
 ): Promise<Record<string, ArrayBuffer>> {
-    if (!SCREENSHOT_SERVICE_URL || !PUBLIC_NETWORK_ONLY) {
+    if (!isConfigured()) {
         warnMissing('captureElements');
         return {};
     }
@@ -203,7 +202,7 @@ export async function discoverPages(
     url: string,
     maxLinks = 8,
 ): Promise<DiscoveredPage[]> {
-    if (!SCREENSHOT_SERVICE_URL || !PUBLIC_NETWORK_ONLY) {
+    if (!isConfigured()) {
         try {const page=await publicHtml(url);const root=new URL(page.url);const links=Array.from(page.html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi));const seen=new Set<string>();return links.flatMap(m=>{try{const target=new URL(m[1],root);if(target.origin!==root.origin||seen.has(target.href))return [];seen.add(target.href);return [{url:target.href,label:m[2].replace(/<[^>]+>/g,'').trim(),priority:/about|sobre|produto|product|service|servico|preco|pricing/i.test(target.pathname)?'high' as const:'medium' as const}];}catch{return [];}}).slice(0,maxLinks);}catch{return [];}
 
     }

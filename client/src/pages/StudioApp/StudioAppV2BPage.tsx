@@ -3,14 +3,17 @@ import type { CreationInputOptions } from "./components/v2/StudioCreateViewV2B";
 import { freezeGenerationProject } from "@shared/projectEditorial";
 import {cachedCatalog} from "@/lib/catalogCache";
 import {useGenerationEvents} from "@/hooks/useGenerationEvents";
+import { useIsMobile } from "@/hooks/useMobile";
 import StudioArtPreferences from "./components/StudioArtPreferences";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import StudioCreateViewV2B from "./components/v2/StudioCreateViewV2B";
 import StudioGalleryView from "./components/StudioGalleryView";
+import UserTopMenu from "@/components/UserTopMenu";
 import { ProductionOverlay } from "./components/v2/shared";
 import { ProposalProgress } from "./components/ProposalSkeletonCard";
 import { useProposalProgress } from "./lib/useProposalProgress";
@@ -125,6 +128,7 @@ function extractFailureMetadata(err: unknown): GenerationFailureMetadata {
 export default function StudioAppV2BPage() {
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
+  const isMobile = useIsMobile();
   // An explicit History navigation owns this opening. Do not auto-resume an
   // unrelated session request (or admission) over the selected historical run.
   const [historyRestore] = useState(() => {
@@ -149,6 +153,7 @@ export default function StudioAppV2BPage() {
     try { clearActiveGenerationRequestId(window.sessionStorage); } catch { /* Storage may be unavailable. */ }
   }, []);
   const [generationSnapshot, setGenerationSnapshot] = useState<GenerationCoordinatorSnapshot | null>(null);
+  const [showProposalProgress, setShowProposalProgress] = useState(false);
   const proposalProgress = useProposalProgress(generationSnapshot?.proposals);
   const [materializedProposalKeys, setMaterializedProposalKeys] = useState<string[]>([]);
   const [proposalMaterializationFailures, setProposalMaterializationFailures] = useState<ProposalMaterializationFailure[]>([]);
@@ -242,6 +247,7 @@ export default function StudioAppV2BPage() {
     }).catch(() => console.warn("[catalog.trace] Falha ao enviar relatório", post.catalogCompilation?.traceId));
   };
   const [stage, setStage] = useState<ScreenStage>("create");
+  const [galleryResumePostId, setGalleryResumePostId] = useState<string>();
   const [isLoading, setIsLoading] = useState(false);
   const [productionIntro, setProductionIntro] = useState<{ prompt: string; startedAt: number } | null>(null);
   useEffect(() => {
@@ -322,8 +328,8 @@ export default function StudioAppV2BPage() {
       setMaterializationIssue(null);
     }
     setFailure(null);
-    if (admitted.created) toast.info("Geração progressiva iniciada. As propostas serão exibidas conforme ficarem prontas.");
-    else toast.info("Retomando a geração já admitida.");
+    if (!admitted.created) toast.info("Retomando a geração já admitida.");
+    else if (!isMobile) toast.info("Geração progressiva iniciada. As propostas serão exibidas conforme ficarem prontas.");
   };
 
   const submitPendingGenerationStart = async (pending: PendingGenerationStart, epoch: number) => {
@@ -382,22 +388,47 @@ export default function StudioAppV2BPage() {
       if (reason === "manual_session_limit" || reason === "pipeline_reconfiguration_required") throw new Error(reason);
       throw new Error(labelGenerationCapabilityReason(reason));
     }
-    let catalog: Awaited<ReturnType<typeof cachedCatalog>> | undefined;
-    if('catalogRevision' in capabilities&&capabilities.catalogRevision&&capabilities.catalogScope&&capabilities.catalogProject){
-      const revision=capabilities.catalogRevision;
-      catalog=await cachedCatalog(capabilities.catalogProject,capabilities.ownerId,capabilities.catalogScope,revision,()=>utils.catalog.snapshot.fetch({revision}));
-    }
     const previousInput = source === "more" ? lastGenerationInput.current : null;
     const executionBrief = previousInput?.executionBrief ?? (brief ? {...creationBriefToExecutionBrief(brief),platform:brief.platform??creationInputOptions.current.platform} : undefined);
     const isUrl = isStandaloneHttpUrl(promptText);
-    const preferred=catalog?.families?.find(family=>family.family===declaredFamilyId&&family.capabilities[mode==='carousel'?'carousel':'single']);
-    const tasteInstruction = isUrl || !declaredFamilyId ? "" : preferred
-      ? `\n\nPreferência visual: ${preferred.code} · ${preferred.name}. ${preferred.descriptor}. Considere essa direção quando compatível com o conteúdo, mídia e formato pedidos.`
-      : catalog?.families?.length ? "" : buildTasteInstruction(declaredFamilyId);
-    const content = source === "more" && !isUrl
-      ? `Crie 3 novos ganchos criativos e direções de arte alternativas sobre: ${promptText}${tasteInstruction}`
-      : `${promptText}${tasteInstruction}`;
     const activeProjId = previousInput ? previousInput.projectId : brief ? brief.projectId : selectedProjectId ?? undefined;
+    const activeProjectRecord = activeProjId
+      ? (brandProjectsQuery.data ?? []).find((p: any) => p.id === activeProjId) ?? getLocalProjectById(activeProjId)
+      : null;
+
+    const isProjectDesignDeclared = Boolean(activeProjId && declaredFamilyId === `project-design-${activeProjId}`);
+    const extractedKit = isProjectDesignDeclared && (() => {
+      try { return JSON.parse(activeProjectRecord?.visualPreferences?.composition ?? "{}").source === "design-extraction"; }
+      catch { return false; }
+    })();
+    const fixedDesign = previousInput ? previousInput.fixedDesign
+      : creationInputOptions.current.fixedDesign ?? (extractedKit && activeProjId
+        ? { kind: "project" as const, id: activeProjId } : undefined);
+    let catalog: Awaited<ReturnType<typeof cachedCatalog>> | undefined;
+    if(!fixedDesign && 'catalogRevision' in capabilities&&capabilities.catalogRevision&&capabilities.catalogScope&&capabilities.catalogProject){
+      const revision=capabilities.catalogRevision;
+      catalog=await cachedCatalog(capabilities.catalogProject,capabilities.ownerId,capabilities.catalogScope,revision,()=>utils.catalog.snapshot.fetch({revision}));
+    }
+    let tasteInstruction = "";
+    if (!fixedDesign && !isUrl && declaredFamilyId) {
+      if (isProjectDesignDeclared && activeProjectRecord?.visualPreferences) {
+        const vp = activeProjectRecord.visualPreferences;
+        const styleName = vp.personality?.[0] || "Identidade do Projeto";
+        const colors = vp.colors?.join(", ") || "";
+        const fonts = vp.fonts?.join(", ") || "";
+        tasteInstruction = `\n\n[DIREÇÃO DE ARTE DO PROJETO ATIVA — OBRIGATÓRIA]\nO usuário ativou o design extraído do projeto "${activeProjectRecord.name}".\nEstilo visual: ${styleName}.\nPaleta de cores a aplicar: ${colors}.\nTipografia a aplicar: ${fonts}.\nCrie os posts aplicando com fidelidade este ecossistema visual.`;
+      } else {
+        const preferred = catalog?.families?.find(family => family.family === declaredFamilyId && family.capabilities[mode === 'carousel' ? 'carousel' : 'single']);
+        tasteInstruction = preferred
+          ? `\n\nPreferência visual: ${preferred.code} · ${preferred.name}. ${preferred.descriptor}. Considere essa direção quando compatível com o conteúdo, mídia e formato pedidos.`
+          : catalog?.families?.length ? "" : buildTasteInstruction(declaredFamilyId);
+      }
+    }
+
+    const content = source === "more" && !isUrl
+      ? fixedDesign ? `Crie outra versão do conteúdo neste design sobre: ${promptText}`
+        : `Crie 3 novos ganchos criativos e direções de arte alternativas sobre: ${promptText}${tasteInstruction}`
+      : `${promptText}${tasteInstruction}`;
     let projectDossier = previousInput?.projectDossier ?? brief?.projectDossier;
     let projectSnapshot = previousInput?.projectSnapshot ?? brief?.projectSnapshot;
     if (!projectDossier && !projectSnapshot && activeProjId) {
@@ -429,14 +460,15 @@ export default function StudioAppV2BPage() {
       ...((previousInput?.allowAiImages ?? creationInputOptions.current.allowAiImages) !== undefined
         ? { allowAiImages: previousInput?.allowAiImages ?? creationInputOptions.current.allowAiImages }
         : {}),
-      aspectRatio: previousInput?.aspectRatio ?? assemblyAspectRatio,
-      slideCount: mode === "carousel" ? previousInput?.slideCount ?? brief?.slideCount ?? 5 : undefined,
+      aspectRatio: previousInput?.aspectRatio ?? creationInputOptions.current.aspectRatio ?? assemblyAspectRatio,
+      slideCount: mode === "carousel" ? previousInput?.slideCount ?? creationInputOptions.current.slideCount ?? brief?.slideCount ?? 5 : undefined,
       ...(previousInput?.model ? { model: previousInput.model } : {}),
       generationModel: previousInput ? previousInput.generationModel ?? "gemini" : creationInputOptions.current.generationModel ?? "auto",
       generationParentRequestId: source === "more" ? activeGenerationRequestId ?? undefined : undefined,
       creationMode: executionBrief ? "execution" : "ideation",
       executionBrief,
       projectId: activeProjId,
+      fixedDesign,
       projectDossier,
       projectSnapshot,
       idempotencyKey: newGenerationIdempotencyKey(),
@@ -540,6 +572,12 @@ export default function StudioAppV2BPage() {
       activeRequestEpoch.current.set(snapshotToMaterialize.requestId, epoch);
       if (epoch !== generationEpoch.current) continue;
       const key = `${delivery.proposalId}:${delivery.revision}`;
+      if (delivery.fixedCanvas) {
+        const post = delivery.fixedCanvas;
+        setMaterializedProposalKeys(previous => [...previous.filter(item => item !== key), key]);
+        setGeneratedVariations(previous => previous.some(item => item.id === post.id) ? previous : [...previous, post]);
+        continue;
+      }
       void materializeCatalogVariationsDetailed(
         [{ completeDesignV1: delivery.bundle }],
         lastPrompt || "Geração de posts",
@@ -643,6 +681,12 @@ export default function StudioAppV2BPage() {
           inputType: payload.inputType === "url" ? "url" : payload.inputType === "image" ? "image" : "text",
           inputContent: payload.inputContent || "",
         });
+        const fixed = (payload.variations[0] as { fixedCanvas?: CanvasPostModel } | undefined)?.fixedCanvas;
+        if (fixed?.slides?.length) {
+          setGeneratedVariations([fixed]);
+          setStage("gallery");
+          return;
+        }
         const variations = ensureDistinctFamilies(payload.variations as any[], payload.inputContent || "historico");
         void materializeCatalogVariationsDetailed(variations, payload.inputContent || "historico").then(result => {
           if (restoreEpoch !== generationEpoch.current) return;
@@ -692,7 +736,7 @@ export default function StudioAppV2BPage() {
       const meta = extractFailureMetadata(err);
       setFailure({
         reason: meta.reason,
-        userMessage: meta.userMessage,
+        userMessage: err instanceof Error && (err as { data?: { code?: string } }).data?.code === "PRECONDITION_FAILED" ? err.message : meta.userMessage,
         retryable: meta.retryable,
         prompt: promptText,
         mode,
@@ -716,7 +760,7 @@ export default function StudioAppV2BPage() {
   ) => {
     const requestEpoch = generationEpoch.current;
     setIsGeneratingMore(true);
-    toast.info("A IA está criando 3 novos ângulos criativos...");
+    toast.info(lastGenerationInput.current?.fixedDesign ? "A IA está criando outra versão neste design..." : "A IA está criando 3 novos ângulos criativos...");
 
     try {
       await startGeneration(promptText, mode, brief, formatConfirmed, "more", retryAdmission, requestEpoch);
@@ -753,6 +797,7 @@ export default function StudioAppV2BPage() {
       : null;
     const interpreted: CreationBrief = {
       ...interpretRawBriefing(promptText, { selectedFormat: mode }),
+      ...(mode === "carousel" && creationInputOptions.current.slideCount ? { slideCount: creationInputOptions.current.slideCount } : {}),
       platform:creationInputOptions.current.platform,
       sources:[...interpretRawBriefing(promptText,{selectedFormat:mode}).sourceUrls?.map((url,index)=>({id:`page-${index+1}`,kind:"url" as const,purpose:"content" as const,value:url}))??[],...(creationInputOptions.current.image?[{id:"image-1",kind:"image" as const,purpose:creationInputOptions.current.imagePurpose,value:creationInputOptions.current.image}]:[])],
       ...(project ? {
@@ -896,6 +941,11 @@ export default function StudioAppV2BPage() {
     setStage("editor");
   };
 
+  const handleGalleryBackToCreate = () => {
+    setStage("create");
+    setDeclaredFamilyId(null);
+  };
+
   // ─── Fallback local opt-in: só roda após escolha explícita do usuário ───
   const handleUseLocalFallback = () => {
     if (!failure) return;
@@ -903,11 +953,11 @@ export default function StudioAppV2BPage() {
     if (failure.source === "more") {
       const extra = buildExtraFallbackVariations(failure.prompt, reason);
       setGeneratedVariations((prev) => [...prev, ...extra]);
-      toast.warning("Sugestões locais adicionadas à galeria (não são geração de IA).");
+      if (!isMobile) toast.warning("Sugestões locais adicionadas à galeria (não são geração de IA).");
     } else {
       setGeneratedVariations(buildInitialFallbackVariations(failure.prompt, declaredFamilyId ?? undefined, reason));
       setStage("gallery");
-      toast.warning("Exibindo sugestões locais — não são geração de IA.");
+      if (!isMobile) toast.warning("Exibindo sugestões locais — não são geração de IA.");
     }
     setFailure(null);
   };
@@ -1062,12 +1112,19 @@ export default function StudioAppV2BPage() {
     setFormatChoiceConfirmed(false);
   };
 
+  useEffect(() => {
+    if (stage === "create") setGalleryResumePostId(undefined);
+    if (window.innerWidth >= 768) return;
+    document.documentElement.scrollTop = 0;
+    setShowProposalProgress(false);
+  }, [stage]);
+
   return (
     <>
     <AnimatePresence>{productionIntro && <ProductionOverlay prompt={productionIntro.prompt} />}</AnimatePresence>
-    <div inert={productionIntro ? true : undefined} className="min-h-screen w-full bg-[#0B0A08] text-white flex flex-col overflow-hidden font-sans">
+    <div inert={productionIntro ? true : undefined} className={`flex min-h-[100svh] w-full flex-col bg-[#0B0A08] font-sans text-white md:min-h-screen md:overflow-hidden ${stage === "gallery" ? "max-md:bg-[#07090E]" : ""}`}>
       {generationEvents.error && <div role="alert">A conexão com a geração foi interrompida. O trabalho pode continuar no servidor. <button onClick={generationEvents.reconnect}>Reconectar</button></div>}
-      {stage === "create" && (!generationCapabilities.data?.enabled || activeGenerationQuery.error || pendingGenerationStart) && (
+      {stage === "create" && ((!generationCapabilities.isLoading && !generationCapabilities.data?.enabled) || activeGenerationQuery.error || pendingGenerationStart) && (
         <div className="mx-auto mt-4 w-[min(92%,64rem)] rounded-lg border border-violet-300/25 bg-violet-300/5 p-4 text-sm text-violet-100">
           {!generationCapabilities.data?.enabled && (
             <p role="status">{labelGenerationCapabilityReason(generationCapabilities.data?.reason)}</p>
@@ -1102,14 +1159,6 @@ export default function StudioAppV2BPage() {
       {/*
       {stage === "create" && assemblyPilot && <div className="mx-auto mt-3 w-[min(92%,64rem)]"><StudioArtPreferences /></div>}
       */}
-      {stage === "create" && arsenalReadiness.data && (
-        <label className="mx-auto mt-2 flex items-center gap-3 text-sm text-cyan-100">
-          Formato das propostas
-          <select aria-label="Formato das propostas" value={assemblyAspectRatio} onChange={e=>setAssemblyAspectRatio(e.target.value as "1:1"|"4:5"|"9:16")} className="rounded border border-cyan-300/30 bg-[#0B0A08] px-3 py-2">
-            <option value="4:5">Retrato 4:5</option><option value="1:1">Quadrado 1:1</option><option value="9:16">Vertical 9:16</option>
-          </select>
-        </label>
-      )}
       {/*
       {stage === "create" && !assemblyPilot && arsenalReadiness.data && arsenalReadiness.data.reason !== "ready" && (
         <div role="status" className="mx-auto mt-4 w-[min(92%,64rem)] rounded-lg border border-amber-300/20 bg-amber-300/5 px-4 py-3 text-sm text-amber-100">
@@ -1139,13 +1188,34 @@ export default function StudioAppV2BPage() {
           onDiscardDraft={handleDiscardDraft}
           selectedProjectId={selectedProjectId}
           onSelectProjectId={handleSelectProjectId}
+          proposalAspectRatio={arsenalReadiness.data ? assemblyAspectRatio : undefined}
+          onProposalAspectRatioChange={setAssemblyAspectRatio}
+          onOpenEditorWithPost={(post) => {
+            setLastInputMeta({ inputType: "text", inputContent: post.headline });
+            setSelectedPost(post);
+            setStage("editor");
+          }}
         />
       )}
 
       {stage === "gallery" && (
         <>
+          {isMobile && (
+            <header className="flex items-center justify-between gap-2 border-b border-white/10 bg-[#07090E] px-4 py-2 md:hidden">
+              <button type="button" onClick={handleGalleryBackToCreate} className="flex min-h-11 items-center gap-1 text-sm text-white/80">
+                <ArrowLeft size={16} aria-hidden="true" /> Novo tema
+              </button>
+              <UserTopMenu variant="inline" compactMobile />
+            </header>
+          )}
           {generationSnapshot && (
-            <section role="status" className="mx-auto mt-4 w-[min(92%,64rem)] rounded-xl border border-violet-300/30 bg-violet-300/10 p-4 text-violet-50">
+            <section className="mx-auto mt-3 w-[min(92%,64rem)] rounded-xl border border-violet-300/30 bg-violet-300/10 text-violet-50 md:mt-4 md:p-4">
+              <button type="button" aria-expanded={showProposalProgress} aria-controls="studio-generation-progress" onClick={() => setShowProposalProgress(open => !open)}
+                className="flex min-h-12 w-full items-center justify-between gap-2 px-3 text-left text-sm md:hidden">
+                <span aria-live="polite">{dispatchInterrupted ? "Geração interrompida" : labelGenerationStatus(generationSnapshot.overallStatus)} · {generatedVariations.length} {generatedVariations.length === 1 ? "proposta disponível" : "propostas disponíveis"}</span>
+                <ChevronDown size={16} className={showProposalProgress ? "shrink-0 rotate-180" : "shrink-0"} aria-hidden="true" />
+              </button>
+              <div id="studio-generation-progress" className={`${showProposalProgress ? "block" : "hidden"} px-3 pb-3 md:block md:p-0`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <strong>Geração progressiva · {dispatchInterrupted ? "Execução interrompida" : labelGenerationStatus(generationSnapshot.overallStatus)}</strong>
@@ -1165,7 +1235,7 @@ export default function StudioAppV2BPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {generationSnapshot.overallStatus==="awaiting_reconciliation"&&<><p>Uma etapa da geração ainda precisa ser confirmada. O pedido mantém o prazo original.</p><button disabled={generationReconcile.isPending} onClick={()=>activeGenerationRequestId&&generationReconcile.mutate({requestId:activeGenerationRequestId})}>Conferir resultado existente</button></>}
                   {activeGenerationQuery.error && <button type="button" onClick={() => void activeGenerationQuery.refetch()} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm">Atualizar progresso</button>}
                   {["running","awaiting_reconciliation"].includes(generationSnapshot.overallStatus) && (
@@ -1177,7 +1247,9 @@ export default function StudioAppV2BPage() {
                 </div>
               </div>
               {!!activeGenerationQuery.data?.sourceWarnings?.length&&<div className="mt-3 text-sm text-amber-200"><strong>Limitações das fontes</strong>{activeGenerationQuery.data.sourceWarnings.map((warning,index)=><p key={index}>{warning}</p>)}</div>}
-              <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className={`mt-3 gap-2 sm:grid-cols-2 lg:grid-cols-3 ${
+                generatedVariations.length || proposalMaterializationFailures.length || generationSnapshot.overallStatus !== "running" || dispatchInterrupted ? "grid" : "hidden md:grid"
+              }`}>
                 {generationSnapshot.proposals.map((proposal) => {
                   const key = `${proposal.proposalId}:${proposal.revision}`;
                   const failed = proposalMaterializationFailures.find((item) => item.key === key);
@@ -1198,6 +1270,7 @@ export default function StudioAppV2BPage() {
                   );
                 })}
               </ul>
+              </div>
             </section>
           )}
           {materializationIssue && (
@@ -1220,20 +1293,19 @@ export default function StudioAppV2BPage() {
           )}
           <StudioGalleryView
             variations={generatedVariations}
+            mobile={isMobile}
             initialAspectRatio={generatedVariations[0]?.aspectRatio ?? lastGenerationInput.current?.aspectRatio ?? assemblyAspectRatio}
+            resumeMobilePost={galleryResumePostId ? generatedVariations.find(post => post.id === galleryResumePostId) : undefined}
             onSelectVariation={handleSelectVariation}
-            onBackToCreate={() => {
-              setStage("create");
-              setDeclaredFamilyId(null);
-            }}
-            onGenerateMore={dispatchInterrupted ? undefined : handleGenerateMore}
+            onBackToCreate={handleGalleryBackToCreate}
+            onGenerateMore={dispatchInterrupted || (!generationSnapshot && Boolean((historyRestore?.variations?.[0] as { fixedCanvas?: CanvasPostModel } | undefined)?.fixedCanvas)) ? undefined : handleGenerateMore}
             isGeneratingMore={!dispatchInterrupted && (isGeneratingMore || generationSnapshot?.overallStatus === "running")}
             declaredFamilyId={declaredFamilyId}
             generationProposals={dispatchInterrupted ? generationSnapshot?.proposals.filter(proposal => proposal.status === "ready") : generationSnapshot?.proposals}
             proposalProgress={proposalProgress}
             materializedProposalKeys={materializedProposalKeys}
             materializationFailureKeys={proposalMaterializationFailures.map(item => item.key)}
-            expectedCount={3}
+            expectedCount={generationSnapshot?.proposals.length ?? (generatedVariations.length === 1 && historyRestore ? 1 : 3)}
           />
         </>
       )}
@@ -1243,6 +1315,7 @@ export default function StudioAppV2BPage() {
           initialPost={selectedPost}
           onBackToGallery={(editedPost) => {
             setSelectedPost(editedPost);
+            setGalleryResumePostId(editedPost.id);
             setGeneratedVariations(previous => previous.some(item => item.id === editedPost.id)
               ? previous.map(item => item.id === editedPost.id ? editedPost : item)
               : [...previous, editedPost]);

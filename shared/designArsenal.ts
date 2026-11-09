@@ -192,7 +192,20 @@ const arsenalPieceObjectSchema = z
     artboardBleed: z.literal(true).optional(),
     contentFragment: arsenalContentFragmentSchema.optional(),
     textFragments: z.array(arsenalTextFragmentSchema).max(100).optional(),
-    extrusion: z.object({ color, offsetX: n, offsetY: n, steps: n.int().min(1).max(100) }).strict().optional(),
+    textGradient: z.object({
+      colors: z.array(color).min(2).max(8),
+      start: n,
+      end: n,
+    }).strict().optional(),
+    strokeDash: z.array(n.positive()).min(2).max(8).optional(),
+    blendMode: z.literal("multiply").optional(),
+    extrusion: z.object({
+      color,
+      offsetX: n,
+      offsetY: n,
+      steps: n.int().min(1).max(100),
+      colors: z.array(color).min(1).max(8).optional(),
+    }).strict().optional(),
   })
   .strict();
 export const arsenalPieceSchema = arsenalPieceObjectSchema.superRefine((piece, ctx) => {

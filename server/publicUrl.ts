@@ -79,7 +79,11 @@ export async function publicHtml(
         url,
         {
           signal: stop,
-          headers: { "User-Agent": "PostSpark/3.0", Accept: "text/html" },
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 PostSpark/3.0",
+            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+          },
           lookup: (_hostname, opts: any, cb: any) => {
             const callback = typeof opts === "function" ? opts : cb;
             const options = typeof opts === "object" ? opts : {};
@@ -104,29 +108,39 @@ export async function publicHtml(
             reject(new Error("A página não retornou conteúdo textual."));
             return;
           }
-          if (Number(res.headers["content-length"] ?? 0) > limit) {
-            res.destroy();
-            reject(new Error("Página excede o limite de leitura."));
-            return;
-          }
           let size = 0;
+          let stopped = false;
           const parts: Buffer[] = [];
           res.on("data", (part: Buffer) => {
-            size += part.length;
-            if (size > limit) {
-              res.destroy(new Error("Página excede o limite de leitura."));
+            if (stopped) return;
+            const remaining = limit - size;
+            if (part.length > remaining) {
+              parts.push(part.subarray(0, remaining));
+              size += remaining;
+              stopped = true;
+              res.destroy();
+              resolve({
+                status: res.statusCode ?? 0,
+                location: res.headers.location,
+                text: Buffer.concat(parts).toString("utf8"),
+              });
               return;
             }
             parts.push(part);
+            size += part.length;
           });
-          res.on("error", reject);
-          res.on("end", () =>
+          res.on("error", (err) => {
+            if (stopped) return;
+            reject(err);
+          });
+          res.on("end", () => {
+            if (stopped) return;
             resolve({
               status: res.statusCode ?? 0,
               location: res.headers.location,
               text: Buffer.concat(parts).toString("utf8"),
-            })
-          );
+            });
+          });
         }
       );
       req.on("error", reject);

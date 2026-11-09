@@ -282,7 +282,7 @@ export default function ProjectCalibrationModal({
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative flex flex-col w-full max-w-2xl max-h-[90vh] bg-[#141419] border border-white/10 rounded-2xl shadow-2xl overflow-hidden text-white"
+          className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#141419] text-white shadow-2xl md:max-h-[90vh]"
         >
           {/* CABEÇALHO */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.02]">
@@ -341,7 +341,7 @@ export default function ProjectCalibrationModal({
           </div>
 
           {/* CORPO / CONTEÚDO */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain p-4 md:p-6">
             {activeTab === "form" ? (
               <div className="space-y-5">
                 {/* Indicador de passos */}

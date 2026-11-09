@@ -20,6 +20,7 @@ import {
 import { retrieveCompleteDesignCards } from "../designCatalog/completeDesignStore";
 import { eligibleCompleteDesignCardsForRequest } from "../ai/workflows/generationPreparation";
 import { hasFormatMismatch } from "@shared/formatIntent";
+import { pinFixedDesign } from "../ai/workflows/fixedDesignSource";
 import { createGenerationStore } from "../ai/workflows/generationStore";
 import { saveUserMediaAsset } from "../mediaAssets";
 import { resolveProposalMediaReferences } from "../ai/workflows/proposalMedia";
@@ -142,6 +143,8 @@ export const generationRouter = router({
       }
       const paused = await admissionPauseReason(ctx.user.id);
       if (paused) throw admissionPaused(paused);
+      if (input.fixedDesign && !(await store.isFixedDesignAvailable?.()))
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A geração com design escolhido ainda está indisponível. Nenhum Spark foi reservado." });
       if (input.includeDraftDesigns && ctx.user.role !== "admin")
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -165,6 +168,8 @@ export const generationRouter = router({
           ].filter((v): v is string => Boolean(v))
         )
       );
+      if (input.fixedDesign && references.length)
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Este modo preenche os textos da peça salva. Retire os anexos de imagem para continuar." });
       try {
         await resolveProposalMediaReferences(
           references.map(ref =>
@@ -212,7 +217,7 @@ export const generationRouter = router({
       const executorScope=ENV.localDemandEnabled?await localExecutorScope():undefined;
       // General capability counts are advisory. Admission checks the exact same
       // authored revisions, format, roles, brand and media requirements as preparation.
-      try {
+      if (!input.fixedDesign) try {
         const brief = input.executionBrief
           ? normalizeExecutionBrief(input.executionBrief)
           : null;
@@ -240,7 +245,18 @@ export const generationRouter = router({
         });
       }
       const inputHash = requestInputHash(input);
-      const storedInput = structuredClone(input);
+      const storedInput: typeof input & { pinnedDesign?: Awaited<ReturnType<typeof pinFixedDesign>> } = structuredClone(input);
+      if (input.fixedDesign) {
+        const previous = parent?.input.pinnedDesign;
+        if (parent?.input.fixedDesign && previous &&
+          arsenalHash(parent.input.fixedDesign) === arsenalHash(input.fixedDesign) &&
+          parent.input.aspectRatio === input.aspectRatio && parent.input.postMode === input.postMode &&
+          parent.input.slideCount === input.slideCount) {
+          storedInput.pinnedDesign = previous;
+        } else {
+          storedInput.pinnedDesign = await pinFixedDesign(input, ctx.user.id);
+        }
+      }
       if(input.projectId&&!input.projectDossier&&!input.projectSnapshot){
         const project=await getBrandProjectById(input.projectId,ctx.user.id);if(!project)throw new TRPCError({code:"NOT_FOUND",message:"Projeto não encontrado."});
         storedInput.projectDossier=project.compiled_document;
@@ -351,6 +367,7 @@ export const generationRouter = router({
         progressTransport:record.executionMode==='local-demand'?'events' as const:'poll' as const,
         input: {
           ...record.input,
+          pinnedDesign: undefined,
           // Transport identity and inline bytes are not needed to reopen the
           // briefing. Owner-scoped private URLs retain normal media protection.
           idempotencyKey: undefined,

@@ -22,6 +22,7 @@ import PrivacySettings from "./pages/PrivacySettings";
 import ConsentModal from "./components/ConsentModal";
 import CookieBanner from "./components/CookieBanner";
 import { useAuth } from "./_core/hooks/useAuth";
+import { useIsMobile } from "@/hooks/useMobile";
 import { useEffect, lazy, Suspense, type ComponentType } from "react";
 
 // Lazy loading da vitrine de inspiração com isolamento total de bundle
@@ -243,6 +244,7 @@ function Router() {
 function AppInner() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
+  const isMobile = useIsMobile();
 
   // Nas rotas de estúdio (/thevoid, /studio, /studio-v2b), cada etapa (Criação, Galeria e CanvasLab)
   // renderiza o UserTopMenu de forma nativa e integrada ao seu respectivo layout/header.
@@ -255,6 +257,21 @@ function AppInner() {
 
   return (
     <>
+      <Toaster
+        position={isStudioRoute && isMobile ? "top-center" : "bottom-right"}
+        mobileOffset={isStudioRoute && isMobile ? { top: "4.5rem" } : undefined}
+        toastOptions={{
+          style: {
+            background: "oklch(0.13 0.025 280)",
+            border: "1px solid oklch(1 0 0 / 8%)",
+            color: "oklch(0.93 0.01 280)",
+          },
+          classNames: {
+            success: "toast-success",
+            error: "toast-error",
+          },
+        }}
+      />
       <Router />
       {isAuthenticated && !isStudioRoute ? <UserTopMenu /> : null}
       {/* Consentimento LGPD e Cookies - fora das páginas imersivas */}
@@ -269,20 +286,6 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                background: "oklch(0.13 0.025 280)",
-                border: "1px solid oklch(1 0 0 / 8%)",
-                color: "oklch(0.93 0.01 280)",
-              },
-              classNames: {
-                success: "toast-success",
-                error: "toast-error",
-              },
-            }}
-          />
           <AppInner />
         </TooltipProvider>
       </ThemeProvider>

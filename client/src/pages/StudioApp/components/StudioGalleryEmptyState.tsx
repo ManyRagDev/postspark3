@@ -31,11 +31,11 @@ export default function StudioGalleryEmptyState({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#07090E] text-white">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4 md:px-6">
+      <header className="hidden h-14 shrink-0 items-center justify-between border-b border-white/10 px-6 md:flex">
         <button
           type="button"
           onClick={onBackToCreate}
-          className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs text-white/70 hover:text-white cursor-pointer"
+          className="flex min-h-11 items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs text-white/70 hover:text-white md:min-h-0"
         >
           <ArrowLeft size={13} />
           Novo Tema
@@ -47,10 +47,10 @@ export default function StudioGalleryEmptyState({
         <main
           role="status"
           aria-live="polite"
-          className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar flex flex-col items-center justify-start select-none animate-fade-in"
+          className="flex flex-1 select-none flex-col items-center justify-start px-4 py-6 md:overflow-y-auto md:p-10"
         >
           {/* Status Message Header */}
-          <div className="text-center mb-8">
+          <div className="mb-4 text-center md:mb-8">
             <p className="text-base font-semibold text-white tracking-wide">
               {allProposalsFailed
                 ? "Não foi possível concluir as direções de arte"
@@ -64,11 +64,11 @@ export default function StudioGalleryEmptyState({
           </div>
 
           {/* Skeletons Grid: se falhar, o brilho cessa no card correspondente */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 max-w-6xl mx-auto w-full items-start justify-center">
+          <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-2 md:grid-cols-2 md:gap-8 xl:grid-cols-3">
             {[0, 1, 2].map((slotIdx) => {
               const proposal = proposals?.find((p) => p.slot === slotIdx);
               const status = proposal?.status || "running";
-              const errorReason = proposal?.errorReason
+              const errorReason = proposal?.errorReason || proposal?.failure
                 ? messageGenerationProposalFailure(proposal.errorReason, proposal.failure)
                 : undefined;
               const statusMessage = proposal ? labelGenerationStatus(proposal.status) : undefined;
@@ -83,6 +83,7 @@ export default function StudioGalleryEmptyState({
                   progress={proposal ? proposalProgress?.[`${proposal.proposalId}:${proposal.revision}`] : undefined}
                   statusMessage={statusMessage}
                   errorReason={errorReason}
+                  compactOnMobile
                 />
               );
             })}

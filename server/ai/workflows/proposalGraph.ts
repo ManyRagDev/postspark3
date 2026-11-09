@@ -179,6 +179,7 @@ export interface ProposalExecutionInput {
   deferCopyRepair?: boolean;
   recoveryCopy?: CopyResponse;
   rewriteForRecovery?: boolean;
+  reviewLenientDelivery?: boolean;
   deadlineMs?: number;
   signal?: AbortSignal;
 }
@@ -732,6 +733,60 @@ export async function fitExistingProposalCopy(args: {
   if (!preflight.findings.some(finding => finding.rule !== "contrast")) return copy;
 }
 
+export function formatHumanTextCapacityGuidance(
+  definitions: ComponentDefinitionV1[],
+  fieldSchemaNotes: Array<{
+    slide: number;
+    fields?: Array<{
+      id: string;
+      role?: string;
+      kind?: string;
+      plannedItemCount?: number;
+      cardinality?: { min?: number; max?: number } | null;
+      capacity?: { minWords?: number; estimatedMaxChars?: number | null } | null;
+      targets?: Array<{ maxLines?: number; maxChars?: number }> | null;
+    }>;
+  }>
+): string {
+  const lines: string[] = [
+    "📐 GUIA PRÁTICO DE ENCAIXE E EXTENSÃO DE TEXTO (por slide):",
+    "Siga estes ranges recomendados de palavras/caracteres para garantir que o texto fique legível e bem diagramado na arte:",
+  ];
+
+  definitions.forEach((def, slideIdx) => {
+    const artboard = def.fragment.artboard ?? { width: 1080, height: 1350 };
+    const ratio = artboard.height > artboard.width ? "4:5 (Vertical)" : artboard.width === artboard.height ? "1:1 (Quadrado)" : "9:16 (Story/Reels)";
+    lines.push(`\n▶ Slide ${slideIdx + 1} [Dimensão do Painel: ${artboard.width}×${artboard.height} px · ${ratio}]:`);
+
+    const slideNotes = fieldSchemaNotes[slideIdx];
+    if (slideNotes?.fields) {
+      for (const f of slideNotes.fields) {
+        const roleLabel =
+          f.role === "headline" ? "Título Principal" :
+          f.role === "body" ? "Texto de Apoio / Parágrafo" :
+          f.role === "kicker" ? "Subtítulo / Kicker" :
+          f.role === "call_to_action" ? "Chamada para Ação (CTA)" :
+          f.role === "tag" ? "Etiqueta / Tag" :
+          f.role ?? "Campo";
+
+        const maxChars = f.capacity?.estimatedMaxChars ?? 80;
+        const minWords = Math.max(1, f.capacity?.minWords ?? 2);
+        const maxWords = Math.max(minWords, Math.min(Math.round(maxChars / 5.5), 35));
+        const maxLines = Math.max(1, ...(f.targets?.map((t: any) => t.maxLines ?? 1) ?? [2]));
+
+        if (f.kind === "list") {
+          const items = f.plannedItemCount ?? f.cardinality?.min ?? 3;
+          lines.push(`  • [${f.id}] ${roleLabel}: Lista com aprox. ${items} itens. Cada item curto (3 a 8 palavras).`);
+        } else {
+          lines.push(`  • [${f.id}] ${roleLabel}: Recomendado ${minWords} a ${maxWords} palavras (máx ~${maxChars} caracteres, até ${maxLines} linha${maxLines > 1 ? "s" : ""}).`);
+        }
+      }
+    }
+  });
+
+  return lines.join("\n");
+}
+
 /**
  * Per-proposal lifecycle. Copy is generated once for all slide compositions;
  * each required image is then generated and persisted for its own native slot.
@@ -1100,14 +1155,18 @@ export async function executeProposalWorkflow(
     const editorialReadingPrompt = input.generationIntent?.editorial
       ? `Leitura editorial parcial: sinais requested são pedidos, suggested são possibilidades, forbidden são proibições expressas; ausência é neutra. Não acrescente conteúdo para preencher aspectos não especificados. Definições do vocabulário congelado:\n${JSON.stringify(input.editorialCatalog?.document.intents.filter(d => input.generationIntent!.editorial!.signals.some(s => s.intentId === d.id)) ?? [])}\nSinais congelados: ${JSON.stringify(input.generationIntent.editorial)}`
       : null;
+    const capacityGuidance = formatHumanTextCapacityGuidance(definitions, fieldSchemaNotes);
     const userCopyPrompt = compactPolicy ? compactCopyPrompt(input, definitions) : affirmative ? [
       `Contexto editorial congelado (projeto, playbook e pedido):\n${JSON.stringify(input.editorialContext ?? editorialContextV7(input, 6))}`,
       (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? `Abordagem editorial da proposta ${slot + 1}: ${input.editorialApproach ?? "Preserve a distribuição literal e as escolhas expressas da peça."}` : `Direção da proposta ${slot + 1}: ${input.selectionReason ?? "composição compatível"}. Desenvolva uma abordagem própria a partir desta direção.`,
       ...(input.narrativePlan ? [`Plano narrativo e visual congelado (execute as atribuições de conteúdo por campo):\n${JSON.stringify({ intent: input.generationIntent, plan: input.narrativePlan })}`, "Preserve a superfície e a quantidade de itens pedidos. O plano orienta a redação; IDs e justificativas não são fontes de fatos."] : []),
       ...(editorialReadingPrompt ? [editorialReadingPrompt] : []),
+      capacityGuidance,
       `Condições de composição dos templates reais:\n${JSON.stringify(fieldSchemaNotes)}`,
       ...(input.rewriteForRecovery ? ["Adapte a redação a estas caixas. Priorize títulos curtos, preserve os fatos e conteúdos obrigatórios e mantenha a legenda separada da arte conforme o briefing."] : []),
-      "Entregue os campos nativos na ordem dos slides. Cada fieldId aparece uma vez, com string vazia ou lista vazia nos campos opcionais que dispensarem texto. Listas usam arrays; linhas autoradas seguem a distribuição e os limites de cada caixa.",
+      definitions.length > 1
+        ? `IMPORTANTE: Você DEVE entregar exatamente ${definitions.length} slides no array 'slides' (índices 0 a ${definitions.length - 1}), correspondendo aos ${definitions.length} templates fornecidos acima. Cada fieldId aparece uma vez, com string vazia ou lista vazia nos campos opcionais que dispensarem texto. Listas usam arrays; linhas autoradas seguem a distribuição e os limites de cada caixa.`
+        : "Entregue os campos nativos na ordem dos slides. Cada fieldId aparece uma vez, com string vazia ou lista vazia nos campos opcionais que dispensarem texto. Listas usam arrays; linhas autoradas seguem a distribuição e os limites de cada caixa.",
     ].join("\n\n") : [
       `Modo: ${input.creationMode ?? "ideation"}; plataforma: ${input.platform ?? input.executionBrief?.platform ?? "não especificada"}; tom: ${input.tone ?? input.executionBrief?.tone ?? "não especificado"}; formato: ${input.postMode ?? input.executionBrief?.format ?? (definitions.length > 1 ? "carousel" : "static")}.`,
       `Briefing original do usuário:\n${input.executionBrief?.rawInput ?? input.prompt}`,
@@ -1117,6 +1176,7 @@ export async function executeProposalWorkflow(
       `Pedido textual complementar:\n${input.prompt}`,
       `Grafias canônicas protegidas (não separar, abreviar ou inserir espaços dentro dos nomes): ${JSON.stringify(protectedEditorialEntities(input))}`,
       `Direção selecionada para esta proposta (${slot + 1}): ${input.selectionReason ?? "composição compatível com o pedido"}. Essa justificativa orienta a direção; não é fonte de fatos sobre o produto.`,
+      capacityGuidance,
       `Composições nativas, capacidade, cardinalidade e alvos reais:\n${JSON.stringify(fieldSchemaNotes, null, 2)}`,
       ...(narrativeContract
         ? [
@@ -1246,11 +1306,33 @@ export async function executeProposalWorkflow(
       extractTextContent(answer?.message?.content),
       null
     );
+    const parsedObj = parsed && typeof parsed === "object" ? (parsed as Record<string, any>) : null;
     let copy: CopyResponse;
     if (input.deliveryRecoveryEnabled) {
-      const validated = copySchema.safeParse(parsed);
-      if (!validated.success || (answer && "finish_reason" in answer && answer.finish_reason === "length"))
-        throw new GenerationFailureError("copy_response_invalid", "copy", false);
+      let validated = copySchema.safeParse(parsed);
+      if (!validated.success && parsedObj && Array.isArray(parsedObj.slides) && input.postMode === "carousel") {
+        if (parsedObj.slides.length >= 2 && parsedObj.slides.length < definitions.length) {
+          const sliceDefs = definitions.slice(0, parsedObj.slides.length);
+          const sliceSchema = compactPolicy
+            ? compactCopyValidationSchema(sliceDefs, nativeGlyphProjectionFor(input))
+            : copyResponseSchema(sliceDefs, false, usesAffirmativeContext(input), usesAffirmativeContext(input), nativeGlyphProjectionFor(input));
+          const sliceVal = sliceSchema.safeParse(parsedObj);
+          if (sliceVal.success) {
+            definitions.length = parsedObj.slides.length;
+            validated = sliceVal;
+          }
+        } else if (parsedObj.slides.length > definitions.length) {
+          const truncatedParsed = { ...parsedObj, slides: parsedObj.slides.slice(0, definitions.length) };
+          const truncVal = copySchema.safeParse(truncatedParsed);
+          if (truncVal.success) {
+            validated = truncVal;
+          }
+        }
+      }
+      if (!validated.success || (answer && "finish_reason" in answer && answer.finish_reason === "length")) {
+        console.error(`[proposal:${proposalId}:copy] Falha de validação da cópia:`, !validated.success ? validated.error?.issues : "finish_reason=length");
+        throw new GenerationFailureError("copy_response_invalid", "copy", true);
+      }
       copy = validated.data as CopyResponse;
     } else {
       copy = copySchema.parse(parsed) as CopyResponse;
@@ -2119,7 +2201,7 @@ export async function executeProposalWorkflow(
       inputHash: lastReview.inputHash,
     });
     if (lastReview.status !== "passed") {
-      if (ENV.reviewLenientDelivery) {
+      if (input.reviewLenientDelivery ?? ENV.reviewLenientDelivery) {
         for (const finding of lastReview.findings) {
           diagnostics.push({
             code: `review_${finding.category}`,

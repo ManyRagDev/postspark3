@@ -132,7 +132,10 @@ export function captureInitialVisuals(post: CanvasPostModel): CanvasPostModel {
           ...slide,
           composition: setArsenalCustomBackground(c, {
             imageUrl: slide.bgImage,
-            overlayOpacity: 0,
+            focalX: slide.bgPlacement?.focalPoint?.x ?? 0.5,
+            focalY: slide.bgPlacement?.focalPoint?.y ?? 0.5,
+            fitMode: slide.bgPlacement?.fitMode === "contain" ? "contain" : "cover",
+            overlayOpacity: slide.visualStyle?.overlayOpacity ?? 0,
           }),
         };
       }

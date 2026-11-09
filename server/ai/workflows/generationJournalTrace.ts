@@ -15,7 +15,7 @@ export const isPaidGenerationOperation = (key: string) =>
   key === "prepare:intent" ||
   key.startsWith("prepare:template_replan:") ||
   key.startsWith("prepare:design-shortlist:") ||
-  /:(?:copy(?:_recovery)?$|template_replan:|review:|review_correction:|review_evidence_repair:|image:)/.test(key);
+  /:(?:copy(?:_recovery)?$|repair$|review(?:_repair)?$|template_replan:|review:|review_correction:|review_evidence_repair:|image:)/.test(key);
 
 /** Only an explicit durable receipt can prove that a potentially paid branch stayed local. */
 export function journalOperationWasLocal(result: unknown) {

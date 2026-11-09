@@ -173,7 +173,7 @@ export function ConfirmDialog({
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className="w-full max-w-sm rounded-3xl border border-white/12 bg-[#0d1017] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.9)]"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-3xl border border-white/12 bg-[#0d1017] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.9)]"
             initial={{ opacity: 0, scale: 0.94, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}

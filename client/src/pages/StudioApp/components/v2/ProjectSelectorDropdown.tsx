@@ -94,7 +94,7 @@ export default function ProjectSelectorDropdown({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all select-none border ${
+        className={`inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-medium transition-all select-none max-md:min-h-11 md:rounded-full ${
           activeProject
             ? "bg-[#FF5C00]/15 border-[#FF5C00]/40 text-orange-200 hover:bg-[#FF5C00]/25"
             : "bg-white/[0.04] border-white/10 text-white/70 hover:bg-white/[0.08]"
@@ -109,7 +109,7 @@ export default function ProjectSelectorDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 mt-2 w-72 origin-top-left rounded-xl bg-[#18181F] border border-white/10 shadow-2xl z-50 overflow-hidden text-xs text-white divide-y divide-white/5 animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute left-0 z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] origin-top-left divide-y divide-white/5 overflow-hidden rounded-sm border border-white/10 bg-[#181818] text-xs text-white shadow-2xl animate-in fade-in zoom-in-95 duration-100 md:rounded-xl md:bg-[#18181F]">
           <div className="p-2 space-y-1">
             <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-white/40">
               Projetos de Marca

@@ -32,6 +32,49 @@ describe("siteContent", () => {
     expect(page.content).toContain("processos & reduza");
     expect(page.content).not.toContain("window.secret");
   });
+
+  it("extracts metadata as content fallback when body is an empty SPA container", () => {
+    const page = extractReadablePage(
+      "https://example.com/app",
+      `<!doctype html>
+      <html>
+        <head>
+          <title>App SPA</title>
+          <meta property="og:title" content="App SPA – Plataforma Moderna">
+          <meta name="description" content="Plataforma de alta produtividade para criadores digitais.">
+        </head>
+        <body>
+          <div id="root"></div>
+        </body>
+      </html>`
+    );
+
+    expect(page.title).toBe("App SPA – Plataforma Moderna");
+    expect(page.description).toBe("Plataforma de alta produtividade para criadores digitais.");
+    expect(page.content).toBe(
+      "Plataforma de alta produtividade para criadores digitais.. App SPA – Plataforma Moderna"
+    );
+  });
+
+  it("falls back to twitter metadata tags when og tags are missing", () => {
+    const page = extractReadablePage(
+      "https://example.com/twitter-card",
+      `<!doctype html>
+      <html>
+        <head>
+          <meta name="twitter:title" content="Título Twitter">
+          <meta name="twitter:description" content="Descrição Twitter">
+        </head>
+        <body>
+          <div id="app"></div>
+        </body>
+      </html>`
+    );
+
+    expect(page.title).toBe("Título Twitter");
+    expect(page.description).toBe("Descrição Twitter");
+    expect(page.content).toBe("Descrição Twitter. Título Twitter");
+  });
 });
 
 describe("complete source extraction for generation", () => {

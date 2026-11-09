@@ -41,28 +41,40 @@ export function StudioMasthead() {
   );
 }
 
-export function FormatPictogram({ mode, active }: { mode: "static" | "carousel"; active: boolean }) {
+export function FormatPictogram({ mode, active }: { mode: "static" | "carousel" | "video"; active: boolean }) {
   const stroke = active ? STUDIO.accent : STUDIO.ink40;
 
   if (mode === "static") {
     return (
-      <div className="relative h-9 w-9 shrink-0">
+      <div className="relative h-6 w-6 shrink-0">
         <div className="absolute inset-0 border" style={{ borderColor: stroke }} />
-        <div className="absolute left-1.5 top-1.5 h-[3px] w-4" style={{ background: stroke }} />
-        <div className="absolute left-1.5 top-[13px] h-px w-5" style={{ background: stroke, opacity: 0.55 }} />
-        <div className="absolute left-1.5 top-[18px] h-px w-3" style={{ background: stroke, opacity: 0.55 }} />
+        <div className="absolute left-1 top-1 h-[2px] w-2.5" style={{ background: stroke }} />
+        <div className="absolute left-1 top-[8px] h-px w-3" style={{ background: stroke, opacity: 0.55 }} />
+        <div className="absolute left-1 top-[11px] h-px w-2" style={{ background: stroke, opacity: 0.55 }} />
       </div>
     );
   }
 
-  return (
-    <div className="relative h-9 w-11 shrink-0">
-      <div className="absolute right-0 top-1 h-8 w-7 border" style={{ borderColor: stroke, opacity: 0.25 }} />
-      <div className="absolute right-1.5 top-0.5 h-8 w-7 border" style={{ borderColor: stroke, opacity: 0.5 }} />
-      <div className="absolute left-0 top-0 h-9 w-8 border" style={{ borderColor: stroke, background: STUDIO.bg }}>
-        <div className="absolute left-1 top-1.5 h-[2.5px] w-3.5" style={{ background: stroke }} />
-        <div className="absolute left-1 top-[11px] h-px w-4" style={{ background: stroke, opacity: 0.55 }} />
+  if (mode === "carousel") {
+    return (
+      <div className="relative h-6 w-7 shrink-0">
+        <div className="absolute right-0 top-0.5 h-5 w-4 border" style={{ borderColor: stroke, opacity: 0.25 }} />
+        <div className="absolute right-1 top-0 h-5 w-4 border" style={{ borderColor: stroke, opacity: 0.5 }} />
+        <div className="absolute left-0 top-0 h-6 w-5 border" style={{ borderColor: stroke, background: STUDIO.bg }}>
+          <div className="absolute left-0.5 top-1 h-[2px] w-2" style={{ background: stroke }} />
+          <div className="absolute left-0.5 top-[7px] h-px w-2.5" style={{ background: stroke, opacity: 0.55 }} />
+        </div>
       </div>
+    );
+  }
+
+  // mode === "video"
+  return (
+    <div className="relative h-6 w-6 shrink-0 flex items-center justify-center border" style={{ borderColor: stroke }}>
+      <div
+        className="w-0 h-0 border-y-[3.5px] border-y-transparent border-l-[6px] ml-0.5"
+        style={{ borderLeftColor: stroke }}
+      />
     </div>
   );
 }
@@ -70,47 +82,86 @@ export function FormatPictogram({ mode, active }: { mode: "static" | "carousel";
 export function FormatSelector({
   value,
   onChange,
+  proposalAspectRatio,
+  onProposalAspectRatioChange,
 }: {
   value: "static" | "carousel";
   onChange: (mode: "static" | "carousel") => void;
+  proposalAspectRatio?: "1:1" | "4:5" | "9:16";
+  onProposalAspectRatioChange?: (ratio: "1:1" | "4:5" | "9:16") => void;
 }) {
-  const options: Array<{ id: "static" | "carousel"; label: string; hint: string }> = [
-    { id: "static", label: "Post Único", hint: "Uma peça, um impacto" },
-    { id: "carousel", label: "Carrossel", hint: "Narrativa em slides" },
+  const options: Array<{
+    id: "static" | "carousel" | "video";
+    label: string;
+    badge?: string;
+    disabled?: boolean;
+  }> = [
+    { id: "static", label: "Post Único" },
+    { id: "carousel", label: "Carrossel" },
+    { id: "video", label: "Vídeo", badge: "em breve", disabled: true },
   ];
 
   return (
-    <div>
-      <div style={{ ...MONO, color: STUDIO.ink40, fontSize: 10 }}>Formato</div>
-      <div className="mt-2.5 grid grid-cols-2 gap-3">
+    <div className="w-full">
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <div style={{ ...MONO, color: STUDIO.ink40, fontSize: 10 }}>Formato</div>
+        {proposalAspectRatio && onProposalAspectRatioChange && (
+          <label className="flex items-center gap-1.5 text-xs text-white/75">
+            <span style={{ ...MONO, color: STUDIO.ink40, fontSize: 9.5 }}>Proporção</span>
+            <select
+              aria-label="Formato das propostas"
+              value={proposalAspectRatio}
+              onChange={(e) => onProposalAspectRatioChange(e.target.value as "1:1" | "4:5" | "9:16")}
+              className="h-7 rounded border border-white/15 bg-black/40 px-2 text-[11px] text-white focus:border-[#FF5C00]/60 focus:outline-none transition-colors cursor-pointer"
+            >
+              <option value="4:5" className="bg-neutral-900 text-white">Retrato 4:5</option>
+              <option value="1:1" className="bg-neutral-900 text-white">Quadrado 1:1</option>
+              <option value="9:16" className="bg-neutral-900 text-white">Vertical 9:16</option>
+            </select>
+          </label>
+        )}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
         {options.map((option) => {
           const active = option.id === value;
+          const isDisabled = Boolean(option.disabled);
           return (
             <button
               key={option.id}
               type="button"
+              disabled={isDisabled}
               aria-pressed={active}
-              onClick={() => onChange(option.id)}
-              className="flex items-center gap-3 rounded-md border p-3 text-left transition-colors duration-200 active:scale-[0.98]"
-              style={{
-                borderColor: active ? STUDIO.accent : STUDIO.hairline,
-                background: active ? "oklch(0.7 0.22 40 / 6%)" : "transparent",
+              onClick={() => {
+                if (!isDisabled && (option.id === "static" || option.id === "carousel")) {
+                  onChange(option.id);
+                }
               }}
+              className={`flex items-center justify-center gap-2 rounded-lg border py-2.5 px-3 text-left transition-all duration-200 select-none ${
+                isDisabled
+                  ? "opacity-45 cursor-not-allowed border-white/10 bg-white/[0.01]"
+                  : active
+                  ? "border-[#FF5C00] bg-[#FF5C00]/10 shadow-sm shadow-[#FF5C00]/10 active:scale-[0.99]"
+                  : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04] active:scale-[0.99]"
+              }`}
+              title={isDisabled ? "Geração de vídeo em breve!" : undefined}
             >
               <FormatPictogram mode={option.id} active={active} />
-              <div className="min-w-0">
-                <div
+              <div className="min-w-0 flex items-center gap-1.5">
+                <span
                   style={{
                     ...MONO,
-                    fontSize: 10,
-                    color: active ? STUDIO.ink : STUDIO.ink60,
+                    fontSize: 11,
+                    color: active ? "#FFFFFF" : isDisabled ? STUDIO.ink40 : STUDIO.ink60,
                   }}
+                  className="whitespace-nowrap font-medium"
                 >
                   {option.label}
-                </div>
-                <div className="mt-0.5 text-[11px] leading-tight" style={{ color: STUDIO.ink40 }}>
-                  {option.hint}
-                </div>
+                </span>
+                {option.badge && (
+                  <span className="rounded bg-orange-500/20 px-1.5 py-0.5 text-[8px] font-mono font-bold uppercase tracking-wider text-orange-400 border border-orange-500/30 whitespace-nowrap">
+                    {option.badge}
+                  </span>
+                )}
               </div>
             </button>
           );
@@ -125,6 +176,9 @@ export interface Specimen {
   prompt: string;
   familyLabel: string;
   art: ReactNode;
+  isProjectDesign?: boolean;
+  colors?: string[];
+  fonts?: string[];
 }
 
 export function buildSpecimens(): Specimen[] {

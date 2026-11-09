@@ -100,7 +100,7 @@ export default function CanvasTopBar({
             : "";
   return (
     <>
-    <header className="z-30 flex min-h-14 w-full shrink-0 flex-wrap items-center justify-between gap-1 border-b border-white/10 bg-[#0a0d16] px-1 sm:px-3">
+    <header className="z-30 flex min-h-14 w-full shrink-0 flex-wrap items-center justify-between border-b border-white/10 bg-[#0a0d16] px-1 min-[380px]:gap-1 sm:px-3">
       <div className="flex min-w-0 items-center gap-1 sm:gap-3">
         {onBackToGallery && (
           <button
@@ -136,7 +136,7 @@ export default function CanvasTopBar({
           </button>
           <button
             type="button"
-            className={iconButton}
+            className={`${iconButton} max-[380px]:hidden`}
             onClick={onRedo}
             disabled={!canRedo}
             aria-label="Refazer"
@@ -146,7 +146,7 @@ export default function CanvasTopBar({
           </button>
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+      <div className="flex shrink-0 items-center min-[380px]:gap-1 sm:gap-2">
         {saveStatus && (
           <span
             role="status"
@@ -186,11 +186,12 @@ export default function CanvasTopBar({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex min-h-11 items-center gap-1 rounded-xl bg-orange-400 px-3 text-xs font-bold text-black hover:bg-orange-300"
+              className="flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-xl bg-orange-400 px-2 text-xs font-bold text-black hover:bg-orange-300 sm:px-3"
               aria-label="Baixar post"
+              title="Baixar post"
             >
               <ArrowDownToLine size={16} />
-              Baixar
+              <span className="hidden min-[420px]:inline">Baixar</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className={menuClass}>
@@ -224,6 +225,10 @@ export default function CanvasTopBar({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className={menuClass}>
             {designIdentity && <><DropdownMenuLabel className="whitespace-normal">Design utilizado: {designIdentity}</DropdownMenuLabel><DropdownMenuSeparator /></>}
+            <DropdownMenuItem onSelect={onRedo} disabled={!canRedo} className="min-[380px]:hidden">
+              <Redo2 />
+              Refazer
+            </DropdownMenuItem>
             {onSave && (
               <DropdownMenuItem onSelect={onSave}>
                 <BookmarkCheck />

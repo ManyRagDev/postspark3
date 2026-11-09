@@ -1,0 +1,2190 @@
+{
+  "version": 2,
+  "origin": {
+    "candidateId": "a5f75302-0c83-4820-8f60-5fc54a2b434e:4x5-0d1514786903-de67db8e60-development-compose-list-v3",
+    "blueprintId": "0e16efa6-f075-47a7-8a5a-4cfae8fc13b6",
+    "versionId": "a5f75302-0c83-4820-8f60-5fc54a2b434e",
+    "version": 1,
+    "definitionHash": "2b324a94b77cc47f90757bdb90f66ed8cfcd5746d7db62c63a5c8f8052c461df",
+    "variantKey": "4x5-0d1514786903-de67db8e60-development-compose-list-v3",
+    "variantHash": "9474538448752f443066919e07c72410990b468085739dc4ecef9f3ba7332393",
+    "compilerVersion": "arsenal-v3.0.0",
+    "componentAssembly": {
+      "completeDesign": {
+        "family": "6da56cf3eb349b1ef42ab98eaf610f05",
+        "authorshipRevision": 3,
+        "baselineVerified": true,
+        "colors": [
+          "#F4F5F9",
+          "#191919",
+          "#E98963",
+          "#ED520F",
+          "#BD4D16"
+        ],
+        "designGuidance": {
+          "version": 1,
+          "representation": {
+            "version": 3,
+            "sourceId": "42fe95b6-c1df-4cd4-8e47-bc688a77ac55",
+            "sourceHash": "8df37dfbefcc00aa3647094c4bba319a7c779b2e9e05a479cefbe198d1b57196",
+            "method": "native_semantics_rebuild"
+          },
+          "familyIdentity": {
+            "essential": [
+              "editorial-number",
+              "condensed-question",
+              "coral-highlight",
+              "semantic-list"
+            ],
+            "optional": [
+              "Campos de apoio opcionais podem ficar vazios quando não pertinentes."
+            ],
+            "adaptable": [
+              "Texto e mídia apenas nos campos declarados.",
+              "Ritmo por escolha entre composições do repertório; geometria fixa dentro de cada composição."
+            ]
+          },
+          "fieldRelationships": [
+            {
+              "kind": "independent_items",
+              "sources": [
+                "block:list:0:items"
+              ],
+              "label": "Cada item permanece completo em seu slot nativo; não distribuir palavras entre itens."
+            },
+            {
+              "kind": "emphasis",
+              "sources": [
+                "block:headline:0:text"
+              ],
+              "label": "Título único distribuído entre titulo-abertura, titulo-enfase, titulo-pergunta; conferir peso, cor e capacidade de cada fragmento."
+            }
+          ],
+          "carouselVariant": {
+            "version": 3,
+            "role": "development",
+            "sourceId": "a3f983f9-cab6-42af-8bfa-03d4e790354b",
+            "sourceHash": "de67db8e60d902f34cde8e8977ef9b85be27d7d452110c75109b03697df82d03",
+            "contentMode": "compose",
+            "function": "list",
+            "identity": [
+              "editorial-number",
+              "condensed-question",
+              "coral-highlight",
+              "semantic-list"
+            ]
+          },
+          "summary": "Página editorial clara com índice circular, título preto condensado, uma palavra sobre tarja coral, parágrafos curtos, lista de até três itens e citação laranja. A grade pontilhada fina do papel original ainda não está reproduzida. 3 regiões de título, 2 apoios textuais, 1 listas semânticas e 0 slots de mídia. 18 camadas em 736×920; fontes Inter, Anton. Composição nativa para ênfase, repetição intencional ou exemplo.",
+          "motifs": [
+            "editorial-number",
+            "condensed-question",
+            "coral-highlight",
+            "semantic-list"
+          ],
+          "preserve": [
+            "Conservar geometria, hierarquia, fontes incorporadas, cores e ornamentos nativos; não substituir a composição pela imagem original.",
+            "static: composição inteira com geometria autorada",
+            "cover: campo de título nativo",
+            "development: campo nativo de apoio ou lista; a capacidade depende da geometria e cada copy exige preflight",
+            "list: itens independentes com cardinalidade e slots nativos",
+            "closing: convite pode usar título/apoio editável; sem caixa de CTA dedicada, conservar capacidade nativa",
+            "example: mídia ou itens independentes autorados permitem mostrar um exemplo; não há aprovação narrativa automática",
+            "density:expressive: 14 regiões de texto; área somada das caixas 26.5% da prancheta (não é limite de palavras nem aprovação de encaixe)"
+          ],
+          "contentRules": [
+            "block:list:0:items: 1–3 itens independentes nas caixas lista-1, lista-2, lista-3; prefixo \"- \"; não concatenar nem redistribuir palavras entre itens.",
+            "Lista permite de um a três itens; corpo e geometria permanecem fixos após substituir conteúdo.",
+            "Marcadores de lista usam hífen, pois o arquivo local da fonte não inclui a seta original.",
+            "Título contínuo preserva ocupação das caixas; com menos de três palavras, a ênfase recebe prioridade sem exigir texto artificial. Corpo e conclusão usam caixas contínuas, preservando frases completas.",
+            "Selecionar esta composição pela função da página. Repetição é permitida; não inventar texto, rótulos nem CTA para preencher campos.",
+            "Título contínuo preserva ocupação das caixas; com menos de três palavras, a ênfase recebe prioridade sem exigir texto artificial. Corpo e conclusão usam caixas contínuas, preservando frases completas.",
+            "Composição list autorada por função: distribuição de conteúdo própria da família, distinta da capa."
+          ],
+          "mediaRules": [],
+          "knownLimitations": [
+            "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+            "Grade de pontos omitida como textura; círculo e realce recriados em vetor.",
+            "Lista permite de um a três itens; corpo e geometria permanecem fixos após substituir conteúdo.",
+            "Marcadores de lista usam hífen, pois o arquivo local da fonte não inclui a seta original.",
+            "Lacuna: Grade pontilhada fina no papel. Motivo: Textura repetitiva foi omitida em favor da hierarquia tipográfica.. Papel: texture.",
+            "Capacidade é estimativa geométrica; composição não certifica legibilidade de qualquer texto."
+          ]
+        }
+      },
+      "version": 1,
+      "planHash": "1e67cbb05938992d17ecdf977ae0deb121d4afa00376d0fd68ff7f5dd7a12aeb",
+      "componentIds": [
+        "0e16efa6-f075-47a7-8a5a-4cfae8fc13b6"
+      ],
+      "componentHashes": [
+        "2b324a94b77cc47f90757bdb90f66ed8cfcd5746d7db62c63a5c8f8052c461df"
+      ],
+      "sourceHashes": [
+        "2e3c50fb1eb88cb96b3d7d1081084c478ab95ec8aa9f41bc44495895340e8e01"
+      ],
+      "experimental": true
+    }
+  },
+  "base": {
+    "variantKey": "4x5-0d1514786903-de67db8e60-development-compose-list-v3",
+    "aspectRatio": "4:5",
+    "compilerVersion": "arsenal-v3.0.0",
+    "artboard": {
+      "width": 736,
+      "height": 920,
+      "background": "#F4F5F9"
+    },
+    "instances": [
+      {
+        "id": "circulo",
+        "pieceHash": "4e2fb11b76e20e62ac8e91fdde2fab085c8495e395b1905a1bdb6cbabd923933",
+        "parentId": "g-numero",
+        "zIndex": 0,
+        "x": 320,
+        "y": 73.19999999999999,
+        "width": 95,
+        "height": 95,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "indice",
+        "pieceHash": "ed9867c9c07890eb40a70a80ea1d934774c83cee60ca9a12448a7301e76608a0",
+        "parentId": "g-numero",
+        "zIndex": 1,
+        "x": 332,
+        "y": 92.19999999999999,
+        "width": 70,
+        "height": 61,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "realce",
+        "pieceHash": "9126f352a614a9de7dd4650536ebdbbabb789e74e441c10a9586188f77abcc74",
+        "parentId": "g-titulo",
+        "zIndex": 2,
+        "x": 402.24,
+        "y": 187.2,
+        "width": 83.2,
+        "height": 51.2,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "titulo-abertura",
+        "pieceHash": "e345b544f05d08edbf7843ab92efbb6bbfe43b70b955f5dbcb8c87ffb777b6d3",
+        "parentId": "g-titulo",
+        "zIndex": 3,
+        "x": 251.2,
+        "y": 185.92,
+        "width": 150.4,
+        "height": 53.76,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "titulo-enfase",
+        "pieceHash": "6463abf6ab27ed5eaba1b500df307908d2b3e6dac780cc121c33f0ab265b7c6e",
+        "parentId": "g-titulo",
+        "zIndex": 4,
+        "x": 406.72,
+        "y": 185.92,
+        "width": 79.36,
+        "height": 53.76,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "titulo-pergunta",
+        "pieceHash": "0353324f5d4339a0bf0834370dcc5b86f370332ad39b72f630c46f6655a5e0ca",
+        "parentId": "g-titulo",
+        "zIndex": 5,
+        "x": 221.76,
+        "y": 243.52,
+        "width": 292.48,
+        "height": 55.04,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "ponto-realce-1",
+        "pieceHash": "531fb78e51be388e6dec0b63252a3249c8cc775e92c0106c322d6f9d9a5b745b",
+        "parentId": "g-titulo",
+        "zIndex": 6,
+        "x": 398.4,
+        "y": 184,
+        "width": 7.68,
+        "height": 7.68,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "ponto-realce-2",
+        "pieceHash": "531fb78e51be388e6dec0b63252a3249c8cc775e92c0106c322d6f9d9a5b745b",
+        "parentId": "g-titulo",
+        "zIndex": 7,
+        "x": 481.6,
+        "y": 233.92000000000002,
+        "width": 7.68,
+        "height": 7.68,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "abertura",
+        "pieceHash": "9c0b93b7ca185e1fbc011649390a88f468246797f853f4b4dc1dd9fd89a83b8f",
+        "parentId": "g-conteudo",
+        "zIndex": 8,
+        "x": 95.68,
+        "y": 354.2,
+        "width": 544.64,
+        "height": 110.39999999999999,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "lista-1",
+        "pieceHash": "f4043e02f034fdef90e2adb71d1028ce333dae3de8b0067bd0747b36f18be614",
+        "parentId": "g-conteudo",
+        "zIndex": 13,
+        "x": 95.68,
+        "y": 506.00000000000006,
+        "width": 544.64,
+        "height": 64.4,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "lista-2",
+        "pieceHash": "f4043e02f034fdef90e2adb71d1028ce333dae3de8b0067bd0747b36f18be614",
+        "parentId": "g-conteudo",
+        "zIndex": 14,
+        "x": 95.68,
+        "y": 588.8000000000001,
+        "width": 544.64,
+        "height": 64.4,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "lista-3",
+        "pieceHash": "f4043e02f034fdef90e2adb71d1028ce333dae3de8b0067bd0747b36f18be614",
+        "parentId": "g-conteudo",
+        "zIndex": 15,
+        "x": 95.68,
+        "y": 671.6,
+        "width": 544.64,
+        "height": 64.4,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "citacao",
+        "pieceHash": "054211bc35dff2a7d5ac9e8ad1ef670dcdcef01e3d2d081314ec330e03d08b93",
+        "parentId": "g-frase",
+        "zIndex": 16,
+        "x": 95.68,
+        "y": 749.8,
+        "width": 544.64,
+        "height": 96.6,
+        "rotation": 0,
+        "opacity": 1
+      }
+    ],
+    "groups": [
+      {
+        "id": "g-numero",
+        "label": "Índice da série",
+        "parentId": null,
+        "zIndex": 0,
+        "x": 0,
+        "y": 0,
+        "width": 736,
+        "height": 920,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "g-titulo",
+        "label": "Pergunta e realce",
+        "parentId": null,
+        "zIndex": 2,
+        "x": 0,
+        "y": 0,
+        "width": 736,
+        "height": 920,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "g-conteudo",
+        "label": "Explicação e lista",
+        "parentId": null,
+        "zIndex": 8,
+        "x": 0,
+        "y": 0,
+        "width": 736,
+        "height": 920,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "g-frase",
+        "label": "Citação final",
+        "parentId": null,
+        "zIndex": 16,
+        "x": 0,
+        "y": 0,
+        "width": 736,
+        "height": 920,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      }
+    ],
+    "bindings": [
+      {
+        "id": "semantic-0",
+        "label": "label: indice",
+        "kind": "text",
+        "source": "content:field-0:text",
+        "required": false,
+        "targetIds": [
+          "indice"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "semantic-1",
+        "label": "headline: titulo-abertura, titulo-enfase, titulo-pergunta",
+        "kind": "text",
+        "source": "content:field-1:text",
+        "required": true,
+        "targetIds": [
+          "titulo-abertura",
+          "titulo-enfase",
+          "titulo-pergunta"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "semantic-2",
+        "label": "Argumento principal contínuo: explicação ou exemplo, com frases completas",
+        "kind": "text",
+        "source": "content:field-2:text",
+        "required": false,
+        "targetIds": [
+          "abertura"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "semantic-3",
+        "label": "body: beneficios",
+        "kind": "list",
+        "listMode": "native-slots",
+        "source": "content:field-3:items",
+        "required": true,
+        "targetIds": [
+          "lista-1",
+          "lista-2",
+          "lista-3"
+        ],
+        "cardinality": {
+          "min": 1,
+          "max": 3
+        },
+        "prefix": "- ",
+        "gap": 0
+      },
+      {
+        "id": "semantic-4",
+        "label": "Conclusão ou síntese em destaque; não inventar autoria de citação",
+        "kind": "text",
+        "source": "content:field-4:text",
+        "required": false,
+        "targetIds": [
+          "citacao"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      }
+    ],
+    "relations": [
+      {
+        "id": "fit-indice",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "indice",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "center",
+          "maxWidth": 70,
+          "maxHeight": 61,
+          "minFontSize": 37.099999999999994
+        }
+      },
+      {
+        "id": "fit-titulo-abertura",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "titulo-abertura",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 150.4,
+          "maxHeight": 53.76,
+          "minFontSize": 34.943999999999996
+        }
+      },
+      {
+        "id": "fit-titulo-enfase",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "titulo-enfase",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 79.36,
+          "maxHeight": 53.76,
+          "minFontSize": 34.943999999999996
+        }
+      },
+      {
+        "id": "fit-titulo-pergunta",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "titulo-pergunta",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 292.48,
+          "maxHeight": 55.04,
+          "minFontSize": 34.047999999999995
+        }
+      },
+      {
+        "id": "fit-abertura",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "abertura",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 544.64,
+          "maxHeight": 110.39999999999999,
+          "minFontSize": 18.031999999999996
+        }
+      },
+      {
+        "id": "fit-lista-1",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "lista-1",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 544.64,
+          "maxHeight": 64.4,
+          "minFontSize": 19.5776
+        }
+      },
+      {
+        "id": "fit-lista-2",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "lista-2",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 544.64,
+          "maxHeight": 64.4,
+          "minFontSize": 19.5776
+        }
+      },
+      {
+        "id": "fit-lista-3",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "lista-3",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 544.64,
+          "maxHeight": 64.4,
+          "minFontSize": 19.5776
+        }
+      },
+      {
+        "id": "fit-citacao",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "citacao",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 544.64,
+          "maxHeight": 96.6,
+          "minFontSize": 17.0016
+        }
+      }
+    ],
+    "assetIds": [
+      "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc"
+    ],
+    "capabilities": [
+      "text",
+      "rect",
+      "line",
+      "polygon",
+      "media",
+      "groups",
+      "relations",
+      "content-fragments",
+      "extrusion"
+    ],
+    "lineBoxOverlaps": [
+      {
+        "a": "lista-1",
+        "b": "lista-2",
+        "maxOverlapFraction": 0.25,
+        "singleLineOnly": true
+      },
+      {
+        "a": "lista-2",
+        "b": "lista-3",
+        "maxOverlapFraction": 0.25,
+        "singleLineOnly": true
+      }
+    ],
+    "intentionalOverlaps": [],
+    "limitations": [
+      "Rascunho de componentes: revisão visual humana e publicação pendentes.",
+      "Geometria autorada preservada. Encaixe limitado às caixas de origem; overflow deve permanecer explícito.",
+      "Fragmentos distribuem palavras completas por capacidade declarada; quebra intrapalavra do exemplo não é reutilizada.",
+      "Fotos de demonstração permanecem apenas no snapshot de origem; slots aguardam mídia do usuário."
+    ]
+  },
+  "pieces": {
+    "0c032bbb74cde8791268d8a4bc89bffff8eeff094be531495c992bb6e9d77229": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "fontSize": 78,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          1,
+          2
+        ]
+      }
+    },
+    "12011af931a9d029e57632c924262e72117f3ab6fd164f740a3fee2375fbc7a8": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 22,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.03,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 2,
+        "count": 5,
+        "unit": "words",
+        "weights": [
+          8,
+          8,
+          5,
+          7,
+          2
+        ]
+      }
+    },
+    "1608ee4cc02aaa9c5d1b15ae0acb9cdb93e50115c5fb85e0bd24270810e65823": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 22,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 5,
+        "unit": "words",
+        "weights": [
+          8,
+          8,
+          5,
+          7,
+          2
+        ]
+      }
+    },
+    "2aa8891c2956a43db5cb81e125c65ba57a8f6742035f5a9b0dff7370f1b23188": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 22,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          4,
+          4,
+          5
+        ]
+      }
+    },
+    "4e2fb11b76e20e62ac8e91fdde2fab085c8495e395b1905a1bdb6cbabd923933": {
+      "kind": "rect",
+      "fill": "#F4F5F9",
+      "stroke": "#474A4C",
+      "strokeWidth": 2,
+      "cornerRadius": 48,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "531fb78e51be388e6dec0b63252a3249c8cc775e92c0106c322d6f9d9a5b745b": {
+      "kind": "rect",
+      "fill": "#ED520F",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 6,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "5de4eaa4aaa885c506db5fad36eafbb12fc7d0b1713ffd737dfeef5fd194c7b2": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 22,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.03,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 4,
+        "count": 5,
+        "unit": "words",
+        "weights": [
+          8,
+          8,
+          5,
+          7,
+          2
+        ]
+      }
+    },
+    "71f91efe6b89aa0249d709b66c8650a393151f4398f505d83bfde34f0268f519": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "fontSize": 78,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          1,
+          2
+        ]
+      }
+    },
+    "82a59af8fe94a8e4c56e41602ff8a6188fff0ff0ad5461a7da3013531893996d": {
+      "kind": "text",
+      "fill": "#BD4D16",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 22,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          8,
+          6
+        ]
+      }
+    },
+    "843a66153ef220c4106aa4812a76c3e603b57c7a628bb695aa1163e906c2c8b9": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 22,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 2,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          4,
+          4,
+          5
+        ]
+      }
+    },
+    "9126f352a614a9de7dd4650536ebdbbabb789e74e441c10a9586188f77abcc74": {
+      "kind": "rect",
+      "fill": "#E98963",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "97000a18599100bf938ebfefe716df41430a7c3de4dd656de0437bbc23d5b360": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "fontSize": 76,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 2,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          1,
+          2
+        ]
+      }
+    },
+    "97ff3d8ae64c5b1d197d3548c02ff1a82d737d784d4db09660e156fd7e2b7889": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 22,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.03,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 3,
+        "count": 5,
+        "unit": "words",
+        "weights": [
+          8,
+          8,
+          5,
+          7,
+          2
+        ]
+      }
+    },
+    "980ed4c94612b2e67c71223a2ec9e42a62418bb488aac92b1df5997afba39061": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 22,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.03,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 5,
+        "unit": "words",
+        "weights": [
+          8,
+          8,
+          5,
+          7,
+          2
+        ]
+      }
+    },
+    "be2113a7393ba160095dfbb4b5da215d0ee20821dfce5f547fd9fdc30f74a3e9": {
+      "kind": "text",
+      "fill": "#BD4D16",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 22,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          8,
+          6
+        ]
+      }
+    },
+    "c9a4de0febea3fbe75668a08f2a22ac8213d4430aa549a893237a4de562b79bb": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 22,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          4,
+          4,
+          5
+        ]
+      }
+    },
+    "ed9867c9c07890eb40a70a80ea1d934774c83cee60ca9a12448a7301e76608a0": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 53,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "ae9a7f9ca40b3b45d38d36eccbfd00992a54c892abd427896d877104cf103e08": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 22,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "78d8a4b49cc2f3d6d8c58b70cc6ec1fba4f903e78028ce291e5330472c524e9e": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "fontSize": 78,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          1,
+          2
+        ],
+        "allocation": {
+          "mode": "preserve_occupancy",
+          "priority": [
+            1,
+            0,
+            2
+          ]
+        }
+      }
+    },
+    "43e5135c63981ab402e4747d7bfe7003df2e1aed7a8f7071ffc42f6552fc5526": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "fontSize": 78,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          1,
+          2
+        ],
+        "allocation": {
+          "mode": "preserve_occupancy",
+          "priority": [
+            1,
+            0,
+            2
+          ]
+        }
+      }
+    },
+    "5d06cfc6d3193c63f4cfc8c49daf3f8f71553f25b2e23ce16d323b529a873f84": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "fontSize": 76,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 2,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          1,
+          2
+        ],
+        "allocation": {
+          "mode": "preserve_occupancy",
+          "priority": [
+            1,
+            0,
+            2
+          ]
+        }
+      }
+    },
+    "93e466edd5370a199b55d2aacf76ec1b6b6c58be4f4b5e1ae21da221b6d6de3e": {
+      "kind": "text",
+      "fill": "#BD4D16",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 22,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "e345b544f05d08edbf7843ab92efbb6bbfe43b70b955f5dbcb8c87ffb777b6d3": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "fontSize": 49.92,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          1,
+          2
+        ],
+        "allocation": {
+          "mode": "preserve_occupancy",
+          "priority": [
+            1,
+            0,
+            2
+          ]
+        }
+      }
+    },
+    "6463abf6ab27ed5eaba1b500df307908d2b3e6dac780cc121c33f0ab265b7c6e": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "fontSize": 49.92,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          1,
+          2
+        ],
+        "allocation": {
+          "mode": "preserve_occupancy",
+          "priority": [
+            1,
+            0,
+            2
+          ]
+        }
+      }
+    },
+    "0353324f5d4339a0bf0834370dcc5b86f370332ad39b72f630c46f6655a5e0ca": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "fontSize": 48.64,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 2,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          1,
+          2
+        ],
+        "allocation": {
+          "mode": "preserve_occupancy",
+          "priority": [
+            1,
+            0,
+            2
+          ]
+        }
+      }
+    },
+    "da03cda40e00c0e135ceab02ccd5bdc5cce51fa3899d8f263b94e4034ea77a8c": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 25.76,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "9c0b93b7ca185e1fbc011649390a88f468246797f853f4b4dc1dd9fd89a83b8f": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 25.76,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.2,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "f4043e02f034fdef90e2adb71d1028ce333dae3de8b0067bd0747b36f18be614": {
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 27.968,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "054211bc35dff2a7d5ac9e8ad1ef670dcdcef01e3d2d081314ec330e03d08b93": {
+      "kind": "text",
+      "fill": "#BD4D16",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 24.288,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null
+    }
+  },
+  "assets": [
+    {
+      "id": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "kind": "bundled",
+      "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "mimeType": "font/woff2",
+      "bytes": 24356,
+      "family": "Arsenal_6f56409fd3d64bb8",
+      "sourceFamily": "Inter",
+      "weight": 700,
+      "license": "open-source"
+    },
+    {
+      "id": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "kind": "bundled",
+      "sha256": "d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "mimeType": "font/woff2",
+      "bytes": 18612,
+      "family": "Arsenal_d0fa07ff63dd60cb",
+      "sourceFamily": "Anton",
+      "weight": 400,
+      "license": "open-source"
+    },
+    {
+      "id": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "kind": "bundled",
+      "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "mimeType": "font/woff2",
+      "bytes": 23664,
+      "family": "Arsenal_8909904ab6c872eb",
+      "sourceFamily": "Inter",
+      "weight": 400,
+      "license": "open-source"
+    }
+  ],
+  "content": {
+    "schemaVersion": 3,
+    "blocks": [
+      {
+        "id": "field-0",
+        "type": "text",
+        "role": "label",
+        "text": "01"
+      },
+      {
+        "id": "field-1",
+        "type": "text",
+        "role": "headline",
+        "text": "Why Do You Actually Exist?"
+      },
+      {
+        "id": "field-2",
+        "type": "text",
+        "role": "body",
+        "text": "Not “what do you sell” — that’s easy. I want to know: What’s the reason you wake up and do this? This isn’t fluffy. It’s the anchor for everything else."
+      },
+      {
+        "id": "field-3",
+        "type": "list",
+        "items": [
+          {
+            "id": "item-0",
+            "text": "Unlocks your purpose"
+          },
+          {
+            "id": "item-1",
+            "text": "Defines your vision"
+          },
+          {
+            "id": "item-2",
+            "text": "Reveals your core motivation"
+          }
+        ]
+      },
+      {
+        "id": "field-4",
+        "type": "text",
+        "role": "body",
+        "text": "“ Because if you don’t know why you’re here, neither will your audience. ”"
+      }
+    ],
+    "caption": "",
+    "hashtags": []
+  },
+  "userContentHash": "90259cc9363ef0246b34212a15c93c85b23134f499a75cb249a14f2aad332371",
+  "generatedContentHash": "90259cc9363ef0246b34212a15c93c85b23134f499a75cb249a14f2aad332371",
+  "contentRevision": 0,
+  "elements": [
+    {
+      "id": "circulo",
+      "parentId": "g-numero",
+      "zIndex": 0,
+      "x": 320,
+      "y": 73.19999999999999,
+      "width": 95,
+      "height": 95,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#F4F5F9",
+      "stroke": "#474A4C",
+      "strokeWidth": 2,
+      "cornerRadius": 48,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "indice",
+      "parentId": "g-numero",
+      "zIndex": 1,
+      "x": 332,
+      "y": 92.19999999999999,
+      "width": 70,
+      "height": 55.650000000000006,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 53,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "01",
+      "bindingId": "semantic-0",
+      "itemId": null
+    },
+    {
+      "id": "realce",
+      "parentId": "g-titulo",
+      "zIndex": 2,
+      "x": 402.24,
+      "y": 187.2,
+      "width": 83.2,
+      "height": 51.2,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#E98963",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "titulo-abertura",
+      "parentId": "g-titulo",
+      "zIndex": 3,
+      "x": 251.2,
+      "y": 185.92,
+      "width": 150.4,
+      "height": 52.416000000000004,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "fontSize": 49.92,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          1,
+          2
+        ],
+        "allocation": {
+          "mode": "preserve_occupancy",
+          "priority": [
+            1,
+            0,
+            2
+          ]
+        }
+      },
+      "text": "Why Do ",
+      "bindingId": "semantic-1",
+      "itemId": null
+    },
+    {
+      "id": "titulo-enfase",
+      "parentId": "g-titulo",
+      "zIndex": 4,
+      "x": 406.72,
+      "y": 185.92,
+      "width": 79.36,
+      "height": 52.416000000000004,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "fontSize": 49.92,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          1,
+          2
+        ],
+        "allocation": {
+          "mode": "preserve_occupancy",
+          "priority": [
+            1,
+            0,
+            2
+          ]
+        }
+      },
+      "text": "You ",
+      "bindingId": "semantic-1",
+      "itemId": null
+    },
+    {
+      "id": "titulo-pergunta",
+      "parentId": "g-titulo",
+      "zIndex": 5,
+      "x": 221.76,
+      "y": 243.52,
+      "width": 292.48,
+      "height": 51.072,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_d0fa07ff63dd60cb",
+      "fontAssetId": "font-d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+      "fontSize": 48.64,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 2,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          1,
+          2
+        ],
+        "allocation": {
+          "mode": "preserve_occupancy",
+          "priority": [
+            1,
+            0,
+            2
+          ]
+        }
+      },
+      "text": "Actually Exist?",
+      "bindingId": "semantic-1",
+      "itemId": null
+    },
+    {
+      "id": "ponto-realce-1",
+      "parentId": "g-titulo",
+      "zIndex": 6,
+      "x": 398.4,
+      "y": 184,
+      "width": 7.68,
+      "height": 7.68,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#ED520F",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 6,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "ponto-realce-2",
+      "parentId": "g-titulo",
+      "zIndex": 7,
+      "x": 481.6,
+      "y": 233.92000000000002,
+      "width": 7.68,
+      "height": 7.68,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#ED520F",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 6,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "abertura",
+      "parentId": "g-conteudo",
+      "zIndex": 8,
+      "x": 95.68,
+      "y": 354.2,
+      "width": 544.64,
+      "height": 109.248,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 22.76,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.2,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "Not “what do you sell” — that’s easy. I want to know: What’s the reason you wake up and do this? This isn’t fluffy. It’s the anchor for everything else.",
+      "bindingId": "semantic-2",
+      "itemId": null
+    },
+    {
+      "id": "lista-1",
+      "parentId": "g-conteudo",
+      "zIndex": 13,
+      "x": 95.68,
+      "y": 506.00000000000006,
+      "width": 544.64,
+      "height": 29.366400000000002,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 27.968,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "- Unlocks your purpose",
+      "bindingId": "semantic-3",
+      "itemId": "item-0"
+    },
+    {
+      "id": "lista-2",
+      "parentId": "g-conteudo",
+      "zIndex": 14,
+      "x": 95.68,
+      "y": 588.8000000000001,
+      "width": 544.64,
+      "height": 29.366400000000002,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 27.968,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "- Defines your vision",
+      "bindingId": "semantic-3",
+      "itemId": "item-1"
+    },
+    {
+      "id": "lista-3",
+      "parentId": "g-conteudo",
+      "zIndex": 15,
+      "x": 95.68,
+      "y": 671.6,
+      "width": 544.64,
+      "height": 29.366400000000002,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#191919",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 27.968,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "- Reveals your core motivation",
+      "bindingId": "semantic-3",
+      "itemId": "item-2"
+    },
+    {
+      "id": "citacao",
+      "parentId": "g-frase",
+      "zIndex": 16,
+      "x": 95.68,
+      "y": 749.8,
+      "width": 544.64,
+      "height": 51.0048,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#BD4D16",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 24.288,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "“ Because if you don’t know why you’re here, neither will your audience. ”",
+      "bindingId": "semantic-4",
+      "itemId": null
+    }
+  ],
+  "groups": [
+    {
+      "id": "g-numero",
+      "label": "Índice da série",
+      "parentId": null,
+      "zIndex": 0,
+      "x": 0,
+      "y": 0,
+      "width": 736,
+      "height": 920,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "g-titulo",
+      "label": "Pergunta e realce",
+      "parentId": null,
+      "zIndex": 2,
+      "x": 0,
+      "y": 0,
+      "width": 736,
+      "height": 920,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "g-conteudo",
+      "label": "Explicação e lista",
+      "parentId": null,
+      "zIndex": 8,
+      "x": 0,
+      "y": 0,
+      "width": 736,
+      "height": 920,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "g-frase",
+      "label": "Citação final",
+      "parentId": null,
+      "zIndex": 16,
+      "x": 0,
+      "y": 0,
+      "width": 736,
+      "height": 920,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    }
+  ],
+  "relations": [
+    {
+      "id": "fit-indice",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "indice",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "center",
+        "maxWidth": 70,
+        "maxHeight": 61,
+        "minFontSize": 37.099999999999994
+      }
+    },
+    {
+      "id": "fit-titulo-abertura",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "titulo-abertura",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 150.4,
+        "maxHeight": 53.76,
+        "minFontSize": 34.943999999999996
+      }
+    },
+    {
+      "id": "fit-titulo-enfase",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "titulo-enfase",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 79.36,
+        "maxHeight": 53.76,
+        "minFontSize": 34.943999999999996
+      }
+    },
+    {
+      "id": "fit-titulo-pergunta",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "titulo-pergunta",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 292.48,
+        "maxHeight": 55.04,
+        "minFontSize": 34.047999999999995
+      }
+    },
+    {
+      "id": "fit-abertura",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "abertura",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 544.64,
+        "maxHeight": 110.39999999999999,
+        "minFontSize": 18.031999999999996
+      }
+    },
+    {
+      "id": "fit-lista-1",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "lista-1",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 544.64,
+        "maxHeight": 64.4,
+        "minFontSize": 19.5776
+      }
+    },
+    {
+      "id": "fit-lista-2",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "lista-2",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 544.64,
+        "maxHeight": 64.4,
+        "minFontSize": 19.5776
+      }
+    },
+    {
+      "id": "fit-lista-3",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "lista-3",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 544.64,
+        "maxHeight": 64.4,
+        "minFontSize": 19.5776
+      }
+    },
+    {
+      "id": "fit-citacao",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "citacao",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 544.64,
+        "maxHeight": 96.6,
+        "minFontSize": 17.0016
+      }
+    }
+  ],
+  "overrides": {},
+  "richText": {},
+  "media": {},
+  "seed": 0,
+  "state": "adapted",
+  "issues": [],
+  "layoutOrigin": "catalog-variant",
+  "sourceVariantKey": "4x5-0d1514786903-de67db8e60-development-compose-list-v3",
+  "effectiveAspectRatio": "4:5",
+  "projection": {
+    "scale": 1,
+    "x": 0,
+    "y": 0
+  },
+  "artboard": {
+    "width": 736,
+    "height": 920,
+    "background": "#F4F5F9"
+  }
+}

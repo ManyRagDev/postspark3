@@ -532,13 +532,16 @@ export function ArsenalCompositionContents({
               }
               return null;
             })()}
-            {e.extrusion && Array.from({ length: e.extrusion.steps }, (_, i) => e.extrusion!.steps - i).map(step => (
+            {e.extrusion && Array.from({ length: e.extrusion.steps }, (_, i) => e.extrusion!.steps - i).map(step => {
+              const color = e.extrusion!.colors?.[step - 1] ?? e.extrusion!.color;
+              return (
               <Group key={`extrusion-${step}`} x={e.extrusion!.offsetX * step / e.extrusion!.steps} y={e.extrusion!.offsetY * step / e.extrusion!.steps} listening={false}>
-                <RichTextRenderer text={e.text} richText={e.richText?.map(run => ({ ...run, color: e.extrusion!.color }))}
+                <RichTextRenderer text={e.text} richText={e.richText?.map(run => ({ ...run, color }))}
                   width={e.width} fontSize={e.fontSize} fontFamily={e.fontFamily} fontStyle={String(e.fontWeight)}
-                  fill={e.extrusion!.color} align={e.align} lineHeight={e.lineHeight} letterSpacing={e.letterSpacing} wordBreak="word" />
+                  fill={color} align={e.align} lineHeight={e.lineHeight} letterSpacing={e.letterSpacing} wordBreak="word" />
               </Group>
-            ))}
+              );
+            })}
             <RichTextRenderer
               text={e.text}
               richText={e.richText}
@@ -547,6 +550,7 @@ export function ArsenalCompositionContents({
               fontFamily={e.fontFamily}
               fontStyle={String(e.fontWeight)}
               fill={e.fill}
+              fillGradient={c.overrides[e.id]?.fill ? undefined : e.textGradient}
               align={e.align}
               lineHeight={e.lineHeight}
               letterSpacing={e.letterSpacing}
@@ -611,6 +615,8 @@ export function ArsenalCompositionContents({
             stroke={e.stroke ?? undefined}
             strokeWidth={e.strokeWidth}
             cornerRadius={e.cornerRadius}
+            dash={e.strokeDash}
+            globalCompositeOperation={e.blendMode}
           />
         ) : (
           <Line
@@ -619,6 +625,8 @@ export function ArsenalCompositionContents({
             fill={e.kind === "polygon" ? e.fill : undefined}
             stroke={e.stroke ?? e.fill}
             strokeWidth={e.strokeWidth}
+            dash={e.strokeDash}
+            globalCompositeOperation={e.blendMode}
           />
         )}
       </Group>

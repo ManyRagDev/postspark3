@@ -54,17 +54,29 @@ describe("gallery fidelity", () => {
     const posts = ["a", "b"].map(id => ({ ...structuredClone(INITIAL_POST), id,
       slides: [0, 1].map(index => ({ ...structuredClone(INITIAL_POST.slides[0]), id: `${id}-${index}` })) }));
     const select = vi.fn();
-    act(() => root.render(<StudioMobileFlashcards variations={posts} aspectRatio="1:1" onAspectRatioChange={vi.fn()} onSelectVariation={select} onBackToCreate={vi.fn()} />));
+    act(() => root.render(<StudioMobileFlashcards variations={posts} initialAspectRatio="1:1" onSelectVariation={select} onBackToCreate={vi.fn()} />));
     act(() => host.querySelector<HTMLButtonElement>('[aria-label="Próxima página do carrossel"]')!.click());
     expect(select).not.toHaveBeenCalled();
     expect(host.textContent).toContain("Página 2 de 2");
-    act(() => button("Personalizar Esta Variação").click());
+    act(() => button("Editar proposta").click());
     expect(select.mock.calls[0][0].id).toBe("a");
     expect(select.mock.calls[0][0].currentSlideIndex).toBe(1);
-    act(() => host.querySelector<HTMLButtonElement>('[aria-label="Próxima variação"]')!.click());
+    act(() => host.querySelector<HTMLButtonElement>('[aria-label="Próxima proposta"]')!.click());
     expect(host.textContent).toContain("Página 1 de 2");
-    act(() => host.querySelector<HTMLButtonElement>('[aria-label="Variação anterior"]')!.click());
+    act(() => host.querySelector<HTMLButtonElement>('[aria-label="Proposta anterior"]')!.click());
     expect(host.textContent).toContain("Página 2 de 2");
+  });
+
+  it("returns from the editor to the same mobile proposal, ratio and slide", () => {
+    const first = { ...structuredClone(INITIAL_POST), id: "a" };
+    const edited = { ...structuredClone(INITIAL_POST), id: "b", aspectRatio: "9:16" as const, currentSlideIndex: 2 };
+    const select = vi.fn();
+    act(() => root.render(<StudioGalleryView mobile variations={[first, edited]} resumeMobilePost={edited} onSelectVariation={select} onBackToCreate={vi.fn()} />));
+    expect(host.querySelector('.md\\:flex')).toBeNull();
+    expect(host.textContent).toContain("Proposta 2 de 2");
+    expect(host.textContent).toContain("Página 3 de 4");
+    act(() => button("Editar proposta").click());
+    expect(select).toHaveBeenCalledWith(edited);
   });
   it("adopts the first asynchronous result format and preserves a later explicit format choice", () => {
     const select = vi.fn();
@@ -104,7 +116,7 @@ describe("gallery fidelity", () => {
     expect(selected.aspectRatio).toBe("4:5");
     expect(selected.bgImage).toBe("root.png");
     expect(selected.slides[0].bgImage).toBe("slide.png");
-    act(() => button("Baixar").click());
+    act(() => Array.from(host.querySelectorAll<HTMLButtonElement>('.md\\:flex button')).find(b => b.textContent === "Baixar")!.click());
     expect(
       JSON.parse(host.querySelector('[data-testid="download"]')!.textContent!)
     ).toEqual(selected);
@@ -132,10 +144,10 @@ describe("gallery fidelity", () => {
     };
     render([carousel]);
     expect(host.textContent).not.toContain("Preparando suas direções de arte");
-    expect(host.querySelectorAll('[data-testid="stage"]')).toHaveLength(2);
+    expect(host.querySelectorAll('.md\\:flex [data-testid="stage"]')).toHaveLength(1);
     act(() => button("Personalizar Post").click());
     expect(select).toHaveBeenCalledWith(carousel);
-    act(() => button("Baixar").click());
+    act(() => Array.from(host.querySelectorAll<HTMLButtonElement>('.md\\:flex button')).find(b => b.textContent === "Baixar")!.click());
     expect(JSON.parse(host.querySelector('[data-testid="download"]')!.textContent!)).toEqual(carousel);
     expect(more).not.toHaveBeenCalled();
   });
@@ -150,24 +162,23 @@ describe("gallery fidelity", () => {
   it("handles empty mobile cards and resets the selection when the variations are replaced", () => {
     const select = vi.fn();
     const render = (variations: (typeof INITIAL_POST)[]) => act(() => root.render(
-      <StudioMobileFlashcards variations={variations} aspectRatio="1:1" onAspectRatioChange={vi.fn()} onSelectVariation={select} onBackToCreate={vi.fn()} isGeneratingMore />
+      <StudioMobileFlashcards variations={variations} initialAspectRatio="1:1" onSelectVariation={select} onBackToCreate={vi.fn()} isGeneratingMore />
     ));
     render([]);
     expect(host.querySelector('[data-testid="stage"]')).toBeNull();
     const posts = ["a", "b", "c"].map(id => ({ ...structuredClone(INITIAL_POST), id }));
     render(posts);
-    act(() => host.querySelector<HTMLButtonElement>('[aria-label="Próxima variação"]')!.click());
-    act(() => host.querySelector<HTMLButtonElement>('[aria-label="Próxima variação"]')!.click());
-    act(() => button("Personalizar Esta Variação").click());
+    act(() => host.querySelector<HTMLButtonElement>('[aria-label="Próxima proposta"]')!.click());
+    act(() => host.querySelector<HTMLButtonElement>('[aria-label="Próxima proposta"]')!.click());
+    act(() => button("Editar proposta").click());
     expect(select).toHaveBeenLastCalledWith(posts[2]);
     render([posts[0]]);
-    expect(host.textContent).toContain("1 / 1");
-    expect(host.querySelectorAll('[data-testid="stage"]')).toHaveLength(1);
-    act(() => button("Personalizar Esta Variação").click());
+    expect(host.textContent).toContain("Proposta 1 de 1");
+    act(() => button("Editar proposta").click());
     expect(select).toHaveBeenLastCalledWith(posts[0]);
     render([]);
     expect(host.querySelector('[data-testid="stage"]')).toBeNull();
-    expect(host.textContent).not.toContain("1 / 0");
+    expect(host.textContent).not.toContain("Proposta 1 de 0");
   });
 
   it("renders 3 skeleton cards with shimmer in empty state during generation", () => {
@@ -207,8 +218,8 @@ describe("gallery fidelity", () => {
       );
     });
 
-    // 1 arte pronta (2 stages: desktop + mobile)
-    expect(host.querySelectorAll('[data-testid="stage"]')).toHaveLength(2);
+    expect(host.querySelectorAll('.md\\:flex [data-testid="stage"]')).toHaveLength(1);
+    expect(host.textContent).not.toContain("Proposta 1 de 1");
     // Slots pendentes renderizam esqueleto: Opção 02 e Opção 03
     expect(host.textContent).toContain("Opção 02");
     expect(host.textContent).toContain("Opção 03");

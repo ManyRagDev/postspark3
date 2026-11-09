@@ -6,6 +6,7 @@ import { INITIAL_POST } from "@/pages/CanvasLab/components/types";
 vi.mock("@/hooks/useGenerationEvents",()=>({useGenerationEvents:()=>({error:false,reconnect:vi.fn()})}));
 import Studio from "./StudioAppV2BPage";
 import { saveBriefDraft } from "./lib/briefDraftStorage";
+import { setSelectedProjectId } from "./lib/projectStorage";
 import { interpretRawBriefing } from "@shared/postspark";
 import {
   ACTIVE_GENERATION_REQUEST_SESSION_KEY,
@@ -17,6 +18,7 @@ const h = vi.hoisted(() => ({
   ownerId: "00000000-0000-4000-8000-000000000001",
   brandKitData: undefined as any,
   brandKitRead: vi.fn(),
+  projects: [] as unknown[],
   readiness: undefined as any,
   create: null as any,
   gallery: null as any,
@@ -56,6 +58,7 @@ vi.mock("@/lib/trpc", () => ({ trpc: {
     reportComponentCompilation: { useMutation: () => ({ mutateAsync: vi.fn() }) },
   },
   brandKit: { get: { useQuery: () => { h.brandKitRead(); return { data: h.brandKitData }; } } },
+  brandProjects: { list: { useQuery: () => ({ data: h.projects }) } },
   post: {
     saveMediaAsset:{useMutation:()=>({mutateAsync:async()=>({url:"/api/post-media/source"}),isPending:false})},
     generate: { useMutation: () => ({ mutateAsync: h.legacyGenerate }) },
@@ -147,6 +150,7 @@ async function explicitlyResumeStored(input: any) {
 beforeEach(() => {
   h.readiness=undefined;
   h.brandKitData=undefined;
+  h.projects = [];
   h.ownerId="00000000-0000-4000-8000-000000000001";
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.clear();
@@ -265,6 +269,52 @@ describe("Studio Generation progressive flow", () => {
     await act(async () => { h.gallery.onGenerateMore(); await Promise.resolve(); });
     expect(h.start.mock.calls[0][0]).toMatchObject({ content: "Crie 3 novos ganchos criativos e direções de arte alternativas sobre: Histórico B" });
     expect(h.start.mock.calls[0][0].executionBrief).toBeUndefined();
+  });
+
+  it("starts generation with the visual identity of a project created without a site capture", async () => {
+    const project = {
+      id: secondRequestId,
+      name: "Café artesanal",
+      niche: "Cafeteria",
+      compiledDocument: "Café de pequenos produtores.",
+      capture: null,
+      visualPreferences: { colors: ["#111111"], fonts: ["Inter"], personality: [], composition: "Editorial" },
+    };
+    h.projects = [project];
+    setSelectedProjectId(project.id);
+    h.start.mockResolvedValue({ snapshot: snapshot([running("proposal-a", 0)]), created: true });
+    await act(async () => { root.render(<Studio />); });
+    await act(async () => { h.create.onSubmit("Apresente nosso café artesanal", "static"); });
+    expect(h.start).toHaveBeenCalledOnce();
+    expect(h.start.mock.calls[0][0]).toMatchObject({
+      projectId: project.id,
+      projectSnapshot: { version: 2, visualPreferences: project.visualPreferences },
+    });
+    expect(h.start.mock.calls[0][0].projectSnapshot.capture).toBeUndefined();
+  });
+
+  it("sends the active kit as a fixed choice and opens its one editable delivery", async () => {
+    const project = {
+      id: secondRequestId, name: "ReUNE", niche: "Eventos", compiledDocument: "Organização de eventos.",
+      visualPreferences: { colors: [], fonts: [], personality: ["Neubrutalismo"], composition: '{"source":"design-extraction"}' },
+    };
+    h.projects = [project];
+    setSelectedProjectId(project.id);
+    const canvas = { ...post(`design-${runId}-0`), familyName: "Neubrutalismo" };
+    const delivery = { ...running("proposal-fixed", 0), status: "ready", fixedCanvas: canvas };
+    h.start.mockResolvedValue({ snapshot: snapshot([delivery], "completed"), created: true });
+    mount();
+    act(() => h.create.onDeclareFamily(`project-design-${project.id}`));
+    await act(async () => { h.create.onSubmit("Sorteador Relâmpago em 2 minutos", "static"); });
+    expect(h.start.mock.calls[0][0]).toMatchObject({
+      projectId: project.id, fixedDesign: { kind: "project", id: project.id },
+      content: "Sorteador Relâmpago em 2 minutos",
+    });
+    expect(h.gallery.expectedCount).toBe(1);
+    expect(h.gallery.variations).toEqual([canvas]);
+    expect(h.materialize).not.toHaveBeenCalled();
+    act(() => h.gallery.onSelectVariation(canvas));
+    expect(h.editor.initialPost).toEqual(canvas);
   });
 
   it("starts the single durable pipeline when its executor becomes available, without a version selector", async () => {

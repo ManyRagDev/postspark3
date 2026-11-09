@@ -129,7 +129,7 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
   const trigger = isInline ? (
     <button
       aria-label="Conta do Usuário"
-      className="flex items-center gap-2 px-2 py-1 md:px-2.5 md:py-1 rounded-full border transition-all active:scale-95 cursor-pointer hover:bg-white/10"
+      className="flex items-center justify-center gap-2 px-2 py-1 rounded-full border transition-all active:scale-95 cursor-pointer hover:bg-white/10 max-md:min-h-11 max-md:min-w-11 md:px-2.5 md:py-1"
       style={{
         background: "rgba(255, 255, 255, 0.06)",
         borderColor: "rgba(255, 255, 255, 0.12)",

@@ -1,0 +1,1468 @@
+{
+  "version": 2,
+  "origin": {
+    "candidateId": "68a3df22-1fe1-4bf7-8079-312a11275ed0:4x5-e4a249e1f670",
+    "blueprintId": "b7d7323a-73d6-4017-8e33-62f485ae0bf0",
+    "versionId": "68a3df22-1fe1-4bf7-8079-312a11275ed0",
+    "version": 1,
+    "definitionHash": "3201519b182026cb80daef0395457939e3bdee11463ef21a15b006b27e04009f",
+    "variantKey": "4x5-e4a249e1f670",
+    "variantHash": "d2b9b78f354edaa425e4afe2b45df182bbfde40a4e8256299f12fa1f7aeb6ae7",
+    "compilerVersion": "arsenal-v3.0.0",
+    "componentAssembly": {
+      "completeDesign": {
+        "family": "Screenshot-2026-09-28-23:29:44",
+        "authorshipRevision": 2,
+        "baselineVerified": true,
+        "colors": [
+          "#E1DECD",
+          "#074AC5",
+          "#829FBD",
+          "#151515"
+        ],
+        "designGuidance": {
+          "version": 1,
+          "representation": {
+            "version": 3,
+            "sourceId": "79e16129-8751-4e0d-818c-5bf80a832d1b",
+            "sourceHash": "8ae963ecc36f4bd7d4e61b7acf496452a779f71b2709969a3ff8109c5c967b0b",
+            "method": "native_semantics_rebuild"
+          },
+          "familyIdentity": {
+            "essential": [
+              "blue-modular-grid",
+              "asymmetric-color-blocks",
+              "oversized-sans"
+            ],
+            "optional": [
+              "Campos de apoio opcionais podem ficar vazios quando não pertinentes."
+            ],
+            "adaptable": [
+              "Texto e mídia apenas nos campos declarados.",
+              "Ritmo por escolha entre composições do repertório; geometria fixa dentro de cada composição."
+            ]
+          },
+          "fieldRelationships": [
+            {
+              "kind": "emphasis",
+              "sources": [
+                "block:headline:0:text"
+              ],
+              "label": "Título único distribuído entre grid, systems; conferir peso, cor e capacidade de cada fragmento."
+            }
+          ],
+          "summary": "Grade modular azul fina sobre fundo creme, blocos azuis sólidos assimétricos e título sans preto grande atravessando células. Subtítulo menor alinhado à direita; grade e espaços vazios participam da hierarquia, com textura original omitida. 2 regiões de título, 1 apoios textuais, 0 listas semânticas e 0 slots de mídia. 18 camadas em 248×310; fontes Inter.",
+          "motifs": [
+            "blue-modular-grid",
+            "asymmetric-color-blocks",
+            "oversized-sans"
+          ],
+          "preserve": [
+            "Conservar geometria, hierarquia, fontes incorporadas, cores e ornamentos nativos; não substituir a composição pela imagem original.",
+            "static: composição inteira com geometria autorada",
+            "cover: campo de título nativo",
+            "development: campo nativo de apoio ou lista; a capacidade depende da geometria e cada copy exige preflight",
+            "closing: convite pode usar título/apoio editável; sem caixa de CTA dedicada, conservar capacidade nativa",
+            "density:balanced: 4 regiões de texto; área somada das caixas 28.8% da prancheta (não é limite de palavras nem aprovação de encaixe)"
+          ],
+          "contentRules": [
+            "Campos multiline convertidos em listas de camadas por linha para permitir compilação no-op: sub."
+          ],
+          "mediaRules": [],
+          "knownLimitations": [
+            "Curadoria manual offline; original usado somente para comparação. Sem aprovação visual automática.",
+            "Fonte aproximada com Inter. Textura e microcréditos omitidos; grade e blocos formam a composição.",
+            "Campos multiline convertidos em listas de camadas por linha para permitir compilação no-op: sub."
+          ]
+        }
+      },
+      "version": 1,
+      "planHash": "da2414df60d4e096d466f6462cca1270bd84ca54170bb3708bff5bd928fa3e2c",
+      "componentIds": [
+        "b7d7323a-73d6-4017-8e33-62f485ae0bf0"
+      ],
+      "componentHashes": [
+        "3201519b182026cb80daef0395457939e3bdee11463ef21a15b006b27e04009f"
+      ],
+      "sourceHashes": [
+        "fca35e1e39f32c5a9b481f44eae5c6d8d571c07730b55a37ad7268136b45e9bf"
+      ],
+      "experimental": true
+    }
+  },
+  "base": {
+    "variantKey": "4x5-e4a249e1f670",
+    "aspectRatio": "4:5",
+    "compilerVersion": "arsenal-v3.0.0",
+    "artboard": {
+      "width": 248,
+      "height": 310,
+      "background": "#E1DECD"
+    },
+    "instances": [
+      {
+        "id": "top-blue",
+        "pieceHash": "5bbd3bcf297c9f90cb978c83cf05368c9bbc4e9888cd963f8b75f790d7f093cc",
+        "parentId": null,
+        "zIndex": 0,
+        "x": 125,
+        "y": 10,
+        "width": 96,
+        "height": 96,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "lower-blue",
+        "pieceHash": "73a224252d2388c7f02897ec39442b99213729963228f39d27e823e9382d5edf",
+        "parentId": null,
+        "zIndex": 1,
+        "x": 29,
+        "y": 202,
+        "width": 48,
+        "height": 96,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "vx29",
+        "pieceHash": "41c8d5f109444d7774b28177e5c0b4e2d9b52112e5e45dca88e103267898b35a",
+        "parentId": null,
+        "zIndex": 2,
+        "x": 29,
+        "y": 10,
+        "width": 1,
+        "height": 288,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "vx77",
+        "pieceHash": "41c8d5f109444d7774b28177e5c0b4e2d9b52112e5e45dca88e103267898b35a",
+        "parentId": null,
+        "zIndex": 3,
+        "x": 77,
+        "y": 10,
+        "width": 1,
+        "height": 288,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "vx125",
+        "pieceHash": "41c8d5f109444d7774b28177e5c0b4e2d9b52112e5e45dca88e103267898b35a",
+        "parentId": null,
+        "zIndex": 4,
+        "x": 125,
+        "y": 10,
+        "width": 1,
+        "height": 288,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "vx173",
+        "pieceHash": "41c8d5f109444d7774b28177e5c0b4e2d9b52112e5e45dca88e103267898b35a",
+        "parentId": null,
+        "zIndex": 5,
+        "x": 173,
+        "y": 10,
+        "width": 1,
+        "height": 288,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "vx221",
+        "pieceHash": "41c8d5f109444d7774b28177e5c0b4e2d9b52112e5e45dca88e103267898b35a",
+        "parentId": null,
+        "zIndex": 6,
+        "x": 221,
+        "y": 10,
+        "width": 1,
+        "height": 288,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "hy10",
+        "pieceHash": "41f5588383f7bd94b62db9e3b7eba96a61f0efe9c6f0642f0bd43368ab9ade81",
+        "parentId": null,
+        "zIndex": 7,
+        "x": 29,
+        "y": 10,
+        "width": 192,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "hy58",
+        "pieceHash": "41f5588383f7bd94b62db9e3b7eba96a61f0efe9c6f0642f0bd43368ab9ade81",
+        "parentId": null,
+        "zIndex": 8,
+        "x": 29,
+        "y": 58,
+        "width": 192,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "hy106",
+        "pieceHash": "41f5588383f7bd94b62db9e3b7eba96a61f0efe9c6f0642f0bd43368ab9ade81",
+        "parentId": null,
+        "zIndex": 9,
+        "x": 29,
+        "y": 106,
+        "width": 192,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "hy154",
+        "pieceHash": "41f5588383f7bd94b62db9e3b7eba96a61f0efe9c6f0642f0bd43368ab9ade81",
+        "parentId": null,
+        "zIndex": 10,
+        "x": 29,
+        "y": 154,
+        "width": 192,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "hy202",
+        "pieceHash": "41f5588383f7bd94b62db9e3b7eba96a61f0efe9c6f0642f0bd43368ab9ade81",
+        "parentId": null,
+        "zIndex": 11,
+        "x": 29,
+        "y": 202,
+        "width": 192,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "hy250",
+        "pieceHash": "41f5588383f7bd94b62db9e3b7eba96a61f0efe9c6f0642f0bd43368ab9ade81",
+        "parentId": null,
+        "zIndex": 12,
+        "x": 29,
+        "y": 250,
+        "width": 192,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "hy298",
+        "pieceHash": "41f5588383f7bd94b62db9e3b7eba96a61f0efe9c6f0642f0bd43368ab9ade81",
+        "parentId": null,
+        "zIndex": 13,
+        "x": 29,
+        "y": 298,
+        "width": 192,
+        "height": 1,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "grid",
+        "pieceHash": "110dadb2d657af3cff53bd6455911f78bb8f8a6bf3a7fc7ab316609d59ec4aae",
+        "parentId": "g-copy",
+        "zIndex": 14,
+        "x": 27,
+        "y": 67,
+        "width": 193,
+        "height": 50,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "systems",
+        "pieceHash": "3f3e3f2e5d68915d9045a2318c425f243d62a91f204bda6e14e586e8abefce57",
+        "parentId": "g-copy",
+        "zIndex": 15,
+        "x": 27,
+        "y": 114,
+        "width": 201,
+        "height": 50,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "sub",
+        "pieceHash": "ab473727af210965dbdb4d605546eb1bfa432eb01e44df02569d0123d596ea5f",
+        "parentId": "g-copy",
+        "zIndex": 16,
+        "x": 126,
+        "y": 177,
+        "width": 98,
+        "height": 12.600000000000001,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "sub-line-2",
+        "pieceHash": "c1e09155891a7b7c1b756b8c077056f70951d430d1b28767b81ed2cac76905bd",
+        "parentId": "g-copy",
+        "zIndex": 17,
+        "x": 126,
+        "y": 189.6,
+        "width": 98,
+        "height": 12.600000000000001,
+        "rotation": 0,
+        "opacity": 1
+      }
+    ],
+    "groups": [
+      {
+        "id": "g-copy",
+        "label": "Título e apoio",
+        "parentId": null,
+        "zIndex": 14,
+        "x": 0,
+        "y": 0,
+        "width": 248,
+        "height": 310,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      }
+    ],
+    "bindings": [
+      {
+        "id": "semantic-0",
+        "label": "headline: grid, systems",
+        "kind": "text",
+        "source": "content:field-0:text",
+        "required": true,
+        "targetIds": [
+          "grid",
+          "systems"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "semantic-1",
+        "label": "body: sub",
+        "kind": "text",
+        "source": "content:field-1:text",
+        "required": false,
+        "targetIds": [
+          "sub",
+          "sub-line-2"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      }
+    ],
+    "relations": [
+      {
+        "id": "fit-grid",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "grid",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 193,
+          "maxHeight": 50,
+          "minFontSize": 26.4
+        }
+      },
+      {
+        "id": "fit-systems",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "systems",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 201,
+          "maxHeight": 50,
+          "minFontSize": 25.8
+        }
+      },
+      {
+        "id": "fit-sub",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "sub",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 98,
+          "maxHeight": 12.600000000000001,
+          "minFontSize": 7.199999999999999
+        }
+      },
+      {
+        "id": "fit-sub-line-2",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "sub-line-2",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "left",
+          "maxWidth": 98,
+          "maxHeight": 12.600000000000001,
+          "minFontSize": 7.199999999999999
+        }
+      }
+    ],
+    "assetIds": [
+      "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc"
+    ],
+    "capabilities": [
+      "text",
+      "rect",
+      "line",
+      "polygon",
+      "media",
+      "groups",
+      "relations",
+      "content-fragments",
+      "extrusion"
+    ],
+    "intentionalOverlaps": [],
+    "limitations": [
+      "Rascunho de componentes: revisão visual humana e publicação pendentes.",
+      "Geometria autorada preservada. Encaixe limitado às caixas de origem; overflow deve permanecer explícito.",
+      "Fragmentos distribuem palavras completas por capacidade declarada; quebra intrapalavra do exemplo não é reutilizada.",
+      "Fotos de demonstração permanecem apenas no snapshot de origem; slots aguardam mídia do usuário."
+    ]
+  },
+  "pieces": {
+    "5bbd3bcf297c9f90cb978c83cf05368c9bbc4e9888cd963f8b75f790d7f093cc": {
+      "kind": "polygon",
+      "fill": "#074AC5",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        96,
+        0,
+        96,
+        96,
+        48,
+        96,
+        48,
+        48,
+        0,
+        48
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "73a224252d2388c7f02897ec39442b99213729963228f39d27e823e9382d5edf": {
+      "kind": "rect",
+      "fill": "#074AC5",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "41c8d5f109444d7774b28177e5c0b4e2d9b52112e5e45dca88e103267898b35a": {
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        288
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "41f5588383f7bd94b62db9e3b7eba96a61f0efe9c6f0642f0bd43368ab9ade81": {
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        192,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "110dadb2d657af3cff53bd6455911f78bb8f8a6bf3a7fc7ab316609d59ec4aae": {
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 44,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          1,
+          1
+        ]
+      }
+    },
+    "3f3e3f2e5d68915d9045a2318c425f243d62a91f204bda6e14e586e8abefce57": {
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 43,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          1,
+          1
+        ]
+      }
+    },
+    "ab473727af210965dbdb4d605546eb1bfa432eb01e44df02569d0123d596ea5f": {
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 12,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          2,
+          2
+        ]
+      }
+    },
+    "c1e09155891a7b7c1b756b8c077056f70951d430d1b28767b81ed2cac76905bd": {
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 12,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          2,
+          2
+        ]
+      }
+    }
+  },
+  "assets": [
+    {
+      "id": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "kind": "bundled",
+      "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "mimeType": "font/woff2",
+      "bytes": 24356,
+      "family": "Arsenal_6f56409fd3d64bb8",
+      "sourceFamily": "Inter",
+      "weight": 700,
+      "license": "open-source"
+    },
+    {
+      "id": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "kind": "bundled",
+      "sha256": "8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "mimeType": "font/woff2",
+      "bytes": 23664,
+      "family": "Arsenal_8909904ab6c872eb",
+      "sourceFamily": "Inter",
+      "weight": 400,
+      "license": "open-source"
+    }
+  ],
+  "content": {
+    "schemaVersion": 3,
+    "blocks": [
+      {
+        "id": "field-0",
+        "type": "text",
+        "role": "headline",
+        "text": "Grid Systems"
+      },
+      {
+        "id": "field-1",
+        "type": "text",
+        "role": "body",
+        "text": "every designer should know"
+      }
+    ],
+    "caption": "",
+    "hashtags": []
+  },
+  "userContentHash": "05145cd2747acebb7125afc215aae7f6b5a6033a57938b90a197aa8212a42d91",
+  "generatedContentHash": "05145cd2747acebb7125afc215aae7f6b5a6033a57938b90a197aa8212a42d91",
+  "contentRevision": 0,
+  "elements": [
+    {
+      "id": "top-blue",
+      "parentId": null,
+      "zIndex": 0,
+      "x": 125,
+      "y": 10,
+      "width": 96,
+      "height": 96,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "polygon",
+      "fill": "#074AC5",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        96,
+        0,
+        96,
+        96,
+        48,
+        96,
+        48,
+        48,
+        0,
+        48
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "lower-blue",
+      "parentId": null,
+      "zIndex": 1,
+      "x": 29,
+      "y": 202,
+      "width": 48,
+      "height": 96,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#074AC5",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "vx29",
+      "parentId": null,
+      "zIndex": 2,
+      "x": 29,
+      "y": 10,
+      "width": 1,
+      "height": 288,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        288
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "vx77",
+      "parentId": null,
+      "zIndex": 3,
+      "x": 77,
+      "y": 10,
+      "width": 1,
+      "height": 288,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        288
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "vx125",
+      "parentId": null,
+      "zIndex": 4,
+      "x": 125,
+      "y": 10,
+      "width": 1,
+      "height": 288,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        288
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "vx173",
+      "parentId": null,
+      "zIndex": 5,
+      "x": 173,
+      "y": 10,
+      "width": 1,
+      "height": 288,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        288
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "vx221",
+      "parentId": null,
+      "zIndex": 6,
+      "x": 221,
+      "y": 10,
+      "width": 1,
+      "height": 288,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        0,
+        288
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "hy10",
+      "parentId": null,
+      "zIndex": 7,
+      "x": 29,
+      "y": 10,
+      "width": 192,
+      "height": 1,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        192,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "hy58",
+      "parentId": null,
+      "zIndex": 8,
+      "x": 29,
+      "y": 58,
+      "width": 192,
+      "height": 1,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        192,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "hy106",
+      "parentId": null,
+      "zIndex": 9,
+      "x": 29,
+      "y": 106,
+      "width": 192,
+      "height": 1,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        192,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "hy154",
+      "parentId": null,
+      "zIndex": 10,
+      "x": 29,
+      "y": 154,
+      "width": 192,
+      "height": 1,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        192,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "hy202",
+      "parentId": null,
+      "zIndex": 11,
+      "x": 29,
+      "y": 202,
+      "width": 192,
+      "height": 1,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        192,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "hy250",
+      "parentId": null,
+      "zIndex": 12,
+      "x": 29,
+      "y": 250,
+      "width": 192,
+      "height": 1,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        192,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "hy298",
+      "parentId": null,
+      "zIndex": 13,
+      "x": 29,
+      "y": 298,
+      "width": 192,
+      "height": 1,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "line",
+      "fill": "#829FBD",
+      "stroke": "#829FBD",
+      "strokeWidth": 0.7,
+      "cornerRadius": 0,
+      "points": [
+        0,
+        0,
+        192,
+        0
+      ],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "grid",
+      "parentId": "g-copy",
+      "zIndex": 14,
+      "x": 27,
+      "y": 67,
+      "width": 193,
+      "height": 46.2,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 44,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          1,
+          1
+        ]
+      },
+      "text": "Grid ",
+      "bindingId": "semantic-0",
+      "itemId": null
+    },
+    {
+      "id": "systems",
+      "parentId": "g-copy",
+      "zIndex": 15,
+      "x": 27,
+      "y": 114,
+      "width": 201,
+      "height": 45.15,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 43,
+      "fontWeight": 700,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          1,
+          1
+        ]
+      },
+      "text": "Systems",
+      "bindingId": "semantic-0",
+      "itemId": null
+    },
+    {
+      "id": "sub",
+      "parentId": "g-copy",
+      "zIndex": 16,
+      "x": 126,
+      "y": 177,
+      "width": 98,
+      "height": 12.600000000000001,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 12,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          2,
+          2
+        ]
+      },
+      "text": "every designer ",
+      "bindingId": "semantic-1",
+      "itemId": null
+    },
+    {
+      "id": "sub-line-2",
+      "parentId": "g-copy",
+      "zIndex": 17,
+      "x": 126,
+      "y": 189.6,
+      "width": 98,
+      "height": 12.600000000000001,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#151515",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_8909904ab6c872eb",
+      "fontAssetId": "font-8909904ab6c872eb994093482a88a28eca2cd95912d7b6fecd72103b0dc07edc",
+      "fontSize": 12,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.05,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          2,
+          2
+        ]
+      },
+      "text": "should know",
+      "bindingId": "semantic-1",
+      "itemId": null
+    }
+  ],
+  "groups": [
+    {
+      "id": "g-copy",
+      "label": "Título e apoio",
+      "parentId": null,
+      "zIndex": 14,
+      "x": 0,
+      "y": 0,
+      "width": 248,
+      "height": 310,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    }
+  ],
+  "relations": [
+    {
+      "id": "fit-grid",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "grid",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 193,
+        "maxHeight": 50,
+        "minFontSize": 26.4
+      }
+    },
+    {
+      "id": "fit-systems",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "systems",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 201,
+        "maxHeight": 50,
+        "minFontSize": 25.8
+      }
+    },
+    {
+      "id": "fit-sub",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "sub",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 98,
+        "maxHeight": 12.600000000000001,
+        "minFontSize": 7.199999999999999
+      }
+    },
+    {
+      "id": "fit-sub-line-2",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "sub-line-2",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "left",
+        "maxWidth": 98,
+        "maxHeight": 12.600000000000001,
+        "minFontSize": 7.199999999999999
+      }
+    }
+  ],
+  "overrides": {},
+  "richText": {},
+  "media": {},
+  "seed": 0,
+  "state": "applied",
+  "issues": [],
+  "layoutOrigin": "catalog-variant",
+  "sourceVariantKey": "4x5-e4a249e1f670",
+  "effectiveAspectRatio": "4:5",
+  "projection": {
+    "scale": 1,
+    "x": 0,
+    "y": 0
+  },
+  "artboard": {
+    "width": 248,
+    "height": 310,
+    "background": "#E1DECD"
+  }
+}

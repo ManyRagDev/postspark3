@@ -1,14 +1,16 @@
 import { useState, useMemo } from "react";
-import { X, Search, Sparkles, Image as ImageIcon, Check, Sliders } from "lucide-react";
-import { toast } from "sonner";
+import { X, Search, Image as ImageIcon, Sparkles } from "lucide-react";
 import type { CanvasPostModel } from "./types";
+import type { SeamlessPanoramaMeta } from "../lib/seamlessCarousel";
 
 interface BackgroundsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   post: CanvasPostModel;
   onApplyBackground: (url?: string) => void;
+  onApplySeamlessPanorama?: (panorama: SeamlessPanoramaMeta) => void;
   manifestData: any;
+  initialTab?: string;
 }
 
 export default function BackgroundsDrawer({
@@ -16,15 +18,26 @@ export default function BackgroundsDrawer({
   onClose,
   post,
   onApplyBackground,
+  onApplySeamlessPanorama,
   manifestData,
+  initialTab,
 }: BackgroundsDrawerProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const isCarousel = Boolean(post.slides && post.slides.length > 1);
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    initialTab || (isCarousel ? "seamless" : "all")
+  );
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const currentSlide = post.slides[post.currentSlideIndex];
   const activeBg = currentSlide?.bgImage ?? post.bgImage;
 
-  // Lista agregada de todas as imagens com metadados
+  // Lista dos panoramas contínuos
+  const seamlessCarousels = useMemo<SeamlessPanoramaMeta[]>(() => {
+    if (!manifestData?.seamlessCarousels || !Array.isArray(manifestData.seamlessCarousels)) return [];
+    return manifestData.seamlessCarousels;
+  }, [manifestData]);
+
+  // Lista agregada de todas as texturas normais
   const allImages = useMemo(() => {
     if (!manifestData?.categories) return [];
     const list: Array<{ path: string; fullUrl: string; categoryKey: string; categoryLabel: string; name: string }> = [];
@@ -32,7 +45,6 @@ export default function BackgroundsDrawer({
     Object.entries(manifestData.categories).forEach(([catKey, cat]: [string, any]) => {
       if (Array.isArray(cat.images)) {
         cat.images.forEach((imgPath: string) => {
-          // Extrai nome legível do arquivo
           const cleanName = imgPath
             .split("/")
             .pop()
@@ -66,6 +78,18 @@ export default function BackgroundsDrawer({
     });
   }, [allImages, selectedCategory, searchQuery]);
 
+  const filteredSeamless = useMemo(() => {
+    if (!isCarousel) return [];
+    return seamlessCarousels.filter((pano) => {
+      const matchesSearch =
+        !searchQuery.trim() ||
+        pano.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        pano.series.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        `${pano.slideCount} slides`.includes(searchQuery.toLowerCase());
+      return matchesSearch;
+    });
+  }, [seamlessCarousels, searchQuery, isCarousel]);
+
   if (!isOpen) return null;
 
   return (
@@ -78,12 +102,16 @@ export default function BackgroundsDrawer({
           </div>
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-              <span>Biblioteca de Texturas</span>
+              <span>Biblioteca de Fundos</span>
               <span className="text-[10px] font-mono font-normal bg-white/10 text-white/70 px-1.5 py-0.5 rounded-full">
-                {allImages.length}
+                {selectedCategory === "seamless" ? seamlessCarousels.length : allImages.length}
               </span>
             </h3>
-            <p className="text-[11px] text-white/40">Texturas oficiais em alta resolução</p>
+            <p className="text-[11px] text-white/40">
+              {isCarousel
+                ? "Panoramas contínuos e texturas em alta resolução"
+                : "Texturas oficiais em alta resolução"}
+            </p>
           </div>
         </div>
         <button
@@ -95,7 +123,7 @@ export default function BackgroundsDrawer({
         </button>
       </div>
 
-      {/* ─── BARRA DE PESQUISA & OPÇÃO CARROSSEL ─── */}
+      {/* ─── BARRA DE PESQUISA ─── */}
       <div className="p-4 space-y-3 border-b border-white/8 bg-white/1">
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
@@ -103,7 +131,11 @@ export default function BackgroundsDrawer({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar textura (ouro, linho, concreto, papel...)"
+            placeholder={
+              selectedCategory === "seamless"
+                ? "Buscar panorama (paper, cyberpunk, brutalist...)"
+                : "Buscar textura (ouro, linho, concreto, papel...)"
+            }
             className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)] transition-all"
           />
           {searchQuery && (
@@ -116,12 +148,28 @@ export default function BackgroundsDrawer({
             </button>
           )}
         </div>
-
       </div>
 
       {/* ─── CATEGORIAS EM ABAS LÍQUIDAS ─── */}
       <div className="p-3 border-b border-white/8 bg-white/2">
         <div className="flex gap-1.5 flex-wrap">
+          {/* ABA SEAMLESS CAROUSEL (Exclusiva para carrosséis) */}
+          {isCarousel && (
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("seamless")}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                selectedCategory === "seamless"
+                  ? "bg-gradient-to-r from-[#FF5C00] to-orange-400 text-white shadow-md shadow-orange-500/20"
+                  : "bg-orange-500/10 border border-orange-500/30 text-orange-300 hover:bg-orange-500/20"
+              }`}
+            >
+              <Sparkles size={12} className={selectedCategory === "seamless" ? "text-white" : "text-orange-400"} />
+              <span>Seamless Carousel</span>
+              <span className="text-[10px] opacity-80 font-mono">({seamlessCarousels.length})</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setSelectedCategory("all")}
@@ -131,8 +179,9 @@ export default function BackgroundsDrawer({
                 : "bg-white/5 text-white/60 hover:text-white hover:bg-white/10"
             }`}
           >
-            Todas ({allImages.length})
+            Todas as texturas ({allImages.length})
           </button>
+
           {manifestData?.categories &&
             Object.entries(manifestData.categories).map(([catKey, cat]: [string, any]) => {
               const isSel = selectedCategory === catKey;
@@ -157,53 +206,162 @@ export default function BackgroundsDrawer({
         </div>
       </div>
 
-      {/* ─── GRADE ESPAÇOSA DE ALTA DEFINIÇÃO (2 COLUNAS) ─── */}
+      {/* ─── CORPO DA GAVETA: SEAMLESS CAROUSEL (1 COLUNA HORIZONTAL) OU TEXTURAS (2 COLUNAS) ─── */}
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-        {filteredImages.length === 0 ? (
-          <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-white/40">
-            <ImageIcon size={32} className="mb-2 opacity-30" />
-            <p className="text-xs">Nenhuma textura encontrada para "{searchQuery}".</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {filteredImages.map((img, i) => {
-              const isSelected = activeBg === img.fullUrl;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => {
-                    onApplyBackground(img.fullUrl);
-                  }}
-                  className={`group relative aspect-[4/3] rounded-xl overflow-hidden border transition-all cursor-pointer text-left ${
-                    isSelected
-                      ? "border-[oklch(0.78_0.22_48)] ring-2 ring-[oklch(0.78_0.22_48)]/40 shadow-lg"
-                      : "border-white/10 hover:border-white/40 hover:shadow-md"
-                  }`}
-                >
-                  <img
-                    src={img.fullUrl}
-                    alt={img.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
-                  
-                  {/* Nome da textura */}
-                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                    <span className="text-[10px] font-medium text-white/90 line-clamp-1 group-hover:text-white">
-                      {img.name}
-                    </span>
-                    {isSelected && (
-                      <span className="w-4 h-4 rounded-full bg-[oklch(0.78_0.22_48)] text-black flex items-center justify-center text-[10px] font-bold shrink-0">
-                        ✓
+        {selectedCategory === "seamless" && isCarousel ? (
+          filteredSeamless.length === 0 ? (
+            <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-white/40">
+              <Sparkles size={32} className="mb-2 opacity-30 text-orange-400" />
+              <p className="text-xs">Nenhum panorama encontrado para "{searchQuery}".</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-3 text-xs text-orange-200/90 leading-relaxed">
+                <p className="font-semibold text-white flex items-center gap-1.5 mb-1">
+                  <Sparkles size={13} className="text-orange-400" />
+                  <span>Panoramas Contínuos em Tira</span>
+                </p>
+                <p className="text-[11px] text-white/60">
+                  A imagem atravessa todos os slides em fileira contínua. Ao escolher um, o palco abre a visão fantasma panorâmica para inspeção.
+                </p>
+              </div>
+
+              {filteredSeamless.map((pano) => {
+                const isSelected = activeBg === pano.url || (activeBg && activeBg.includes(pano.id));
+                const currentCount = post.slides.length;
+                const panoCount = pano.slideCount;
+
+                let matchLabel = `Encaixe exato (${panoCount} slides)`;
+                let matchColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+                if (panoCount > currentCount) {
+                  matchLabel = `${panoCount} slides • usa ${currentCount} e corta ${panoCount - currentCount}`;
+                  matchColor = "text-blue-400 bg-blue-500/10 border-blue-500/20";
+                } else if (panoCount < currentCount) {
+                  matchLabel = `${panoCount} slides • ${currentCount - panoCount} slide(s) sem fundo`;
+                  matchColor = "text-amber-400 bg-amber-500/10 border-amber-500/20";
+                }
+
+                return (
+                  <button
+                    key={pano.id}
+                    type="button"
+                    onClick={() => {
+                      if (onApplySeamlessPanorama) {
+                        onApplySeamlessPanorama(pano);
+                      } else {
+                        onApplyBackground(pano.url);
+                      }
+                      onClose();
+                    }}
+                    className={`w-full group rounded-2xl overflow-hidden border transition-all cursor-pointer text-left flex flex-col bg-black/40 ${
+                      isSelected
+                        ? "border-[oklch(0.78_0.22_48)] ring-2 ring-[oklch(0.78_0.22_48)]/40 shadow-xl"
+                        : "border-white/10 hover:border-white/30 hover:shadow-lg"
+                    }`}
+                  >
+                    {/* Imagem panorâmica completa em proporção 4:1 com linhas guias das fatias */}
+                    <div className="relative aspect-[4/1] w-full overflow-hidden bg-neutral-900">
+                      <img
+                        src={pano.previewUrl || pano.url}
+                        alt={pano.name}
+                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                        loading="lazy"
+                      />
+                      {/* Divisórias das fatias proporcionais */}
+                      <div className="absolute inset-0 pointer-events-none flex">
+                        {Array.from({ length: panoCount - 1 }).map((_, idx) => (
+                          <div
+                            key={idx}
+                            style={{ left: `${((idx + 1) / panoCount) * 100}%` }}
+                            className="absolute inset-y-0 w-px border-r border-dashed border-white/40 drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]"
+                          />
+                        ))}
+                      </div>
+
+                      <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                        <span className="px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[9px] font-mono font-bold uppercase tracking-wider text-white border border-white/15">
+                          {panoCount} Slides
+                        </span>
+                        {isSelected && (
+                          <span className="w-5 h-5 rounded-full bg-[oklch(0.78_0.22_48)] text-black flex items-center justify-center text-xs font-bold shadow-md">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="absolute bottom-2 left-2">
+                        <span className="px-2 py-0.5 rounded text-[9px] font-semibold bg-black/60 backdrop-blur-md text-white/80">
+                          {pano.series}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Metadados e compatibilidade */}
+                    <div className="p-3 flex items-center justify-between gap-2 border-t border-white/5 bg-white/[0.02]">
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-white group-hover:text-orange-300 transition-colors truncate">
+                          {pano.name}
+                        </div>
+                        <div className="text-[10px] text-white/40 mt-0.5">
+                          {pano.width} × {pano.height}px • Safe Zones Centrais
+                        </div>
+                      </div>
+
+                      <span className={`px-2 py-1 rounded-md text-[9.5px] font-semibold border shrink-0 ${matchColor}`}>
+                        {matchLabel}
                       </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          filteredImages.length === 0 ? (
+            <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-white/40">
+              <ImageIcon size={32} className="mb-2 opacity-30" />
+              <p className="text-xs">Nenhuma textura encontrada para "{searchQuery}".</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {filteredImages.map((img, i) => {
+                const isSelected = activeBg === img.fullUrl;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      onApplyBackground(img.fullUrl);
+                    }}
+                    className={`group relative aspect-[4/3] rounded-xl overflow-hidden border transition-all cursor-pointer text-left ${
+                      isSelected
+                        ? "border-[oklch(0.78_0.22_48)] ring-2 ring-[oklch(0.78_0.22_48)]/40 shadow-lg"
+                        : "border-white/10 hover:border-white/40 hover:shadow-md"
+                    }`}
+                  >
+                    <img
+                      src={img.fullUrl}
+                      alt={img.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
+
+                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                      <span className="text-[10px] font-medium text-white/90 line-clamp-1 group-hover:text-white">
+                        {img.name}
+                      </span>
+                      {isSelected && (
+                        <span className="w-4 h-4 rounded-full bg-[oklch(0.78_0.22_48)] text-black flex items-center justify-center text-[10px] font-bold shrink-0">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )
         )}
       </div>
 

@@ -1,0 +1,821 @@
+{
+  "version": 2,
+  "origin": {
+    "candidateId": "c5a7e876-5755-4752-8f5a-6dcad57af95b:5x6-94fcf2d24928-portrait4x5-10961ad8e5-closing-compose-synthesis-v3",
+    "blueprintId": "65fdcfca-b630-4840-8e93-c69cc36009b1",
+    "versionId": "c5a7e876-5755-4752-8f5a-6dcad57af95b",
+    "version": 1,
+    "definitionHash": "fb01495dfbd08e107e62295ddb3e19585420f47d2bc5f00f0dcc2920837c9a5c",
+    "variantKey": "5x6-94fcf2d24928-portrait4x5-10961ad8e5-closing-compose-synthesis-v3",
+    "variantHash": "dd98c22e0e8661b3f9e8a4bac31b66c419df45fdfc69473408226e0ebe8f8ba1",
+    "compilerVersion": "arsenal-v3.0.0",
+    "componentAssembly": {
+      "completeDesign": {
+        "family": "brutal-split",
+        "authorshipRevision": 2,
+        "baselineVerified": true,
+        "colors": [
+          "#171717",
+          "#0C0C0D",
+          "#FFFFFF"
+        ],
+        "designGuidance": {
+          "version": 1,
+          "representation": {
+            "version": 3,
+            "sourceId": "e22a5e36-0ec1-4868-800a-9480cb741bdd",
+            "sourceHash": "364643264c4cba0b71f8858dbfdd76a82acc5795d20f2c479014a787cc9504ef",
+            "method": "native_semantics_rebuild"
+          },
+          "familyIdentity": {
+            "essential": [
+              "split-composition",
+              "strong-contrast"
+            ],
+            "optional": [
+              "Campos de apoio opcionais podem ficar vazios quando não pertinentes."
+            ],
+            "adaptable": [
+              "Texto e mídia apenas nos campos declarados.",
+              "Ritmo por escolha entre composições do repertório; geometria fixa dentro de cada composição."
+            ]
+          },
+          "fieldRelationships": [
+            {
+              "kind": "emphasis",
+              "sources": [
+                "block:headline:0:text"
+              ],
+              "label": "Título único distribuído entre headline-1, headline-2, headline-3; conferir peso, cor e capacidade de cada fragmento."
+            }
+          ],
+          "carouselVariant": {
+            "version": 3,
+            "role": "closing",
+            "sourceId": "a8562b71-e1e1-4bfa-8cdd-28194a40b6f1",
+            "sourceHash": "10961ad8e5d7ee6fc213f05e3c38b627e715b598e369d7f4dfb5e30a1fc6064a",
+            "contentMode": "compose",
+            "function": "synthesis",
+            "identity": [
+              "split-composition",
+              "strong-contrast"
+            ]
+          },
+          "summary": "Composição dividida, contraste forte entre áreas e título de impacto. Os blocos de texto mantêm funções distintas dentro da divisão nativa. Composição nativa para ênfase, repetição intencional ou exemplo.",
+          "motifs": [
+            "split-composition",
+            "strong-contrast"
+          ],
+          "preserve": [
+            "Conservar geometria, hierarquia, fontes incorporadas, cores e ornamentos nativos; não substituir a composição pela imagem original.",
+            "static: composição inteira com geometria autorada",
+            "cover: campo de título nativo",
+            "closing: convite pode usar título/apoio editável; sem caixa de CTA dedicada, conservar capacidade nativa",
+            "example: mídia ou itens independentes autorados permitem mostrar um exemplo; não há aprovação narrativa automática",
+            "density:quiet: 3 regiões de texto; área somada das caixas 29.9% da prancheta (não é limite de palavras nem aprovação de encaixe)"
+          ],
+          "contentRules": [
+            "Paleta de demonstração: OFFICIAL_FAMILIES_META; tipografia e geometria: compositor original. Não é uma captura do editor atual.",
+            "Receita V3 importável no Admin2. Campos multilinha usam lista de linhas; edição flexível ainda não está implementada no painel.",
+            "Selecionar esta composição pela função da página. Repetição é permitida; não inventar texto, rótulos nem CTA para preencher campos."
+          ],
+          "mediaRules": [
+            {
+              "slotId": "media",
+              "instructions": [
+                "Preencher somente o slot nativo Fotografia substituível; enquadramento cover, ponto focal autorado 0.5,0.5. A imagem original inteira é evidência, nunca fotografia de preenchimento.",
+                "Nota de autoria do design: Prévia usa a foto de demonstração inserida pelo proprietário na receita cfaccad3. Ela é substituível; não pertence ao design nativo."
+              ]
+            }
+          ],
+          "knownLimitations": [
+            "Conversão de família nativa. Aparência adaptada ao contrato V3; originais preservados em backup. Aprovação visual pendente.",
+            "Origem: shared/creative/families.ts (brutal-split); SHA-256 f5fdebf0a7e29e9cb9df266155d0881b8f61214d5a10f7355dbf2d1623964735.",
+            "Conversor native-families-1; seed 478765034; formato 5:6. Parâmetros originais completos no pacote de backup/baseline.",
+            "Paleta de demonstração: OFFICIAL_FAMILIES_META; tipografia e geometria: compositor original. Não é uma captura do editor atual.",
+            "Receita V3 importável no Admin2. Campos multilinha usam lista de linhas; edição flexível ainda não está implementada no painel.",
+            "Conteúdo ilustrativo. O dado 72% é fictício e não representa pesquisa ou resultado real.",
+            "Prévia usa a foto de demonstração inserida pelo proprietário na receita cfaccad3. Ela é substituível; não pertence ao design nativo.",
+            "Capacidade é estimativa geométrica; composição não certifica legibilidade de qualquer texto."
+          ]
+        }
+      },
+      "version": 1,
+      "planHash": "2cf7caec30f4983cbe31fd9015456f5fba1779da5b22f3ec1d0382e5e5991a4b",
+      "componentIds": [
+        "65fdcfca-b630-4840-8e93-c69cc36009b1"
+      ],
+      "componentHashes": [
+        "fb01495dfbd08e107e62295ddb3e19585420f47d2bc5f00f0dcc2920837c9a5c"
+      ],
+      "sourceHashes": [
+        "8fa2ce770f430d950a27791478bb589543cd1a184bdc9611b709effdc63918fc"
+      ],
+      "experimental": true
+    }
+  },
+  "base": {
+    "variantKey": "5x6-94fcf2d24928-portrait4x5-10961ad8e5-closing-compose-synthesis-v3",
+    "aspectRatio": "4:5",
+    "compilerVersion": "arsenal-v3.0.0",
+    "artboard": {
+      "width": 1080,
+      "height": 1350,
+      "background": "#171717"
+    },
+    "instances": [
+      {
+        "id": "media",
+        "pieceHash": "ed5208d094054e0f2d10144f4d669b03540f46c3b349cfe22041c2846b5dceb9",
+        "parentId": "g-surface",
+        "zIndex": 0,
+        "x": 0,
+        "y": 0,
+        "width": 720,
+        "height": 432,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "split-panel",
+        "pieceHash": "5ae4f2a8db84be49a9e194642b992fe78677f84b725ddddad87acdae1cba6f96",
+        "parentId": "g-surface",
+        "zIndex": 1,
+        "x": 0,
+        "y": 432,
+        "width": 720,
+        "height": 432,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "headline-1",
+        "pieceHash": "dacd0df6bb0707175214a86f9694bcf894001f9f746d2529c46c5b4006c09d1b",
+        "parentId": "g-headline",
+        "zIndex": 2,
+        "x": 43.2,
+        "y": 475.45500000000004,
+        "width": 633.6,
+        "height": 97.75999999999999,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "headline-2",
+        "pieceHash": "5537d45932cba368ff893412767f534fee941f5f915f7454199858fb1c5e3c08",
+        "parentId": "g-headline",
+        "zIndex": 3,
+        "x": 43.2,
+        "y": 573.205,
+        "width": 633.6,
+        "height": 97.75999999999999,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "headline-3",
+        "pieceHash": "a58fc743bcbf531127263889830a81b3a52c86cdce76c42c9916ee797ccdc47f",
+        "parentId": "g-headline",
+        "zIndex": 4,
+        "x": 43.2,
+        "y": 670.9549999999999,
+        "width": 633.6,
+        "height": 97.75999999999999,
+        "rotation": 0,
+        "opacity": 1
+      }
+    ],
+    "groups": [
+      {
+        "id": "g-surface",
+        "label": "Superfícies e mídia",
+        "parentId": "authored-portrait-projection",
+        "zIndex": 0,
+        "x": 0,
+        "y": 0,
+        "width": 720,
+        "height": 864,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "g-headline",
+        "label": "Título · linhas",
+        "parentId": "authored-portrait-projection",
+        "zIndex": 2,
+        "x": 0,
+        "y": 0,
+        "width": 720,
+        "height": 864,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "authored-portrait-projection",
+        "label": "Projeção uniforme 5:6 para 4:5",
+        "parentId": null,
+        "zIndex": 0,
+        "x": 0,
+        "y": 27,
+        "width": 720,
+        "height": 864,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1.5
+      }
+    ],
+    "bindings": [
+      {
+        "id": "semantic-0",
+        "label": "headline: headline",
+        "kind": "text",
+        "source": "content:field-0:text",
+        "required": true,
+        "targetIds": [
+          "headline-1",
+          "headline-2",
+          "headline-3"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "photo",
+        "label": "Fotografia substituível",
+        "kind": "media",
+        "source": "media.primary",
+        "required": false,
+        "targetIds": [
+          "media"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      }
+    ],
+    "relations": [
+      {
+        "id": "fit-headline-1",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "headline-1",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "center",
+          "maxWidth": 633.6,
+          "maxHeight": 97.75999999999999,
+          "minFontSize": 59.49999999999999
+        }
+      },
+      {
+        "id": "fit-headline-2",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "headline-2",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "center",
+          "maxWidth": 633.6,
+          "maxHeight": 97.75999999999999,
+          "minFontSize": 59.49999999999999
+        }
+      },
+      {
+        "id": "fit-headline-3",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "headline-3",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "center",
+          "maxWidth": 633.6,
+          "maxHeight": 97.75999999999999,
+          "minFontSize": 59.49999999999999
+        }
+      }
+    ],
+    "assetIds": [
+      "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30"
+    ],
+    "capabilities": [
+      "text",
+      "rect",
+      "line",
+      "polygon",
+      "media",
+      "groups",
+      "relations",
+      "content-fragments",
+      "extrusion"
+    ],
+    "mediaSlots": [
+      {
+        "id": "media",
+        "label": "Fotografia substituível",
+        "function": "user-replaceable-image",
+        "prompt": "Imagem para Fotografia substituível, respeitando a área de mídia do design Brutal Split.",
+        "deferred": true,
+        "policy": "cover"
+      }
+    ],
+    "intentionalOverlaps": [],
+    "limitations": [
+      "Rascunho de componentes: revisão visual humana e publicação pendentes.",
+      "Geometria autorada preservada. Encaixe limitado às caixas de origem; overflow deve permanecer explícito.",
+      "Fragmentos distribuem palavras completas por capacidade declarada; quebra intrapalavra do exemplo não é reutilizada.",
+      "Fotos de demonstração permanecem apenas no snapshot de origem; slots aguardam mídia do usuário.",
+      "Adaptação 4:5 por projeção uniforme rastreável: conteúdo/efeitos/relações locais preservados; margens adicionais conservam fundo. Revisão própria obrigatória."
+    ]
+  },
+  "pieces": {
+    "5537d45932cba368ff893412767f534fee941f5f915f7454199858fb1c5e3c08": {
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85,
+      "fontWeight": 400,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          2,
+          1
+        ]
+      }
+    },
+    "5ae4f2a8db84be49a9e194642b992fe78677f84b725ddddad87acdae1cba6f96": {
+      "kind": "rect",
+      "fill": "#171717",
+      "stroke": "#FFFFFF",
+      "strokeWidth": 6,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "a58fc743bcbf531127263889830a81b3a52c86cdce76c42c9916ee797ccdc47f": {
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85,
+      "fontWeight": 400,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 2,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          2,
+          1
+        ]
+      }
+    },
+    "dacd0df6bb0707175214a86f9694bcf894001f9f746d2529c46c5b4006c09d1b": {
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85,
+      "fontWeight": 400,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          2,
+          1
+        ]
+      }
+    },
+    "ed5208d094054e0f2d10144f4d669b03540f46c3b349cfe22041c2846b5dceb9": {
+      "kind": "media",
+      "fill": "#0C0C0D",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    }
+  },
+  "assets": [
+    {
+      "id": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "kind": "bundled",
+      "sha256": "25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "mimeType": "font/woff2",
+      "bytes": 18604,
+      "family": "Arsenal_25f33e61cf995abd",
+      "sourceFamily": "Archivo Black",
+      "weight": 400,
+      "license": "open-source"
+    }
+  ],
+  "content": {
+    "schemaVersion": 3,
+    "blocks": [
+      {
+        "id": "field-0",
+        "type": "text",
+        "role": "headline",
+        "text": "MUDE O PONTO DE VISTA."
+      }
+    ],
+    "caption": "",
+    "hashtags": []
+  },
+  "userContentHash": "5f7e99fdc9954f11ebcb0c284c4dcf1ff4ae04b8efc37efe72931782decce209",
+  "generatedContentHash": "5f7e99fdc9954f11ebcb0c284c4dcf1ff4ae04b8efc37efe72931782decce209",
+  "contentRevision": 0,
+  "elements": [
+    {
+      "id": "media",
+      "parentId": "g-surface",
+      "zIndex": 0,
+      "x": 0,
+      "y": 0,
+      "width": 720,
+      "height": 432,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "media",
+      "fill": "#0C0C0D",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null,
+      "mediaSlot": {
+        "id": "media",
+        "label": "Fotografia substituível",
+        "function": "user-replaceable-image",
+        "prompt": "Imagem para Fotografia substituível, respeitando a área de mídia do design Brutal Split.",
+        "deferred": true,
+        "policy": "cover"
+      }
+    },
+    {
+      "id": "split-panel",
+      "parentId": "g-surface",
+      "zIndex": 1,
+      "x": 0,
+      "y": 432,
+      "width": 720,
+      "height": 432,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#171717",
+      "stroke": "#FFFFFF",
+      "strokeWidth": 6,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "headline-1",
+      "parentId": "g-headline",
+      "zIndex": 2,
+      "x": 43.2,
+      "y": 475.45500000000004,
+      "width": 633.6,
+      "height": 97.74999999999999,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85,
+      "fontWeight": 400,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          2,
+          1
+        ]
+      },
+      "text": "MUDE O ",
+      "bindingId": "semantic-0",
+      "itemId": null
+    },
+    {
+      "id": "headline-2",
+      "parentId": "g-headline",
+      "zIndex": 3,
+      "x": 43.2,
+      "y": 573.205,
+      "width": 633.6,
+      "height": 97.74999999999999,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85,
+      "fontWeight": 400,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          2,
+          1
+        ]
+      },
+      "text": "PONTO DE ",
+      "bindingId": "semantic-0",
+      "itemId": null
+    },
+    {
+      "id": "headline-3",
+      "parentId": "g-headline",
+      "zIndex": 4,
+      "x": 43.2,
+      "y": 670.9549999999999,
+      "width": 633.6,
+      "height": 97.74999999999999,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_25f33e61cf995abd",
+      "fontAssetId": "font-25f33e61cf995abd6be62931cf03bf427286259177b43618cc410ee0157cfd30",
+      "fontSize": 85,
+      "fontWeight": 400,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 2,
+        "count": 3,
+        "unit": "words",
+        "weights": [
+          2,
+          2,
+          1
+        ]
+      },
+      "text": "VISTA.",
+      "bindingId": "semantic-0",
+      "itemId": null
+    }
+  ],
+  "groups": [
+    {
+      "id": "g-surface",
+      "label": "Superfícies e mídia",
+      "parentId": "authored-portrait-projection",
+      "zIndex": 0,
+      "x": 0,
+      "y": 0,
+      "width": 720,
+      "height": 864,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "g-headline",
+      "label": "Título · linhas",
+      "parentId": "authored-portrait-projection",
+      "zIndex": 2,
+      "x": 0,
+      "y": 0,
+      "width": 720,
+      "height": 864,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "authored-portrait-projection",
+      "label": "Projeção uniforme 5:6 para 4:5",
+      "parentId": null,
+      "zIndex": 0,
+      "x": 0,
+      "y": 27,
+      "width": 720,
+      "height": 864,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1.5
+    }
+  ],
+  "relations": [
+    {
+      "id": "fit-headline-1",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "headline-1",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "center",
+        "maxWidth": 633.6,
+        "maxHeight": 97.75999999999999,
+        "minFontSize": 59.49999999999999
+      }
+    },
+    {
+      "id": "fit-headline-2",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "headline-2",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "center",
+        "maxWidth": 633.6,
+        "maxHeight": 97.75999999999999,
+        "minFontSize": 59.49999999999999
+      }
+    },
+    {
+      "id": "fit-headline-3",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "headline-3",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "center",
+        "maxWidth": 633.6,
+        "maxHeight": 97.75999999999999,
+        "minFontSize": 59.49999999999999
+      }
+    }
+  ],
+  "overrides": {},
+  "richText": {},
+  "media": {},
+  "seed": 0,
+  "state": "applied",
+  "issues": [],
+  "layoutOrigin": "catalog-variant",
+  "sourceVariantKey": "5x6-94fcf2d24928-portrait4x5-10961ad8e5-closing-compose-synthesis-v3",
+  "effectiveAspectRatio": "4:5",
+  "projection": {
+    "scale": 1,
+    "x": 0,
+    "y": 0
+  },
+  "artboard": {
+    "width": 1080,
+    "height": 1350,
+    "background": "#171717"
+  }
+}

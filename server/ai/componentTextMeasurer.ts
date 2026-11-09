@@ -6,7 +6,7 @@ import { create as createFont } from "fontkit";
 import { createClient } from "@supabase/supabase-js";
 import { ENV } from "../_core/env";
 import { ARSENAL_BUCKET } from "../designCatalog/arsenalAssets";
-import bundled from "@shared/arsenalBundledAssets.json";
+import { arsenalBundledManifest } from "@shared/arsenalBundledManifest";
 import { arsenalHash } from "@shared/arsenalContent";
 import type { ArsenalAsset } from "@shared/designArsenal";
 import type { ArsenalTextMeasurer } from "@shared/arsenalGeometry";
@@ -53,13 +53,13 @@ export async function loadComponentFontBytes(
   signal?: AbortSignal
 ): Promise<Buffer> {
   if (asset.kind === "bundled") {
-    const entry = (bundled as Record<string, { path: string }>)[asset.id];
+    const entry = arsenalBundledManifest[asset.id];
     if (
       !entry ||
-      !entry.path.startsWith("/arsenal/fonts/") ||
+      !/^\/arsenal\/(fonts|images)\//.test(entry.path) ||
       entry.path.includes("..")
     )
-      throw new Error("unverified_bundled_font");
+      throw new Error("unverified_bundled_asset");
     return readFile(join(process.cwd(), "client/public", entry.path), {
       signal,
     });

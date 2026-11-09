@@ -1,12 +1,17 @@
 import { isStandaloneHttpUrl } from "@shared/generationSources";
 import BrandCaptureModal from "./BrandCaptureModal";
+import { TemplateIngestionModal } from "@/pages/TemplateIngestion/TemplateIngestionModal";
+import StudioShowcaseModal from "./StudioShowcaseModal";
+import type { ShowcaseItem } from "./showcaseData";
+import type { OrchestratedGenerationInput } from "@shared/generationRequest";
+import type { CanvasPostModel } from "@/pages/CanvasLab/components/types";
 import { toast } from "sonner";
 import { GENERATION_MODEL_LABELS, getGenerationModelHint, type GenerationModel } from "@shared/generationModel";
-export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference";generationModel?:GenerationModel;allowAiImages?:boolean};
+export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference";generationModel?:GenerationModel;allowAiImages?:boolean;aspectRatio?: "4:5";fixedDesign?: OrchestratedGenerationInput["fixedDesign"];slideCount?: number};
 import { trpc } from "@/lib/trpc";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Loader2, Sparkles, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { ArrowRight, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { loadFontByName } from "@/lib/fonts";
 import SparkLogo from "@/components/SparkLogo";
 import ProjectSelectorDropdown from "./ProjectSelectorDropdown";
@@ -20,7 +25,6 @@ import {
   SPECIMEN_FONTS,
   FormatSelector,
   buildSpecimens,
-  SpecimenCard,
   type Specimen,
 } from "./shared";
 
@@ -45,6 +49,9 @@ interface StudioCreateViewV2BProps {
   onDiscardDraft?: () => void;
   selectedProjectId?: string | null;
   onSelectProjectId?: (id: string | null) => void;
+  proposalAspectRatio?: "1:1" | "4:5" | "9:16";
+  onProposalAspectRatioChange?: (ratio: "1:1" | "4:5" | "9:16") => void;
+  onOpenEditorWithPost?: (post: CanvasPostModel) => void;
 }
 
 export default function StudioCreateViewV2B({
@@ -59,9 +66,14 @@ export default function StudioCreateViewV2B({
   onDiscardDraft,
   selectedProjectId = null,
   onSelectProjectId,
+  proposalAspectRatio,
+  onProposalAspectRatioChange,
+  onOpenEditorWithPost,
 }: StudioCreateViewV2BProps) {
   const [captureUrl,setCaptureUrl]=useState<string>();
   const [urlAsContent,setUrlAsContent]=useState(false);
+  const [isTemplateIngestOpen, setIsTemplateIngestOpen] = useState(false);
+  const [isShowcaseOpen, setIsShowcaseOpen] = useState(false);
   const [options,setOptions]=useState<CreationInputOptions>({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose,generationModel:initialGenerationModel,allowAiImages:false});
   useEffect(()=>setOptions(prev=>({platform:initialPlatform,image:initialImage,imagePurpose:initialImagePurpose,generationModel:initialGenerationModel,allowAiImages:prev.allowAiImages??false})),[initialPlatform,initialImage,initialImagePurpose,initialGenerationModel]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -82,21 +94,87 @@ export default function StudioCreateViewV2B({
   }, [initialMode]);
 
   const [isFocused, setIsFocused] = useState(false);
-  // Inicia recolhido por padrão conforme solicitado
-  const [isSpecimensOpen, setIsSpecimensOpen] = useState(false);
-  // Estado para a Lente de Inspeção Rápida no Desktop
-  const [hoveredSpecimenIndex, setHoveredSpecimenIndex] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [designSearch,setDesignSearch]=useState('');
-  const directory=trpc.catalog.acervo82Directory.useQuery(undefined,{enabled:isSpecimensOpen||Boolean(declaredFamilyId?.startsWith('acervo82-')),retry:false,staleTime:30_000});
-  const catalogFamilies=directory.data?.families;
-  const fold=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  const catalogSpecimens=catalogFamilies?.map((family):Specimen=>({
-    id:family.family,familyLabel:`${family.code} · ${family.name}`,prompt:`Crie um post sobre [assunto]. Direção visual: ${family.descriptor}.`,
-    art:<img loading="lazy" alt={`Miniatura nativa de ${family.name}`} src={`/api/acervo82/review/${family.family}/render`} className="absolute inset-0 h-full w-full object-cover"/>,
+  const directory = trpc.catalog.acervo82Directory.useQuery(undefined, {
+    enabled: Boolean(declaredFamilyId?.startsWith("acervo82-")),
+    retry: false,
+    staleTime: 30_000,
+  });
+  const brandProjectsList = (trpc as any).brandProjects?.list;
+  const { data: remoteProjects = [] } = brandProjectsList?.useQuery
+    ? brandProjectsList.useQuery(undefined, { retry: false })
+    : { data: [] };
+  const currentProject = useMemo(() => {
+    if (!selectedProjectId) return null;
+    return (remoteProjects as any[]).find((p: any) => p.id === selectedProjectId) || null;
+  }, [remoteProjects, selectedProjectId]);
+
+  const projectDesignSpecimen = useMemo<Specimen | null>(() => {
+    if (!currentProject?.visualPreferences) return null;
+    const vp = currentProject.visualPreferences;
+    const colors: string[] = vp.colors || [];
+    const fonts: string[] = vp.fonts || [];
+    const styleName = vp.personality?.[0] || `${currentProject.name} (Design)`;
+    const bg = colors[0] || "#FDFBF7";
+    const textCol = colors[2] || colors[1] || "#1A1A1A";
+    const accentCol = colors[3] || colors[0] || "#FF5E24";
+    const font = fonts[0] || "Space Grotesk";
+
+    return {
+      id: `project-design-${currentProject.id}`,
+      familyLabel: `⭐ ${styleName}`,
+      prompt: `Crie um post com foco na oferta e diferenciais de ${currentProject.name}.`,
+      isProjectDesign: true,
+      colors,
+      fonts,
+      art: (
+        <div className="absolute inset-0 p-2 flex flex-col justify-between" style={{ backgroundColor: bg }}>
+          <div className="flex items-center justify-between">
+            <span
+              className="text-[7px] font-mono font-bold px-1 py-0.5 rounded shadow-sm"
+              style={{ backgroundColor: accentCol, color: "#FFFFFF" }}
+            >
+              DNA
+            </span>
+            <div className="flex gap-0.5">
+              {colors.slice(0, 3).map((c, i) => (
+                <div key={i} className="size-2 rounded-full border border-black/20" style={{ backgroundColor: c }} />
+              ))}
+            </div>
+          </div>
+          <div className="my-auto">
+            <div className="text-[10px] font-bold leading-tight line-clamp-2" style={{ color: textCol, fontFamily: font }}>
+              {currentProject.name}
+            </div>
+            <div className="text-[7.5px] opacity-70 mt-0.5 font-mono line-clamp-1" style={{ color: textCol }}>
+              {font}
+            </div>
+          </div>
+          <div
+            className="w-full py-1 text-center text-[7px] font-bold font-mono rounded"
+            style={{ backgroundColor: accentCol, color: "#FFFFFF" }}
+          >
+            USAR ESTILO
+          </div>
+        </div>
+      ),
+    };
+  }, [currentProject]);
+
+  const catalogFamilies = directory.data?.families;
+  const catalogSpecimens = catalogFamilies?.map((family): Specimen => ({
+    id: family.family,
+    familyLabel: `${family.code} · ${family.name}`,
+    prompt: `Crie um post sobre [assunto]. Direção visual: ${family.descriptor}.`,
+    art: null,
   }));
-  const allSpecimens=catalogSpecimens??(directory.isFetching?[]:buildSpecimens());
-  const specimens=catalogSpecimens?allSpecimens.filter(s=>fold(s.familyLabel).includes(fold(designSearch.trim()))):allSpecimens;
+  const baseSpecimens: Specimen[] = catalogSpecimens ?? (directory.isFetching ? [] : buildSpecimens());
+  const allSpecimens = useMemo<Specimen[]>(() => {
+    if (projectDesignSpecimen) {
+      return [projectDesignSpecimen, ...baseSpecimens];
+    }
+    return baseSpecimens;
+  }, [projectDesignSpecimen, baseSpecimens]);
 
   useEffect(() => {
     SPECIMEN_FONTS.forEach(loadFontByName);
@@ -128,10 +206,12 @@ export default function StudioCreateViewV2B({
     textareaRef.current?.focus();
   };
 
-  // Toque no espécime: traz a copy e alterna o gosto (liga/desliga/migra).
-  const handleSpecimenPick = (specimen: Specimen) => {
-    if (!catalogFamilies || !prompt.trim()) setPrompt(specimen.prompt);
-    onDeclareFamily(declaredFamilyId === specimen.id ? null : specimen.id);
+  const handleGenerateFromExample = (item: ShowcaseItem, userTopic: string) => {
+    const format = item.slideCount > 1 ? "carousel" : "static";
+    setPrompt(userTopic);
+    setPostMode(format);
+    onProposalAspectRatioChange?.("4:5");
+    onSubmit(userTopic, format, { ...options, aspectRatio: "4:5", fixedDesign: { kind: "showcase", id: item.id }, slideCount: item.slideCount });
   };
 
   return (
@@ -153,7 +233,23 @@ export default function StudioCreateViewV2B({
 
       {/* MENU DO USUÁRIO NO CANTO SUPERIOR DIREITO (SPARKS, SALVOS, PERFIL) */}
       <UserTopMenu />
-      <Link href="/saved-posts" className="fixed left-4 top-4 z-40 flex min-h-11 items-center rounded-full border border-white/15 bg-[#0a0d16] px-4 text-sm text-white hover:bg-white/10">
+      <div className="fixed left-4 top-4 z-40 hidden md:flex items-center gap-2">
+        <Link href="/saved-posts" className="flex min-h-11 items-center rounded-full border border-white/15 bg-[#0a0d16] px-4 text-sm text-white hover:bg-white/10">
+          Meus posts
+        </Link>
+        <button
+          type="button"
+          onClick={() => setIsTemplateIngestOpen(true)}
+          disabled={isLoading}
+          className="flex min-h-11 items-center gap-1.5 rounded-full border border-white/15 bg-[#0a0d16] px-4 text-sm text-white/85 hover:bg-white/10 hover:text-white transition-colors cursor-pointer disabled:opacity-45"
+          title="Replicar arte ou print e transformar em template editável"
+        >
+          <Sparkles size={14} className="text-[#FF5C00]" />
+          <span>Replicar Design</span>
+        </button>
+      </div>
+
+      <Link href="/saved-posts" className="fixed left-4 top-4 z-40 flex min-h-11 items-center rounded-full border border-white/15 bg-[#0a0d16] px-4 text-sm text-white hover:bg-white/10 md:hidden">
         Meus posts
       </Link>
 
@@ -169,6 +265,18 @@ export default function StudioCreateViewV2B({
           editingProject={editingProject}
           onSuccess={(id) => {
             onSelectProjectId?.(id);
+          }}
+        />
+      )}
+
+      {/* MODAL DE INGESTÃO E REPLICAÇÃO DE TEMPLATES (Print / URL -> 2D Konva) */}
+      {isTemplateIngestOpen && (
+        <TemplateIngestionModal
+          isOpen={isTemplateIngestOpen}
+          onClose={() => setIsTemplateIngestOpen(false)}
+          projectId={selectedProjectId}
+          onProjectCreatedOrUpdated={(newId) => {
+            onSelectProjectId?.(newId);
           }}
         />
       )}
@@ -223,17 +331,19 @@ export default function StudioCreateViewV2B({
                 boxShadow: isFocused ? "0 0 24px rgba(255,92,0,0.18), inset 0 -1.5px 0 #FF5C00" : "none",
               }}
             >
-              <div className="flex flex-col p-1.5">
-                <div className="flex flex-wrap items-center gap-3 px-3 pt-2 text-xs">
-                <div className="flex flex-col gap-0.5">
-                  <label className="flex items-center gap-1.5 text-white/80">
-                    <span>Modelo</span>
+              <div className="flex flex-col">
+                {/* Barra de Controles Superiores: Modelo, Plataforma e IA */}
+                <div className="flex flex-wrap items-center gap-2.5 px-3.5 py-2.5 border-b border-white/[0.06] text-xs">
+                  {/* Seletor de Modelo */}
+                  <label className="flex items-center gap-1.5 text-white/70">
+                    <span className="font-medium text-white/60">Modelo</span>
                     <select
                       aria-label="Modelo de geração"
                       disabled={isLoading}
-                      className="rounded bg-black/40 border border-white/10 px-2 py-1 text-xs text-white focus:outline-none focus:border-[#FF5C00]/60 transition-colors"
+                      className="h-7 rounded bg-black/40 border border-white/10 px-2 text-xs text-white focus:outline-none focus:border-[#FF5C00]/60 transition-colors cursor-pointer"
                       value={options.generationModel ?? "auto"}
                       onChange={(e) => setOptions({ ...options, generationModel: e.target.value as GenerationModel })}
+                      title={getGenerationModelHint(options.generationModel)}
                     >
                       {Object.entries(GENERATION_MODEL_LABELS).map(([value, label]) => (
                         <option key={value} value={value} className="bg-neutral-900 text-white">
@@ -245,35 +355,97 @@ export default function StudioCreateViewV2B({
                       </option>
                     </select>
                   </label>
-                  <span className="text-[10px] text-white/50 pl-0.5 font-normal tracking-wide">
-                    💡 {getGenerationModelHint(options.generationModel)}
-                  </span>
-                </div>
-                <label>Plataforma <select aria-label="Plataforma" className="rounded bg-black/30 p-2" value={options.platform} onChange={e=>setOptions({...options,platform:e.target.value as CreationInputOptions["platform"]})}>{["instagram","twitter","linkedin","facebook"].map(p=><option key={p} value={p}>{p}</option>)}</select></label>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={Boolean(options.allowAiImages)}
-                  aria-label="Gerar imagens com IA"
-                  disabled={isLoading}
-                  onClick={() => setOptions({ ...options, allowAiImages: !options.allowAiImages })}
-                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors cursor-pointer ${
-                    options.allowAiImages
-                      ? "border-[#FF5C00]/60 bg-[#FF5C00]/20 text-white"
-                      : "border-white/10 bg-black/30 text-white/60 hover:text-white/85"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-2 w-2 rounded-full transition-colors ${
-                      options.allowAiImages ? "bg-[#FF5C00]" : "bg-white/30"
+
+                  {/* Seletor de Plataforma */}
+                  <label className="flex items-center gap-1.5 text-white/70">
+                    <span className="font-medium text-white/60">Plataforma</span>
+                    <select
+                      aria-label="Plataforma"
+                      disabled={isLoading}
+                      className="h-7 rounded bg-black/40 border border-white/10 px-2 text-xs text-white capitalize focus:outline-none focus:border-[#FF5C00]/60 transition-colors cursor-pointer"
+                      value={options.platform}
+                      onChange={(e) => setOptions({ ...options, platform: e.target.value as CreationInputOptions["platform"] })}
+                    >
+                      {["instagram", "twitter", "linkedin", "facebook"].map((p) => (
+                        <option key={p} value={p} className="bg-neutral-900 text-white capitalize">
+                          {p === "instagram" ? "Instagram" : p === "twitter" ? "Twitter / X" : p === "linkedin" ? "LinkedIn" : "Facebook"}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {/* Toggle Gerar Imagens com IA */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={Boolean(options.allowAiImages)}
+                    aria-label="Gerar imagens com IA"
+                    disabled={isLoading}
+                    onClick={() => setOptions({ ...options, allowAiImages: !options.allowAiImages })}
+                    className={`h-7 flex items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors cursor-pointer ${
+                      options.allowAiImages
+                        ? "border-[#FF5C00]/60 bg-[#FF5C00]/20 text-white"
+                        : "border-white/10 bg-black/30 text-white/60 hover:text-white/85"
                     }`}
-                  />
-                  <span>Gerar imagens com IA</span>
-                </button>
-                <label className="cursor-pointer underline">{options.image?"Trocar imagem":"Adicionar imagem"}<input aria-label="Imagem do pedido" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>8_000_000){toast.error("Use uma imagem de até 8 MB.");return;}const r=new FileReader();r.onload=()=>setOptions({...options,image:String(r.result)});r.readAsDataURL(f);}}/></label>
-                {options.image&&<><select aria-label="Finalidade da imagem" value={options.imagePurpose} className="bg-black/30 p-2" onChange={e=>setOptions({...options,imagePurpose:e.target.value as CreationInputOptions["imagePurpose"]})}><option value="content">Imagem como fonte de conteúdo</option><option value="visual_reference">Referência visual</option></select><button onClick={()=>setOptions({...options,image:undefined})}>Remover imagem</button></>}
-                {isUrl&&<label><input type="checkbox" checked={urlAsContent} onChange={e=>setUrlAsContent(e.target.checked)}/> Usar página como conteúdo do post</label>}
-              </div>
+                  >
+                    <span
+                      className={`inline-block h-2 w-2 rounded-full transition-colors ${
+                        options.allowAiImages ? "bg-[#FF5C00]" : "bg-white/30"
+                      }`}
+                    />
+                    <span>Gerar imagens com IA</span>
+                  </button>
+
+                  {/* Opção de adicionar imagem desativada temporariamente conforme fluxo atual (comentada, preservada para retorno futuro) */}
+                  {/*
+                  <label className="cursor-pointer underline">
+                    {options.image ? "Trocar imagem" : "Adicionar imagem"}
+                    <input
+                      aria-label="Imagem do pedido"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="sr-only"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        if (f.size > 8_000_000) {
+                          toast.error("Use uma imagem de até 8 MB.");
+                          return;
+                        }
+                        const r = new FileReader();
+                        r.onload = () => setOptions({ ...options, image: String(r.result) });
+                        r.readAsDataURL(f);
+                      }}
+                    />
+                  </label>
+                  {options.image && (
+                    <>
+                      <select
+                        aria-label="Finalidade da imagem"
+                        value={options.imagePurpose}
+                        className="bg-black/30 p-2"
+                        onChange={(e) => setOptions({ ...options, imagePurpose: e.target.value as CreationInputOptions["imagePurpose"] })}
+                      >
+                        <option value="content">Imagem como fonte de conteúdo</option>
+                        <option value="visual_reference">Referência visual</option>
+                      </select>
+                      <button onClick={() => setOptions({ ...options, image: undefined })}>Remover imagem</button>
+                    </>
+                  )}
+                  */}
+
+                  {isUrl && (
+                    <label className="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={urlAsContent}
+                        onChange={(e) => setUrlAsContent(e.target.checked)}
+                        className="rounded border-white/20 bg-black/40 text-orange-500 focus:ring-0"
+                      />
+                      <span>Usar página como conteúdo do post</span>
+                    </label>
+                  )}
+                </div>
               <div className="flex items-end gap-1"><textarea
                   ref={textareaRef}
                   value={prompt}
@@ -290,7 +462,7 @@ export default function StudioCreateViewV2B({
                   rows={1}
                   disabled={isLoading}
                   aria-label="Tema ou ideia do post"
-                  className="psv2b-prompt w-full min-w-0 flex-1 resize-none overflow-y-auto bg-transparent py-2.5 pl-3.5 pr-1 outline-none"
+                  className="psv2b-prompt w-full min-w-0 flex-1 resize-none overflow-y-auto bg-transparent py-2.5 pl-3.5 pr-2 outline-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   style={{
                     fontFamily: "var(--font-sans)",
                     color: STUDIO.ink,
@@ -325,7 +497,7 @@ export default function StudioCreateViewV2B({
                   type="button"
                   onClick={handleDiscardDraft}
                   disabled={isLoading}
-                  className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg px-2 text-orange-200 transition-colors hover:bg-orange-400/10 hover:text-orange-100 disabled:opacity-40"
+                  className="inline-flex min-h-7 shrink-0 items-center gap-1 rounded-lg px-2 text-orange-200 transition-colors hover:bg-orange-400/10 hover:text-orange-100 disabled:opacity-40"
                   aria-label="Apagar rascunho salvo e limpar o prompt"
                   title="Apagar o rascunho salvo neste navegador e limpar o campo"
                 >
@@ -368,9 +540,23 @@ export default function StudioCreateViewV2B({
             </div>
           </section>
 
-          {/* 3. SELETORES: PROJETO DE MARCA & FORMATO */}
-          <section className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+          {/* 3. CONTROLES: FORMATO (LINHA 1) & PROJETO (LINHA 2) */}
+          <section className="flex flex-col gap-3 pt-0.5">
+            {/* Linha 1: Formato da Peça & Proporção (Próximo à caixa de texto) */}
+            <div className="w-full">
+              <FormatSelector
+                value={postMode}
+                onChange={setPostMode}
+                proposalAspectRatio={proposalAspectRatio}
+                onProposalAspectRatioChange={onProposalAspectRatioChange}
+              />
+            </div>
+
+            {/* Linha 2: Contexto do Projeto & Identidade Visual Extraída */}
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              <span style={{ ...MONO, color: STUDIO.ink40, fontSize: 10 }} className="mr-0.5">
+                PROJETO
+              </span>
               <ProjectSelectorDropdown
                 selectedProjectId={selectedProjectId}
                 onSelectProject={(id) => onSelectProjectId?.(id)}
@@ -384,162 +570,78 @@ export default function StudioCreateViewV2B({
                 }}
                 disabled={isLoading}
               />
-            </div>
-            <div className="shrink-0">
-              <FormatSelector value={postMode} onChange={setPostMode} />
-            </div>
-          </section>
 
-          {/* 4. PAINEL DE SUGESTÕES (INICIA RECOLHIDO COM DESTAQUE DISCRETO E NOBRE) */}
-          <section className="pt-1 relative">
-            {/* Lente Flutuante de Zoom Óptico 2x (Desktop Only — Renderizada fora de qualquer overflow-hidden) */}
-            <AnimatePresence>
-              {isSpecimensOpen && hoveredSpecimenIndex !== null && specimens[hoveredSpecimenIndex] && (
-                <motion.div
-                  key={`quick-look-${hoveredSpecimenIndex}`}
-                  initial={{
-                    opacity: 0,
-                    y: 10,
-                    scale: 0.94,
-                    x: hoveredSpecimenIndex === 0 ? "0%" : hoveredSpecimenIndex === 5 ? "0%" : "-50%",
-                  }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                    scale: 1,
-                    x: hoveredSpecimenIndex === 0 ? "0%" : hoveredSpecimenIndex === 5 ? "0%" : "-50%",
-                  }}
-                  exit={{
-                    opacity: 0,
-                    y: 6,
-                    scale: 0.94,
-                    x: hoveredSpecimenIndex === 0 ? "0%" : hoveredSpecimenIndex === 5 ? "0%" : "-50%",
-                  }}
-                  transition={{ type: "spring", stiffness: 450, damping: 30 }}
-                  className={`hidden md:block absolute bottom-full mb-3 z-50 pointer-events-none ${
-                    hoveredSpecimenIndex === 0
-                      ? "left-0"
-                      : hoveredSpecimenIndex === 5
-                      ? "right-0"
-                      : ""
+              {/* Pílula de Estilo Visual do Projeto Ativo (Opcional & Clicável) */}
+              {projectDesignSpecimen && (
+                <div
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-medium transition cursor-pointer select-none ${
+                    declaredFamilyId === projectDesignSpecimen.id
+                      ? "border-orange-500 bg-orange-500/15 text-orange-200 shadow-sm shadow-orange-500/10"
+                      : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/20 hover:text-white/80"
                   }`}
-                  style={
-                    hoveredSpecimenIndex !== 0 && hoveredSpecimenIndex !== 5
-                      ? { left: `${((hoveredSpecimenIndex + 0.5) / 6) * 100}%` }
-                      : undefined
+                  onClick={() => {
+                    onDeclareFamily(
+                      declaredFamilyId === projectDesignSpecimen.id ? null : projectDesignSpecimen.id
+                    );
+                  }}
+                  title={
+                    declaredFamilyId === projectDesignSpecimen.id
+                      ? "Estilo do projeto ATIVO na criação de posts. Clique para desativar e usar estilo livre."
+                      : "Estilo visual extraído salvo no projeto. Clique para ativar na criação de posts."
                   }
                 >
-                  <div className="w-[214px] p-2.5 rounded-2xl border border-white/20 bg-[#07090E]/98 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(255,92,0,0.3)] flex flex-col gap-2">
-                    {/* O post em escala óptica de 2x (exatamente idêntico à miniatura) */}
-                    <div className="relative w-[194px] h-[242.5px] rounded-xl overflow-hidden shadow-inner border border-white/15 bg-black">
-                      <div
-                        style={{
-                          width: 97,
-                          height: 121.25,
-                          transform: "scale(2)",
-                          transformOrigin: "top left",
-                        }}
-                        className="relative"
-                      >
-                        {specimens[hoveredSpecimenIndex].art}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-[9.5px] font-mono uppercase font-bold text-white tracking-wider truncate max-w-[120px]">
-                        {specimens[hoveredSpecimenIndex].familyLabel}
-                      </span>
-                      <span className="text-[8.5px] font-mono text-[#FF5C00] font-bold shrink-0">
-                        ✦ Usar Ideia
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <button
-              type="button"
-              onClick={() => {
-                setIsSpecimensOpen(!isSpecimensOpen);
-                setHoveredSpecimenIndex(null);
-              }}
-              className={`w-full flex items-center justify-between p-2.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-sm active:scale-[0.99] ${
-                isSpecimensOpen
-                  ? "bg-white/[0.06] border-white/20 text-white"
-                  : "bg-gradient-to-r from-white/[0.04] via-white/[0.06] to-white/[0.03] hover:bg-white/[0.08] border-white/12 hover:border-[#FF5C00]/40 text-white/85"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-6 h-6 rounded-lg bg-[#FF5C00]/15 border border-[#FF5C00]/30 flex items-center justify-center">
-                  <Sparkles size={13} className="text-[#FF5C00] animate-pulse" />
-                </div>
-                <div className="text-left">
-                  <div className="flex items-center gap-2">
-                    <span style={{ ...MONO, fontSize: 9.5, fontWeight: 700 }} className="text-white/90">
-                      Ideias & Direções de Arte
-                    </span>
-                    {/* Exibido apenas em telas maiores que mobile conforme solicitado */}
-                    <span className="hidden sm:inline-block text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-[#FF5C00]/20 text-[#FF5C00] border border-[#FF5C00]/30">
-                      {catalogFamilies ? `${catalogFamilies.length} designs` : "Direções"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {declaredSpecimen && (
-                  <span
-                    className="hidden sm:inline-block px-2 py-0.5 rounded text-[8.5px] font-mono font-bold"
-                    style={{ background: "rgba(255,92,0,0.15)", color: "#FF5C00" }}
-                  >
-                    Gosto: {declaredSpecimen.familyLabel}
+                  <span className="text-[11px]">🎨</span>
+                  <span className="font-semibold text-[11px] truncate max-w-[160px]">
+                    {currentProject?.visualPreferences?.personality?.[0] || "Estilo do Projeto"}
                   </span>
-                )}
-                <span style={{ ...MONO, fontSize: 8.5 }} className="text-white/50">
-                  {isSpecimensOpen ? "Recolher" : "Ver Sugestões"}
-                </span>
-                <div className="w-5 h-5 rounded-full bg-white/8 flex items-center justify-center text-white/60">
-                  {isSpecimensOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                </div>
-              </div>
-            </button>
-
-            {/* Fita de Espécimes Animada */}
-            <AnimatePresence>
-              {isSpecimensOpen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                  animate={{ opacity: 1, height: "auto", marginTop: 8 }}
-                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                  transition={{ duration: 0.25, ease: "easeInOut" }}
-                  className="relative overflow-visible"
-                >
-                  {catalogFamilies&&<input aria-label="Buscar direção de arte" value={designSearch} onChange={event=>{setDesignSearch(event.target.value);setHoveredSpecimenIndex(null);}} placeholder="Buscar código ou nome" className="mb-2 w-full rounded-md border border-white/15 bg-black/20 px-3 py-2 text-xs"/>}
-                  {catalogFamilies&&specimens.length===0&&<p className="text-xs text-white/60">Nenhum design encontrado.</p>}
-                  <div
-                    onMouseLeave={() => setHoveredSpecimenIndex(null)}
-                    className={catalogFamilies?"grid max-h-[30svh] grid-cols-3 gap-2 overflow-y-auto p-1 sm:grid-cols-6":"flex md:grid md:grid-cols-6 gap-2 md:gap-2.5 min-h-0 snap-x snap-mandatory overflow-x-auto md:overflow-x-visible overflow-y-hidden pb-1 pt-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}
-                  >
-                    {specimens.map((specimen, index) => (
-                      <SpecimenCard
-                        key={specimen.id}
-                        specimen={specimen}
-                        index={index}
-                        onPick={() => handleSpecimenPick(specimen)}
-                        onHover={setHoveredSpecimenIndex}
-                        withDisclaimer={!catalogFamilies}
-                        widthClass={catalogFamilies?"w-full":undefined}
-                        selected={declaredFamilyId === specimen.id}
+                  <div className="flex gap-0.5 ml-0.5">
+                    {currentProject?.visualPreferences?.colors?.slice(0, 3).map((col: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="size-2 rounded-full border border-black/30 shrink-0"
+                        style={{ backgroundColor: col }}
                       />
                     ))}
                   </div>
-                </motion.div>
+                  <span
+                    className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ml-1 ${
+                      declaredFamilyId === projectDesignSpecimen.id
+                        ? "bg-orange-500 text-white"
+                        : "bg-white/10 text-white/50"
+                    }`}
+                  >
+                    {declaredFamilyId === projectDesignSpecimen.id ? "ATIVO" : "USAR"}
+                  </span>
+                </div>
               )}
-            </AnimatePresence>
+            </div>
           </section>
+
+          {/* 4. BOTÃO DE INSPIRAÇÃO / SHOWCASE: O QUE DÁ PRA FAZER COM O POSTSPARK */}
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              onClick={() => setIsShowcaseOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.03] hover:border-orange-500/40 hover:bg-orange-500/10 text-white/75 hover:text-orange-200 text-xs font-medium transition-all duration-200 shadow-sm cursor-pointer active:scale-95 group"
+              title="Veja exemplos reais do que você pode criar no PostSpark"
+            >
+              <Sparkles className="size-3.5 text-orange-400 group-hover:scale-110 transition-transform" />
+              <span>✨ O que dá pra fazer com o PostSpark?</span>
+            </button>
+          </div>
 
         </div>
       </main>
+
+      {/* MODAL MURAL SHOWCASE: O QUE DÁ PRA FAZER COM O POSTSPARK */}
+      {isShowcaseOpen && (
+        <StudioShowcaseModal
+          onClose={() => setIsShowcaseOpen(false)}
+          currentPrompt={prompt}
+          onOpenEditor={(model) => onOpenEditorWithPost?.(model)}
+          onGenerateFromExample={handleGenerateFromExample}
+        />
+      )}
 
     </div>
   );

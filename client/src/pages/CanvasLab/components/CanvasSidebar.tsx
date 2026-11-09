@@ -18,6 +18,7 @@ import BackgroundsDrawer from "./BackgroundsDrawer";
 import { downloadImageFile } from "@/lib/downloadHelper";
 import FontPickerDropdown from "./FontPickerDropdown";
 import { applySlideVisualPatch } from "../lib/slideVisualScope";
+import { applySeamlessPanoramaToPost, type SeamlessPanoramaMeta } from "../lib/seamlessCarousel";
 import { imageRequestForPost } from "../lib/imageGenerationContext";
 import type { ImageDirectionId } from "../lib/imageGenerationContext";
 import ImageDirectionSuggestions from "./ImageDirectionSuggestions";
@@ -35,6 +36,7 @@ interface CanvasSidebarProps {
   mediaPreview?: string;
   onMediaPreview?: (url: string | undefined) => void;
   onUpdatePost: (patch: Partial<CanvasPostModel>) => void;
+  onApplySeamlessPanorama?: (panorama: SeamlessPanoramaMeta) => void;
   onReplicate?: () => void;
   isEditingBackground?: boolean;
   onToggleBackgroundEdit?: () => void;
@@ -58,6 +60,7 @@ export default function CanvasSidebar({
   onUpdateComposition,
   requestedTab,
   onUpdatePost,
+  onApplySeamlessPanorama,
   onMediaUpdate,
   mediaPreview,
   onMediaPreview,
@@ -1713,6 +1716,7 @@ export default function CanvasSidebar({
         onClose={() => setIsDrawerOpen(false)}
         post={post}
         onApplyBackground={handleApplyBackground}
+        onApplySeamlessPanorama={onApplySeamlessPanorama ?? (pano => onUpdatePost(applySeamlessPanoramaToPost(latestPostRef.current, pano, 0)))}
         manifestData={manifestData}
       />
     </aside>

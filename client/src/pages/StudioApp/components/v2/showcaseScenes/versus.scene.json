@@ -1,0 +1,1153 @@
+{
+  "version": 2,
+  "origin": {
+    "candidateId": "afa81cdb-92fe-45fc-86d6-c96a05672d23:5x6-20c06133e7c2-portrait4x5-ca9bcb5c2f-development-compose-comparison-v3",
+    "blueprintId": "02430ac2-c2dc-4459-8695-410ebb500d58",
+    "versionId": "afa81cdb-92fe-45fc-86d6-c96a05672d23",
+    "version": 1,
+    "definitionHash": "0f1f06286c38a454fa9c986234e0e98517ef52202fc6c95502972aaac106a05c",
+    "variantKey": "5x6-20c06133e7c2-portrait4x5-ca9bcb5c2f-development-compose-comparison-v3",
+    "variantHash": "bceca6f630085bbd7cce0917424dbee95304e082db7f8cf486129c2328259181",
+    "compilerVersion": "arsenal-v3.0.0",
+    "componentAssembly": {
+      "completeDesign": {
+        "family": "versus",
+        "authorshipRevision": 2,
+        "baselineVerified": true,
+        "colors": [
+          "#0F0F12",
+          "#FFFFFF",
+          "#181820"
+        ],
+        "designGuidance": {
+          "version": 1,
+          "representation": {
+            "version": 3,
+            "sourceId": "9a172638-b576-45ff-81a0-85daa01513de",
+            "sourceHash": "46fa3cc5b0f70c10707de21c71d3faa114270f80f6fa1cfd282eb66ef8f261a7",
+            "method": "native_semantics_rebuild"
+          },
+          "familyIdentity": {
+            "essential": [
+              "opposed-panels",
+              "shared-heading",
+              "comparison"
+            ],
+            "optional": [
+              "Campos de apoio opcionais podem ficar vazios quando não pertinentes."
+            ],
+            "adaptable": [
+              "Texto e mídia apenas nos campos declarados.",
+              "Ritmo por escolha entre composições do repertório; geometria fixa dentro de cada composição."
+            ]
+          },
+          "fieldRelationships": [
+            {
+              "kind": "emphasis",
+              "sources": [
+                "block:headline:0:text"
+              ],
+              "label": "Título único distribuído entre headline-1, headline-2; conferir peso, cor e capacidade de cada fragmento."
+            },
+            {
+              "kind": "contrast",
+              "sources": [
+                "block:body:0:text",
+                "block:body:1:text"
+              ],
+              "label": "As áreas esquerda e direita representam lados distintos da comparação."
+            }
+          ],
+          "carouselVariant": {
+            "version": 3,
+            "role": "development",
+            "sourceId": "f49daa11-9ba1-4313-8e14-6097bb187757",
+            "sourceHash": "ca9bcb5c2fe0178cea47437d8c97a53b19c65db4217b4c9c17dbfb9429ba3f1d",
+            "contentMode": "compose",
+            "function": "comparison",
+            "identity": [
+              "opposed-panels",
+              "shared-heading",
+              "comparison"
+            ]
+          },
+          "summary": "Duas áreas contrapostas para lados de uma comparação, com título compartilhado. O contraste entre os lados é parte da composição, sem impor tema ou tom. Composição nativa para ênfase, repetição intencional ou exemplo.",
+          "motifs": [
+            "opposed-panels",
+            "shared-heading",
+            "comparison"
+          ],
+          "preserve": [
+            "Conservar geometria, hierarquia, fontes incorporadas, cores e ornamentos nativos; não substituir a composição pela imagem original.",
+            "static: composição inteira com geometria autorada",
+            "cover: campo de título nativo",
+            "development: campo nativo de apoio ou lista; a capacidade depende da geometria e cada copy exige preflight",
+            "closing: convite pode usar título/apoio editável; sem caixa de CTA dedicada, conservar capacidade nativa",
+            "density:balanced: 6 regiões de texto; área somada das caixas 31.4% da prancheta (não é limite de palavras nem aprovação de encaixe)"
+          ],
+          "contentRules": [
+            "Paleta de demonstração: OFFICIAL_FAMILIES_META; tipografia e geometria: compositor original. Não é uma captura do editor atual.",
+            "Receita V3 importável no Admin2. Campos multilinha usam lista de linhas; edição flexível ainda não está implementada no painel.",
+            "Versus: grade original de três slots adaptada a dois lados de comparação; geometria original no baseline.",
+            "Selecionar esta composição pela função da página. Repetição é permitida; não inventar texto, rótulos nem CTA para preencher campos."
+          ],
+          "mediaRules": [],
+          "knownLimitations": [
+            "Conversão de família nativa. Aparência adaptada ao contrato V3; originais preservados em backup. Aprovação visual pendente.",
+            "Origem: shared/creative/families.ts (versus); SHA-256 f5fdebf0a7e29e9cb9df266155d0881b8f61214d5a10f7355dbf2d1623964735.",
+            "Conversor native-families-1; seed 4271306553; formato 5:6. Parâmetros originais completos no pacote de backup/baseline.",
+            "Paleta de demonstração: OFFICIAL_FAMILIES_META; tipografia e geometria: compositor original. Não é uma captura do editor atual.",
+            "Receita V3 importável no Admin2. Campos multilinha usam lista de linhas; edição flexível ainda não está implementada no painel.",
+            "Conteúdo ilustrativo. O dado 72% é fictício e não representa pesquisa ou resultado real.",
+            "Versus: grade original de três slots adaptada a dois lados de comparação; geometria original no baseline.",
+            "Capacidade é estimativa geométrica; composição não certifica legibilidade de qualquer texto."
+          ]
+        }
+      },
+      "version": 1,
+      "planHash": "820d26465bc0cc870d38e52225871c629600ac9942f2f79ba6466b57886859f1",
+      "componentIds": [
+        "02430ac2-c2dc-4459-8695-410ebb500d58"
+      ],
+      "componentHashes": [
+        "0f1f06286c38a454fa9c986234e0e98517ef52202fc6c95502972aaac106a05c"
+      ],
+      "sourceHashes": [
+        "fa4dce9f23fef2ce651c9de97de54ecba4b2b2bd9da48f8110fcee1deee1bacc"
+      ],
+      "experimental": true
+    }
+  },
+  "base": {
+    "variantKey": "5x6-20c06133e7c2-portrait4x5-ca9bcb5c2f-development-compose-comparison-v3",
+    "aspectRatio": "4:5",
+    "compilerVersion": "arsenal-v3.0.0",
+    "artboard": {
+      "width": 1080,
+      "height": 1350,
+      "background": "#0F0F12"
+    },
+    "instances": [
+      {
+        "id": "headline-1",
+        "pieceHash": "7296d20e0bf7e7d935c9de977ae563198d4021c3af8abab147c6ef2f42a28f24",
+        "parentId": "g-headline",
+        "zIndex": 0,
+        "x": 57.6,
+        "y": 69.92000000000002,
+        "width": 604.8,
+        "height": 128.80999999999997,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "headline-2",
+        "pieceHash": "2d51666ee5b4fb3dbdf29e40082b91aecac42539d22efa322a7ea40373c39e31",
+        "parentId": "g-headline",
+        "zIndex": 1,
+        "x": 57.6,
+        "y": 198.72,
+        "width": 604.8,
+        "height": 128.80999999999997,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "section-card-0",
+        "pieceHash": "45d08fc8da6f7cd143793e06ed80160c37f1320937a15fabdb0158e444fb5031",
+        "parentId": "g-section-1",
+        "zIndex": 2,
+        "x": 57.6,
+        "y": 397.44,
+        "width": 291.59999999999997,
+        "height": 172.8,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "section-0-1",
+        "pieceHash": "26172a5892654a2f0fbbc4ceaf40d198e490c2986c6ca1faef6c58e9a60b0cc0",
+        "parentId": "g-section-1",
+        "zIndex": 3,
+        "x": 69.6,
+        "y": 447.04,
+        "width": 267.59999999999997,
+        "height": 36.809999999999995,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "section-0-2",
+        "pieceHash": "1f5b84ffa4f7d86014d976e3a142a4fb43574099d9acca3ca691d16b7f8bd601",
+        "parentId": "g-section-1",
+        "zIndex": 4,
+        "x": 69.6,
+        "y": 483.84000000000003,
+        "width": 267.59999999999997,
+        "height": 36.809999999999995,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "section-card-1",
+        "pieceHash": "45d08fc8da6f7cd143793e06ed80160c37f1320937a15fabdb0158e444fb5031",
+        "parentId": "g-section-2",
+        "zIndex": 5,
+        "x": 370.8,
+        "y": 397.44,
+        "width": 291.59999999999997,
+        "height": 172.8,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "section-1-1",
+        "pieceHash": "26172a5892654a2f0fbbc4ceaf40d198e490c2986c6ca1faef6c58e9a60b0cc0",
+        "parentId": "g-section-2",
+        "zIndex": 6,
+        "x": 382.8,
+        "y": 447.04,
+        "width": 267.59999999999997,
+        "height": 36.809999999999995,
+        "rotation": 0,
+        "opacity": 1
+      },
+      {
+        "id": "section-1-2",
+        "pieceHash": "1f5b84ffa4f7d86014d976e3a142a4fb43574099d9acca3ca691d16b7f8bd601",
+        "parentId": "g-section-2",
+        "zIndex": 7,
+        "x": 382.8,
+        "y": 483.84000000000003,
+        "width": 267.59999999999997,
+        "height": 36.809999999999995,
+        "rotation": 0,
+        "opacity": 1
+      }
+    ],
+    "groups": [
+      {
+        "id": "g-headline",
+        "label": "Título · linhas",
+        "parentId": "authored-portrait-projection",
+        "zIndex": 0,
+        "x": 0,
+        "y": 0,
+        "width": 720,
+        "height": 864,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "g-section-1",
+        "label": "Bloco 1",
+        "parentId": "authored-portrait-projection",
+        "zIndex": 2,
+        "x": 0,
+        "y": 0,
+        "width": 720,
+        "height": 864,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "g-section-2",
+        "label": "Bloco 2",
+        "parentId": "authored-portrait-projection",
+        "zIndex": 5,
+        "x": 0,
+        "y": 0,
+        "width": 720,
+        "height": 864,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1
+      },
+      {
+        "id": "authored-portrait-projection",
+        "label": "Projeção uniforme 5:6 para 4:5",
+        "parentId": null,
+        "zIndex": 0,
+        "x": 0,
+        "y": 27,
+        "width": 720,
+        "height": 864,
+        "rotation": 0,
+        "opacity": 1,
+        "scale": 1.5
+      }
+    ],
+    "bindings": [
+      {
+        "id": "semantic-0",
+        "label": "headline: headline",
+        "kind": "text",
+        "source": "content:field-0:text",
+        "required": true,
+        "targetIds": [
+          "headline-1",
+          "headline-2"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "semantic-1",
+        "label": "body: section-0",
+        "kind": "text",
+        "source": "content:field-1:text",
+        "required": false,
+        "targetIds": [
+          "section-0-1",
+          "section-0-2"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      },
+      {
+        "id": "semantic-2",
+        "label": "body: section-1",
+        "kind": "text",
+        "source": "content:field-2:text",
+        "required": false,
+        "targetIds": [
+          "section-1-1",
+          "section-1-2"
+        ],
+        "cardinality": null,
+        "prefix": "",
+        "gap": 0
+      }
+    ],
+    "relations": [
+      {
+        "id": "fit-headline-1",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "headline-1",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "center",
+          "maxWidth": 604.8,
+          "maxHeight": 128.80999999999997,
+          "minFontSize": 78.39999999999999
+        }
+      },
+      {
+        "id": "fit-headline-2",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "headline-2",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "center",
+          "maxWidth": 604.8,
+          "maxHeight": 128.80999999999997,
+          "minFontSize": 78.39999999999999
+        }
+      },
+      {
+        "id": "fit-section-0-1",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "section-0-1",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "center",
+          "maxWidth": 267.59999999999997,
+          "maxHeight": 36.809999999999995,
+          "minFontSize": 22.4
+        }
+      },
+      {
+        "id": "fit-section-0-2",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "section-0-2",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "center",
+          "maxWidth": 267.59999999999997,
+          "maxHeight": 36.809999999999995,
+          "minFontSize": 22.4
+        }
+      },
+      {
+        "id": "fit-section-1-1",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "section-1-1",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "center",
+          "maxWidth": 267.59999999999997,
+          "maxHeight": 36.809999999999995,
+          "minFontSize": 22.4
+        }
+      },
+      {
+        "id": "fit-section-1-2",
+        "version": 1,
+        "enabled": true,
+        "inputs": [],
+        "outputs": [
+          {
+            "targetId": "section-1-2",
+            "properties": [
+              "x",
+              "width",
+              "height",
+              "fontSize"
+            ]
+          }
+        ],
+        "kind": "textFit",
+        "parameters": {
+          "anchor": "center",
+          "maxWidth": 267.59999999999997,
+          "maxHeight": 36.809999999999995,
+          "minFontSize": 22.4
+        }
+      }
+    ],
+    "assetIds": [
+      "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491"
+    ],
+    "capabilities": [
+      "text",
+      "rect",
+      "line",
+      "polygon",
+      "media",
+      "groups",
+      "relations",
+      "content-fragments",
+      "extrusion"
+    ],
+    "intentionalOverlaps": [],
+    "limitations": [
+      "Rascunho de componentes: revisão visual humana e publicação pendentes.",
+      "Geometria autorada preservada. Encaixe limitado às caixas de origem; overflow deve permanecer explícito.",
+      "Fragmentos distribuem palavras completas por capacidade declarada; quebra intrapalavra do exemplo não é reutilizada.",
+      "Fotos de demonstração permanecem apenas no snapshot de origem; slots aguardam mídia do usuário.",
+      "Adaptação 4:5 por projeção uniforme rastreável: conteúdo/efeitos/relações locais preservados; margens adicionais conservam fundo. Revisão própria obrigatória."
+    ]
+  },
+  "pieces": {
+    "1f5b84ffa4f7d86014d976e3a142a4fb43574099d9acca3ca691d16b7f8bd601": {
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 32,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          1,
+          2
+        ]
+      }
+    },
+    "26172a5892654a2f0fbbc4ceaf40d198e490c2986c6ca1faef6c58e9a60b0cc0": {
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 32,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          1,
+          2
+        ]
+      }
+    },
+    "2d51666ee5b4fb3dbdf29e40082b91aecac42539d22efa322a7ea40373c39e31": {
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 112,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          2,
+          1
+        ]
+      }
+    },
+    "45d08fc8da6f7cd143793e06ed80160c37f1320937a15fabdb0158e444fb5031": {
+      "kind": "rect",
+      "fill": "#181820",
+      "stroke": "#10B981",
+      "strokeWidth": 1.5,
+      "cornerRadius": 18,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null
+    },
+    "7296d20e0bf7e7d935c9de977ae563198d4021c3af8abab147c6ef2f42a28f24": {
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 112,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          2,
+          1
+        ]
+      }
+    }
+  },
+  "assets": [
+    {
+      "id": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "kind": "bundled",
+      "sha256": "6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "mimeType": "font/woff2",
+      "bytes": 24356,
+      "family": "Arsenal_6f56409fd3d64bb8",
+      "sourceFamily": "Inter",
+      "weight": 700,
+      "license": "open-source"
+    }
+  ],
+  "content": {
+    "schemaVersion": 3,
+    "blocks": [
+      {
+        "id": "field-0",
+        "type": "text",
+        "role": "headline",
+        "text": "ANTES E DEPOIS"
+      },
+      {
+        "id": "field-1",
+        "type": "text",
+        "role": "body",
+        "text": "ANTES Sem direção"
+      },
+      {
+        "id": "field-2",
+        "type": "text",
+        "role": "body",
+        "text": "DEPOIS Com intenção"
+      }
+    ],
+    "caption": "",
+    "hashtags": []
+  },
+  "userContentHash": "587e372e1ef32edda2607bf6ae12390c5f39436a3f812c8bf6a2de6ccb09e8df",
+  "generatedContentHash": "587e372e1ef32edda2607bf6ae12390c5f39436a3f812c8bf6a2de6ccb09e8df",
+  "contentRevision": 0,
+  "elements": [
+    {
+      "id": "headline-1",
+      "parentId": "g-headline",
+      "zIndex": 0,
+      "x": 57.6,
+      "y": 69.92000000000002,
+      "width": 604.8,
+      "height": 128.79999999999998,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 112,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          2,
+          1
+        ]
+      },
+      "text": "ANTES E ",
+      "bindingId": "semantic-0",
+      "itemId": null
+    },
+    {
+      "id": "headline-2",
+      "parentId": "g-headline",
+      "zIndex": 1,
+      "x": 57.6,
+      "y": 198.72,
+      "width": 604.8,
+      "height": 128.79999999999998,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 112,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          2,
+          1
+        ]
+      },
+      "text": "DEPOIS",
+      "bindingId": "semantic-0",
+      "itemId": null
+    },
+    {
+      "id": "section-card-0",
+      "parentId": "g-section-1",
+      "zIndex": 2,
+      "x": 57.6,
+      "y": 397.44,
+      "width": 291.59999999999997,
+      "height": 172.8,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#181820",
+      "stroke": "#10B981",
+      "strokeWidth": 1.5,
+      "cornerRadius": 18,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "section-0-1",
+      "parentId": "g-section-1",
+      "zIndex": 3,
+      "x": 69.6,
+      "y": 447.04,
+      "width": 267.59999999999997,
+      "height": 36.8,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 32,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          1,
+          2
+        ]
+      },
+      "text": "ANTES ",
+      "bindingId": "semantic-1",
+      "itemId": null
+    },
+    {
+      "id": "section-0-2",
+      "parentId": "g-section-1",
+      "zIndex": 4,
+      "x": 69.6,
+      "y": 483.84000000000003,
+      "width": 267.59999999999997,
+      "height": 36.8,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 32,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          1,
+          2
+        ]
+      },
+      "text": "Sem direção",
+      "bindingId": "semantic-1",
+      "itemId": null
+    },
+    {
+      "id": "section-card-1",
+      "parentId": "g-section-2",
+      "zIndex": 5,
+      "x": 370.8,
+      "y": 397.44,
+      "width": 291.59999999999997,
+      "height": 172.8,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "rect",
+      "fill": "#181820",
+      "stroke": "#10B981",
+      "strokeWidth": 1.5,
+      "cornerRadius": 18,
+      "points": [],
+      "fontFamily": "Arial",
+      "fontAssetId": null,
+      "fontSize": 24,
+      "fontWeight": 400,
+      "align": "left",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "text": "",
+      "bindingId": null,
+      "itemId": null
+    },
+    {
+      "id": "section-1-1",
+      "parentId": "g-section-2",
+      "zIndex": 6,
+      "x": 382.8,
+      "y": 447.04,
+      "width": 267.59999999999997,
+      "height": 36.8,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 32,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 0,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          1,
+          2
+        ]
+      },
+      "text": "DEPOIS ",
+      "bindingId": "semantic-2",
+      "itemId": null
+    },
+    {
+      "id": "section-1-2",
+      "parentId": "g-section-2",
+      "zIndex": 7,
+      "x": 382.8,
+      "y": 483.84000000000003,
+      "width": 267.59999999999997,
+      "height": 36.8,
+      "rotation": 0,
+      "opacity": 1,
+      "kind": "text",
+      "fill": "#FFFFFF",
+      "stroke": null,
+      "strokeWidth": 0,
+      "cornerRadius": 0,
+      "points": [],
+      "fontFamily": "Arsenal_6f56409fd3d64bb8",
+      "fontAssetId": "font-6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491",
+      "fontSize": 32,
+      "fontWeight": 700,
+      "align": "center",
+      "lineHeight": 1.15,
+      "letterSpacing": 0,
+      "fixedText": null,
+      "contentFragment": {
+        "index": 1,
+        "count": 2,
+        "unit": "words",
+        "weights": [
+          1,
+          2
+        ]
+      },
+      "text": "Com intenção",
+      "bindingId": "semantic-2",
+      "itemId": null
+    }
+  ],
+  "groups": [
+    {
+      "id": "g-headline",
+      "label": "Título · linhas",
+      "parentId": "authored-portrait-projection",
+      "zIndex": 0,
+      "x": 0,
+      "y": 0,
+      "width": 720,
+      "height": 864,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "g-section-1",
+      "label": "Bloco 1",
+      "parentId": "authored-portrait-projection",
+      "zIndex": 2,
+      "x": 0,
+      "y": 0,
+      "width": 720,
+      "height": 864,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "g-section-2",
+      "label": "Bloco 2",
+      "parentId": "authored-portrait-projection",
+      "zIndex": 5,
+      "x": 0,
+      "y": 0,
+      "width": 720,
+      "height": 864,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1
+    },
+    {
+      "id": "authored-portrait-projection",
+      "label": "Projeção uniforme 5:6 para 4:5",
+      "parentId": null,
+      "zIndex": 0,
+      "x": 0,
+      "y": 27,
+      "width": 720,
+      "height": 864,
+      "rotation": 0,
+      "opacity": 1,
+      "scale": 1.5
+    }
+  ],
+  "relations": [
+    {
+      "id": "fit-headline-1",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "headline-1",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "center",
+        "maxWidth": 604.8,
+        "maxHeight": 128.80999999999997,
+        "minFontSize": 78.39999999999999
+      }
+    },
+    {
+      "id": "fit-headline-2",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "headline-2",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "center",
+        "maxWidth": 604.8,
+        "maxHeight": 128.80999999999997,
+        "minFontSize": 78.39999999999999
+      }
+    },
+    {
+      "id": "fit-section-0-1",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "section-0-1",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "center",
+        "maxWidth": 267.59999999999997,
+        "maxHeight": 36.809999999999995,
+        "minFontSize": 22.4
+      }
+    },
+    {
+      "id": "fit-section-0-2",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "section-0-2",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "center",
+        "maxWidth": 267.59999999999997,
+        "maxHeight": 36.809999999999995,
+        "minFontSize": 22.4
+      }
+    },
+    {
+      "id": "fit-section-1-1",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "section-1-1",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "center",
+        "maxWidth": 267.59999999999997,
+        "maxHeight": 36.809999999999995,
+        "minFontSize": 22.4
+      }
+    },
+    {
+      "id": "fit-section-1-2",
+      "version": 1,
+      "enabled": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "targetId": "section-1-2",
+          "properties": [
+            "x",
+            "width",
+            "height",
+            "fontSize"
+          ]
+        }
+      ],
+      "kind": "textFit",
+      "parameters": {
+        "anchor": "center",
+        "maxWidth": 267.59999999999997,
+        "maxHeight": 36.809999999999995,
+        "minFontSize": 22.4
+      }
+    }
+  ],
+  "overrides": {},
+  "richText": {},
+  "media": {},
+  "seed": 0,
+  "state": "applied",
+  "issues": [],
+  "layoutOrigin": "catalog-variant",
+  "sourceVariantKey": "5x6-20c06133e7c2-portrait4x5-ca9bcb5c2f-development-compose-comparison-v3",
+  "effectiveAspectRatio": "4:5",
+  "projection": {
+    "scale": 1,
+    "x": 0,
+    "y": 0
+  },
+  "artboard": {
+    "width": 1080,
+    "height": 1350,
+    "background": "#0F0F12"
+  }
+}

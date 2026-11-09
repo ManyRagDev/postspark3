@@ -28,15 +28,13 @@ describe("editor controls", () => {
       expect(change).toHaveBeenLastCalledWith(null);
     }
   });
-  it("keeps the mobile text action portal mounted and leaves space for editing", () => {
-    const onHeight = vi.fn();
-    act(() => root.render(<CanvasEditorChrome mobile isTextEditing activeTool="selection" onToolChange={vi.fn()} contents={{ selection: <div>Propriedades</div> }} onPanelHeightChange={onHeight} />));
+  it("keeps the mobile text action portals mounted during editing", () => {
+    act(() => root.render(<CanvasEditorChrome mobile isTextEditing activeTool="selection" onToolChange={vi.fn()} contents={{ selection: <div>Propriedades</div> }} />));
     const portal = container.querySelector<HTMLElement>("#canvas-mobile-text-actions-slot");
     expect(portal).not.toBeNull();
     expect(container.querySelector("#canvas-mobile-text-format-slot")).not.toBeNull();
     expect(portal?.className).not.toContain("hidden");
     expect(container.querySelector('[aria-label="Ferramentas de edição"]')).toBeNull();
-    expect(onHeight).toHaveBeenCalled();
   });
   it("offers background directly and keeps selection adjustments reachable without closing another tool", () => {
     const change = vi.fn();

@@ -1,4 +1,4 @@
-import bundled from "@shared/arsenalBundledAssets.json";
+import { arsenalBundledManifest } from "@shared/arsenalBundledManifest";
 import {
   arsenalFontMatches,
   activeArsenalMedia,
@@ -21,10 +21,7 @@ export function installArsenalImageBytes(asset: ArsenalAsset, bytes: ArrayBuffer
 }
 
 function loadArsenalImageWithBytes(asset: ArsenalAsset, suppliedBytes?: ArrayBuffer): Promise<string> {
-  if (
-    asset.kind !== "catalog" ||
-    !/^image\/(png|jpeg|webp)$/.test(asset.mimeType)
-  )
+  if (!/^image\/(png|jpeg|webp)$/.test(asset.mimeType))
     return Promise.reject(new Error("Manifesto de imagem inválido"));
   const key = arsenalHash(asset);
   const existing = images.get(key);
@@ -59,12 +56,27 @@ function loadArsenalImageWithBytes(asset: ArsenalAsset, suppliedBytes?: ArrayBuf
 
 async function fetchArsenalImageBytes(asset: ArsenalAsset) {
   const signal = AbortSignal.timeout(8000);
-  const urls = await arsenalApi.designCatalog.resolveArsenalAssets.query({ ids: [asset.id] }, { signal });
-  const authorized = urls.find(item => item.id === asset.id && item.sha256 === asset.sha256);
-  if (!authorized?.url) throw new Error("Imagem não autorizada");
-  const response = await fetch(authorized.url, { signal, cache: "no-store" });
-  if (!response.ok) throw new Error("Imagem indisponível");
-  return response.arrayBuffer();
+  if (asset.kind === "bundled") {
+    const known = bundledArsenalAsset(asset.id);
+    if (known.sha256 !== asset.sha256 || known.bytes !== asset.bytes || known.mimeType !== asset.mimeType)
+      throw new Error("Manifesto de imagem divergente");
+    const response = await fetch(known.path, { signal });
+    if (!response.ok) throw new Error("Imagem empacotada indisponível");
+    return response.arrayBuffer();
+  }
+  try {
+    const urls = await arsenalApi.designCatalog.resolveArsenalAssets.query({ ids: [asset.id] }, { signal });
+    const authorized = urls.find(item => item.id === asset.id && item.sha256 === asset.sha256);
+    if (!authorized?.url) throw new Error("Imagem não autorizada");
+    const response = await fetch(authorized.url, { signal, cache: "no-store" });
+    if (!response.ok) throw new Error("Imagem indisponível");
+    return response.arrayBuffer();
+  } catch (error) {
+    if (error instanceof Error && error.message === "Imagem não autorizada") throw error;
+    const localResponse = await fetch(`/arsenal/images/${asset.sha256}`, { signal }).catch?.(() => null);
+    if (localResponse && localResponse.ok) return localResponse.arrayBuffer();
+    throw error instanceof Error ? error : new Error("Imagem não autorizada ou indisponível");
+  }
 }
 
 export async function ensureArsenalCompositionAssets(
@@ -84,21 +96,8 @@ export async function ensureArsenalCompositionAssets(
     }),
   ]);
 }
-const manifest = bundled as Record<
-  string,
-  {
-    id: string;
-    sha256: string;
-    path: string;
-    family: string;
-    weight: number;
-    weightRange?: { min: number; max: number };
-    bytes: number;
-    mimeType: string;
-  }
->;
 export function bundledArsenalAsset(id: string) {
-  const entry = manifest[id];
+  const entry = arsenalBundledManifest[id];
   if (!entry) throw new Error("Asset fora do manifesto empacotado");
   return entry;
 }

@@ -89,8 +89,8 @@ export function freezeGenerationProject(project: {
   niche: string;
   compiledDocument: string;
   structuredData?: Partial<ProjectStructuredData>;
-  capture?: import("zod").infer<typeof brandCaptureMetadataSchema>;
-  visualPreferences?: import("zod").infer<typeof capturedVisualPreferencesSchema>;
+  capture?: z.infer<typeof brandCaptureMetadataSchema> | null;
+  visualPreferences?: z.infer<typeof capturedVisualPreferencesSchema> | null;
 }): GenerationProjectSnapshot {
   const snapshot = generationProjectSnapshotSchema.parse({
     version: 1,
@@ -99,9 +99,15 @@ export function freezeGenerationProject(project: {
     structuredData: project.structuredData ?? {},
   });
   // Preserve all recognized text, including historical documents whose fields are empty.
-  return generationProjectSnapshotSchema.parse(
-    {...projectEditorialDefaults(project.compiledDocument, snapshot),...(project.capture || project.visualPreferences ? {version:2,capture:project.capture,visualPreferences:project.visualPreferences}: {})}
-  );
+  const editorial = projectEditorialDefaults(project.compiledDocument, snapshot);
+  if (!project.capture && !project.visualPreferences)
+    return generationProjectSnapshotV1Schema.parse(editorial);
+  return generationProjectSnapshotSchema.parse({
+    ...editorial,
+    version: 2,
+    ...(project.capture ? { capture: project.capture } : {}),
+    ...(project.visualPreferences ? { visualPreferences: project.visualPreferences } : {}),
+  });
 }
 
 /** Semicolons/newlines are explicit list delimiters; commas can belong to a phrase. */

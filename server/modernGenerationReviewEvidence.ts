@@ -50,6 +50,8 @@ export function inspectModernReviewEvidence(
   proposal: Extract<ProposalDelivery, { status: "ready" }>,
   check: (code: string, passed: boolean) => void
 ) {
+  const bundle = proposal.bundle;
+  if (!bundle) return;
   const prepared = row(request.prepared),
     policy = prepared.reviewPolicyVersion,
     modern = policy === 10;
@@ -106,8 +108,8 @@ export function inspectModernReviewEvidence(
       "curated_offer_identity",
       Boolean(
         offer &&
-          list(offer.slides).length === proposal.bundle.slides.length &&
-          proposal.bundle.slides.every((s, i) => {
+          list(offer.slides).length === bundle.slides.length &&
+          bundle.slides.every((s, i) => {
             const pin = offer.slides[i],
               origin = s.composition.origin.componentAssembly;
             return (
@@ -155,9 +157,9 @@ export function inspectModernReviewEvidence(
         ).length <= 1
     );
   const finalCopy: ReviewCopy = {
-    caption: proposal.bundle.caption,
-    hashtags: proposal.bundle.hashtags,
-    slides: proposal.bundle.slides.map(s => ({
+    caption: bundle.caption,
+    hashtags: bundle.hashtags,
+    slides: bundle.slides.map(s => ({
       mediaPrompts: [],
       values:
         s.composition.content.schemaVersion === 3
@@ -177,7 +179,7 @@ export function inspectModernReviewEvidence(
   const finalAliases = buildReviewEvidenceAliases(
     reviewEvidenceAnchors(
       finalCopy,
-      proposal.bundle.slides.map(s => s.composition)
+      bundle.slides.map(s => s.composition)
     )
   );
   const finalUnits = (modern ? reviewTextUnitsV10 : reviewTextUnitsV7)(
@@ -226,7 +228,7 @@ export function inspectModernReviewEvidence(
           parsed.data.round === review.round &&
           parsed.data.inputHash === review.inputHash &&
           parsed.data.sourceContextHash === prepared.editorialContextHash &&
-          parsed.data.renderHashes.length === proposal.bundle.slides.length &&
+          parsed.data.renderHashes.length === bundle.slides.length &&
           parsed.data.renderHashes.every((r, i) => r.slideIndex === i) &&
           same(expectation, parsed.data)
       );

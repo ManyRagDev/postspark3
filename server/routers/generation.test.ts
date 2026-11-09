@@ -51,6 +51,7 @@ vi.mock("../mediaAssets", async importOriginal => {
 vi.mock("../ai/workflows/generationStore", () => ({
   createGenerationStore: () => ({
     isAvailable: async () => state.available,
+    isFixedDesignAvailable: async () => true,
     isPreparationAvailable: async () => state.preparationAvailable,
     isTaskRoutingAvailable: async () => state.taskRoutingAvailable,
     isReviewExceptionsAvailable: async () => state.reviewExceptionsAvailable,
@@ -101,6 +102,28 @@ function caller(
     res: {} as any,
   });
 }
+
+it("pins the exact showcase card before admitting and skips general catalog retrieval", async () => {
+  const fixedDesign = { kind: "showcase", id: "risograph" } as const;
+  state.admission.mockImplementationOnce(async request => ({
+    created: true,
+    record: { id, ownerId: owner, input: request.input, deadlineAt: Date.now() + 10000, status: "queued", proposals: [
+      proposalDeliverySchema.parse({ proposalId: `p-${id}-0`, runId: id, slot: 0, status: "planned" }),
+    ] },
+  }));
+  const result = await caller().start({ ...input, fixedDesign, aspectRatio: "4:5" });
+  expect(retrieveCompleteDesignCards).not.toHaveBeenCalled();
+  expect(result.snapshot.proposals).toHaveLength(1);
+  expect(state.admission.mock.calls[0][0].input.pinnedDesign).toMatchObject({
+    sourceId: "showcase:risograph", canvas: { familyName: "Risograph Print Zine" },
+  });
+});
+
+it("rejects an incompatible fixed format before reserving", async () => {
+  await expect(caller().start({ ...input, fixedDesign: { kind: "showcase", id: "risograph" }, aspectRatio: "1:1" }))
+    .rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+  expect(state.admission).not.toHaveBeenCalled();
+});
 function record() {
   return {
     id,

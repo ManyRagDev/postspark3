@@ -29,6 +29,8 @@ import { isPaidGenerationOperation, summarizeGenerationJournal } from "./generat
 import * as localDiagnostics from "../localDiagnostics";
 import { resolveReviewExecutionConfigV7 } from "./reviewExecutionConfigV7";
 import { resolveGenerationModelConfig } from "../generationModel";
+import { INITIAL_POST } from "../../../client/src/pages/CanvasLab/components/types";
+import { arsenalHash } from "@shared/arsenalContent";
 
 describe("uncertain strategy-2 preparation lifecycle", () => {
   it("terminalizes a known route rejection, preserves a ready slot and never buys the operation on replay", async () => {
@@ -249,6 +251,48 @@ function setup(overrides: Partial<RequestRecord> = {}) {
 }
 
 describe("durable runtime and independent delivery", () => {
+  it("reuses the pinned editable design, repairs its text, and completes a single-slot request", async () => {
+    const source = setup().record();
+    const canvas = { ...structuredClone(INITIAL_POST), aspectRatio: "4:5" as const, familyName: "ReUNE" };
+    canvas.slides = [{ id: "cover", headline: "", subtext: "", step: "", suppressFamilyDecorations: true,
+      extraTexts: [
+        { id: "text-0", text: "ReUNE", x: 20, y: 20, width: 100, fontSize: 11 },
+        { id: "title", text: "Título antigo", x: 20, y: 80, width: 300, fontSize: 30 },
+        { id: "support", text: "Apoio antigo", x: 20, y: 200, width: 300, fontSize: 14 },
+      ],
+    }];
+    const rawInput = "Apresente o Sorteador Relâmpago em 2 minutos.";
+    const input = {
+      ...orchestratedGenerationInputSchema.parse({ ...source.input, content: rawInput, fixedDesign: { kind: "showcase", id: "fixture" } }),
+      pinnedDesign: { sourceId: "test", revision: arsenalHash(canvas), canvas },
+    };
+    const worker = setup({ input, prepared: undefined, proposals: [source.proposals[0]] });
+    const prepared = vi.fn();
+    const generateText = vi.fn(async params => {
+      const name = params.response_format.json_schema.name;
+      const values = [
+        { id: "0:title", text: name.endsWith("_copy") ? "Sorteador Relâmpago ".repeat(100) : "Sorteador Relâmpago" },
+        { id: "0:support", text: "Organize o sorteio em 2 minutos." },
+      ];
+      return { choices: [{ message: { content: JSON.stringify(name.includes("review") ? { issues: [] } : { values, caption: "" }) } }] };
+    }) as typeof worker.generateText;
+    const deps = { store: worker.store, prepare: prepared, loadContext: async () => rawInput,
+      graphDeps: { generateText }, persistTrace: vi.fn(async () => {}), loadTraceCalls: async () => [] };
+    const done = await executeClaimedGeneration(worker.record(), "lease", deps);
+    expect(done.overallStatus).toBe("completed");
+    expect(done.proposals).toHaveLength(1);
+    expect(done.proposals[0]).toMatchObject({ status: "ready", fixedCanvas: { familyName: "ReUNE",
+      slides: [{ extraTexts: [
+        expect.objectContaining({ text: "ReUNE" }),
+        expect.objectContaining({ text: "Sorteador Relâmpago", x: 20, y: 80 }),
+        expect.objectContaining({ text: "Organize o sorteio em 2 minutos." }),
+      ] }],
+    } });
+    expect(prepared).not.toHaveBeenCalled();
+    expect(generateText).toHaveBeenCalledTimes(3);
+    await executeClaimedGeneration({ ...worker.record(), status: "running" }, "new-lease", deps);
+    expect(generateText).toHaveBeenCalledTimes(3);
+  });
   it("hot reload stops admission of paid effects without terminalizing recoverable proposals", async()=>{
     const s=setup(),shutdown=new AbortController();shutdown.abort();
     const finish=vi.spyOn(s.store,'finish');

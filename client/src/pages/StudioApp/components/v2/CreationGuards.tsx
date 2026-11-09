@@ -28,7 +28,7 @@ export function FormatConfirmModal({
 
   return (
     <motion.div
-      className="fixed inset-0 z-[70] flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm md:items-center md:p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -41,7 +41,7 @@ export function FormatConfirmModal({
         animate={{ y: 0, scale: 1, opacity: 1 }}
         exit={{ y: 16, scale: 0.98, opacity: 0 }}
         transition={{ type: "spring", stiffness: 380, damping: 32 }}
-        className="w-full max-w-lg rounded-3xl border p-6 shadow-[0_30px_80px_rgba(0,0,0,0.85)]"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-2xl border p-4 shadow-[0_30px_80px_rgba(0,0,0,0.85)] md:rounded-3xl md:p-6"
         style={{ background: STUDIO.bg, borderColor: STUDIO.hairline, color: STUDIO.ink }}
       >
         <div className="flex items-start justify-between gap-3">
@@ -56,7 +56,7 @@ export function FormatConfirmModal({
               </div>
             </div>
           </div>
-          <button type="button" onClick={onDismiss} aria-label="Fechar" className="text-white/40 hover:text-white">
+          <button type="button" onClick={onDismiss} aria-label="Fechar" className="grid min-h-11 min-w-11 shrink-0 place-items-center text-white/65 hover:text-white md:min-h-0 md:min-w-0">
             <X size={18} />
           </button>
         </div>
@@ -79,7 +79,7 @@ export function FormatConfirmModal({
           >
             Mudar para {detectedLabel}
           </button>
-          <button type="button" onClick={onDismiss} className="py-1 text-xs" style={{ color: STUDIO.ink60 }}>Editar briefing</button>
+          <button type="button" onClick={onDismiss} className="min-h-11 py-1 text-xs md:min-h-0" style={{ color: STUDIO.ink60 }}>Editar briefing</button>
         </div>
         <p className="mt-3 text-center text-[10.5px]" style={{ color: STUDIO.ink40 }}>
           Nenhuma Spark é consumida até o formato ser confirmado.
@@ -116,7 +116,7 @@ export function GenerationFailureModal({
   const paused = reason === "generation_paused";
   return (
     <motion.div
-      className="fixed inset-0 z-[70] flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm md:items-center md:p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -129,7 +129,7 @@ export function GenerationFailureModal({
         animate={{ y: 0, scale: 1, opacity: 1 }}
         exit={{ y: 16, scale: 0.98, opacity: 0 }}
         transition={{ type: "spring", stiffness: 380, damping: 32 }}
-        className="w-full max-w-lg rounded-3xl border p-6 shadow-[0_30px_80px_rgba(0,0,0,0.85)]"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-2xl border p-4 shadow-[0_30px_80px_rgba(0,0,0,0.85)] md:rounded-3xl md:p-6"
         style={{ background: STUDIO.bg, borderColor: STUDIO.hairline, color: STUDIO.ink }}
       >
         <div className="flex items-start justify-between gap-3">
@@ -148,7 +148,7 @@ export function GenerationFailureModal({
               )}
             </div>
           </div>
-          <button type="button" onClick={onDismiss} aria-label="Fechar" className="text-white/40 hover:text-white">
+          <button type="button" onClick={onDismiss} aria-label="Fechar" className="grid min-h-11 min-w-11 shrink-0 place-items-center text-white/65 hover:text-white md:min-h-0 md:min-w-0">
             <X size={18} />
           </button>
         </div>

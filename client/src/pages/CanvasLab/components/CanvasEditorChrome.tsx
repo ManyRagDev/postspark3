@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   ImagePlus,
   Image as BackgroundIcon,
@@ -34,7 +34,6 @@ const tools = [
 /** The tool is independent from the selection: only an explicit action opens a panel. */
 export interface CanvasEditorChromeProps {
   mobile?: boolean;
-  mobileBottomInset?: number;
   mobileViewportHeight?: number;
   isTextEditing?: boolean;
   activeTool: CanvasEditorTool | null;
@@ -42,12 +41,10 @@ export interface CanvasEditorChromeProps {
   contents: Partial<Record<CanvasEditorTool, ReactNode>>;
   selectionLabel?: string;
   selectionActions?: ReactNode;
-  onPanelHeightChange?: (height: number) => void;
 }
 
 export default function CanvasEditorChrome({
   mobile = false,
-  mobileBottomInset = 0,
   mobileViewportHeight,
   isTextEditing = false,
   activeTool,
@@ -55,25 +52,7 @@ export default function CanvasEditorChrome({
   contents,
   selectionLabel,
   selectionActions,
-  onPanelHeightChange,
 }: CanvasEditorChromeProps) {
-  const container = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!mobile || !onPanelHeightChange) return;
-    const node = container.current;
-    if (!node) return;
-    const measure = () =>
-      onPanelHeightChange(node.getBoundingClientRect().height);
-    measure();
-    if (typeof ResizeObserver === "undefined")
-      return () => onPanelHeightChange(0);
-    const observer = new ResizeObserver(measure);
-    observer.observe(node);
-    return () => {
-      observer.disconnect();
-      onPanelHeightChange(0);
-    };
-  }, [mobile, onPanelHeightChange, activeTool, selectionLabel, isTextEditing]);
   const title =
     activeTool === "selection"
       ? selectionLabel || "Propriedades"
@@ -87,11 +66,9 @@ export default function CanvasEditorChrome({
 
   return (
     <div
-      ref={container}
-      style={mobile ? { bottom: mobileBottomInset } : undefined}
       className={
         mobile
-          ? "fixed inset-x-0 bottom-0 z-40 flex flex-col bg-[#151515] text-white shadow-2xl"
+          ? "z-40 flex shrink-0 flex-col bg-[#151515] pb-[env(safe-area-inset-bottom)] text-white"
           : "flex h-full min-h-0 bg-[#151515] text-white"
       }
     >
@@ -114,7 +91,7 @@ export default function CanvasEditorChrome({
           aria-label="Ferramentas de edição"
           className={
             mobile
-              ? "order-last flex justify-around border-t border-white/10 pb-[env(safe-area-inset-bottom)]"
+              ? "order-last grid grid-cols-6 border-t border-white/10"
               : "flex w-20 shrink-0 flex-col gap-1 border-r border-white/10 py-2"
           }
         >
@@ -124,7 +101,7 @@ export default function CanvasEditorChrome({
               type="button"
               aria-pressed={activeTool === id}
               onClick={() => toggle(id)}
-              className="flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] text-white/70 hover:text-white aria-pressed:text-orange-400 md:flex-none"
+              className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[10px] text-white/75 hover:text-white aria-pressed:text-orange-400 max-md:aria-pressed:bg-orange-400/10 md:px-1"
             >
               <Icon size={19} aria-hidden="true" />
               <span>{label}</span>

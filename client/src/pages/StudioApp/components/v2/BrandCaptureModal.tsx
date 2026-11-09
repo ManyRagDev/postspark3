@@ -110,17 +110,17 @@ export default function BrandCaptureModal({
   };
   return (
     <div
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4"
+      className="fixed inset-0 z-[110] flex items-end justify-center bg-black/70 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:items-center md:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="capture-title"
     >
-      <section className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-[#211f1b] p-6 text-[#f2ede4]">
-        <div className="flex justify-between">
+      <section className="max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-2xl bg-[#211f1b] p-4 text-[#f2ede4] md:max-h-[90vh] md:p-6">
+        <div className="flex items-center justify-between gap-2">
           <h2 id="capture-title" className="text-xl">
             Revise a marca
           </h2>
-          <button onClick={onClose} aria-label="Fechar captura">
+          <button onClick={onClose} aria-label="Fechar captura" className="min-h-11 shrink-0 rounded-lg px-2 text-sm text-white/80 hover:bg-white/10 md:min-h-0">
             Fechar
           </button>
         </div>
@@ -130,7 +130,7 @@ export default function BrandCaptureModal({
             <button onClick={captureEvents.reconnect}>Reconectar</button>
           </p>
         )}
-        <p className="my-3 text-sm">{url} · Captura gratuita</p>
+        <p className="my-3 text-sm [overflow-wrap:anywhere]">{url}</p>
         {!project &&
           ["queued", "running", undefined].includes(capture.data?.status) &&
           !error && (

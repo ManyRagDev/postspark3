@@ -44,6 +44,7 @@ import BackgroundsDrawer from "./BackgroundsDrawer";
 import RadialTextureSelector from "./RadialTextureSelector";
 import FontPickerDropdown from "./FontPickerDropdown";
 import { applySlideVisualPatch } from "../lib/slideVisualScope";
+import { applySeamlessPanoramaToPost, type SeamlessPanoramaMeta } from "../lib/seamlessCarousel";
 import type { ArsenalComposition } from "@shared/designArsenal";
 import ArsenalCompositionInspector from "./ArsenalCompositionInspector";
 
@@ -56,6 +57,7 @@ interface CanvasMobileDrawerProps {
   mediaPreview?: string;
   onMediaPreview?: (url: string | undefined) => void;
   onUpdatePost: (updates: Partial<CanvasPostModel>) => void;
+  onApplySeamlessPanorama?: (panorama: SeamlessPanoramaMeta) => void;
   suspended?: boolean;
   onReplicate?: () => void;
   isOpen?: boolean;
@@ -78,6 +80,7 @@ export default function CanvasMobileDrawer({
   onUpdateComposition,
   requestedTab,
   onUpdatePost,
+  onApplySeamlessPanorama,
   onMediaUpdate,
   mediaPreview,
   onMediaPreview,
@@ -323,6 +326,7 @@ export default function CanvasMobileDrawer({
         onClose={() => setIsTexturesDrawerOpen(false)}
         post={post}
         onApplyBackground={handleApplyBackground}
+        onApplySeamlessPanorama={onApplySeamlessPanorama ?? (pano => onUpdatePost(applySeamlessPanoramaToPost(latestPostRef.current, pano, 0)))}
         manifestData={manifestData}
       />
 

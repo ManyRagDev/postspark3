@@ -1166,7 +1166,7 @@ async function runLockedMatrix(options: MatrixOptions) {
           images: [],
           ready: proposal?.status === "ready",
         };
-        if (proposal?.status === "ready") {
+        if (proposal?.status === "ready" && proposal.bundle) {
           piece.caption = proposal.bundle.caption;
           try {
             const scenes = await renderReviewScenes({

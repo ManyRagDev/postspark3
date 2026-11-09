@@ -99,8 +99,8 @@ Regras mandatórias do editor oficial:
 
 9. **Menu do Usuário e Saldo de Sparks Persistente (`UserTopMenu`)**:
    - O menu de conta, saldo de Sparks em tempo real (`billing.getProfile`), plano, perfil, posts salvos (`/saved-posts`), histórico (`/history`) e logout é persistente e acessível em todas as telas da aplicação.
-   - Na tela de criação do Studio (`StudioCreateViewV2B`), fica ancorado no canto superior direito (`fixed top-3.5 right-4 md:right-6`).
-   - Na galeria de direções (`StudioGalleryView` e `StudioMobileFlashcards`), é embutido diretamente no header superior ao lado do seletor de formatos.
+   - Na criação (`StudioCreateViewV2B`), o menu fica no cabeçalho no mobile e ancorado no canto superior direito no desktop.
+   - Na galeria de direções (`StudioGalleryView` e `StudioMobileFlashcards`), é embutido no cabeçalho. No mobile, o seletor de proporção fica junto à prévia.
    - No editor do CanvasLab (`CanvasTopBar`), é embutido no canto direito da barra superior, depois das ações globais de edição e salvamento.
    - Em todas as demais páginas do sistema (`/saved-posts`, `/history`, `/billing`, `/pricing`, etc.), o menu flutuante global permanece permanentemente ativo e ancorado no topo (`top-3.5 right-4 md:right-6`).
 
@@ -368,8 +368,9 @@ O editor visual oficial do PostSpark (`CanvasLabPage`, rota `/thevoid`) foi cons
 ### Estrutura e Fluxo:
 - **Máquina de estados** (`StudioAppV2BPage`): `create` (StudioCreateViewV2B) → `gallery` (StudioGalleryView desktop / StudioMobileFlashcards mobile — "HoloDeck" histórico) → `editor` (CanvasLabPage).
 - **Entrada e recarregamento**: `/thevoid` e `/studio` restauram o rascunho do briefing e seus ajustes, abrindo em `create`. Posts de uma visita anterior não são carregados automaticamente. Uma admissão sem confirmação conserva corpo e chave de idempotência, mas só é reenviada pela ação do usuário. A geração acompanha entregas durante a visita atual; reaberturas pela biblioteca e pelo histórico continuam explícitas. Entrar novamente não cancela pedidos nem exclui posts.
-- **Galeria**: clique/toque no card seleciona a direção e abre o editor (além do botão "Personalizar Post").
-- **Editor CanvasLab**: `CanvasTopBar` concentra voltar, desfazer/refazer, estado do salvamento, Baixar e ações secundárias. `CanvasEditorChrome` oferece Fundo, Adicionar, Aparência, Marca, Camadas e Legenda nos dois modelos de slide. Fundo reúne cor, geração/envio de imagem, texturas, enquadramento e filtro. Desktop usa painel lateral; mobile usa dock e painel inferior com área reservada no cálculo de encaixe. Formato, zoom e ímã ficam em `CanvasToolRail`; no mobile a ação **Formato e zoom** abre essa barra sob demanda.
+- **Criação mobile**: o campo de pedido precede as opções de geração. Tipo de post e proporção têm controles separados. Um link avulso explicita as opções de analisar a marca ou usar a página como fonte.
+- **Galeria**: no desktop, o card e **Personalizar Post** abrem o editor. No mobile, a galeria mostra uma proposta por vez, com setas ou gesto horizontal para trocar de proposta, controles separados para os slides e ações **Editar proposta** e **Baixar**. Voltar do editor restaura a proposta, a proporção e o slide editados.
+- **Editor CanvasLab**: `CanvasTopBar` concentra voltar, desfazer/refazer, estado do salvamento, Baixar e ações secundárias. `CanvasEditorChrome` oferece Fundo, Adicionar, Aparência, Marca, Camadas e Legenda nos dois modelos de slide. Fundo reúne cor, geração/envio de imagem, texturas, enquadramento e filtro. Desktop usa painel lateral; mobile coloca a barra de ferramentas e o painel inferior no fluxo do editor. A prancheta se ajusta ao espaço restante, inclusive ao abrir ferramentas e durante a edição de texto. Formato, zoom e ímã ficam em `CanvasToolRail`; no mobile a ação **Formato e zoom** abre essa barra sob demanda.
 - **Seleção e edição**: ferramenta aberta, seleção por ID de slide/objeto e edição em curso são estados independentes. Selecionar não troca a ferramenta. **Editar texto** abre edição na arte; **Ajustar** abre propriedades e um campo alternativo apenas para o texto selecionado. Camadas projeta grupos e reúne decoração recolhida, com ações condicionadas à capacidade real do objeto. Listas mantêm operações sobre itens. Legenda tem editor único e Copiar.
 - **Documento e comandos**: `lib/editorController.ts` adapta intenções para slides convencionais e composições, sem documento concorrente. O resultado volta a `handleUpdatePost`, histórico e autosave. Digitação em um mesmo campo é agrupada até a saída de foco; edição na arte confirma texto e trechos numa única mutação. Prévia de reorganização permanece separada até aplicar; `composePost(..., { preserveColors: true })` preserva cores na reorganização e nos refluxos de texto/formato.
 - **Estado das camadas**: `elementStates` guarda ocultação e bloqueio, com defaults visível/desbloqueado; `elementOrder` guarda ordem convencional. Grupos transmitem restrições aos filhos, que indicam o ancestral responsável. Ocultar não remove dados. Esses campos atravessam normalização, clonagem, schema, receita portátil e exportação. Não exigem migração: continuam dentro de `canvas_model`.
@@ -381,7 +382,7 @@ O editor visual oficial do PostSpark (`CanvasLabPage`, rota `/thevoid`) foi cons
 - Botão **Salvar** (top bar) → diálogo **"Salvar como novo" × "Atualizar o post salvo"** com checkbox **"Memorizar esta decisão"** (`localStorage postspark.savePreference`).
 - Payload construído por `canvasModelToSavePayload`/`canvasModelToUpdatePayload` (`lib/saveAdapter.ts`); modelo completo persistido em `posts.canvas_model`.
 - **Guardião de tamanho antes do envio (`lib/fitSavePayload.ts`)**: salvar e atualizar medem o payload completo no navegador. Abaixo de 3,5 MB nada muda; acima disso, imagens inline são comprimidas progressivamente e cada imagem repetida é substituída em todos os campos do payload, preservando o modelo em memória. Se não couber no limite da função em produção (4,5 MB), o usuário recebe um erro claro antes da requisição. O `server/lib/imageCompress.ts` continua comprimindo fundos recebidos para evitar inchaço no PostgreSQL, mas essa etapa ocorre depois do limite de entrada da plataforma.
-- Toast pós-save com ação **"Ver salvos"** → `/saved-posts`; a biblioteca mostra duas colunas. Para posts do CanvasLab, a capa (slide 0) é reconstruída do `canvas_model`, desenhada pelo mesmo `CanvasPostStage` do editor e capturada como PNG de miniatura no navegador após carregar fontes e imagens. A captura é feita somente quando o card se aproxima da área visível; se falhar (por exemplo, por restrição CORS de asset remoto), o canvas fiel permanece visível. Posts históricos sem `canvas_model` mantêm a prévia via `PostRenderer` legado. O PNG é temporário na sessão da página e não é persistido no banco. **"Abrir"** reconstrói o modelo (`savedPostToCanvasModel`) e entra direto no editor via sessionStorage `postspark.open_canvas_post` → `/thevoid`. Erros de listagem oferecem "Tentar novamente".
+- Toast pós-save com ação **"Ver salvos"** → `/saved-posts`; a biblioteca mostra uma coluna em telas estreitas e duas a partir de 640 px. Para posts do CanvasLab, a capa (slide 0) é reconstruída do `canvas_model`, desenhada pelo mesmo `CanvasPostStage` do editor e capturada como PNG de miniatura no navegador após carregar fontes e imagens. A captura é feita somente quando o card se aproxima da área visível; se falhar (por exemplo, por restrição CORS de asset remoto), o canvas fiel permanece visível. Posts históricos sem `canvas_model` mantêm a prévia via `PostRenderer` legado. O PNG é temporário na sessão da página e não é persistido no banco. **"Abrir"** reconstrói o modelo (`savedPostToCanvasModel`) e entra direto no editor via sessionStorage `postspark.open_canvas_post` → `/thevoid`. Erros de listagem oferecem "Tentar novamente".
 
 ### Exportação Multiformato e 4K:
 - Formatos nativos com legendas oficiais (**1:1 Feed**, **4:5 Feed**, **9:16 Stories** (5:6 apenas para documentos antigos) — mapa único `ASPECT_RATIO_CAPTIONS` em `types.ts`);
@@ -3734,6 +3735,8 @@ Os comandos `acervo82:full:*` preparam, conferem e iniciam a revisão local. A r
 
 O importador HTML do Acervo 82 captura o CSS decorativo no Chromium a partir da geometria congelada. Gradientes, padrões e halos viram assets verificados. Texto e mídia continuam em campos nativos. Uma composição pode declarar `imageReplacement` em uma peça com asset original e contorno próprios. A foto e seu ponto focal ficam em `composition.media`. O marcador `useOriginal` seleciona o asset original e mantém a foto disponível para voltar ao modo anterior. O editor e o renderizador de revisão usam a mesma decisão de mídia. Essa possibilidade de edição é independente das capacidades de fotografia usadas na seleção do design. A Aura (CON-17) é o piloto local desse comportamento.
 
+As definições dos conceitos podem guardar degradê vertical de texto, cores de extrusão, traçado de borda e mistura multiplicativa em peças nativas. O CanvasLab e o renderizador de revisão leem os mesmos atributos. Halos decorativos com sangria são capturados e recortados na prancheta. A verificação offline aceita `acervo82:full:verify <build> <destino> --concepts` para conferir apenas os 29 conceitos em 4:5, com texto original, texto alternativo e ida e volta pelo adaptador do CanvasLab. O estágio de publicação exige o acervo completo. A comparação visual com a referência continua sendo uma etapa própria de aceite.
+
 
 ### Geração automática econômica — políticas versionadas de modelos e provedores
 
@@ -3808,3 +3811,26 @@ Novas admissões automáticas fixam `visualTextRepairVersion=1`, dependente do p
 A medição local escolhe a primeira alternativa que cabe. Quando nenhuma cabe, o novo opt-in preserva a menor alternativa fornecida pelo agente, sem truncar nem fabricar texto. `copy_fit_candidate` guarda essa copy validada como operação local; a recuperação passa a experimentar esse texto nas reservas, em vez de voltar à redação original. A inspeção final e a revisão por IA continuam necessárias para entregar; falhas técnicas, cancelamento, conteúdo material inválido e esgotamento das recuperações permanecem explícitos. Não há garantia algorítmica de três entregas em todo pedido.
 
 O render da correção ocorre antes de iniciar a operação paga, evitando classificar uma falha local de Chromium como efeito incerto de provedor. A operação durável reutiliza respostas já compradas; retomar pode renderizar novamente localmente, sem repetir inferência. Configurações históricas sem o marcador preservam o fluxo anterior. O transporte de imagem pode aumentar o custo unitário da correção, mas não acrescenta uma rodada por padrão nem contexto de catálogo ao JEV. Evidências e limites em `docs/reforma/visual-text-repair-20261106.md`.
+
+### Geração com composição escolhida
+
+No Studio, a opção de criar com IA em um cartão da vitrine ou usar um kit
+extraído envia `fixedDesign` na admissão. O servidor resolve a peça da
+vitrine ou do próprio projeto, valida formato e acesso, e congela o
+`CanvasPostModel` com sua revisão. Extrações novas registram os IDs das
+peças aprovadas no projeto. Para extrações anteriores, a busca é restrita
+aos posts ingeridos do proprietário que correspondem à marca, à paleta
+e ao estilo registrados.
+
+O executor segue direto para a escrita nos campos da composição, mede o
+encaixe e pode reescrever os campos afetados. A revisão da proposta usa
+o texto visível da arte e a legenda. A entrega é um `CanvasPostModel`
+editável. Os pedidos com composição escolhida têm uma vaga e usam a
+mesma reserva transacional e o mesmo histórico da geração livre. A
+migração `0063_generation_fixed_design.sql` habilita essa admissão e
+valida o recibo da revisão ao concluir a proposta.
+
+Em 2026-11-09, a migração foi aplicada no Supabase de produção e
+registrada como `20261109211545_generation_fixed_design`. A verificação
+remota confirmou a restrição validada de uma ou três vagas, o acesso
+das novas RPCs pelo backend e a rejeição de uma entrega sem lease válido.

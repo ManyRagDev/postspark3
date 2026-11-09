@@ -2,6 +2,7 @@ import { chromium, type Browser, type Page } from "playwright-core";
 import { resolveReviewBrowser } from "../../../server/ai/workflows/proposalRenderer";
 
 const properties = [
+  "backgroundColor",
   "backgroundImage",
   "backgroundSize",
   "backgroundPosition",
@@ -27,7 +28,7 @@ export async function paintCssDecoration(
   padding: { left: number; top: number; right: number; bottom: number }
 ) {
   if (
-    !style.backgroundImage ||
+    ((!style.backgroundImage || style.backgroundImage === "none") && !style.backgroundColor) ||
     /url\s*\(/i.test(Object.values(style).join(" "))
   )
     throw new Error("CSS decorativo sem fundo local verificável");
@@ -63,7 +64,8 @@ export async function paintCssDecoration(
         width: `${data.width}px`,
         height: `${data.height}px`,
       });
-      if (getComputedStyle(element).backgroundImage === "none")
+      const computed = getComputedStyle(element);
+      if (computed.backgroundImage === "none" && computed.backgroundColor === "rgba(0, 0, 0, 0)")
         throw new Error("Fundo CSS inválido");
     },
     { css, width, height, padding }

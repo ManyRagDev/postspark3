@@ -681,7 +681,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       post.slides[exportSlideIndex ?? post.currentSlideIndex] || post.slides[0];
     const activeBg = currentSlide?.bgImage ?? post.bgImage;
     const activeLogoUrl = currentSlide.logo ? currentSlide.logo.url : post.logoUrl;
-    const bgTransform = currentSlide?.bgTransform || post.bgTransform;
+    const bgTransform = currentSlide?.bgTransform !== undefined
+      ? currentSlide.bgTransform
+      : (currentSlide?.bgPlacement ? undefined : post.bgTransform);
     const elementState = (id: string) => getEditorElementState(post, currentSlide.id, id);
     const canInteractWith = (id: string) => isInteractive && elementState(id).visible && !elementState(id).locked;
     const nativeGroupProps = (id: string) => ({ name: `native-element-${id}`, visible: elementState(id).visible,

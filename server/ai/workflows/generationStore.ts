@@ -13,6 +13,8 @@ import { projectProposalVariation } from "../../../shared/proposalProjection";
 import { getDb } from "../../db";
 import { recordGenerationEvent } from "../generationTrace";
 import { generationModelConfigSchema, type GenerationModelConfig } from "../../../shared/generationModel";
+import type { PinnedDesign } from "./fixedDesignSource";
+type StoredGenerationInput = OrchestratedGenerationInput & { pinnedDesign?: PinnedDesign };
 
 export type GenerationRequestStatus =
   | "queued"
@@ -56,7 +58,7 @@ export interface RequestRecord {
   dispatchError?: string;
   id: string;
   ownerId: string;
-  input: OrchestratedGenerationInput;
+  input: StoredGenerationInput;
   inputHash: string;
   status: GenerationRequestStatus;
   experimental: boolean;
@@ -96,6 +98,7 @@ export interface GenerationOperationRecord {
 }
 
 export interface GenerationStore {
+  isFixedDesignAvailable?: () => Promise<boolean>;
   isPreparationAvailable?: () => Promise<boolean>;
   isTaskRoutingAvailable?: () => Promise<boolean>;
   isReviewExceptionsAvailable?: () => Promise<boolean>;
@@ -106,7 +109,7 @@ export interface GenerationStore {
     ownerId: string;
     idempotencyKey: string;
     inputHash: string;
-    input: OrchestratedGenerationInput;
+    input: StoredGenerationInput;
     experimental: boolean;
     deadlineAt?: number;
     executorScope?: string;
@@ -213,7 +216,7 @@ export function requestRecord(value: any): RequestRecord {
       )
     : [];
   const deadlineAt = timestamp(value.deadline_at ?? value.deadlineAt);
-  if (!deadlineAt || proposals.length !== 3)
+  if (!deadlineAt || proposals.length !== (value.input?.fixedDesign ? 1 : 3))
     throw new Error("generation_store_invalid_record");
   const leaseUntil = timestamp(value.lease_until ?? value.leaseUntil);
   return {
@@ -226,7 +229,7 @@ export function requestRecord(value: any): RequestRecord {
     dispatchError: value.dispatch_error ?? undefined,
     id: String(value.id),
     ownerId: String(value.owner_id ?? value.ownerId),
-    input: value.input as OrchestratedGenerationInput,
+    input: value.input as StoredGenerationInput,
     inputHash: String(value.input_hash ?? value.inputHash),
     status: value.status as GenerationRequestStatus,
     experimental: Boolean(value.experimental),
@@ -260,6 +263,7 @@ function outputProjection(
   input: OrchestratedGenerationInput
 ) {
   if (delivery.status !== "ready") return null;
+  if (delivery.fixedCanvas) return { id: delivery.fixedCanvas.id, fixedCanvas: delivery.fixedCanvas, headline: delivery.fixedCanvas.headline, caption: delivery.fixedCanvas.caption };
   const bundle = completeDesignVariationV1Schema.parse(delivery.bundle);
   return projectProposalVariation(bundle, {
     platform: input.platform,
@@ -389,7 +393,7 @@ export function createGenerationStore(
             requestId: record.id,
             selections: (record.proposals ?? []).flatMap((raw: unknown) => {
               const parsed = proposalDeliverySchema.safeParse(raw);
-              if (!parsed.success || parsed.data.status !== "ready") return [];
+                if (!parsed.success || parsed.data.status !== "ready" || !parsed.data.bundle) return [];
               return [
                 {
                   family: parsed.data.bundle.family,
@@ -474,6 +478,10 @@ export function createGenerationStore(
 
     async isAvailable() {
       return (await rpc("generation_v5_is_available")) === true;
+    },
+    async isFixedDesignAvailable() {
+      try { return await rpc("generation_fixed_design_available") === true; }
+      catch { return false; }
     },
 
     async getByIdempotencyKey(ownerId, key) {
@@ -578,11 +586,12 @@ export function createGenerationStore(
         throw new Error("generation_delivery_must_be_ready");
       const current = await loadById(requestId);
       const projected = outputProjection(parsed, current.input);
-      const data = await rpc("generation_v5_lease_update", {
+      const data = await rpc(parsed.fixedCanvas ? "generation_commit_fixed_design" : "generation_v5_lease_update", {
         p_id: requestId,
         p_lease_token: leaseToken,
-        p_action: "commit",
-        p_payload: { delivery: parsed, projection: projected },
+        ...(parsed.fixedCanvas
+          ? { p_delivery: parsed, p_projection: projected }
+          : { p_action: "commit", p_payload: { delivery: parsed, projection: projected } }),
       });
       const record=requestRecord(data);publishGenerationRecord(record);return record;
     },
