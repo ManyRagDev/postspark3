@@ -933,6 +933,47 @@ describe("Proposal Graph Workflow (canonical V1 delivery)", () => {
     ]);
   });
 
+  it("preserves a carousel with carousel_slides contentSourceType and does not reject it as literal mismatch", async () => {
+    const definitions = completeDesignTestDefinitions();
+    const sameFamily = definitions.map((definition, index) => ({
+      ...definition,
+      completeDesign: {
+        ...definition.completeDesign,
+        family: "carousel-editorial",
+      },
+      label: `Slide ${index + 1}`,
+    }));
+    const response = copyForSlides(sameFamily, [
+      "Capa do roteiro",
+      "Desenvolvimento do tema",
+      "Chamada final",
+    ]);
+    const rawInput = "## Carrossel\n\n**Slide 1:** Capa do roteiro\n\n**Slide 2:** Desenvolvimento do tema\n\n**Slide 3:** Chamada final";
+    const result = await executeProposalWorkflow(
+      workflowInput(sameFamily[0], {
+        selectedDefinitions: sameFamily,
+        selectedDefinition: undefined,
+        postMode: "carousel",
+        executionBrief: {
+          creationMode: "execution",
+          format: "carousel",
+          platform: "instagram",
+          objective: "engage",
+          interventionLevel: "visual_only",
+          contentSourceType: "carousel_slides",
+          rawInput,
+          mustKeep: [],
+          mustInclude: [],
+          forbiddenTerms: [],
+        } as any,
+      }),
+      textDeps(response)
+    );
+
+    expect(result.status).toBe("ready");
+    expect(result.bundle?.slides).toHaveLength(3);
+  });
+
   it("uses operation checkpoints and reuses completed copy and per-slot media on retry", async () => {
     const [base] = completeDesignTestDefinitions();
     const { definition } = withMediaSlot(base, "photo-1");

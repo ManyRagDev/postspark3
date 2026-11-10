@@ -144,6 +144,7 @@ export function creationBriefToExecutionBrief(
   overrides?: {
     interventionLevel?: "visual_only" | "light_optimize" | "optimize_structure";
     contentSourceType?: "freeform" | "carousel_topics" | "carousel_slides" | "caption_ready";
+    slides?: Array<{ slideNumber: number; rawText: string }>;
   }
 ) {
   return {
@@ -156,6 +157,7 @@ export function creationBriefToExecutionBrief(
     brandEssence: brief.brandEssence,
     interventionLevel: overrides?.interventionLevel ?? ("light_optimize" as const),
     contentSourceType: overrides?.contentSourceType ?? (brief.format === "carousel" ? "carousel_topics" as const : "freeform" as const),
+    slides: overrides?.slides ?? [],
     rawInput: brief.rawInput,
     mustInclude: brief.requiredTerms ?? [],
     forbiddenTerms: brief.forbiddenTerms ?? [],

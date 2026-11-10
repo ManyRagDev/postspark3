@@ -122,6 +122,20 @@ describe("creationBrief - Etapa 4", () => {
       expect(editedExec.brandEssence).toBe("Tecnologia acessível para pequenas empresas");
     });
 
+    it("aplica overrides de slides estruturados e interventionLevel", () => {
+      const brief = interpretRawBriefing("Post simples sem kit", {
+        selectedFormat: "carousel",
+      });
+      const exec = creationBriefToExecutionBrief(brief, {
+        interventionLevel: "light_optimize",
+        contentSourceType: "carousel_slides",
+        slides: [{ slideNumber: 1, rawText: "Slide 1 texto" }],
+      });
+      expect(exec.interventionLevel).toBe("light_optimize");
+      expect(exec.contentSourceType).toBe("carousel_slides");
+      expect(exec.slides).toEqual([{ slideNumber: 1, rawText: "Slide 1 texto" }]);
+    });
+
     it("não inventa público ou essência quando ausentes", () => {
       const brief = interpretRawBriefing("Post simples sem kit", {
         selectedFormat: "static",

@@ -390,10 +390,21 @@ export default function StudioAppV2BPage() {
     }
     const previousInput = source === "more" ? lastGenerationInput.current : null;
     const isPreserveScript = creationInputOptions.current.scriptMode === "preserve";
+    const parsedSlides = creationInputOptions.current.parsedSlides;
+    const structuredSlides = (isPreserveScript && parsedSlides && parsedSlides.length > 0)
+      ? parsedSlides.map(s => ({
+          slideNumber: s.slideIndex,
+          rawText: s.rawText,
+        }))
+      : undefined;
     const executionBrief = previousInput?.executionBrief ?? (brief ? {
       ...creationBriefToExecutionBrief(
         brief,
-        isPreserveScript ? { interventionLevel: "visual_only", contentSourceType: "carousel_slides" } : undefined
+        isPreserveScript ? {
+          interventionLevel: "light_optimize",
+          contentSourceType: "carousel_slides",
+          slides: structuredSlides,
+        } : undefined
       ),
       platform: brief.platform ?? creationInputOptions.current.platform,
     } : undefined);

@@ -423,32 +423,38 @@ function checkBriefConstraints(
   const text = combinedCopyText(copy);
   const issues: string[] = [];
   if (brief?.interventionLevel === "visual_only") {
-    const normalizeWhitespace = (value: string) =>
-      value.trim().replace(/\s+/g, " ");
-    const source = normalizeWhitespace(brief.rawInput);
-    const definitions =
-      input.selectedDefinitions ??
-      (input.selectedDefinition ? [input.selectedDefinition] : []);
-    const visibleText = copy.slides
-      .flatMap((slide, index) => {
-        // A provider may return values in any order; the authored field order is
-        // the reading order installed by instantiateCompleteDesign.
-        const fields = definitions[index]
-          ? completeDesignFields(definitions[index], nativeGlyphProjectionFor(input))
-          : [];
-        return fields.flatMap(field => {
-          const value =
-            slide.values.find(row => row.fieldId === field.id)?.value ?? "";
-          return Array.isArray(value) ? value : [value];
-        });
-      })
-      .join(" ");
-    if (!source || normalizeWhitespace(visibleText) !== source)
-      issues.push("visual_only_source_not_preserved_literally");
-    if (copy.caption.trim() && normalizeWhitespace(copy.caption) !== source)
-      issues.push("visual_only_caption_expands_source");
-    if (copy.hashtags.some(tag => !brief.rawInput.includes(tag)))
-      issues.push("visual_only_hashtags_expand_source");
+    const isSingleStatic =
+      brief.format === "static" &&
+      copy.slides.length <= 1 &&
+      brief.contentSourceType !== "carousel_slides";
+    if (isSingleStatic) {
+      const normalizeWhitespace = (value: string) =>
+        value.trim().replace(/\s+/g, " ");
+      const source = normalizeWhitespace(brief.rawInput);
+      const definitions =
+        input.selectedDefinitions ??
+        (input.selectedDefinition ? [input.selectedDefinition] : []);
+      const visibleText = copy.slides
+        .flatMap((slide, index) => {
+          // A provider may return values in any order; the authored field order is
+          // the reading order installed by instantiateCompleteDesign.
+          const fields = definitions[index]
+            ? completeDesignFields(definitions[index], nativeGlyphProjectionFor(input))
+            : [];
+          return fields.flatMap(field => {
+            const value =
+              slide.values.find(row => row.fieldId === field.id)?.value ?? "";
+            return Array.isArray(value) ? value : [value];
+          });
+        })
+        .join(" ");
+      if (!source || normalizeWhitespace(visibleText) !== source)
+        issues.push("visual_only_source_not_preserved_literally");
+      if (copy.caption.trim() && normalizeWhitespace(copy.caption) !== source)
+        issues.push("visual_only_caption_expands_source");
+      if (copy.hashtags.some(tag => !brief.rawInput.includes(tag)))
+        issues.push("visual_only_hashtags_expand_source");
+    }
   }
   if((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) {
     const art=copy.slides.flatMap(s=>s.values.flatMap(v=>Array.isArray(v.value)?v.value:[v.value]));
