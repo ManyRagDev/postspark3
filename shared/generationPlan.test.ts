@@ -185,4 +185,70 @@ describe("joint narrative and visual plan", () => {
       )
     ).toEqual(["unattributed_requirement:five", "unknown_source:c0"]);
   });
+
+  it("matches markdown-formatted request quotes when LLM strips markdown syntax", () => {
+    const rawRequest = "**Slide 1:** \nTítulo: O Imposto Invisível da Sua Operação\n\n**Slide 2:** \nTexto: Emergências saem caro.";
+    const intentWithStrippedMarkdown: GenerationIntent = {
+      ...intent,
+      requirements: [
+        {
+          id: "r1",
+          description: "Gancho imposto invisível",
+          origin: "explicit",
+          requestQuote: "Slide 1: Título: O Imposto Invisível da Sua Operação",
+          surface: "art",
+          itemCount: null,
+        },
+      ],
+      content: [
+        {
+          id: "c0",
+          meaning: "Imposto invisível",
+          requirementIds: ["r1"],
+          sourceIds: [],
+        },
+      ],
+    };
+    expect(validateGenerationIntent(intentWithStrippedMarkdown, rawRequest, new Set())).toEqual([]);
+  });
+
+  it("matches multi-sentence quotes from distinct slides when parts are in source", () => {
+    const rawRequest = "**Slide 4:** \nPlaneje a reposição com base no consumo real.\n\n**Slide 5:** \nPadronize marcas de alto rendimento.";
+    const multiSentenceIntent: GenerationIntent = {
+      ...intent,
+      requirements: [
+        {
+          id: "r1",
+          description: "Solução planejamento",
+          origin: "explicit",
+          requestQuote: "Planeje a reposição com base no consumo real. Padronize marcas de alto rendimento.",
+          surface: "art",
+          itemCount: null,
+        },
+      ],
+      content: [
+        {
+          id: "c0",
+          meaning: "Planejamento e padronização",
+          requirementIds: ["r1"],
+          sourceIds: [],
+        },
+      ],
+    };
+    expect(validateGenerationIntent(multiSentenceIntent, rawRequest, new Set())).toEqual([]);
+  });
+
+  it("maps positional s1, s2 source IDs defensively in normalizeGenerationIntent", () => {
+    const rawIntent: GenerationIntent = {
+      ...intent,
+      requirements: [{ id: "r1", description: "req", origin: "inferred", requestQuote: null, surface: "art", itemCount: null }],
+      content: [
+        { id: "c0", meaning: "m0", requirementIds: ["r1"], sourceIds: ["s1", "s2"] },
+      ],
+    };
+    const factualSourceIds = new Set(["source-real-1", "source-real-2"]);
+    const normalized = normalizeGenerationIntent(rawIntent, 5, factualSourceIds, "request text");
+    expect(normalized.content[0].sourceIds).toEqual(["source-real-1", "source-real-2"]);
+    expect(validateGenerationIntent(normalized, "request text", factualSourceIds)).toEqual([]);
+  });
 });

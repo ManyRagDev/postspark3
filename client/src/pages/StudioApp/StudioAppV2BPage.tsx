@@ -389,7 +389,14 @@ export default function StudioAppV2BPage() {
       throw new Error(labelGenerationCapabilityReason(reason));
     }
     const previousInput = source === "more" ? lastGenerationInput.current : null;
-    const executionBrief = previousInput?.executionBrief ?? (brief ? {...creationBriefToExecutionBrief(brief),platform:brief.platform??creationInputOptions.current.platform} : undefined);
+    const isPreserveScript = creationInputOptions.current.scriptMode === "preserve";
+    const executionBrief = previousInput?.executionBrief ?? (brief ? {
+      ...creationBriefToExecutionBrief(
+        brief,
+        isPreserveScript ? { interventionLevel: "visual_only", contentSourceType: "carousel_slides" } : undefined
+      ),
+      platform: brief.platform ?? creationInputOptions.current.platform,
+    } : undefined);
     const isUrl = isStandaloneHttpUrl(promptText);
     const activeProjId = previousInput ? previousInput.projectId : brief ? brief.projectId : selectedProjectId ?? undefined;
     const activeProjectRecord = activeProjId

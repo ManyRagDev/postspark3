@@ -12,6 +12,8 @@ export const STUDIO = {
   hairline: "rgba(242,237,228,0.12)",
   accent: "oklch(0.7 0.22 40)",
   urlSignal: "oklch(0.75 0.14 200)",
+  scriptSignal: "#8b5cf6",
+  scriptSignalGlow: "rgba(139,92,246,0.25)",
 } as const;
 
 export const MONO: CSSProperties = {

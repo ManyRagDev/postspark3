@@ -7,7 +7,8 @@ import type { OrchestratedGenerationInput } from "@shared/generationRequest";
 import type { CanvasPostModel } from "@/pages/CanvasLab/components/types";
 import { toast } from "sonner";
 import { GENERATION_MODEL_LABELS, getGenerationModelHint, type GenerationModel } from "@shared/generationModel";
-export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference";generationModel?:GenerationModel;allowAiImages?:boolean;aspectRatio?: "4:5";fixedDesign?: OrchestratedGenerationInput["fixedDesign"];slideCount?: number};
+import { detectScriptStructure, type ParsedScriptSlide } from "../../lib/scriptDetector";
+export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference";generationModel?:GenerationModel;allowAiImages?:boolean;aspectRatio?: "4:5";fixedDesign?: OrchestratedGenerationInput["fixedDesign"];slideCount?: number;scriptMode?: "preserve"|"rewrite";parsedSlides?: ParsedScriptSlide[]};
 import { trpc } from "@/lib/trpc";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -188,6 +189,28 @@ export default function StudioCreateViewV2B({
     textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
   }, [prompt]);
 
+  const scriptDetection = useMemo(() => detectScriptStructure(prompt), [prompt]);
+  const [scriptModeOverride, setScriptModeOverride] = useState<"preserve" | "rewrite" | null>(null);
+
+  useEffect(() => {
+    if (!scriptDetection.isScript) {
+      setScriptModeOverride(null);
+    }
+  }, [scriptDetection.isScript]);
+
+  const isScriptMode = scriptDetection.isScript && scriptModeOverride !== "rewrite";
+
+  // Sincroniza formato e quantidade de slides quando um roteiro estruturado for detectado
+  useEffect(() => {
+    if (scriptDetection.isScript && scriptDetection.slideCount >= 2) {
+      setPostMode("carousel");
+      setOptions(prev => ({
+        ...prev,
+        slideCount: scriptDetection.slideCount,
+      }));
+    }
+  }, [scriptDetection.isScript, scriptDetection.slideCount]);
+
   const isEmpty = prompt.trim().length === 0;
   const isUrl = isStandaloneHttpUrl(prompt);
   const canSubmit = !isEmpty && !isLoading;
@@ -196,7 +219,15 @@ export default function StudioCreateViewV2B({
   const handleSubmit = () => {
     if (!canSubmit) return;
     if(isUrl&&!urlAsContent){setCaptureUrl(prompt.trim());return;}
-    onSubmit(prompt.trim(), postMode,options);
+    const finalOptions: CreationInputOptions = {
+      ...options,
+      ...(isScriptMode ? {
+        slideCount: scriptDetection.slideCount,
+        scriptMode: "preserve" as const,
+        parsedSlides: scriptDetection.slides,
+      } : {}),
+    };
+    onSubmit(prompt.trim(), postMode, finalOptions);
   };
 
   const handleDiscardDraft = () => {
@@ -324,11 +355,39 @@ export default function StudioCreateViewV2B({
           {/* 2. A FOLHA DE ESCRITA / PROMPT */}
           <section>
             <div
-              className="rounded-2xl border transition-all duration-200 shadow-2xl backdrop-blur-md"
+              className="rounded-2xl border transition-all duration-300 shadow-2xl backdrop-blur-md overflow-hidden"
               style={{
-                background: isFocused ? "rgba(242,237,228,0.06)" : "rgba(242,237,228,0.03)",
-                borderColor: isFocused ? "rgba(255,92,0,0.4)" : STUDIO.hairline,
-                boxShadow: isFocused ? "0 0 24px rgba(255,92,0,0.18), inset 0 -1.5px 0 #FF5C00" : "none",
+                background: isFocused
+                  ? isScriptMode
+                    ? "rgba(139,92,246,0.06)"
+                    : isUrl
+                    ? "rgba(56,189,248,0.06)"
+                    : "rgba(242,237,228,0.06)"
+                  : isScriptMode
+                  ? "rgba(139,92,246,0.03)"
+                  : "rgba(242,237,228,0.03)",
+                borderColor: isScriptMode
+                  ? isFocused
+                    ? "rgba(139,92,246,0.7)"
+                    : "rgba(139,92,246,0.4)"
+                  : isUrl
+                  ? isFocused
+                    ? "rgba(56,189,248,0.6)"
+                    : "rgba(56,189,248,0.3)"
+                  : isFocused
+                  ? "rgba(255,92,0,0.4)"
+                  : STUDIO.hairline,
+                boxShadow: isScriptMode
+                  ? isFocused
+                    ? "0 0 28px rgba(139,92,246,0.3), inset 0 -2px 0 #8b5cf6"
+                    : "0 0 14px rgba(139,92,246,0.12)"
+                  : isUrl
+                  ? isFocused
+                    ? "0 0 24px rgba(56,189,248,0.2), inset 0 -1.5px 0 #38bdf8"
+                    : "none"
+                  : isFocused
+                  ? "0 0 24px rgba(255,92,0,0.18), inset 0 -1.5px 0 #FF5C00"
+                  : "none",
               }}
             >
               <div className="flex flex-col">
@@ -476,17 +535,73 @@ export default function StudioCreateViewV2B({
                   type="button"
                   onClick={handleSubmit}
                   disabled={!canSubmit}
-                  aria-label={isUrl&&!urlAsContent?"Capturar marca gratuitamente":declaredSpecimen ? "Criar com este gosto" : "Criar posts"}
+                  aria-label={
+                    isUrl && !urlAsContent
+                      ? "Capturar marca gratuitamente"
+                      : isScriptMode
+                      ? `Diagramar ${scriptDetection.slideCount} slides com fidelidade`
+                      : declaredSpecimen
+                      ? "Criar com este gosto"
+                      : "Criar posts"
+                  }
                   className="mb-1.5 mr-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 active:scale-95 cursor-pointer"
                   style={{
-                    background: canSubmit ? "#FF5C00" : "rgba(242,237,228,0.06)",
+                    background: canSubmit
+                      ? isScriptMode
+                        ? "#8b5cf6"
+                        : isUrl && !urlAsContent
+                        ? "#0284c7"
+                        : "#FF5C00"
+                      : "rgba(242,237,228,0.06)",
                     color: canSubmit ? "#FFFFFF" : STUDIO.ink40,
                     border: canSubmit ? "none" : `1px solid ${STUDIO.hairline}`,
-                    boxShadow: canSubmit ? "0 4px 16px rgba(255,92,0,0.4)" : "none",
+                    boxShadow: canSubmit
+                      ? isScriptMode
+                        ? "0 4px 16px rgba(139,92,246,0.45)"
+                        : isUrl && !urlAsContent
+                        ? "0 4px 16px rgba(2,132,199,0.4)"
+                        : "0 4px 16px rgba(255,92,0,0.4)"
+                      : "none",
                   }}
                 >
                   {isLoading ? <Loader2 size={16} className="animate-spin text-white" /> : <ArrowRight size={16} />}
                 </button></div>
+
+                {/* Seletor Inline de Modo Roteiro */}
+                {scriptDetection.isScript && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-violet-950/40 border-t border-violet-500/25 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="size-2 rounded-full bg-violet-400 animate-pulse shrink-0" />
+                      <span className="text-violet-200 font-medium">
+                        Roteiro de {scriptDetection.slideCount} slides detectado
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-black/50 p-0.5 rounded-lg border border-violet-500/30">
+                      <button
+                        type="button"
+                        onClick={() => setScriptModeOverride("preserve")}
+                        className={`px-2.5 py-1 rounded text-[11px] font-medium transition cursor-pointer ${
+                          isScriptMode
+                            ? "bg-violet-600 text-white shadow-sm"
+                            : "text-white/60 hover:text-white"
+                        }`}
+                      >
+                        Preservar meu texto ✓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScriptModeOverride("rewrite")}
+                        className={`px-2.5 py-1 rounded text-[11px] font-medium transition cursor-pointer ${
+                          !isScriptMode
+                            ? "bg-orange-600 text-white shadow-sm"
+                            : "text-white/60 hover:text-white"
+                        }`}
+                      >
+                        Reescrever com IA
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -515,11 +630,17 @@ export default function StudioCreateViewV2B({
                   ...MONO,
                   fontSize: 8.5,
                   letterSpacing: "0.14em",
-                  color: isUrl ? STUDIO.urlSignal : STUDIO.ink40,
+                  color: isScriptMode
+                    ? "#a78bfa"
+                    : isUrl
+                    ? STUDIO.urlSignal
+                    : STUDIO.ink40,
                   transition: "color 200ms",
                 }}
               >
-                {isUrl
+                {isScriptMode
+                  ? `Roteiro Pro — ${scriptDetection.slideCount} slides preservados`
+                  : isUrl
                   ? declaredSpecimen
                     ? urlAsContent?"Fonte — página de conteúdo":"Marca — revisão antes de salvar"
                     : urlAsContent?"Fonte — página de conteúdo":"Marca — análise gratuita e revisão"

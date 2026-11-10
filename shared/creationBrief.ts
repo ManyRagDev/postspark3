@@ -51,6 +51,13 @@ function extractSlideCount(text: string): number | undefined {
     const num = parseInt(match[1], 10);
     if (num >= 2 && num <= 10) return num;
   }
+  const slideMatches = Array.from(text.matchAll(/(?:slide|l[aâ]mina|tela|p[aá]gina)\s+(\d+)/gi));
+  if (slideMatches.length >= 2) {
+    const numbers = slideMatches.map(m => parseInt(m[1], 10)).filter(n => n >= 2 && n <= 10);
+    if (numbers.length > 0) {
+      return Math.max(...numbers);
+    }
+  }
   return undefined;
 }
 
@@ -132,7 +139,13 @@ export function interpretRawBriefing(
 /**
  * Converte um CreationBrief no executionBrief estruturado esperado pelo backend.
  */
-export function creationBriefToExecutionBrief(brief: CreationBrief) {
+export function creationBriefToExecutionBrief(
+  brief: CreationBrief,
+  overrides?: {
+    interventionLevel?: "visual_only" | "light_optimize" | "optimize_structure";
+    contentSourceType?: "freeform" | "carousel_topics" | "carousel_slides" | "caption_ready";
+  }
+) {
   return {
     creationMode: "execution" as const,
     format: brief.format,
@@ -141,8 +154,8 @@ export function creationBriefToExecutionBrief(brief: CreationBrief) {
     callToAction: brief.callToAction,
     audience: brief.audience,
     brandEssence: brief.brandEssence,
-    interventionLevel: "light_optimize" as const,
-    contentSourceType: brief.format === "carousel" ? "carousel_topics" as const : "freeform" as const,
+    interventionLevel: overrides?.interventionLevel ?? ("light_optimize" as const),
+    contentSourceType: overrides?.contentSourceType ?? (brief.format === "carousel" ? "carousel_topics" as const : "freeform" as const),
     rawInput: brief.rawInput,
     mustInclude: brief.requiredTerms ?? [],
     forbiddenTerms: brief.forbiddenTerms ?? [],

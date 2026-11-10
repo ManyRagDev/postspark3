@@ -117,4 +117,49 @@ describe("StudioCreateViewV2B draft control", () => {
     expect(onSubmit).toHaveBeenLastCalledWith("Uma ideia sem imagem", "static", expect.objectContaining({ allowAiImages: true }));
   });
 
+  it("detects script briefing, switches to carousel with slideCount and includes scriptMode preserve", () => {
+    const onSubmit = vi.fn();
+    const scriptPrompt = "## Carrossel\n\n**Slide 1:** Capa\n**Slide 2:** Problema\n**Slide 3:** Solução\n**Slide 4:** CTA";
+    act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={() => {}} initialPrompt={scriptPrompt} />));
+
+    expect(container.textContent).toContain("Roteiro de 4 slides detectado");
+    expect(container.textContent).toContain("Preservar meu texto ✓");
+
+    const submitBtn = container.querySelector<HTMLButtonElement>('button[aria-label="Diagramar 4 slides com fidelidade"]')!;
+    expect(submitBtn).not.toBeNull();
+    act(() => submitBtn.click());
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      scriptPrompt,
+      "carousel",
+      expect.objectContaining({
+        slideCount: 4,
+        scriptMode: "preserve",
+        parsedSlides: expect.arrayContaining([
+          expect.objectContaining({ slideIndex: 0 }),
+          expect.objectContaining({ slideIndex: 3 }),
+        ]),
+      })
+    );
+  });
+
+  it("allows user to toggle to reescrever com IA mode", () => {
+    const onSubmit = vi.fn();
+    const scriptPrompt = "## Carrossel\n\n**Slide 1:** Capa\n**Slide 2:** Problema\n**Slide 3:** Solução";
+    act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={() => {}} initialPrompt={scriptPrompt} />));
+
+    const rewriteBtn = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(b => b.textContent?.includes("Reescrever com IA"))!;
+    expect(rewriteBtn).not.toBeNull();
+    act(() => rewriteBtn.click());
+
+    const submitBtn = container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!;
+    expect(submitBtn).not.toBeNull();
+    act(() => submitBtn.click());
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      scriptPrompt,
+      "carousel",
+      expect.not.objectContaining({ scriptMode: "preserve" })
+    );
+  });
 });

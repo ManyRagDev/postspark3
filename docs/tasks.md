@@ -1,18 +1,27 @@
-# Lista de Tarefas — Fundos "Seamless Carousel" e Modo Fantasma em Fileira (CanvasLab)
+# Lista de Tarefas — Track 014: Detecção Inteligente de Roteiros, Modo Violet Studio e Diagramação Fiel
 
-## FASE 1: Otimização dos 17 Panoramas Inteiros e Manifesto
-- [x] **T1.1**: Gerar versões inteiras super leves (`.webp` otimizados e `.svg` vetoriais) dos 17 designs de `artes/carrosseis-panoramicos` (5, 6 e 7 slides) em `client/public/images/backgrounds/seamless-carousel/`.
-- [x] **T1.2**: Atualizar `client/public/images/backgrounds/manifest.json` adicionando a seção `seamlessCarousels` com metadados completos (`id`, `name`, `slideCount`, `width`, `height`, `url`, `series`, `defaultOverlayOpacity`, `fallbackBgColor`).
+## FASE 1: Blindagem e Resiliência de Citações e Fontes (Backend & Shared)
+- [x] **T1.1**: Atualizar `comparableQuote` em `shared/generationPlan.ts` para sanitizar sintaxe Markdown comum (`**`, `*`, `__`, `_`, `#`, `##`, `===`, bullets `-`, `\r`) e normalizar pontuações/espaços antes do teste de inclusão (`includes`).
+- [x] **T1.2**: Adicionar mapeamento defensivo em `normalizeGenerationIntent` (`shared/generationPlan.ts`) para converter IDs alucinados comuns (`s1`, `s2`, `s3`) nos IDs reais disponíveis em `factualSourceIds` (`sources[0].id`, etc.).
+- [x] **T1.3**: Criar/atualizar testes automatizados em `shared/generationPlan.test.ts` validando que o prompt da ZHUB e briefings com Markdown não geram mais `unattributed_requirement` ou `unknown_source`.
 
-## FASE 2: Motor de Aplicação Multi-Slide (`seamlessCarousel.ts`)
-- [x] **T2.1**: Criar `client/src/pages/CanvasLab/lib/seamlessCarousel.ts` com `applySeamlessPanoramaToPost` e `detectActiveSeamlessPanorama`, aplicando a imagem panorâmica inteira com `focalX = i / (N - 1)` nos slides cobertos, cortando quando $M < N$ e deixando sem imagem de fundo quando $M > N$ (compatível com `CanvasPostModel` e `ArsenalComposition`).
+## FASE 2: Parser de Roteiro e Detecção Heurística no Client
+- [x] **T2.1**: Criar helper puro `client/src/pages/StudioApp/lib/scriptDetector.ts`:
+  - `detectScriptStructure(text: string)`: detecta padrões como `Slide \d+:`, `\*\*Slide \d+:\*\*`, `Lâmina \d+:`, etc.
+  - Extrai quantidade de slides e parsed slides (`title`, `body`).
+- [x] **T2.2**: Adicionar testes unitários em `client/src/pages/StudioApp/lib/scriptDetector.test.ts` com diferentes formatos de briefing (ZHUB, listas numeradas, markdown, etc.).
 
-## FASE 3: Opção "Seamless Carousel" na Gaveta de Fundos
-- [x] **T3.1**: Em `client/src/pages/CanvasLab/components/BackgroundsDrawer.tsx` e `client/src/pages/CanvasLab/components/CanvasEditorContent.tsx`, exibir a aba/atalho `"Seamless Carousel"` exclusivamente quando `post.slides.length > 1`, renderizando os cards em formato panorâmico horizontal (`4:1`) com linhas de corte e status de compatibilidade com o número atual de slides.
+## FASE 3: Tríade Visual no `/thevoid` e Seletor Inline (Client)
+- [x] **T3.1**: Em `StudioCreateViewV2B.tsx`, implementar a tríade de cores da caixa de entrada:
+  - 🟠 **Laranja**: Texto livre / Ideação (padrão atual).
+  - 🔵 **Azul**: URL informada.
+  - 🟣 **Violeta Studio (`#8b5cf6` / `#a855f7`)**: Roteiro com slides detectado.
+- [x] **T3.2**: Auto-ajuste de slides: Quando o script for detectado com $N$ slides ($2 \le N \le 10$), sincronizar o seletor de slides para $N$ automaticamente com feedback visual.
+- [x] **T3.3**: Componente Seletor de Modo Inline abaixo da caixa de texto:
+  - `[ 🟣 Preservar meus slides (Design Fiel) ✓ ]`
+  - `[ ⚪ Deixar a IA reescrever ]`
+  - Permite override manual a qualquer momento.
 
-## FASE 4: Modo de Edição "Fantasma" em Fileira no Palco (`SeamlessGhostStripView.tsx` & `CanvasLabPage.tsx`)
-- [x] **T4.1**: Criar `client/src/pages/CanvasLab/components/SeamlessGhostStripView.tsx` para renderizar todos os slides em fileira contínua sobre o fundo panorâmico com os elementos de cada slide em modo "fantasma" (translúcido), indicando eventuais fatias cortadas ($N > M$) ou slides sem fundo ($M > N$), controle de deslocamento da tira e botão `"OK / Concluir"`.
-- [x] **T4.2**: Integrar `SeamlessGhostStripView` e o estado `isViewingSeamlessPanorama` em `client/src/pages/CanvasLab/CanvasLabPage.tsx`, abrindo automaticamente ao selecionar um fundo `"Seamless Carousel"` e retornando à edição comum ao confirmar (`OK / Concluir`, `Enter` ou `Esc`).
-
-## FASE 5: Testes Automatizados e Verificação
-- [x] **T5.1**: Criar `client/src/pages/CanvasLab/lib/seamlessCarousel.test.ts` e validar `npx vitest run` e `npx tsc --noEmit`.
+## FASE 4: Integração com Pipeline de Geração e Verificação
+- [x] **T4.1**: Conectar a opção selecionada ao payload de `executionBrief` (`interventionLevel: "visual_only"`, `contentSourceType: "carousel_slides"`).
+- [x] **T4.2**: Executar a suíte de testes completa (`vitest run`, `tsc --noEmit`).

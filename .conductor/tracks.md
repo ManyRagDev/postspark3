@@ -20,3 +20,4 @@
 - [ ] **011-carousel-multi-slide-batch-export-polish** - Refinamento da esteira de exportação em lote 4K com progresso individual por lâmina e prevenção de timeout
 - [ ] **012-brand-kit-asset-manager-v2** - Gerenciador avançado de logos, paletas customizadas e assets da marca integrados diretamente ao CanvasLab
 - [x] **013-seamless-carousel-backgrounds** - Planos de fundo contínuos "Seamless Carousel" (5, 6 e 7 slides) com versão inteira leve e Modo de Visualização Fantasma em Fileira no CanvasLab `[.conductor/tracks/013-seamless-carousel-backgrounds/plan.md]`
+- [x] **014-script-detection-studio-violet-mode** - Detecção inteligente de roteiros slide a slide, modo Violet Studio no `/thevoid` e diagramação fiel de briefings prontos `[.conductor/tracks/014-script-detection-studio-violet-mode/plan.md]`

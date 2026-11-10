@@ -64,7 +64,36 @@ export const generationIntentSchema = generationIntentLegacySchema.extend({ edit
 export const generationEditorialIntentSchema = generationIntentLegacySchema.extend({ editorial: editorialIntentReadingSchema });
 export type GenerationIntent = z.infer<typeof generationIntentSchema>;
 
-const comparableQuote = (value: string) => value.normalize("NFC").replace(/\s+/g, " ").trim();
+export const cleanMarkdownForQuote = (value: string): string =>
+  value
+    .normalize("NFC")
+    .replace(/[\u201C\u201D\u00AB\u00BB]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[*_#=`~]/g, "")
+    .replace(/^[-+]\s+/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+export const comparableQuote = (value: string) => cleanMarkdownForQuote(value);
+
+export function isAttributableQuote(requestText: string, quote: string): boolean {
+  if (!quote) return false;
+  const cleanSource = cleanMarkdownForQuote(requestText);
+  const cleanExcerpt = cleanMarkdownForQuote(quote);
+  if (cleanSource.includes(cleanExcerpt)) return true;
+
+  const expanded = expandExecutionQuote(quote, requestText);
+  if (cleanSource.includes(cleanMarkdownForQuote(expanded))) return true;
+
+  const parts = cleanExcerpt
+    .split(/[.\n;!?]+/)
+    .map(p => p.trim())
+    .filter(p => p.length >= 8);
+  if (parts.length > 1 && parts.every(part => cleanSource.includes(part))) {
+    return true;
+  }
+  return false;
+}
 
 function expandExecutionQuote(quote: string, requestText: string): string {
   const source = comparableQuote(requestText);
@@ -95,6 +124,7 @@ export function normalizeGenerationIntent(
   requestText: string,
   recognizeWrittenPageCount = false
 ): GenerationIntent {
+  const factualList = Array.from(factualSourceIds);
   return {
     ...intent,
     requirements: intent.requirements.map(requirement => {
@@ -113,16 +143,27 @@ export function normalizeGenerationIntent(
         : /\b(\d+)\s+(?:slides?|lâminas?|páginas?|telas?)\b/gi;
       const pages=Array.from(requestQuote?.matchAll(matcher)??[],page=>spoken[page[1].toLowerCase()]??Number(page[1]));
       const itemCount = slideCount > 1 && requestQuote &&
-        comparableQuote(requestText).includes(comparableQuote(requestQuote)) &&
+        isAttributableQuote(requestText, requestQuote) &&
         requirement.itemCount === slideCount && pages.length > 0 &&
         pages.every(page => page === slideCount)
         ? null : requirement.itemCount;
       return { ...requirement, requestQuote, itemCount };
     }),
-    content: intent.content.map(content => ({
-      ...content,
-      sourceIds: content.sourceIds.filter(id => factualSourceIds.has(id)),
-    })),
+    content: intent.content.map(content => {
+      const mappedSources = content.sourceIds.map(id => {
+        if (factualSourceIds.has(id)) return id;
+        const match = id.match(/^s(\d+)$/i);
+        if (match) {
+          const idx = parseInt(match[1], 10) - 1;
+          if (idx >= 0 && idx < factualList.length) return factualList[idx];
+        }
+        return id;
+      });
+      return {
+        ...content,
+        sourceIds: mappedSources.filter(id => factualSourceIds.has(id)),
+      };
+    }),
   };
 }
 
@@ -364,7 +405,7 @@ export function validateGenerationIntent(
     if (
       requirement.origin === "explicit" &&
       (!requirement.requestQuote ||
-        !comparableQuote(requestText).includes(comparableQuote(requirement.requestQuote)))
+        !isAttributableQuote(requestText, requirement.requestQuote))
     )
       problems.push(`unattributed_requirement:${requirement.id}`);
   }

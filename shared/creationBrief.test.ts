@@ -42,6 +42,12 @@ describe("creationBrief - Etapa 4", () => {
       expect(brief.callToAction).toBe("Salve este post");
     });
 
+    it("extrai contagem de slides a partir de marcadores Slide 1..N", () => {
+      const raw = "## Carrossel\n\n**Slide 1:** Capa\n**Slide 2:** Problema\n**Slide 8:** Fechamento";
+      const brief = interpretRawBriefing(raw, { selectedFormat: "carousel" });
+      expect(brief.slideCount).toBe(8);
+    });
+
     it("incorpora inteligência do Brand Kit quando fornecido", () => {
       const raw = "Post sobre lançamento da nova funcionalidade";
       const brandKit = {
