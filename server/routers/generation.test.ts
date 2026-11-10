@@ -67,7 +67,7 @@ vi.mock("../ai/workflows/generationStore", () => ({
 }));
 import { generationRouter } from "./generation";
 import { requestInputHash } from "../ai/workflows/generationRuntime";
-import { orchestratedGenerationInputSchema } from "@shared/generationRequest";
+import { orchestratedGenerationInputSchema, type OrchestratedGenerationInput } from "@shared/generationRequest";
 import { retrieveCompleteDesignCards } from "../designCatalog/completeDesignStore";
 const owner = "00000000-0000-4000-8000-000000000001",
   id = "00000000-0000-4000-8000-000000000002";
@@ -222,6 +222,57 @@ describe("orchestrated authenticated API", () => {
     expect(await caller().start(parsed)).toMatchObject({ created: false });
     expect(state.admission).not.toHaveBeenCalled();
   });
+
+  it("admits a zero-based Studio script and recognizes the corrected payload as the same request", async () => {
+    const source = completeDesignTestDefinitions()[0];
+    state.catalogCards = [source, ...authorFamilyCarouselRepertoire(source)].map(compactComponentCard);
+    ENV.generationStrategyVersion = 2;
+    state.admission.mockResolvedValueOnce({ record: record(), created: true });
+    const prompt = "Slide 1: **Café** artesanal\nSlide 3: Torra média\nSlide 4: Conheça a loja";
+    const legacyBrief: NonNullable<OrchestratedGenerationInput["executionBrief"]> = {
+      creationMode: "execution",
+      format: "carousel",
+      platform: "instagram",
+      interventionLevel: "light_optimize",
+      contentSourceType: "carousel_slides",
+      rawInput: prompt,
+      slides: [
+        { slideNumber: 0, rawText: "**Café** artesanal" },
+        { slideNumber: 2, rawText: "Torra média" },
+        { slideNumber: 3, rawText: "Conheça a loja" },
+      ],
+    };
+    const legacy: OrchestratedGenerationInput = {
+      ...input,
+      content: prompt,
+      postMode: "carousel",
+      slideCount: 3,
+      formatIntentConfirmed: true,
+      includeDraftDesigns: false,
+      aspectRatio: "4:5",
+      creationMode: "execution",
+      executionBrief: legacyBrief,
+    };
+    const slides = [
+      { slideNumber: 1, rawText: "**Café** artesanal" },
+      { slideNumber: 2, rawText: "Torra média" },
+      { slideNumber: 3, rawText: "Conheça a loja" },
+    ];
+    const api = caller();
+
+    expect(await api.start(legacy)).toMatchObject({ created: true });
+    const admitted = state.admission.mock.calls[0][0];
+    expect(admitted).toMatchObject({
+      idempotencyKey: input.idempotencyKey,
+      input: { content: prompt, executionBrief: { rawInput: prompt, slides } },
+    });
+
+    state.getBy.mockResolvedValue({ ...record(), input: admitted.input, inputHash: admitted.inputHash });
+    const retried = await api.start({ ...legacy, executionBrief: { ...legacyBrief, slides } });
+    expect(retried).toMatchObject({ created: false });
+    expect(state.admission).toHaveBeenCalledOnce();
+  });
+
   it("logs the configured route and the public early rejection without logging the briefing", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     const error = vi.spyOn(console, "error").mockImplementation(() => {});

@@ -80,6 +80,32 @@ export const executionBriefSchema = z
       });
   });
 
+type ExecutionBriefInput = z.input<typeof executionBriefSchema>;
+
+/** Older Studio requests sent the parser's zero-based indices in structured carousels. */
+export function normalizeLegacyCarouselSlideNumbers<T extends ExecutionBriefInput | undefined>(
+  brief: T,
+): T {
+  if (
+    brief?.format !== "carousel" ||
+    brief.contentSourceType !== "carousel_slides" ||
+    !Array.isArray(brief.slides) ||
+    brief.slides.length > 10
+  ) return brief;
+
+  const numbers = brief.slides.map(slide => slide?.slideNumber);
+  if (
+    !numbers.includes(0) ||
+    numbers.some(number => !Number.isInteger(number) || number < 0 || number >= 10) ||
+    new Set(numbers).size !== numbers.length
+  ) return brief;
+
+  return {
+    ...brief,
+    slides: brief.slides.map((slide, index) => ({ ...slide, slideNumber: index + 1 })),
+  };
+}
+
 export const orchestratedGenerationInputSchema = z
   .object({
     /** Binds locally persisted admission retries to the authenticated account. */
@@ -100,7 +126,9 @@ export const orchestratedGenerationInputSchema = z
     generationModel: generationModelSchema.optional(),
     generationParentRequestId: z.string().uuid().optional(),
     creationMode: z.enum(["ideation", "execution"]).default("ideation"),
-    executionBrief: executionBriefSchema.optional(),
+    executionBrief: z
+      .preprocess((brief: ExecutionBriefInput) => normalizeLegacyCarouselSlideNumbers(brief), executionBriefSchema)
+      .optional(),
     siteIntelligenceId: z.string().uuid().optional(),
     projectId: z.string().max(64).optional(),
     fixedDesign: z.discriminatedUnion("kind", [

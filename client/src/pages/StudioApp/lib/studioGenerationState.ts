@@ -1,5 +1,5 @@
 import { historicalGenerationFailure, type GenerationFailure } from "@shared/generationFailure";
-import type { OrchestratedGenerationInput } from "@shared/generationRequest";
+import { normalizeLegacyCarouselSlideNumbers, type OrchestratedGenerationInput } from "@shared/generationRequest";
 
 export const ACTIVE_GENERATION_REQUEST_SESSION_KEY = "postspark.generation.request_id";
 export const PENDING_GENERATION_START_SESSION_KEY = "postspark.generation.pending_start";
@@ -40,7 +40,10 @@ export function readPendingGenerationStart(storage: SessionStorageLike): Pending
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as PendingGenerationStart;
-    return parsed?.input?.ownerId && parsed.input.idempotencyKey && parsed.promptText ? parsed : null;
+    if (!parsed?.input?.ownerId || !parsed.input.idempotencyKey || !parsed.promptText) return null;
+    const brief = parsed.input.executionBrief;
+    const executionBrief = normalizeLegacyCarouselSlideNumbers(brief);
+    return executionBrief === brief ? parsed : { ...parsed, input: { ...parsed.input, executionBrief } };
   } catch {
     return null;
   }

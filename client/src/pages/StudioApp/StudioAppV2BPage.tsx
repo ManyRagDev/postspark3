@@ -392,9 +392,9 @@ export default function StudioAppV2BPage() {
     const isPreserveScript = creationInputOptions.current.scriptMode === "preserve";
     const parsedSlides = creationInputOptions.current.parsedSlides;
     const structuredSlides = (isPreserveScript && parsedSlides && parsedSlides.length > 0)
-      ? parsedSlides.map(s => ({
-          slideNumber: s.slideIndex,
-          rawText: s.rawText,
+      ? parsedSlides.map((slide, index) => ({
+          slideNumber: index + 1,
+          rawText: slide.rawText,
         }))
       : undefined;
     const executionBrief = previousInput?.executionBrief ?? (brief ? {

@@ -7,6 +7,7 @@ vi.mock("@/hooks/useGenerationEvents",()=>({useGenerationEvents:()=>({error:fals
 import Studio from "./StudioAppV2BPage";
 import { saveBriefDraft } from "./lib/briefDraftStorage";
 import { setSelectedProjectId } from "./lib/projectStorage";
+import { detectScriptStructure } from "./lib/scriptDetector";
 import { interpretRawBriefing } from "@shared/postspark";
 import {
   ACTIVE_GENERATION_REQUEST_SESSION_KEY,
@@ -435,6 +436,37 @@ describe("Studio Generation progressive flow", () => {
     expect(h.start.mock.calls[0][0]).toMatchObject({ postMode: "carousel", slideCount: 3 });
   });
 
+  it("sends detected script blocks in reading order as slides numbered from one", async () => {
+    const prompt = "## Carrossel\n\n**Slide 1**: **Café** artesanal\n**Slide 3**: Conheça a torra da casa";
+    const script = detectScriptStructure(prompt);
+    h.start.mockResolvedValue({ snapshot: snapshot([running("proposal-a", 0)]), created: true });
+    mount();
+
+    act(() => h.create.onSubmit(prompt, "carousel", {
+      platform: "instagram",
+      imagePurpose: "content",
+      slideCount: script.slideCount,
+      scriptMode: "preserve",
+      parsedSlides: script.slides,
+    }));
+    await act(async () => { h.briefReview.onConfirmGenerate(); });
+    await flush();
+
+    expect(h.start).toHaveBeenCalledOnce();
+    expect(h.start.mock.calls[0][0]).toMatchObject({
+      postMode: "carousel",
+      slideCount: 2,
+      executionBrief: {
+        rawInput: prompt,
+        contentSourceType: "carousel_slides",
+        slides: [
+          { slideNumber: 1, rawText: "**Café** artesanal" },
+          { slideNumber: 2, rawText: "Conheça a torra da casa" },
+        ],
+      },
+    });
+  });
+
   it("requires an explicit new submission after a known route rejection with a fresh idempotency key", async () => {
     const rejected={...running("rejected",0),status:"failed",failure:{code:"provider_route_unavailable",stage:"selection",retryable:true},errorReason:"provider_route_unavailable"};
     h.start.mockResolvedValueOnce({snapshot:snapshot([rejected],"failed"),created:true})
@@ -636,6 +668,39 @@ describe("Studio Generation progressive flow", () => {
     expect(sessionStorage.getItem(PENDING_GENERATION_START_SESSION_KEY)).toBeNull();
     expect(sessionStorage.getItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY)).toBe(requestId);
     expect(h.legacyGenerate).not.toHaveBeenCalled();
+  });
+
+  it("resumes a previously rejected script with the original text and idempotency key", async () => {
+    const prompt = "Slide 1: Café artesanal\nSlide 2: Conheça a torra da casa";
+    h.getData = { snapshot: snapshot([running("proposal-a", 0)]) };
+    await explicitlyResumeStored({
+      inputType: "text", content: prompt, platform: "instagram", postMode: "carousel",
+      slideCount: 2, creationMode: "execution",
+      executionBrief: {
+        creationMode: "execution", format: "carousel", platform: "instagram",
+        interventionLevel: "light_optimize", contentSourceType: "carousel_slides",
+        rawInput: prompt,
+        slides: [
+          { slideNumber: 0, rawText: "Café artesanal" },
+          { slideNumber: 1, rawText: "Conheça a torra da casa" },
+        ],
+      },
+    });
+
+    expect(h.start).toHaveBeenCalledOnce();
+    expect(h.start.mock.calls[0][0]).toMatchObject({
+      idempotencyKey: "explicit-resume-key",
+      content: prompt,
+      executionBrief: {
+        rawInput: prompt,
+        slides: [
+          { slideNumber: 1, rawText: "Café artesanal" },
+          { slideNumber: 2, rawText: "Conheça a torra da casa" },
+        ],
+      },
+    });
+    expect(sessionStorage.getItem(PENDING_GENERATION_START_SESSION_KEY)).toBeNull();
+    expect(sessionStorage.getItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY)).toBe(requestId);
   });
 
   it("does not let an old admission response replace the current request or its session binding", async () => {
