@@ -190,3 +190,10 @@ artes/
 !docs/motor-integracao.md
 !docs/motor-validacao.json
 !docs/contrato-integracao-supabase-vps.md
+
+# Catalogo editorial necessario para builds reproduziveis
+!artifacts/
+artifacts/*
+!artifacts/selection-motor/
+artifacts/selection-motor/*
+!artifacts/selection-motor/editorial-5617a3b9c2d2.json
