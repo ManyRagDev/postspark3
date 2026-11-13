@@ -158,8 +158,7 @@ export const RUNTIME_MANIFEST: RuntimeManifest = {
     { kind: "rpc", schema: "postspark", name: "process_topup", critical: true, consumers: ["billing.ts:435"] },
     { kind: "rpc", schema: "postspark", name: "start_trial", critical: false, consumers: ["routers.ts:243"] },
     { kind: "rpc", schema: "postspark", name: "get_billing_profile", critical: false, consumers: ["_core/gdpr.ts:343"] },
-    { kind: "rpc", schema: "postspark", name: "has_manylabs_app_access", critical: true, consumers: ["_core/manylabs.ts:29"], note: "checagem de acesso por request (auth bridge)" },
-    { kind: "rpc", schema: "postspark", name: "ensure_manylabs_app_access", critical: true, consumers: ["_core/manylabs.ts:57"], note: "auto-ativação de acesso na emissão do cookie" },
+    { kind: "rpc", schema: "postspark", name: "has_app_access", critical: true, consumers: ["_core/appAccess.ts"], note: "checagem de acesso por request (auth bridge)" },
 
     // ── Buckets ──────────────────────────────────────────────────────────────
     { kind: "bucket", schema: "storage", name: "design-arsenal", critical: false, consumers: ["designCatalog/arsenalAssets.ts"], note: "Assets compartilhados privados; não substitui uploads pessoais via Forge" },

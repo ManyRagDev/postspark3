@@ -2892,7 +2892,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
           </Stage>
         </div>
 
-        {composition && !arsenalReady && <div role="status" className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 p-6 text-sm text-white">{arsenalFonts.error ? `Fonte indisponível: ${arsenalFonts.error}. Recarregue ou escolha outra fonte no painel.` : "Carregando fontes da composição…"}</div>}
+        {composition && !arsenalReady && <div role="status" className={`absolute inset-0 z-30 flex items-center justify-center bg-black/80 text-center text-white ${isReadOnly ? "p-2 text-xs" : "p-6 text-sm"}`}>{isReadOnly ? (arsenalFonts.error ? "Prévia indisponível" : "Preparando prévia…") : arsenalFonts.error ? `Fonte indisponível: ${arsenalFonts.error}. Recarregue ou escolha outra fonte no painel.` : "Carregando fontes da composição…"}</div>}
         {/* Input invisível: teclado/clipboard/IME. Texto, seleção e caret permanecem no Konva. */}
         {editingTarget && (() => {
           const isHeadline = editingTarget === "headline";

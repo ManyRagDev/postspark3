@@ -1,4 +1,5 @@
 import { isStandaloneHttpUrl } from "@shared/generationSources";
+import { createGenerationTelemetry } from "@/lib/generationTelemetry";
 import type { CreationInputOptions } from "./components/v2/StudioCreateViewV2B";
 import { freezeGenerationProject } from "@shared/projectEditorial";
 import {cachedCatalog} from "@/lib/catalogCache";
@@ -90,6 +91,13 @@ interface GenerationFailureState {
 
 type ReadyProposal = Extract<ProposalDelivery, { status: "ready" }>;
 
+function withProposalIdentity(post: CanvasPostModel, requestId: string, delivery: ReadyProposal): CanvasPostModel {
+  return { ...post, provenance: {
+    ...(post.provenance ?? aiGenerationProvenance(delivery.runId)),
+    journey: { requestId, proposalId: delivery.proposalId, revision: delivery.revision },
+  } };
+}
+
 interface ProposalMaterializationFailure {
   key: string;
   delivery: ReadyProposal;
@@ -127,6 +135,12 @@ function extractFailureMetadata(err: unknown): GenerationFailureMetadata {
 /** Studio: admission, durable progress and independent proposal delivery. */
 export default function StudioAppV2BPage() {
   const utils = trpc.useUtils();
+  const telemetryMutation = trpc.generationTelemetry.record.useMutation();
+  const telemetrySender = useRef(telemetryMutation.mutateAsync);
+  telemetrySender.current = telemetryMutation.mutateAsync;
+  const [telemetry] = useState(() => createGenerationTelemetry(events => telemetrySender.current({ events })));
+  const [exposureId] = useState(() => crypto.randomUUID());
+  useEffect(() => () => telemetry.dispose(), [telemetry]);
   const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
   // An explicit History navigation owns this opening. Do not auto-resume an
@@ -149,6 +163,10 @@ export default function StudioAppV2BPage() {
   // A normal entry restores only the briefing draft. Deliveries belong to the
   // current visit or an explicit opening from History / Saved Posts.
   const [activeGenerationRequestId, setActiveGenerationRequestId] = useState<string | null>(null);
+  const [pausedMonitoringRequestId, setPausedMonitoringRequestId] = useState<string | null>(null);
+  const [monitoringPauseReason, setMonitoringPauseReason] = useState<"read_failure" | "deadline">("read_failure");
+  const [resumingMonitoring, setResumingMonitoring] = useState(false);
+  const monitoringPaused = Boolean(activeGenerationRequestId && pausedMonitoringRequestId === activeGenerationRequestId);
   useEffect(() => {
     try { clearActiveGenerationRequestId(window.sessionStorage); } catch { /* Storage may be unavailable. */ }
   }, []);
@@ -173,7 +191,10 @@ export default function StudioAppV2BPage() {
   const generationCapabilities = trpc.generation.capabilities.useQuery(undefined, {
     retry: false,
     staleTime: 5000,
-    refetchInterval: query => query.state.data && 'progressTransport' in query.state.data && query.state.data?.progressTransport==='events' ? false : import.meta.env.DEV&&!query.state.data ? false : 5000,
+    // Revalidate on an explicit generation request; idle Studio is not a job.
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
   const generationStart = trpc.generation.start.useMutation({onSuccess:()=>{void utils.billing.getProfile.invalidate();}});
   const sourceUpload=trpc.post.saveMediaAsset.useMutation();
@@ -184,19 +205,98 @@ export default function StudioAppV2BPage() {
     { requestId: activeGenerationRequestId ?? "00000000-0000-0000-0000-000000000000" },
     {
       enabled: Boolean(activeGenerationRequestId),
-      refetchInterval: query => {
-        const response = query.state.data;
-        const status = response?.snapshot.overallStatus ?? generationSnapshot?.overallStatus;
-        if (!response?.billingPending && status !== "running" && status !== "awaiting_reconciliation") return false;
-        // A connected stream can still miss a worker exit or a deadline.
-        return response?.progressTransport === "poll" ? 1500 : 15000;
-      },
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
       retry: false,
     },
   );
+  const generationProgress = trpc.generation.progress.useQuery(
+    { requestId: activeGenerationRequestId ?? "00000000-0000-0000-0000-000000000000" },
+    {
+      enabled: Boolean(activeGenerationRequestId) && !monitoringPaused && !activeGenerationQuery.error && (
+        !activeGenerationQuery.data ||
+        ['running', 'awaiting_reconciliation'].includes(generationSnapshot?.overallStatus ?? 'running') ||
+        activeGenerationQuery.data.billingPending === true
+      ),
+      refetchInterval: activeGenerationQuery.data?.progressTransport === 'events' ? 15000 : 1500,
+      retry: false,
+    },
+  );
+  useEffect(() => {
+    if (activeGenerationRequestId && (activeGenerationQuery.error || generationProgress.error)) {
+      // Keep the durable request; a failed read is not permission to poll forever
+      // or admit another generation. Recovery is an explicit read of this ID.
+      setMonitoringPauseReason("read_failure");
+      setPausedMonitoringRequestId(activeGenerationRequestId);
+    }
+  }, [activeGenerationRequestId, activeGenerationQuery.error, generationProgress.error]);
+  const resumeGenerationMonitoring = async () => {
+    const requestId = activeGenerationRequestId;
+    if (!requestId || resumingMonitoring) return;
+    setResumingMonitoring(true);
+    try {
+      const full = await activeGenerationQuery.refetch();
+      if (full.error || currentRequestId.current !== requestId) return;
+      const progress = await generationProgress.refetch();
+      if (!progress.error && currentRequestId.current === requestId) {
+        const unsettled = full.data && (['running', 'awaiting_reconciliation'].includes(full.data.snapshot.overallStatus) || full.data.billingPending === true);
+        if (unsettled && progress.data && progress.data.deadlineAt <= Date.now()) {
+          setMonitoringPauseReason("deadline");
+          setPausedMonitoringRequestId(requestId);
+        } else setPausedMonitoringRequestId(null);
+      }
+    } finally {
+      setResumingMonitoring(false);
+    }
+  };
+  useEffect(() => {
+    const progress = generationProgress.data;
+    const response = activeGenerationQuery.data;
+    if (monitoringPaused || activeGenerationQuery.error || generationProgress.error || !progress || progress.requestId !== activeGenerationRequestId || !response) return;
+    const newDelivery = progress.proposals.some(p => p.status === 'ready' && !response.snapshot.proposals.some(
+      old => old.proposalId === p.proposalId && old.status === 'ready' && old.revision === p.revision,
+    ));
+    const needsOutcome = progress.proposals.some(p =>
+      ['failed', 'cancelled', 'expired', 'waiting_input', 'awaiting_reconciliation'].includes(p.status) &&
+      !response.snapshot.proposals.some(old => old.proposalId === p.proposalId && old.status === p.status && old.revision === p.revision),
+    );
+    const terminal = !['queued', 'running'].includes(progress.status);
+    const expired = progress.deadlineAt <= Date.now() && (['running', 'awaiting_reconciliation'].includes(response.snapshot.overallStatus) || response.billingPending === true);
+    if (expired) {
+      // Read the final snapshot once, then wait for explicit consultation if the
+      // executor/settlement has not caught up. The server job is left intact.
+      setMonitoringPauseReason("deadline");
+      setPausedMonitoringRequestId(progress.requestId);
+      void activeGenerationQuery.refetch({ cancelRefetch: false });
+      return;
+    }
+    if (newDelivery || needsOutcome || terminal && progress.status !== response.requestStatus ||
+        progress.billingPending !== response.billingPending || (progress.error ?? undefined) !== response.dispatchError) {
+      void activeGenerationQuery.refetch({ cancelRefetch: false });
+      return;
+    }
+    setGenerationSnapshot(previous => previous?.requestId === progress.requestId ? {
+      ...previous,
+      proposals: previous.proposals.map(p => {
+        const next = progress.proposals.find(n => n.proposalId === p.proposalId);
+        // Ready deliveries remain canonical; only transient progress is merged.
+        return next && p.status !== 'ready' && ['planned', 'running', 'checking', 'recovering', 'delivery_pending'].includes(next.status)
+          ? { ...p, status: next.status as typeof p.status } : p;
+      }),
+    } : previous);
+  }, [generationProgress.data, generationProgress.dataUpdatedAt, activeGenerationRequestId, monitoringPaused, activeGenerationQuery.error, generationProgress.error]);
+  useEffect(() => {
+    const response = activeGenerationQuery.data;
+    if (monitoringPaused && monitoringPauseReason === "deadline" && response && !activeGenerationQuery.error &&
+        response.snapshot.requestId === activeGenerationRequestId &&
+        !['running', 'awaiting_reconciliation'].includes(response.snapshot.overallStatus) && !response.billingPending) {
+      setPausedMonitoringRequestId(null);
+    }
+  }, [monitoringPaused, monitoringPauseReason, activeGenerationQuery.data, activeGenerationQuery.error, activeGenerationRequestId]);
   const dispatchInterrupted = Boolean(activeGenerationQuery.data?.dispatchError && generationSnapshot?.overallStatus === "running");
   const generationEvents = useGenerationEvents(activeGenerationRequestId,
-    (activeGenerationQuery.data?.progressTransport==='events'||Boolean(generationCapabilities.data&&'progressTransport' in generationCapabilities.data&&generationCapabilities.data.progressTransport==='events'&&activeGenerationQuery.data?.progressTransport!=='poll')) && Boolean(activeGenerationRequestId) && (['running','awaiting_reconciliation'].includes(generationSnapshot?.overallStatus ?? 'running')||activeGenerationQuery.data?.billingPending===true),
+    !monitoringPaused && !activeGenerationQuery.error && !generationProgress.error && (activeGenerationQuery.data?.progressTransport==='events'||Boolean(generationCapabilities.data&&'progressTransport' in generationCapabilities.data&&generationCapabilities.data.progressTransport==='events'&&activeGenerationQuery.data?.progressTransport!=='poll')) && Boolean(activeGenerationRequestId) && (['running','awaiting_reconciliation'].includes(generationSnapshot?.overallStatus ?? 'running')||activeGenerationQuery.data?.billingPending===true),
     event=>{
       const hasDelivery=event.proposals.some(p=>p.status==='ready'&&!generationSnapshot?.proposals.some(old=>old.proposalId===p.proposalId&&old.status==='ready'&&old.revision===p.revision));
       if(hasDelivery||event.error||activeGenerationQuery.data?.dispatchError||!['queued','running'].includes(event.status)){void activeGenerationQuery.refetch();}
@@ -204,7 +304,7 @@ export default function StudioAppV2BPage() {
         const next=event.proposals.find(n=>n.proposalId===p.proposalId);
         return next&&p.status!=='ready'&&next.status!=='ready'?{...p,status:next.status as typeof p.status}:p;
       })} as typeof previous:previous);
-    },()=>{void activeGenerationQuery.refetch();});
+    },()=>{void generationProgress.refetch();});
   const arsenalReadiness = trpc.designCatalog.generationReadiness.useQuery(undefined, { retry: false, staleTime: 30000 });
   const [catalogChoice, setCatalogChoice] = useState<{ownerId:string;includeDrafts:boolean}|null>(() => {
     try { const saved=JSON.parse(window.sessionStorage.getItem("postspark.catalog-mode.v1")??"null");return typeof saved?.ownerId==="string"&&typeof saved?.includeDrafts==="boolean"?saved:null; } catch { return null; }
@@ -264,6 +364,10 @@ export default function StudioAppV2BPage() {
   });
   const [lastMode, setLastMode] = useState<"static" | "carousel">("static");
   const [generatedVariations, setGeneratedVariations] = useState<CanvasPostModel[]>([]);
+  useEffect(() => {
+    if (stage !== "gallery") return;
+    generatedVariations.forEach((post, position) => telemetry.record(post.provenance?.journey, exposureId, "exposure", { position }));
+  }, [generatedVariations, stage, telemetry, exposureId]);
   const [materializationIssue, setMaterializationIssue] = useState<MaterializationIssueState | null>(null);
   const [selectedPost, setSelectedPost] = useState<CanvasPostModel>(INITIAL_POST);
   const [declaredFamilyId, setDeclaredFamilyId] = useState<string | null>(null);
@@ -281,6 +385,7 @@ export default function StudioAppV2BPage() {
   /** Item 7: mapa de ids de posts salvos indexados por post.id/proposta (evita colisão cruzada entre propostas). */
   const [savedPostIdsByDocId, setSavedPostIdsByDocId] = useState<Record<string, number>>({});
   const savedPostIdsRef = useRef<Record<string, number>>({});
+  const savedPostRevisionsRef = useRef<Record<number, number>>({});
   savedPostIdsRef.current = savedPostIdsByDocId;
   const inFlightSavePromiseRef = useRef<Promise<boolean> | null>(null);
   const saveQueueRef = useRef<Array<{
@@ -591,7 +696,7 @@ export default function StudioAppV2BPage() {
       if (epoch !== generationEpoch.current) continue;
       const key = `${delivery.proposalId}:${delivery.revision}`;
       if (delivery.fixedCanvas) {
-        const post = delivery.fixedCanvas;
+        const post = withProposalIdentity(delivery.fixedCanvas, snapshotToMaterialize.requestId, delivery);
         setMaterializedProposalKeys(previous => [...previous.filter(item => item !== key), key]);
         setGeneratedVariations(previous => previous.some(item => item.id === post.id) ? previous : [...previous, post]);
         continue;
@@ -608,7 +713,7 @@ export default function StudioAppV2BPage() {
           setMaterializedProposalKeys(previous => [...previous.filter(item => item !== key), key]);
           setGeneratedVariations((previous) => {
             const knownIds = new Set(previous.map((post) => post.id));
-            return [...previous, ...result.posts.filter((post) => !knownIds.has(post.id))];
+            return [...previous, ...result.posts.map(post => withProposalIdentity(post, snapshotToMaterialize.requestId, delivery)).filter((post) => !knownIds.has(post.id))];
           });
         }
         if (result.failures.length) {
@@ -657,6 +762,7 @@ export default function StudioAppV2BPage() {
     try {
       const payload = JSON.parse(raw) as {
         postId?: number;
+        revision?: number;
         inputType?: string;
         inputContent?: string;
         model?: unknown;
@@ -667,7 +773,9 @@ export default function StudioAppV2BPage() {
         setStage("editor");
         if (model.id && typeof payload.postId === "number") {
           setSavedPostIdsByDocId(prev => ({ ...prev, [model.id!]: payload.postId as number }));
+          if (typeof payload.revision === "number") savedPostRevisionsRef.current[payload.postId] = payload.revision;
         }
+        telemetry.record(model.provenance?.journey, exposureId, "reopen");
         setLastInputMeta({
           inputType: payload.inputType === "url" ? "url" : payload.inputType === "image" ? "image" : "text",
           inputContent: payload.inputContent || "",
@@ -913,7 +1021,7 @@ export default function StudioAppV2BPage() {
       }
       setGeneratedVariations((previous) => {
         const knownIds = new Set(previous.map((post) => post.id));
-        return [...previous, ...result.posts.filter((post) => !knownIds.has(post.id))];
+        return [...previous, ...result.posts.map(post => generationSnapshot ? withProposalIdentity(post, generationSnapshot.requestId, failure.delivery) : post).filter((post) => !knownIds.has(post.id))];
       });
       setMaterializedProposalKeys(previous => [...previous.filter(item => item !== failure.key), failure.key]);
       setProposalMaterializationFailures((previous) => previous.filter((item) => item.key !== failure.key));
@@ -952,6 +1060,7 @@ export default function StudioAppV2BPage() {
   };
 
   const handleSelectVariation = (post: CanvasPostModel) => {
+    telemetry.record(post.provenance?.journey, exposureId, "choice");
     setSelectedPost(post);
     const runId = post.provenance?.generationRunId;
     const generationInput = runId ? inputMetaByRunId.current.get(runId) : undefined;
@@ -990,8 +1099,11 @@ export default function StudioAppV2BPage() {
 
     try {
       if (shouldUpdate && existingSavedId) {
-        const payload = await fitSavePayload({ id: existingSavedId, ...canvasModelToUpdatePayload(post),galleryPreview });
-        await updateMutation.mutateAsync(payload);
+        const expectedRevision = savedPostRevisionsRef.current[existingSavedId];
+        if (!expectedRevision) throw new Error("Reabra o post salvo para atualizar com segurança, ou salve uma cópia. Suas alterações continuam no editor.");
+        const payload = await fitSavePayload({ id: existingSavedId, expectedRevision, ...canvasModelToUpdatePayload(post),galleryPreview });
+        const result = await updateMutation.mutateAsync(payload);
+        if (typeof result.revision === "number") savedPostRevisionsRef.current[existingSavedId] = result.revision;
         if (source === "manual") {
           toast.success("Post atualizado na sua biblioteca!", {
             action: { label: "Ver salvos", onClick: () => setLocation("/saved-posts") },
@@ -1000,6 +1112,7 @@ export default function StudioAppV2BPage() {
       } else {
         const payload = await fitSavePayload({...canvasModelToSavePayload(post, lastInputMeta),galleryPreview});
         const result = await saveMutation.mutateAsync(payload);
+        savedPostRevisionsRef.current[result.id] = result.revision;
         if (docId) {
           savedPostIdsRef.current[docId] = result.id;
           setSavedPostIdsByDocId(prev => ({ ...prev, [docId]: result.id }));
@@ -1010,6 +1123,7 @@ export default function StudioAppV2BPage() {
           });
         }
       }
+      telemetry.record(post.provenance?.journey, exposureId, "save");
       // Refresh both the library and account count after either INSERT or UPDATE.
       // A cache refresh failure must not turn a successful persisted save into a failure.
       await Promise.allSettled([
@@ -1020,7 +1134,8 @@ export default function StudioAppV2BPage() {
       return true;
     } catch (err: any) {
       const message = err?.message || "Não foi possível salvar o post agora.";
-      if (source === "manual") toast.error(message);
+      if (err?.data?.code === "CONFLICT") toast.error("Este post foi atualizado em outra sessão. Suas alterações continuam aqui: salve uma cópia ou reabra a versão da biblioteca.", { id: `post-conflict-${existingSavedId}` });
+      else if (source === "manual") toast.error(message);
       return false;
     } finally {
       setIsSaving(false);
@@ -1142,6 +1257,7 @@ export default function StudioAppV2BPage() {
     <AnimatePresence>{productionIntro && <ProductionOverlay prompt={productionIntro.prompt} />}</AnimatePresence>
     <div inert={productionIntro ? true : undefined} className={`flex min-h-[100svh] w-full flex-col bg-[#0B0A08] font-sans text-white md:min-h-screen md:overflow-hidden ${stage === "gallery" ? "max-md:bg-[#07090E]" : ""}`}>
       {generationEvents.error && <div role="alert">A conexão com a geração foi interrompida. O trabalho pode continuar no servidor. <button onClick={generationEvents.reconnect}>Reconectar</button></div>}
+      {monitoringPaused && activeGenerationRequestId && <div role="alert">{monitoringPauseReason === "deadline" ? "O prazo deste pedido terminou. O acompanhamento automático foi pausado; os resultados já recebidos continuam disponíveis." : "O acompanhamento foi pausado porque não foi possível consultar o pedido. O trabalho pode continuar no servidor."} <button type="button" disabled={resumingMonitoring} onClick={() => void resumeGenerationMonitoring()}>{resumingMonitoring ? "Consultando…" : monitoringPauseReason === "deadline" ? "Consultar resultado" : "Retomar acompanhamento"}</button></div>}
       {stage === "create" && ((!generationCapabilities.isLoading && !generationCapabilities.data?.enabled) || activeGenerationQuery.error || pendingGenerationStart) && (
         <div className="mx-auto mt-4 w-[min(92%,64rem)] rounded-lg border border-violet-300/25 bg-violet-300/5 p-4 text-sm text-violet-100">
           {!generationCapabilities.data?.enabled && (
@@ -1150,7 +1266,7 @@ export default function StudioAppV2BPage() {
           {activeGenerationQuery.error && activeGenerationRequestId && (
             <div className="mt-3 flex items-center justify-between gap-3 text-amber-100">
               <span>O pedido salvo na sessão não pôde ser consultado agora.</span>
-              <button type="button" onClick={() => void activeGenerationQuery.refetch()} className="rounded border border-violet-200/40 px-3 py-2">Retomar pedido</button>
+              <button type="button" disabled={resumingMonitoring} onClick={() => void resumeGenerationMonitoring()} className="rounded border border-violet-200/40 px-3 py-2">Retomar pedido</button>
             </div>
           )}
           {pendingGenerationStart && (
@@ -1255,7 +1371,7 @@ export default function StudioAppV2BPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {generationSnapshot.overallStatus==="awaiting_reconciliation"&&<><p>Uma etapa da geração ainda precisa ser confirmada. O pedido mantém o prazo original.</p><button disabled={generationReconcile.isPending} onClick={()=>activeGenerationRequestId&&generationReconcile.mutate({requestId:activeGenerationRequestId})}>Conferir resultado existente</button></>}
-                  {activeGenerationQuery.error && <button type="button" onClick={() => void activeGenerationQuery.refetch()} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm">Atualizar progresso</button>}
+                  {activeGenerationQuery.error && <button type="button" disabled={resumingMonitoring} onClick={() => void resumeGenerationMonitoring()} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm">Atualizar progresso</button>}
                   {["running","awaiting_reconciliation"].includes(generationSnapshot.overallStatus) && (
                     <button type="button" disabled={generationCancel.isPending} onClick={() => void cancelActiveGeneration()} className="rounded-lg border border-violet-200/40 px-3 py-2 text-sm disabled:opacity-50">{generationCancel.isPending ? "Cancelando…" : "Cancelar geração"}</button>
                   )}
@@ -1315,6 +1431,7 @@ export default function StudioAppV2BPage() {
             initialAspectRatio={generatedVariations[0]?.aspectRatio ?? lastGenerationInput.current?.aspectRatio ?? assemblyAspectRatio}
             resumeMobilePost={galleryResumePostId ? generatedVariations.find(post => post.id === galleryResumePostId) : undefined}
             onSelectVariation={handleSelectVariation}
+            onExport={(post, kind) => telemetry.record(post.provenance?.journey, exposureId, kind)}
             onBackToCreate={handleGalleryBackToCreate}
             onGenerateMore={dispatchInterrupted || (!generationSnapshot && Boolean((historyRestore?.variations?.[0] as { fixedCanvas?: CanvasPostModel } | undefined)?.fixedCanvas)) ? undefined : handleGenerateMore}
             isGeneratingMore={!dispatchInterrupted && (isGeneratingMore || generationSnapshot?.overallStatus === "running")}
@@ -1331,6 +1448,7 @@ export default function StudioAppV2BPage() {
       {stage === "editor" && (
         <CanvasLabPage
           initialPost={selectedPost}
+          onJourneyEvent={(post, kind) => telemetry.record(post.provenance?.journey, exposureId, kind)}
           onBackToGallery={(editedPost) => {
             setSelectedPost(editedPost);
             setGalleryResumePostId(editedPost.id);

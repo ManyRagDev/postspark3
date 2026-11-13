@@ -164,6 +164,7 @@ interface CanvasLabPageProps {
   /** Existe um post salvo vinculado à sessão (habilita "Atualizar"). */
   hasSavedPost?: boolean;
   isSaving?: boolean;
+  onJourneyEvent?: (post: CanvasPostModel, kind: "edit" | "export_png" | "export_zip") => void;
   [key: string]: any;
 }
 
@@ -209,6 +210,7 @@ export default function CanvasLabPage({
   onSave,
   hasSavedPost = false,
   isSaving = false,
+  onJourneyEvent,
 }: CanvasLabPageProps = {}) {
   const [activeTool, setActiveTool] = useState<CanvasEditorTool | null>(null);
   const [restorePreview, setRestorePreview] = useState<{
@@ -351,6 +353,8 @@ export default function CanvasLabPage({
         : pushHistory(prevHistory, next);
     });
     autoSaveManagerRef.current?.triggerChange(next);
+    // Only committed document mutations, never drag previews or keystroke drafts.
+    try { onJourneyEvent?.(next, "edit"); } catch { /* Analysis cannot block editing. */ }
     if (!autoSaveManagerRef.current) setAutoSaveState("dirty");
   };
 
@@ -784,7 +788,7 @@ export default function CanvasLabPage({
     handleUpdatePost({ kind: "document", document: next });
     setIsReplicationOpen(false);
     toast.success(
-      `Formatação aplicada em ${targets.length} slide${targets.length === 1 ? "" : "s"}.`
+      `Alterações aplicadas em ${targets.length} slide${targets.length === 1 ? "" : "s"}.`
     );
   };
 
@@ -1605,6 +1609,7 @@ export default function CanvasLabPage({
       link.download = `postspark-${post.familyId}-${post.aspectRatio.replace(":", "x")}.png`;
       link.href = url;
       link.click();
+      try { onJourneyEvent?.(postRef.current, "export_png"); } catch { /* Disposable analysis. */ }
       toast.success("Post 4K exportado com sucesso!");
     } finally {
       URL.revokeObjectURL(url);
@@ -1634,6 +1639,7 @@ export default function CanvasLabPage({
       link.download = `carrossel-postspark-${Date.now()}.zip`;
       link.href = url;
       link.click();
+      try { onJourneyEvent?.(postRef.current, "export_zip"); } catch { /* Disposable analysis. */ }
       URL.revokeObjectURL(url);
       toast.success("Carrossel completo baixado em ZIP!");
     } catch (err) {
@@ -1989,7 +1995,7 @@ export default function CanvasLabPage({
                 className="min-h-11 w-full rounded-lg border border-white/15 text-xs"
                 onClick={() => setIsReplicationOpen(true)}
               >
-                Aplicar aparência a outros slides
+                Aplicar a outros slides
               </button>
             )}
           </div>
@@ -2056,6 +2062,7 @@ export default function CanvasLabPage({
           />
         ),
         selection: editorSelection ? (
+          <div className="space-y-4">
           <CanvasSelectionPanel
             post={post}
             layer={editorSelection}
@@ -2069,6 +2076,13 @@ export default function CanvasLabPage({
               )
             }
           />
+          {post.slides.length > 1 && (
+            <button type="button" className="min-h-11 w-full rounded-lg border border-white/15 px-3 text-sm" onClick={() => {
+              stageRef.current?.commitDraft?.();
+              setIsReplicationOpen(true);
+            }}>Copiar opções deste slide</button>
+          )}
+          </div>
         ) : (
           <p className="text-sm text-white/60">
             Selecione um objeto na arte ou em Camadas.
@@ -2308,8 +2322,9 @@ export default function CanvasLabPage({
         </main>
       </div>
       {post.slides.length > 1 &&
-        (!isMobile || (!activeTool && !isTextEditing)) && (
+        (!isMobile || !isTextEditing) && (
           <CarouselFilmstrip
+            compact={isMobile && Boolean(activeTool)}
             post={post}
             slides={post.slides}
             currentIndex={post.currentSlideIndex}

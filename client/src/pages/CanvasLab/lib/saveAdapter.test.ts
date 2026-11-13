@@ -158,6 +158,13 @@ describe("saveAdapter", () => {
     expect(reopenedTemplate.caption).toBe("Marcas de alto padrão não disputam a atenção...");
   });
 
+  it("preserves stable request/proposal identity across save and reopen without using the brief as an id", () => {
+    const journey = { requestId: "00000000-0000-4000-8000-000000000001", proposalId: "proposal-2", revision: 3 };
+    const post = makePost({ provenance: { source: "ai", generationRunId: journey.requestId, generatedAt: "2026-11-11T00:00:00Z", journey } });
+    const payload = canvasModelToSavePayload(post, { inputType: "text", inputContent: "Mesmo briefing de outra geração" });
+    expect(savedPostToCanvasModel({ id: 11, canvas_model: JSON.parse(JSON.stringify(payload.canvasModel)) }).provenance?.journey).toEqual(journey);
+  });
+
   it("BUG-CL-020: round-trips hashtags initialized from composition through save payload and reopen", () => {
     const fixture = createArsenalFixtureComposition();
     const composition = editArsenalContent(fixture, {

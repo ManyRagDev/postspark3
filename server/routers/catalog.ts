@@ -9,6 +9,7 @@ import {
 import { arsenalHash } from "@shared/arsenalContent";
 import { TRPCError } from "@trpc/server";
 import { localCatalogRevisionOverride } from "../designCatalog/localCatalogOverride";
+import { trialCatalogRevisionForUser } from "../designCatalog/trialCatalog";
 import { acervo82FamilyDirectory } from "@shared/acervo82Directory";
 import { componentCardV1Schema } from "@shared/componentAssembly";
 import { acervo82ReviewEnabled, listAcervo82Review, openAcervo82Review } from "../designCatalog/acervo82Review";
@@ -29,12 +30,13 @@ export const catalogRouter = router({
     return {revision,families:familyProjection((await readCatalogSnapshot(revision)).rows,scope)};
   }),
   manifest: protectedProcedure.query(async ({ ctx }) => {
-    if (!versionedCatalogEnabled())
+    const trialRevision = trialCatalogRevisionForUser(ctx.user);
+    if (!trialRevision && !versionedCatalogEnabled())
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: "Catálogo versionado não ativado.",
       });
-    const m = await readCatalogManifest(localCatalogRevisionOverride()),
+    const m = await readCatalogManifest(trialRevision ?? localCatalogRevisionOverride()),
       scope = ctx.user.role === "admin" ? "experimental" : "approved";
     return {
       revision: m.revision,
@@ -48,11 +50,12 @@ export const catalogRouter = router({
   snapshot: protectedProcedure
     .input(z.object({ revision: z.string().regex(/^\d+$/) }))
     .query(async ({ ctx, input }) => {
-      if (!versionedCatalogEnabled())
+      const trialRevision = trialCatalogRevisionForUser(ctx.user);
+      if (!trialRevision && !versionedCatalogEnabled())
         throw new TRPCError({ code: "PRECONDITION_FAILED" });
       // Match generation.capabilities: Studio downloads this snapshot before
       // admission, including a server-selected development staging revision.
-      const manifest = await readCatalogManifest(localCatalogRevisionOverride());
+      const manifest = await readCatalogManifest(trialRevision ?? localCatalogRevisionOverride());
       if (input.revision !== manifest.revision)
         throw new TRPCError({
           code: "CONFLICT",

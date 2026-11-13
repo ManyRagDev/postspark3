@@ -1,3 +1,4 @@
+import { capabilityGenerationIntentSchema, capabilityGenerationIntentInstructions, projectCapabilityGenerationIntent } from "@shared/compactGenerationIntent";
 import { compactGenerationIntentSchema, compactGenerationIntentInstructions, positiveCompactGenerationIntentInstructions, legacyAutomaticGenerationIntentSchema, legacyAutomaticGenerationIntentInstructions, projectCompactGenerationIntent, compactGenerationIntentInput } from "@shared/compactGenerationIntent";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -351,6 +352,7 @@ export async function preparePlannedGeneration(
       deps.generationConfig.model, deps.generationConfig.taskRouting?.copy
     ),
     jevModel: ENV.openRouterDesignSelectionModel,
+    ...(input.selectionPolicy === "capability_v1" ? { selectionPolicy: "capability_v1" as const } : {}),
     shortlistContextEncoding: 1 as const,
     shortlistProfileEncoding: "repertoire_pages_v1" as const,
     ...(automatic ? { automaticSemanticVersion: 1 as const, compactIntentVersion: 1 as const } : { visualRequirementsVersion: 1 as const }),
@@ -374,7 +376,7 @@ export async function preparePlannedGeneration(
         const preservedPhoto=requestedPreservedPhoto(input,requestText);
         const surfaceAwarePlan = input.postMode === "carousel" && count > 1 &&
           executionBrief?.interventionLevel !== "visual_only";
-        return { ...expectedInput, editorialCatalog, editorialQuotePolicy: 1 as const, familyVisualQueryVersion:2 as const, ...(preservedPhoto?{preservedPhoto:{version:1 as const,url:preservedPhoto}}:{}), familyNeutrality: {version:1 as const,seed:randomUUID(),...(automatic ? {creativeFlexibility:1 as const} : {}),planningVersion:surfaceAwarePlan ? 3 as const : 2 as const, proposalSelectionVersion: PROPOSAL_SELECTION_POLICY.version, deliveryRecoveryVersion: 2 as const}, familyRankingVersion: 1 as const, familyRetrievalVersion: 1 as const, familyRecoveryVersion: 1 as const,
+        return { ...expectedInput, editorialCatalog, editorialQuotePolicy: 1 as const, familyVisualQueryVersion:2 as const, ...(preservedPhoto?{preservedPhoto:{version:1 as const,url:preservedPhoto}}:{}), familyNeutrality: {version:1 as const,seed:randomUUID(),...(input.selectionPolicy === "capability_v1" ? {selectionPolicy:"capability_v1" as const} : {}),...(automatic ? {creativeFlexibility:1 as const} : {}),planningVersion:surfaceAwarePlan ? 3 as const : 2 as const, proposalSelectionVersion: PROPOSAL_SELECTION_POLICY.version, deliveryRecoveryVersion: 2 as const}, familyRankingVersion: 1 as const, familyRetrievalVersion: 1 as const, familyRecoveryVersion: 1 as const,
           ...(semantic ? { familyRetrievalIndex: { hash: semantic.index.hash, modelFingerprint: semantic.index.modelFingerprint } } : {}) };
       }
       const observation = await safeObserveEditorialAffinity(
@@ -390,7 +392,10 @@ export async function preparePlannedGeneration(
   if (automatic !== (selectionInput.automaticSemanticVersion === 1) ||
       automatic && selectionInput.familyNeutrality?.creativeFlexibility !== 1)
     throw new GenerationFailureError("preparation_contract_incompatible", "selection");
-  const compactAutomatic = automatic && selectionInput.compactIntentVersion === 1;
+  if ((selectionInput.selectionPolicy ?? "legacy") !== (input.selectionPolicy ?? "legacy"))
+    throw new GenerationFailureError("preparation_contract_incompatible", "selection");
+  const capabilityPolicy = selectionInput.selectionPolicy === "capability_v1";
+  const compactAutomatic = automatic && selectionInput.compactIntentVersion === 1 && !capabilityPolicy;
   const editorialCatalog = selectionInput.editorialCatalog ?? null;
   const neutrality = selectionInput.familyNeutrality;
   const distinctProposals = neutrality?.proposalSelectionVersion === PROPOSAL_SELECTION_POLICY.version;
@@ -504,7 +509,15 @@ export async function preparePlannedGeneration(
       )
       .map(s => s.id)
   );
-  const providerIntent = compactAutomatic ? await generate(
+  const providerIntent = capabilityPolicy ? await generate(
+    "intent", editorialEnabled && !automatic ? capabilityGenerationIntentSchema.required({editorial: true}) : capabilityGenerationIntentSchema,
+    capabilityGenerationIntentInstructions + (editorialEnabled && !automatic ? `\n${editorialIntentInstructions}` : ""),
+    { ...compactGenerationIntentInput({request: requestText, sources: editorialContext.sources, factualSourceIds}),
+      ...(editorialEnabled && !automatic ? { editorialVocabulary: editorialCatalog?.document.intents ?? [], editorialRequestEvidence: editorialRequestEvidence({ ...input, executionBrief: executionBrief ?? undefined }) } : {}),
+      requestedPages: count, aspectRatio: input.aspectRatio,
+      adaptation: executionBrief?.interventionLevel === "visual_only" ? "literal" : "controlled" },
+    6500
+  ) : compactAutomatic ? await generate(
     "intent", compactGenerationIntentSchema,
     selectionInput.reviewExecutionConfig.version === 5 && selectionInput.reviewExecutionConfig.automaticReviewVersion === 4
       ? positiveCompactGenerationIntentInstructions : compactGenerationIntentInstructions,
@@ -538,7 +551,9 @@ export async function preparePlannedGeneration(
     editorialEnabled ? 6500 : 4500
   );
 
-  const projectedIntent = compactAutomatic
+  const projectedIntent = capabilityPolicy
+    ? projectCapabilityGenerationIntent(providerIntent as z.infer<typeof capabilityGenerationIntentSchema>, { slideCount: count, aspectRatio: input.aspectRatio })
+    : compactAutomatic
     ? projectCompactGenerationIntent(providerIntent as z.infer<typeof compactGenerationIntentSchema>, {
       adaptation: executionBrief?.interventionLevel === "visual_only" ? "literal" : "controlled", factualSourceIds,
     })
@@ -559,7 +574,7 @@ export async function preparePlannedGeneration(
   )
     throw new GenerationFailureError("planning_response_invalid", "selection");
 
-  const visualRequirements = selectionInput.visualRequirementsVersion === 1
+  const visualRequirements = selectionInput.visualRequirementsVersion === 1 || capabilityPolicy
     ? readGenerationVisualRequirements(executionBrief?.rawInput ?? input.content)
     : undefined;
   const repertoires = resolveDesignFamilyRepertoires(cards, {
@@ -587,7 +602,7 @@ export async function preparePlannedGeneration(
     id: r.defaultOffer.offerId,
     hash: r.defaultOffer.signature,
   }));
-  const families = familyFirst ? buildFamilySelectionCandidates(eligible, editorialCatalog, Boolean(neutrality), automatic) : [];
+  const families = familyFirst ? buildFamilySelectionCandidates(eligible, editorialCatalog, Boolean(neutrality), automatic, selectionInput.selectionPolicy) : [];
   let familyElection: GenerationPlanningReceipt["familyElection"] = familyFirst
     ? { version: 1, candidates: [], ranking: [], shortlistedIds: [] } : undefined;
   const runShortlist: NonNullable<PreparationDeps["shortlist"]> = async params => {
@@ -674,12 +689,13 @@ export async function preparePlannedGeneration(
         cards: projections,
         profiles,
         offers: eligible.map(r => r.defaultOffer),
-        rankingPolicy: "suitability_first",
+        rankingPolicy: capabilityPolicy ? "capability_v1" : "suitability_first",
         model: selectionInput.jevModel,
         brief: JSON.stringify(automatic ? {
+          ...(capabilityPolicy ? { requirements: intent.requirements, imageObligation, admittedFormat: {pages: count, aspectRatio: input.aspectRatio} } : {}),
           request: input.content, objective: intent.objective, tone: intent.tone.description,
           semanticQuery: (providerIntent as z.infer<typeof compactGenerationIntentSchema>).semanticQuery,
-          creativeDirection: "Style and media preferences are flexible directions. A compelling creative interpretation is welcome. Do not require a literal visual match.",
+          creativeDirection: capabilityPolicy ? "Creative interpretation applies to preferences only. Required declared and physical constraints must be preserved. Native text fit is verified after composition, never inferred from adjectives." : "Style and media preferences are flexible directions. A compelling creative interpretation is welcome. Do not require a literal visual match.",
         } : {
           editorialContext: compactSelectionContextV1(editorialContext),
           intent,

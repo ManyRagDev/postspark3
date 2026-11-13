@@ -211,6 +211,57 @@ const resolve = (source: ArsenalComposition, adaptiveTextFit = true) =>
 const title = (c: ArsenalComposition) =>
   c.elements.find(e => e.id === "title")!;
 describe("bounded adaptive text geometry", () => {
+  function authoredFixture(blocked = false) {
+    const source = fixture({ blocked });
+    const fit = source.relations[0];
+    if (fit.kind !== "textFit") throw Error("expected textFit");
+    fit.parameters.maxHeight = 90;
+    fit.parameters.flexibility = { version: 1, minFontSize: 20,
+      preferredFontSize: 24, maxFontSize: 24 };
+    source.base.relations = structuredClone(source.relations);
+    source.origin.variantHash = arsenalHash(source.base);
+    return source;
+  }
+  const resolveAuthored = (source: ArsenalComposition) =>
+    resolveArsenalGeometry(source, {
+      measureText: measure, allowReduction: true, adaptiveTextFit: true,
+      textFlexibilityVersion: 1,
+    });
+  it("uses the declared height and restores preferred type while respecting the declared width", () => {
+    const source = authoredFixture(), after = resolveAuthored(source);
+    expect(title(after)).toMatchObject({ width: 100, fontSize: 24 });
+    expect(title(after).height).toBeCloseTo(86.4);
+    expect(after.issues).toEqual([]);
+    expect(after.content).toEqual(source.content);
+    const saved = readArsenalComposition(JSON.parse(JSON.stringify(after)));
+    expect(resolveArsenalGeometry(saved, { measureText: measure }).elements).toEqual(after.elements);
+    expect(resolveAuthored(saved).elements).toEqual(after.elements);
+  });
+  it("retains overflow when declared height or a real neighbor prevents expansion", () => {
+    const capped = authoredFixture();
+    if (capped.relations[0].kind !== "textFit") throw Error();
+    capped.relations[0].parameters.maxHeight = 60;
+    capped.base.relations = structuredClone(capped.relations);
+    for (const source of [capped, authoredFixture(true)]) {
+      const after = resolveAuthored(source);
+      expect(after.issues).toContain("overflow:title");
+      expect(after.overrides.title?.adaptiveTextFitVersion).toBeUndefined();
+    }
+  });
+  it("treats a fixed full-canvas raster behind content as a backdrop during fitting", () => {
+    const source = authoredFixture();
+    const text = source.pieces[source.base.instances[0].pieceHash];
+    const raster = { ...text, kind: "media" as const, fixedText: null,
+      imageAssetId: "synthetic-background", fontAssetId: null };
+    const hash = arsenalHash(raster);
+    source.pieces[hash] = raster;
+    source.base.instances.unshift({ ...source.base.instances[0], id: "arbitrary-surface",
+      pieceHash: hash, x: 0, y: 0, width: 500, height: 600, zIndex: -100 });
+    const after = resolveAuthored(source);
+    expect(title(after)).toMatchObject({ width: 100, fontSize: 24 });
+    expect(title(after).height).toBeCloseTo(86.4);
+    expect(after.issues.filter(i => i.startsWith("overflow"))).toEqual([]);
+  });
   it("uses a nearby authored column, restores font hierarchy, preserves copy and unrelated geometry", () => {
     const source = fixture(),
       before = resolve(source, false),

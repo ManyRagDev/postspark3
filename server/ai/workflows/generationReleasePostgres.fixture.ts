@@ -81,6 +81,8 @@ export async function generationReleasePostgresFixture(options: { withoutLegacyB
     END $$;
   `);
   for (const migration of [
+    // Production has used the canonical timestamp since migration 0009.
+    "0009_normalize_generation_runs_created_at.sql",
     "0034_orchestrated_generation.sql",
     "0035_generation_lease_conflict.sql",
     "0036_generation_billing.sql",

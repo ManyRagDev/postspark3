@@ -110,6 +110,8 @@ export const orchestratedGenerationInputSchema = z
   .object({
     /** Binds locally persisted admission retries to the authenticated account. */
     ownerId: z.string().uuid(),
+    /** Server-pinned; API admission discards client policy overrides. Absent means legacy. */
+    selectionPolicy: z.enum(["legacy", "capability_v1"]).optional(),
     inputType: z.enum(["text", "url", "image"]),
     sources: z.array(generationSourceSchema).max(8).optional(),
     content: z.string().min(1).max(24000),

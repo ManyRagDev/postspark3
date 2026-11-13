@@ -1,5 +1,9 @@
 # DOCUMENTO_MESTRE — PostSpark 3
 
+> **Regra de entrega — 12/11/2026:** a criação normal deve entregar três propostas válidas e distintas; falha é exceção. Uma reprovação de encaixe orienta recuperação interna: reutilizar copy medida quando couber ou adaptar a mensagem a outra composição, preservando fatos e preferências do briefing. O motor não deve encerrar por uma composição inadequada nem repetir indefinidamente o mesmo candidato. A recuperação mantém prazo, limite financeiro, decisões idempotentes e tratamento de resultado incerto. Após correção do contrato físico compartilhado, o ensaio real na VPS `dec32b6c-fcd0-4c11-9ab1-2756e215c231` entregou três propostas de famílias distintas, sem recuperação, com histórico completo e cobrança resolvida. Em 12/11 o usuário confirmou o fluxo de recuperação pelo Histórico, três propostas, escolha, edição no Canvas, salvar, reabrir e exportar PNG: “funcionou perfeitamente!”. Observação prolongada e homologação visual de todo o acervo continuam pendentes.
+
+> **Acompanhamento sob demanda — 12/11/2026:** erros de leitura do resultado ou progresso pausam o acompanhamento automático e os eventos, preservando o identificador durável. Quando o prazo do pedido passa, consulta o resultado final uma vez e pausa se execução ou liquidação ainda não foram concluídas; o trabalho no servidor e as propostas recebidas são preservados. A retomada explícita consulta o mesmo pedido; não admite outra geração. Conclusão com cobrança resolvida desliga o acompanhamento. Healthcheck periódico do worker usa liveness sem SQL; readiness consultando o banco permanece na admissão sob demanda.
+
 > **Status do Documento:** Documento-Mestre Canônico e Fonte Primária da Verdade (Single Source of Truth).  
 > **Conclusão Corretiva:** 2026-10-16 — ordens corretivas C-01, C-02 e C-03 concluídas e integradas com sucesso (§13.129–§13.131): retomadas protegidas contra recompra Jev/seletor via `prepare:selection_input`, requisitos tipados transportados à seleção, snapshot projetado estritamente com ausência explícita e sem coerção, BrandKit e modal integrados com idempotência/retry/refresh/gerar-mais, fixture histórica sanitizada e suíte completa aprovada (183 arquivos, 1.919 testes vitest, replay editorial offline de 33 casos, tsc e builds temporários client/server com exit 0).  
 > **Revisão:** 2026-10-15 — reforma dos handoffs de contexto de IA concluída em §13.127 (OS-01, OS-02, OS-03), posteriormente auditada e retificada em §13.128–§13.131.
@@ -379,6 +383,7 @@ O editor visual oficial do PostSpark (`CanvasLabPage`, rota `/thevoid`) foi cons
 - **Renderização**: `CanvasPostStage` permanece autoritativo para arte, miniaturas e exportação. O encaixe usa o retângulo efetivamente livre e pode ampliar além de 100% da base. Ações de concluir/cancelar e formatação têm áreas separadas, com portais mobile. `ArsenalCompositionInspector` permanece nas ferramentas avançadas; Sidebar/Drawer e as barras guiadas anteriores não são montados pela página ativa.
 
 ### Salvamento e biblioteca (item 7):
+- **Concorrência entre sessões (motor 2026-11-11):** `posts.revision` avança a cada atualização. O Studio envia a última revisão confirmada em `expectedRevision`; atualização de `canvas_model` sem revisão ou contra versão desatualizada retorna conflito e mantém o rascunho local. Abertura pela biblioteca transporta a revisão, e salvar como cópia continua disponível. Aplicar `0067_post_revision.sql` antes do código consumidor.
 - Botão **Salvar** (top bar) → diálogo **"Salvar como novo" × "Atualizar o post salvo"** com checkbox **"Memorizar esta decisão"** (`localStorage postspark.savePreference`).
 - Payload construído por `canvasModelToSavePayload`/`canvasModelToUpdatePayload` (`lib/saveAdapter.ts`); modelo completo persistido em `posts.canvas_model`.
 - **Guardião de tamanho antes do envio (`lib/fitSavePayload.ts`)**: salvar e atualizar medem o payload completo no navegador. Abaixo de 3,5 MB nada muda; acima disso, imagens inline são comprimidas progressivamente e cada imagem repetida é substituída em todos os campos do payload, preservando o modelo em memória. Se não couber no limite da função em produção (4,5 MB), o usuário recebe um erro claro antes da requisição. O `server/lib/imageCompress.ts` continua comprimindo fundos recebidos para evitar inchaço no PostgreSQL, mas essa etapa ocorre depois do limite de entrada da plataforma.
@@ -405,11 +410,12 @@ O sistema de autenticação utiliza o Supabase Auth integrado por uma ponte segu
    - `sb-access-token`: JWT de acesso com validade curta;
    - `sb-refresh-token`: token de renovação transparente;
    - `app_session_id`: identificador de sessão interna do PostSpark.
-2. **Fluxo Google OAuth**:
-   - O usuário clica em login Google ➔ redirecionamento para o provedor OAuth;
-   - Retorno para `/auth/google-callback#access_token=...`;
-   - O cliente captura o token e chama `POST /api/auth/supabase-session`;
-   - O backend valida a credencial no Supabase, emite os cookies de sessão e redireciona para o estúdio oficial (`/thevoid`).
+2. **Entrada e sincronização de sessão**:
+   - A landing ativa (`/`, `InspiracaoShowcasePage`) abre `StudioAuthModal`. O padrão é e-mail/senha via `signInWithPassword`; `/criar` encaminha seus CTAs para essa landing.
+   - `VITE_POSTSPARK_AUTH_MODE=email-google` habilita Google explicitamente, conservando e-mail/senha. Ausência, `email` ou valor desconhecido mantém apenas senha. Google retorna por `/auth/google-callback`.
+   - Cadastro só aparece com `VITE_POSTSPARK_SIGNUP_ENABLED=true` **e** `VITE_POSTSPARK_EMAIL_DELIVERY_ENABLED=true`, após configurar envio e confirmação no Supabase. Não há recuperação de senha anunciada na UI ativa. O perfil local `VITE_POSTSPARK_LOCAL_AUTH=email` continua restrito a desenvolvimento/loopback.
+   - Login explícito chama `resyncSupabaseSession`, que força `POST /api/auth/supabase-session` mesmo com marcador persistido antigo. O backend valida a identidade e o grant de acesso próprio, emite os cookies e só então o cliente navega para `/thevoid`. Falha permanece no formulário; login não concede nem reativa acesso.
+   - Flags `VITE_*` são públicas e incorporadas no build, não substituem configuração Auth nem autorização do servidor. Contrato de integração e ensaio em `docs/contrato-integracao-supabase-vps.md`.
 3. **Controle de Acesso**:
    - `ProtectedRoute`: assegura redirecionamento para `/` se não autenticado;
    - `AdminRoute`: restringe áreas de gestão (`/admin` e `/admin2`) exclusivamente a usuários com role `admin`.
@@ -3802,6 +3808,8 @@ Novas admissões automáticas do protocolo 4 fixam `textFlexibilityVersion=1` na
 
 `shared/textFieldFlexibility.ts` deriva a estimativa editorial e os limites de fonte da mesma política local. Relações `textFit` podem declarar `parameters.flexibility={version:1,minFontSize,preferredFontSize,maxFontSize}`; o conjunto completo é obrigatório ao personalizar o intervalo. Sem metadados novos, fontes de destaque podem chegar à metade do tamanho autorado, respeitando um piso proporcional à prancheta e à escala de grupo; fontes pequenas preservam seu mínimo anterior. O máximo padrão é o tamanho autorado. A estimativa de caracteres continua aproximada: o encaixe definitivo utiliza a fonte real e a caixa disponível.
 
+Desde 12/11/2026, `shared/arsenalPhysicalContract.ts` compartilha os limites físicos da redação e da adaptação: `maxWidth`/`maxHeight` autorados valem somente para propriedades presentes nos outputs da relação. No encaixe opt-in, altura pode crescer dentro desse limite, dos ancestrais e do espaço livre, restaurando a fonte preferida quando possível. Uma superfície fixa de prancheta inteira atrás do conteúdo, inclusive raster, é fundo para essa procura de espaço; fotos substituíveis, overlays e vizinhos continuam obstáculos. A auditoria de texto usa caixas de tinta dos runs com métricas verificadas e transformação de grupo, distinguindo entrelinha vazia de contato entre letras. Métricas ausentes, espaçamento entre letras e efeitos não medidos mantêm a verificação conservadora por caixa. Isso não substitui revisão renderizada nem amostragem de contraste sobre raster. Overrides persistidos continuam autoritativos; reabrir não dispara nova adaptação, e não há migração de dados/catálogo ou aumento do orçamento de recuperação.
+
 O motor procura a maior fonte que cabe no intervalo, antes das verificações geométricas e da revisão. Mantém texto, identidade tipográfica, limites de expansão de caixas e overrides manuais. Um texto que não cabe no mínimo continua sujeito ao reparo já existente. O tamanho resolvido é persistido nos overrides do `CanvasPostModel`, mantendo fidelidade ao salvar, reabrir e exportar. Configurações históricas sem o marcador mantêm seus prompts e sua política de encaixe; não há migração do catálogo, nova chamada de IA ou ampliação do orçamento de reparos. Evidências e limitações em `docs/reforma/text-flexibility-20261106.md`.
 
 ### Correção visual de texto antes da troca de design — 2026-11-06
@@ -3834,3 +3842,31 @@ Em 2026-11-09, a migração foi aplicada no Supabase de produção e
 registrada como `20261109211545_generation_fixed_design`. A verificação
 remota confirmou a restrição validada de uma ou três vagas, o acesso
 das novas RPCs pelo backend e a rejeição de uma entrega sem lease válido.
+
+## Motor por demanda e política de seleção (2026-11-11)
+
+O executor externo (`generationWorker.ts`) usa uma conexão PostgreSQL de sessão para `LISTEN/NOTIFY`. Pedidos e operações continuam duráveis nas tabelas existentes; sinais transacionais só despertam o processo. A recuperação ocorre após inscrição/reconexão, por prazos persistidos e varredura residual padrão de cinco minutos. Geração e captura de marca alternam capacidade; liquidação terminal não relança geração. `/readyz` substitui heartbeat persistido de disponibilidade e verifica listener, renderer, dependências e cooldown. A identidade do banco é conferida entre sessão PostgreSQL e REST. O modo local-demand existente mantém seu ciclo próprio; não operar os dois consumidores sobre os mesmos pedidos.
+
+A política `capability_v1`, controlada por `POSTSPARK_SELECTION_POLICY`, é fixada na admissão do servidor; ausência ou `legacy` mantém a semântica antiga. Novos perfis carregam capacidades verificáveis por raiz/oferta e requisitos com origem/força/evidência. Pedidos antigos não ganham a política nova na retomada. O medidor real, o funil de atualização CanvasLab e a autoridade de `canvas_model` são preservados.
+
+A proveniência do modelo identifica pedido/proposta/revisão. Eventos descartáveis de exposição, escolha, alterações consolidadas e exportação usam lotes limitados, deduplicação e retenção; não participam de cobrança. Recursos observáveis por tentativa são agregados separadamente do diário de custos.
+
+Contrato operacional, migrações `0064`–`0067`, comandos, limites de medição e condições de ativação estão em [docs/motor-integracao.md](docs/motor-integracao.md). A implementação local não comprova implantação, melhoria editorial ou consumo no destino.
+
+
+### Autorização própria — integração VPS (11/11/2026)
+
+Supabase Auth permanece responsável pela identidade/sessão. O runtime PostSpark
+usa `server/_core/appAccess.ts` e `postspark.has_app_access(uuid)` (migração 0068),
+substituindo as RPCs de acesso ManyLabs. Bridge e requests apenas verificam
+grants explícitos em `postspark.app_access`; login não concede nem reativa acesso.
+Plano/saldo e papéis administrativos são independentes. Administração de grants
+é SQL restrito, sem escrita pelo navegador ou service role da API. Garimpa
+preserva suas próprias permissões por conta, ligadas ao mesmo Auth. Contrato e
+limitações de ativação em `docs/contrato-integracao-supabase-vps.md`.
+
+### Catálogo congelado para ensaio administrativo (12/11/2026)
+
+`scripts/importFrozenCatalog.ts` verifica o pacote offline e, somente com `--apply`, importa assets/definições como drafts por staging atômico, sem ativar o head global, gerar embeddings ou aprovar visualmente o acervo. O destino precisa estar inativo e conter somente o mesmo pacote compatível; não é um merge genérico. O hash do snapshot de origem e o hash/revisão da publicação são identidades distintas. Grants de origem ausentes não são inventados; novos grants de assets ficam vinculados ao ator admin confirmado.
+
+O par server-only `GENERATION_TRIAL_CATALOG_REVISION` + `GENERATION_TRIAL_CATALOG_ADMIN_UUID` permite a esse administrador consultar e admitir a revisão inativa no executor externo. Outros usuários não recebem o pin. A migração 0070 oferece admissão restrita, verificando admin/acesso próprio, revisão e configuração antes da reserva existente; não modifica billing ou o head. A API exige catálogo editorial da revisão antes de gerar; publicar o documento original por identidade/hash não equivale a certificar visualmente os designs. Worker usa a revisão persistida no pedido. `motorPreflight.ts --trial` verifica esse contrato sem mudar os critérios de publicação global do modo normal. Procedimento, hashes, permissões e limites de aceite estão no contrato VPS.

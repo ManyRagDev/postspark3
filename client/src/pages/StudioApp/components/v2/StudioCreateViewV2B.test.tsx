@@ -162,4 +162,112 @@ describe("StudioCreateViewV2B draft control", () => {
       expect.not.objectContaining({ scriptMode: "preserve" })
     );
   });
+  it("keeps Enter available for mobile paragraphs and submits only with an explicit shortcut", () => {
+    const width = Object.getOwnPropertyDescriptor(window, "innerWidth");
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 375 });
+    const onSubmit = vi.fn();
+    try {
+      act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={() => {}} initialPrompt="Um roteiro" />));
+      const field = container.querySelector("textarea")!;
+      act(() => field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })));
+      expect(onSubmit).not.toHaveBeenCalled();
+      act(() => field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true, cancelable: true })));
+      expect(onSubmit).toHaveBeenCalledOnce();
+    } finally {
+      if (width) Object.defineProperty(window, "innerWidth", width);
+    }
+  });
+
+  describe("compact mobile creation", () => {
+    let originalWidth: PropertyDescriptor | undefined;
+    beforeEach(() => {
+      originalWidth = Object.getOwnPropertyDescriptor(window, "innerWidth");
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 375 });
+    });
+    afterEach(() => {
+      if (originalWidth) Object.defineProperty(window, "innerWidth", originalWidth);
+    });
+    const setField = (field: HTMLTextAreaElement, value: string) => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, value);
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    const script = "**Slide 1:** Capa\n**Slide 2:** Problema\n**Slide 3:** Solução\n**Slide 4:** CTA";
+
+    it("keeps three lines while typing and expands only on request without losing the briefing", () => {
+      act(() => root.render(<StudioCreateViewV2B onSubmit={vi.fn()} isLoading={false} declaredFamilyId={null} onDeclareFamily={vi.fn()} initialPrompt="Uma ideia" />));
+      const field = container.querySelector("textarea")!;
+      Object.defineProperty(field, "scrollHeight", { configurable: true, get: () => 384 });
+      const briefing = "Minha ideia com todos os detalhes. ".repeat(30);
+      act(() => setField(field, briefing));
+      expect(field.style.height).toBe("72px");
+      expect(field.rows).toBe(3);
+      const expand = Array.from(container.querySelectorAll("button")).find(button => button.textContent?.includes("Expandir texto"))!;
+      expect(expand.disabled).toBe(false);
+      act(() => expand.click());
+      expect(field.style.height).toBe("384px");
+      expect(field.value).toBe(briefing);
+      act(() => expand.click());
+      expect(field.style.height).toBe("72px");
+      expect(field.value).toBe(briefing);
+    });
+
+    it.each([
+      ["Uma ideia", "text"],
+      [script, "script"],
+      ["https://example.com/", "url"],
+    ])("uses the context of %s for all scoped mobile highlights", (prompt, tone) => {
+      act(() => root.render(<StudioCreateViewV2B onSubmit={vi.fn()} isLoading={false} declaredFamilyId={null} onDeclareFamily={vi.fn()} initialPrompt={prompt} />));
+      expect(container.querySelector("[data-mobile-tone]")?.getAttribute("data-mobile-tone")).toBe(tone);
+      expect(container.querySelector(".studio-mobile-create")).not.toBeNull();
+      expect(container.textContent).not.toContain("Diagramar");
+    });
+
+    it("submits once through the in-field arrow with the selected model, platform and script policy", () => {
+      const onSubmit = vi.fn(), onRatio = vi.fn();
+      const props = { onSubmit, isLoading: false, declaredFamilyId: null, onDeclareFamily: vi.fn(), initialPrompt: script, proposalAspectRatio: "4:5" as const, onProposalAspectRatioChange: onRatio };
+      act(() => root.render(<StudioCreateViewV2B {...props} />));
+      const select = (label: string, value: string) => {
+        const field = container.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!;
+        field.value = value; field.dispatchEvent(new Event("change", { bubbles: true }));
+      };
+      act(() => {
+        select("Modelo de geração", "claude");
+        select("Plataforma", "linkedin");
+        select("Formato das propostas", "1:1");
+      });
+      act(() => container.querySelector<HTMLButtonElement>('[aria-label="Gerar imagens com IA"]')!.click());
+      act(() => container.querySelector<HTMLButtonElement>('[aria-label="Gerar posts"]')!.click());
+      expect(onRatio).toHaveBeenCalledWith("1:1");
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(onSubmit).toHaveBeenLastCalledWith(script, "carousel", expect.objectContaining({ platform: "linkedin", generationModel: "claude", allowAiImages: true, scriptMode: "preserve", slideCount: 4 }));
+      act(() => select("Tratamento do roteiro", "rewrite"));
+      expect(container.querySelector('[data-mobile-tone="text"]')).not.toBeNull();
+      act(() => container.querySelector<HTMLButtonElement>('[aria-label="Gerar posts"]')!.click());
+      expect(onSubmit).toHaveBeenLastCalledWith(script, "carousel", expect.not.objectContaining({ scriptMode: "preserve" }));
+      act(() => root.render(<StudioCreateViewV2B {...props} isLoading />));
+      expect(container.querySelector<HTMLButtonElement>('[aria-label="Gerar posts"]')!.disabled).toBe(true);
+    });
+
+    it("preserves free URL capture and distinguishes explicitly using the page as content", () => {
+      const onSubmit = vi.fn();
+      act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={vi.fn()} initialPrompt="https://example.com/" />));
+      act(() => container.querySelector<HTMLButtonElement>('[aria-label="Capturar marca gratuitamente"]')!.click());
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(container.querySelector('[data-testid="brand-capture"]')?.textContent).toBe("https://example.com/");
+      act(() => container.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click());
+      expect(container.querySelector('[data-mobile-tone="url"]')).not.toBeNull();
+      act(() => container.querySelector<HTMLButtonElement>('[aria-label="Gerar posts"]')!.click());
+      expect(onSubmit).toHaveBeenCalledWith("https://example.com/", "static", expect.objectContaining({ platform: "instagram" }));
+    });
+
+    it("keeps the arrow disabled for an empty briefing", () => {
+      const onSubmit = vi.fn();
+      act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={vi.fn()} />));
+      const generate = container.querySelector<HTMLButtonElement>('[aria-label="Gerar posts"]')!;
+      expect(generate.disabled).toBe(true);
+      act(() => generate.click());
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+  });
+
 });

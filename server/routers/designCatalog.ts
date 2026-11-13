@@ -1,6 +1,6 @@
-import {readCatalogManifest,versionedCatalogEnabled} from "../designCatalog/versionedCatalog";
+import {readCatalogManifest} from "../designCatalog/versionedCatalog";
 import { localCatalogRevisionOverride } from "../designCatalog/localCatalogOverride";
-import { resolveCompleteDesignOffers } from "@shared/completeDesignOffers";
+import { trialCatalogRevisionForUser } from "../designCatalog/trialCatalog";
 import { z } from "zod";
 import { componentDefinitionV1Schema, assemblyVariationBundleV1Schema } from "../../shared/componentAssembly";
 import { completeDesignVariationV1Schema } from "../../shared/completeDesignGeneration";
@@ -22,7 +22,6 @@ import {
 import { traceCatalog } from "../designCatalog/trace";
 import { arsenalCompilationReportSchema } from "@shared/arsenalGeneration";
 import { catalogBundleV2Schema } from "@shared/designArsenal";
-import { retrieveCompleteDesignCards } from "../designCatalog/completeDesignStore";
 import { ENV } from "../_core/env";
 import { retrieveArsenalForGeneration } from "../designCatalog/arsenalRetrieval";
 import { arsenalImportSchema } from "@shared/arsenalCatalog";
@@ -322,19 +321,24 @@ export const designCatalogRouter = router({
     }),
   generationReadiness: protectedProcedure.query(async ({ ctx }) => {
     if (ctx.user.role !== "admin") return null;
-    if(versionedCatalogEnabled()) {
-      const m=await readCatalogManifest(localCatalogRevisionOverride());
-      return {mode:ENV.componentArsenalMode,reason:'ready' as const,candidateCount:m.summary.approved.staticOfferCount,draftCandidateCount:m.summary.experimental.staticOfferCount,carouselCandidateCount:m.summary.approved.carouselOfferCount,draftCarouselCandidateCount:m.summary.experimental.carouselOfferCount,durationMs:0,pipeline:'complete-designs' as const};
-    }
     const started=Date.now();
     if(ENV.componentArsenalMode==="off")return {mode:"off" as const,reason:"disabled" as const,candidateCount:0,draftCandidateCount:0,durationMs:0,pipeline:"complete-designs" as const};
-    try{
-      const query={aspectRatio:"4:5",postMode:"carousel" as const,text:"",slideCount:3};
-      const [approved,preview]=await Promise.all([retrieveCompleteDesignCards({...query,experimental:false}),retrieveCompleteDesignCards({...query,experimental:true})]);
-      const normalStatic=resolveCompleteDesignOffers(approved,{slideCount:1,contentMode:"compose"}).length, previewStatic=resolveCompleteDesignOffers(preview,{slideCount:1,contentMode:"compose"}).length;
-      const normalCarousel=resolveCompleteDesignOffers(approved,{slideCount:3,contentMode:"compose"}).length, previewCarousel=resolveCompleteDesignOffers(preview,{slideCount:3,contentMode:"compose"}).length;
-      return {mode:ENV.componentArsenalMode,carouselCandidateCount:normalCarousel,draftCarouselCandidateCount:previewCarousel,reason:normalStatic?"ready" as const:"no_eligible_candidate" as const,candidateCount:normalStatic,draftCandidateCount:previewStatic,durationMs:Date.now()-started,pipeline:"complete-designs" as const};
-    }catch{return {mode:ENV.componentArsenalMode,reason:"catalog_unavailable" as const,candidateCount:0,draftCandidateCount:0,durationMs:Date.now()-started,pipeline:"complete-designs" as const};}
+    try {
+      const manifest = await readCatalogManifest(trialCatalogRevisionForUser(ctx.user) ?? localCatalogRevisionOverride());
+      const { approved, experimental } = manifest.summary;
+      return {
+        mode: ENV.componentArsenalMode,
+        reason: approved.staticOfferCount + approved.carouselOfferCount > 0 ? "ready" as const : "no_eligible_candidate" as const,
+        candidateCount: approved.staticOfferCount,
+        draftCandidateCount: experimental.staticOfferCount,
+        carouselCandidateCount: approved.carouselOfferCount,
+        draftCarouselCandidateCount: experimental.carouselOfferCount,
+        durationMs: Date.now() - started,
+        pipeline: "complete-designs" as const,
+      };
+    } catch {
+      return {mode:ENV.componentArsenalMode,reason:"catalog_unavailable" as const,candidateCount:0,draftCandidateCount:0,durationMs:Date.now()-started,pipeline:"complete-designs" as const};
+    }
   }),
   reportArsenalCompilation: protectedProcedure
     .input(arsenalCompilationReportSchema)

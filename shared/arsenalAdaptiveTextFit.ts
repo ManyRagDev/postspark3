@@ -4,12 +4,14 @@ import type {
   ArsenalGroup,
 } from "./designArsenal";
 import type { ArsenalTextMeasurer } from "./arsenalGeometry";
+import { authoredTextFitLimits, isCanvasBackdrop, arsenalPaintOrder } from "./arsenalPhysicalContract";
 
 type Rect = { x: number; y: number; width: number; height: number };
 type World = { x: number; y: number; scale: number; rotation: number };
 type Services = {
   measureText: ArsenalTextMeasurer;
   fontMaximum?: (element: ArsenalElement) => number;
+  authoredLimits?: boolean;
   world: (element: ArsenalElement | ArsenalGroup) => World;
   resolve: (composition: ArsenalComposition) => ArsenalComposition;
 };
@@ -178,20 +180,8 @@ export function adaptArsenalTextToFreeSpace(
     )
       continue;
     const authored = current.elements.map(item => originalBox(current, item));
-    const fullBackdrop = (item: ArsenalElement) => {
-      if (
-        item.kind !== "rect" ||
-        Math.abs(services.world(item).rotation) > epsilon
-      )
-        return false;
-      const b = worldBox(item);
-      return (
-        b.x <= 0 &&
-        b.y <= 0 &&
-        right(b) >= current.artboard.width &&
-        bottom(b) >= current.artboard.height
-      );
-    };
+    const paintOrder=arsenalPaintOrder(current);
+    const fullBackdrop = (item: ArsenalElement) => isCanvasBackdrop(current,item,services.world,paintOrder);
     const foreground = authored.filter(item => !fullBackdrop(item));
     const boxes = foreground.map(item => worldBox(item));
     if (!boxes.length) continue;
@@ -288,7 +278,9 @@ export function adaptArsenalTextToFreeSpace(
           }
       return result;
     };
+    const limits=authoredTextFitLimits(base,fit);
     const safe = (width: number, height: number) =>
+      (!services.authoredLimits || width<=limits.width+epsilon && height<=limits.height+epsilon) &&
       memberBoxes(width, height).every(member => {
         const after = worldBox(member),
           before = worldBox(
@@ -339,7 +331,7 @@ export function adaptArsenalTextToFreeSpace(
       }
       return low;
     };
-    const widthLimit = maxSafe(base.width, envelope.width / w.scale, width =>
+    const widthLimit = maxSafe(base.width, Math.min(envelope.width / w.scale,services.authoredLimits?limits.width:Infinity), width =>
       safe(width, base.height)
     );
     // A nearby authored column edge is a meaningful expansion boundary. Without
@@ -377,9 +369,12 @@ export function adaptArsenalTextToFreeSpace(
       height = Math.max(base.height, measure(e, width, e.fontSize).height);
       if (!safe(width, height) || !fits(e, width, height, e.fontSize)) continue;
     }
-    const fontSize = maxSafe(e.fontSize, services.fontMaximum?.(e) ?? piece.fontSize, size =>
-      fits(e, width, height, size)
-    );
+    const heightLimit=services.authoredLimits?maxSafe(height,limits.height,value=>safe(width,value)):height;
+    const fontSize = maxSafe(e.fontSize, services.fontMaximum?.(e) ?? piece.fontSize, size => {
+      const needed=services.authoredLimits?Math.max(base.height,measure(e,width,size).height):height;
+      return needed<=heightLimit+epsilon && fits(e,width,needed,size) && safe(width,needed);
+    });
+    if(services.authoredLimits)height=Math.max(base.height,measure(e,width,fontSize).height);
     const patches = memberBoxes(width, height);
     const candidate = structuredClone(current);
     for (const member of patches)

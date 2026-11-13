@@ -12,6 +12,19 @@ function scene(text='Tarefas repetitivas drenam sua energia.'){const definition=
 const body=(c:ReturnType<typeof scene>)=>c.elements.find(e=>e.id==='support')!;
 const solve=(c:ReturnType<typeof scene>,version?:1)=>resolveArsenalGeometry(c,{measureText:measure,allowReduction:true,adaptiveTextFit:true,textFlexibilityVersion:version});
 describe('opt-in local text flexibility',()=>{
+ it('derives advisory rows from the native textFit height rather than the initial box',()=>{
+  const d=fixture(),field=completeDesignFields(d)[1];
+  const before=compactTextFieldFlexibility(d,field)!;
+  const fit=d.fragment.relations[0];if(fit.kind!=='textFit')throw Error();
+  fit.parameters.maxHeight=205;
+  const after=compactTextFieldFlexibility(d,field)!;
+  expect(after.lines.max).toBe(5);
+  expect(after.characters.max).toBeGreaterThan(before.characters.max);
+  expect(after.advisory).toBe(true);
+  fit.outputs[0].properties=['fontSize'];
+  const fontOnly=compactTextFieldFlexibility(d,field)!;
+  expect(fontOnly.lines.max).toBe(before.lines.max);
+ });
  it('derives half-size display range while preserving small authored minima and group scale',()=>{
   expect(textFontFlexibility({preferredFontSize:68.39,authoredMinFontSize:44.45,artboardWidth:1080})).toEqual({min:34.195,preferred:68.39,max:68.39});
   expect(textFontFlexibility({preferredFontSize:34.2,authoredMinFontSize:22.23,artboardWidth:1080}).min).toBe(22.23);

@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./cookies";
 import { ENV } from "./env";
-import { ensurePostSparkAccess } from "./manylabs";
+import { hasPostSparkAccess } from "./appAccess";
 import { recordLocalAuth } from "./localAuthDiagnostic";
 
 function getSupabaseAdmin() {
@@ -44,17 +44,9 @@ export function registerSupabaseAuthRoutes(app: Express) {
         return;
       }
 
-      // ── ManyLabs access check (skip in dev with BYPASS_AUTH) ──
+      // ── Application access check (skip in dev with BYPASS_AUTH) ──
       if (!(process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true")) {
-        const metadata = user.user_metadata ?? {};
-        const name =
-          typeof metadata.full_name === "string"
-            ? metadata.full_name
-            : typeof metadata.name === "string"
-              ? metadata.name
-              : null;
-
-        const hasAccess = await ensurePostSparkAccess(user.id, user.email ?? null, name);
+        const hasAccess = await hasPostSparkAccess(user.id);
 
         if (!hasAccess) {
           recordLocalAuth(req, "bridge.access_denied", access_token);

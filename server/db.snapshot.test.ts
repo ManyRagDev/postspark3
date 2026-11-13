@@ -21,12 +21,13 @@ interface CapturedCall {
 }
 
 const capturedCalls: CapturedCall[] = [];
+const filters: Array<[string, unknown]> = [];
 let fakeResponse: { data: unknown; error: unknown } = { data: null, error: null };
 let fakeRow: Record<string, unknown> | null = null;
 
 function chain() {
   const builder: Record<string, unknown> = {
-    eq: () => builder,
+    eq: (key: string, value: unknown) => { filters.push([key, value]); return builder; },
     order: () => builder,
     limit: () => builder,
     single: async () => fakeResponse,
@@ -76,6 +77,7 @@ function snapshotV4(): Record<string, unknown> {
 describe("persistência de snapshot — ida e volta (SPEC-004)", () => {
   beforeEach(() => {
     capturedCalls.length = 0;
+    filters.length = 0;
     fakeResponse = { data: null, error: null };
     fakeRow = null;
   });
@@ -174,5 +176,21 @@ describe("persistência de snapshot — ida e volta (SPEC-004)", () => {
     await updatePost(42, "user-uuid-1", {} as Parameters<typeof updatePost>[2]);
 
     expect(capturedCalls.some((call) => call.operation === "update")).toBe(false);
+  });
+
+  it("salva apenas a revisão e proprietário esperados e retorna confirmação", async () => {
+    fakeRow = { revision: 8 };
+    const revision = await updatePost(42, "owner-a", {
+      expectedRevision: 7, canvasModel: { headline: "edit" },
+    });
+    expect(filters).toEqual([["id", 42], ["user_uuid", "owner-a"], ["revision", 7]]);
+    expect(revision).toBe(8);
+    expect(capturedCalls[0].payload).not.toHaveProperty("expectedRevision");
+  });
+
+  it("não confirma salvamento quando a revisão mudou ou o proprietário não coincide", async () => {
+    await expect(updatePost(42, "owner-a", {
+      expectedRevision: 7, canvasModel: { headline: "stale" },
+    })).rejects.toThrow("post_revision_conflict");
   });
 });

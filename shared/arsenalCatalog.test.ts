@@ -9,6 +9,7 @@ import {
 } from "./arsenalCatalog";
 import { arsenalHash } from "./arsenalContent";
 import { projectStructuralL1 } from "./designDescriptorMetric";
+import { arsenalBindingSchema } from "./designArsenal";
 import { mergeArsenalNeighbors } from "../server/designCatalog/arsenalQueryProfiles";
 const pkg = () => {
   const pieces = Object.fromEntries(
@@ -54,6 +55,18 @@ const pkg = () => {
   });
 };
 describe("Arsenal V2 import and compact retrieval contracts", () => {
+  it("validates projected card fields without requiring full binding targets", () => {
+    const field = arsenalSearchHitSchema.shape.card.shape.fields.element;
+    const projected = { source: "items", kind: "list", required: true,
+      cardinality: { min: 1, max: 3 } };
+    expect(field.parse(projected)).toEqual(projected);
+    expect(field.safeParse({ ...projected, required: "true" }).success).toBe(false);
+    expect(field.safeParse({ ...projected, cardinality: { min: 0, max: 10001 } }).success).toBe(false);
+    expect(field.safeParse({ ...projected, targetIds: ["text"] }).success).toBe(false);
+    // Full documents still enforce target/cardinality relations.
+    expect(arsenalBindingSchema.safeParse({ ...projected, id: "list", label: "List",
+      targetIds: ["one", "two"], prefix: "", gap: 0 }).success).toBe(false);
+  });
   it("indexes 48 finite axes from geometry with pinned variant identity", () => {
     const p = pkg(),
       v = p.definition.variants[0],

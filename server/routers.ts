@@ -4,6 +4,7 @@ import { executionBriefSchema } from "../shared/generationRequest";
 import { validateArsenalSaveModel, authorizeArsenalSaveModel } from "./designCatalog/arsenalSave";
 import type { retrieveArsenalForGeneration } from "./designCatalog/arsenalRetrieval";
 import { generationRouter } from "./routers/generation";
+import { generationTelemetryRouter } from "./routers/generationTelemetry";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -215,6 +216,7 @@ import { templateIngestionRouter } from "./routers/templateIngestion";
 
 export const appRouter = router({
   generation: generationRouter,
+  generationTelemetry: generationTelemetryRouter,
   catalog: catalogRouter,
   templateIngestion: templateIngestionRouter,
   system: systemRouter,
@@ -368,7 +370,7 @@ export const appRouter = router({
             ...compressedInput,
             userUuid: ctx.user.id,
           });
-          return { id: postId };
+          return { id: postId, revision: 1 };
         } catch (error: any) {
           const rawMessage = String(error?.message || "");
           if (rawMessage.includes("Saved posts limit reached for plan")) {
@@ -382,11 +384,12 @@ export const appRouter = router({
         }
       }),
 
-    /** Update a post */
+    /** Update a post; official documents require the last confirmed revision. */
     update: protectedProcedure
       .input(
         z.object({
           id: z.number(),
+          expectedRevision: z.number().int().min(1).optional(),
           headline: z.string().optional(),
           body: z.string().optional(),
           caption: z.string().optional(),
@@ -415,6 +418,9 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
+        if (input.canvasModel !== undefined && input.expectedRevision === undefined) {
+          throw new TRPCError({ code: "CONFLICT", message: "Reabra o post antes de salvar. A revisão original não está disponível." });
+        }
         const validatedSnapshot = input.variationSnapshot
           ? postVisualSnapshotSchema.parse(input.variationSnapshot)
           : undefined;
@@ -423,8 +429,15 @@ export const appRouter = router({
           variationSnapshot: validatedSnapshot,
         }, ctx.user.id));
         await authorizeArsenalSaveModel(input.canvasModel,ctx.user.id);
-        await updatePost(input.id, ctx.user.id, compressedInput);
-        return { success: true };
+        try {
+          const revision = await updatePost(input.id, ctx.user.id, { ...compressedInput, expectedRevision: input.expectedRevision });
+          return { success: true, revision };
+        } catch (error) {
+          if (error instanceof Error && error.message === "post_revision_conflict") {
+            throw new TRPCError({ code: "CONFLICT", message: "Este post foi alterado em outra sessão. Suas alterações locais foram mantidas; reabra a versão salva antes de tentar novamente." });
+          }
+          throw error;
+        }
       }),
 
     listSummary: protectedProcedure.input(z.object({limit:z.number().int().min(1).max(50).default(20),offset:z.number().int().min(0).default(0),search:z.string().max(120).optional()}).optional()).query(({ctx,input})=>getUserPostSummaries(ctx.user.id,input?.limit,input?.offset,input?.search)),

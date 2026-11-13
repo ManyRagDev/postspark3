@@ -1,0 +1,37 @@
+import {readFile,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {resolve,join} from 'node:path';
+import {componentDefinitionV1Schema} from '../../shared/componentAssembly';
+import {arsenalHash} from '../../shared/arsenalContent';
+import {createComponentTextMeasurer} from '../../server/ai/componentTextMeasurer';
+import {renderReviewScenes,closeReviewRenderer} from '../../server/ai/workflows/proposalRenderer';
+import {nativeScene} from '../../scripts/acervo82/full/nativeScene';
+import {partitionArsenalReadinessIssues} from '../../shared/arsenalReadiness';
+import {resolveArsenalGeometry} from '../../shared/arsenalGeometry';
+const args=process.argv.slice(2);
+const option=(name:string)=>{const i=args.indexOf(name);return i<0?undefined:args[i+1];};
+const build=option('--build-dir');
+if(!build)throw Error('Use --build-dir <immutable authored build> [--report <audit.json>] [--out-dir <evidence dir>] [--case <id>].');
+const base=resolve(build),out=resolve(option('--out-dir')??'artifacts/selection-motor');
+const report=JSON.parse(await readFile(option('--report')??join(out,'acervo82-replay.json'),'utf8'));
+const test=report.results.find((row:any)=>row.id===(option('--case')??'4x5-1-short-forbidden'));
+const proposals=test.runs.find((run:any)=>run.policy==='capability_v1').proposals;
+const rows=[];
+try{for(const proposal of proposals){
+ const definition=componentDefinitionV1Schema.parse(JSON.parse(await readFile(`${base}/definitions/${proposal.componentIds[0]}.json`,'utf8')));
+ const family=definition.completeDesign!.family;
+ const pkg=JSON.parse(await readFile(`${base}/packages/${family}.json`,'utf8'));
+ const loadAssetBytes=async(asset:{sha256:string})=>readFile(`${base}/assets/${asset.sha256}`);
+ const measure=await createComponentTextMeasurer(definition.assets,loadAssetBytes);
+ const scene=nativeScene(pkg,definition,measure);
+ const readiness=partitionArsenalReadinessIssues(scene.issues);
+ const reopened=resolveArsenalGeometry(JSON.parse(JSON.stringify(scene)),{measureText:measure});
+ const [render]=await renderReviewScenes({compositions:[scene],definitions:[definition],actor:'selection-motor-offline-replay',deadlineMs:Date.now()+45000,loadAssetBytes});
+ const bytes=Buffer.from(render.dataUri.split(',')[1],'base64');
+ const path=join(out,`acervo82-selected-${proposal.slot}.png`);
+ await writeFile(path,bytes);
+ const originalPath=join(base,'renders',`${family}.png`),original=await readFile(originalPath);
+ const originalSha256=createHash('sha256').update(original).digest('hex');
+ rows.push({originalPath,originalSha256,matchesFrozenNativeRender:bytes.equals(original),visualApproval:'not_evaluated',slot:proposal.slot,family,definitionId:definition.id,definitionHash:definition.hash,readiness,reopenedGeometryEqual:arsenalHash(reopened.elements)===arsenalHash(scene.elements),path,sha256:createHash('sha256').update(bytes).digest('hex'),bytes:bytes.length});
+ console.log(JSON.stringify(rows.at(-1)));
+}}finally{await closeReviewRenderer();await writeFile(join(out,'acervo82-render-evidence.json'),JSON.stringify({caseId:test.id,copySource:'Curated native samples from immutable build08 packages; no new provider copy or semantic adequacy is claimed.', limitation:'Empty readiness findings and preserved geometry do not constitute visual approval. Native samples require independent visual inspection; frozen originals can contain defects.',snapshotHash:report.source.declaredSnapshotHash,paidCalls:0,rows},null,2)+'\n');}

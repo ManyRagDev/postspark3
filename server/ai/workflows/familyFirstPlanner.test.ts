@@ -247,3 +247,29 @@ describe("family-first deterministic planner", () => {
     expect(arsenalHash(legacy)).toBe("0666d8f82996adeb1ccfceb4648c5728d319580fa8d549240d96de7ae64cf638");
   });
 });
+
+describe("capability_v1 integrated three-slot planning", () => {
+  it("uses meaningful diversity from the second proposal while preserving required content in all three", () => {
+    const axes = {organization: "single", density: "light", typography: "sans", imageRole: "type"};
+    const eligible = [
+      repertoire("strong", "cap-strong", {axes}),
+      repertoire("similar", "cap-similar", {axes}),
+      repertoire("different", "cap-different", {axes: {...axes, organization: "columns", typography: "serif", density: "dense"}}),
+      repertoire("weak", "cap-weak", {axes: {...axes, organization: "grid", typography: "mono", density: "dense", imageRole: "graphic"}}),
+    ];
+    const request = { ...input(eligible, {strong: 4, similar: 3.95, different: 3.8, weak: 1}),
+      neutrality: {version: 1, seed: "capability", planningVersion: 3, proposalSelectionVersion: 1, creativeFlexibility: 1, selectionPolicy: "capability_v1"} as const,
+      intent: {...intent, requirements: [{id: "fact", description: "Fato obrigatório", kind: "content", surface: "art", origin: "explicit", source: "declared", strength: "required", requestQuote: "Planejar antes de agir", itemCount: null}],
+        content: [{...intent.content[0], requirementIds: ["fact"]}]} as GenerationIntent,
+    };
+    const plan = buildHeuristicGenerationPlan(request);
+    expect(families(plan, eligible)).toEqual(["strong", "different", "similar"]);
+    for (const slot of plan.slots) {
+      expect(slot.status).toBe("viable");
+      if (slot.status !== "viable") continue;
+      const offer = materializeDesignFamilyOffer(eligible.find(r => r.defaultOffer.offerId === slot.candidateId)!, slot.pages.map(page => page.componentId));
+      expect(validateGenerationPlan(slot, offer, request.intent)).toEqual([]);
+    }
+    expect(buildHeuristicGenerationPlan({...request, eligible: [...eligible].reverse()})).toEqual(plan);
+  });
+});

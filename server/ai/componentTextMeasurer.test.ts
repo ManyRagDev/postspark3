@@ -25,6 +25,19 @@ const request = {
   letterSpacing: 0,
 };
 describe("verified server font measurement", () => {
+  it("returns finite positioned ink for verified accented and multiline glyphs", async () => {
+    const measure = await createComponentTextMeasurer([asset]);
+    const layout = measure({ ...request, text: "Água e ação\nCafé", width: 900 });
+    expect(layout.inkBoxes).toHaveLength(2);
+    for (const box of layout.inkBoxes!) {
+      expect(Object.values(box).every(Number.isFinite)).toBe(true);
+      expect(box.width).toBeGreaterThan(0);
+      expect(box.height).toBeGreaterThan(0);
+    }
+    expect(layout.inkBoxes![1].y).toBeGreaterThan(layout.inkBoxes![0].y);
+    expect(measure({ ...request, letterSpacing: 2 }).inkBoxes).toBeUndefined();
+    expect(measure({ ...request, richText: [{ text: request.text, underline: true }] }).inkBoxes).toBeUndefined();
+  });
   it("does not treat the last separator of an automatically wrapped line as overflow", async () => {
     const measure = await createComponentTextMeasurer([asset]);
     const text = "Basta escanear a nota fiscal do mercado, ditar os ingredientes ou digitar sua lista. A IA identifica tudo o que você adquiriu sem esforço manual.";

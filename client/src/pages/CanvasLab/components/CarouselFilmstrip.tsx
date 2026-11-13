@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { Plus, MoreHorizontal } from "lucide-react";
+import { Plus, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ interface CarouselFilmstripProps {
   onDuplicateSlide: (index: number) => void;
   onRemoveSlide: (index: number) => void;
   onReorderSlide?: (sourceIndex: number, targetIndex: number) => void;
+  compact?: boolean;
 }
 
 const Thumbnail = memo(function Thumbnail({
@@ -70,8 +71,18 @@ export default function CarouselFilmstrip({
   onDuplicateSlide,
   onRemoveSlide,
   onReorderSlide,
+  compact = false,
 }: CarouselFilmstripProps) {
   const [dragged, setDragged] = useState<number | null>(null);
+  if (compact) return (
+    <nav aria-label="Slides do post" className="flex h-11 shrink-0 items-center justify-center gap-2 border-t border-white/10 bg-[#0a0d16] px-2">
+      <button type="button" aria-label="Slide anterior" disabled={currentIndex === 0} onClick={() => onSelectSlide(currentIndex - 1)} className="grid min-h-11 min-w-11 place-items-center text-white disabled:opacity-30"><ChevronLeft size={18} /></button>
+      <select aria-label="Slide atual" value={currentIndex} onChange={event => onSelectSlide(Number(event.target.value))} className="min-h-11 min-w-0 flex-1 max-w-64 truncate bg-[#0a0d16] px-2 text-sm text-white">
+        {slides.map((slide, index) => <option key={slide.id} value={index}>Slide {index + 1} de {slides.length} · {slide.headline || "Sem título"}</option>)}
+      </select>
+      <button type="button" aria-label="Próximo slide" disabled={currentIndex === slides.length - 1} onClick={() => onSelectSlide(currentIndex + 1)} className="grid min-h-11 min-w-11 place-items-center text-white disabled:opacity-30"><ChevronRight size={18} /></button>
+    </nav>
+  );
   return (
     <nav
       aria-label="Slides do post"

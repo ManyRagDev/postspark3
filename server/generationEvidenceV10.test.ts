@@ -470,6 +470,33 @@ async function scenario(
 }
 
 describe("V10 persisted evidence with controlled providers", () => {
+  it.each([2, 3])("audits the authoritative recovery decision of fb%s rather than the first candidate", async index => {
+    const s = await scenario({ count: 4, automatic: true, allReady: true, localSelection: true });
+    const proposal = s.request.proposals[0];
+    expect(proposal.status).toBe("ready");
+    expect(s.prepared.planning!.deliveryReserves).toBeDefined();
+    const prefix = `${proposal.proposalId}:`;
+    const copyOp = s.evidenceInput.operations.find(op => op.operation_key === `${prefix}copy`)!;
+    const copy = JSON.parse(readJournalResult<any>(copyOp.result).choices[0].message.content);
+    proposal.attempt = { index, id: `${proposal.proposalId}-fb${index}` };
+    for (const op of s.evidenceInput.operations) {
+      if (op.operation_key.startsWith(prefix) && (op !== copyOp || index === 3))
+        op.operation_key = op.operation_key.replace(prefix, `${proposal.proposalId}-fb${index}:`);
+    }
+    const key = `${prefix}delivery_recovery:${index}:candidate`;
+    const local = { __generationTrace: { version: 1, calls: [], events: [] } };
+    s.evidenceInput.operations.push(
+      { operation_key: `${prefix}delivery_recovery:candidate`, state: "completed", result: { mode: "unavailable", ...local } },
+      { operation_key: key, state: "completed", result: { mode: index === 3 ? "write_for_design" : "repair_text", copy, plan: s.prepared.planning!.slots[0], ...local } },
+    );
+    const result = s.inspect();
+    expect(result.designElection.issues).toEqual([]);
+    expect(result.checks.filter(check => !check.passed)).toEqual([]);
+    expect(result.passed).toBe(true);
+    const missing = structuredClone(s.evidenceInput);
+    missing.operations = missing.operations.filter(op => op.operation_key !== key);
+    expect(inspectGenerationEvidence(missing).passed).toBe(false);
+  });
   it("plans and delivers three seven-slide proposals with the local selector", async () => {
     const s = await scenario({ count: 3, slideCount: 7, allReady: true });
     expect(s.request.status, JSON.stringify(s.prepared.planning?.slots)).toBe("completed");

@@ -1,3 +1,4 @@
+import { textFragmentCount } from "./componentAssembly";
 import type { ComponentCardV1 } from "./componentAssembly";
 import type { CreativeFamily } from "./creative/types";
 
@@ -39,7 +40,7 @@ export function designTextBudgets(card: ComponentCardV1) {
         Math.floor(region.width / (region.fontSize * 0.55)) *
         Math.max(1, Math.floor(region.height / (region.fontSize * 1.2)))
     );
-    const partitioned = regions.some(region => region.minWords > 1);
+    const partitioned = regions.some(region => textFragmentCount(region) > 1);
     return {
       source,
       estimatedCharacters: partitioned
@@ -197,7 +198,7 @@ export function describeCompleteDesign(
     capacity: unique([
       ...text.map(
         region =>
-          `${region.source}: ${Math.floor(region.width / region.fontSize)} em wide × ${Math.floor(region.height / region.fontSize)} em high at authored font size (geometry, not a character limit)${region.minWords > 1 ? `; native word partition: ${region.minWords} fragments share this canonical field; short text can leave a slice empty. Prefer sufficient supplied words when rewriting is allowed; never expand visual_only text to fill a layout` : ""}`
+          `${region.source}: ${Math.floor(region.width / region.fontSize)} em wide × ${Math.floor(region.height / region.fontSize)} em high at authored font size (geometry, not a character limit)${textFragmentCount(region) > 1 ? `; native word partition: ${textFragmentCount(region)} fragments share this canonical field; short text can leave a slice empty. Prefer sufficient supplied words when rewriting is allowed; never expand visual_only text to fill a layout` : ""}`
       ),
       ...budgets.map(
         budget =>

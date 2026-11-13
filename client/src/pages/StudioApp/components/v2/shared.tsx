@@ -105,16 +105,16 @@ export function FormatSelector({
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <div style={{ ...MONO, color: STUDIO.ink40, fontSize: 10 }}>Formato</div>
+      <div className="flex items-center justify-between gap-3 mb-1.5 sm:mb-2">
+        <div style={{ ...MONO, color: STUDIO.ink40, fontSize: 12, letterSpacing: "0.1em" }}>Formato</div>
         {proposalAspectRatio && onProposalAspectRatioChange && (
           <label className="flex items-center gap-1.5 text-xs text-white/75">
-            <span style={{ ...MONO, color: STUDIO.ink40, fontSize: 9.5 }}>Proporção</span>
+            <span className="hidden sm:inline" style={{ ...MONO, color: STUDIO.ink40, fontSize: 11 }}>Proporção</span>
             <select
               aria-label="Formato das propostas"
               value={proposalAspectRatio}
               onChange={(e) => onProposalAspectRatioChange(e.target.value as "1:1" | "4:5" | "9:16")}
-              className="h-7 rounded border border-white/15 bg-black/40 px-2 text-[11px] text-white focus:border-[#FF5C00]/60 focus:outline-none transition-colors cursor-pointer"
+              className="min-h-11 rounded-lg border border-white/15 bg-black/40 px-3 text-sm text-white focus:border-[#FF5C00]/60 focus:outline-none transition-colors cursor-pointer"
             >
               <option value="4:5" className="bg-neutral-900 text-white">Retrato 4:5</option>
               <option value="1:1" className="bg-neutral-900 text-white">Quadrado 1:1</option>
@@ -123,7 +123,7 @@ export function FormatSelector({
           </label>
         )}
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-2">
         {options.map((option) => {
           const active = option.id === value;
           const isDisabled = Boolean(option.disabled);
@@ -138,7 +138,7 @@ export function FormatSelector({
                   onChange(option.id);
                 }
               }}
-              className={`flex items-center justify-center gap-2 rounded-lg border py-2.5 px-3 text-left transition-all duration-200 select-none ${
+              className={`relative min-h-12 ${isDisabled ? "hidden sm:flex" : "flex"} flex-row items-center justify-center gap-1 sm:gap-2 rounded-xl sm:rounded-lg border py-2 px-1.5 sm:py-2.5 sm:px-3 text-center sm:text-left transition-all duration-200 select-none ${
                 isDisabled
                   ? "opacity-45 cursor-not-allowed border-white/10 bg-white/[0.01]"
                   : active
@@ -148,23 +148,27 @@ export function FormatSelector({
               title={isDisabled ? "Geração de vídeo em breve!" : undefined}
             >
               <FormatPictogram mode={option.id} active={active} />
-              <div className="min-w-0 flex items-center gap-1.5">
+              <div className="min-w-0 flex items-center justify-center sm:justify-start gap-1.5">
                 <span
                   style={{
                     ...MONO,
-                    fontSize: 11,
                     color: active ? "#FFFFFF" : isDisabled ? STUDIO.ink40 : STUDIO.ink60,
                   }}
-                  className="whitespace-nowrap font-medium"
+                  className="text-xs sm:text-[11px] leading-tight whitespace-nowrap font-medium !tracking-[0.04em]"
                 >
                   {option.label}
                 </span>
                 {option.badge && (
-                  <span className="rounded bg-orange-500/20 px-1.5 py-0.5 text-[8px] font-mono font-bold uppercase tracking-wider text-orange-400 border border-orange-500/30 whitespace-nowrap">
+                  <span className="hidden sm:inline-flex rounded bg-orange-500/20 px-1.5 py-0.5 text-[8px] font-mono font-bold uppercase tracking-wider text-orange-400 border border-orange-500/30 whitespace-nowrap">
                     {option.badge}
                   </span>
                 )}
               </div>
+              {option.badge && (
+                <span className="sm:hidden absolute -top-1.5 right-1.5 rounded-full bg-[#1a130f] px-1.5 py-0.5 text-[7px] font-mono font-bold uppercase tracking-wider text-orange-400 border border-orange-500/35 whitespace-nowrap">
+                  {option.badge}
+                </span>
+              )}
             </button>
           );
         })}

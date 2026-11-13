@@ -60876,3 +60876,183 @@ estimatedCostUsd: 0.001
 responseId: fixture-provider-4
 error: undefined
 
+[2026-11-13T02:48:10.506Z] HTTP_ERROR
+method: GET
+url: /api/post-media/25c1b164-6829-4b88-9f34-052ea8f7b13a/d10fbade4d7d80c6e2b28b41923ddd66fa5776e81de378493aa8dfe6a28f7067
+statusCode: 404
+durationMs: 529
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: Not Found
+
+[2026-11-13T02:48:37.016Z] HTTP_ERROR
+method: GET
+url: /api/trpc/designCatalog.resolveArsenalAssets?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22ids%22%3A%5B%22font-95837e182baeeada83368f7748db28357f0a1b75c6b84ff7065b5edf933c8e18%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 496
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-11-13T02:48:37.487Z] HTTP_ERROR
+method: GET
+url: /api/trpc/designCatalog.resolveArsenalAssets?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22ids%22%3A%5B%22font-29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 499
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-11-13T02:48:41.519Z] HTTP_ERROR
+method: GET
+url: /api/trpc/designCatalog.resolveArsenalAssets?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22ids%22%3A%5B%22font-29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 490
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-11-13T02:48:41.615Z] HTTP_ERROR
+method: GET
+url: /api/post-media/25c1b164-6829-4b88-9f34-052ea8f7b13a/d10fbade4d7d80c6e2b28b41923ddd66fa5776e81de378493aa8dfe6a28f7067
+statusCode: 404
+durationMs: 503
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: Not Found
+
+[2026-11-13T02:49:43.916Z] HTTP_ERROR
+method: GET
+url: /api/trpc/designCatalog.resolveArsenalAssets?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22ids%22%3A%5B%22font-29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 1172
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-11-13T02:54:38.081Z] HTTP_ERROR
+method: GET
+url: /api/post-media/25c1b164-6829-4b88-9f34-052ea8f7b13a/d10fbade4d7d80c6e2b28b41923ddd66fa5776e81de378493aa8dfe6a28f7067
+statusCode: 404
+durationMs: 831
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: Not Found
+
+[2026-11-13T02:54:38.305Z] HTTP_ERROR
+method: GET
+url: /api/trpc/designCatalog.resolveArsenalAssets?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22ids%22%3A%5B%22font-29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 1080
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-11-13T02:54:48.782Z] HTTP_ERROR
+method: GET
+url: /api/trpc/designCatalog.resolveArsenalAssets?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22ids%22%3A%5B%22font-29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 967
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-11-13T02:54:49.067Z] HTTP_ERROR
+method: GET
+url: /api/post-media/25c1b164-6829-4b88-9f34-052ea8f7b13a/d10fbade4d7d80c6e2b28b41923ddd66fa5776e81de378493aa8dfe6a28f7067
+statusCode: 404
+durationMs: 1213
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: Not Found
+
+[2026-11-13T02:55:19.633Z] HTTP_ERROR
+method: GET
+url: /api/trpc/designCatalog.resolveArsenalAssets?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22ids%22%3A%5B%22font-29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 519
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-11-13T02:55:19.961Z] HTTP_ERROR
+method: GET
+url: /api/post-media/25c1b164-6829-4b88-9f34-052ea8f7b13a/d10fbade4d7d80c6e2b28b41923ddd66fa5776e81de378493aa8dfe6a28f7067
+statusCode: 404
+durationMs: 795
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: Not Found
+
+[2026-11-13T02:57:05.369Z] HTTP_ERROR
+method: GET
+url: /api/post-media/25c1b164-6829-4b88-9f34-052ea8f7b13a/353a7a4171112d528bba3f76c655b34a48989380cbb6deefafa6e2db7323e491
+statusCode: 404
+durationMs: 551
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: Not Found
+
+[2026-11-13T02:58:29.946Z] HTTP_ERROR
+method: GET
+url: /api/trpc/designCatalog.resolveArsenalAssets?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22ids%22%3A%5B%22font-29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 775
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-11-13T02:58:29.979Z] HTTP_ERROR
+method: GET
+url: /api/post-media/25c1b164-6829-4b88-9f34-052ea8f7b13a/353a7a4171112d528bba3f76c655b34a48989380cbb6deefafa6e2db7323e491
+statusCode: 404
+durationMs: 846
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: Not Found
+
+[2026-11-13T02:59:01.368Z] HTTP_ERROR
+method: GET
+url: /api/post-media/25c1b164-6829-4b88-9f34-052ea8f7b13a/353a7a4171112d528bba3f76c655b34a48989380cbb6deefafa6e2db7323e491
+statusCode: 404
+durationMs: 946
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: Not Found
+
+[2026-11-13T02:59:01.662Z] HTTP_ERROR
+method: GET
+url: /api/trpc/designCatalog.resolveArsenalAssets?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22ids%22%3A%5B%22font-29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 1236
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-11-13T03:00:55.980Z] HTTP_ERROR
+method: GET
+url: /api/trpc/designCatalog.resolveArsenalAssets?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22ids%22%3A%5B%22font-29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031%22%5D%7D%7D%7D
+statusCode: 500
+durationMs: 815
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: undefined
+
+[2026-11-13T03:00:56.234Z] HTTP_ERROR
+method: GET
+url: /api/post-media/25c1b164-6829-4b88-9f34-052ea8f7b13a/353a7a4171112d528bba3f76c655b34a48989380cbb6deefafa6e2db7323e491
+statusCode: 404
+durationMs: 1119
+ip: ::1
+userAgent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36
+responseBody: Not Found
+
+[2026-11-13T15:05:02.824Z] UNHANDLED_REJECTION
+reason: Error: The service was stopped
+    at /home/emanuel/Documentos/Projetos linux/PostSpark 3/node_modules/.pnpm/esbuild@0.28.2/node_modules/esbuild/lib/main.js:1001:38
+    at responseCallbacks.<computed> (/home/emanuel/Documentos/Projetos linux/PostSpark 3/node_modules/.pnpm/esbuild@0.28.2/node_modules/esbuild/lib/main.js:886:9)
+    at Socket.afterClose (/home/emanuel/Documentos/Projetos linux/PostSpark 3/node_modules/.pnpm/esbuild@0.28.2/node_modules/esbuild/lib/main.js:877:28)
+    at Socket.emit (node:events:531:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+

@@ -60,7 +60,14 @@ export const generationIntentLegacySchema = z
   })
   .strict();
 // Keep the historical provider schema byte-for-byte reproducible on recovery.
-export const generationIntentSchema = generationIntentLegacySchema.extend({ editorial: editorialIntentReadingSchema.optional() });
+export const requirementEvidenceSchema = generationIntentLegacySchema.shape.requirements.element.extend({
+  source: z.enum(["declared", "inferred", "physical"]).optional(),
+  strength: z.enum(["required", "preference"]).optional(),
+});
+export const generationIntentSchema = generationIntentLegacySchema.extend({
+  editorial: editorialIntentReadingSchema.optional(),
+  requirements: z.array(requirementEvidenceSchema).max(50),
+});
 export const generationEditorialIntentSchema = generationIntentLegacySchema.extend({ editorial: editorialIntentReadingSchema });
 export type GenerationIntent = z.infer<typeof generationIntentSchema>;
 
@@ -171,8 +178,8 @@ export function normalizeGenerationIntent(
  * review links only content obligations to visible text units. Historical input
  * without classification is returned unchanged. */
 export function materialGenerationIntent(intent?: GenerationIntent): GenerationIntent | undefined {
-  if (!intent?.requirements.some(r => r.kind)) return intent;
-  const requirements = intent.requirements.filter(r => r.kind !== "execution").map(({ kind: _kind, ...requirement }) => requirement);
+  if (!intent?.requirements.some(r => r.kind || r.source || r.strength)) return intent;
+  const requirements = intent.requirements.filter(r => r.kind !== "execution" && r.strength !== "preference").map(({ kind: _kind, source: _source, strength: _strength, ...requirement }) => requirement);
   const ids = new Set(requirements.map(r => r.id));
   return { ...intent, requirements, content: intent.content.map(c => ({ ...c, requirementIds: c.requirementIds.filter(id => ids.has(id)) })) };
 }
@@ -240,6 +247,21 @@ export type GenerationSlotPlan =
     };
 export type ViableGenerationPlan = z.infer<typeof viablePlanSchema>;
 export const DELIVERY_RECOVERY_KEY = "delivery_recovery:candidate";
+/** SQL begin_safe allows only local keys ending in :candidate. */
+export function deliveryRecoveryKey(attempt: number) {
+  if (!Number.isInteger(attempt) || attempt < 1 || attempt > 3) throw new Error("invalid_delivery_recovery_attempt");
+  return attempt === 1 ? DELIVERY_RECOVERY_KEY : `delivery_recovery:${attempt}:candidate`;
+}
+/** Read old local receipts without ever emitting the SQL-incompatible spelling. */
+export function deliveryRecoveryAttempt(key: string): number | undefined {
+  if (key === DELIVERY_RECOVERY_KEY) return 1;
+  const match = key.match(/^delivery_recovery:([23]):candidate$/) ?? key.match(/^delivery_recovery:candidate:([23])$/);
+  return match ? Number(match[1]) : undefined;
+}
+export function deliveryRecoveryReadKeys(attempt: number): string[] {
+  return Number.isInteger(attempt) && attempt >= 1 && attempt <= 3
+    ? [deliveryRecoveryKey(attempt), ...(attempt > 1 ? [`${DELIVERY_RECOVERY_KEY}:${attempt}`] : [])] : [];
+}
 export const generationPlanResponseSchema = z
   .object({
     version: z.literal(1),
@@ -363,7 +385,7 @@ export function validateGenerationPlan(
   });
   plan.captionContentIds.forEach(c => use(c, "caption"));
   for (const requirement of intent.requirements.filter(
-    r => r.origin === "explicit" && r.kind !== "execution"
+    r => r.origin === "explicit" && r.kind !== "execution" && r.strength !== "preference"
   )) {
     const content = intent.content.filter(c =>
       c.requirementIds.includes(requirement.id)
@@ -403,7 +425,7 @@ export function validateGenerationIntent(
     if (requirement.origin === "explicit" && requirement.kind !== "execution" && !intent.content.some(c => c.requirementIds.includes(requirement.id)))
       problems.push(`unmapped_requirement:${requirement.id}`);
     if (
-      requirement.origin === "explicit" &&
+      (requirement.origin === "explicit" || requirement.source === "declared") &&
       (!requirement.requestQuote ||
         !isAttributableQuote(requestText, requirement.requestQuote))
     )

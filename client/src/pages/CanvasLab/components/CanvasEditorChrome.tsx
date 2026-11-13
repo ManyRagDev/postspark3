@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   ImagePlus,
   Image as BackgroundIcon,
@@ -9,6 +9,8 @@ import {
   X,
   MessageSquareText,
   SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 export type CanvasEditorTool =
@@ -53,6 +55,11 @@ export default function CanvasEditorChrome({
   selectionLabel,
   selectionActions,
 }: CanvasEditorChromeProps) {
+  const [panelSize, setPanelSize] = useState<"compact" | "normal" | "expanded">("normal");
+  const panelHeight = panelSize === "compact" ? 44 : Math.min(
+    (mobileViewportHeight || 667) * (panelSize === "expanded" ? 0.68 : 0.4),
+    panelSize === "expanded" ? 640 : 420,
+  );
   const title =
     activeTool === "selection"
       ? selectionLabel || "Propriedades"
@@ -114,18 +121,26 @@ export default function CanvasEditorChrome({
           <section
             aria-label={title}
             style={
-              mobile && mobileViewportHeight
-                ? { maxHeight: Math.min(mobileViewportHeight * 0.48, 420) }
+              mobile
+                ? { maxHeight: panelHeight }
                 : undefined
             }
             className={
               mobile
-                ? "flex max-h-[min(48dvh,420px)] flex-col border-t border-white/10"
+                ? "flex min-h-0 flex-col border-t border-white/10"
                 : "flex min-h-0 w-80 max-w-[calc(100vw-5rem)] flex-col"
             }
           >
             <header className="flex min-h-11 shrink-0 items-center justify-between border-b border-white/10 px-4">
-              <h2 className="text-sm font-semibold">{title}</h2>
+              <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</h2>
+              {mobile && <>
+                <button type="button" aria-label={panelSize === "compact" ? "Mostrar controles" : "Recolher painel"} onClick={() => setPanelSize(panelSize === "compact" ? "normal" : "compact")} className="grid min-h-11 min-w-11 place-items-center text-white/80">
+                  {panelSize === "compact" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </button>
+                <button type="button" aria-label={panelSize === "expanded" ? "Reduzir painel" : "Ampliar painel"} onClick={() => setPanelSize(panelSize === "expanded" ? "normal" : "expanded")} className="min-h-11 px-2 text-xs text-white/80">
+                  {panelSize === "expanded" ? "Reduzir" : "Ampliar"}
+                </button>
+              </>}
               <button
                 type="button"
                 aria-label="Fechar painel"
@@ -135,7 +150,7 @@ export default function CanvasEditorChrome({
                 <X size={18} />
               </button>
             </header>
-            {selectionLabel && activeTool !== "selection" && (
+            {selectionLabel && activeTool !== "selection" && (!mobile || panelSize !== "compact") && (
               <div
                 role="toolbar"
                 aria-label="Ações do objeto selecionado"
@@ -156,7 +171,7 @@ export default function CanvasEditorChrome({
             )}
             <div
               key={activeTool}
-              className="min-h-0 overflow-y-auto overscroll-contain p-4"
+              className={mobile && panelSize === "compact" ? "hidden" : "min-h-0 overflow-y-auto overscroll-contain p-4"}
             >
               {contents[activeTool]}
             </div>

@@ -107,8 +107,8 @@ beforeEach(() => {
   root = createRoot(host);
 
   canvasLabProps = null;
-  trpcMock.saveMutateAsync.mockReset().mockResolvedValue({ id: 101 });
-  trpcMock.updateMutateAsync.mockReset().mockResolvedValue({ id: 101 });
+  trpcMock.saveMutateAsync.mockReset().mockResolvedValue({ id: 101, revision: 1 });
+  trpcMock.updateMutateAsync.mockReset().mockResolvedValue({ id: 101, revision: 1 });
   trpcMock.listInvalidate.mockReset().mockResolvedValue(undefined);
   trpcMock.profileInvalidate.mockReset().mockResolvedValue(undefined);
 
@@ -159,7 +159,7 @@ describe("StudioAppV2BPage Save Intent and Queue Serialization (OS-008 & C01)", 
       return new Promise((r) =>
         releases.push(() => {
           active--;
-          r({ id: 505 });
+          r({ id: 505, revision: 1 });
         })
       );
     });
@@ -172,7 +172,7 @@ describe("StudioAppV2BPage Save Intent and Queue Serialization (OS-008 & C01)", 
       await Promise.resolve();
     });
     await act(async () => {
-      releaseInsert({ id: 505 });
+      releaseInsert({ id: 505, revision: 1 });
       await a;
       await new Promise((r) => setTimeout(r, 0));
     });

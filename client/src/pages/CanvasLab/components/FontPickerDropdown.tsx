@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ChevronDown, Search, Check, Type, X } from "lucide-react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { useIsMobile } from "@/hooks/useMobile";
 import {
   FONT_CATALOG,
   loadCatalogFonts,
@@ -40,6 +42,9 @@ export default function FontPickerDropdown({
   className = "",
   mixed = false,
 }: FontPickerDropdownProps) {
+  const isMobile = useIsMobile();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<CategoryTab>("all");
@@ -61,18 +66,18 @@ export default function FontPickerDropdown({
   // Focus search input when dropdown opens
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 50);
+      if (isMobile) return;
+      const timer = setTimeout(() => searchInputRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
     } else {
       setSearch("");
       setActiveTab("all");
     }
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
 
   // Close dropdown on click outside or escape key
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isMobile) return;
 
     const handlePointerDown = (e: MouseEvent | TouchEvent) => {
       if (
@@ -98,7 +103,7 @@ export default function FontPickerDropdown({
       document.removeEventListener("touchstart", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
 
   // Build unified font list
   const allFonts = useMemo(() => {
@@ -194,54 +199,7 @@ export default function FontPickerDropdown({
     return CATEGORY_TABS;
   }, [userFonts, uploadedFontName]);
 
-  return (
-    <div ref={containerRef} className={`relative w-full ${className}`}>
-      {/* ── Trigger Button ── */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(prev => !prev)}
-        className="w-full flex items-center justify-between gap-2 p-2.5 rounded-xl border border-white/10 bg-[#12141A] hover:bg-white/6 transition-all text-left cursor-pointer group focus:outline-none focus:border-[oklch(0.78_0.22_48)]"
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-      >
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <div className="w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-white/50 group-hover:text-[oklch(0.78_0.22_48)] transition-colors">
-            <Type size={13} />
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span
-              style={{ fontFamily: currentFontInfo.name }}
-              className="text-sm text-white font-medium truncate tracking-wide"
-            >
-              {currentFontInfo.label}
-            </span>
-            <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">
-              {currentFontInfo.categoryLabel}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <span
-            style={{ fontFamily: currentFontInfo.name }}
-            className="hidden sm:inline-block text-[11px] px-2 py-0.5 rounded-md bg-white/5 border border-white/8 text-white/50"
-          >
-            Aa 123
-          </span>
-          <ChevronDown
-            size={14}
-            className={`text-white/50 transition-transform duration-200 ${
-              isOpen
-                ? "rotate-180 text-[oklch(0.78_0.22_48)]"
-                : "group-hover:text-white"
-            }`}
-          />
-        </div>
-      </button>
-
-      {/* ── Floating Dropdown Popover ── */}
-      {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl bg-[#0f1118]/98 border border-white/15 shadow-2xl backdrop-blur-2xl p-2.5 space-y-2 max-h-[380px] flex flex-col animate-in fade-in zoom-in-95 duration-150">
+  const pickerContents = <>
           {/* Campo de Busca */}
           <div className="relative shrink-0">
             <Search
@@ -251,16 +209,18 @@ export default function FontPickerDropdown({
             <input
               ref={searchInputRef}
               type="text"
+              aria-label="Buscar tipografia"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar tipografia..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-7 py-1.5 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)] transition-colors"
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-11 min-h-11 text-base md:text-sm text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)] transition-colors"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-0.5"
+                aria-label="Limpar busca de fontes"
+                className="absolute right-0 top-0 grid min-h-11 min-w-11 place-items-center text-white/70 hover:text-white"
               >
                 <X size={12} />
               </button>
@@ -275,8 +235,9 @@ export default function FontPickerDropdown({
                 <button
                   key={tab.id}
                   type="button"
+                  aria-pressed={isActive}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-medium whitespace-nowrap transition-all cursor-pointer ${
+                  className={`min-h-11 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
                     isActive
                       ? "bg-[oklch(0.78_0.22_48)] text-black font-semibold shadow-sm"
                       : "bg-white/5 text-white/60 hover:text-white hover:bg-white/10"
@@ -289,7 +250,7 @@ export default function FontPickerDropdown({
           </div>
 
           {/* Lista de Fontes com Pré-Visualização */}
-          <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-0.5">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-1 custom-scrollbar pr-0.5">
             {filteredFonts.length === 0 ? (
               <div className="py-6 text-center text-xs text-white/40 italic">
                 Nenhuma tipografia encontrada para "{search}".
@@ -341,8 +302,72 @@ export default function FontPickerDropdown({
               })
             )}
           </div>
+  </>;
+
+  return (
+    <div ref={containerRef} className={`relative w-full ${className}`}>
+      {/* ── Trigger Button ── */}
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setIsOpen(prev => !prev)}
+        className="w-full flex items-center justify-between gap-2 p-2.5 rounded-xl border border-white/10 bg-[#12141A] hover:bg-white/6 transition-all text-left cursor-pointer group focus:outline-none focus:border-[oklch(0.78_0.22_48)]"
+        aria-haspopup={isMobile ? "dialog" : "listbox"}
+        aria-expanded={isOpen}
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-white/50 group-hover:text-[oklch(0.78_0.22_48)] transition-colors">
+            <Type size={13} />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span
+              style={{ fontFamily: currentFontInfo.name }}
+              className="text-sm text-white font-medium truncate tracking-wide"
+            >
+              {currentFontInfo.label}
+            </span>
+            <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">
+              {currentFontInfo.categoryLabel}
+            </span>
+          </div>
         </div>
-      )}
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span
+            style={{ fontFamily: currentFontInfo.name }}
+            className="hidden sm:inline-block text-[11px] px-2 py-0.5 rounded-md bg-white/5 border border-white/8 text-white/50"
+          >
+            Aa 123
+          </span>
+          <ChevronDown
+            size={14}
+            className={`text-white/50 transition-transform duration-200 ${
+              isOpen
+                ? "rotate-180 text-[oklch(0.78_0.22_48)]"
+                : "group-hover:text-white"
+            }`}
+          />
+        </div>
+      </button>
+
+      {isOpen && (isMobile ? (
+        <Dialog.Root open onOpenChange={setIsOpen}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-[89] bg-black/60" />
+            <Dialog.Content aria-describedby={undefined} onOpenAutoFocus={event => { event.preventDefault(); closeRef.current?.focus(); }} onCloseAutoFocus={event => { event.preventDefault(); triggerRef.current?.focus(); }} className="fixed inset-0 z-[90] flex h-[100dvh] flex-col gap-3 bg-[#0f1118] p-4 pb-[max(16px,env(safe-area-inset-bottom))] text-white outline-none">
+              <header className="flex shrink-0 items-center justify-between gap-2">
+                <Dialog.Title className="text-base font-semibold">Escolher fonte</Dialog.Title>
+                <Dialog.Close ref={closeRef} aria-label="Fechar fontes" className="grid min-h-11 min-w-11 place-items-center"><X size={20} /></Dialog.Close>
+              </header>
+              {pickerContents}
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+      ) : (
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl bg-[#0f1118] border border-white/15 shadow-2xl p-2.5 space-y-2 max-h-[380px] flex flex-col">
+          {pickerContents}
+        </div>
+      ))}
     </div>
   );
 }

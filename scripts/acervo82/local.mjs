@@ -89,7 +89,7 @@ if (command === "init") {
           )
         );
         const profile = await client.query(
-          `select p.id,p.plan,exists(select 1 from acervo82_private.access_grants g where g.user_id=p.id) as access
+          `select p.id,p.plan,exists(select 1 from postspark.app_access g where g.user_id=p.id and g.revoked_at is null) as access
           from postspark.profiles p where p.id=$1 and p.email=$2`,
           [account.id, account.email]
         );

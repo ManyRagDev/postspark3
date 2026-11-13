@@ -8,7 +8,8 @@ const GROUP_LABELS: Record<ReplicationGroup, { title: string; detail: string }> 
   background: { title: "Fundo", detail: "Imagem, enquadramento e divisão" },
   colors: { title: "Cores", detail: "Paleta e overlay; preserva cores manuais do texto" },
   font: { title: "Fonte", detail: "Família tipográfica" },
-  headline: { title: "Título", detail: "Alinhamento, tamanho, efeito e cor; sem copiar palavras" },
+  headline: { title: "Aparência do título", detail: "Fonte, alinhamento, tamanho e cor; sem copiar palavras" },
+  headlineText: { title: "Texto do título", detail: "Substitui as palavras do título nos slides escolhidos" },
   body: { title: "Corpo", detail: "Alinhamento, tamanho, efeito e cor; sem copiar palavras" },
   composition: { title: "Composição", detail: "Família visual; layouts guiados reajustam fonte, cores de leitura e posições sem copiar conteúdo" },
 };
@@ -73,7 +74,7 @@ export default function SlideReplicationDialog({ open, post, onOpenChange, onApp
                   </label>
                 ))}
               </div>
-              <p className="mt-3 text-[11px] text-white/45">Texto escrito, imagens sobrepostas e sublinhado de palavras não são copiados.</p>
+              <p className="mt-3 text-[11px] text-white/45">O texto do título só é copiado quando selecionado. Imagens sobrepostas e marcações individuais das palavras não são copiadas.</p>
             </div>
           ) : (
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">

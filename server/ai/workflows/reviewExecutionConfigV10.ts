@@ -3,7 +3,7 @@ import { positiveEditorialInstructions } from "@shared/compactEditorialContract"
 import { z } from "zod";
 import { AUTOMATIC_REVIEW_PROTOCOL, AUTOMATIC_REVIEW_PROTOCOL_V3, AUTOMATIC_REVIEW_PROTOCOL_V4, compactAutomaticReviewInstructionsV4, compactAutomaticReviewInstructions, compactAutomaticReviewInstructionsV3 } from "./automaticReviewProtocol";
 import type { GenerationTaskModelConfig } from "@shared/generationModel";
-import { generationIntentSchema } from "@shared/generationPlan";
+import { generationIntentLegacySchema as generationIntentSchema } from "@shared/generationPlan";
 import { arsenalHash } from "@shared/arsenalContent";
 import { GenerationFailureError } from "@shared/generationFailure";
 import {

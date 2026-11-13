@@ -11,7 +11,9 @@ const state = vi.hoisted(() => ({
   manifest: vi.fn(),
   snapshot: vi.fn(),
   cards: vi.fn(),
+  editorial: vi.fn(),
 }));
+vi.mock("../designCatalog/editorialCatalog", () => ({ readEditorialCatalog: state.editorial }));
 vi.mock("../designCatalog/versionedCatalog", () => ({
   readCatalogManifest: state.manifest,
   readCatalogSnapshot: state.snapshot,
@@ -65,6 +67,7 @@ const ctx = (role = "admin") => ({
 });
 const counts = (n: number) => ({ staticOfferCount: n, carouselOfferCount: n });
 beforeEach(() => {
+  state.editorial.mockResolvedValue({ revision: "1" });
   vi.stubEnv("NODE_ENV", "development");
   vi.stubEnv("VERCEL", "");
   Object.assign(ENV, {
@@ -119,6 +122,34 @@ afterEach(() => {
 });
 
 describe("Studio catalog download before generation admission", () => {
+  it("allows the external trial admin to download exactly the same inactive catalog before admission", async () => {
+    Object.assign(ENV, { localDemandEnabled: false, generationWorkerMode: "external", trialCatalogRevision: "3", trialCatalogAdminUuid: owner, openRouterProposalReviewModel: "fixture", openRouterVisionModel: "fixture" });
+    const generation = generationRouter.createCaller(ctx());
+    const catalog = catalogRouter.createCaller(ctx());
+    const capabilities = await generation.capabilities();
+    expect(capabilities).toMatchObject({ enabled: true, catalogRevision: "3", catalogScope: "experimental" });
+    expect(await catalog.manifest()).toMatchObject({ revision: "3" });
+    const snapshot = await catalog.snapshot({ revision: "3" });
+    expect(snapshot.rows).toHaveLength(2);
+    expect(snapshot.rows[0]).not.toHaveProperty("definition");
+    await expect(catalog.snapshot({ revision: "1" })).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(await designCatalogRouter.createCaller(ctx()).generationReadiness()).toMatchObject({ draftCandidateCount: 29 });
+    await generation.start(input);
+    expect(state.admission).toHaveBeenCalledWith(expect.objectContaining({ catalogRevision: "3", trialCatalog: true, stagedCatalog: false, executorScope: undefined }));
+    expect(state.enqueue).not.toHaveBeenCalled();
+    for (const denied of [ctx("user"), { ...ctx(), user: { ...ctx().user, id: requestId } }]) {
+      await expect(catalogRouter.createCaller(denied).snapshot({ revision: "3" })).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    }
+  });
+
+  it("keeps trial generation unavailable without its editorial publication and does not reserve", async () => {
+    Object.assign(ENV, { localDemandEnabled: false, generationWorkerMode: "external", trialCatalogRevision: "3", trialCatalogAdminUuid: owner, openRouterProposalReviewModel: "fixture", openRouterVisionModel: "fixture" });
+    state.editorial.mockResolvedValue(null);
+    const api = generationRouter.createCaller(ctx());
+    expect(await api.capabilities()).toMatchObject({ enabled: false });
+    await expect(api.start(input)).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    expect(state.admission).not.toHaveBeenCalled();
+  });
   it("uses the same local staged revision for capabilities, download, readiness and admission", async () => {
     const generation = generationRouter.createCaller(ctx());
     const catalog = catalogRouter.createCaller(ctx());
@@ -171,4 +202,20 @@ describe("Studio catalog download before generation admission", () => {
     await generationRouter.createCaller(ctx()).start(input);
     expect(state.admission).toHaveBeenCalledWith(expect.objectContaining({ catalogRevision: "1", stagedCatalog: false }));
   });
+});
+
+it("checks hosted availability and admin readiness without downloading catalogue documents", async () => {
+  ENV.localDemandEnabled = false;
+  ENV.generationWorkerMode = "external";
+  state.cards.mockClear(); state.snapshot.mockClear();
+  for (let i = 0; i < 20; i++) {
+    expect(await generationRouter.createCaller(ctx("user")).capabilities()).toMatchObject({enabled: true,staticOfferCount:1,carouselOfferCount:1});
+    expect(await designCatalogRouter.createCaller(ctx()).generationReadiness()).toMatchObject({candidateCount:1,draftCandidateCount:2});
+  }
+  expect(await generationRouter.createCaller(ctx()).capabilities()).not.toHaveProperty("catalogProject");
+  expect(state.cards).not.toHaveBeenCalled();
+  expect(state.snapshot).not.toHaveBeenCalled();
+  state.manifest.mockRejectedValue(new Error("dirty publication"));
+  expect(await generationRouter.createCaller(ctx()).capabilities()).toMatchObject({enabled:false,reason:"catalog_publication_required"});
+  expect(state.cards).not.toHaveBeenCalled();
 });

@@ -19,6 +19,7 @@ export async function generationPostgresFixture(owner: string) {
  CREATE TABLE postspark.design_component_asset_grants(user_uuid uuid REFERENCES auth.users(id),asset_id text NOT NULL,component_id uuid REFERENCES postspark.design_components(id),PRIMARY KEY(user_uuid,asset_id,component_id));
  `);
   for (const name of [
+    "0009_normalize_generation_runs_created_at.sql",
     "0034_orchestrated_generation.sql",
     "0035_generation_lease_conflict.sql",
     "0038_generation_recent_selections_replay.sql",

@@ -51,12 +51,14 @@ export const arsenalSearchHitSchema = z
         compilerVersion: arsenalCompilerSchema,
         capabilities: z.array(z.string()),
         fields: z.array(
-          arsenalBindingSchema.pick({
-            source: true,
-            kind: true,
-            required: true,
-            cardinality: true,
-          })
+          // Search cards carry a projection, without the targets required by
+          // full-binding refinements. Reuse field validators, not refinements.
+          z.object({
+            source: arsenalBindingSchema.shape.source,
+            kind: arsenalBindingSchema.shape.kind,
+            required: arsenalBindingSchema.shape.required,
+            cardinality: arsenalBindingSchema.shape.cardinality,
+          }).strict()
         ),
         hasMedia: z.boolean(),
         brandPolicy: arsenalVariantSchema.shape.brandPolicy.nullable(),

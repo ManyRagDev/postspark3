@@ -12,6 +12,7 @@ import type { ArsenalAsset } from "@shared/designArsenal";
 import type { ArsenalTextMeasurer } from "@shared/arsenalGeometry";
 import { layoutRichText } from "@shared/arsenalTextLayout";
 import type { RichTextLayoutConfig } from "@shared/arsenalTextLayout";
+import { konvaTextBaseline } from "@shared/arsenalPhysicalContract";
 
 /** Word partitions retain separators for lossless reassembly. They have no ink
  * at line end and must not turn an otherwise fitting fragment into overflow.
@@ -42,7 +43,11 @@ function measurementText(input: RichTextLayoutConfig): RichTextLayoutConfig {
 
 type MeasurableFont = {
   unitsPerEm: number;
-  layout: (text: string) => { advanceWidth: number };
+  ascent: number;
+  descent: number;
+  layout: (text: string) => { advanceWidth: number;
+    glyphs: Array<{bbox:{minX:number;maxX:number;minY:number;maxY:number}}>;
+    positions: Array<{xAdvance:number;yAdvance:number;xOffset:number;yOffset:number}> };
   variationAxes?: Record<string, { min: number; max: number }>;
   getVariation?: (axes: Record<string, number>) => MeasurableFont;
 };
@@ -90,7 +95,9 @@ export async function loadComponentFontBytes(
     throw new Error("component_font_unavailable");
   return Buffer.from(await result.data.arrayBuffer());
   };
-  return ENV.localDemandEnabled?cachedAssetBytes(asset.sha256,()=>download(AbortSignal.timeout(15000)),signal):download(signal);
+  // The immutable SHA-256 key invalidates naturally when a published font changes.
+  // Share verified bytes in both executors; cancellation remains caller-local.
+  return cachedAssetBytes(asset.sha256,()=>download(AbortSignal.timeout(15000)),signal);
 }
 /** No font substitution: bytes, family metadata and variation weight are checked. */
 export async function createComponentTextMeasurer(
@@ -141,10 +148,10 @@ export async function createComponentTextMeasurer(
         fonts.set(`${asset.family}|${asset.weight}`, { asset, font });
       })
   );
-  return input =>
-    layoutRichText({
-      ...measurementText(input),
-      measureGlyph: (text, family, size, style) => {
+  const styledFonts = new Map<string, MeasurableFont>();
+  const fontFor = (family: string, style: string) => {
+        const cached=styledFonts.get(`${family}|${style}`);
+        if(cached)return cached;
         const weight = Number(
           style.match(/\b([1-8]\d{2}|900)\b/)?.[1] ??
             (style.includes("bold") ? 700 : 400)
@@ -176,7 +183,32 @@ export async function createComponentTextMeasurer(
           Object.keys(axes).length && match.font.getVariation
             ? match.font.getVariation(axes)
             : match.font;
-        return (font.layout(text).advanceWidth / font.unitsPerEm) * size;
+        styledFonts.set(`${family}|${style}`,font);
+        return font;
+  };
+  return input =>
+    layoutRichText({
+      ...measurementText(input),
+      measureGlyph: (text, family, size, style) => {
+        const font=fontFor(family,style);
+        return font.layout(text).advanceWidth/font.unitsPerEm*size;
+      },
+      measureInk: (text,family,size,style) => {
+        const font=fontFor(family,style),scale=size/font.unitsPerEm;
+        if(!Number.isFinite(font.ascent)||!Number.isFinite(font.descent))return;
+        const run=font.layout(text);
+        let x=0,y=0,left=Infinity,right=-Infinity,top=-Infinity,bottom=Infinity;
+        run.glyphs.forEach((glyph,index)=>{
+          const pos=run.positions[index],b=glyph.bbox;
+          if(b.maxX>b.minX&&b.maxY>b.minY){
+            left=Math.min(left,x+pos.xOffset+b.minX);right=Math.max(right,x+pos.xOffset+b.maxX);
+            top=Math.max(top,y+pos.yOffset+b.maxY);bottom=Math.min(bottom,y+pos.yOffset+b.minY);
+          }
+          x+=pos.xAdvance;y+=pos.yAdvance;
+        });
+        if(left===Infinity)return null;
+        const baseline=konvaTextBaseline(size,font.ascent*scale,-font.descent*scale);
+        return{x:left*scale,y:baseline-top*scale,width:(right-left)*scale,height:(top-bottom)*scale};
       },
     });
 }

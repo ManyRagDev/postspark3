@@ -5,6 +5,8 @@ import {
   type GenerationTrace,
 } from "../generationTrace";
 import { createGenerationStore } from "./generationStore";
+import { ENV } from "../../_core/env";
+import { resolveGenerationModelConfig } from "../generationModel";
 import type { OrchestratedGenerationInput } from "../../../shared/generationRequest";
 import type { ProposalDelivery } from "../../../shared/generationContracts";
 
@@ -60,6 +62,24 @@ function makeDb(responses: Record<string, unknown> = {}) {
 }
 
 describe("durable generation store", () => {
+  it("routes only a configured experimental trial to the restricted external RPC", async () => {
+    const previous = { trialCatalogRevision: ENV.trialCatalogRevision, trialCatalogAdminUuid: ENV.trialCatalogAdminUuid, generationWorkerMode: ENV.generationWorkerMode };
+    Object.assign(ENV, { trialCatalogRevision: "23", trialCatalogAdminUuid: ownerId, generationWorkerMode: "external" });
+    try {
+      const { db, rpc } = makeDb({ generation_admit_trial_external: { ...row(), catalog_revision: "23", execution_mode: "external", created: true } });
+      const store = createGenerationStore(db);
+      const admission = { ownerId, idempotencyKey: input.idempotencyKey, inputHash: "a".repeat(64), input, experimental: true, trialCatalog: true, catalogRevision: "23", generationConfig: resolveGenerationModelConfig({ ...input, generationModel: "gemini" }) };
+      await store.admission(admission);
+      expect(rpc.mock.calls[0][0]).toBe("generation_admit_trial_external");
+      expect(rpc.mock.calls[0][1]).toMatchObject({ p_owner: ownerId, p_revision: "23", p_experimental: true });
+      expect(rpc.mock.calls[0][1]).not.toHaveProperty("p_scope");
+      await expect(store.admission({ ...admission, catalogRevision: "24" })).rejects.toThrow("not_allowed");
+      await expect(store.admission({ ...admission, experimental: false })).rejects.toThrow("not_allowed");
+      await expect(store.admission({ ...admission, executorScope: "local" })).rejects.toThrow("not_allowed");
+      await expect(store.admission({ ...admission, generationConfig: undefined })).rejects.toThrow("not_allowed");
+      expect(rpc).toHaveBeenCalledTimes(1);
+    } finally { Object.assign(ENV, previous); }
+  });
   it("requires the V2 readiness overload before new automatic admission", async () => {
     const { db, rpc } = makeDb({ generation_task_routing_available: true });
     expect(await createGenerationStore(db).isTaskRoutingAvailable()).toBe(true);

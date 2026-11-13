@@ -1,3 +1,4 @@
+import { textFragmentCount } from "./componentAssembly";
 import { z } from "zod";
 import { editorialDesignProfileSchema } from "./editorialIntent";
 import type { ComponentCardV1 } from "./componentAssembly";
@@ -531,7 +532,7 @@ export function compactDesignSection(card: ComponentCardV1): Section {
             ? budget.estimatedCharacters
             : null,
         ...(budget?.distribution === "word_partition"
-          ? { splitTargets: Math.max(...native.map(r => r.minWords)) }
+          ? { splitTargets: Math.max(...native.map(textFragmentCount)) }
           : {}),
       };
     }),

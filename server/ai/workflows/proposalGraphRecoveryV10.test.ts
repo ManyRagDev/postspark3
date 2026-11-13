@@ -98,6 +98,7 @@ describe("V10 bounded physical and editorial recovery", () => {
     s.generateText.mockImplementation(async params => {
       if (params.taskRoute === "post_evaluation") return response(healthyReviewV10Fixture(params));
       if (params.traceLabel?.endsWith("_copy_recovery")) return response(copy("Conheça o serviço", true));
+      if (String(params.messages[1].content).includes("Adapte a redação a estas caixas")) return response(copy("Conheça o serviço"));
       if (mode === "invalid-copy") {
         expect(params.durableProposalCopyReceipt).toBe(true);
         if (String(params.messages[1].content).includes("Adapte a redação a estas caixas")) return response(copy("Conheça o serviço"));
@@ -113,8 +114,8 @@ describe("V10 bounded physical and editorial recovery", () => {
         if (!s.completed.has(key)) s.completed.set(key, await work());
         return s.completed.get(key) as any;
       },
-      recoverDelivery: (proposalInput, reuseOriginal) => recoverGenerationDelivery({
-        planning, sourceDefinitions: [definition], input: proposalInput, reuseOriginal,
+      recoverDelivery: (proposalInput, reuseOriginal, context) => recoverGenerationDelivery({
+        ...context, planning, sourceDefinitions: context?.sourceDefinitions ?? [definition], input: proposalInput, reuseOriginal,
         readOriginalCopy: async () => originalCopy, graphDeps: s.deps,
         hydrate: async ids => [definition, reserveDefinition].filter(d => ids.includes(d.id)),
         operation: (_key, work) => work(),
@@ -123,12 +124,12 @@ describe("V10 bounded physical and editorial recovery", () => {
     const delivered = snapshot.proposals[0];
     expect(delivered.status).toBe("ready");
     if (delivered.status !== "ready") return;
-    expect(delivered.bundle.family).toBe(mode === "rewrite" ? first.family : reserve.family);
+    expect(delivered.bundle.family).toBe(reserve.family);
     expect(delivered.bundle.caption).toBe(originalCopy.caption);
     const content = delivered.bundle.slides[0].composition.content;
     expect(content.schemaVersion === 3 && content.blocks[0]).toMatchObject({ text: fits ? "LONG apresentação do serviço" : "Conheça o serviço" });
-    expect(s.generateText.mock.calls.filter(([params]) => params.traceLabel?.endsWith("_copy"))).toHaveLength(mode === "invalid-copy" ? 2 : 1);
-    expect(s.generateText.mock.calls.filter(([params]) => params.traceLabel?.endsWith("_copy_recovery"))).toHaveLength(mode === "rewrite" ? 1 : 0);
+    expect(s.generateText.mock.calls.filter(([params]) => params.traceLabel?.endsWith("_copy"))).toHaveLength(fits ? 1 : 2);
+    expect(s.generateText.mock.calls.filter(([params]) => params.traceLabel?.endsWith("_copy_recovery"))).toHaveLength(0);
   });
 
   it.each([1, undefined] as const)("routes carousel detail through the caption with pinned policy %s", async policy => {

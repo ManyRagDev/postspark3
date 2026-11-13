@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { useIsMobile } from "@/hooks/useMobile";
 import { X, Search, Image as ImageIcon, Sparkles } from "lucide-react";
 import type { CanvasPostModel } from "./types";
 import type { SeamlessPanoramaMeta } from "../lib/seamlessCarousel";
@@ -22,14 +24,24 @@ export default function BackgroundsDrawer({
   manifestData,
   initialTab,
 }: BackgroundsDrawerProps) {
+  const isMobile = useIsMobile();
   const isCarousel = Boolean(post.slides && post.slides.length > 1);
   const [selectedCategory, setSelectedCategory] = useState<string>(
     initialTab || (isCarousel ? "seamless" : "all")
   );
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedCategory(initialTab || (isCarousel ? "seamless" : "all"));
+      setSearchQuery("");
+    }
+  }, [isOpen, initialTab, isCarousel]);
+
   const currentSlide = post.slides[post.currentSlideIndex];
-  const activeBg = currentSlide?.bgImage ?? post.bgImage;
+  const activeBg = currentSlide?.composition?.version === 3
+    ? currentSlide.composition.customBackground?.imageUrl
+    : currentSlide?.bgImage ?? post.bgImage;
 
   // Lista dos panoramas contínuos
   const seamlessCarousels = useMemo<SeamlessPanoramaMeta[]>(() => {
@@ -93,42 +105,49 @@ export default function BackgroundsDrawer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 left-80 w-[440px] bg-[#0A0D14]/95 backdrop-blur-2xl border-r border-white/12 shadow-[16px_0_40px_rgba(0,0,0,0.8)] z-40 flex flex-col transition-all duration-300 animate-in slide-in-from-left-4 select-none">
+    <Dialog.Root open={isOpen} onOpenChange={value => { if (!value) onClose(); }}>
+    <Dialog.Portal>
+    <Dialog.Overlay className="fixed inset-0 z-[79] bg-black/60" />
+    <Dialog.Content className="fixed inset-y-0 left-0 z-[80] flex h-[100dvh] w-full flex-col bg-[#0A0D14] text-white shadow-2xl outline-none md:left-80 md:w-[440px] md:max-w-[calc(100vw-20rem)]">
       {/* ─── CABEÇALHO DA GAVETA ─── */}
-      <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/2">
-        <div className="flex items-center gap-2">
+      <div className="shrink-0 p-4 border-b border-white/10 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-[oklch(0.78_0.22_48)]/15 border border-[oklch(0.78_0.22_48)]/30 flex items-center justify-center text-[oklch(0.78_0.22_48)]">
             <ImageIcon size={16} />
           </div>
-          <div>
+          <div className="min-w-0">
+            <Dialog.Title asChild>
             <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
               <span>Biblioteca de Fundos</span>
               <span className="text-[10px] font-mono font-normal bg-white/10 text-white/70 px-1.5 py-0.5 rounded-full">
                 {selectedCategory === "seamless" ? seamlessCarousels.length : allImages.length}
               </span>
             </h3>
-            <p className="text-[11px] text-white/40">
+            </Dialog.Title>
+            <Dialog.Description className="text-xs text-white/60">
               {isCarousel
                 ? "Panoramas contínuos e texturas em alta resolução"
                 : "Texturas oficiais em alta resolução"}
-            </p>
+            </Dialog.Description>
           </div>
         </div>
         <button
           type="button"
+          aria-label="Fechar biblioteca de fundos"
           onClick={onClose}
-          className="p-1.5 rounded-xl bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-all cursor-pointer"
+          className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-xl bg-white/5 hover:bg-white/15 text-white/70 hover:text-white cursor-pointer"
         >
           <X size={16} />
         </button>
       </div>
 
       {/* ─── BARRA DE PESQUISA ─── */}
-      <div className="p-4 space-y-3 border-b border-white/8 bg-white/1">
+      <div className="shrink-0 px-4 pb-3 pt-2 border-b border-white/10">
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
           <input
             type="text"
+            aria-label="Buscar fundos"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={
@@ -136,13 +155,14 @@ export default function BackgroundsDrawer({
                 ? "Buscar panorama (paper, cyberpunk, brutalist...)"
                 : "Buscar textura (ouro, linho, concreto, papel...)"
             }
-            className="w-full pl-9 pr-3 py-2 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-white/30 outline-none focus:border-[oklch(0.78_0.22_48)] transition-all"
+            className="min-h-11 w-full pl-9 pr-10 rounded-xl bg-black/40 border border-white/15 text-base md:text-sm text-white placeholder-white/40 outline-none focus:border-orange-400"
           />
           {searchQuery && (
             <button
               type="button"
+              aria-label="Limpar busca de fundos"
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/40 hover:text-white"
+              className="absolute right-0 top-0 grid min-h-11 min-w-11 place-items-center text-white/70 hover:text-white"
             >
               ✕
             </button>
@@ -151,8 +171,13 @@ export default function BackgroundsDrawer({
       </div>
 
       {/* ─── CATEGORIAS EM ABAS LÍQUIDAS ─── */}
-      <div className="p-3 border-b border-white/8 bg-white/2">
-        <div className="flex gap-1.5 flex-wrap">
+      <div className="shrink-0 p-3 border-b border-white/10">
+        <select aria-label="Categoria de fundos" value={selectedCategory} onChange={event => setSelectedCategory(event.target.value)} className="min-h-11 w-full rounded-xl border border-white/15 bg-[#151923] px-3 text-base md:hidden">
+          {isCarousel && <option value="seamless">Fundos contínuos ({seamlessCarousels.length})</option>}
+          <option value="all">Todas as texturas ({allImages.length})</option>
+          {Object.entries(manifestData?.categories ?? {}).map(([key, category]: [string, any]) => <option key={key} value={key}>{category.label} ({category.images?.length ?? 0})</option>)}
+        </select>
+        <div className="hidden gap-1.5 flex-wrap md:flex">
           {/* ABA SEAMLESS CAROUSEL (Exclusiva para carrosséis) */}
           {isCarousel && (
             <button
@@ -207,7 +232,7 @@ export default function BackgroundsDrawer({
       </div>
 
       {/* ─── CORPO DA GAVETA: SEAMLESS CAROUSEL (1 COLUNA HORIZONTAL) OU TEXTURAS (2 COLUNAS) ─── */}
-      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 custom-scrollbar">
         {selectedCategory === "seamless" && isCarousel ? (
           filteredSeamless.length === 0 ? (
             <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-white/40">
@@ -332,6 +357,7 @@ export default function BackgroundsDrawer({
                     type="button"
                     onClick={() => {
                       onApplyBackground(img.fullUrl);
+                      if (isMobile) onClose();
                     }}
                     className={`group relative aspect-[4/3] rounded-xl overflow-hidden border transition-all cursor-pointer text-left ${
                       isSelected
@@ -366,24 +392,27 @@ export default function BackgroundsDrawer({
       </div>
 
       {/* ─── RODAPÉ DA GAVETA ─── */}
-      <div className="p-3 border-t border-white/10 bg-white/2 flex items-center justify-between">
+      <div className="shrink-0 border-t border-white/10 p-3 pb-[max(12px,env(safe-area-inset-bottom))] flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => {
             onApplyBackground(undefined);
+            if (isMobile) onClose();
           }}
-          className="text-xs text-white/60 hover:text-white py-1.5 px-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
+          className="min-h-11 text-sm text-white/75 hover:text-white px-3 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer"
         >
           Usar Apenas Cor Sólida
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="text-xs font-bold text-black py-1.5 px-4 rounded-lg bg-white hover:bg-white/90 transition-all cursor-pointer shadow-sm"
+          className="min-h-11 text-sm font-bold text-black px-4 rounded-lg bg-white hover:bg-white/90 cursor-pointer shadow-sm"
         >
           Concluir
         </button>
       </div>
-    </div>
+    </Dialog.Content>
+    </Dialog.Portal>
+    </Dialog.Root>
   );
 }

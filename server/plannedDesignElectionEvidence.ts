@@ -44,7 +44,7 @@ import { assertFamilyRetrieval, familySearchQuery, familyVisualQuery, semanticFa
 import { planFamilyRecovery, FAMILY_RECOVERY_REASON } from "../shared/familyRecovery";
 import { inspectFamilyPlanFit } from "./designCatalog/familyPlanFit";
 import { buildHeuristicGenerationPlan, deliveryProposalReserves, distinctProposalRecovery } from "./ai/workflows/heuristicPlanBuilder";
-import { DELIVERY_RECOVERY_KEY } from "../shared/generationPlan";
+import { deliveryRecoveryReadKeys } from "../shared/generationPlan";
 
 type Row = Record<string, any>;
 const row = (v: unknown): Row =>
@@ -661,8 +661,9 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
         } else check(false, `planning_status_unknown:${slot}`);
       }
       const proposal = list(request.proposals).find(p => p.slot === slot);
-      const deliveryRecovery = proposal?.attempt?.index === 1 && planning.deliveryReserves
-        ? completed(`${proposal.proposalId}:${DELIVERY_RECOVERY_KEY}`) : null;
+      const recoveryKey = proposal && planning.deliveryReserves ? deliveryRecoveryReadKeys(proposal.attempt?.index ?? 0)
+        .map(key => `${proposal.proposalId}:${key}`).find(key => operations.some(operation => operation.operation_key === key)) : undefined;
+      const deliveryRecovery = recoveryKey ? completed(recoveryKey) : null;
       let finalOffer = offer,
         finalPlan: unknown = plan;
       if (proposal?.status === "ready") {
@@ -681,7 +682,8 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
           const original = plan.status === "viable" && same(plan, deliveryRecovery.plan) && offer;
           const allowedMode = (deliveryRecovery.mode === "reuse_text" && reserve && deliveryRecovery.copy) ||
             (deliveryRecovery.mode === "repair_text" && original && deliveryRecovery.copy) ||
-            (deliveryRecovery.mode === "write_for_design" && (reserve || original) && !deliveryRecovery.copy);
+            // copy is adaptation context for write_for_design, not a reused delivery.
+            (deliveryRecovery.mode === "write_for_design" && (reserve || original));
           const repertoire = repertoires.find(r => r.defaultOffer.offerId === deliveryRecovery.plan?.candidateId);
           check(parsed.success && parsed.data.status === "viable" && allowedMode && repertoire, `delivery_recovery_invalid:${slot}`);
           if (parsed.success && parsed.data.status === "viable" && repertoire && (reserve || original)) {

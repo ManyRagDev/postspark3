@@ -119,7 +119,9 @@ export function CanvasEditorLayers({
     const selected = selectedId === layer.id;
     const name = /^Projeção uniforme /i.test(layer.label)
       ? "Layout"
-      : layer.label;
+      : layer.kind === "group" && /^field-\d+$/i.test(layer.label)
+        ? `Grupo · ${layer.children.map(child => child.role === "headline" ? "Título" : child.role === "body" ? "Texto de apoio" : child.text || child.label).filter(Boolean).join(", ").slice(0, 48) || "Decoração"}`
+        : layer.label;
     const excerpt = layer.text?.replace(/\s+/g, " ").trim().slice(0, 52);
     const actions: Array<{
       action: LayerAction;

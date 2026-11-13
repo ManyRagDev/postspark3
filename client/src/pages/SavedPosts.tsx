@@ -12,6 +12,7 @@ import { layoutToAdvanced } from "@/lib/layoutToAdvanced";
 import { savedPostToCanvasModel } from "@/pages/CanvasLab/lib/saveAdapter";
 import { CanvasPostStage, type CanvasPostStageRef } from "@/pages/CanvasLab/components/CanvasPostStage";
 import PostRenderer from "@/components/PostRenderer";
+import UserTopMenu from "@/components/UserTopMenu";
 import { TemplateIngestionModal } from "@/pages/TemplateIngestion/TemplateIngestionModal";
 
 function formatDate(value: string | null | undefined) {
@@ -115,7 +116,8 @@ function SavedPostPreview({ post }: { post: any }) {
   }, [visible, canvasModel, thumbnail]);
 
   return (
-    <div ref={containerRef} className="relative flex h-52 items-center justify-center overflow-hidden bg-black/25 p-3 sm:h-72 lg:h-96">
+    <div ref={containerRef} className="relative flex h-40 w-28 shrink-0 items-center justify-center overflow-hidden bg-black/25 p-2 sm:h-72 sm:w-auto sm:p-3 lg:h-96">
+      {canvasModel && canvasModel.slides.length > 1 && <span className="absolute right-1 top-1 z-10 rounded bg-black/80 px-1.5 py-1 text-[10px] text-white">{canvasModel.slides.length} slides</span>}
       {thumbnail ? (
         <img src={thumbnail} alt={`Prévia da capa: ${post.headline || "Post salvo"}`} className="max-h-full max-w-full object-contain shadow-2xl" />
       ) : visible && canvasModel ? (
@@ -142,24 +144,76 @@ function GalleryPreview({post}:{post:{id:number;headline:string;gallery_preview?
    return () => observer.disconnect();
  }, [post.id, post.gallery_preview]);
  const preview=trpc.post.get.useQuery({id:post.id},{enabled:requested&&!post.gallery_preview,staleTime:Infinity,retry:false});
- if(post.gallery_preview)return <div className="flex h-52 justify-center bg-black/25 p-3"><img src={post.gallery_preview} alt={`Prévia: ${post.headline}`} className="object-contain" /></div>;
+ if(post.gallery_preview)return <div className="flex h-40 w-28 shrink-0 justify-center bg-black/25 p-2 sm:h-72 sm:w-auto sm:p-3 lg:h-96"><img src={post.gallery_preview} alt={`Prévia: ${post.headline}`} className="min-h-0 max-h-full max-w-full object-contain" /></div>;
  if(preview.data)return <SavedPostPreview post={preview.data}/>;
- return <div ref={container} className="flex h-52 flex-col items-center justify-center gap-3 bg-black/25 p-4"><p>{post.headline}</p>{preview.error ? <button onClick={()=>void preview.refetch()}>Tentar prévia novamente</button> : <p role="status" className="text-xs text-muted-foreground">{requested ? 'Preparando prévia…' : 'Prévia ao aproximar'}</p>}</div>;
+ return <div ref={container} className="flex h-40 w-28 shrink-0 overflow-hidden flex-col items-center justify-center gap-2 bg-black/25 p-2 text-xs sm:h-72 sm:w-auto sm:p-4 lg:h-96"><p className="line-clamp-3 text-center">{post.headline}</p>{preview.error ? <button onClick={()=>void preview.refetch()}>Tentar prévia novamente</button> : <p role="status" className="text-xs text-muted-foreground">{requested ? 'Preparando prévia…' : 'Prévia ao aproximar'}</p>}</div>;
+}
+
+const LIBRARY_VIEW_KEY = "postspark.saved-posts.view.v1";
+type LibraryView = { page: number; search: string; draft: string; scrollY: number };
+function readLibraryView(): LibraryView {
+  const fallback = { page: 0, search: "", draft: "", scrollY: 0 };
+  try {
+    const value = JSON.parse(sessionStorage.getItem(LIBRARY_VIEW_KEY) || "null");
+    if (!value || !Number.isInteger(value.page) || value.page < 0 || typeof value.search !== "string" || typeof value.draft !== "string") return fallback;
+    return { page: value.page, search: value.search.slice(0, 120), draft: value.draft.slice(0, 120), scrollY: Number.isFinite(value.scrollY) ? Math.max(0, value.scrollY) : 0 };
+  } catch { return fallback; }
+}
+
+function LibraryPagination({ page, total, disabled, onChange, label }: { page: number; total: number; disabled: boolean; onChange: (page: number) => void; label: string }) {
+  return <nav aria-label={label} className="flex items-center justify-between gap-2 text-sm">
+    <button type="button" disabled={disabled || page === 0} onClick={() => onChange(page - 1)} className="min-h-11 rounded-xl border border-white/15 px-3 disabled:opacity-35">Anterior</button>
+    <span className="text-center text-muted-foreground">Página {page + 1} de {Math.max(1, Math.ceil(total / 20))}</span>
+    <button type="button" disabled={disabled || (page + 1) * 20 >= total} onClick={() => onChange(page + 1)} className="min-h-11 rounded-xl border border-white/15 px-3 disabled:opacity-35">Próxima</button>
+  </nav>;
 }
 
 export default function SavedPosts() {
   const [, setLocation] = useLocation();
   const utils=trpc.useUtils();
-  const [page,setPage]=useState(0);
-  const [searchDraft,setSearchDraft]=useState('');
-  const [search,setSearch]=useState('');
+  const [initialView] = useState(readLibraryView);
+  const [page, setPage] = useState(initialView.page);
+  const [searchDraft, setSearchDraft] = useState(initialView.draft);
+  const [search, setSearch] = useState(initialView.search);
+  const restorePending = useRef(true);
+  const viewRef = useRef(initialView);
+  viewRef.current = { page, search, draft: searchDraft, scrollY: initialView.scrollY };
+  const rememberView = () => {
+    try { sessionStorage.setItem(LIBRARY_VIEW_KEY, JSON.stringify({ ...viewRef.current, scrollY: window.scrollY })); } catch { /* Navigation also works when storage is unavailable. */ }
+  };
+  useEffect(() => {
+    const save = () => { try { sessionStorage.setItem(LIBRARY_VIEW_KEY, JSON.stringify({ ...viewRef.current, scrollY: window.scrollY })); } catch {} };
+    window.addEventListener("pagehide", save);
+    return () => { save(); window.removeEventListener("pagehide", save); };
+  }, []);
   const [opening,setOpening]=useState<number|null>(null);
   const [isIngestOpen, setIsIngestOpen] = useState(false);
-  const { data, isLoading, error, refetch } = trpc.post.listSummary.useQuery({limit:20,offset:page*20,...(search?{search}:{})});
+  const { data, isLoading, isFetching, error, refetch } = trpc.post.listSummary.useQuery({limit:20,offset:page*20,...(search?{search}:{})});
   const posts=data?.items;
+  useEffect(() => {
+    if (isLoading || !data || !restorePending.current) return;
+    const frame = requestAnimationFrame(() => {
+      window.scrollTo({ top: initialView.scrollY, behavior: "instant" });
+      restorePending.current = false;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isLoading, data, initialView.scrollY]);
+  const changePage = (nextPage: number) => {
+    restorePending.current = false;
+    setPage(nextPage);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
+  const submitSearch = (value: string) => {
+    restorePending.current = false;
+    setSearchDraft(value);
+    setSearch(value.trim());
+    setPage(0);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
 
   const openSavedPost = async (summary: {id:number}) => {
     if(opening!==null)return;
+    rememberView();
     setOpening(summary.id);
     try{
     const post=await utils.post.get.fetch({id:summary.id});
@@ -173,6 +227,7 @@ export default function SavedPosts() {
       "postspark.open_canvas_post",
       JSON.stringify({
         postId: post.id,
+        revision: post.revision,
         inputType: post.inputType || "text",
         inputContent: post.inputContent || "",
         model,
@@ -184,57 +239,28 @@ export default function SavedPosts() {
   };
 
   return (
-    <div className="min-h-screen bg-soul-deep px-4 pb-12 pt-16 text-foreground md:py-12">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-        <button onClick={() => setLocation("/")} className="flex min-h-11 items-center gap-2 self-start text-sm text-muted-foreground transition-colors hover:text-foreground md:min-h-0">
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </button>
-
-        <motion.div
-          className="rounded-3xl border p-4 sm:p-6"
-          style={{
-            background: "oklch(0.08 0.02 280)",
-            borderColor: "oklch(1 0 0 / 8%)",
-          }}
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-thermal-orange">
-                <Bookmark className="h-4 w-4" />
-                <span className="text-xs font-semibold uppercase tracking-[0.2em]">Posts Salvos</span>
-              </div>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">Sua biblioteca</h1>
-              <p className="max-w-2xl text-sm text-muted-foreground">Acesse rapidamente os posts que você já consolidou no PostSpark.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setIsIngestOpen(true)}
-                className="h-10 px-3.5 rounded-xl border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-medium inline-flex items-center gap-2 transition shadow-sm"
-              >
-                <Sparkles className="h-4 w-4" />
-                <span>Replicar Design (Ingest)</span>
-              </button>
-              <div
-                className="rounded-2xl border px-4 py-3 text-right"
-                style={{
-                  background: "oklch(1 0 0 / 4%)",
-                  borderColor: "oklch(1 0 0 / 8%)",
-                }}
-              >
-                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Total</p>
-                <p className="mt-1 text-2xl font-bold text-foreground">{data?.total ?? 0}</p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-soul-deep px-4 pb-8 pt-3 text-foreground md:py-8">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-6">
+        <header className="flex items-center justify-between gap-3">
+          <button onClick={() => setLocation("/")} className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />Voltar
+          </button>
+          <UserTopMenu variant="inline" compactMobile />
+        </header>
+        <section className="min-w-0 space-y-3">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-thermal-orange"><Bookmark size={16} />Posts salvos</div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight">Sua biblioteca</h1>
+            <button type="button" onClick={() => setIsIngestOpen(true)} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 text-sm text-orange-400"><Sparkles size={16} />Replicar design</button>
           </div>
-        </motion.div>
-
-        <form onSubmit={event=>{event.preventDefault();setSearch(searchDraft.trim());setPage(0);}} className="flex gap-2"><input aria-label="Buscar posts por título, design ou código" value={searchDraft} onChange={event=>setSearchDraft(event.target.value)} maxLength={120} placeholder="Título, design ou código (REF-03)" className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/20 p-3"/><button type="submit" className="rounded-lg border border-white/15 px-4">Buscar</button></form>
-        <div className="mb-4 flex items-center gap-4"><button disabled={page===0} onClick={()=>setPage(p=>p-1)}>Anterior</button><span>Página {page+1}</span><button disabled={(page+1)*20>=(data?.total??0)} onClick={()=>setPage(p=>p+1)}>Próxima</button></div>
+          <p className="text-sm text-muted-foreground" role="status">{isLoading ? "Carregando posts…" : `${data?.total ?? 0} ${search ? "resultados encontrados" : "posts salvos"}`}</p>
+        </section>
+        <form onSubmit={event => { event.preventDefault(); submitSearch(searchDraft); }} className="flex gap-2">
+          <input aria-label="Buscar posts por título, design ou código" value={searchDraft} onChange={event => setSearchDraft(event.target.value)} maxLength={120} placeholder="Título, design ou código" className="min-h-12 min-w-0 flex-1 rounded-xl border border-white/15 bg-black/20 px-3 text-base" />
+          <button type="submit" className="min-h-12 rounded-xl border border-white/15 px-4 text-sm">Buscar</button>
+        </form>
+        {search && <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"><span className="break-all">Busca: {search}</span><button type="button" onClick={() => submitSearch("")} className="min-h-11 px-2 text-orange-400">Limpar busca</button></div>}
+        <LibraryPagination page={page} total={data?.total ?? 0} disabled={Boolean(isFetching || isLoading)} onChange={changePage} label="Paginação superior" />
         {isLoading ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
             {[1, 2, 3, 4].map(item => (
@@ -275,7 +301,7 @@ export default function SavedPosts() {
             {posts.map(post => (
               <motion.article
                 key={post.id}
-                className="min-w-0 overflow-hidden rounded-3xl border"
+                className="flex min-w-0 overflow-hidden rounded-2xl border sm:block sm:rounded-3xl"
                 style={{
                   background: "oklch(0.08 0.02 280)",
                   borderColor: "oklch(1 0 0 / 8%)",
@@ -286,8 +312,8 @@ export default function SavedPosts() {
               >
                 <GalleryPreview post={post}/>
 
-                <div className="space-y-4 p-3 sm:p-5">
-                  <div className="space-y-2">
+                <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 p-3 sm:gap-4 sm:p-5">
+                  <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
                       <span
                         className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-thermal-orange"
@@ -300,21 +326,21 @@ export default function SavedPosts() {
                       </span>
                       <span className="text-[11px] text-muted-foreground">{formatDate(post.createdAt)}</span>
                     </div>
-                    <h2 className="line-clamp-2 break-words text-base font-semibold tracking-tight text-foreground sm:text-lg">{post.headline || "Sem título"}</h2>
-                    {post.designFamily && post.designName && <p className="text-xs text-muted-foreground">{designLabel({completeDesign:{family:post.designFamily,name:post.designName}})}</p>}
+                    <h2 className="line-clamp-2 break-words text-sm font-semibold tracking-tight text-foreground sm:text-lg">{post.headline || "Sem título"}</h2>
+                    {post.designFamily && post.designName && <p className="line-clamp-1 text-xs text-muted-foreground">{designLabel({completeDesign:{family:post.designFamily,name:post.designName}})}</p>}
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/6 pt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2">
                     <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
                       <Sparkles className="h-3.5 w-3.5 text-thermal-orange" />
-                      {post.layout || "layout livre"}
+                      {post.postMode === "carousel" ? "Carrossel" : "Post único"}
                     </div>
                     <button
                       disabled={opening!==null} onClick={() => void openSavedPost(post)}
                       className="inline-flex min-h-11 items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold text-thermal-orange transition-colors hover:bg-thermal-orange/10 sm:min-h-0 sm:text-[11px]"
                       style={{ borderColor: "oklch(0.7 0.22 40 / 35%)" }}
                     >
-                      Abrir
+                      {opening === post.id ? "Abrindo…" : "Abrir"}
                       <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -334,11 +360,13 @@ export default function SavedPosts() {
           >
             <div className="mx-auto flex max-w-md flex-col items-center gap-3">
               <Bookmark className="h-8 w-8 text-thermal-orange" />
-              <h2 className="text-xl font-semibold text-foreground">Nenhum post salvo ainda</h2>
-              <p className="text-sm text-muted-foreground">Quando você consolidar um post no editor, ele vai aparecer aqui.</p>
+              <h2 className="text-xl font-semibold text-foreground">{search ? "Nenhum resultado para esta busca" : "Nenhum post salvo ainda"}</h2>
+              <p className="text-sm text-muted-foreground">{search ? "Experimente outro título, design ou código." : "Quando você salvar um post no editor, ele vai aparecer aqui."}</p>
+              {search && <button type="button" onClick={() => submitSearch("")} className="min-h-11 rounded-xl border border-orange-500/30 px-4 text-sm text-orange-400">Mostrar todos os posts</button>}
             </div>
           </motion.div>
         )}
+        {!!posts?.length && <LibraryPagination page={page} total={data?.total ?? 0} disabled={Boolean(isFetching || isLoading)} onChange={changePage} label="Paginação inferior" />}
       </div>
 
       {isIngestOpen && (

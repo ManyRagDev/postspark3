@@ -1,3 +1,4 @@
+import { CAPABILITY_SELECTION_POLICY } from "@shared/selectionPolicy";
 import { familyAxes, familyDistance, familyTie, PROPOSAL_SELECTION_POLICY, type FamilyAxes, type FamilyNeutrality } from "@shared/familyNeutrality";
 import type { ComponentCardV1 } from "@shared/componentAssembly";
 import { completeDesignFields } from "@shared/completeDesignGeneration";
@@ -211,8 +212,13 @@ type ViableFamily = { family: string; score: number; plan: ViableGenerationPlan;
 const recentProposalFamilies = (recent: RecentDesignSelection[] = []) => new Set(recent.slice(0, PROPOSAL_SELECTION_POLICY.recentRequests)
   .flatMap(run => run.selections.map(choice => choice.family)));
 
-function rankProposalFamilies(candidates: ViableFamily[], best: number, peers: FamilyAxes[], recent: Set<string>, seed: string, creativeFlexibility = false) {
+function rankProposalFamilies(candidates: ViableFamily[], best: number, peers: FamilyAxes[], recent: Set<string>, seed: string, creativeFlexibility = false, capabilityPolicy = false) {
   const distance = (axes: FamilyAxes) => peers.length ? Math.min(...peers.map(peer => familyDistance(axes, peer))) : 0;
+  const useful = candidates.filter(f => best - f.score <= CAPABILITY_SELECTION_POLICY.maximumSuitabilityGap + 1e-9);
+  if (capabilityPolicy) return useful.sort((a, b) =>
+    (b.score + CAPABILITY_SELECTION_POLICY.diversityWeight * distance(b.axes) - CAPABILITY_SELECTION_POLICY.recencyWeight * Number(recent.has(b.family))) -
+    (a.score + CAPABILITY_SELECTION_POLICY.diversityWeight * distance(a.axes) - CAPABILITY_SELECTION_POLICY.recencyWeight * Number(recent.has(a.family))) ||
+    familyTie(seed, a.family).localeCompare(familyTie(seed, b.family)));
   return candidates.filter(f => creativeFlexibility || best - f.score <= PROPOSAL_SELECTION_POLICY.suitabilityGap + 1e-9)
     .sort((a, b) => (creativeFlexibility
       ? (b.score + .25 * distance(b.axes) - .1 * Number(recent.has(b.family))) - (a.score + .25 * distance(a.axes) - .1 * Number(recent.has(a.family)))
@@ -229,9 +235,9 @@ export function distinctProposalRecovery(input: HeuristicPlanBuilderInput, offer
   inspectFamilyPlans(input, (slot, viable) => {
     if (!offers[slot]) return;
     const unused = viable.filter(f => !occupied.has(f.family));
-    const peers = slot === 2 ? offers.slice(0, 2).flatMap(offer => offer ? [familyAxes(offer.slides[0].card)] : []) : [];
+    const peers = (slot === 2 || input.neutrality?.selectionPolicy === "capability_v1") ? offers.filter((_, index) => index !== slot).flatMap(offer => offer ? [familyAxes(offer.slides[0].card)] : []) : [];
     const best = Math.max(-Infinity, ...(peers.length === 2 ? viable : unused).map(f => f.score));
-    alternatives[slot] = rankProposalFamilies(unused, best, peers.length === 2 ? peers : [], recent, input.neutrality!.seed, input.neutrality?.creativeFlexibility === 1)
+    alternatives[slot] = rankProposalFamilies(unused, best, (peers.length === 2 || input.neutrality?.selectionPolicy === "capability_v1") ? peers : [], recent, input.neutrality!.seed, input.neutrality?.creativeFlexibility === 1, input.neutrality?.selectionPolicy === "capability_v1")
       .slice(0, 2).map(f => f.repertoire);
   });
   return alternatives;
@@ -376,9 +382,9 @@ function inspectFamilyPlans(input: HeuristicPlanBuilderInput, onViable?: (slot: 
     const unused = viableFamilies.filter(f => !chosenFamilies.has(f.family));
     // Compare with the best family for these requirements, including families
     // already chosen that could also have filled this slot.
-    const visualAlternative = slot === 2 && chosenAxes.length === 2;
+    const visualAlternative = input.neutrality?.selectionPolicy === "capability_v1" ? chosenAxes.length > 0 : slot === 2 && chosenAxes.length === 2;
     const best = Math.max(-Infinity, ...(visualAlternative ? viableFamilies : unused).map(f => f.score));
-    const ranked = rankProposalFamilies(unused, best, visualAlternative ? chosenAxes : [], recentFamilies, input.neutrality!.seed, input.neutrality?.creativeFlexibility === 1);
+    const ranked = rankProposalFamilies(unused, best, visualAlternative ? chosenAxes : [], recentFamilies, input.neutrality!.seed, input.neutrality?.creativeFlexibility === 1, input.neutrality?.selectionPolicy === "capability_v1");
     // In a mixed request, a flexible photo family may also be the only family
     // that can fill the photo-free slot. Preserve that choice when fit is similar.
     const coverage = (family: string, next: number, used: Set<string>): number => {
@@ -387,7 +393,7 @@ function inspectFamilyPlans(input: HeuristicPlanBuilderInput, onViable?: (slot: 
       const viable = viableBySlot.get(next)!;
       const unused = viable.filter(f => !reserved.has(f.family));
       const ceiling = Math.max(-Infinity, ...(next === 2 && reserved.size === 2 ? viable : unused).map(f => f.score));
-      const remaining = unused.filter(f => input.neutrality?.creativeFlexibility === 1 || ceiling - f.score <= PROPOSAL_SELECTION_POLICY.suitabilityGap + 1e-9);
+      const remaining = unused.filter(f => (input.neutrality?.creativeFlexibility === 1 && input.neutrality?.selectionPolicy !== "capability_v1") || ceiling - f.score <= PROPOSAL_SELECTION_POLICY.suitabilityGap + 1e-9);
       return remaining.length ? Math.max(...remaining.map(f => 1 + coverage(f.family, next + 1, reserved))) : coverage(family, next + 1, used);
     };
     if (requestedPhotoMix && slot < 2 && ranked.length > 1)
@@ -434,7 +440,7 @@ function buildSlotPagesAndAssignments(input: {
   } = input;
 
   const explicitSurfaceIds = (surface: "art" | "caption") => new Set(
-    intent.requirements.filter(requirement => requirement.origin === "explicit" &&
+    intent.requirements.filter(requirement => requirement.origin === "explicit" && requirement.strength !== "preference" &&
       requirement.kind !== "execution" && requirement.surface === surface).map(requirement => requirement.id)
   );
   const captionRequirements = explicitSurfaceIds("caption");
@@ -694,7 +700,7 @@ function buildSlotPagesAndAssignments(input: {
   }
 
   // Garantir que todos os requisitos explícitos estejam cobertos (arte ou legenda)
-  for (const req of intent.requirements.filter(r => r.origin === "explicit")) {
+  for (const req of intent.requirements.filter(r => r.origin === "explicit" && r.strength !== "preference")) {
     const matching = contentItems.filter(c => c.requirementIds.includes(req.id));
     const alreadyCovered = matching.some(
       c => usedContentIds.has(c.id) || captionContentIds.includes(c.id)

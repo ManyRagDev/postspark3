@@ -1,5 +1,7 @@
+import { generationProgressSchema, type GenerationProgress } from "@shared/generationProgress";
 import {ENV} from "../../_core/env";
 import {localCatalogRevisionOverride} from "../../designCatalog/localCatalogOverride";
+import { assertTrialCatalogAdmission } from "../../designCatalog/trialCatalog";
 import {publishGenerationRecord} from "./generationEvents";
 import { randomUUID } from "node:crypto";
 import type { ComponentDefinitionV1 } from "../../../shared/componentAssembly";
@@ -115,6 +117,7 @@ export interface GenerationStore {
     executorScope?: string;
     catalogRevision?: string;
     stagedCatalog?: boolean;
+    trialCatalog?: boolean;
   }): Promise<AdmissionResult>;
   claim(workerId: string): Promise<ClaimedGeneration | null>;
   workerHeartbeat(workerId: string): Promise<void>;
@@ -122,6 +125,8 @@ export interface GenerationStore {
   reconcile(): Promise<number>;
   catalogAvailability(): Promise<{ approved: number; draft: number }>;
   get(requestId: string, ownerId: string): Promise<RequestRecord | null>;
+  getForClient?(requestId: string, ownerId: string): Promise<RequestRecord | null>;
+  progress?(requestId: string, ownerId: string): Promise<GenerationProgress | null>;
   listOperations(
     requestId: string,
     ownerId: string
@@ -436,7 +441,12 @@ export function createGenerationStore(
       if (deadlineAt <= now)
         throw new Error("generation_deadline_must_be_future");
       if (input.stagedCatalog && (!input.executorScope || !input.catalogRevision || localCatalogRevisionOverride() !== input.catalogRevision)) throw new Error("catalog_local_override_not_allowed");
-      const data = await rpc(input.stagedCatalog ? "generation_admit_staged_local" : input.generationConfig ? "generation_admit_configured" : input.executorScope ? "generation_admit_local" : input.catalogRevision ? "generation_admit_external" : "generation_admit", {
+      if (input.trialCatalog) {
+        assertTrialCatalogAdmission(input.ownerId, input.catalogRevision);
+        if (input.stagedCatalog || input.executorScope || !input.generationConfig || !input.experimental)
+          throw new Error("catalog_trial_admission_not_allowed");
+      }
+      const data = await rpc(input.trialCatalog ? "generation_admit_trial_external" : input.stagedCatalog ? "generation_admit_staged_local" : input.generationConfig ? "generation_admit_configured" : input.executorScope ? "generation_admit_local" : input.catalogRevision ? "generation_admit_external" : "generation_admit", {
         ...(input.generationConfig ? { p_generation_config: generationModelConfigSchema.parse(input.generationConfig) } : {}),
         ...(input.executorScope ? {p_scope:input.executorScope}:{}),
         ...(input.catalogRevision ? {p_revision:input.catalogRevision}:{}),
@@ -477,7 +487,7 @@ export function createGenerationStore(
     },
 
     async isAvailable() {
-      return (await rpc("generation_v5_is_available")) === true;
+      return (await import("./workerReadiness")).isDemandWorkerReady();
     },
     async isFixedDesignAvailable() {
       try { return await rpc("generation_fixed_design_available") === true; }
@@ -508,6 +518,16 @@ export function createGenerationStore(
       return result.data ? requestRecord(result.data) : null;
     },
 
+    async getForClient(requestId, ownerId) {
+      const data = await rpc("generation_client_request", { p_id: requestId, p_owner: ownerId });
+      return data ? requestRecord(data) : null;
+    },
+
+    async progress(requestId, ownerId) {
+      const data = await rpc("generation_progress", { p_id: requestId, p_owner: ownerId });
+      return data ? generationProgressSchema.parse(data) : null;
+    },
+
     async cancel(requestId, ownerId) {
       const data = await rpc("generation_v5_cancel", {
         p_id: requestId,
@@ -517,8 +537,8 @@ export function createGenerationStore(
     },
 
     async heartbeat(requestId, leaseToken) {
-      if(ENV.localDemandEnabled){const data=await rpc('generation_renew_local_lease',{p_id:requestId,p_lease_token:leaseToken});return {status:data.status as RequestRecord["status"]};}
-      return updateLease(requestId, leaseToken, "heartbeat");
+      const data = await rpc("generation_renew_lease", { p_id: requestId, p_lease_token: leaseToken });
+      return { status: data.status as RequestRecord["status"] };
     },
 
     savePrepared(requestId, leaseToken, prepared) {

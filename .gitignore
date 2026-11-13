@@ -185,3 +185,8 @@ designs/inbox/*
 supabase/.temp/
 supabase/.branches/
 artes/
+
+# Motor: contrato operacional e evidencias locais
+!docs/motor-integracao.md
+!docs/motor-validacao.json
+!docs/contrato-integracao-supabase-vps.md

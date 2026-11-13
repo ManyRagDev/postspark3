@@ -20,6 +20,7 @@ type CopyAngleValue = {
 
 export type PostRecord = {
   id: number;
+  revision?: number;
   user_uuid: string | null;
   inputType: string;
   inputContent: string;
@@ -85,6 +86,7 @@ export type CreatePostInput = {
 
 export type UpdatePostInput = Partial<Omit<CreatePostInput, "userUuid">> & {
   id?: number;
+  expectedRevision?: number;
 };
 
 export type BackgroundAssetRecord = {
@@ -208,7 +210,9 @@ export type GenerationRunRecord = {
   graph_state?: JsonValue | null;
   spark_cost?: number | null;
   completed_at?: string | null;
-  createdAt: string;
+  created_at: string;
+  /** Compatibility with historical serialized records, before migration 0009. */
+  createdAt?: string;
 };
 
 export type BrandKitRecord = {
@@ -354,6 +358,7 @@ export async function createPost(post: CreatePostInput): Promise<number> {
 
   const payload = {
     user_uuid: post.userUuid,
+    revision: 1,
     inputType: post.inputType,
     inputContent: post.inputContent,
     platform: post.platform,
@@ -416,7 +421,7 @@ export async function updatePost(
   postId: number,
   userUuid: string,
   data: UpdatePostInput
-): Promise<void> {
+): Promise<number | undefined> {
   const db = getSupabaseDbClient();
 
   const payload = removeUndefined({
@@ -449,15 +454,15 @@ export async function updatePost(
     return;
   }
 
-  const { error } = await db
-    .from("posts")
-    .update(payload)
-    .eq("id", postId)
-    .eq("user_uuid", userUuid);
-
-  if (error) {
-    throw new Error(`[Database] updatePost failed: ${error.message}`);
+  const update = db.from("posts").update(payload).eq("id", postId).eq("user_uuid", userUuid);
+  if (data.expectedRevision !== undefined) {
+    const { data: saved, error } = await update.eq("revision", data.expectedRevision).select("revision").maybeSingle();
+    if (error) throw new Error(`[Database] updatePost failed: ${error.message}`);
+    if (!saved) throw new Error("post_revision_conflict");
+    return saved.revision as number;
   }
+  const { error } = await update;
+  if (error) throw new Error(`[Database] updatePost failed: ${error.message}`);
 }
 
 export async function getPostById(
@@ -936,27 +941,16 @@ export async function getGenerationOperationalMetrics(
  * Busca o histórico de gerações de um usuário.
  * Retorna em ordem decrescente de criação (mais recentes primeiro).
  */
-export async function getUserGenerationRuns(
-  userUuid: string,
-  limit = 50,
-  offset = 0,
-): Promise<GenerationRunRecord[]> {
-  const db = getSupabaseDbClient();
+export type GenerationRunSummary = Pick<GenerationRunRecord,
+  "id" | "status" | "input_type" | "input_content" | "platform" | "post_mode" |
+  "latency_ms" | "total_tokens" | "estimated_cost_usd" | "error_message"> & { created_at: string; variation_count: number };
 
-  const { data, error } = await db
-    .from("generation_runs")
-    .select("*")
-    .eq("user_uuid", userUuid)
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
-
-  if (error) {
-    throw new Error(
-      `[Database] getUserGenerationRuns failed: ${error.message}`,
-    );
-  }
-
-  return (data ?? []) as GenerationRunRecord[];
+export async function getUserGenerationRuns(userUuid: string, limit = 50, offset = 0): Promise<GenerationRunSummary[]> {
+  const { data, error } = await getSupabaseDbClient().rpc("generation_history_summaries", {
+    p_owner: userUuid, p_limit: limit, p_offset: offset,
+  });
+  if (error) throw new Error(`[Database] getUserGenerationRuns failed: ${error.message}`);
+  return (data ?? []) as GenerationRunSummary[];
 }
 
 /**

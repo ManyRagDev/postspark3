@@ -1,10 +1,10 @@
 import type { CanvasPostModel, CarouselSlideItem, CanvasCustomText, CanvasCustomImage } from "../components/types";
 import { applyContrastGuard, patchTouchesContrast } from "./contrast";
 import { editArsenalContent, cloneArsenalComposition, setArsenalCustomBackground, overrideArsenalElement } from "./arsenalComposition";
-import { applyContentText } from "@shared/arsenalContent";
+import { applyContentText, projectContentHeadline } from "@shared/arsenalContent";
 import { freshId } from "./documentCommands";
 
-export const REPLICATION_GROUPS = ["background", "colors", "font", "headline", "body", "composition"] as const;
+export const REPLICATION_GROUPS = ["background", "colors", "font", "headline", "headlineText", "body", "composition"] as const;
 export type ReplicationGroup = typeof REPLICATION_GROUPS[number];
 export type SlideStyle = NonNullable<CarouselSlideItem["visualStyle"]>;
 
@@ -65,7 +65,7 @@ export function applyCurrentSlideAppearancePatch(
     : { ...base, slides };
 }
 
-const GROUP_STYLE_KEYS: Record<Exclude<ReplicationGroup, "background">, readonly (keyof SlideStyle)[]> = {
+const GROUP_STYLE_KEYS: Record<Exclude<ReplicationGroup, "background" | "headlineText">, readonly (keyof SlideStyle)[]> = {
   colors: ["palette", "overlayOpacity", "overlayColor", "overlayMode"],
   font: ["fontFamily", "customFontUrl"],
   headline: ["headlineAlign", "headlineSizeScale", "headlineEffect", "headlineEffectColor", "manualHeadlineColor"],
@@ -151,6 +151,10 @@ export function validateReplication(
     return { ok: true, issues: [] };
   }
 
+  if (groups.includes("headlineText") && source.composition && !source.composition.base.bindings.some(b => b.kind === "text" && b.source === "headline")) {
+    issues.push({ targetIndex: sourceIndex, group: "headlineText", reason: `Slide de origem ${sourceIndex + 1} não possui título vinculado que possa ser copiado.` });
+  }
+
   for (const targetIndex of targets) {
     const target = post.slides[targetIndex];
     if (!target) continue;
@@ -173,10 +177,11 @@ export function validateReplication(
             reason: `Slide de origem ${sourceIndex + 1} não possui plano de fundo representável.`,
           });
         }
-      } else if (group === "headline") {
+      } else if (group === "headline" || group === "headlineText") {
         if (target.composition) {
           const headlineElem = findArsenalTextElementByRole(target.composition, "headline");
-          if (!headlineElem) {
+          const headlineBinding = target.composition.base.bindings.some(b => b.kind === "text" && b.source === "headline");
+          if (!headlineElem || (group === "headlineText" && !headlineBinding)) {
             issues.push({
               targetIndex,
               group: "headline",
@@ -274,6 +279,15 @@ export function replicateSlideAppearance(
         continue;
       }
 
+      if (group === "headlineText") {
+        const headline = sourceComp ? projectContentHeadline(sourceComp.content) : source.headline;
+        next = { ...next, headline, headlineRich: undefined };
+        if (targetComp) {
+          targetComp = editArsenalContent(targetComp, applyContentText(targetComp.content, { headline }));
+        }
+        continue;
+      }
+
       for (const key of GROUP_STYLE_KEYS[group]) {
         Object.assign(style, { [key]: appearance[key] });
       }
@@ -347,6 +361,18 @@ export function replicateSlideAppearance(
         style.palette = { ...(style.palette ?? resolveSlideAppearance(post, index).palette), headlineColor: appearance.palette.headlineColor };
         if (targetComp) {
           const headlineElem = findArsenalTextElementByRole(targetComp, "headline");
+          const sourceHeadline = sourceComp && findArsenalTextElementByRole(sourceComp, "headline");
+          if (headlineElem && sourceHeadline) {
+            const patch: Record<string, string | number | boolean | null> = {};
+            for (const key of ["fontFamily", "fontSize", "fontWeight", "fill", "align", "lineHeight", "letterSpacing"] as const) {
+              const value = sourceHeadline[key];
+              if (value !== undefined && value !== null) patch[key] = value;
+            }
+            const asset = sourceComp?.assets.find(a => a.family === sourceHeadline.fontFamily);
+            if (asset && !targetComp.assets.some(a => a.id === asset.id)) targetComp.assets = [...targetComp.assets, asset];
+            if (sourceHeadline.fontFamily) patch.fontAssetId = asset?.id ?? null;
+            targetComp = overrideArsenalElement(targetComp, headlineElem.id, patch);
+          } else
           if (headlineElem) {
             const hColor = appearance.palette.headlineColor;
             targetComp.elements = targetComp.elements.map(el =>

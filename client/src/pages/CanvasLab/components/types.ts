@@ -530,6 +530,7 @@ export const TEXT_EFFECTS_META: Record<TextLegibilityEffect, TextEffectMeta> = {
 export interface CanvasPostProvenance {
   source: "ai" | "local_fallback";
   generationRunId?: string;
+  journey?: import("@shared/generationTelemetry").GenerationJourneyIdentity;
   fallbackReason?: string;
   generatedAt: string;
 }

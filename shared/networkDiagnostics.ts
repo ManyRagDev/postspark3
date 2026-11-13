@@ -52,7 +52,7 @@ export function diagnosticEndpoint(value: string, base?: string): string {
   return path.startsWith("/api/") ? "/api/:other" : "/:other";
 }
 export function diagnosticCategory(endpoint: string) {
-  if (endpoint.startsWith("/auth/") || /manylabs_app_access/.test(endpoint))
+  if (endpoint.startsWith("/auth/") || /(?:manylabs_app_access|has_app_access)/.test(endpoint))
     return "authentication";
   if (/catalog|design_component|design_arsenal/.test(endpoint))
     return "catalog";

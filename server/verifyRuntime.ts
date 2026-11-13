@@ -188,10 +188,8 @@ const RPC_PROBE_ARGS: Record<string, Record<string, unknown>> = {
   generation_settle: { p_id: SENTINEL_UUID },
   editorial_catalog_head: { p_catalog_revision: "0" },
   get_billing_profile: { p_user_id: SENTINEL_UUID },
-  has_manylabs_app_access: { p_user_id: SENTINEL_UUID },
-  // ensure_manylabs_app_access NÃO é sondado: a função auto-ativa acesso
-  // (cria registros) — auditoria read-only não a invoca. Presença é
-  // verificada por information_schema (auditoria externa, ver SPEC-004).
+  has_app_access: { p_user_id: SENTINEL_UUID },
+
 };
 
 export function isFunctionNotFound(error: { message?: string } | null): boolean {

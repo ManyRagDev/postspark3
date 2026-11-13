@@ -1,4 +1,5 @@
 import type { ComponentDefinitionV1 } from "./componentAssembly";
+import { authoredTextFitLimits } from "./arsenalPhysicalContract";
 
 /** The optional authored block declares the complete interval, avoiding ambiguous partial bounds. */
 export type AuthoredTextFlexibility = { version: 1; minFontSize: number; preferredFontSize: number; maxFontSize: number };
@@ -54,8 +55,9 @@ export function compactTextFieldFlexibility(definition: ComponentDefinitionV1, f
     // Without an authored fontSize output, the actual solver cannot resize it.
     const scalable=relation?.kind==="textFit"&&relation.outputs.some(output=>output.targetId===id&&output.properties.includes("fontSize"));
     const sizes=scalable?range:{min:piece.fontSize,preferred:piece.fontSize,max:piece.fontSize};
-    const rows=(size:number)=>Math.max(1,Math.floor((instance.height+1e-8)/(size*(piece.lineHeight??1.2))));
-    const characters=(size:number)=>Math.max(1,Math.floor(instance.width/Math.max(1,size*.55+(piece.letterSpacing??0))))*rows(size);
+    const limits=authoredTextFitLimits(instance,relation?.kind==="textFit"?relation:undefined);
+    const rows=(size:number)=>Math.max(1,Math.floor((limits.height+1e-8)/(size*(piece.lineHeight??1.2))));
+    const characters=(size:number)=>Math.max(1,Math.floor(limits.width/Math.max(1,size*.55+(piece.letterSpacing??0))))*rows(size);
     return {min:characters(sizes.max),max:characters(sizes.min),minLines:rows(sizes.max),maxLines:rows(sizes.min),fragment:piece.contentFragment};
   }).filter((target):target is NonNullable<typeof target>=>Boolean(target));
   if(!targets.length)return;

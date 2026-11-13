@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { INITIAL_POST, type CanvasPostModel } from "../components/types";
-import { applyCurrentSlideAppearancePatch, replicateSlideAppearance, resolveSlideAppearance, replicateCarouselComposition } from "./slideReplication";
+import { applyCurrentSlideAppearancePatch, replicateSlideAppearance, resolveSlideAppearance, replicateCarouselComposition, findArsenalTextElementByRole } from "./slideReplication";
 import { canvasModelToSavePayload, savedPostToCanvasModel } from "./saveAdapter";
 import { createArsenalFixtureComposition } from "./arsenalFixture";
-import { addArsenalAuthorialLayer, resolveArsenalComposition } from "./arsenalComposition";
+import { addArsenalAuthorialLayer, resolveArsenalComposition, editArsenalContent, overrideArsenalElement } from "./arsenalComposition";
 import { readArsenalComposition } from "@shared/designArsenal";
-import { arsenalHash } from "@shared/arsenalContent";
+import { arsenalHash, applyContentText, projectContentHeadline } from "@shared/arsenalContent";
 
 const post: CanvasPostModel = {
   ...INITIAL_POST,
@@ -18,6 +18,31 @@ const post: CanvasPostModel = {
 };
 
 describe("replicação seletiva de slides", () => {
+  it("copia título e aparência escolhidos para a composição e preserva após reabertura", () => {
+    const base = createArsenalFixtureComposition();
+    const sourceText = findArsenalTextElementByRole(base, "headline")!;
+    let source = editArsenalContent(base, applyContentText(base.content, { headline: "Título editado" }));
+    source = overrideArsenalElement(source, sourceText.id, { fontSize: 53, fill: "#123456" });
+    const target = editArsenalContent(base, applyContentText(base.content, { headline: "Título anterior" }));
+    const model: CanvasPostModel = { ...post, slides: [
+      { ...post.slides[0], headline: "Título editado", composition: source },
+      { ...post.slides[1], headline: "Título anterior", composition: target },
+      post.slides[2],
+    ] };
+    const next = replicateSlideAppearance(model, 0, [1], ["headlineText", "headline"]);
+    const payload = canvasModelToSavePayload(next, { inputType: "text", inputContent: "teste" });
+    const reopened = savedPostToCanvasModel({ id: 1, canvas_model: payload.canvasModel });
+    const result = reopened.slides[1].composition!;
+    expect(projectContentHeadline(result.content)).toBe("Título editado");
+    expect(findArsenalTextElementByRole(resolveArsenalComposition(result), "headline")).toMatchObject({ fontSize: 53, fill: "#123456" });
+    expect(reopened.slides[2].headline).toBe("Terceiro");
+  });
+
+  it("só substitui palavras quando o texto do título é selecionado", () => {
+    const next = replicateSlideAppearance(post, 0, [1], ["headlineText"]);
+    expect(next.slides.map(slide => slide.headline)).toEqual(["Capa", "Capa", "Terceiro"]);
+    expect(next.slides[1].subtext).toBe("Texto B");
+  });
   it("edita fonte e aparência do título só no slide atual", () => {
     const next = applyCurrentSlideAppearancePatch(post, { fontFamily: "Montserrat", headlineSizeScale: 1.3 });
     expect(resolveSlideAppearance(next, 0).fontFamily).toBe("Montserrat");

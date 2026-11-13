@@ -33,14 +33,12 @@ try {
 if (action === "setup") {
   await db.connect();
   try {
-    await db.query("BEGIN");
     await db.query(
       await readFile(
-        new URL("../../ops/acervo82/auth-fixture.sql", import.meta.url),
+        new URL("../../drizzle/0068_app_access.sql", import.meta.url),
         "utf8"
       )
     );
-    await db.query("COMMIT");
     if (account) {
       if (
         account.supabaseUrl !== env.SUPABASE_URL ||
@@ -74,7 +72,7 @@ if (action === "setup") {
     }
     await chmod(credentialsPath, 0o600);
     await db.query(
-      "INSERT INTO acervo82_private.access_grants(user_id) VALUES ($1) ON CONFLICT DO NOTHING",
+      "INSERT INTO postspark.app_access(user_id,reason) VALUES ($1,'acervo82 local test account') ON CONFLICT DO NOTHING",
       [account.id]
     );
     const filename = path.join(root, ".acervo82-local/.env");
@@ -169,24 +167,24 @@ if (action === "setup") {
     );
     await db.connect();
     const access = await db.query(
-      `select postspark.has_manylabs_app_access($1) as allowed,
-      postspark.ensure_manylabs_app_access('00000000-0000-4000-8000-000000000099', $2, 'admin') as denied`,
-      [account.id, account.email]
+      `select postspark.has_app_access($1) as allowed,
+      postspark.has_app_access('00000000-0000-4000-8000-000000000099') as denied`,
+      [account.id]
     );
     check(
       "explicit-grant-only",
       access.rows[0].allowed === true && access.rows[0].denied === false
     );
     const rights = await db.query(`select r.rolname,
-      has_function_privilege(r.oid, 'postspark.ensure_manylabs_app_access(uuid,text,text)', 'EXECUTE') as execute,
-      has_table_privilege(r.oid, 'acervo82_private.access_grants', 'SELECT') as read
+      has_function_privilege(r.oid, 'postspark.has_app_access(uuid)', 'EXECUTE') as execute,
+      has_table_privilege(r.oid, 'postspark.app_access', 'SELECT') as read
       from pg_roles r where rolname in ('anon','authenticated')`);
     check(
       "browser-cannot-grant-access",
       rights.rows.length === 2 && rights.rows.every(r => !r.execute && !r.read)
     );
     const rls = await db.query(
-      `select relrowsecurity from pg_class where oid = 'acervo82_private.access_grants'::regclass`
+      `select relrowsecurity from pg_class where oid = 'postspark.app_access'::regclass`
     );
     check("grant-table-rls", rls.rows[0].relrowsecurity === true);
     console.log(

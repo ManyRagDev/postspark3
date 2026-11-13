@@ -72,6 +72,49 @@ export function CanvasMediaPanel({
         </button>
       ))}
 
+      {mode === "background" && (
+        <div className="grid grid-cols-2 gap-2">
+          {/* BOTÃO ESPECIAL DE SEAMLESS CAROUSEL (Visível exclusivamente para carrosséis) */}
+          {isCarousel && (
+            <button
+              type="button"
+              aria-label="Seamless Carousel (Fundo Contínuo)"
+              className="order-1 w-full min-h-16 rounded-xl px-2 py-2 bg-gradient-to-r from-[#FF5C00] to-orange-500 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              onClick={() => {
+                setDrawerInitialTab("seamless");
+                setOpen(true);
+              }}
+            >
+              <Sparkles size={14} className="text-white animate-pulse" />
+              <span>Fundo contínuo</span>
+            </button>
+          )}
+
+          {isCarousel && hasSeamlessApplied && onOpenGhostView && (
+            <button
+              type="button"
+              className="order-3 col-span-2 w-full min-h-11 rounded-xl border border-orange-500/40 bg-orange-500/10 hover:bg-orange-500/20 text-orange-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              onClick={onOpenGhostView}
+            >
+              <Layers size={13} className="text-orange-400" />
+              <span>Ver carrossel completo</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            aria-label="Explorar biblioteca de texturas"
+            className={button + (isCarousel ? " order-2 min-h-16 w-full" : " col-span-2 w-full")}
+            onClick={() => {
+              setDrawerInitialTab("all");
+              setOpen(true);
+            }}
+          >
+            Biblioteca de texturas
+          </button>
+        </div>
+      )}
+
       {mode === "background" && backgroundColor && onBackgroundColorChange && (
         <label className={label}>
           Cor de fundo
@@ -100,47 +143,6 @@ export function CanvasMediaPanel({
         }
         addImage={mode === "add" ? onAddExtraImage : undefined}
       />
-
-      {mode === "background" && (
-        <div className="space-y-2 pt-1">
-          {/* BOTÃO ESPECIAL DE SEAMLESS CAROUSEL (Visível exclusivamente para carrosséis) */}
-          {isCarousel && (
-            <button
-              type="button"
-              className="w-full min-h-11 rounded-xl bg-gradient-to-r from-[#FF5C00] to-orange-500 hover:brightness-110 text-white font-bold text-xs shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
-              onClick={() => {
-                setDrawerInitialTab("seamless");
-                setOpen(true);
-              }}
-            >
-              <Sparkles size={14} className="text-white animate-pulse" />
-              <span>Seamless Carousel (Fundo Contínuo)</span>
-            </button>
-          )}
-
-          {isCarousel && hasSeamlessApplied && onOpenGhostView && (
-            <button
-              type="button"
-              className="w-full min-h-10 rounded-xl border border-orange-500/40 bg-orange-500/10 hover:bg-orange-500/20 text-orange-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              onClick={onOpenGhostView}
-            >
-              <Layers size={13} className="text-orange-400" />
-              <span>Ver Tira Contínua em Fileira (Fantasma)</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            className={button + " w-full"}
-            onClick={() => {
-              setDrawerInitialTab("all");
-              setOpen(true);
-            }}
-          >
-            Explorar biblioteca de texturas
-          </button>
-        </div>
-      )}
 
       {children && (
         <details>

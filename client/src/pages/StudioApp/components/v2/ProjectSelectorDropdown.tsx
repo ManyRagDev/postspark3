@@ -14,6 +14,7 @@ interface ProjectSelectorDropdownProps {
   onOpenNewProjectModal: () => void;
   onEditProjectModal: (project: any) => void;
   disabled?: boolean;
+  className?: string;
 }
 
 export default function ProjectSelectorDropdown({
@@ -22,6 +23,7 @@ export default function ProjectSelectorDropdown({
   onOpenNewProjectModal,
   onEditProjectModal,
   disabled = false,
+  className = "",
 }: ProjectSelectorDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -89,10 +91,12 @@ export default function ProjectSelectorDropdown({
   };
 
   return (
-    <div ref={containerRef} className="relative inline-block text-left">
+    <div ref={containerRef} className={`relative inline-block text-left ${className}`}>
       <button
         type="button"
         disabled={disabled}
+        data-project-active={Boolean(activeProject)}
+        aria-expanded={isOpen}
         onClick={() => setIsOpen((prev) => !prev)}
         className={`inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-medium transition-all select-none max-md:min-h-11 md:rounded-full ${
           activeProject
@@ -101,7 +105,7 @@ export default function ProjectSelectorDropdown({
         } disabled:opacity-40 disabled:pointer-events-none`}
         title={activeProject ? `Projeto ativo: ${activeProject.name} (${activeProject.niche})` : "Sem projeto (Post livre)"}
       >
-        <Building2 size={13} className={activeProject ? "text-[#FF5C00]" : "text-white/40"} />
+        <Building2 data-project-accent={activeProject ? "" : undefined} size={13} className={activeProject ? "text-[#FF5C00]" : "text-white/40"} />
         <span className="max-w-[140px] truncate">
           {activeProject ? activeProject.name : "Sem projeto (Post livre)"}
         </span>
@@ -129,7 +133,7 @@ export default function ProjectSelectorDropdown({
               }`}
             >
               <span>Sem projeto (Post livre)</span>
-              {!selectedProjectId && <Check size={14} className="text-[#FF5C00]" />}
+              {!selectedProjectId && <Check data-project-accent="" size={14} className="text-[#FF5C00]" />}
             </button>
 
             {/* Lista dos projetos do usuário */}
@@ -151,6 +155,7 @@ export default function ProjectSelectorDropdown({
                       onSelectProject(proj.id);
                       setIsOpen(false);
                     }}
+                    data-project-selected={isSelected}
                     className={`group flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer transition-colors ${
                       isSelected
                         ? "bg-[#FF5C00]/15 text-orange-100 font-medium"
@@ -195,7 +200,7 @@ export default function ProjectSelectorDropdown({
                       >
                         <Trash2 size={12} />
                       </button>
-                      {isSelected && <Check size={14} className="text-[#FF5C00] ml-1" />}
+                      {isSelected && <Check data-project-accent="" size={14} className="text-[#FF5C00] ml-1" />}
                     </div>
                   </div>
                 );
@@ -213,7 +218,7 @@ export default function ProjectSelectorDropdown({
               }}
               className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/90 font-medium transition-colors"
             >
-              <Plus size={13} className="text-[#FF5C00]" />
+              <Plus data-project-accent="" size={13} className="text-[#FF5C00]" />
               <span>Novo Projeto de Marca</span>
             </button>
           </div>

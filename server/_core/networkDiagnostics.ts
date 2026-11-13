@@ -61,8 +61,9 @@ export class NetworkCaptureCollector {
   private subscriptions: Array<[string, (message: any) => void]> = [];
   constructor(
     private emit: (event: Metadata) => void,
-    private origin: string,
-    private role: string
+    private origin: string | null,
+    private role: string,
+    private options: { accept?: () => boolean; category?: (origin: string, path: string) => string } = {},
   ) {}
   private send(event: Metadata) {
     try {
@@ -92,12 +93,13 @@ export class NetworkCaptureCollector {
       this.subscriptions.push([name, guarded]);
     };
     on("undici:request:create", ({ request }) => {
-      if (new URL(request.origin).origin !== this.origin) return;
+      if (this.options.accept && !this.options.accept()) return;
+      if (this.origin !== null && new URL(request.origin).origin !== this.origin) return;
       const endpoint = diagnosticEndpoint(request.path, request.origin);
       const state = {
         requestId: randomUUID(),
         endpoint,
-        category: diagnosticCategory(endpoint),
+        category: this.options.category?.(request.origin, request.path) ?? diagnosticCategory(endpoint),
         method: request.method,
         context: context.getStore() ?? {
           source: this.role === "backend" ? "background" : "generation-worker",

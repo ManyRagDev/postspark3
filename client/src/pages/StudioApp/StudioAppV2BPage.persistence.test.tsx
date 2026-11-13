@@ -128,8 +128,8 @@ beforeEach(() => {
   root = createRoot(host);
 
   canvasLabProps = null;
-  trpcMock.saveMutateAsync.mockReset().mockResolvedValue({ id: 101 });
-  trpcMock.updateMutateAsync.mockReset().mockResolvedValue({ id: 101 });
+  trpcMock.saveMutateAsync.mockReset().mockResolvedValue({ id: 101, revision: 1 });
+  trpcMock.updateMutateAsync.mockReset().mockResolvedValue({ id: 101, revision: 1 });
   trpcMock.listInvalidate.mockReset().mockResolvedValue(undefined);
   trpcMock.profileInvalidate.mockReset().mockResolvedValue(undefined);
 
@@ -147,6 +147,20 @@ afterEach(() => {
 });
 
 describe("StudioAppV2BPage Persistence and Concurrency (OS-008)", () => {
+  it("keeps the last confirmed revision after a conflict and allows saving the local edit as a copy", async () => {
+    await act(async () => { root.render(<StudioAppV2BPage />); });
+    await act(async () => { (host.querySelector('[data-testid="select-variation"]') as HTMLButtonElement).click(); });
+    const doc = { ...INITIAL_POST, id: "concurrent-document", headline: "My local edit" };
+    await act(async () => { expect(await canvasLabProps.onSave(doc,"new","manual")).toBe(true); });
+    trpcMock.updateMutateAsync.mockRejectedValue(Object.assign(new Error("post_revision_conflict"),{data:{code:"CONFLICT"}}));
+    await act(async () => { expect(await canvasLabProps.onSave(doc,"update","manual")).toBe(false); });
+    await act(async () => { expect(await canvasLabProps.onSave(doc,"update","manual")).toBe(false); });
+    expect(trpcMock.updateMutateAsync.mock.calls.map(call => call[0].expectedRevision)).toEqual([1,1]);
+    expect(trpcMock.updateMutateAsync.mock.calls[0][0].canvasModel.headline).toBe("My local edit");
+    await act(async () => { expect(await canvasLabProps.onSave(doc,"new","manual")).toBe(true); });
+    expect(trpcMock.saveMutateAsync).toHaveBeenCalledTimes(2);
+    expect(trpcMock.saveMutateAsync.mock.calls[1][0].canvasModel.headline).toBe("My local edit");
+  });
   it("AC-008-02: first auto-save in flight -> manual save converts to update with same savedId without duplicate INSERT", async () => {
     let resolveFirstInsert: (val: any) => void = () => {};
     const firstInsertPromise = new Promise((resolve) => {
@@ -183,7 +197,7 @@ describe("StudioAppV2BPage Persistence and Concurrency (OS-008)", () => {
 
     // 4. Resolve the first INSERT
     await act(async () => {
-      resolveFirstInsert({ id: 202 });
+      resolveFirstInsert({ id: 202, revision: 1 });
       await autoSavePromise;
       await manualSavePromise;
     });
@@ -228,7 +242,7 @@ describe("StudioAppV2BPage Persistence and Concurrency (OS-008)", () => {
 
     // 3. Resolve first insert
     await act(async () => {
-      resolveFirstInsert({ id: 202 });
+      resolveFirstInsert({ id: 202, revision: 1 });
       await autoSavePromise;
       await manualCopyPromise;
     });
@@ -263,7 +277,7 @@ describe("StudioAppV2BPage Persistence and Concurrency (OS-008)", () => {
     expect(trpcMock.saveMutateAsync).toHaveBeenCalledTimes(1);
 
     // 2. Retry succeeds
-    trpcMock.saveMutateAsync.mockResolvedValueOnce({ id: 303 });
+    trpcMock.saveMutateAsync.mockResolvedValueOnce({ id: 303, revision: 1 });
     let retryResult = false;
     await act(async () => {
       retryResult = await canvasLabProps.onSave({ ...testPost, headline: "Headline Corrigido" }, "new", "auto");

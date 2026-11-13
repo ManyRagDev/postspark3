@@ -58,7 +58,8 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
   const { data: billing } = trpc.billing.getProfile.useQuery(undefined, {
     enabled: isAuthenticated,
     staleTime: 15_000,
-    refetchInterval: import.meta.env.DEV ? false : 30_000,
+    refetchInterval: false,
+    refetchOnWindowFocus: true,
   });
   const { data: savedPosts } = trpc.post.listSummary.useQuery(undefined, {
     enabled: isAuthenticated,

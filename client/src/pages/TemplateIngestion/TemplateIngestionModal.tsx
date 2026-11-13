@@ -272,7 +272,7 @@ export function TemplateIngestionModal({
               <TabsList className="grid grid-cols-2 bg-black/40 border border-white/10 h-10 p-1">
                 <TabsTrigger value="url" className="text-xs data-[state=active]:bg-orange-500 data-[state=active]:text-white">
                   <Globe className="size-3.5 mr-1.5" />
-                  URL (Captura VPS + CSS)
+                  Site ou página
                 </TabsTrigger>
                 <TabsTrigger value="upload" className="text-xs data-[state=active]:bg-orange-500 data-[state=active]:text-white">
                   <Upload className="size-3.5 mr-1.5" />
@@ -329,7 +329,7 @@ export function TemplateIngestionModal({
                   </div>
 
                   <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 text-[11px] text-white/50 leading-relaxed">
-                    Extração inteligente em 2 camadas: captura as fontes e paleta exatas do CSS e a IA desenha de 3 a 5 posts nativos (versus, passos, proposta de valor) no Konva 2D.
+                    Vamos identificar as cores, as fontes e o estilo do site para criar de 3 a 5 propostas de posts editáveis.
                   </div>
                 </div>
               </TabsContent>

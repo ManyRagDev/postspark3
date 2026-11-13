@@ -6,6 +6,7 @@ import {
 import { adaptArsenalTextToFreeSpace } from "./arsenalAdaptiveTextFit";
 import { textFontFlexibility, largestFittingTextFont } from "./textFieldFlexibility";
 import { subpixelTextOverflowLimit } from "./arsenalReadiness";
+import { arsenalPaintOrder, type PhysicalRect } from "./arsenalPhysicalContract";
 import {
   orderArsenalRelations,
   fragmentContentText,
@@ -33,6 +34,7 @@ export type ArsenalTextMeasurement = {
   height: number;
   lines: Array<{ width: number }>;
   runs: Array<{ fill: string; fontSize: number; fontStyle: string }>;
+  inkBoxes?: PhysicalRect[];
 };
 export type ArsenalTextMeasurer = (
   input: ArsenalTextMeasureInput
@@ -574,6 +576,7 @@ export function resolveArsenalGeometry(
   return options.adaptiveTextFit
     ? adaptArsenalTextToFreeSpace(c, {
         measureText,
+        authoredLimits: options.textFlexibilityVersion === 1,
         ...(options.textFlexibilityVersion === 1 ? { fontMaximum: (element: ArsenalElement) => {
           const base=c.base.instances.find(instance=>instance.id===element.id)!;
           const relation=c.relations.find(relation=>relation.kind==="textFit"&&relation.outputs.some(output=>output.targetId===element.id));
@@ -599,14 +602,14 @@ export function auditArsenalGeometry(
     }
     return ids;
   };
-  const polygon = (e: ArsenalElement) => {
+  const polygon = (e: ArsenalElement, box: PhysicalRect = {x:0,y:0,width:e.width,height:e.height}) => {
     const w = arsenalWorldGeometry(e, c.groups),
       r = (w.rotation * Math.PI) / 180;
     return [
-      [0, 0],
-      [e.width, 0],
-      [e.width, e.height],
-      [0, e.height],
+      [box.x, box.y],
+      [box.x+box.width, box.y],
+      [box.x+box.width, box.y+box.height],
+      [box.x, box.y+box.height],
     ].map(([x, y]) => ({
       x: w.x + w.scale * (x * Math.cos(r) - y * Math.sin(r)),
       y: w.y + w.scale * (x * Math.sin(r) + y * Math.cos(r)),
@@ -633,16 +636,7 @@ export function auditArsenalGeometry(
     e => e.kind === "text" && e.text && e.opacity > 0
   );
   // Match the renderer's recursive paint order before checking photo protection.
-  const paintOrder = new Map<string, number>();
-  const visit = (parentId: string | null) => {
-    for (const node of [...c.elements, ...c.groups]
-      .filter(n => n.parentId === parentId)
-      .sort((a, b) => a.zIndex - b.zIndex || a.id.localeCompare(b.id))) {
-      paintOrder.set(node.id, paintOrder.size);
-      if (!("kind" in node)) visit(node.id);
-    }
-  };
-  visit(null);
+  const paintOrder = arsenalPaintOrder(c);
   const opaquePhotoProtection = (text: ArsenalElement, image: ArsenalElement) =>
     c.elements.some(surface => {
       if (
@@ -731,6 +725,13 @@ export function auditArsenalGeometry(
       }
     }
   }
+  const ink = new Map<string, PhysicalRect[] | undefined>();
+  for (const e of texts) {
+    // Effects whose ink is not in the font metrics retain the conservative box.
+    const effect=c.version===3?c.effects?.[e.id]:undefined;
+    const complex=Boolean(e.extrusion||e.strokeWidth||effect||e.richText?.some(run=>run.underline));
+    ink.set(e.id,complex?undefined:measureArsenalElement(e,measureText).inkBoxes);
+  }
   for (let i = 0; i < texts.length; i++)
     for (let j = i + 1; j < texts.length; j++) {
       const a = texts[i],
@@ -745,7 +746,11 @@ export function auditArsenalGeometry(
         )
       )
         continue;
-      if (intersects(polygon(a), polygon(b)) && !lineBoxAllows(a, b))
+      const aInk=ink.get(a.id),bInk=ink.get(b.id);
+      const collides=aInk&&bInk
+        ? aInk.some(x=>bInk.some(y=>intersects(polygon(a,x),polygon(b,y))))
+        : intersects(polygon(a), polygon(b)) && !lineBoxAllows(a,b);
+      if (collides)
         issues.push(`collision:${a.id}/${b.id}`);
     }
   // Audit opaque surfaces behind each text. Media/partially covered surfaces require human inspection.

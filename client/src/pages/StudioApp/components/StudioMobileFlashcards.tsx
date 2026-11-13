@@ -17,6 +17,7 @@ interface StudioMobileFlashcardsProps {
   initialAspectRatio: AspectRatioType;
   resumePost?: Pick<CanvasPostModel, "id" | "aspectRatio">;
   onSelectVariation: (variation: CanvasPostModel) => void;
+  onExport?: (post: CanvasPostModel, kind: "export_png" | "export_zip") => void;
   onBackToCreate: () => void;
   onGenerateMore?: () => void;
   fixedDesign?: boolean;
@@ -31,6 +32,7 @@ export default function StudioMobileFlashcards({
   initialAspectRatio,
   resumePost,
   onSelectVariation,
+  onExport,
   onBackToCreate,
   onGenerateMore,
   fixedDesign = false,
@@ -147,7 +149,7 @@ export default function StudioMobileFlashcards({
           </button>
         )}
       </main>
-      {downloadPost && <PostDownloadDialog post={downloadPost} onClose={() => setDownloadPost(null)} />}
+      {downloadPost && <PostDownloadDialog post={downloadPost} onClose={() => setDownloadPost(null)} onExport={onExport} />}
     </div>
   );
 }

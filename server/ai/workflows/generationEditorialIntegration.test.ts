@@ -195,3 +195,38 @@ describe("catalog → interpretation → JEV → persisted planning", () => {
     expect(f.evaluate.mock.calls.flatMap(([r]) => Object.values(r.questions) as any[]).every(q => q.instructions.design.version === 3)).toBe(true);
   });
 });
+
+describe("capability policy in the full preparation path", () => {
+  it("pins manual editorial obligations through judge, three plans and replay without new provider effects", async () => {
+    const f = await fixture("Compare A e B na arte. Prefiro azul.", {version: 1, signals: []});
+    f.input.selectionPolicy = "capability_v1";
+    const original = f.generate.getMockImplementation()!;
+    f.generate.mockImplementation(async params => {
+      const response = await original(params);
+      const reading = JSON.parse(response.choices[0].message.content);
+      reading.semanticQuery = "comparar alternativas";
+      reading.requirements = [
+        {id: "comparison", description: "Comparar A e B", kind: "content", surface: "art", source: "declared", strength: "required", origin: "explicit", requestQuote: "Compare A e B na arte", itemCount: null},
+        {id: "color", description: "Preferência azul", kind: "execution", surface: "art", source: "declared", strength: "preference", origin: "inferred", requestQuote: "Prefiro azul", itemCount: null},
+      ];
+      reading.content[0].requirementIds = ["comparison"];
+      response.choices[0].message.content = JSON.stringify(reading);
+      return response;
+    });
+    const first = await f.run();
+    expect(first.planning?.slots.every(slot => slot.status === "viable")).toBe(true);
+    expect(first.planning?.intent.requirements).toEqual(expect.arrayContaining([
+      expect.objectContaining({id: "comparison", source: "declared", strength: "required", origin: "explicit"}),
+      expect.objectContaining({id: "color", source: "declared", strength: "preference", origin: "inferred"}),
+      expect.objectContaining({source: "physical", strength: "required"}),
+    ]));
+    expect(f.journal.get("selection_input")).toMatchObject({selectionPolicy: "capability_v1", familyNeutrality: {selectionPolicy: "capability_v1"}});
+    expect(JSON.parse(f.evaluate.mock.calls[0][0].state).assessmentTask).toContain("declared required constraints");
+    f.generate.mockImplementation(async () => { throw new Error("unexpected repeated interpretation"); });
+    f.evaluate.mockImplementation(async () => { throw new Error("unexpected repeated judging"); });
+    expect((await f.run()).planning).toEqual(first.planning);
+    await expect(verifyPreparedEligibility(first, true, f.deps.hydrate)).resolves.toBeUndefined();
+    f.input.selectionPolicy = "legacy";
+    await expect(f.run()).rejects.toThrow("preparation_contract_incompatible");
+  });
+});

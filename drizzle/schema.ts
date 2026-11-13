@@ -25,6 +25,7 @@ export type InsertUser = typeof users.$inferInsert;
  * Posts table - stores generated social media posts
  */
 export const posts = postsparkSchema.table("posts", {
+  revision: integer("revision").default(1).notNull(),
   id: serial("id").primaryKey(),
   userUuid: uuid("user_uuid"),
   userId: text("userId"),

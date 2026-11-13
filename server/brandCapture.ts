@@ -1,3 +1,4 @@
+import { observeProviderFailure } from "./ai/workflows/providerCooldown";
 import { publishWorkEvent } from "./ai/workflows/generationEvents";
 import { randomUUID } from "node:crypto";
 import { getDb } from "./db";
@@ -123,7 +124,11 @@ export async function startCapture(
       .eq("idempotency_key", input.idempotencyKey)
       .maybeSingle();
     if (existing.error) throw existing.error;
-    if (existing.data) return existing.data as CaptureRecord;
+    if (existing.data) {
+      if (existing.data.normalized_url !== normalizeSiteUrl(input.url))
+        throw new Error("Idempotency input conflict");
+      return existing.data as CaptureRecord;
+    }
     throw new Error(
       "A captura está em manutenção. Nenhuma captura nova foi iniciada."
     );
@@ -131,6 +136,17 @@ export async function startCapture(
   const url = normalizeSiteUrl(input.url);
   await publicUrl(url);
   const local = ENV.localDemandEnabled;
+  if (!local) {
+    const prior = await getDb().from("brand_captures").select("*")
+      .eq("owner_id", owner).eq("idempotency_key", input.idempotencyKey).maybeSingle();
+    if (prior.error) throw prior.error;
+    if (prior.data) {
+      if (prior.data.normalized_url !== url) throw new Error("Idempotency input conflict");
+      return prior.data as CaptureRecord;
+    }
+    if (!(await (await import("./ai/workflows/workerReadiness")).isDemandWorkerReady()))
+      throw new Error("O executor persistente de captura está indisponível. Nenhuma captura foi iniciada.");
+  }
   const scope = local
     ? await (
         await import("./ai/workflows/localDemandSupervisor")
@@ -224,6 +240,7 @@ export async function executeCapture(c: CaptureRecord, signal?: AbortSignal) {
           await update("complete", key, value);
           return value;
         } catch (error) {
+          await observeProviderFailure(error);
           await update("uncertain", key).catch(() => {});
           throw error;
         }

@@ -114,10 +114,11 @@ export const selectionInputReceiptSchema = z
     automaticSemanticVersion: z.literal(1).optional(),
     automaticRetrievalMode: z.literal("lexical").optional(),
     compactIntentVersion: z.literal(1).optional(),
+    selectionPolicy: z.literal("capability_v1").optional(),
     editorialQuotePolicy: z.literal(1).optional(),
     carouselCaptionPolicy: z.literal(1).optional(),
     preservedPhoto: z.object({version:z.literal(1),url:z.string().regex(/^\/api\/post-media\/[a-f0-9-]{36}\/[a-f0-9]{64}$/i)}).strict().optional(),
-    familyNeutrality: z.object({version:z.literal(1),seed:z.string().min(1),planningVersion:z.union([z.literal(2),z.literal(3)]).optional(),proposalSelectionVersion:z.literal(1).optional(),creativeFlexibility:z.literal(1).optional(),deliveryRecoveryVersion:z.union([z.literal(1),z.literal(2)]).optional()}).strict().optional(),
+    familyNeutrality: z.object({version:z.literal(1),seed:z.string().min(1),selectionPolicy:z.literal("capability_v1").optional(),planningVersion:z.union([z.literal(2),z.literal(3)]).optional(),proposalSelectionVersion:z.literal(1).optional(),creativeFlexibility:z.literal(1).optional(),deliveryRecoveryVersion:z.union([z.literal(1),z.literal(2)]).optional()}).strict().optional(),
     familyRetrievalVersion: z.literal(1).optional(),
     familyRecoveryVersion: z.literal(1).optional(),
     familyRetrievalIndex: z.object({ hash: z.string(), modelFingerprint: z.string() }).strict().optional(),
@@ -327,6 +328,19 @@ export function diversifyDesignSelection(
 export function creativeImagePreference(obligation: ImageObligation): ImageObligation {
   if (obligation.policy === "forbidden") return obligation;
   return { ...obligation, policy: "optional", required: false, slotTargets: 0 };
+}
+
+/** Declared obligations remain binding; softer language is ranking evidence only. */
+export function policyImageObligation(input: OrchestratedGenerationInput, brief: ReturnType<typeof normalizeExecutionBrief> | null): ImageObligation {
+  if (input.selectionPolicy !== "capability_v1") return determineImageObligation(input, brief);
+  const obligatory = (text: string) => text.split(/[,.!?;\n]+|\b(?:mas|porém|e)\s+(?=(?:use|utilize|inclua|mostre|quero|preciso|não|sem|apenas|somente)\b)/i)
+    .filter(clause => !/\b(?:prefir[oa]|preferimos|preferência|se possível|se puder|talvez|opcional)\b/i.test(clause))
+    .join(" ");
+  const cleanBrief = brief ? { ...brief, rawInput: obligatory(brief.rawInput), notes: obligatory(brief.notes ?? "") } : null;
+  // A stylistic reference is not itself a command to reproduce its photo.
+  if (cleanBrief?.brandInput?.referenceImageUrl && input.inputType !== "image" && !input.imageUrl)
+    cleanBrief.brandInput = { ...cleanBrief.brandInput, referenceImageUrl: undefined };
+  return determineImageObligation({ ...input, content: obligatory(input.content) }, cleanBrief);
 }
 
 export function determineImageObligation(
@@ -716,7 +730,8 @@ export function eligibleCompleteDesignCardsForRequest(
 ): ComponentCardV1[] {
   if (generationStrategyVersion === 2) {
     const brief = input.executionBrief ? normalizeExecutionBrief(input.executionBrief) : null;
-    const obligation = automatic ? creativeImagePreference(determineImageObligation(input, brief)) : determineImageObligation(input, brief);
+    const declared = policyImageObligation(input, brief);
+    const obligation = automatic && input.selectionPolicy !== "capability_v1" ? creativeImagePreference(declared) : declared;
     const repertoires = resolveDesignFamilyRepertoires(cards, {
       slideCount: input.postMode === "static" ? 1 : input.slideCount ?? 5,
       contentMode: brief?.interventionLevel === "visual_only" ? "literal" : "compose",
@@ -888,9 +903,9 @@ export async function prepareOrchestratedGeneration(
     throw new Error(
       "Não há composições completas compatíveis com este pedido e formato."
     );
-  const declaredImagePreference = determineImageObligation(input, executionBrief, visualPreference);
-  const imageObligation = automatic ? creativeImagePreference(declaredImagePreference) : declaredImagePreference;
-  const requestedPhotoMix = !automatic && requestsPhotoMix(requestImageInstructions(input, executionBrief));
+  const declaredImagePreference = policyImageObligation(input, executionBrief);
+  const imageObligation = automatic && input.selectionPolicy !== "capability_v1" ? creativeImagePreference(declaredImagePreference) : declaredImagePreference;
+  const requestedPhotoMix = (!automatic || input.selectionPolicy === "capability_v1") && requestsPhotoMix(requestImageInstructions(input, executionBrief));
   if (deps.generationConfig?.generationStrategyVersion === 2) return preparePlannedGeneration({
     input, cards, coverage, recentSelections, count, requestedPhotoMix,
     parentDesignSelection: Array.isArray(recentHistory) ? undefined : recentHistory.parentSelection,

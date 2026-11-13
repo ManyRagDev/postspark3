@@ -1,3 +1,4 @@
+import { konvaTextBaseline, type PhysicalRect } from "./arsenalPhysicalContract";
 type CanvasRichTextChunk = {
   text: string;
   color?: string;
@@ -33,6 +34,8 @@ export interface RichTextLayoutConfig {
     fontSize: number,
     fontStyle: string
   ) => number;
+  /** Verified glyph ink in Konva Text coordinates; missing metrics stay conservative. */
+  measureInk?: (text: string, fontFamily: string, fontSize: number, fontStyle: string) => PhysicalRect | null | undefined;
   /** False preserva somente as quebras explícitas de uma receita diagnóstica. */
   wrap?: boolean;
   /** Word-only wrapping preserves indivisible tokens as visible overflow. */
@@ -82,6 +85,7 @@ export interface RichTextLayout {
   glyphs: RichTextGlyph[];
   runs: RichTextPositionedRun[];
   lines: RichTextLine[];
+  inkBoxes?: PhysicalRect[];
 }
 
 export interface CaretGeometry {
@@ -367,12 +371,34 @@ export function layoutRichText(config: RichTextLayoutConfig): RichTextLayout {
     }
   }
 
+  const inkBoxes: PhysicalRect[] = [];
+  let inkKnown = Boolean(config.measureInk || ctx) && letterSpacing === 0 && !runs.some(run => run.underline);
+  if (inkKnown) for (const run of runs) {
+    if (!run.text.trim()) continue;
+    let ink: PhysicalRect | null | undefined;
+    if (config.measureInk) ink = config.measureInk(run.text, config.fontFamily, run.fontSize, run.fontStyle);
+    else if (ctx) {
+      ctx.font = fontString(run.fontSize, config.fontFamily, run.fontStyle);
+      const m = ctx.measureText(run.text), ref = ctx.measureText("M");
+      const ascent = ref.fontBoundingBoxAscent ?? ref.actualBoundingBoxAscent;
+      const descent = ref.fontBoundingBoxDescent ?? ref.actualBoundingBoxDescent;
+      const baseline = konvaTextBaseline(run.fontSize, ascent, descent);
+      if ([m.actualBoundingBoxLeft,m.actualBoundingBoxRight,m.actualBoundingBoxAscent,m.actualBoundingBoxDescent,baseline].every(Number.isFinite))
+        ink = {x:-m.actualBoundingBoxLeft,y:baseline-m.actualBoundingBoxAscent,
+          width:m.actualBoundingBoxLeft+m.actualBoundingBoxRight,height:m.actualBoundingBoxAscent+m.actualBoundingBoxDescent};
+    }
+    if (ink === undefined) { inkKnown = false; break; }
+    if (ink && Object.values(ink).every(Number.isFinite) && ink.width > 0 && ink.height > 0)
+      inkBoxes.push({...ink,x:run.x+ink.x,y:run.y+ink.y});
+    else if (ink !== null) { inkKnown = false; break; }
+  }
   return {
     width,
     height: Math.max(config.fontSize * lineHeight, y),
     glyphs,
     runs,
     lines,
+    ...(inkKnown ? {inkBoxes} : {}),
   };
 }
 

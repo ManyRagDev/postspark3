@@ -24,6 +24,7 @@ interface StudioGalleryViewProps {
   initialAspectRatio?: AspectRatioType;
   resumeMobilePost?: Pick<CanvasPostModel, "id" | "aspectRatio">;
   onSelectVariation: (variation: CanvasPostModel) => void;
+  onExport?: (post: CanvasPostModel, kind: "export_png" | "export_zip") => void;
   onBackToCreate: () => void;
   onGenerateMore?: () => void;
   isGeneratingMore?: boolean;
@@ -44,6 +45,7 @@ export default function StudioGalleryView({
   initialAspectRatio,
   resumeMobilePost,
   onSelectVariation,
+  onExport,
   onBackToCreate,
   onGenerateMore,
   isGeneratingMore = false,
@@ -104,6 +106,7 @@ export default function StudioGalleryView({
           initialAspectRatio={variations[0]?.aspectRatio ?? initialAspectRatio ?? "1:1"}
           resumePost={resumeMobilePost}
           onSelectVariation={onSelectVariation}
+          onExport={onExport}
           onBackToCreate={onBackToCreate}
           onGenerateMore={onGenerateMore}
           fixedDesign={expectedCount === 1}
@@ -116,7 +119,7 @@ export default function StudioGalleryView({
 
   return (
     <>
-      {downloadPost && <PostDownloadDialog post={downloadPost} onClose={() => setDownloadPost(null)} />}
+      {downloadPost && <PostDownloadDialog post={downloadPost} onClose={() => setDownloadPost(null)} onExport={onExport} />}
       <div className="hidden md:flex flex-1 flex flex-col h-full overflow-hidden select-none">
       {/* Barra Superior da Galeria */}
       <header className="h-14 border-b border-white/10 bg-black/60 backdrop-blur-xl px-6 flex items-center justify-between shrink-0 z-20">

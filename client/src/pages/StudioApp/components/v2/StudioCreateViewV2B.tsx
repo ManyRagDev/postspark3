@@ -12,6 +12,8 @@ export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"fac
 import { trpc } from "@/lib/trpc";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useIsMobile } from "@/hooks/useMobile";
+import StudioMobileCreationForm, { MOBILE_PROMPT_COMPACT_HEIGHT } from "./StudioMobileCreationForm";
 import { ArrowRight, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { loadFontByName } from "@/lib/fonts";
 import SparkLogo from "@/components/SparkLogo";
@@ -94,6 +96,9 @@ export default function StudioCreateViewV2B({
     }
   }, [initialMode]);
 
+  const isMobile = useIsMobile();
+  const [promptExpanded, setPromptExpanded] = useState(false);
+  const [canExpandPrompt, setCanExpandPrompt] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const directory = trpc.catalog.acervo82Directory.useQuery(undefined, {
@@ -181,13 +186,27 @@ export default function StudioCreateViewV2B({
     SPECIMEN_FONTS.forEach(loadFontByName);
   }, []);
 
-  // Autoresize com teto: texto longo rola DENTRO do campo — a página nunca rola.
+  // Compact mobile fields stay at three lines until explicitly expanded.
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-    textarea.style.height = "auto";
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
-  }, [prompt]);
+    const resize = () => {
+      if (isMobile) {
+        textarea.style.height = `${MOBILE_PROMPT_COMPACT_HEIGHT}px`;
+        const contentHeight = textarea.scrollHeight;
+        setCanExpandPrompt(contentHeight > MOBILE_PROMPT_COMPACT_HEIGHT + 1);
+        if (promptExpanded) textarea.style.height = `${Math.max(MOBILE_PROMPT_COMPACT_HEIGHT, contentHeight)}px`;
+      } else {
+        textarea.style.height = "auto";
+        textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
+      }
+    };
+    resize();
+    if (isMobile) {
+      window.addEventListener("resize", resize);
+      return () => window.removeEventListener("resize", resize);
+    }
+  }, [prompt, isMobile, promptExpanded]);
 
   const scriptDetection = useMemo(() => detectScriptStructure(prompt), [prompt]);
   const [scriptModeOverride, setScriptModeOverride] = useState<"preserve" | "rewrite" | null>(null);
@@ -246,7 +265,7 @@ export default function StudioCreateViewV2B({
   };
 
   return (
-    <div className="flex h-[100svh] flex-col overflow-hidden" style={{ background: STUDIO.bg, color: STUDIO.ink }}>
+    <div data-mobile-tone={isMobile ? (isScriptMode ? "script" : isUrl ? "url" : "text") : undefined} className="studio-create-page flex min-h-[100svh] md:h-[100svh] flex-col md:overflow-hidden" style={{ background: STUDIO.bg, color: STUDIO.ink }}>
       <style>{`
         .psv2b-prompt::placeholder {
           font-family: 'Playfair Display', serif;
@@ -263,7 +282,9 @@ export default function StudioCreateViewV2B({
       `}</style>
 
       {/* MENU DO USUÁRIO NO CANTO SUPERIOR DIREITO (SPARKS, SALVOS, PERFIL) */}
-      <UserTopMenu />
+      <div className="hidden md:block">
+        <UserTopMenu />
+      </div>
       <div className="fixed left-4 top-4 z-40 hidden md:flex items-center gap-2">
         <Link href="/saved-posts" className="flex min-h-11 items-center rounded-full border border-white/15 bg-[#0a0d16] px-4 text-sm text-white hover:bg-white/10">
           Meus posts
@@ -280,9 +301,28 @@ export default function StudioCreateViewV2B({
         </button>
       </div>
 
-      <Link href="/saved-posts" className="fixed left-4 top-4 z-40 flex min-h-11 items-center rounded-full border border-white/15 bg-[#0a0d16] px-4 text-sm text-white hover:bg-white/10 md:hidden">
-        Meus posts
-      </Link>
+      {/* HEADER MOBILE NO FLUXO (EVITA COLISÃO COM O LOGO E INCLUI REPLICAÇÃO DE DESIGN) */}
+      <header className="shrink-0 z-40 flex items-center justify-between gap-2 px-4 pt-2 pb-0 md:hidden">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Link
+            href="/saved-posts"
+            className="flex min-h-10 items-center rounded-full border border-white/15 bg-[#0a0d16]/90 px-3 text-xs font-medium text-white hover:bg-white/10 whitespace-nowrap"
+          >
+            Meus posts
+          </Link>
+          <button
+            type="button"
+            onClick={() => setIsTemplateIngestOpen(true)}
+            disabled={isLoading}
+            className="flex min-h-10 items-center gap-1 rounded-full border border-white/15 bg-[#0a0d16]/90 px-2.5 text-xs font-medium text-white/85 hover:bg-white/10 hover:text-white transition-colors cursor-pointer disabled:opacity-45 whitespace-nowrap"
+            title="Replicar arte ou print e transformar em template editável"
+          >
+            <Sparkles size={12} className="studio-mobile-accent-icon text-[#FF5C00] shrink-0" />
+            <span>Replicar</span>
+          </button>
+        </div>
+        <UserTopMenu variant="inline" compactMobile />
+      </header>
 
       {captureUrl&&<BrandCaptureModal url={captureUrl} projectId={selectedProjectId} onClose={()=>setCaptureUrl(undefined)} onSaved={id=>{onSelectProjectId?.(id);setCaptureUrl(undefined);setPrompt("");setUrlAsContent(false);toast.success("Projeto salvo. Agora informe o pedido do post.");}}/>}
       {/* MODAL DE CALIBRAGEM DE PROJETO */}
@@ -313,15 +353,59 @@ export default function StudioCreateViewV2B({
       )}
 
       {/* ÁREA PRINCIPAL CENTRALIZADA VERTICALMENTE */}
-      <main className="min-h-0 flex-1 flex flex-col justify-center px-4 py-4 md:px-8 md:py-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="mx-auto flex w-full max-w-2xl flex-col my-auto space-y-4">
+      {isMobile ? (
+        <StudioMobileCreationForm
+          prompt={prompt} onPromptChange={setPrompt} textareaRef={textareaRef}
+          expanded={promptExpanded} canExpand={canExpandPrompt} onExpandedChange={setPromptExpanded}
+          onFocusChange={setIsFocused}
+          onPromptKeyDown={event => {
+            if (event.key === "Enter" && !event.shiftKey && (event.ctrlKey || event.metaKey) && !event.nativeEvent.isComposing) {
+              event.preventDefault(); handleSubmit();
+            }
+          }}
+          isLoading={isLoading} canSubmit={canSubmit} isUrl={isUrl}
+          urlAsContent={urlAsContent} onUrlAsContentChange={setUrlAsContent}
+          scriptSlideCount={scriptDetection.isScript ? scriptDetection.slideCount : null}
+          preserveScript={isScriptMode} onScriptModeChange={setScriptModeOverride}
+          options={options} onOptionsChange={setOptions} postMode={postMode} onPostModeChange={setPostMode}
+          aspectRatio={proposalAspectRatio} onAspectRatioChange={onProposalAspectRatioChange}
+          hasSavedDraft={hasSavedDraft} onDiscardDraft={onDiscardDraft ? handleDiscardDraft : undefined}
+          onSubmit={handleSubmit} onOpenShowcase={() => setIsShowcaseOpen(true)}
+          projectControl={<ProjectSelectorDropdown
+            className="studio-mobile-project" selectedProjectId={selectedProjectId}
+            onSelectProject={id => onSelectProjectId?.(id)} disabled={isLoading}
+            onOpenNewProjectModal={() => { setEditingProject(null); setIsProjectModalOpen(true); }}
+            onEditProjectModal={project => { setEditingProject(project); setIsProjectModalOpen(true); }}
+          />}
+          projectStyleControl={projectDesignSpecimen ? <button type="button" className="mobile-project-style"
+            disabled={isLoading} aria-pressed={declaredFamilyId === projectDesignSpecimen.id}
+            onClick={() => onDeclareFamily(declaredFamilyId === projectDesignSpecimen.id ? null : projectDesignSpecimen.id)}>
+            <Sparkles size={16} aria-hidden="true" /><span>Estilo do projeto · {currentProject?.visualPreferences?.personality?.[0] || "Estilo do Projeto"}</span>
+          </button> : undefined}
+        />
+      ) : (
+      <main className="flex-1 flex flex-col px-4 pt-3 pb-8 md:min-h-0 md:px-8 md:py-6 md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mx-auto flex w-full max-w-2xl flex-col shrink-0 gap-5 md:gap-4 md:my-auto">
           
-          {/* 1. BRANDING OFICIAL POSTSPARK (SÍMBOLO 2X + DISTANCIAMENTO NOBRE) */}
-          <section className="text-center">
-            <div className="flex flex-col items-center justify-center gap-2 mb-6 md:mb-8">
-              <SparkLogo size={152} />
+          {/* 1. BRANDING OFICIAL POSTSPARK (HORIZONTAL COMPACTO NO MOBILE + AURA AMBIENTE) */}
+          <section className="relative shrink-0 text-center">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 h-28 w-56 md:-top-6 md:h-52 md:w-80 rounded-full blur-3xl opacity-35"
+              style={{
+                background:
+                  "radial-gradient(circle at 42% 45%, rgba(255,92,0,0.45), rgba(56,189,248,0.22) 60%, transparent 75%)",
+              }}
+            />
+            <div className="relative flex flex-row md:flex-col items-center justify-center gap-2 mb-3 md:mb-8">
+              <div className="md:hidden">
+                <SparkLogo size={48} />
+              </div>
+              <div className="hidden md:block">
+                <SparkLogo size={152} />
+              </div>
               <div
-                className="text-3xl md:text-4xl font-black tracking-tight select-none mt-1"
+                className="text-2xl md:text-4xl font-black tracking-tight select-none md:mt-1"
                 style={{ fontFamily: "var(--font-display, sans-serif)" }}
               >
                 <span className="text-white">Post</span>
@@ -330,7 +414,7 @@ export default function StudioCreateViewV2B({
             </div>
 
             <h1
-              className="text-[1.45rem] leading-tight tracking-[-0.02em] md:text-3xl text-white font-bold"
+              className="text-[1.35rem] leading-tight tracking-[-0.02em] md:text-3xl text-white font-bold"
               style={{ fontFamily: "var(--font-display)" }}
             >
               O que vamos{" "}
@@ -346,14 +430,14 @@ export default function StudioCreateViewV2B({
               hoje?
             </h1>
             <p
-              className="mt-1 text-[12px] md:text-[13px] leading-relaxed text-white/50"
+              className="mt-0.5 md:mt-1 text-sm md:text-[13px] leading-relaxed text-white/50"
             >
               Digite uma ideia — ou cole o link do seu site.
             </p>
           </section>
 
           {/* 2. A FOLHA DE ESCRITA / PROMPT */}
-          <section>
+          <section className="shrink-0">
             <div
               className="rounded-2xl border transition-all duration-300 shadow-2xl backdrop-blur-md overflow-hidden"
               style={{
@@ -391,128 +475,19 @@ export default function StudioCreateViewV2B({
               }}
             >
               <div className="flex flex-col">
-                {/* Barra de Controles Superiores: Modelo, Plataforma e IA */}
-                <div className="flex flex-wrap items-center gap-2.5 px-3.5 py-2.5 border-b border-white/[0.06] text-xs">
-                  {/* Seletor de Modelo */}
-                  <label className="flex items-center gap-1.5 text-white/70">
-                    <span className="font-medium text-white/60">Modelo</span>
-                    <select
-                      aria-label="Modelo de geração"
-                      disabled={isLoading}
-                      className="h-7 rounded bg-black/40 border border-white/10 px-2 text-xs text-white focus:outline-none focus:border-[#FF5C00]/60 transition-colors cursor-pointer"
-                      value={options.generationModel ?? "auto"}
-                      onChange={(e) => setOptions({ ...options, generationModel: e.target.value as GenerationModel })}
-                      title={getGenerationModelHint(options.generationModel)}
-                    >
-                      {Object.entries(GENERATION_MODEL_LABELS).map(([value, label]) => (
-                        <option key={value} value={value} className="bg-neutral-900 text-white">
-                          {label}
-                        </option>
-                      ))}
-                      <option value="gpt" className="hidden">
-                        GPT (Descontinuado)
-                      </option>
-                    </select>
-                  </label>
-
-                  {/* Seletor de Plataforma */}
-                  <label className="flex items-center gap-1.5 text-white/70">
-                    <span className="font-medium text-white/60">Plataforma</span>
-                    <select
-                      aria-label="Plataforma"
-                      disabled={isLoading}
-                      className="h-7 rounded bg-black/40 border border-white/10 px-2 text-xs text-white capitalize focus:outline-none focus:border-[#FF5C00]/60 transition-colors cursor-pointer"
-                      value={options.platform}
-                      onChange={(e) => setOptions({ ...options, platform: e.target.value as CreationInputOptions["platform"] })}
-                    >
-                      {["instagram", "twitter", "linkedin", "facebook"].map((p) => (
-                        <option key={p} value={p} className="bg-neutral-900 text-white capitalize">
-                          {p === "instagram" ? "Instagram" : p === "twitter" ? "Twitter / X" : p === "linkedin" ? "LinkedIn" : "Facebook"}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  {/* Toggle Gerar Imagens com IA */}
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={Boolean(options.allowAiImages)}
-                    aria-label="Gerar imagens com IA"
-                    disabled={isLoading}
-                    onClick={() => setOptions({ ...options, allowAiImages: !options.allowAiImages })}
-                    className={`h-7 flex items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors cursor-pointer ${
-                      options.allowAiImages
-                        ? "border-[#FF5C00]/60 bg-[#FF5C00]/20 text-white"
-                        : "border-white/10 bg-black/30 text-white/60 hover:text-white/85"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-2 w-2 rounded-full transition-colors ${
-                        options.allowAiImages ? "bg-[#FF5C00]" : "bg-white/30"
-                      }`}
-                    />
-                    <span>Gerar imagens com IA</span>
-                  </button>
-
-                  {/* Opção de adicionar imagem desativada temporariamente conforme fluxo atual (comentada, preservada para retorno futuro) */}
-                  {/*
-                  <label className="cursor-pointer underline">
-                    {options.image ? "Trocar imagem" : "Adicionar imagem"}
-                    <input
-                      aria-label="Imagem do pedido"
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      className="sr-only"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (!f) return;
-                        if (f.size > 8_000_000) {
-                          toast.error("Use uma imagem de até 8 MB.");
-                          return;
-                        }
-                        const r = new FileReader();
-                        r.onload = () => setOptions({ ...options, image: String(r.result) });
-                        r.readAsDataURL(f);
-                      }}
-                    />
-                  </label>
-                  {options.image && (
-                    <>
-                      <select
-                        aria-label="Finalidade da imagem"
-                        value={options.imagePurpose}
-                        className="bg-black/30 p-2"
-                        onChange={(e) => setOptions({ ...options, imagePurpose: e.target.value as CreationInputOptions["imagePurpose"] })}
-                      >
-                        <option value="content">Imagem como fonte de conteúdo</option>
-                        <option value="visual_reference">Referência visual</option>
-                      </select>
-                      <button onClick={() => setOptions({ ...options, image: undefined })}>Remover imagem</button>
-                    </>
-                  )}
-                  */}
-
-                  {isUrl && (
-                    <label className="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={urlAsContent}
-                        onChange={(e) => setUrlAsContent(e.target.checked)}
-                        className="rounded border-white/20 bg-black/40 text-orange-500 focus:ring-0"
-                      />
-                      <span>Usar página como conteúdo do post</span>
-                    </label>
-                  )}
+                <div className="flex items-center justify-between gap-2 px-4 pt-3 md:hidden">
+                  <label htmlFor="studio-idea" className="text-sm font-medium text-white/80">Sua ideia ou roteiro</label>
+                  {prompt.length > 260 && <button type="button" aria-expanded={promptExpanded} onClick={() => setPromptExpanded(value => !value)} className="min-h-11 px-2 text-sm text-white/70">{promptExpanded ? "Reduzir texto" : "Expandir texto"}</button>}
                 </div>
-              <div className="flex items-end gap-1"><textarea
+              <div className="flex items-end"><textarea
+                  id="studio-idea"
                   ref={textareaRef}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
+                    if (e.key === "Enter" && !e.shiftKey && (!isMobile || e.ctrlKey || e.metaKey)) {
                       e.preventDefault();
                       handleSubmit();
                     }
@@ -521,77 +496,45 @@ export default function StudioCreateViewV2B({
                   rows={1}
                   disabled={isLoading}
                   aria-label="Tema ou ideia do post"
-                  className="psv2b-prompt w-full min-w-0 flex-1 resize-none overflow-y-auto bg-transparent py-2.5 pl-3.5 pr-2 outline-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  className="psv2b-prompt w-full min-w-0 flex-1 resize-none overflow-y-auto bg-transparent py-3 px-4 outline-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   style={{
                     fontFamily: "var(--font-sans)",
                     color: STUDIO.ink,
                     fontSize: 16,
                     lineHeight: 1.45,
-                    minHeight: isEmpty ? 76 : 48,
+                    minHeight: isMobile ? 144 : isEmpty ? 96 : 64,
                     transition: "min-height 200ms ease",
                   }}
                 />
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={!canSubmit}
-                  aria-label={
-                    isUrl && !urlAsContent
-                      ? "Capturar marca gratuitamente"
-                      : isScriptMode
-                      ? `Diagramar ${scriptDetection.slideCount} slides com fidelidade`
-                      : declaredSpecimen
-                      ? "Criar com este gosto"
-                      : "Criar posts"
-                  }
-                  className="mb-1.5 mr-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200 active:scale-95 cursor-pointer"
-                  style={{
-                    background: canSubmit
-                      ? isScriptMode
-                        ? "#8b5cf6"
-                        : isUrl && !urlAsContent
-                        ? "#0284c7"
-                        : "#FF5C00"
-                      : "rgba(242,237,228,0.06)",
-                    color: canSubmit ? "#FFFFFF" : STUDIO.ink40,
-                    border: canSubmit ? "none" : `1px solid ${STUDIO.hairline}`,
-                    boxShadow: canSubmit
-                      ? isScriptMode
-                        ? "0 4px 16px rgba(139,92,246,0.45)"
-                        : isUrl && !urlAsContent
-                        ? "0 4px 16px rgba(2,132,199,0.4)"
-                        : "0 4px 16px rgba(255,92,0,0.4)"
-                      : "none",
-                  }}
-                >
-                  {isLoading ? <Loader2 size={16} className="animate-spin text-white" /> : <ArrowRight size={16} />}
-                </button></div>
+</div>
 
                 {/* Seletor Inline de Modo Roteiro */}
                 {scriptDetection.isScript && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-violet-950/40 border-t border-violet-500/25 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-violet-950/40 border-t border-violet-500/25 text-xs">
                     <div className="flex items-center gap-2">
                       <span className="size-2 rounded-full bg-violet-400 animate-pulse shrink-0" />
                       <span className="text-violet-200 font-medium">
                         Roteiro de {scriptDetection.slideCount} slides detectado
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 bg-black/50 p-0.5 rounded-lg border border-violet-500/30">
+                    <div className="grid w-full grid-cols-2 md:w-auto md:flex items-center gap-1 bg-black/50 p-0.5 rounded-lg border border-violet-500/30">
                       <button
                         type="button"
+                        aria-pressed={isScriptMode}
                         onClick={() => setScriptModeOverride("preserve")}
-                        className={`px-2.5 py-1 rounded text-[11px] font-medium transition cursor-pointer ${
+                        className={`min-h-11 md:min-h-0 px-3 py-2 md:py-1 rounded text-xs font-medium transition cursor-pointer ${
                           isScriptMode
                             ? "bg-violet-600 text-white shadow-sm"
                             : "text-white/60 hover:text-white"
                         }`}
                       >
-                        Preservar meu texto ✓
+                        <span className="sm:hidden">Preservar texto</span><span className="hidden sm:inline">Preservar meu texto ✓</span>
                       </button>
                       <button
                         type="button"
+                        aria-pressed={!isScriptMode}
                         onClick={() => setScriptModeOverride("rewrite")}
-                        className={`px-2.5 py-1 rounded text-[11px] font-medium transition cursor-pointer ${
+                        className={`min-h-11 md:min-h-0 px-3 py-2 md:py-1 rounded text-xs font-medium transition cursor-pointer ${
                           !isScriptMode
                             ? "bg-orange-600 text-white shadow-sm"
                             : "text-white/60 hover:text-white"
@@ -606,13 +549,13 @@ export default function StudioCreateViewV2B({
             </div>
 
             {hasSavedDraft && onDiscardDraft && (
-              <div className="mt-2 flex items-center justify-between gap-2 px-1 text-[11px] text-white/50">
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 px-1 text-xs text-white/60">
                 <span>Rascunho salvo neste navegador</span>
                 <button
                   type="button"
                   onClick={handleDiscardDraft}
                   disabled={isLoading}
-                  className="inline-flex min-h-7 shrink-0 items-center gap-1 rounded-lg px-2 text-orange-200 transition-colors hover:bg-orange-400/10 hover:text-orange-100 disabled:opacity-40"
+                  className="inline-flex min-h-11 md:min-h-7 shrink-0 items-center gap-1 rounded-lg px-2 text-orange-200 transition-colors hover:bg-orange-400/10 hover:text-orange-100 disabled:opacity-40"
                   aria-label="Apagar rascunho salvo e limpar o prompt"
                   title="Apagar o rascunho salvo neste navegador e limpar o campo"
                 >
@@ -623,7 +566,7 @@ export default function StudioCreateViewV2B({
             )}
 
             {/* Micro-labels abaixo do campo */}
-            <div className="mt-1.5 flex items-baseline justify-between px-1">
+            <div className="mt-1.5 hidden items-baseline justify-between px-1 md:flex">
               <span
                 className="min-w-0"
                 style={{
@@ -661,8 +604,40 @@ export default function StudioCreateViewV2B({
             </div>
           </section>
 
+                            {isUrl && (
+                    <label className="flex min-h-11 items-center gap-3 text-sm text-white/80 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={urlAsContent}
+                        onChange={(e) => setUrlAsContent(e.target.checked)}
+                        className="size-5 shrink-0 rounded border-white/20 bg-black/40 text-orange-500 focus:ring-0"
+                      />
+                      <span>Usar página como conteúdo do post</span>
+                    </label>
+                  )}
+
+
           {/* 3. CONTROLES: FORMATO (LINHA 1) & PROJETO (LINHA 2) */}
-          <section className="flex flex-col gap-3 pt-0.5">
+          <section className="flex shrink-0 flex-col gap-5 md:gap-3">
+                  {/* Seletor de Plataforma */}
+                  <label className="flex flex-col md:flex-row md:items-center gap-2 md:gap-1.5 text-white/70 min-w-0">
+                    <span className="text-sm md:text-xs font-medium text-white/55">Plataforma</span>
+                    <select
+                      aria-label="Plataforma"
+                      disabled={isLoading}
+                      className="min-h-11 w-full md:w-auto rounded-md md:rounded bg-black/40 border border-white/10 px-2 text-base md:text-xs text-white capitalize focus:outline-none focus:border-[#FF5C00]/60 transition-colors cursor-pointer"
+                      value={options.platform}
+                      onChange={(e) => setOptions({ ...options, platform: e.target.value as CreationInputOptions["platform"] })}
+                    >
+                      {["instagram", "twitter", "linkedin", "facebook"].map((p) => (
+                        <option key={p} value={p} className="bg-neutral-900 text-white capitalize">
+                          {p === "instagram" ? "Instagram" : p === "twitter" ? "Twitter / X" : p === "linkedin" ? "LinkedIn" : "Facebook"}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+
             {/* Linha 1: Formato da Peça & Proporção (Próximo à caixa de texto) */}
             <div className="w-full">
               <FormatSelector
@@ -674,8 +649,8 @@ export default function StudioCreateViewV2B({
             </div>
 
             {/* Linha 2: Contexto do Projeto & Identidade Visual Extraída */}
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
-              <span style={{ ...MONO, color: STUDIO.ink40, fontSize: 10 }} className="mr-0.5">
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 p-3 md:border-0 md:p-0">
+              <span style={{ ...MONO, color: STUDIO.ink40, fontSize: 12 }} className="mr-0.5">
                 PROJETO
               </span>
               <ProjectSelectorDropdown
@@ -694,8 +669,8 @@ export default function StudioCreateViewV2B({
 
               {/* Pílula de Estilo Visual do Projeto Ativo (Opcional & Clicável) */}
               {projectDesignSpecimen && (
-                <div
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-medium transition cursor-pointer select-none ${
+                <button type="button" aria-pressed={declaredFamilyId === projectDesignSpecimen.id}
+                  className={`inline-flex min-h-11 max-w-full items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition cursor-pointer select-none ${
                     declaredFamilyId === projectDesignSpecimen.id
                       ? "border-orange-500 bg-orange-500/15 text-orange-200 shadow-sm shadow-orange-500/10"
                       : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/20 hover:text-white/80"
@@ -712,10 +687,10 @@ export default function StudioCreateViewV2B({
                   }
                 >
                   <span className="text-[11px]">🎨</span>
-                  <span className="font-semibold text-[11px] truncate max-w-[160px]">
+                  <span className="min-w-0 flex-1 text-left font-semibold text-xs">
                     {currentProject?.visualPreferences?.personality?.[0] || "Estilo do Projeto"}
                   </span>
-                  <div className="flex gap-0.5 ml-0.5">
+                  <div className="flex shrink-0 gap-0.5 ml-0.5">
                     {currentProject?.visualPreferences?.colors?.slice(0, 3).map((col: string, idx: number) => (
                       <span
                         key={idx}
@@ -733,13 +708,79 @@ export default function StudioCreateViewV2B({
                   >
                     {declaredFamilyId === projectDesignSpecimen.id ? "ATIVO" : "USAR"}
                   </span>
-                </div>
+                </button>
               )}
             </div>
           </section>
 
+          <details open={isMobile ? undefined : true} className="rounded-2xl border border-white/10 px-4 md:border-0 md:px-0">
+            <summary className="flex min-h-12 cursor-pointer items-center text-sm text-white/80 md:hidden">Mais ajustes · modelo e imagens</summary>
+            <div className="grid gap-4 pb-4 pt-2 md:flex md:items-center md:pb-0">
+                  {/* Seletor de Modelo */}
+                  <label className="flex flex-col md:flex-row md:items-center gap-2 md:gap-1.5 text-white/70 min-w-0">
+                    <span className="text-sm md:text-xs font-medium text-white/55">Modelo</span>
+                    <select
+                      aria-label="Modelo de geração"
+                      disabled={isLoading}
+                      className="min-h-11 w-full md:w-auto rounded-md md:rounded bg-black/40 border border-white/10 px-2 text-base md:text-xs text-white focus:outline-none focus:border-[#FF5C00]/60 transition-colors cursor-pointer"
+                      value={options.generationModel ?? "auto"}
+                      onChange={(e) => setOptions({ ...options, generationModel: e.target.value as GenerationModel })}
+                      title={getGenerationModelHint(options.generationModel)}
+                    >
+                      {Object.entries(GENERATION_MODEL_LABELS).map(([value, label]) => (
+                        <option key={value} value={value} className="bg-neutral-900 text-white">
+                          {label}
+                        </option>
+                      ))}
+                      <option value="gpt" className="hidden">
+                        GPT (Descontinuado)
+                      </option>
+                    </select>
+                  </label>
+
+                  {/* Toggle Gerar Imagens com IA */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={Boolean(options.allowAiImages)}
+                    aria-label="Gerar imagens com IA"
+                    disabled={isLoading}
+                    onClick={() => setOptions({ ...options, allowAiImages: !options.allowAiImages })}
+                    className={`col-span-1 min-h-11 w-full md:w-auto justify-center md:justify-start flex items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors cursor-pointer ${
+                      options.allowAiImages
+                        ? "border-[#FF5C00]/60 bg-[#FF5C00]/20 text-white"
+                        : "border-white/10 bg-black/30 text-white/60 hover:text-white/85"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-2 w-2 rounded-full transition-colors ${
+                        options.allowAiImages ? "bg-[#FF5C00]" : "bg-white/30"
+                      }`}
+                    />
+                    <span>Gerar imagens com IA</span>
+                  </button>
+
+            </div>
+          </details>
+
+          <button type="button" onClick={handleSubmit} disabled={!canSubmit}
+                  aria-label={
+                    isUrl && !urlAsContent
+                      ? "Capturar marca gratuitamente"
+                      : isScriptMode
+                      ? `Diagramar ${scriptDetection.slideCount} slides com fidelidade`
+                      : declaredSpecimen
+                      ? "Criar com este gosto"
+                      : "Criar posts"
+                  }
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#FF5C00] px-4 py-3 text-base font-semibold text-white transition disabled:opacity-40"
+            style={{ background: isScriptMode ? "#7c3aed" : isUrl && !urlAsContent ? "#0284c7" : "#FF5C00" }}>
+            {isLoading ? <Loader2 size={20} className="animate-spin" /> : <ArrowRight size={20} />}
+            {isLoading ? "Preparando…" : isUrl && !urlAsContent ? "Capturar marca gratuitamente" : isScriptMode ? `Diagramar ${scriptDetection.slideCount} slides` : declaredSpecimen ? "Criar com este gosto" : "Criar posts"}
+          </button>
+
           {/* 4. BOTÃO DE INSPIRAÇÃO / SHOWCASE: O QUE DÁ PRA FAZER COM O POSTSPARK */}
-          <div className="flex justify-center pt-2">
+          <div className="flex shrink-0 justify-center pt-1 md:pt-2">
             <button
               type="button"
               onClick={() => setIsShowcaseOpen(true)}
@@ -747,12 +788,13 @@ export default function StudioCreateViewV2B({
               title="Veja exemplos reais do que você pode criar no PostSpark"
             >
               <Sparkles className="size-3.5 text-orange-400 group-hover:scale-110 transition-transform" />
-              <span>✨ O que dá pra fazer com o PostSpark?</span>
+              <span>O que dá pra fazer com o PostSpark?</span>
             </button>
           </div>
 
         </div>
       </main>
+      )}
 
       {/* MODAL MURAL SHOWCASE: O QUE DÁ PRA FAZER COM O POSTSPARK */}
       {isShowcaseOpen && (

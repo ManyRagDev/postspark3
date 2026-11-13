@@ -22,10 +22,17 @@ const envInteger = (
 const isProduction = process.env.NODE_ENV === "production";
 
 export const ENV = {
+  generationDatabaseSessionUrl: process.env.GENERATION_DATABASE_SESSION_URL ?? "",
+  generationWorkerReadinessUrl: process.env.GENERATION_WORKER_READINESS_URL ?? "",
+  generationWorkerHealthHost: process.env.GENERATION_WORKER_HEALTH_HOST ?? "127.0.0.1",
+  generationWorkerHealthPort: envInteger("GENERATION_WORKER_HEALTH_PORT", 9465, 1, 65535),
+  generationWorkerSafetyScanMs: envInteger("GENERATION_WORKER_SAFETY_SCAN_MS", 300_000, 60_000, 3_600_000),
   generationLexicalRetrieval: envFlag("GENERATION_LEXICAL_RETRIEVAL", isProduction),
   reviewLenientDelivery: envFlag("REVIEW_LENIENT_DELIVERY", isProduction),
   designRetrievalDirectory: process.env.DESIGN_RETRIEVAL_DIRECTORY ?? "",
   localCatalogRevision: process.env.GENERATION_LOCAL_CATALOG_REVISION ?? "",
+  trialCatalogRevision: process.env.GENERATION_TRIAL_CATALOG_REVISION ?? "",
+  trialCatalogAdminUuid: process.env.GENERATION_TRIAL_CATALOG_ADMIN_UUID ?? "",
   generationStrategyVersion: (process.env.GENERATION_STRATEGY_VERSION === "1" ? 1 : 2) as 1 | 2,
   generationAdmissionPaused: envFlag("GENERATION_ADMISSION_PAUSED", false),
   generationWorkerMode: process.env.NODE_ENV === "development" && !process.env.VERCEL && process.env.GENERATION_WORKER_MODE !== "external" ? "local-demand" as const : "external" as const,
@@ -91,6 +98,7 @@ export const ENV = {
 
   // Supabase (service role — backend only)
   supabaseUrl: process.env.SUPABASE_URL ?? "",
+  supabasePublicUrl: process.env.SUPABASE_PUBLIC_URL || undefined,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
 
   // Stripe

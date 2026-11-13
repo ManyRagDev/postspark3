@@ -3,7 +3,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { INITIAL_POST } from "@/pages/CanvasLab/components/types";
-vi.mock("@/hooks/useGenerationEvents",()=>({useGenerationEvents:()=>({error:false,reconnect:vi.fn()})}));
+vi.mock("@/hooks/useGenerationEvents",()=>({useGenerationEvents:(_id: unknown,enabled: boolean)=>{h.eventsEnabled=enabled;return {error:false,reconnect:vi.fn()};}}));
 import Studio from "./StudioAppV2BPage";
 import { saveBriefDraft } from "./lib/briefDraftStorage";
 import { setSelectedProjectId } from "./lib/projectStorage";
@@ -31,9 +31,17 @@ const h = vi.hoisted(() => ({
   getData: undefined as any,
   getError: null as any,
   getOptions: null as any,
+  getRefetch: vi.fn(),
+  capabilitiesOptions: null as any,
+  progressOptions: null as any,
+  progressData: undefined as any,
+  progressError: null as any,
+  progressRefetch: vi.fn(),
+  eventsEnabled: false,
   cancel: vi.fn(),
   save: vi.fn(),
   update: vi.fn(),
+  telemetry: vi.fn(),
   invalidatePosts: vi.fn(),
   invalidateBilling: vi.fn(),
   legacyGenerate: vi.fn(),
@@ -43,13 +51,15 @@ const h = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/trpc", () => ({ trpc: {
+  generationTelemetry: { record: { useMutation: () => ({ mutateAsync: h.telemetry }) } },
   useUtils: () => ({ post: { list: { invalidate: h.invalidatePosts },listSummary:{invalidate:vi.fn()} }, billing: { getProfile: { invalidate: h.invalidateBilling } } }),
   generation: {
     reconcile:{useMutation:()=>({mutate:vi.fn(),isPending:false})},
     resume:{useMutation:()=>({mutate:vi.fn(),isPending:false})},
-    capabilities: { useQuery: () => ({ data: { ownerId: h.ownerId, ...h.capabilities, contractVersion: 5 },refetch:async()=>({data:{ownerId:h.ownerId,...h.capabilities,contractVersion:5}}) }) },
+    progress: { useQuery: (_input: unknown, options: unknown) => { h.progressOptions = options; return { data: h.progressData, error: h.progressError, refetch: h.progressRefetch }; } },
+    capabilities: { useQuery: (_input: unknown, options: unknown) => { h.capabilitiesOptions = options; return ({ data: { ownerId: h.ownerId, ...h.capabilities, contractVersion: 5 },refetch:async()=>({data:{ownerId:h.ownerId,...h.capabilities,contractVersion:5}}) }); } },
     start: { useMutation: () => ({ mutateAsync: h.start, isPending: false }) },
-    get: { useQuery: (_input: unknown, options: any) => { h.getOptions=options; return { data: h.getData, error: h.getError, refetch: vi.fn() }; } },
+    get: { useQuery: (_input: unknown, options: any) => { h.getOptions=options; return { data: h.getData, error: h.getError, refetch: h.getRefetch }; } },
     cancel: { useMutation: () => ({ mutateAsync: h.cancel, isPending: false }) },
   },
   designCatalog: {
@@ -160,11 +170,16 @@ beforeEach(() => {
   h.create = h.gallery = h.editor = h.failure = h.briefReview = h.formatConfirm = null;
   h.getData = undefined;
   h.getError = null;
+  h.progressData = undefined;
+  h.progressError = null;
+  h.progressRefetch.mockReset();
+  h.getRefetch.mockReset();
   h.capabilities = { selectable: true, enabled: true, reason: "ready" };
   h.start.mockReset();
   h.cancel.mockReset();
-  h.save.mockResolvedValue({ id: 21 });
-  h.update.mockResolvedValue({ success: true });
+  h.save.mockResolvedValue({ id: 21, revision: 1 });
+  h.update.mockResolvedValue({ success: true, revision: 2 });
+  h.telemetry.mockResolvedValue({ accepted: 1 });
   h.invalidatePosts.mockResolvedValue(undefined);
   h.invalidateBilling.mockResolvedValue(undefined);
   h.legacyGenerate.mockResolvedValue({ variations: [], generationRunId: runId });
@@ -312,7 +327,7 @@ describe("Studio Generation progressive flow", () => {
       content: "Sorteador Relâmpago em 2 minutos",
     });
     expect(h.gallery.expectedCount).toBe(1);
-    expect(h.gallery.variations).toEqual([canvas]);
+    expect(h.gallery.variations).toEqual([{ ...canvas, provenance: expect.objectContaining({ journey: { requestId, proposalId: "proposal-fixed", revision: 1 } }) }]);
     expect(h.materialize).not.toHaveBeenCalled();
     act(() => h.gallery.onSelectVariation(canvas));
     expect(h.editor.initialPost).toEqual(canvas);
@@ -375,11 +390,13 @@ describe("Studio Generation progressive flow", () => {
     await act(async () => { saved = await h.editor.onSave(h.editor.initialPost, "update", "auto"); });
     expect(saved).toBe(true);
     expect(h.update.mock.calls[0][0].id).toBe(21);
+    expect(h.update.mock.calls[0][0].expectedRevision).toBe(1);
     expect(h.invalidatePosts).toHaveBeenCalledTimes(2);
     expect(h.invalidateBilling).toHaveBeenCalledTimes(2);
     h.update.mockRejectedValueOnce(new Error("write failed"));
     await act(async () => { saved = await h.editor.onSave(h.editor.initialPost, "update", "auto"); });
     expect(saved).toBe(false);
+    expect(h.update.mock.calls[1][0].expectedRevision).toBe(2);
     expect(h.invalidatePosts).toHaveBeenCalledTimes(2);
     expect(h.invalidateBilling).toHaveBeenCalledTimes(2);
   });
@@ -762,7 +779,9 @@ describe("Studio Generation progressive flow", () => {
     h.getData = { snapshot: snapshot([planned]), input, progressTransport: "events" };
     await explicitlyResumeStored(input);
 
-    expect(h.getOptions.refetchInterval({ state: { data: h.getData } })).toBe(15000);
+    expect(h.getOptions.refetchInterval).toBe(false);
+    expect(h.progressOptions.refetchInterval).toBe(15000);
+    expect(h.progressOptions.enabled).toBe(true);
     h.getData = { ...h.getData, dispatchError: "local_dispatch_failed" };
     mount();
     expect(host.querySelector('[role="alert"]')?.textContent).toContain("O executor local não conseguiu continuar");
@@ -778,8 +797,81 @@ describe("Studio Generation progressive flow", () => {
     mount();
     expect(host.textContent).toContain("O prazo deste pedido terminou");
     expect(host.textContent).not.toContain("Retomar geração");
-    expect(h.getOptions.refetchInterval({ state: { data: h.getData } })).toBe(false);
+    expect(h.getOptions.refetchInterval).toBe(false);
+    expect(h.progressOptions.enabled).toBe(false);
     expect(h.start).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["full", "progress"])("pauses failed %s reads and explicitly resumes the same durable request", async failedRead => {
+    const input = { inputType: "text", content: "Café artesanal", postMode: "static" };
+    h.getData = { snapshot: snapshot([running("proposal-a", 0)]), input, progressTransport: "events" };
+    await explicitlyResumeStored(input);
+    h.getRefetch.mockClear();
+    if (failedRead === "full") h.getError = { data: { code: "INTERNAL_SERVER_ERROR" } };
+    else h.progressError = { data: { code: "INTERNAL_SERVER_ERROR" } };
+    mount(); await flush();
+    expect(h.progressOptions.enabled).toBe(false);
+    expect(h.eventsEnabled).toBe(false);
+    expect(host.textContent).toContain("O acompanhamento foi pausado");
+    expect(sessionStorage.getItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY)).toBe(requestId);
+    expect(h.getRefetch).not.toHaveBeenCalled();
+    expect(h.progressRefetch).not.toHaveBeenCalled();
+
+    // An unsuccessful manual read stays paused; it never admits a new job.
+    h.getRefetch.mockResolvedValueOnce({ error: new Error("unavailable") });
+    const resume = () => Array.from(host.querySelectorAll("button")).find(b => b.textContent?.includes("Retomar acompanhamento"))!;
+    await act(async () => { resume().click(); await Promise.resolve(); });
+    await flush();
+    expect(h.progressOptions.enabled).toBe(false);
+    expect(h.progressRefetch).not.toHaveBeenCalled();
+
+    h.getRefetch.mockImplementationOnce(async () => { h.getError = null; return { data: h.getData }; });
+    h.progressRefetch.mockImplementationOnce(async () => { h.progressError = null; return { data: h.progressData }; });
+    await act(async () => { resume().click(); await Promise.resolve(); });
+    await flush();
+    expect(h.progressOptions.enabled).toBe(true);
+    expect(h.eventsEnabled).toBe(true);
+    expect(h.progressRefetch).toHaveBeenCalledOnce();
+    expect(h.start).toHaveBeenCalledOnce();
+    expect(sessionStorage.getItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY)).toBe(requestId);
+
+    h.getData = { ...h.getData, snapshot: snapshot([ready("proposal-a", 0)], "completed"), billingPending: false };
+    mount(); await flush();
+    expect(h.progressOptions.enabled).toBe(false);
+    expect(h.eventsEnabled).toBe(false);
+  });
+
+  it.each([false, true])("stops an expired request even if the server remains active or billing is pending (%s)", async billingPending => {
+    const input = { inputType: "text", content: "Café artesanal", postMode: "static" };
+    h.getData = { snapshot: snapshot([running("proposal-a", 0)]), input, progressTransport: "events", billingPending };
+    await explicitlyResumeStored(input);
+    if (billingPending) h.getData = { ...h.getData, snapshot: snapshot([ready("proposal-a", 0)], "completed") };
+    h.getRefetch.mockClear();
+    h.progressData = { requestId, status: billingPending ? "completed" : "running", deadlineAt: Date.now() - 1,
+      proposals: [], billingPending };
+    mount(); await flush();
+    expect(h.getRefetch).toHaveBeenCalledOnce();
+    expect(h.progressOptions.enabled).toBe(false);
+    expect(h.eventsEnabled).toBe(false);
+    expect(host.textContent).toContain("O prazo deste pedido terminou");
+    mount(); await flush();
+    expect(h.getRefetch).toHaveBeenCalledOnce();
+
+    h.getRefetch.mockResolvedValueOnce({ data: h.getData });
+    h.progressRefetch.mockResolvedValueOnce({ data: h.progressData });
+    await act(async () => { Array.from(host.querySelectorAll("button")).find(b => b.textContent?.includes("Consultar resultado"))!.click(); await Promise.resolve(); });
+    await flush();
+    expect(h.progressOptions.enabled).toBe(false);
+    expect(h.eventsEnabled).toBe(false);
+    expect(h.start).toHaveBeenCalledOnce();
+    expect(h.progressRefetch).toHaveBeenCalledOnce();
+    expect(sessionStorage.getItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY)).toBe(requestId);
+
+    h.getData = { ...h.getData, snapshot: snapshot([ready("proposal-a", 0)], "completed"), billingPending: false };
+    mount(); await flush();
+    expect(h.progressOptions.enabled).toBe(false);
+    expect(h.eventsEnabled).toBe(false);
+    expect(host.textContent).not.toContain("O prazo deste pedido terminou");
   });
 
   it("ignores a late materialization after the user starts a new creation", async () => {
@@ -999,3 +1091,29 @@ describe("Studio Generation progressive flow", () => {
 //  h.ownerId="00000000-0000-4000-8000-000000000099";mount();expect(checkbox().checked).toBe(false);
 // });
 
+
+it("keeps idle Studio silent", () => {
+  mount();
+  expect(h.capabilitiesOptions.refetchInterval).toBe(false);
+  expect(h.progressOptions.enabled).toBe(false);
+});
+it("reads delivery only for new ready revisions or settlement", async () => {
+  const input = { inputType: "text", content: "Brief", postMode: "static" };
+  h.getData = { snapshot: snapshot([running("proposal-a", 0)]), input, requestStatus: "running", progressTransport: "poll", billingPending: false };
+  await explicitlyResumeStored(input);
+  const base = { requestId, status: "running", deadlineAt: Date.now()+60000, billingPending:false,error:null };
+  h.progressData = { ...base, proposals:[{proposalId:"proposal-a",revision:1,status:"checking"}] };
+  mount(); await flush();
+  expect(h.getOptions.refetchInterval).toBe(false);
+  expect(h.getRefetch).not.toHaveBeenCalled();
+  h.progressData = { ...base, proposals:[{proposalId:"proposal-a",revision:1,status:"ready"}] };
+  mount(); await flush();
+  expect(h.getRefetch).toHaveBeenCalledTimes(1);
+  h.getData = { ...h.getData, snapshot:snapshot([ready("proposal-a",0)],"completed"), requestStatus:"completed",billingPending:true };
+  h.progressData = undefined;
+  mount(); await flush();
+  expect(h.progressOptions.enabled).toBe(true);
+  h.getData = {...h.getData,billingPending:false};
+  mount(); await flush();
+  expect(h.progressOptions.enabled).toBe(false);
+});

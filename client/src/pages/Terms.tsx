@@ -172,7 +172,7 @@ export default function Terms() {
                     <li>Notificar imediatamente qualquer uso não autorizado</li>
                   </ul>
                   <p className="text-xs mt-2">
-                    <strong>Autenticação:</strong> O PostSpark utiliza Google OAuth via Supabase Auth.
+                    <strong>Autenticação:</strong> O PostSpark utiliza Supabase Auth com e-mail e senha e, quando habilitado, Google OAuth.
                     Ao se autenticar, o USUÁRIO autoriza a coleta de informações básicas de perfil
                     (nome, e-mail) para fins de identificação.
                   </p>

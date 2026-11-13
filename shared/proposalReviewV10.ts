@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { generationCopyTaskModelSchema } from "./generationModel";
-import { generationIntentSchema } from "./generationPlan";
+import { generationIntentLegacySchema as generationIntentSchema } from "./generationPlan";
 import {
   materialFindingV7,
   findingV7Schema,

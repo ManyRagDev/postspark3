@@ -1,6 +1,6 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
-import { exchangeSupabaseSession } from "@/lib/authBridge";
-import { isLocalEmailAuth } from "@/lib/localEmailAuth";
+import { resyncSupabaseSession } from "@/lib/authBridge";
+import { getAuthUiConfig } from "@/lib/authUiConfig";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -60,12 +60,7 @@ export default function StudioAuthModal({
   onClose,
   initialPrompt,
 }: StudioAuthModalProps) {
-  const localEmailOnly = isLocalEmailAuth({
-    development: import.meta.env.DEV,
-    mode: import.meta.env.VITE_POSTSPARK_LOCAL_AUTH,
-    hostname: window.location.hostname,
-    supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-  });
+  const { googleEnabled, signupEnabled } = getAuthUiConfig();
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -80,6 +75,9 @@ export default function StudioAuthModal({
     setLoading(true);
 
     try {
+      if (mode === "register" && !signupEnabled) {
+        throw new Error("Cadastro indisponível no momento.");
+      }
       if (!isSupabaseConfigured || !supabase) {
         throw new Error("Login indisponível no momento.");
       }
@@ -102,7 +100,7 @@ export default function StudioAuthModal({
         throw new Error("Sessão não encontrada.");
       }
 
-      await exchangeSupabaseSession(accessToken);
+      await resyncSupabaseSession(accessToken);
       window.location.href = "/thevoid";
     } catch (err: any) {
       const message = err?.message || "Não foi possível autenticar agora.";
@@ -110,6 +108,8 @@ export default function StudioAuthModal({
         setError("E-mail ou senha incorretos.");
       else if (message.includes("User already registered"))
         setError("Este e-mail já está cadastrado.");
+      else if (message === "postspark_access_required")
+        setError("Sua conta ainda não tem acesso ao PostSpark. Fale com o suporte.");
       else setError(message);
     } finally {
       setLoading(false);
@@ -121,7 +121,7 @@ export default function StudioAuthModal({
     setGoogleLoading(true);
 
     try {
-      if (!isSupabaseConfigured || !supabase) {
+      if (!googleEnabled || !isSupabaseConfigured || !supabase) {
         throw new Error("Login com Google indisponível.");
       }
 
@@ -200,15 +200,13 @@ export default function StudioAuthModal({
                 {mode === "login" ? "Entre no PostSpark" : "Crie sua conta"}
               </h2>
               <p className="mt-1 text-xs md:text-sm text-white/60">
-                {localEmailOnly
-                  ? "Entre com o e-mail e a senha da conta de teste local."
-                  : initialPrompt
-                    ? "Acesse sua conta para gerar posts com esta ideia."
-                    : "Direção de arte e inteligência visual para seus posts."}
+                {initialPrompt
+                  ? "Acesse sua conta para gerar posts com esta ideia."
+                  : "Entre com o e-mail e a senha da sua conta."}
               </p>
             </div>
 
-            {!localEmailOnly && (
+            {googleEnabled && (
               <>
                 {/* Google OAuth */}
                 <button
@@ -293,7 +291,7 @@ export default function StudioAuthModal({
               </div>
 
               {error && (
-                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-200">
+                <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-200">
                   {error}
                 </div>
               )}
@@ -324,7 +322,7 @@ export default function StudioAuthModal({
               </button>
             </form>
 
-            {!localEmailOnly && (
+            {signupEnabled && (
               <div className="mt-4 text-center text-xs text-white/55">
                 {mode === "login"
                   ? "Ainda não tem conta? "

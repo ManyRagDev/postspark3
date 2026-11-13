@@ -75,7 +75,7 @@ function PublicLandingRoute() {
     const params = new URLSearchParams(window.location.search);
     const authError = params.get('auth_error');
     if (authError === 'postspark_access_required') {
-      toast.error('Não conseguimos ativar o PostSpark para sua Conta ManyLabs. Tente novamente ou fale com o suporte.');
+      toast.error('Sua conta ainda não tem acesso ao PostSpark. Fale com o suporte.');
     } else if (authError) {
       toast.error('Falha na autenticação. Tente novamente.');
     }
@@ -248,8 +248,8 @@ function AppInner() {
 
   // Nas rotas de estúdio (/thevoid, /studio, /studio-v2b), cada etapa (Criação, Galeria e CanvasLab)
   // renderiza o UserTopMenu de forma nativa e integrada ao seu respectivo layout/header.
-  // Em todas as demais páginas do sistema (/saved-posts, /history, /billing, /pricing, landing logada, etc.),
-  // o UserTopMenu flutuante global permanece permanentemente ativo.
+  // Posts salvos também integra o menu ao cabeçalho. Nas demais páginas
+  // (/history, /billing, /pricing, landing logada, etc.), o menu global permanece ativo.
   const isStudioRoute =
     location === "/thevoid" ||
     location === "/studio" ||
@@ -273,7 +273,7 @@ function AppInner() {
         }}
       />
       <Router />
-      {isAuthenticated && !isStudioRoute ? <UserTopMenu /> : null}
+      {isAuthenticated && !isStudioRoute && location !== "/saved-posts" ? <UserTopMenu /> : null}
       {/* Consentimento LGPD e Cookies - fora das páginas imersivas */}
       {location !== "/" && location !== "/criar" && <ConsentModal />}
       {location !== "/" && location !== "/criar" && <CookieBanner />}

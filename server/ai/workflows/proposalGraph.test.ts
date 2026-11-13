@@ -1553,3 +1553,52 @@ describe("Proposal Graph Workflow (canonical V1 delivery)", () => {
     expect(slot2Aborted).toBe(true);
   });
 });
+
+describe("capability_v1 three selected proposals through physical composition", () => {
+  it("composes all three plans with verified font bytes and preserves measured geometry on reopening", async () => {
+    const { compactComponentCard } = await import("@shared/componentAssembly");
+    const { resolveDesignFamilyRepertoires } = await import("@shared/designRepertoire");
+    const { buildHeuristicGenerationPlan } = await import("./heuristicPlanBuilder");
+    const definitions = completeDesignTestDefinitions();
+    const eligible = resolveDesignFamilyRepertoires(definitions.map(compactComponentCard), {slideCount: 1, contentMode: "compose"});
+    const generationIntent = {
+      version: 1 as const, objective: "Planeje suas compras", adaptation: "controlled" as const,
+      tone: {description: "Claro", origin: "inferred" as const, rationale: "Leitura do pedido"},
+      requirements: [{id: "format", kind: "execution" as const, description: "1 página, 4:5", surface: "art" as const, origin: "inferred" as const, source: "physical" as const, strength: "required" as const, requestQuote: null, itemCount: null}],
+      content: [{id: "idea", meaning: "Planeje suas compras", sourceIds: [], requirementIds: []}],
+    };
+    const selected = buildHeuristicGenerationPlan({familyFirst: true, eligible, intent: generationIntent, slideCount: 1,
+      imageObligation: {policy: "forbidden", required: false, slotTargets: 0, purpose: "none", reason: "Sem foto"},
+      neutrality: {version: 1, seed: "measured-three", planningVersion: 3, proposalSelectionVersion: 1, creativeFlexibility: 1, selectionPolicy: "capability_v1"},
+      shortlist: {cards: [], evaluated: eligible.map(r => ({id: r.defaultOffer.offerId, hash: r.signature, score: 3, confidence: 1})), batches: 0, inputTokens: 0, outputTokens: 0, costUsd: 0},
+    });
+    expect(selected.slots.every(slot => slot.status === "viable")).toBe(true);
+    const delivered: string[] = [];
+    for (const plan of selected.slots) {
+      if (plan.status !== "viable") continue;
+      const definition = definitions.find(d => d.id === plan.pages[0].componentId)!;
+      const measureText = await createComponentTextMeasurer(definition.assets);
+      const result = await executeProposalWorkflow(workflowInput(definition, {
+        slot: plan.slot, proposalId: `measured-proposal-${plan.slot}`, prompt: "Planeje suas compras", generationIntent,
+      }), textDeps(copyFor(definition, "Planeje suas compras"), {measureText}));
+      // Provider copy and required editorial review are fixtures; font bytes,
+      // layout, native composition and overflow checks are real local execution.
+      expect(result.status).toBe("ready");
+      expect(result.findings.filter(finding => finding.severity === "fatal")).toEqual([]);
+      const scene = result.bundle!.slides[0].composition;
+      const restored = resolveArsenalGeometry(JSON.parse(JSON.stringify(scene)), {measureText});
+      expect(restored.elements).toEqual(scene.elements);
+      expect(scene.elements.some(element => element.text === "Planeje suas compras")).toBe(true);
+      delivered.push(result.proposalId);
+    }
+    expect(new Set(delivered).size).toBe(3);
+  });
+
+  it("labels fragment count as boxes rather than a minimum word count in the new guidance", async () => {
+    const { formatHumanTextCapacityGuidance } = await import("./proposalGraph");
+    const guidance = formatHumanTextCapacityGuidance(completeDesignTestDefinitions().slice(0, 1), [{slide: 0, fields: [{id: "field-0", capacity: {minWords: 3, fragmentCount: 3, estimatedMaxChars: 90}}]}], true);
+    expect(guidance).toContain("3 caixa(s)");
+    expect(guidance).toContain("não é mínimo de palavras");
+    expect(guidance).not.toContain("Recomendado 3");
+  });
+});

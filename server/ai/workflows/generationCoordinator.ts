@@ -36,6 +36,14 @@ export interface GenerationCoordinatorDeps extends ProposalGraphDeps {
   recoverDelivery?: (
     input: ProposalExecutionInput,
     reuseOriginal: boolean,
+    context?: {
+      recoveryAttempt: number;
+      excludedCandidateIds: string[];
+      excludedFamilies: string[];
+      sourceDefinitions: ComponentDefinitionV1[];
+      sourceAttemptId: string;
+      claimFamily: (family: string) => boolean;
+    },
   ) => ReturnType<typeof import("./generationDeliveryRecovery").recoverGenerationDelivery>;
   persistUpdate?: (delivery: ProposalDelivery) => Promise<void>;
   /** Authorize exact assets and settle the configured billing policy before public ready. */
@@ -189,7 +197,12 @@ export class GenerationCoordinator {
     ];
     let attemptIndex = saved.attempt?.index ?? (startFromReserve ? 1 : 0);
     const plannedRecoveryCount = this.input.planning?.recoveryRepertoires[slot]?.length ?? 0;
-    const attemptLimit = deliveryRecovery ? 2 : this.input.reviewPolicyVersion === 10 ? 1 + plannedRecoveryCount : candidates.length;
+    // Original + at most three distinct recovery decisions, sharing the original
+    // deadline, journal and paid repair budgets. Never one paid try per reserve.
+    const attemptLimit = deliveryRecovery ? 4 : this.input.reviewPolicyVersion === 10 ? 1 + plannedRecoveryCount : candidates.length;
+    const triedCandidateIds = new Set(slotPlan?.status === "viable" ? [slotPlan.candidateId] : []);
+    let sourceDefinitions = this.definitions[slot];
+    let sourceAttemptId = saved.proposalId;
     const proposalInput: ProposalExecutionInput = {
       ...this.input,
       selectedDefinitions: undefined,
@@ -226,10 +239,32 @@ export class GenerationCoordinator {
       }));
       try {
         if (deliveryRecovery && attemptIndex > 0) {
-          recovered = await this.deps.recoverDelivery!(proposalInput, previousFailure?.code === "artwork_unusable" && previousFailure.stage === "copy");
+          const otherFamilies = () => this.distinctProposals ? Array.from(new Set([
+            ...Array.from(this.proposals.values()).filter(p => p.slot !== slot).map(p => p.status === "ready" ? p.bundle?.family : this.input.planning?.offers[p.slot]?.family),
+            ...Array.from(this.replacementOwners).filter(([, owner]) => owner !== slot).map(([family]) => family),
+          ].filter((family): family is string => Boolean(family)))) : [];
+          recovered = await this.deps.recoverDelivery!(proposalInput, previousFailure?.code === "artwork_unusable" && previousFailure.stage === "copy", {
+            recoveryAttempt: attemptIndex,
+            excludedCandidateIds: Array.from(triedCandidateIds),
+            excludedFamilies: otherFamilies(),
+            sourceDefinitions,
+            sourceAttemptId,
+            claimFamily: family => {
+              if (!this.distinctProposals) return true;
+              if (otherFamilies().includes(family)) return false;
+              // Synchronous claim after measurement, before another slot can
+              // choose the same replacement; AI execution remains concurrent.
+              this.replacementOwners.set(family, slot);
+              return true;
+            },
+          });
           if (!recovered) break;
+          // A historical persisted decision may replay the failed original.
+          // Keep that receipt immutable, then progress under the next key.
+          if (triedCandidateIds.has(recovered.plan.candidateId)) { attemptIndex++; continue; }
           currentDefs = recovered.definitions;
           narrativePlan = recovered.plan;
+          triedCandidateIds.add(narrativePlan.candidateId);
         } else if (this.input.reviewPolicyVersion === 10 && attemptIndex > 0) {
           const currentFamilies = Array.from(this.proposals.values()).filter(p => p.slot !== slot).map(p => p.status === "ready" ? p.bundle?.family : this.input.planning?.offers[p.slot]?.family).filter((v): v is string => typeof v === "string");
           if (this.distinctProposals) for (const [family, owner] of Array.from(this.replacementOwners))
@@ -249,6 +284,7 @@ export class GenerationCoordinator {
             deliveryRecoveryEnabled: deliveryRecovery,
             deferCopyRepair: !visualTextRepair && deliveryRecovery && (attemptIndex === 0 || !recovered?.recoveryCopy),
             recoveryCopy: recovered?.recoveryCopy,
+            recoverySourceCopy: recovered?.recoverySourceCopy,
             rewriteForRecovery: recovered?.rewriteForRecovery,
             selectionReason: recovered ? "Composição compatível escolhida para recuperar a entrega." : narrativePlan?.reason ?? this.input.selectionReasons?.[slot],
             editorialApproach: narrativePlan?.editorialApproach ?? this.input.editorialApproaches?.[slot],
@@ -270,6 +306,8 @@ export class GenerationCoordinator {
           proposalId: saved.proposalId,
           attempt,
         });
+        sourceDefinitions = currentDefs;
+        sourceAttemptId = effectiveProposalId;
       } catch (error) {
         result = proposalDeliverySchema.parse({
           ...identity,

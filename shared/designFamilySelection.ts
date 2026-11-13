@@ -1,3 +1,4 @@
+import type { SelectionPolicy } from "./selectionPolicy";
 import { familyAxes } from "./familyNeutrality";
 import { arsenalHash } from "./arsenalContent";
 import { assemblyIdentity, type ComponentCardV1 } from "./componentAssembly";
@@ -12,6 +13,9 @@ export interface FamilySelectionProfile {
   version: 4 | 5;
   /** New automatic transport: expressive description only, no catalogue vocabulary. */
   compactAssessment?: true;
+  selectionPolicy?: "capability_v1";
+  /** Correlated capacities: each tuple belongs to one real root, never mix maxima. */
+  rootCapabilities?: Array<{ sourceId: string; sourceHash: string; textBlocks: number; listItems: Array<{ min: number; max: number } | null>; mediaSlots: number; roles: string[]; fonts: string[] }>;
   kind: "editorial_family";
   family: string;
   description?: string;
@@ -144,7 +148,8 @@ export function buildFamilySelectionCandidates(
   repertoires: DesignFamilyRepertoire[],
   catalog: FrozenEditorialCatalog | null = null,
   neutral = false,
-  compactAssessment = false
+  compactAssessment = false,
+  selectionPolicy?: SelectionPolicy
 ): FamilySelectionCandidate[] {
   const groups = new Map<string, Map<string, DesignFamilyRepertoire>>();
   for (const repertoire of repertoires) {
@@ -167,6 +172,22 @@ export function buildFamilySelectionCandidates(
       profile.editorial.rationales=[];
     }
     if (compactAssessment) profile.compactAssessment = true;
+    if (selectionPolicy === "capability_v1") {
+      profile.selectionPolicy = selectionPolicy;
+      const roots = Array.from(new Map(members.map(member => {
+        const root = rootFor(member); return [`${root.id}:${root.hash}`, root] as const;
+      })).values());
+      profile.rootCapabilities = roots.map(root => ({
+        sourceId: root.id, sourceHash: root.hash,
+        textBlocks: new Set(root.fields.filter(field => field.kind === "text").map(field => field.source)).size,
+        listItems: Array.from(new Map(root.fields.filter(field => field.kind === "list").map(field => [field.source, field.cardinality ?? null])).values()),
+        mediaSlots: root.mediaSlots.length, roles: [...root.roles].sort(),
+        fonts: unique(root.sourceFontFamilies?.length ? root.sourceFontFamilies : root.fontFamilies),
+      }));
+      // Keep authored aesthetics separate from verifiable physical evidence.
+      profile.aesthetic.fonts = unique(profile.rootCapabilities.flatMap(root => root.fonts));
+      profile.aesthetic.densities = unique(roots.flatMap(root => root.densities));
+    }
     const signature = arsenalHash({
       version: 1,
       family,
@@ -179,6 +200,15 @@ export function buildFamilySelectionCandidates(
 
 /** The judge sees capabilities, not inventory or reserve capacity. Exact counts stay local. */
 export function familyAssessmentProfile(profile:FamilySelectionProfile) {
+  if (profile.selectionPolicy === "capability_v1") return {
+    version: 5 as const, selectionPolicy: profile.selectionPolicy, kind: profile.kind, family: profile.family,
+    description: profile.description,
+    // Authored adjectives are explicitly distinguished from observed card data.
+    authoredCharacteristics: profile.aesthetic.identity.essential.filter(value => !/^(?:density|imageRole):/.test(value)),
+    typography: {fonts: profile.aesthetic.fonts}, densities: profile.aesthetic.densities,
+    structure: profile.structure, rootCapabilities: profile.rootCapabilities,
+    availability: profile.availability,
+  };
   if (profile.compactAssessment) return { version: 5 as const, kind: profile.kind, family: profile.family,
     description: profile.description, characteristics: profile.aesthetic.identity.essential };
   if(profile.version===4)return profile;

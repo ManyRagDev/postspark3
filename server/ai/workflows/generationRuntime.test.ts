@@ -1032,6 +1032,13 @@ describe("visual recovery candidate journal selection", () => {
   const candidate = { operationKey: "p:copy_fit_candidate", state: "completed", result: { version: 1, copy: candidateCopy,
     __generationTrace: { version: 1, calls: [], events: [{ stage: "generation_plan", status: "completed", detail: "deterministic_local" }] },
   } };
+  it("recovers the exact attempt's measured review candidate when local transfer skipped a writing call", () => {
+    const transferred = { operationKey: "p-fb1:candidate", state: "completed", result: { version: 1, copy: candidateCopy } };
+    expect(proposalRecoveryCopyFromOperations([original, transferred], "p-fb1", 1)).toEqual(candidateCopy);
+    expect(proposalRecoveryCopyFromOperations([original, { ...transferred, state: "uncertain" }], "p-fb1", 1)).toBeNull();
+    expect(proposalRecoveryCopyFromOperations([original, transferred], "p-fb2", 1)).toBeNull();
+    expect(proposalRecoveryCopyFromOperations([original, transferred], "p", 1)).toEqual(originalCopy);
+  });
   it("uses the completed candidate only under the new policy without mutating receipts or charging it", () => {
     const operations = [original, candidate]; const snapshot = JSON.stringify(operations);
     expect(proposalRecoveryCopyFromOperations(operations, "p", 1)).toEqual(candidateCopy);

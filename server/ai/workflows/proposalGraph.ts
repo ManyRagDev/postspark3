@@ -178,6 +178,8 @@ export interface ProposalExecutionInput {
   firstDeliveryReviewRecovery?: boolean;
   deferCopyRepair?: boolean;
   recoveryCopy?: CopyResponse;
+  /** Content to adapt to a different design; never bypasses writing or review. */
+  recoverySourceCopy?: CopyResponse;
   rewriteForRecovery?: boolean;
   reviewLenientDelivery?: boolean;
   deadlineMs?: number;
@@ -749,14 +751,17 @@ export function formatHumanTextCapacityGuidance(
       kind?: string;
       plannedItemCount?: number;
       cardinality?: { min?: number; max?: number } | null;
-      capacity?: { minWords?: number; estimatedMaxChars?: number | null } | null;
+      capacity?: { fragmentCount?: number; minWords?: number; estimatedMaxChars?: number | null } | null;
       targets?: Array<{ maxLines?: number; maxChars?: number }> | null;
     }>;
-  }>
+  }>,
+  capabilityPolicy = false
 ): string {
   const lines: string[] = [
     "📐 GUIA PRÁTICO DE ENCAIXE E EXTENSÃO DE TEXTO (por slide):",
-    "Siga estes ranges recomendados de palavras/caracteres para garantir que o texto fique legível e bem diagramado na arte:",
+    capabilityPolicy
+      ? "Capacidade em caracteres é estimativa, não comprovação de encaixe. fragmentCount conta caixas que compartilham um texto; não é mínimo de palavras. O medidor real confirma o encaixe depois da composição."
+      : "Siga estes ranges recomendados de palavras/caracteres para garantir que o texto fique legível e bem diagramado na arte:",
   ];
 
   definitions.forEach((def, slideIdx) => {
@@ -783,6 +788,9 @@ export function formatHumanTextCapacityGuidance(
         if (f.kind === "list") {
           const items = f.plannedItemCount ?? f.cardinality?.min ?? 3;
           lines.push(`  • [${f.id}] ${roleLabel}: Lista com aprox. ${items} itens. Cada item curto (3 a 8 palavras).`);
+        } else if (capabilityPolicy) {
+          const fragments = Math.max(1, f.capacity?.fragmentCount ?? f.capacity?.minWords ?? 1);
+          lines.push(`  • [${f.id}] ${roleLabel}: ${fragments} caixa(s) compartilham o texto; estimativa de ~${maxChars} caracteres e até ${maxLines} linha(s). Preserve conteúdo obrigatório e literal; fragmentos opcionais podem ficar vazios.`);
         } else {
           lines.push(`  • [${f.id}] ${roleLabel}: Recomendado ${minWords} a ${maxWords} palavras (máx ~${maxChars} caracteres, até ${maxLines} linha${maxLines > 1 ? "s" : ""}).`);
         }
@@ -1000,6 +1008,7 @@ export async function executeProposalWorkflow(
       (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))),
       usesAffirmativeContext(input), nativeGlyphProjectionFor(input)
     );
+    const capabilityPolicy = input.generationIntent?.requirements.some(requirement => requirement.source === "physical") ?? false;
     const textBudgetsV3 = input.reviewPolicyVersion === 10
       ? definitions.map(definition => designTextBudgetsV3(compactComponentCard(definition)))
       : null;
@@ -1049,6 +1058,7 @@ export async function executeProposalWorkflow(
                   ? maxLines * charsPerLine
                   : undefined,
               minWords: piece?.contentFragment?.count ?? 1,
+              ...(capabilityPolicy ? { fragmentCount: piece?.contentFragment?.count ?? 1 } : {}),
               contentFragment: piece?.contentFragment ?? null,
               textFit: definition.fragment.relations
                 .filter(
@@ -1144,6 +1154,7 @@ export async function executeProposalWorkflow(
               ? "word_partition"
               : "whole_value_per_target",
             minWords: Math.max(...targets.map(target => target.minWords), 1),
+            ...(capabilityPolicy ? { fragmentCount: Math.max(...targets.map(target => target.minWords), 1) } : {}),
             wordsForAllFragments,
             ...(preservesOccupancy ? { fragmentAllocation: fragments[0].allocation, occupationNote: "Títulos curtos ocupam os alvos prioritários; não aumente o texto só para preencher todas as caixas." } : {}),
             estimatedMaxChars: Number.isFinite(estimatedMaxChars)
@@ -1161,7 +1172,7 @@ export async function executeProposalWorkflow(
     const editorialReadingPrompt = input.generationIntent?.editorial
       ? `Leitura editorial parcial: sinais requested são pedidos, suggested são possibilidades, forbidden são proibições expressas; ausência é neutra. Não acrescente conteúdo para preencher aspectos não especificados. Definições do vocabulário congelado:\n${JSON.stringify(input.editorialCatalog?.document.intents.filter(d => input.generationIntent!.editorial!.signals.some(s => s.intentId === d.id)) ?? [])}\nSinais congelados: ${JSON.stringify(input.generationIntent.editorial)}`
       : null;
-    const capacityGuidance = formatHumanTextCapacityGuidance(definitions, fieldSchemaNotes);
+    const capacityGuidance = formatHumanTextCapacityGuidance(definitions, fieldSchemaNotes, capabilityPolicy);
     const userCopyPrompt = compactPolicy ? compactCopyPrompt(input, definitions) : affirmative ? [
       `Contexto editorial congelado (projeto, playbook e pedido):\n${JSON.stringify(input.editorialContext ?? editorialContextV7(input, 6))}`,
       (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? `Abordagem editorial da proposta ${slot + 1}: ${input.editorialApproach ?? "Preserve a distribuição literal e as escolhas expressas da peça."}` : `Direção da proposta ${slot + 1}: ${input.selectionReason ?? "composição compatível"}. Desenvolva uma abordagem própria a partir desta direção.`,
@@ -1170,6 +1181,7 @@ export async function executeProposalWorkflow(
       capacityGuidance,
       `Condições de composição dos templates reais:\n${JSON.stringify(fieldSchemaNotes)}`,
       ...(input.rewriteForRecovery ? ["Adapte a redação a estas caixas. Priorize títulos curtos, preserve os fatos e conteúdos obrigatórios e mantenha a legenda separada da arte conforme o briefing."] : []),
+      ...(input.rewriteForRecovery && input.recoverySourceCopy ? [`Cópia anterior para adaptação sem perda de mensagem/fatos; use os fieldIds do NOVO design: ${JSON.stringify(input.recoverySourceCopy)}`] : []),
       definitions.length > 1
         ? `IMPORTANTE: Você DEVE entregar exatamente ${definitions.length} slides no array 'slides' (índices 0 a ${definitions.length - 1}), correspondendo aos ${definitions.length} templates fornecidos acima. Cada fieldId aparece uma vez, com string vazia ou lista vazia nos campos opcionais que dispensarem texto. Listas usam arrays; linhas autoradas seguem a distribuição e os limites de cada caixa.`
         : "Entregue os campos nativos na ordem dos slides. Cada fieldId aparece uma vez, com string vazia ou lista vazia nos campos opcionais que dispensarem texto. Listas usam arrays; linhas autoradas seguem a distribuição e os limites de cada caixa.",

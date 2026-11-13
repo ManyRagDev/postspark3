@@ -8,9 +8,11 @@ import type { CanvasPostModel } from "./types";
 export default function PostDownloadDialog({
   post,
   onClose,
+  onExport,
 }: {
   post: CanvasPostModel;
   onClose: () => void;
+  onExport?: (post: CanvasPostModel, kind: "export_png" | "export_zip") => void;
 }) {
   const stage = useRef<CanvasPostStageRef>(null);
   const [index, setIndex] = useState(post.currentSlideIndex);
@@ -48,6 +50,7 @@ export default function PostDownloadDialog({
       link.href = href;
       link.download = `postspark-${post.aspectRatio.replace(":", "x")}${zip ? ".zip" : `-slide-${index + 1}.png`}`;
       link.click();
+      try { onExport?.(post, zip ? "export_zip" : "export_png"); } catch { /* Analysis must never fail a download. */ }
     } catch (err) {
       setError(
         err instanceof Error

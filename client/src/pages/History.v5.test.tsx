@@ -4,9 +4,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import History from "./History";
 
-const h = vi.hoisted(() => ({ generations: [] as any[], navigate: vi.fn() }));
+const h = vi.hoisted(() => ({ generations: [] as any[], details: [] as any[], fetchDetail: vi.fn(), navigate: vi.fn() }));
 vi.mock("@/lib/trpc", () => ({
   trpc: {
+    useUtils: () => ({ post: { getGeneration: { fetch: h.fetchDetail } } }),
     post: {
       listGenerations: {
         useQuery: () => ({
@@ -53,6 +54,9 @@ beforeEach(() => {
       output_snapshot: [null, null, null],
     },
   ];
+  h.details = h.generations;
+  h.fetchDetail.mockImplementation(async ({id}: {id: string}) => h.details.find(row => row.id === id));
+  h.generations = h.generations.map(({output_snapshot,...summary}) => ({...summary,variation_count:output_snapshot.filter(Boolean).length}));
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -64,7 +68,7 @@ afterEach(() => {
   delete (globalThis as any).IS_REACT_ACT_ENVIRONMENT;
 });
 
-it("filters partial and cancelled runs and restores only committed proposals with their original slot", () => {
+it("filters partial and cancelled runs and restores only committed proposals with their original slot", async () => {
   const select = host.querySelector<HTMLSelectElement>(
     'select[aria-label="Filtrar por status"]'
   )!;
@@ -89,7 +93,9 @@ it("filters partial and cancelled runs and restores only committed proposals wit
   const recover = Array.from(host.querySelectorAll("button")).find(b =>
     b.textContent?.includes("Recuperar")
   )!;
-  act(() => recover.click());
+  expect(h.fetchDetail).not.toHaveBeenCalled();
+  await act(async () => { recover.click(); await Promise.resolve(); });
+  expect(h.fetchDetail).toHaveBeenCalledWith({ id: "partial-run" });
   const restored = JSON.parse(
     sessionStorage.getItem("postspark.restore_generation")!
   );

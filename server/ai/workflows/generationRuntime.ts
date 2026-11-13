@@ -1,4 +1,6 @@
 import { getDb } from "../../db";
+import { startGenerationResourceMetrics } from "./generationResourceMetrics";
+import { observeProviderFailure } from "./providerCooldown";
 import { assertPinnedReviewConfig } from "./pinnedReviewConfig";
 import { localDiagnosticsEnabled, writeLocalDiagnostic } from "../localDiagnostics";
 import { generationTerminalDiagnostic, generationDeliveryMetrics } from "./generationTerminalDiagnostic";
@@ -14,7 +16,7 @@ import { type OrchestratedGenerationInput } from "@shared/generationRequest";
 import type { SiteIntelligence } from "@shared/postspark";
 import { invokeLLM, knownProviderRejectionReceipt, providerRejectionErrorFromReceipt } from "../../_core/llm";
 import { replanGenerationSlot } from "./generationPlanning";
-import { recoverGenerationDelivery } from "./generationDeliveryRecovery";
+import { recoverGenerationDelivery, deliveryRecoveryHistory } from "./generationDeliveryRecovery";
 import { extractTextContent, safeJsonParse } from "../llmJson";
 import type { InvokeResult } from "../../_core/llm";
 import { hydrateCompleteDesignComponents } from "../../designCatalog/completeDesignStore";
@@ -171,6 +173,7 @@ export function durableOperations(
       );
       return result;
     } catch (error) {
+      await observeProviderFailure(error);
       console.error(
         `[runtime:op] ❌ [${record.id.slice(0, 8)}] ${operationKey} falhou:`,
         error instanceof Error ? error.message : error
@@ -584,6 +587,11 @@ export function proposalRecoveryCopyFromOperations(
     const receipt = readJournalResult<{ version?: unknown; copy?: unknown } | undefined>(candidate?.result);
     if (receipt?.version === 1 && receipt.copy && typeof receipt.copy === "object" && !Array.isArray(receipt.copy))
       return receipt.copy;
+    const reviewCandidate = operations.find(operation =>
+      operation.operationKey === `${proposalId}:candidate` && operation.state === "completed");
+    const drafted = readJournalResult<{ version?: unknown; copy?: unknown } | undefined>(reviewCandidate?.result);
+    if (drafted?.version === 1 && drafted.copy && typeof drafted.copy === "object" && !Array.isArray(drafted.copy))
+      return drafted.copy;
   }
   const original = operations.find(operation =>
     operation.operationKey === `${proposalId}:copy` && operation.state === "completed");
@@ -633,6 +641,7 @@ export async function executeClaimedGeneration(
     events: [],
   };
   return runWithGenerationTrace(trace, async () => {
+    const finishResources = startGenerationResourceMetrics(record.id, ENV.supabaseUrl);
     recordGenerationEvent({
       stage: "generation_worker",
       status: "started",
@@ -649,6 +658,7 @@ export async function executeClaimedGeneration(
         store,
       });
     } finally {
+      recordGenerationEvent({ stage: "generation_resources", status: "completed", detail: "execution_resources", data: finishResources() });
       try {
         // Legacy test adapters may omit the new read API; the real store always provides it.
         if (store.listOperations) {
@@ -990,9 +1000,31 @@ async function executeClaimedGenerationWithinTrace(
         },
         ...deps.graphDeps,
         ...(prepared.planning?.deliveryReserves ? {
-          recoverDelivery: (input, reuseOriginal) => recoverGenerationDelivery({
+          recoverDelivery: async (input, reuseOriginal, context) => {
+            const operations = await deps.store.listOperations(record.id, record.ownerId);
+            const history = deliveryRecoveryHistory(operations, input.proposalId, context?.recoveryAttempt ?? 1);
+            const otherJournalFamilies = record.proposals.filter(proposal => proposal.slot !== input.slot).flatMap(proposal => {
+              const decision = deliveryRecoveryHistory(operations, proposal.proposalId, 4).previous;
+              if (!decision) return [];
+              const originalPlan = prepared.planning!.slots[proposal.slot];
+              const family = prepared.planning!.deliveryReserves?.[proposal.slot]?.find(reserve => reserve.plan.candidateId === decision.plan.candidateId)?.family
+                ?? (originalPlan.status === "viable" && originalPlan.candidateId === decision.plan.candidateId ? prepared.planning!.offers[proposal.slot]?.family : undefined);
+              return family ? [family] : [];
+            });
+            let sourceDefinitions = context?.sourceDefinitions ?? prepared.selectedDefinitions?.[input.slot] ?? [];
+            if (history.previous) {
+              const ids = history.previous.plan.pages.map(page => page.componentId);
+              const hydrated = await hydrateCompleteDesignComponents(Array.from(new Set(ids)), input.experimental ?? true);
+              sourceDefinitions = ids.map(id => hydrated.find(definition => definition.id === id)!);
+              if (sourceDefinitions.some(definition => !definition)) throw new GenerationFailureError("catalog_component_ineligible", "selection");
+            }
+            return recoverGenerationDelivery({
             planning: prepared.planning!,
-            sourceDefinitions: prepared.selectedDefinitions?.[input.slot] ?? [],
+            sourceDefinitions,
+            recoveryAttempt: context?.recoveryAttempt,
+            excludedCandidateIds: [...(context?.excludedCandidateIds ?? []), ...history.candidateIds],
+            excludedFamilies: [...(context?.excludedFamilies ?? []), ...otherJournalFamilies],
+            claimFamily: context?.claimFamily,
             input,
             reuseOriginal,
             graphDeps: deps.graphDeps ?? {},
@@ -1000,12 +1032,12 @@ async function executeClaimedGenerationWithinTrace(
             operation: durableOperations(deps.store, record, leaseToken, controller.signal, `${input.proposalId}:`, true),
             readOriginalCopy: async () => {
               return proposalRecoveryCopyFromOperations(
-                await deps.store.listOperations(record.id, record.ownerId),
-                input.proposalId,
+                operations,
+                history.previous?.attemptId ?? context?.sourceAttemptId ?? input.proposalId,
                 input.reviewExecutionConfig?.version === 5 ? input.reviewExecutionConfig.visualTextRepairVersion : undefined,
-              );
+              ) ?? history.previous?.copy;
             },
-          }),
+          }); },
         } : {}),
         ...(record.generationConfig && prepared.planning ? { replan: (slot: number, attempt: number, currentFamilies: string[]) => replanGenerationSlot({ prepared, slot, attempt, currentFamilies, generationConfig: record.generationConfig!, deadlineMs: record.deadlineAt, experimental: record.experimental }, { generate: invokeLLM, hydrate: hydrateCompleteDesignComponents, operation: (key, work) => durableOperations(deps.store, record, leaseToken, controller.signal, `${record.proposals[slot].proposalId}:`)(key, work), signal: controller.signal }) } : {}),
         reviewOperations: async proposalId => (await deps.store.listOperations(record.id, record.ownerId))

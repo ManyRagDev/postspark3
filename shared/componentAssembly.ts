@@ -258,7 +258,9 @@ export const componentCardV1Schema = z
               height: z.number(),
               fontSize: z.number(),
               minFontSize: z.number(),
+              /** Historical name: number of target fragments, never a minimum word count. */
               minWords: z.number().int().min(1),
+              fragmentCount: z.number().int().min(1).optional(),
             })
             .strict()
         ),
@@ -1482,4 +1484,9 @@ export function preflightAssemblyGeneration(
       };
     }),
   }));
+}
+
+/** Read both persisted spellings; legacy minWords has always counted fragments. */
+export function textFragmentCount(region: { fragmentCount?: number; minWords?: number }): number {
+  return Math.max(1, region.fragmentCount ?? region.minWords ?? 1);
 }

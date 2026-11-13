@@ -1,5 +1,5 @@
 import { arsenalHash } from "@shared/arsenalContent";
-import { DELIVERY_RECOVERY_KEY, type GenerationPlanningReceipt, type ViableGenerationPlan } from "@shared/generationPlan";
+import { deliveryRecoveryKey, deliveryRecoveryAttempt, type GenerationPlanningReceipt, type ViableGenerationPlan } from "@shared/generationPlan";
 import type { ComponentDefinitionV1 } from "@shared/componentAssembly";
 import { compactComponentCard, componentDefinitionV1Schema } from "@shared/componentAssembly";
 import { meetsGenerationVisualRequirements } from "@shared/generationVisualRequirements";
@@ -7,6 +7,7 @@ import { designHasPhotographicContent } from "@shared/designSelection";
 import { GenerationFailureError } from "@shared/generationFailure";
 import { fitExistingProposalCopy, readProposalCopy, type CopyResponse, type ProposalExecutionInput, type ProposalGraphDeps } from "./proposalGraph";
 import { usesCompactProposalCopy } from "./compactProposalCopy";
+import { readJournalResult } from "./generationJournalTrace";
 
 type Decision = {
   plan: ViableGenerationPlan;
@@ -14,6 +15,24 @@ type Decision = {
   copy?: CopyResponse;
   localPreflightVersion?: 1;
 };
+
+/** Rebuild progress from completed decisions after a process restart. */
+export function deliveryRecoveryHistory(
+  operations: readonly { operationKey: string; state: string; result?: unknown }[],
+  proposalId: string,
+  recoveryAttempt: number,
+) {
+  const prefix = `${proposalId}:`;
+  const previous = operations.flatMap(operation => {
+    if (operation.state !== "completed" || !operation.operationKey.startsWith(prefix)) return [];
+    const relative = operation.operationKey.slice(prefix.length);
+    const attempt = deliveryRecoveryAttempt(relative);
+    const decision = readJournalResult<Decision | undefined>(operation.result);
+    return attempt && attempt < recoveryAttempt && decision?.plan
+      ? [{ ...decision, attempt, canonical: relative === deliveryRecoveryKey(attempt), attemptId: `${proposalId}-fb${attempt}` }] : [];
+  }).sort((a, b) => a.attempt - b.attempt || Number(a.canonical) - Number(b.canonical));
+  return { candidateIds: previous.map(decision => decision.plan.candidateId), previous: previous.at(-1) };
+}
 
 /** Checks native dependencies, never photographic style or estimated character counts. */
 function locallyMaterializable(definitions: ComponentDefinitionV1[], input: ProposalExecutionInput): boolean {
@@ -44,6 +63,10 @@ export async function recoverGenerationDelivery(args: {
   input: ProposalExecutionInput;
   readOriginalCopy: () => Promise<unknown>;
   reuseOriginal: boolean;
+  recoveryAttempt?: number;
+  excludedCandidateIds?: readonly string[];
+  excludedFamilies?: readonly string[];
+  claimFamily?: (family: string) => boolean;
   hydrate: (ids: string[], experimental: boolean) => Promise<ComponentDefinitionV1[]>;
   operation: <T>(key: string, work: () => Promise<T>) => Promise<T>;
   graphDeps: Pick<ProposalGraphDeps, "measureText" | "createTextMeasurer">;
@@ -53,6 +76,7 @@ export async function recoverGenerationDelivery(args: {
   const localPreflight = usesCompactProposalCopy(input) && input.reviewExecutionConfig?.version === 5 &&
     (input.reviewExecutionConfig.automaticReviewVersion === 2 || input.reviewExecutionConfig.automaticReviewVersion === 3 || input.reviewExecutionConfig.automaticReviewVersion === 4);
   const reserves = planning.deliveryReserves?.[input.slot] ?? [];
+  const claim = (reserve: (typeof reserves)[number]) => args.claimFamily?.(reserve.family) ?? true;
   const original = planning.slots[input.slot];
   const originalOffer = planning.offers[input.slot];
   const pinned = original.status === "viable" && originalOffer ? {
@@ -60,6 +84,13 @@ export async function recoverGenerationDelivery(args: {
     plan: original,
     componentHashes: originalOffer.slides.map(slide => slide.componentHash),
   } : undefined;
+  const sequence = (plan: ViableGenerationPlan) => JSON.stringify(plan.pages.map(page => page.componentId));
+  const excludedSequences = new Set([...(pinned ? [pinned] : []), ...reserves]
+    .filter(reserve => args.excludedCandidateIds?.includes(reserve.plan.candidateId)).map(reserve => sequence(reserve.plan)));
+  const eligible = (reserve: (typeof reserves)[number]) =>
+    !args.excludedCandidateIds?.includes(reserve.plan.candidateId) &&
+    !excludedSequences.has(sequence(reserve.plan)) &&
+    !args.excludedFamilies?.includes(reserve.family);
   type Reserve = (typeof reserves)[number];
   const loaded = new Map<string, ComponentDefinitionV1[]>();
   const load = async (reserve: Reserve) => {
@@ -83,24 +114,29 @@ export async function recoverGenerationDelivery(args: {
     loaded.set(reserve.plan.candidateId, sequence);
     return sequence;
   };
-  const decision = await args.operation<Decision | { mode: "unavailable" }>(DELIVERY_RECOVERY_KEY, async () => {
+  const decisionKey = deliveryRecoveryKey(args.recoveryAttempt ?? 1);
+  const decision = await args.operation<Decision | { mode: "unavailable" }>(decisionKey, async () => {
     const evidence = localPreflight ? { localPreflightVersion: 1 as const } : {};
     const copy = args.reuseOriginal ? readProposalCopy(await args.readOriginalCopy(), sourceDefinitions, input.reviewExecutionConfig?.version === 5 ? input.reviewExecutionConfig.nativeGlyphProjection : undefined) : undefined;
-    let firstReserve: Reserve | undefined;
+    const rewriteReserves: Reserve[] = [];
     // Font measurements can use the remaining request time, leaving room for delivery review.
     const remaining = (input.deadlineMs ?? Date.now() + 60_000) - Date.now();
     const probeDeadline = AbortSignal.timeout(Math.max(1, Math.min(15_000, Math.floor(remaining / 4))));
     const signal = input.signal ? AbortSignal.any([input.signal, probeDeadline]) : probeDeadline;
     for (const reserve of reserves) {
+      if (!eligible(reserve)) continue;
       input.signal?.throwIfAborted();
       if (signal.aborted) break;
       try {
         const definitions = await load(reserve);
         if (!definitions) continue;
-        firstReserve ??= reserve;
-        if (!copy) break;
+        rewriteReserves.push(reserve);
+        if (!copy) {
+          if (claim(reserve)) return { ...evidence, mode: "write_for_design", plan: reserve.plan };
+          continue;
+        }
         const fitted = await fitExistingProposalCopy({ copy, source: sourceDefinitions, target: definitions, input: { ...input, signal }, deps: args.graphDeps });
-        if (fitted) return { ...evidence, mode: "reuse_text", plan: reserve.plan, copy: fitted };
+        if (fitted && claim(reserve)) return { ...evidence, mode: "reuse_text", plan: reserve.plan, copy: fitted };
       } catch (error) {
         input.signal?.throwIfAborted();
         // An unavailable reserve does not invalidate the rest of the pool.
@@ -108,21 +144,30 @@ export async function recoverGenerationDelivery(args: {
         console.warn("[generation] Design de reserva indisponível para prova de encaixe", reserve.family, error instanceof Error ? error.name : "unknown");
       }
     }
-    if (!copy && firstReserve) return { ...evidence, mode: "write_for_design", plan: firstReserve.plan };
-    if (pinned) {
+    // Failed role-by-role transfer does not mean the reserve cannot express the
+    // brief. Adapt the existing message to different native fields, rather than
+    // spend the only fallback on the same already exhausted layout.
+    const mayRewrite = input.executionBrief?.interventionLevel !== "visual_only";
+    if ((localPreflight && mayRewrite) || !copy) {
+      const next = rewriteReserves.find(claim);
+      if (next) return { ...evidence, mode: "write_for_design", plan: next.plan, ...(copy ? { copy } : {}) };
+    }
+    if (pinned && eligible(pinned)) {
       try {
-        if (await load(pinned)) return copy ? { ...evidence, mode: "repair_text", plan: pinned.plan, copy }
+        if (await load(pinned) && claim(pinned)) return copy ? { ...evidence, mode: "repair_text", plan: pinned.plan, copy }
           : { ...evidence, mode: "write_for_design", plan: pinned.plan };
       } catch (error) {
         input.signal?.throwIfAborted();
-        if (!firstReserve) throw error;
+        if (!rewriteReserves.length) throw error;
       }
     }
-    return firstReserve ? { ...evidence, mode: "write_for_design", plan: firstReserve.plan } : { ...evidence, mode: "unavailable" };
+    const next = mayRewrite ? rewriteReserves.find(claim) : undefined;
+    return next ? { ...evidence, mode: "write_for_design", plan: next.plan, ...(copy ? { copy } : {}) } : { ...evidence, mode: "unavailable" };
   });
   if (decision.mode === "unavailable") return null;
   const reserve = [...(pinned ? [pinned] : []), ...reserves].find(item => arsenalHash(item.plan) === arsenalHash(decision.plan));
   if (!reserve) throw new Error("delivery_recovery_pin_mismatch");
+  if (args.excludedFamilies?.includes(reserve.family) || !claim(reserve)) return null;
   const definitions = await load(reserve);
   if (!definitions) {
     if (localPreflight) throw new GenerationFailureError("catalog_component_ineligible", "selection");
@@ -131,7 +176,8 @@ export async function recoverGenerationDelivery(args: {
   return {
     definitions,
     plan: decision.plan,
-    recoveryCopy: decision.copy,
+    recoveryCopy: decision.mode === "write_for_design" ? undefined : decision.copy,
+    recoverySourceCopy: decision.mode === "write_for_design" ? decision.copy : undefined,
     rewriteForRecovery: decision.mode === "write_for_design",
   };
 }

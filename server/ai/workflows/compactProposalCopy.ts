@@ -209,11 +209,16 @@ export function compactCopyPrompt(
   input: ProposalExecutionInput,
   definitions: ComponentDefinitionV1[],
 ) {
+  const recovery = input.rewriteForRecovery ? { recovery: {
+    instruction: "Adapte a redação a estas caixas do novo design. Preserve fatos, sentido, condições e obrigações do pedido e da cópia anterior. Redistribua listas e textos nos campos compatíveis ou na legenda conforme o briefing, sem cortar fatos para fazer caber. Não copie fieldIds da composição anterior: use somente os campos e capacidades deste design. Nenhuma geometria ou regra de legibilidade foi relaxada.",
+    ...(input.recoverySourceCopy ? { previousCopy: input.recoverySourceCopy } : {}),
+  } } : {};
   if (usesCompactEditorialContract(input)) return JSON.stringify({
     version: 2,
     editorial: buildCompactEditorialContract(input),
     ...(input.platform ? {platform: input.platform} : {}),
     ...(input.editorialApproach ? {approach: {text: input.editorialApproach, advisory: true}} : {}),
+    ...recovery,
     slides: compactWritableSlides(input, definitions).map(({ideas: _ideas, ...slide}) => slide),
   });
   const project = projectEditorialDefaults(
@@ -253,6 +258,7 @@ export function compactCopyPrompt(
       ? { notes: input.executionBrief.notes }
       : {}),
     ...(input.editorialApproach ? { approach: input.editorialApproach } : {}),
+    ...recovery,
     slides: compactWritableSlides(input, definitions),
   });
 }

@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import { ENV } from "../_core/env";
 import { traceCatalog } from "./trace";
 import { arsenalHash } from "@shared/arsenalContent";
+import { publicStorageSignedUrl } from "./storagePublicUrl";
 
 export const ARSENAL_BUCKET = "design-arsenal";
 const storage = () =>
@@ -251,7 +252,7 @@ export async function resolveArsenalAssetUrls(
     return {
       id: a.id,
       sha256: a.sha256,
-      url: url.signedUrl,
+      url: publicStorageSignedUrl(url.signedUrl, ENV.supabaseUrl, ENV.supabasePublicUrl),
       expiresAt: Date.now() + 900_000,
     };
   });

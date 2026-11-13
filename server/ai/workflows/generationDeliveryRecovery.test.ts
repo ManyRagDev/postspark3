@@ -9,7 +9,9 @@ import { resolveGenerationModelConfig } from "../generationModel";
 import { resolveReviewExecutionConfigV10, reviewContractHashV10, assertReviewExecutionConfigV10 } from "./reviewExecutionConfigV10";
 import { editorialContextV9 } from "./editorialContextV9";
 import { executeProposalWorkflow, type ProposalExecutionInput, type ProposalGraphDeps } from "./proposalGraph";
-import { recoverGenerationDelivery } from "./generationDeliveryRecovery";
+import { recoverGenerationDelivery, deliveryRecoveryHistory } from "./generationDeliveryRecovery";
+import { GenerationCoordinator } from "./generationCoordinator";
+import { compactCopyPrompt } from "./compactProposalCopy";
 
 vi.mock("./proposalReview", async original => ({
   ...(await original<typeof import("./proposalReview")>()),
@@ -25,6 +27,104 @@ const originalCopy = { caption: "Legenda preservada", hashtags: ["#original"], s
 }] };
 const measureText: NonNullable<ProposalGraphDeps["measureText"]> = value => ({
   height: 20, lines: [{ width: 100 }], runs: [{ fill: value.fill, fontSize: value.fontSize, fontStyle: value.fontStyle }],
+});
+
+describe("bounded delivery progression", () => {
+  function sized(name: string, width: number) {
+    const d = design(name);
+    return createComponentDefinition({ ...d, fragment: { ...d.fragment,
+      instances: d.fragment.instances.map((instance, index) => index ? instance : { ...instance, width }),
+      relations: d.fragment.relations.map(relation => relation.kind === "textFit" && relation.outputs.some(output => output.targetId === d.fragment.instances[0].id)
+        ? { ...relation, parameters: { ...relation.parameters, maxWidth: width } } : relation),
+    } });
+  }
+  async function journey(options: { exhausted?: boolean; uncertain?: boolean; quota?: boolean; loseDelivery?: boolean } = {}) {
+    const narrow = sized("narrow-reserve", 901), wide = sized("wide-reserve", 940);
+    const s = fixture([narrow, wide]);
+    const readyDefs = [design("ready-one"), design("ready-two")];
+    const response = (copy: unknown) => ({ choices: [{ message: { content: JSON.stringify(copy) } }] });
+    const saved = await Promise.all(readyDefs.map((definition, index) => executeProposalWorkflow({ ...s.args.input,
+      proposalId: `p-${actor}-${index + 1}`, slot: index + 1, selectedDefinitions: [definition],
+    }, { actor, measureText, generateText: vi.fn(async () => response(originalCopy)) })));
+    const healthy = structuredClone(originalCopy), oversized = structuredClone(originalCopy);
+    oversized.slides[0].values[0].value = "LONG café artesanal";
+    const generateText = vi.fn(async (params: Parameters<ProposalGraphDeps["generateText"]>[0]) => {
+      if (options.quota) throw new GenerationFailureError("provider_rejected", "copy");
+      const prompt = JSON.parse(String(params.messages[1].content));
+      if (prompt.recovery) {
+        expect(prompt.recovery.previousCopy).toEqual(oversized);
+        expect(JSON.stringify(prompt.editorial ?? prompt)).toContain(s.args.input.prompt);
+        return response(healthy);
+      }
+      return response(oversized);
+    });
+    const graphMeasure: typeof measureText = value => ({ ...measureText(value),
+      height: value.text.includes("LONG") || value.text === "Café artesanal" && (options.exhausted || value.width < 920) ? 5000 : 20,
+    });
+    const journal = new Map<string, any>();
+    const records = () => Array.from(journal, ([operationKey, result]) => ({ operationKey, result, state: "completed" }));
+    const allDefs = [source, narrow, wide];
+    const args = { ...s.args.input, actor, selectedDefinitions: [[source], ...readyDefs.map(d => [d])],
+      planning: s.args.planning, savedProposals: saved };
+    const deliver = vi.fn(async () => { if (options.loseDelivery) { options.loseDelivery = false; throw Error("lost delivery response"); } });
+    const deps = {
+      actor, generateText, measureText: graphMeasure, deliver,
+      uncertainOperations: async () => Boolean(options.uncertain),
+      operationForProposal: (id: string) => async ({ operationKey }: { operationKey: string }, work: () => Promise<unknown>) => {
+        const key = `${id}:${operationKey}`;
+        if (!journal.has(key)) journal.set(key, await work());
+        return journal.get(key);
+      },
+      recoverDelivery: async (input: ProposalExecutionInput, reuseOriginal: boolean, context?: Parameters<NonNullable<import("./generationCoordinator").GenerationCoordinatorDeps["recoverDelivery"]>>[2]) => {
+        const history = deliveryRecoveryHistory(records(), input.proposalId, context!.recoveryAttempt);
+        const previous = history.previous;
+        return recoverGenerationDelivery({ ...context, planning: s.args.planning, input, reuseOriginal,
+          sourceDefinitions: previous ? previous.plan.pages.map(page => allDefs.find(d => d.id === page.componentId)!) : context!.sourceDefinitions,
+          excludedCandidateIds: [...context!.excludedCandidateIds, ...history.candidateIds],
+          readOriginalCopy: async () => {
+            const op = journal.get(`${previous?.attemptId ?? context!.sourceAttemptId}:copy`);
+            return op ? JSON.parse(op.choices[0].message.content) : previous?.copy;
+          },
+          hydrate: async ids => allDefs.filter(d => ids.includes(d.id)), graphDeps: { measureText: graphMeasure },
+          operation: async (key, work) => {
+            const full = `${input.proposalId}:${key}`;
+            if (!journal.has(full)) journal.set(full, await work());
+            return journal.get(full);
+          },
+        });
+      },
+    };
+    const snapshot = await new GenerationCoordinator(args, deps).start();
+    return { snapshot, args, deps, saved, generateText, journal, deliver, wide };
+  }
+  it("delivers three with two existing ready documents, adapting once then moving to a measured fitting reserve", async () => {
+    const s = await journey();
+    expect(s.snapshot.overallStatus).toBe("completed");
+    expect(s.snapshot.proposals.map(p => p.status)).toEqual(["ready", "ready", "ready"]);
+    expect(s.snapshot.proposals.slice(1)).toEqual(s.saved);
+    expect(s.snapshot.proposals[0].bundle?.family).toBe(s.wide.completeDesign!.family);
+    expect(s.snapshot.proposals[0].proposalId).toBe(`p-${actor}-0`);
+    expect(s.snapshot.proposals[0].attempt?.index).toBe(2);
+    expect(s.generateText).toHaveBeenCalledTimes(2); // original + one semantic adaptation; transfer is local
+    expect(s.deliver).toHaveBeenCalledTimes(1);
+  });
+  it("replays fb2 after a lost delivery without another inference or revisiting a failed candidate", async () => {
+    const s = await journey({ loseDelivery: true });
+    expect(s.snapshot.proposals[0].status).toBe("delivery_pending");
+    const resumed = await new GenerationCoordinator({ ...s.args, savedProposals: s.snapshot.proposals }, s.deps).start();
+    expect(resumed.overallStatus).toBe("completed");
+    expect(resumed.proposals.slice(1)).toEqual(s.saved);
+    expect(s.generateText).toHaveBeenCalledTimes(2);
+    expect(s.journal.size).toBeGreaterThan(2);
+  });
+  it.each(["exhausted", "uncertain", "quota"] as const)("stops safely for %s without changing the two ready documents", async reason => {
+    const s = await journey({ [reason]: true });
+    expect(s.snapshot.overallStatus).not.toBe("completed");
+    expect(s.snapshot.proposals.slice(1)).toEqual(s.saved);
+    expect(s.generateText.mock.calls.length).toBeLessThanOrEqual(3);
+    if (reason === "exhausted") expect(s.generateText).toHaveBeenCalledTimes(3);
+    if (reason !== "exhausted") expect(s.generateText).toHaveBeenCalledTimes(1);
+  });
 });
 function design(name: string, media: "deferred" | "authored" | "missing" | false = false) {
   const base = completeDesignTestDefinitions()[1];
@@ -96,6 +196,55 @@ function fixture(reserves: ComponentDefinitionV1[], options: { historical?: bool
 }
 
 describe("local reserve preflight pinned to automatic review v2/v3", () => {
+  it("adapts the message to different native roles instead of repeating the failed design", async () => {
+    const next = createComponentDefinition({ ...design("different-roles"), fragment: {
+      ...source.fragment, bindings: source.fragment.bindings.map((binding, index) => index ? {
+        ...binding, source: "block:label:0:text",
+      } : binding),
+    } });
+    const s = fixture([next], { automaticReviewVersion: 4 });
+    const recovered = await recoverGenerationDelivery({ ...s.args, excludedCandidateIds: [s.plan(source).candidateId] });
+    expect(recovered?.definitions).toEqual([next]);
+    expect(recovered?.recoveryCopy).toBeUndefined();
+    expect(recovered?.recoverySourceCopy).toEqual(originalCopy);
+    expect(recovered?.rewriteForRecovery).toBe(true);
+    const prompt = JSON.parse(compactCopyPrompt({ ...s.args.input, ...recovered }, [next]));
+    expect(prompt.recovery.previousCopy).toEqual(originalCopy);
+    expect(JSON.stringify(prompt.editorial)).toContain(s.args.input.prompt);
+    expect(prompt.recovery.instruction).toContain("Preserve fatos");
+    s.assertImmutable();
+  });
+
+  it("journals progress separately and skips failed/claimed candidates without buying copy", async () => {
+    const first = design("first"), second = design("second");
+    const s = fixture([first, second], { reuse: false });
+    const alias = structuredClone(s.args.planning.deliveryReserves![0][0]);
+    alias.plan.candidateId = "alias-of-the-same-native-pages";
+    s.args.planning.deliveryReserves![0].splice(1, 0, alias);
+    const one = await recoverGenerationDelivery({ ...s.args, recoveryAttempt: 1 });
+    const two = await recoverGenerationDelivery({ ...s.args, recoveryAttempt: 2,
+      excludedCandidateIds: [s.plan(first).candidateId], excludedFamilies: [source.completeDesign!.family] });
+    expect(one?.definitions).toEqual([first]);
+    expect(two?.definitions).toEqual([second]);
+    expect(s.journal.has("delivery_recovery:2:candidate")).toBe(true);
+    expect(await recoverGenerationDelivery({ ...s.args, recoveryAttempt: 2 })).toEqual(two);
+    expect(s.performed).toHaveBeenCalledTimes(2);
+  });
+
+  it("claims a replacement synchronously after async probes so two slots cannot duplicate a family", async () => {
+    const shared = design("shared"), other = design("other");
+    const a = fixture([shared, other], { reuse: false }), b = fixture([shared, other], { reuse: false });
+    const owners = new Map<string, number>();
+    const claim = (slot: number) => (family: string) => {
+      const owner = owners.get(family);
+      if (owner !== undefined && owner !== slot) return false;
+      owners.set(family, slot); return true;
+    };
+    const result = await Promise.all([a, b].map((s, slot) => recoverGenerationDelivery({ ...s.args, claimFamily: claim(slot) })));
+    // The second slot scans past a reserve claimed while it was hydrating.
+    expect(result.filter(Boolean)).toHaveLength(2);
+    expect(result.map(r => r!.definitions[0].completeDesign!.family).sort()).toEqual(["other", "shared"]);
+  });
   it("skips an impossible raster reserve before recording a candidate or buying copy", async () => {
     const impossible = design("missing-raster", "deferred"), next = design("typographic");
     const s = fixture([impossible, next], { reuse: false });

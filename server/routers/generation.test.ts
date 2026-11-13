@@ -1,4 +1,6 @@
-vi.mock("../designCatalog/versionedCatalog",()=>({readCatalogManifest:async()=>({revision:"1"}),withCatalogRevision:(_revision:string,work:()=>unknown)=>work()}));
+vi.mock("../designCatalog/versionedCatalog",()=>({readCatalogManifest:vi.fn(async (revision?:string)=>({revision:revision??"1",summary:{approved:{staticOfferCount:state.approved,carouselOfferCount:state.approved},experimental:{staticOfferCount:state.approved+state.draft,carouselOfferCount:state.approved+state.draft}}})),withCatalogRevision:(_revision:string,work:()=>unknown)=>work()}));
+import { readCatalogManifest } from "../designCatalog/versionedCatalog";
+vi.mock("../designCatalog/editorialCatalog", () => ({ readEditorialCatalog: async () => ({ revision: "1" }) }));
 import { ENV } from "../_core/env";
 import { resolveGenerationModelConfig } from "../ai/generationModel";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
@@ -143,6 +145,25 @@ function record() {
 }
 
 describe("orchestrated authenticated API", () => {
+  it("pins the inactive trial only for its administrator and preserves ordinary admission", async () => {
+    const previous = { trialCatalogRevision: ENV.trialCatalogRevision, trialCatalogAdminUuid: ENV.trialCatalogAdminUuid, generationWorkerMode: ENV.generationWorkerMode };
+    Object.assign(ENV, { trialCatalogRevision: "23", trialCatalogAdminUuid: owner, generationWorkerMode: "external" });
+    try {
+      state.admission.mockResolvedValue({ record: record(), created: true });
+      await caller().start({ ...input, includeDraftDesigns: true });
+      expect(readCatalogManifest).toHaveBeenLastCalledWith("23");
+      expect(state.admission.mock.calls.at(-1)?.[0]).toMatchObject({ catalogRevision: "23", trialCatalog: true, stagedCatalog: false, experimental: true });
+      await expect(caller().start({ ...input, includeDraftDesigns: false })).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+      expect(state.admission).toHaveBeenCalledTimes(1);
+      const other = "00000000-0000-4000-8000-000000000013";
+      await caller({ id: other, role: "admin" }).start({ ...input, ownerId: other, includeDraftDesigns: true });
+      expect(readCatalogManifest).toHaveBeenLastCalledWith(undefined);
+      expect(state.admission.mock.calls.at(-1)?.[0]).toMatchObject({ catalogRevision: "1", trialCatalog: false, stagedCatalog: false });
+      await caller({ id: owner, role: "user" }).start({ ...input, includeDraftDesigns: false });
+      expect(readCatalogManifest).toHaveBeenLastCalledWith(undefined);
+      expect(state.admission.mock.calls.at(-1)?.[0].trialCatalog).toBe(false);
+    } finally { Object.assign(ENV, previous); }
+  });
   it("defaults new requests to auto and treats media preference as creative direction", async () => {
     state.admission.mockResolvedValue({record:record(),created:true});
     await caller().start({...input, generationModel: undefined, content:"Café com uma foto"});
@@ -198,7 +219,7 @@ describe("orchestrated authenticated API", () => {
     await caller().start(parsed);
     const admitted = state.admission.mock.calls[0][0];
     expect(admitted.generationConfig).toMatchObject({ choice: "gpt", model: "openai/gpt-6.1-sol", reasoningEffort: "medium", structuredOutputMode: "native_schema" });
-    expect(admitted.input).toEqual(parsed);
+    expect(admitted.input).toEqual({ ...parsed, selectionPolicy: "legacy" });
     expect(admitted.inputHash).toBe(requestInputHash(parsed));
     expect(admitted.input).not.toHaveProperty("generationConfig");
   });

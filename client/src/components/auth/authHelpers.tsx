@@ -9,8 +9,9 @@
  */
 
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
-import { exchangeSupabaseSession } from "@/lib/authBridge";
-import { useState, useCallback } from "react";
+import { resyncSupabaseSession } from "@/lib/authBridge";
+import { getAuthUiConfig } from "@/lib/authUiConfig";
+import { useState } from "react";
 
 export type AuthMode = "login" | "register";
 
@@ -19,6 +20,7 @@ export type AuthMode = "login" | "register";
  * Reutilizável em múltiplos componentes.
  */
 export function useAuthDrawer(onSuccess?: () => void) {
+  const { googleEnabled, signupEnabled } = getAuthUiConfig();
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<AuthMode>("login");
   const [loading, setLoading] = useState(false);
@@ -29,6 +31,9 @@ export function useAuthDrawer(onSuccess?: () => void) {
     setError(null);
     setLoading(true);
     try {
+      if (mode === "register" && !signupEnabled) {
+        throw new Error("Cadastro indisponível no momento.");
+      }
       if (!isSupabaseConfigured || !supabase) {
         throw new Error("Autenticação indisponível: configure o Supabase.");
       }
@@ -49,7 +54,7 @@ export function useAuthDrawer(onSuccess?: () => void) {
         throw new Error("Sessão não encontrada.");
       }
 
-      await exchangeSupabaseSession(accessToken);
+      await resyncSupabaseSession(accessToken);
       onSuccess?.();
       setIsOpen(false);
     } catch (err: any) {
@@ -66,7 +71,7 @@ export function useAuthDrawer(onSuccess?: () => void) {
     setError(null);
     setGoogleLoading(true);
     try {
-      if (!isSupabaseConfigured || !supabase) {
+      if (!googleEnabled || !isSupabaseConfigured || !supabase) {
         throw new Error("Login com Google indisponível: configure o Supabase.");
       }
 
@@ -86,6 +91,7 @@ export function useAuthDrawer(onSuccess?: () => void) {
   };
 
   const switchMode = () => {
+    if (!signupEnabled) return;
     setMode((prev) => (prev === "login" ? "register" : "login"));
     setError(null);
   };
@@ -94,6 +100,8 @@ export function useAuthDrawer(onSuccess?: () => void) {
   const closeDrawer = () => setIsOpen(false);
 
   return {
+    googleEnabled,
+    signupEnabled,
     isOpen,
     mode,
     loading,
@@ -114,7 +122,7 @@ export function useAuthDrawer(onSuccess?: () => void) {
  */
 export async function handleGoogleOAuthOnly() {
   try {
-    if (!isSupabaseConfigured || !supabase) {
+    if (!getAuthUiConfig().googleEnabled || !isSupabaseConfigured || !supabase) {
       throw new Error("Login com Google indisponível: configure o Supabase.");
     }
 

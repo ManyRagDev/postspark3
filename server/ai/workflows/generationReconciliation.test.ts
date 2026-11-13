@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { arsenalHash } from "@shared/arsenalContent";
+import { capabilityGenerationIntentSchema } from "@shared/compactGenerationIntent";
 import { generationEditorialIntentSchema, generationIntentLegacySchema, generationPlanResponseSchema } from "@shared/generationPlan";
 import { z } from "zod";
 import { resolveReviewExecutionConfigV9 } from "./reviewExecutionConfigV9";
@@ -117,6 +118,17 @@ describe("existing review reconciliation", () => {
 });
 
 describe("preparation reconciliation", () => {
+  it.each([false, true])("recovers capability intent only with its admitted policy and exact schema (editorial=%s)", editorial => {
+    const schema = z.toJSONSchema(editorial ? capabilityGenerationIntentSchema.required({ editorial: true }) : capabilityGenerationIntentSchema); delete schema.$schema;
+    const model = "anthropic/claude-haiku-5.5";
+    const expectation = {kind:"generation_preparation_v1",model,configurationHash:"a".repeat(64),messagesHash:arsenalHash(messages),requestHash:"c".repeat(64),
+      responseFormatHash:arsenalHash({type:"json_schema",json_schema:{name:"generation_intent_v1",strict:true,schema}})};
+    const request: any = {input:{selectionPolicy:"capability_v1"},generationConfig:{...(editorial ? {editorialIntentVersion:1} : {}),generationStrategyVersion:2,model,configurationHash:expectation.configurationHash,structuredOutputMode:"text_schema"}};
+    const op: any = {operationKey:"prepare:intent",expectation};
+    const recovered = {id:"known-receipt",model,messages,completion:'{"captured":"provider result"}'};
+    expect(validateRecoveredPreparation(request,op,recovered).__preparationReceipt.expectation).toEqual(expectation);
+    expect(() => validateRecoveredPreparation({...request,input:{}},op,recovered)).toThrow("Recovered preparation schema mismatch");
+  });
   it.each(["current", "historical"])("recovers an intent using its %s pinned schema without reinterpretation", version => {
     const intentSchema = version === "historical"
       ? generationIntentLegacySchema.extend({ requirements: generationIntentLegacySchema.shape.requirements.element.omit({ kind: true }).array().max(50) })

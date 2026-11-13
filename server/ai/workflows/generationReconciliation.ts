@@ -1,4 +1,4 @@
-import { compactGenerationIntentSchema, legacyAutomaticGenerationIntentSchema } from "@shared/compactGenerationIntent";
+import { capabilityGenerationIntentSchema, compactGenerationIntentSchema, legacyAutomaticGenerationIntentSchema } from "@shared/compactGenerationIntent";
 import { resolveGenerationTaskModel } from "../generationModel";
 import { arsenalHash } from "@shared/arsenalContent";
 import { ENV } from "../../_core/env";
@@ -37,7 +37,7 @@ export function validateRecoveredPreparation(record: RequestRecord, operation: G
       !recovered.completion.trim() || recovered.completion.length > 500_000)
     throw new Error("Recovered preparation identity mismatch");
   const schemas = operation.operationKey === "prepare:intent"
-    ? record.generationConfig.taskRouting ? [compactGenerationIntentSchema, legacyAutomaticGenerationIntentSchema] : record.generationConfig.editorialIntentVersion === 1
+    ? record.input?.selectionPolicy === "capability_v1" ? [!record.generationConfig.taskRouting && record.generationConfig.editorialIntentVersion === 1 ? capabilityGenerationIntentSchema.required({ editorial: true }) : capabilityGenerationIntentSchema] : record.generationConfig.taskRouting ? [compactGenerationIntentSchema, legacyAutomaticGenerationIntentSchema] : record.generationConfig.editorialIntentVersion === 1
       ? [generationEditorialIntentSchema]
       : [
           generationIntentLegacySchema,

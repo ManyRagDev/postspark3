@@ -126,6 +126,8 @@ function filterByTime(generations: any[], timeFilter: TimeFilter): any[] {
 
 export default function History() {
   const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
+  const [restoring, setRestoring] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -162,13 +164,11 @@ export default function History() {
   const cancelledCount = generations?.filter((g) => g.status === "cancelled").length || 0;
   const failedCount = generations?.filter((g) => g.status === "failed").length || 0;
 
-  const handleRestore = async (generation: any) => {
-    if (!generation.output_snapshot) {
-      toast.error("Esta geração não possui dados para restaurar.");
-      return;
-    }
-
+  const handleRestore = async (summary: { id: string }) => {
+    if (restoring) return;
+    setRestoring(summary.id);
     try {
+      const generation = await utils.post.getGeneration.fetch({ id: summary.id });
       // Parse output_snapshot to get variations
       const outputData =
         typeof generation.output_snapshot === "string"
@@ -203,6 +203,8 @@ export default function History() {
     } catch (error) {
       console.error("[History] Failed to restore generation:", error);
       toast.error("Falha ao restaurar geração.");
+    } finally {
+      setRestoring(null);
     }
   };
 
@@ -311,11 +313,7 @@ export default function History() {
         ) : (
           <div className="space-y-3">
             {filteredGenerations.map((generation) => {
-              const outputData =
-                typeof generation.output_snapshot === "string"
-                  ? JSON.parse(generation.output_snapshot)
-                  : generation.output_snapshot;
-              const variationCount = (Array.isArray(outputData) ? outputData : outputData?.variations)?.filter?.(Boolean).length || 0;
+              const variationCount = generation.variation_count;
 
               return (
                 <div
@@ -393,6 +391,7 @@ export default function History() {
                     {/* Actions */}
                     {variationCount > 0 && (
                       <button
+                        disabled={restoring !== null}
                         onClick={() => handleRestore(generation)}
                         className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium shrink-0"
                       >

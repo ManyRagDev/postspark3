@@ -9,7 +9,7 @@ import { proposalDeliverySchema } from "../shared/generationContracts";
 import { inspectDesignElection } from "./designElectionEvidence";
 import { inspectModernReviewEvidence, effectiveEvidenceProposalId, effectiveEvidenceOperationKey } from "./modernGenerationReviewEvidence";
 import { generationModelConfigSchema, generationUsesPlanning } from "../shared/generationModel";
-import { DELIVERY_RECOVERY_KEY } from "../shared/generationPlan";
+import { deliveryRecoveryReadKeys } from "../shared/generationPlan";
 import { createHash } from "node:crypto";
 import { reviewExecutionConfigV1Schema, reviewDurableContextV1Schema } from "../shared/proposalReview";
 import {
@@ -123,11 +123,14 @@ export function inspectGenerationEvidence(input: GenerationEvidenceInput) {
       ),
       scope
     );
-    const recoveryKey = `${proposal.proposalId}:${DELIVERY_RECOVERY_KEY}`;
-    const recovered = row(operationByKey.get(recoveryKey)?.result);
-    const reusedCopy = Boolean(row(prepared.planning).deliveryReserves && proposal.attempt?.index === 1 && completed(recoveryKey)
+    const attemptIndex = proposal.attempt?.index ?? 0;
+    const recoveryKey = deliveryRecoveryReadKeys(attemptIndex).map(key => `${proposal.proposalId}:${key}`).find(key => operationByKey.has(key));
+    const recovered = row(recoveryKey ? operationByKey.get(recoveryKey)?.result : undefined);
+    const reusedCopy = Boolean(row(prepared.planning).deliveryReserves && recoveryKey && completed(recoveryKey)
       && ["reuse_text", "repair_text"].includes(String(recovered.mode)) && recovered.copy);
-    check("copy_provider_result_persisted", providerLinked(`${reusedCopy ? proposal.proposalId : effectiveEvidenceProposalId(proposal)}:copy`), scope);
+    const priorCopyKey = Array.from({ length: attemptIndex }, (_, index) => `${proposal.proposalId}${index ? `-fb${index}` : ""}:copy`)
+      .reverse().find(key => operationByKey.has(key));
+    check("copy_provider_result_persisted", providerLinked(reusedCopy ? priorCopyKey ?? `${proposal.proposalId}:copy` : `${effectiveEvidenceProposalId(proposal)}:copy`), scope);
     for (const review of proposal.reviews ?? [])
       check(
         "review_provider_result_persisted",

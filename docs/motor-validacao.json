@@ -1,0 +1,621 @@
+{
+  "scope": "Validacao local; nao e aceite de producao. Nenhuma instalacao ou chamada paga.",
+  "baseGit": "103b3f5f71048e824095d84cce8efa7f03fd5ac3",
+  "browser": {
+    "scope": "Real React/Konva/Chromium; simulated API, Auth, billing, provider and persistence. No remote calls.",
+    "calls": [
+      {
+        "path": "brandProjects.list",
+        "bytes": 4
+      },
+      {
+        "path": "generation.capabilities",
+        "bytes": 4
+      },
+      {
+        "path": "designCatalog.generationReadiness",
+        "bytes": 4
+      },
+      {
+        "path": "auth.me",
+        "bytes": 4
+      },
+      {
+        "path": "billing.getProfile",
+        "bytes": 4
+      },
+      {
+        "path": "post.listSummary",
+        "bytes": 4
+      },
+      {
+        "path": "generation.capabilities",
+        "bytes": 4
+      },
+      {
+        "path": "generation.start",
+        "bytes": 656
+      },
+      {
+        "path": "billing.getProfile",
+        "bytes": 4
+      },
+      {
+        "path": "generation.get",
+        "bytes": 52
+      },
+      {
+        "path": "generation.progress",
+        "bytes": 52
+      },
+      {
+        "path": "generation.get",
+        "bytes": 52
+      },
+      {
+        "path": "billing.getProfile",
+        "bytes": 4
+      },
+      {
+        "path": "generationTelemetry.record",
+        "bytes": 684
+      },
+      {
+        "path": "post.save",
+        "bytes": 40398
+      },
+      {
+        "path": "post.listSummary",
+        "bytes": 4
+      },
+      {
+        "path": "billing.getProfile",
+        "bytes": 4
+      },
+      {
+        "path": "generationTelemetry.record",
+        "bytes": 860
+      },
+      {
+        "path": "post.listSummary",
+        "bytes": 23
+      },
+      {
+        "path": "post.get",
+        "bytes": 8
+      },
+      {
+        "path": "post.get",
+        "bytes": 8
+      },
+      {
+        "path": "brandProjects.list",
+        "bytes": 4
+      },
+      {
+        "path": "generation.capabilities",
+        "bytes": 4
+      },
+      {
+        "path": "generationTelemetry.record",
+        "bytes": 647
+      }
+    ],
+    "events": [
+      {
+        "eventId": "f718d7a8-b9bd-482e-b9a1-e74083fb752e",
+        "exposureId": "e523bb9e-2fe2-4718-be47-16692974c2a9",
+        "requestId": "00000000-0000-4000-8000-000000000002",
+        "proposalId": "proposal-0",
+        "revision": 1,
+        "kind": "exposure",
+        "position": 0
+      },
+      {
+        "eventId": "8dbe6200-9eb5-4fd8-922f-e097be73fe9a",
+        "exposureId": "e523bb9e-2fe2-4718-be47-16692974c2a9",
+        "requestId": "00000000-0000-4000-8000-000000000002",
+        "proposalId": "proposal-1",
+        "revision": 1,
+        "kind": "exposure",
+        "position": 1
+      },
+      {
+        "eventId": "294f86e9-0422-40cd-9be3-b68586a7f68b",
+        "exposureId": "e523bb9e-2fe2-4718-be47-16692974c2a9",
+        "requestId": "00000000-0000-4000-8000-000000000002",
+        "proposalId": "proposal-2",
+        "revision": 1,
+        "kind": "exposure",
+        "position": 2
+      },
+      {
+        "eventId": "da0525e2-f6df-4c15-ae53-553c62a6f0ff",
+        "exposureId": "e523bb9e-2fe2-4718-be47-16692974c2a9",
+        "requestId": "00000000-0000-4000-8000-000000000002",
+        "proposalId": "proposal-1",
+        "revision": 1,
+        "kind": "choice"
+      },
+      {
+        "eventId": "de19dca5-a782-45f1-a669-cf1d705f014d",
+        "exposureId": "e523bb9e-2fe2-4718-be47-16692974c2a9",
+        "requestId": "00000000-0000-4000-8000-000000000002",
+        "proposalId": "proposal-1",
+        "revision": 1,
+        "kind": "edit",
+        "changes": 2
+      },
+      {
+        "eventId": "0ca6d456-1ea0-4579-b392-98f0e0bac256",
+        "exposureId": "e523bb9e-2fe2-4718-be47-16692974c2a9",
+        "requestId": "00000000-0000-4000-8000-000000000002",
+        "proposalId": "proposal-1",
+        "revision": 1,
+        "kind": "export_png"
+      },
+      {
+        "eventId": "a5f51185-0142-4cb1-b6d7-65037ea4c7b1",
+        "exposureId": "e523bb9e-2fe2-4718-be47-16692974c2a9",
+        "requestId": "00000000-0000-4000-8000-000000000002",
+        "proposalId": "proposal-1",
+        "revision": 1,
+        "kind": "save"
+      },
+      {
+        "eventId": "766a055f-151e-4e1c-90f4-bf3b488fcd6d",
+        "exposureId": "845dcf16-be8e-405b-a5f0-f5d89d5efc07",
+        "requestId": "00000000-0000-4000-8000-000000000002",
+        "proposalId": "proposal-1",
+        "revision": 1,
+        "kind": "reopen"
+      },
+      {
+        "eventId": "de6837c4-d982-403b-b673-3cebb7fb26ec",
+        "exposureId": "845dcf16-be8e-405b-a5f0-f5d89d5efc07",
+        "requestId": "00000000-0000-4000-8000-000000000002",
+        "proposalId": "proposal-1",
+        "revision": 1,
+        "kind": "export_png"
+      },
+      {
+        "eventId": "01d2b01e-3faf-4b18-91cb-a1460ef86af7",
+        "exposureId": "845dcf16-be8e-405b-a5f0-f5d89d5efc07",
+        "requestId": "00000000-0000-4000-8000-000000000002",
+        "proposalId": "proposal-1",
+        "revision": 1,
+        "kind": "export_zip"
+      }
+    ],
+    "errors": [],
+    "selectedProposal": "proposal-1",
+    "saveReopenModelEqual": true,
+    "exportBeforeAfterByteIdentical": true,
+    "pngDimensions": [
+      3840,
+      3840
+    ],
+    "idleWindowMs": 6500
+  },
+  "pending": [
+    "Publicacao e disponibilidade do catalogo identificado no destino",
+    "Servicos reais: Auth, Storage, billing, listener, provedor e persistencia",
+    "Comparacao editorial cega com chamadas pagas identificadas",
+    "Uma hora ociosa fisica e janela controlada de 24 horas",
+    "Reconciliacao de pedidos/reservas na origem e destino confirmado",
+    "Corrigir e verificar defeitos visuais das amostras e cobertura do auditor antes de ativacao"
+  ],
+  "checks": {
+    "typescript": "passed",
+    "motor": {
+      "files": 24,
+      "tests": 171,
+      "network": "blocked"
+    },
+    "egress": {
+      "tests": 113
+    },
+    "localDemand": {
+      "tests": 278,
+      "harnessChecks": 2,
+      "network": "blocked"
+    },
+    "builds": [
+      "vite frontend",
+      "esbuild API",
+      "esbuild renderer"
+    ],
+    "browser": "passed; real React/Konva/Chromium with simulated services",
+    "gitDiffCheck": "passed"
+  },
+  "historicalSelection": {
+    "source": {
+      "path": "/home/emanuel/Documentos/Projetos linux/PostSpark 3/.postspark-local/catalog/2e1a4f61b5f5566e40b3a84a1a4df02a5e58cbab07c66cfc89217bf36b237e11-v1-4.json",
+      "fileSha256": "ef22ff18b3cb5e6b5155aff539a32f483fe1b6f77d5d199c4350246bd7e521a6",
+      "revision": "4",
+      "declaredSnapshotHash": "490895778bba6720f79da3fd92527be4eb9544045d61cbf12ca3112895df0fc7",
+      "computedSnapshotHash": "490895778bba6720f79da3fd92527be4eb9544045d61cbf12ca3112895df0fc7",
+      "cards": 428
+    },
+    "acervo82": {
+      "registrySha256": "529d912eadbad6dc470f7d5ddfb3cf4a426b444221401ed1fa2d6c2471fb1876",
+      "entries": 82,
+      "matchingDefinitions": 0,
+      "diagnosisReproduced": false,
+      "limitation": "This historical snapshot has no matching IDs/hashes from the current 82-design registry; its original diagnosis cannot be reproduced from this source."
+    },
+    "methodology": {
+      "corpusHash": "c255adb7d6f03e0b557b85085398ebb96f991585dbc05e0ac82b70dc4c14413a",
+      "cases": 96,
+      "scoreSource": "constant 3/4, confidence=1 deterministic test fixture; not provider or human evaluation",
+      "paidCalls": 0,
+      "scope": "Real profile projection, eligibility, three-slot planning and structural validation. No generated copy, physical render, blind adequacy comparison, storage, auth or billing are claimed."
+    },
+    "profiles": [
+      {
+        "policy": "legacy",
+        "candidates": 25,
+        "uniqueProfilesWithoutFamily": 3,
+        "repeatedProfiles": 22,
+        "profileBytes": 4469,
+        "profileHash": "de6f8761fa65fad8903117bd0c20fd78d8dea0725788f2a819316928a3470ae8",
+        "transport": {
+          "batches": 1,
+          "requestBytes": [
+            21112
+          ],
+          "totalRequestBytes": 21112,
+          "criteriaPerQuestion": true,
+          "paidCalls": 0
+        }
+      },
+      {
+        "policy": "capability_v1",
+        "candidates": 25,
+        "uniqueProfilesWithoutFamily": 18,
+        "repeatedProfiles": 7,
+        "profileBytes": 37206,
+        "profileHash": "862b03cfefb498dd195112239acf70d9edc29321db826fbf09f9bc24736bde8b",
+        "transport": {
+          "batches": 1,
+          "requestBytes": [
+            55829
+          ],
+          "totalRequestBytes": 55829,
+          "criteriaPerQuestion": true,
+          "paidCalls": 0
+        }
+      }
+    ],
+    "summary": [
+      {
+        "policy": "legacy",
+        "cases": 96,
+        "threePlans": 46,
+        "structuralViolations": 0,
+        "meanDurationMs": 4.872865479166674
+      },
+      {
+        "policy": "capability_v1",
+        "cases": 96,
+        "threePlans": 46,
+        "structuralViolations": 0,
+        "meanDurationMs": 4.6180951354166595
+      }
+    ]
+  },
+  "selection": {
+    "source": {
+      "path": "/home/emanuel/Documentos/Projetos linux/PostSpark 3/artifacts/selection-motor/acervo82-build08-snapshot.json",
+      "fileSha256": "b544c7b043eaff12ff45af779385bf3432ddb1e33820439965e3e2426542757c",
+      "revision": "acervo82-local-3-build08",
+      "declaredSnapshotHash": "5617a3b9c2d21c46c7808d36cf7a9a129808da2c6be09c100fe199406ed37c98",
+      "computedSnapshotHash": "5617a3b9c2d21c46c7808d36cf7a9a129808da2c6be09c100fe199406ed37c98",
+      "cards": 170
+    },
+    "acervo82": {
+      "registrySha256": "529d912eadbad6dc470f7d5ddfb3cf4a426b444221401ed1fa2d6c2471fb1876",
+      "entries": 82,
+      "matchingDefinitions": 170,
+      "diagnosisReproduced": true,
+      "limitation": "Only exact ID/hash matches count as evidence for the current registry."
+    },
+    "methodology": {
+      "corpusHash": "c255adb7d6f03e0b557b85085398ebb96f991585dbc05e0ac82b70dc4c14413a",
+      "cases": 96,
+      "scoreSource": "constant 3/4, confidence=1 deterministic test fixture; not provider or human evaluation",
+      "paidCalls": 0,
+      "scope": "Real profile projection, eligibility, three-slot planning and structural validation. No generated copy, physical render, blind adequacy comparison, storage, auth or billing are claimed."
+    },
+    "profiles": [
+      {
+        "policy": "legacy",
+        "candidates": 82,
+        "uniqueProfilesWithoutFamily": 82,
+        "repeatedProfiles": 0,
+        "profileBytes": 23708,
+        "profileHash": "f16ab25256427aaea480e6a245338feb4fcdbe5475506d2fcf111db5c528edc9",
+        "transport": {
+          "batches": 2,
+          "requestBytes": [
+            63966,
+            12933
+          ],
+          "totalRequestBytes": 76899,
+          "criteriaPerQuestion": true,
+          "paidCalls": 0
+        }
+      },
+      {
+        "policy": "capability_v1",
+        "candidates": 82,
+        "uniqueProfilesWithoutFamily": 82,
+        "repeatedProfiles": 0,
+        "profileBytes": 73482,
+        "profileHash": "45ccc839d785d05407c08c0ab817fb16ab0f7cbf032ae54f7209cba83e913082",
+        "transport": {
+          "batches": 3,
+          "requestBytes": [
+            63929,
+            63727,
+            6051
+          ],
+          "totalRequestBytes": 133707,
+          "criteriaPerQuestion": true,
+          "paidCalls": 0
+        }
+      }
+    ],
+    "summary": [
+      {
+        "policy": "legacy",
+        "cases": 96,
+        "threePlans": 20,
+        "structuralViolations": 0,
+        "meanDurationMs": 4.328445718750042
+      },
+      {
+        "policy": "capability_v1",
+        "cases": 96,
+        "threePlans": 20,
+        "structuralViolations": 0,
+        "meanDurationMs": 3.971487135416704
+      }
+    ]
+  },
+  "selectionDiagnosis": {
+    "source": "artifacts/design-audit-20261111/cards-82-completos.json",
+    "sourceSha256": "aa81dfd59c94e31ea66d9b6df392c938ce3ab2bdc887033a641ad1a5189c9d77",
+    "rootCount": 82,
+    "uniqueAuthoredAxes": 23,
+    "repeatedAuthoredAxes": 59,
+    "densityMapping": {
+      "contida": "quiet",
+      "equilibrada": "balanced",
+      "intensa": "expressive"
+    },
+    "densityDisagreements": [
+      "acervo82-reference-03",
+      "acervo82-reference-04",
+      "acervo82-reference-05",
+      "acervo82-reference-07",
+      "acervo82-reference-08",
+      "acervo82-reference-10",
+      "acervo82-reference-12",
+      "acervo82-reference-13",
+      "acervo82-reference-14",
+      "acervo82-reference-19",
+      "acervo82-reference-20",
+      "acervo82-reference-21",
+      "acervo82-reference-24",
+      "acervo82-r9-02",
+      "acervo82-r9-03",
+      "acervo82-r9-06",
+      "acervo82-r9-08",
+      "acervo82-r9-09",
+      "acervo82-r9-10",
+      "acervo82-r9-11",
+      "acervo82-r9-15",
+      "acervo82-r9-16",
+      "acervo82-r9-17",
+      "acervo82-r9-18",
+      "acervo82-r9-19",
+      "acervo82-r9-22",
+      "acervo82-r9-23",
+      "acervo82-r9-24",
+      "acervo82-r9-26",
+      "acervo82-r9-29",
+      "acervo82-concept-01",
+      "acervo82-concept-02",
+      "acervo82-concept-04",
+      "acervo82-concept-05",
+      "acervo82-concept-07",
+      "acervo82-concept-08",
+      "acervo82-concept-09",
+      "acervo82-concept-10",
+      "acervo82-concept-11",
+      "acervo82-concept-12",
+      "acervo82-concept-13",
+      "acervo82-concept-14",
+      "acervo82-concept-16",
+      "acervo82-concept-18",
+      "acervo82-concept-19",
+      "acervo82-concept-20",
+      "acervo82-concept-24",
+      "acervo82-concept-26",
+      "acervo82-concept-28"
+    ],
+    "mediaRoleDisagreements": [
+      "acervo82-reference-11",
+      "acervo82-reference-12",
+      "acervo82-reference-15",
+      "acervo82-reference-18",
+      "acervo82-reference-19",
+      "acervo82-reference-23"
+    ],
+    "slotsOmittedByAuthoredImageRole": 8,
+    "rootsWithCoverRole": 26,
+    "staticProfilesWithOnlyStaticAvailability": 82,
+    "roleExplanation": "Profiles were built for static requests. Static-only repertoire availability is correct even when a root card also supports cover; carousel requires matching real child variants, never copying root roles indiscriminately.",
+    "typographySourceDisagreements": [
+      {
+        "family": "acervo82-reference-07",
+        "declaredTypography": "monoespaçada",
+        "sourceFontFamilies": [
+          "Playfair Display SemiBold",
+          "Inter"
+        ]
+      },
+      {
+        "family": "acervo82-reference-15",
+        "declaredTypography": "serifada",
+        "sourceFontFamilies": [
+          "Inter"
+        ]
+      },
+      {
+        "family": "acervo82-reference-20",
+        "declaredTypography": "serifada",
+        "sourceFontFamilies": [
+          "Inter Medium",
+          "Inter"
+        ]
+      },
+      {
+        "family": "acervo82-reference-23",
+        "declaredTypography": "sem serifa",
+        "sourceFontFamilies": [
+          "Playfair Display SemiBold"
+        ]
+      }
+    ],
+    "typographyMethod": "Manual source-family check: REF07 declares monospace but has Playfair/Inter; REF15 and REF20 declare serif but have Inter; REF23 declares sans but has only Playfair. Mixed-family cards are not classified as contradictions solely for containing another family type."
+  },
+  "selectionRender": {
+    "caseId": "4x5-1-short-forbidden",
+    "copySource": "Curated native samples from immutable build08 packages; no new provider copy or semantic adequacy is claimed.",
+    "snapshotHash": "5617a3b9c2d21c46c7808d36cf7a9a129808da2c6be09c100fe199406ed37c98",
+    "networkBlocked": true,
+    "paidCalls": 0,
+    "rows": [
+      {
+        "slot": 0,
+        "family": "acervo82-concept-05",
+        "definitionId": "20c8fce4-314f-4b69-8ba1-b91ef1e9d3b5",
+        "definitionHash": "f1bebd2e1231037b42a720eae184fbaa61141ecb37e2b6615969fa547bd4da09",
+        "readiness": {
+          "blocking": [],
+          "diagnostics": []
+        },
+        "reopenedGeometryEqual": true,
+        "path": "artifacts/selection-motor/acervo82-selected-0.png",
+        "sha256": "97d3a228a396680c987f8a5533decbab09ee600db421aaba4469eba2e8e1dee6",
+        "bytes": 171429,
+        "originalPath": "/home/emanuel/.codex/worktrees/acervo-82/PostSpark 3/artifacts/acervo82/full/build-08/renders/acervo82-concept-05.png",
+        "originalSha256": "97d3a228a396680c987f8a5533decbab09ee600db421aaba4469eba2e8e1dee6",
+        "matchesFrozenNativeRender": true,
+        "visualApproval": "not_approved",
+        "visualFindings": [
+          "Both pill labels wrap outside their colored surfaces."
+        ]
+      },
+      {
+        "slot": 1,
+        "family": "acervo82-concept-06",
+        "definitionId": "3b1232a5-8db5-4707-8b9d-3229d016121c",
+        "definitionHash": "573a11f1b634492eed82cdf9ee98929b7d5a4e38a8c5a7d04622bc4d2b18e9d6",
+        "readiness": {
+          "blocking": [],
+          "diagnostics": []
+        },
+        "reopenedGeometryEqual": true,
+        "path": "artifacts/selection-motor/acervo82-selected-1.png",
+        "sha256": "a0512b1f87f9a78f80d483ebb706a62242c7599bd3c136c370b4ed71b19165a8",
+        "bytes": 147692,
+        "originalPath": "/home/emanuel/.codex/worktrees/acervo-82/PostSpark 3/artifacts/acervo82/full/build-08/renders/acervo82-concept-06.png",
+        "originalSha256": "a0512b1f87f9a78f80d483ebb706a62242c7599bd3c136c370b4ed71b19165a8",
+        "matchesFrozenNativeRender": true,
+        "visualApproval": "not_approved",
+        "visualFindings": [
+          "A light rectangle covers part of the headline.",
+          "The SWIPE arrow label wraps."
+        ]
+      },
+      {
+        "slot": 2,
+        "family": "acervo82-r9-11",
+        "definitionId": "a6109727-b9a3-45a8-83f2-4bf87c782426",
+        "definitionHash": "3ca839c210cca396439f58b64b357342d19b414be95fb08473269224058e02dd",
+        "readiness": {
+          "blocking": [],
+          "diagnostics": []
+        },
+        "reopenedGeometryEqual": true,
+        "path": "artifacts/selection-motor/acervo82-selected-2.png",
+        "sha256": "3926ccf5a7f7adf2b5c6f38e364d0f56ba415dfa3316b7253a76fe55087bbd2b",
+        "bytes": 107711,
+        "originalPath": "/home/emanuel/.codex/worktrees/acervo-82/PostSpark 3/artifacts/acervo82/full/build-08/renders/acervo82-r9-11.png",
+        "originalSha256": "3926ccf5a7f7adf2b5c6f38e364d0f56ba415dfa3316b7253a76fe55087bbd2b",
+        "matchesFrozenNativeRender": true,
+        "visualApproval": "not_approved",
+        "visualFindings": [
+          "The page label arrow wraps to another line."
+        ]
+      }
+    ],
+    "limitation": "All three outputs are byte-identical to frozen build08 native renders. Manual visual review found pre-existing native sample defects despite empty readiness findings. No new generated-copy quality or visual approval is claimed.",
+    "centralVisualReview": {
+      "approved": false,
+      "finding": "Defeitos preexistentes nas amostras nativas: rotulos fora dos fundos em CON05, texto encoberto em CON06, quebra da seta em R9-11; readiness automatica vazia nao comprova aprovacao visual. PNGs iguais aos originais, sem inferencia ou avaliacao semantica."
+    }
+  },
+  "schemaCompatibilityFix": {
+    "migration0064Sha256": "6627da64f07b9bed409172d5974fd743f4bad900d7d1ff2b47c2f21b992aa0b5",
+    "migration0065Sha256": "880fe8ca2388617630d132411645c06ff7a6982072d6c5b61729ea23afd7363a",
+    "cause": "history RPC referenced createdAt; baseline0009/dump use created_at; fixtures omitted0009",
+    "reproducedBeforeFix": true,
+    "focusedPassed": 14,
+    "regressionFiles": 20,
+    "regressionPassed": 247,
+    "regressionSkipped": 1,
+    "skipReason": "POSTSPARK_REAL_RENDER_TEST not enabled",
+    "typescript": "passed",
+    "network": "blocked",
+    "remoteApplied": false
+  },
+  "vpsIntegration20261112": {
+    "scope": "Local only; no deploy, migration, remote import, worker activation or paid calls.",
+    "tests": {
+      "passed": 128,
+      "files": 16,
+      "log": "/tmp/postspark-vps-integration-final-tests.log"
+    },
+    "typescript": "passed",
+    "builds": {
+      "vite": "/tmp/postspark-email-auth-build",
+      "api": "/tmp/postspark-vps-api-check.mjs",
+      "worker": "/tmp/postspark-vps-worker-check.mjs"
+    },
+    "authBrowser": {
+      "status": "blocked",
+      "applicationReached": false,
+      "reason": "Playwright Chromium absent; alternative browser crashed before App",
+      "report": "/tmp/postspark-auth-login/report.json"
+    },
+    "catalog": {
+      "dryRun": "passed",
+      "families": 82,
+      "definitions": 170,
+      "assets": 53,
+      "decodedAssets": 53,
+      "sourceHash": "5617a3b9c2d21c46c7808d36cf7a9a129808da2c6be09c100fe199406ed37c98",
+      "predictedDatabaseHash": "c523b9fc1124bc1fc7a3c1108d261cd6b28f253ffcf59bde7f43300e6515464b",
+      "editorialFile": "artifacts/selection-motor/editorial-5617a3b9c2d2.json",
+      "editorialCanonicalHash": "20f0c8fe8f709bc7dce5f2a2486b14f1b081aa0b031c493be21e0776591f50a7",
+      "editorialFileSha256": "da37e899b24f9e23248f464eb0c5d59c05ba656c7355cb41a026fb390566d5a7",
+      "sqlJourney": "PGlite staging import twice -> restricted trial admission -> external claim; global head/index/status/grants preserved. Storage/Auth API simulated; explicit DEV fixture."
+    },
+    "migration0070Sha256": "54dae7a3c8c867c35008b801f2186530ad33c6d1f3fcd20f0542107100e4955e",
+    "contract": "docs/contrato-integracao-supabase-vps.md"
+  }
+}

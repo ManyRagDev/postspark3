@@ -1,11 +1,12 @@
+import { selectionPolicyForNewRequest } from "@shared/selectionPolicy";
 import { getBrandProjectById } from "../db";
 import { freezeGenerationProject } from "@shared/projectEditorial";
 import { reconcileGenerationReviews } from "../ai/workflows/generationReconciliation";
 import {arsenalHash} from "@shared/arsenalContent";
 import {readCatalogManifest,withCatalogRevision} from "../designCatalog/versionedCatalog";
 import {localCatalogRevisionOverride} from "../designCatalog/localCatalogOverride";
+import { assertTrialCatalogEditorialReady, trialCatalogRevisionForUser } from "../designCatalog/trialCatalog";
 import {enqueueLocal,localExecutorScope} from "../ai/workflows/localDemandSupervisor";
-import { resolveCompleteDesignOffers } from "@shared/completeDesignOffers";
 import { ENV } from "../_core/env";
 import { GenerationFailureError } from "../_core/generationError";
 import { toFailureMetadata } from "@shared/generationFailure";
@@ -72,15 +73,20 @@ export const generationRouter = router({
     }
     try {
       const store = createGenerationStore();
-      const [available, cards] = await Promise.all([
-        store.isAvailable(),
-        retrieveCompleteDesignCards({aspectRatio:"4:5",postMode:"carousel",slideCount:3,text:"",experimental:ctx.user.role === "admin"}),
+      const trialRevision = trialCatalogRevisionForUser(ctx.user);
+      if (trialRevision) await assertTrialCatalogEditorialReady(trialRevision);
+      const [available, manifest] = await Promise.all([
+        store.isAvailable().catch(() => false),
+        readCatalogManifest(trialRevision),
       ]);
-      const staticOfferCount=resolveCompleteDesignOffers(cards,{slideCount:1,contentMode:"compose"}).length;
-      const carouselOfferCount=resolveCompleteDesignOffers(cards,{slideCount:3,contentMode:"compose"}).length;
+      // Publication owns the advisory counts (including V3 repertoires).
+      // start still checks the exact request against this pinned revision.
+      const scope = ctx.user.role === "admin" ? "experimental" : "approved";
+      const { staticOfferCount, carouselOfferCount } = manifest.summary[scope];
       const catalogCount=staticOfferCount+carouselOfferCount;
       return {
         ...supported,ownerId: ctx.user.id,
+        ...(trialRevision ? { catalogRevision: manifest.revision, catalogScope: scope, catalogProject: arsenalHash(ENV.supabaseUrl) } : {}),
         selectable: true,
         enabled: available && catalogCount > 0,
         catalogCount,staticOfferCount,carouselOfferCount,
@@ -97,7 +103,7 @@ export const generationRouter = router({
         selectable: true,
         enabled: false as const,
         contractVersion: 6 as const,
-        reason: "durable_worker_required",
+        reason: "catalog_publication_required",
       };
     }
   }),
@@ -116,6 +122,9 @@ export const generationRouter = router({
     })
     .input(orchestratedGenerationInputSchema)
     .mutation(async ({ ctx, input }) => {
+      // Policy is deployment configuration, never a client-controlled identity.
+      const { selectionPolicy: _clientPolicy, ...requestInput } = input;
+      input = requestInput;
       console.info(
         `[trpc:generation.start] 📩 Requisição recebida | user=${ctx.user.id.slice(0, 8)}... | modo=${input.postMode} | ratio=${input.aspectRatio ?? "auto"} | rota=${input.postMode === "carousel" ? "carousel_generation" : "static_generation"} | modelo_configurado=${resolveGenerationModelConfig(input).model}`
       );
@@ -204,6 +213,9 @@ export const generationRouter = router({
       if (input.generationParentRequestId && !parent)
         throw new TRPCError({ code: "NOT_FOUND", message: "A geração de origem não foi encontrada nesta conta." });
       const generationConfig = parent?.generationConfig ?? resolveGenerationModelConfig(input);
+      const selectionPolicy = parent ? (parent.input.selectionPolicy ?? "legacy")
+        : selectionPolicyForNewRequest(process.env.POSTSPARK_SELECTION_POLICY);
+      const policyInput = { ...input, selectionPolicy };
       if (generationConfig.preparationBudget && store.isPreparationAvailable && !(await store.isPreparationAvailable()))
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A preparação de geração está em atualização. Nenhum Spark foi reservado." });
       if (generationConfig.taskRouting && (!store.isTaskRoutingAvailable || !(await store.isTaskRoutingAvailable())))
@@ -212,7 +224,14 @@ export const generationRouter = router({
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "A revisão de geração está em atualização. Nenhum Spark foi reservado." });
       if (parent?.generationConfig && input.generationModel && input.generationModel !== parent.generationConfig.choice)
         throw new TRPCError({ code: "BAD_REQUEST", message: "Gerar mais mantém o modelo do pedido anterior. Inicie uma nova criação para trocar." });
-      const catalogOverride=localCatalogRevisionOverride();
+      const trialRevision = trialCatalogRevisionForUser(ctx.user);
+      if (trialRevision && !input.includeDraftDesigns)
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "O catálogo de ensaio requer a opção de composições experimentais." });
+      if (trialRevision) {
+        try { await assertTrialCatalogEditorialReady(trialRevision); }
+        catch (cause) { throw new TRPCError({ code: "PRECONDITION_FAILED", message: "O catálogo editorial do ensaio ainda precisa ser publicado. Nenhum Spark foi reservado.", cause }); }
+      }
+      const catalogOverride=trialRevision ?? localCatalogRevisionOverride();
       const manifest=await readCatalogManifest(catalogOverride);
       const executorScope=ENV.localDemandEnabled?await localExecutorScope():undefined;
       // General capability counts are advisory. Admission checks the exact same
@@ -234,7 +253,7 @@ export const generationRouter = router({
             : [],
         });
         const cards=await (manifest?withCatalogRevision(manifest.revision,loadCards):loadCards());
-        if (!eligibleCompleteDesignCardsForRequest(cards, input, generationConfig.generationStrategyVersion, Boolean(generationConfig.taskRouting)).length)
+        if (!eligibleCompleteDesignCardsForRequest(cards, policyInput, generationConfig.generationStrategyVersion, Boolean(generationConfig.taskRouting)).length)
           throw new Error("complete_design_catalog_empty");
       } catch (error) {
         throw new TRPCError({
@@ -245,7 +264,7 @@ export const generationRouter = router({
         });
       }
       const inputHash = requestInputHash(input);
-      const storedInput: typeof input & { pinnedDesign?: Awaited<ReturnType<typeof pinFixedDesign>> } = structuredClone(input);
+      const storedInput: typeof input & { pinnedDesign?: Awaited<ReturnType<typeof pinFixedDesign>> } = structuredClone(policyInput);
       if (input.fixedDesign) {
         const previous = parent?.input.pinnedDesign;
         if (parent?.input.fixedDesign && previous &&
@@ -289,7 +308,8 @@ export const generationRouter = router({
         const admitted = await store.admission({
           generationConfig,
           executorScope,catalogRevision:manifest?.revision,
-          stagedCatalog: Boolean(catalogOverride),
+          stagedCatalog: Boolean(catalogOverride) && !trialRevision,
+          trialCatalog: Boolean(trialRevision),
           ownerId: ctx.user.id,
           idempotencyKey: input.idempotencyKey,
           inputHash,
@@ -345,13 +365,18 @@ export const generationRouter = router({
         });
       }
     }),
+  progress: protectedProcedure
+    .input(z.object({ requestId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const progress = await createGenerationStore().progress!(input.requestId, ctx.user.id);
+      if (!progress) throw new TRPCError({ code: "NOT_FOUND", message: "Geração não encontrada." });
+      return progress;
+    }),
   get: protectedProcedure
     .input(z.object({ requestId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const record = await createGenerationStore().get(
-        input.requestId,
-        ctx.user.id
-      );
+      const store = createGenerationStore();
+      const record = await (store.getForClient ?? store.get)(input.requestId, ctx.user.id);
       if (!record)
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -359,6 +384,7 @@ export const generationRouter = router({
         });
       return {
         snapshot: requestSnapshot(record),
+        requestStatus: record.status,
         generationConfig: record.generationConfig,
         errorReason: record.errorReason,
         sourceWarnings:record.prepared?.imageSourceReading?.reading.uncertainties??[],

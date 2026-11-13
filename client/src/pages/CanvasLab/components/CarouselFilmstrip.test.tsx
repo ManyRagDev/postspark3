@@ -37,3 +37,21 @@ describe("CarouselFilmstrip mobile", () => {
     delete (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT;
   });
 });
+
+it("changes slides through the compact controls while a tool remains available", () => {
+  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  const host = document.createElement("div"); document.body.append(host);
+  const root = createRoot(host), select = vi.fn();
+  const props = { compact: true, slides: [{ id: "a", step: "1", headline: "Um", subtext: "" }, { id: "b", step: "2", headline: "Dois", subtext: "" }], currentIndex: 0, onSelectSlide: select, onAddSlide: vi.fn(), onDuplicateSlide: vi.fn(), onRemoveSlide: vi.fn() };
+  try {
+    act(() => root.render(<CarouselFilmstrip {...props} />));
+    expect(host.querySelector<HTMLButtonElement>('[aria-label="Slide anterior"]')!.disabled).toBe(true);
+    act(() => host.querySelector<HTMLButtonElement>('[aria-label="Próximo slide"]')!.click());
+    expect(select).toHaveBeenLastCalledWith(1);
+    act(() => root.render(<CarouselFilmstrip {...props} currentIndex={1} />));
+    expect(host.querySelector<HTMLButtonElement>('[aria-label="Próximo slide"]')!.disabled).toBe(true);
+    const picker = host.querySelector<HTMLSelectElement>('[aria-label="Slide atual"]')!;
+    act(() => { picker.value = "0"; picker.dispatchEvent(new Event("change", { bubbles: true })); });
+    expect(select).toHaveBeenLastCalledWith(0);
+  } finally { act(() => root.unmount()); host.remove(); delete (globalThis as any).IS_REACT_ACT_ENVIRONMENT; }
+});
