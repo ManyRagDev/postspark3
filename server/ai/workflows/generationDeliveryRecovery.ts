@@ -1,8 +1,10 @@
 import { arsenalHash } from "@shared/arsenalContent";
+import { recordDecisionObservation } from "../decisionTrace";
 import { deliveryRecoveryKey, deliveryRecoveryAttempt, type GenerationPlanningReceipt, type ViableGenerationPlan } from "@shared/generationPlan";
 import type { ComponentDefinitionV1 } from "@shared/componentAssembly";
 import { compactComponentCard, componentDefinitionV1Schema } from "@shared/componentAssembly";
 import { meetsGenerationVisualRequirements } from "@shared/generationVisualRequirements";
+import { availablePhotoCount } from "@shared/generationPlan";
 import { designHasPhotographicContent } from "@shared/designSelection";
 import { GenerationFailureError } from "@shared/generationFailure";
 import { fitExistingProposalCopy, readProposalCopy, type CopyResponse, type ProposalExecutionInput, type ProposalGraphDeps } from "./proposalGraph";
@@ -54,6 +56,8 @@ function locallyMaterializable(definitions: ComponentDefinitionV1[], input: Prop
       if (!piece.imageAssetId && (!deferred || !mayGenerate)) return false;
     }
   }
+  if (media?.embeddedMediaOnly && media.required)
+    return definitions.reduce((total, d) => total + availablePhotoCount(compactComponentCard(d), media), 0) >= Math.max(1, media.slotTargets);
   return !media?.required || (mayGenerate && deferredSlots >= Math.max(1, media.slotTargets));
 }
 
@@ -109,13 +113,17 @@ export async function recoverGenerationDelivery(args: {
     const cards = sequence.map(compactComponentCard);
     if (!localPreflight && cards.some(card => !meetsGenerationVisualRequirements(card, planning.visualRequirements))) return;
     const media = input.imageObligation;
-    if (media?.required && cards.reduce((n, card) => n + card.mediaSlots.length, 0) < Math.max(1, media.slotTargets)) return;
-    if (!localPreflight && media?.policy === "forbidden" && cards.some(card => card.mediaSlots.length || designHasPhotographicContent(card))) return;
+    if (media?.required && cards.reduce((n, card) => n + availablePhotoCount(card, media), 0) < Math.max(1, media.slotTargets)) return;
+    if (media?.policy === "forbidden" && cards.some(card => card.mediaSlots.length || designHasPhotographicContent(card))) return;
     loaded.set(reserve.plan.candidateId, sequence);
     return sequence;
   };
   const decisionKey = deliveryRecoveryKey(args.recoveryAttempt ?? 1);
   const decision = await args.operation<Decision | { mode: "unavailable" }>(decisionKey, async () => {
+    const observe = (reserve: Reserve, reason: string) => recordDecisionObservation("recovery_candidate_observed", {
+      version: 1, proposalId: input.proposalId, slot: input.slot, recoveryAttempt: args.recoveryAttempt ?? 1,
+      candidateId: reserve.plan.candidateId, family: reserve.family, componentIds: reserve.plan.pages.map(page => page.componentId), reason,
+    });
     const evidence = localPreflight ? { localPreflightVersion: 1 as const } : {};
     const copy = args.reuseOriginal ? readProposalCopy(await args.readOriginalCopy(), sourceDefinitions, input.reviewExecutionConfig?.version === 5 ? input.reviewExecutionConfig.nativeGlyphProjection : undefined) : undefined;
     const rewriteReserves: Reserve[] = [];
@@ -124,23 +132,26 @@ export async function recoverGenerationDelivery(args: {
     const probeDeadline = AbortSignal.timeout(Math.max(1, Math.min(15_000, Math.floor(remaining / 4))));
     const signal = input.signal ? AbortSignal.any([input.signal, probeDeadline]) : probeDeadline;
     for (const reserve of reserves) {
-      if (!eligible(reserve)) continue;
+      if (!eligible(reserve)) { observe(reserve, "excluded_by_previous_attempt_sequence_or_family"); continue; }
       input.signal?.throwIfAborted();
       if (signal.aborted) break;
       try {
         const definitions = await load(reserve);
-        if (!definitions) continue;
+        if (!definitions) { observe(reserve, "reserve_unavailable_or_ineligible"); continue; }
         rewriteReserves.push(reserve);
         if (!copy) {
-          if (claim(reserve)) return { ...evidence, mode: "write_for_design", plan: reserve.plan };
+          if (claim(reserve)) { observe(reserve, "selected_for_new_copy"); return { ...evidence, mode: "write_for_design", plan: reserve.plan }; }
+          observe(reserve, "family_claim_conflict");
           continue;
         }
         const fitted = await fitExistingProposalCopy({ copy, source: sourceDefinitions, target: definitions, input: { ...input, signal }, deps: args.graphDeps });
-        if (fitted && claim(reserve)) return { ...evidence, mode: "reuse_text", plan: reserve.plan, copy: fitted };
+        if (fitted && claim(reserve)) { observe(reserve, "selected_with_existing_copy"); return { ...evidence, mode: "reuse_text", plan: reserve.plan, copy: fitted }; }
+        observe(reserve, fitted ? "family_claim_conflict" : "existing_copy_does_not_fit");
       } catch (error) {
         input.signal?.throwIfAborted();
         // An unavailable reserve does not invalidate the rest of the pool.
         if (signal.aborted) break;
+        observe(reserve, "reserve_probe_failed");
         console.warn("[generation] Design de reserva indisponível para prova de encaixe", reserve.family, error instanceof Error ? error.name : "unknown");
       }
     }

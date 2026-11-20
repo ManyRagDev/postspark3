@@ -1,4 +1,5 @@
 import { sourceRepresentation } from "./sourceRepresentation";
+import { ENV } from "../../_core/env";
 import { arsenalHash } from "@shared/arsenalContent";
 import { GenerationFailureError } from "@shared/generationFailure";
 import { editorialContextV7 } from "./editorialContextV7";
@@ -68,6 +69,17 @@ export function editorialContextV9(input: Input): EditorialContextV3 {
         `source:${source.id ?? source.origin ?? "reference"}:${source.kind ?? "content"}:${source.purpose ?? "content"}`
       );
   if (input.projectDossier) intern(input.projectDossier, "project_dossier");
+  if (ENV.artDirectionGuidance && input.projectSnapshot?.version === 2 && input.projectSnapshot.visualPreferences) {
+    const vp = input.projectSnapshot.visualPreferences;
+    const visualLines = [
+      vp.personality?.length ? `Estilo visual: ${vp.personality.join(", ")}.` : "",
+      vp.colors?.length ? `Paleta de cores a aplicar: ${vp.colors.join(", ")}.` : "",
+      vp.fonts?.length ? `Tipografia a aplicar: ${vp.fonts.join(", ")}.` : "",
+    ].filter(Boolean);
+    if (visualLines.length) {
+      intern(visualLines.join("\n"), "project_visual_preferences:guidance");
+    }
+  }
   const project = legacy.project
     ? {
         name: intern(legacy.project.name, "project_identity"),

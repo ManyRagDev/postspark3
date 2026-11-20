@@ -136,6 +136,7 @@ export const orchestratedGenerationInputSchema = z
     fixedDesign: z.discriminatedUnion("kind", [
       z.object({ kind: z.literal("showcase"), id: z.string().max(80) }).strict(),
       z.object({ kind: z.literal("project"), id: z.string().uuid() }).strict(),
+      z.object({ kind: z.literal("identity"), id: z.string().uuid() }).strict(),
     ]).optional(),
     projectDossier: z.string().max(24000).optional(),
     projectSnapshot: generationProjectSnapshotSchema.optional(),

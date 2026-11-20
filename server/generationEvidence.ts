@@ -7,6 +7,7 @@ import { executionBriefSchema } from "../shared/generationRequest";
 import { arsenalHash } from "../shared/arsenalContent";
 import { proposalDeliverySchema } from "../shared/generationContracts";
 import { inspectDesignElection } from "./designElectionEvidence";
+import { inspectGenerationDecisionTrace } from "./generationDecisionTrace";
 import { inspectModernReviewEvidence, effectiveEvidenceProposalId, effectiveEvidenceOperationKey } from "./modernGenerationReviewEvidence";
 import { generationModelConfigSchema, generationUsesPlanning } from "../shared/generationModel";
 import { deliveryRecoveryReadKeys } from "../shared/generationPlan";
@@ -399,6 +400,7 @@ export function inspectGenerationEvidence(input: GenerationEvidenceInput) {
     updatedAt: request.updated_at,
     checks,
     designElection,
+    decisionTrace: inspectGenerationDecisionTrace({ request, operations }),
     proposals,
     billing,
     savedPost,

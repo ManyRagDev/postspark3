@@ -1,0 +1,29 @@
+services:
+  image-editor:
+    image: postspark-image-editor:pilot
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: "1000:1000"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 2
+    mem_limit: 4g
+    memswap_limit: 4g
+    pids_limit: 128
+    stop_grace_period: 100s
+    env_file: /etc/postspark/image-editor.env
+    environment:
+      IMAGE_PROCESSOR_HOST: 0.0.0.0
+      IMAGE_PROCESSOR_PORT: "9417"
+      PHOTOCRAFT_BIN: /opt/postspark/photocraft/current/photocraft-cli
+      PHOTOCRAFT_WORK_ROOT: /tmp/image-editor
+    volumes:
+      - /opt/postspark/photocraft:/opt/postspark/photocraft:ro
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=1073741824,mode=1777
+    networks: [image-editor]
+networks:
+  image-editor:
+    name: postspark-image-editor
+    internal: true

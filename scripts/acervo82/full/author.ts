@@ -18,6 +18,8 @@ import {createComponentTextMeasurer} from '../../../server/ai/componentTextMeasu
 import {nativeScene} from './nativeScene';
 import {closeCssDecoration,paintCssDecoration} from './cssDecoration';
 import {authorNativeSemantics} from './semantics';
+import {refineCover,refineCarouselSlide} from './refinements';
+import {restoreReferenceCutouts} from './referenceCutouts';
 import {resolveArsenalGeometry} from '../../../shared/arsenalGeometry';
 import {partitionArsenalReadinessIssues} from '../../../shared/arsenalReadiness';
 import {renderReviewScenes,closeReviewRenderer} from '../../../server/ai/workflows/proposalRenderer';
@@ -42,9 +44,17 @@ const rows:any[]=[];
 const px=(s:any)=>parseFloat(String(s))||0;
 // Fixed labels retain their original line. Body fields and the Risograph
 // headline reflow as one region, so a replacement cannot wrap twice.
-const continuousConceptFields: Readonly<Record<string,readonly number[]>> = {
- 'CON-02':[8], 'CON-05':[7,12], 'CON-08':[9],
- 'CON-17':[6,7,10], 'CON-23':[7],
+const continuousFields: Readonly<Record<string,readonly number[]>> = {
+ 'R9-09':[5], 'CON-02':[8], 'CON-05':[7,12], 'CON-07':[8], 'CON-08':[9], 'CON-13':[21],
+ 'CON-14':[16], 'CON-17':[6,7,10], 'CON-22':[11], 'CON-23':[7,9], 'CON-24':[10], 'CON-25':[11],
+};
+const conceptFieldRoles: Readonly<Record<string,Readonly<Record<number,Unit['role']>>>> = {
+ 'CON-04':{6:'label',7:'label',9:'label',12:'body'},
+ 'CON-07':{6:'eyebrow',8:'body'},
+ 'CON-13':{20:'label',21:'body'},
+ 'CON-22':{6:'label',7:'label',8:'label',9:'headline',11:'body'},
+ 'CON-24':{8:'label',10:'body'},
+ 'CON-25':{8:'label',11:'body'},
 };
 const compactConceptLabels: Readonly<Record<string,readonly number[]>> = {
  'CON-05':[6,11], 'CON-12':[16], 'CON-18':[4], 'CON-21':[2], 'CON-29':[7],
@@ -146,6 +156,7 @@ async function fromHtml(entry:any,g:any){
   const ornament=isStandaloneDirectionalGlyph(block.runs.map((run:any)=>run.text??'').join(''));
   const maxSize=Math.max(...block.runs.map((t:any)=>px(t.style.fontSize)));
   let role:Unit['role']=/^H[1-4]$/.test(block.tag)||(!headlineSeen&&maxSize>=24)?'headline':(maxSize>=14||block.tag==='P'&&block.runs.map((t:any)=>t.text).join('').trim().length>=24)?'body':block.runs.some((t:any)=>/➔|→|DESLIZE|SWIPE|AVANÇAR|PRÓXIMO|ENTRAR|APLICAR|CONHEÇA/i.test(t.text))?'callToAction':'label';
+  role=conceptFieldRoles[entry.code]?.[block.id]??role;
   if(role==='headline'&&!ornament)headlineSeen=true;
   const compactLabel=compactConceptLabels[entry.code]?.includes(block.id);
   const footer=concept&&block.runs.length===1&&!ornament&&/[➔→]/u.test(block.runs[0].text);
@@ -196,7 +207,7 @@ async function fromHtml(entry:any,g:any){
    }x+=t.width;}
    y+=lineHeight;
   }
-  if(continuousConceptFields[entry.code]?.includes(block.id)){
+  if(continuousFields[entry.code]?.includes(block.id)){
    const layer=spec.layers.find(l=>l.fieldId===group);
    if(layer){
     spec.layers=spec.layers.filter(l=>l.fieldId!==group||l===layer);
@@ -207,6 +218,16 @@ async function fromHtml(entry:any,g:any){
     Object.assign(layer,{x:base.x+(portal?0:pl),y:base.y+(portal?0:pt),width,height:heightLimit,text:block.runs.map((run:any)=>run.text).join('').trim().replace(/\s+/g,' '),align});
     if(portal&&block.id===10){layer.x-=30;layer.width+=30;}
    }
+  }
+  if(entry.code==='CON-04'&&block.id===12){
+   const [headline,body,...continuation]=spec.layers.filter(l=>l.fieldId===group);
+   if(!headline||!body)throw Error('CON-04: profile post requires a headline and a body');
+   headline.fieldId=`${group}-headline`;
+   body.text=[body,...continuation].map(layer=>layer.text).join(' ');
+   spec.layers=spec.layers.filter(l=>!continuation.includes(l));
+   visualStyles.delete(body.id);
+   units.push({role:'headline',fields:[headline.fieldId]});
+   headlineSeen=true;
   }
   if(entry.code==='CON-06'&&block.id===10){
    // The highlight is an inline span in the reference. Its surface has to
@@ -219,7 +240,7 @@ async function fromHtml(entry:any,g:any){
   if(spec.layers.some(l=>l.fieldId===group))units.push({role,fields:[group]});else if(!spec.layers.some(l=>l.groupId===group))spec.groups=spec.groups.filter(g=>g.id!==group);
  }
  if(entry.code==='CON-23'){
-  // Leave room above the yellow card for the original background motifs.
+  // Match the photographed reference, whose composition differs slightly from the archived DOM viewport.
   const scaleY=.77,top=g.boxes[5].box.y*scale, shift=125;
   for(const layer of spec.layers.filter(l=>/^surface-[56]$|^border-[56]-|^text-[67]-/.test(l.id))){
    layer.y=top+shift+(layer.y-top)*scaleY;
@@ -227,6 +248,29 @@ async function fromHtml(entry:any,g:any){
    if(layer.height)layer.height*=scaleY;
    if(layer.points)layer.points=layer.points.map((value,index)=>index%2?value*scaleY:value);
   }
+  for(const layer of spec.layers.filter(l=>/^surface-8$|^border-8-|^text-9-/.test(l.id))){
+   layer.y-=55;
+   if(layer.kind==='text')continue;
+   layer.height*=.79;
+   if(layer.points)layer.points=layer.points.map((value,index)=>index%2?value*.79:value);
+  }
+  for(const layer of spec.layers.filter(l=>/^surface-10$|^border-10-|^border-11-|^text-12-/.test(l.id))) layer.y+=28;
+  const checker=decorations.find(deco=>deco.id==='texture-11');
+  if(checker)checker.box.y+=28;
+
+  for(const id of [1,5,8,10]){
+   const face=spec.layers.find(layer=>layer.id===`surface-${id}`)!;
+   const offset=(id===5?6:4)*scale;
+   const border=(id===5?4:3)*scale;
+   const shadow={...face,id:`comic-shadow-${id}`,fill:'#000000',x:face.x+offset-border/2,y:face.y+offset-border/2,
+    width:face.width+border,height:face.height+border};
+   spec.layers.push(shadow);
+   paint.set(shadow.id,paint.get(face.id)!-.1);
+  }
+  const frameBox={x:6,y:6,width:1068,height:1338,rotationDeg:0};
+  const outline=nativeOutline(root,frameBox,scale)!;
+  spec.layers.push({id:'memphis-frame',kind:'line',...frameBox,points:[...outline,outline[0],outline[1]],fill:'#111111',strokeColor:'#111111',strokeWidth:12});
+  paint.set('memphis-frame',10000);
  }
  if(!headlineSeen){const best=units.find(u=>u.role==='body')??units[0];if(best)best.role='headline';}
  // Promote the exact source frame to editable media instead of covering it
@@ -247,6 +291,21 @@ try{for(const entry of entries){const source=roster.entries.find((r:any)=>r.id==
  let recipe:RecreationRecipe,units:Unit[],decorations:any[]=[];let previousReferenceId:string|undefined;let htmlPaint:Map<string,number>|undefined,htmlStyles:Map<string,Partial<PieceDefinitionV2>>|undefined;
  if(source.group==='reference'){const original=JSON.parse(await fs.readFile(`designs/acervo82/authored/references/${entry.id}.json`,'utf8'));previousReferenceId=original.previousReferenceId;recipe=original.recipe;
   if(recipe.scene.source.originalHash!==sha256(await fs.readFile(source.preview)))throw Error(`reference_recipe_mismatch:${entry.code}`);recipe.scene.fonts=recipe.scene.fonts.map((f:any)=>fontPool.get(`${f.family}:${f.weight}`));recipe=normalizeRecipe(recreationRecipeSchema.parse(recipe));units=structuredClone(REFERENCES[previousReferenceId!]??recipe.matrix!.fields.map(f=>({role:'body' as const,fields:[f.id]})));
+  if (entry.code === 'REF-11') {
+    units = [
+      { role: 'eyebrow', fields: ['intro-one'] },
+      { role: 'headline', fields: ['shortcut', 'create'] },
+      { role: 'body', fields: ['closing-before'] },
+    ];
+  }
+  if(entry.code==='REF-18')units=units.flatMap(unit=>unit.role==='headline'&&unit.fields.includes('marketing')?[
+   {...unit,fields:['marketing']},{role:'label',fields:['tagline'],required:false},
+  ]: [unit]);
+  if(entry.code==='REF-07')units.push(
+   {role:'eyebrow',fields:['selo-texto']},
+   {role:'label',fields:['assinatura-esquerda']},
+   {role:'label',fields:['assinatura-direita']},
+  );
   if(!units.some(u=>u.role==='headline')){units[0].role='headline';units[0].required=false;}
   if(entry.code==='REF-24'){const title=recipe.matrix!.fields.find(f=>f.id==='title')!;const columns=[0,1].map(side=>{const layers=recipe.scene.layers.filter(l=>l.kind==='text'&&l.id!=='title'&&(l.x<540?0:1)===side).sort((a,b)=>a.y-b.y);return {id:`column-${side}`,groupId:recipe.matrix!.groups.find(g=>g.members.some(m=>m.layerId===layers[0].id))!.id,label:`Coluna ${side+1}`,kind:'list' as const,layerIds:layers.map(l=>l.id),minScale:.65,prefix:''};});recipe.matrix!.fields=[title,...columns];units=[{role:'headline',fields:['title']},...columns.map(f=>({role:'body' as const,fields:[f.id],kind:'list' as const,cardinality:{min:0,max:f.layerIds.length}}))];}
   recipe.title=`${entry.code} · ${entry.name}`;recipe.id=`${entry.id}-native-v1`;recipe.createdAt='2026-11-05T00:00:00.000Z';
@@ -255,6 +314,7 @@ try{for(const entry of entries){const source=roster.entries.find((r:any)=>r.id==
  const p=result.package;
  if(previousReferenceId){p.source.referenceId=previousReferenceId;await restoreVisualAssets(result);p.source.referenceId=entry.id;}
  let d=p.components.find(c=>c.fragment.aspectRatio==='4:5')!;if(!d)throw Error('native 4:5 definition absent');
+ if(entry.code==='REF-15'||entry.code==='REF-18')result.assetFiles.push(...await restoreReferenceCutouts(entry.code,d,await fs.readFile(source.preview)));
  for(const deco of decorations){const checked=await verifyArsenalAsset(deco.bytes,{license:'curator-provided'}),asset=checked.manifest;await fs.writeFile(path.join(output,'assets',asset.sha256),deco.bytes);d.assets.push(asset);d.fragment.assetIds.push(asset.id);const piece=arsenalPieceSchema.parse({kind:'media',imageAssetId:asset.id,fill:'#FFFFFF',stroke:null,strokeWidth:0,cornerRadius:0,points:deco.replacementPoints??[],...(deco.replacementPoints?{imageReplacement:{label:'Interior do portal',scrimOpacity:.62}}:{}),fontFamily:'Arial',fontAssetId:null,fontSize:12,fontWeight:400,align:'left',lineHeight:1,letterSpacing:0,fixedText:null});const h=arsenalHash(piece);d.pieces[h]=piece;const b=deco.box;d.fragment.instances.push({id:deco.id,pieceHash:h,parentId:null,zIndex:deco.z,x:b.x,y:b.y,width:b.width,height:b.height,rotation:b.rotationDeg,opacity:deco.opacity??1});result.assetFiles.push({manifest:asset,bytes:deco.bytes,relativePath:`assets/${asset.sha256}`,sourceHash:asset.sha256,sourceFamily:'',sourceWeight:400,resolvedWeight:400,sourceUrl:null,adjustment:'Decorative source geometry; no editable text flattened.'});}
  if(htmlPaint){
   for(const i of d.fragment.instances){const styles=htmlStyles?.get(i.id);if(styles){const piece=arsenalPieceSchema.parse({...d.pieces[i.pieceHash],...styles}),hash=arsenalHash(piece);d.pieces[hash]=piece;i.pieceHash=hash;}i.zIndex=htmlPaint.get(i.id)??decorations.find(x=>x.id===i.id)?.z??-1;}
@@ -277,6 +337,7 @@ try{for(const entry of entries){const source=roster.entries.find((r:any)=>r.id==
   for(const [id,offset]of Object.entries(adaptation.offsets??{})as any){const i=d.fragment.instances.find(i=>i.id===id)!;i.x+=offset.x??0;i.y+=offset.y??0;}
  }
  authorNativeSemantics(entry.code,p,d);
+ const authoredBounds=refineCover(entry.code,d);
  const axes=entry.axes;
  d.completeDesign!.family=entry.id;
  if(entry.code.startsWith('CON-'))d.completeDesign!.authorshipRevision=3;
@@ -293,7 +354,9 @@ try{for(const entry of entries){const source=roster.entries.find((r:any)=>r.id==
  const reduced=resolveArsenalGeometry(preview,{measureText:measure,allowReduction:true});
  for(const instance of d.fragment.instances){const e=reduced.elements.find(e=>e.id===`c0-${arsenalHash(instance.id).slice(0,20)}`),piece=d.pieces[instance.pieceHash];if(!e||piece.kind!=='text')continue;
   if(e.fontSize<piece.fontSize-.01){adjustments.push({target:instance.id,property:'fontSize',before:piece.fontSize,after:e.fontSize,cause:'verified-native-fit'});const next={...piece,fontSize:e.fontSize};const h=arsenalHash(next);d.pieces[h]=next;instance.pieceHash=h;}
-  instance.width=e.width;instance.height=e.height;
+  if(authoredBounds[instance.id]?.width===undefined)instance.width=e.width;
+  // Keep the two authored support lines available when the REF-11 sample fits on one.
+  if(authoredBounds[instance.id]?.height===undefined&&(entry.code!=='REF-11'||instance.id!=='closing-before'))instance.height=e.height;
  }
  for(const issue of reduced.issues.filter(i=>i.startsWith('contrast:low:'))){const id=issue.slice('contrast:low:'.length),instance=d.fragment.instances.find(i=>`c0-${arsenalHash(i.id).slice(0,20)}`===id);if(!instance)continue;const piece=d.pieces[instance.pieceHash];
   const candidates:any[]=[...(piece.stroke?[{strokeWidth:Math.max(3,piece.strokeWidth)}]:[]),{fill:'#000000'},{fill:'#FFFFFF'}];
@@ -310,7 +373,7 @@ try{for(const entry of entries){const source=roster.entries.find((r:any)=>r.id==
  if(!readiness.blocking.length&&entry.carouselIntent){
   for(const mode of ['compose','literal'] as const)for(const role of ['development','closing']as const){
    const fn=role==='closing'?'synthesis':entry.carouselIntent;
-   defs.push(authorFamilyCarouselVariant(d,role,mode,fn));
+   defs.push(refineCarouselSlide(entry.code,authorFamilyCarouselVariant(d,role,mode,fn),d));
   }
  }
  if(readiness.blocking.length){const {hash:_,...draft}=d;draft.completeDesign={...draft.completeDesign!,baselineVerified:false};defs[0]=d=createComponentDefinition({...draft,id:assemblyIdentity(['acervo82-unverified',entry.id,arsenalHash(draft)])});}

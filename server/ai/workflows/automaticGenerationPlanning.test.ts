@@ -36,7 +36,7 @@ describe("automatic economic generation integration",()=>{
     expect(prepared.planning!.intent.content[0].id).toBe("idea-1");
     expect(JSON.stringify(requests[0].messages)).toContain("não invente preços");
     expect(jev.length).toBeGreaterThan(0);
-    for(const request of jev){expect(JSON.stringify(request)).not.toMatch(/"fields"|"slides"|"bindings"|"structure"|"catalogHash"/);expect(Object.keys(request.questions).length).toBeLessThanOrEqual(20);}
+    for(const request of jev){expect(JSON.stringify(request)).not.toMatch(/"fields"|"slides"|"bindings"|"catalogHash"|"availability"/);expect(Object.keys(request.questions).length).toBeLessThanOrEqual(20);for(const q of Object.values(request.questions) as any[]){expect(q.instructions.design.version).toBe(6);expect(Object.keys(q.instructions.design.structure).sort()).toEqual(["listBlocks","listItemsPerBlock","mediaSlots","relationships","textBlocks"]);expect(q.criteria[4]).not.toContain("specific composition evidence");}}
     expect(prepared.planning?.familyElection?.retrieval?.semanticRetrieval?.status).toBe("fallback");
     expect(prepared.planning?.familyElection?.ranking.every(r=>r.score100===81.25)).toBe(true);
     expect(prepared.selectedDefinitions.some(d=>d.length>0)).toBe(true);

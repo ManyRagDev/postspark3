@@ -44,7 +44,7 @@ export function StudioMasthead() {
 }
 
 export function FormatPictogram({ mode, active }: { mode: "static" | "carousel" | "video"; active: boolean }) {
-  const stroke = active ? STUDIO.accent : STUDIO.ink40;
+  const stroke = active ? `var(--creation-accent, ${STUDIO.accent})` : STUDIO.ink40;
 
   if (mode === "static") {
     return (
@@ -133,6 +133,7 @@ export function FormatSelector({
               type="button"
               disabled={isDisabled}
               aria-pressed={active}
+              data-creation-highlight={active && !isDisabled ? "true" : undefined}
               onClick={() => {
                 if (!isDisabled && (option.id === "static" || option.id === "carousel")) {
                   onChange(option.id);

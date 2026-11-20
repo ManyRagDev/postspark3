@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-17",
+  "trigger": "Controls lacked visible scales and displayed processed pixels only in sidebar",
+  "verification": {
+    "canvaslabTests": 448,
+    "testFiles": 72,
+    "typescript": "passed",
+    "isolatedFrontendBuild": "passed",
+    "localActualCLI": "saturation slider updates stage on keyboard release; original comparison and cancel preserve history; mobile simulated 390x844 without overflow",
+    "hostedActualPost": "Verified saturation, mouse-driven contrast and brightness in the requested Christmas-gifts post; large canvas preview responds; original comparison keeps controls; undo remains disabled; no Apply used."
+  },
+  "changes": [
+    "bounded sliders with product scales",
+    "process on gesture completion",
+    "temporary preview projection on stage",
+    "before/after comparison",
+    "100% asset inspection",
+    "preview excluded from mutation/save/export",
+    "crop output aspect ratio"
+  ],
+  "backendChanged": false,
+  "publishedImage": "sha256:31aea6030875341b869f14f7f132a8b335bd7ed50a3913041dddd966854db4ab",
+  "apiBundleUnchanged": "189f66219fe2170da88ebe2fda7e7a6c4138062daee6118b6957d3db3f06292f"
+}

@@ -58,7 +58,7 @@ describe("editor controls", () => {
     expect(container.textContent).not.toContain("Título");
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Expandir Grupo"]')?.click());
     act(() => Array.from(container.querySelectorAll("button")).find(b => b.textContent?.includes("Título"))?.click());
-    expect(select).toHaveBeenCalledWith(child.target);
+    expect(select).toHaveBeenCalledWith(child.target, expect.objectContaining({ toggle: false, range: false }));
     act(() => root.render(<CanvasEditorLayers layers={[group]} selectedId="t" onSelect={select} onAction={action} />));
     const buttons = Array.from(container.querySelectorAll("button"));
     act(() => buttons.find(b => b.textContent === "Mostrar")?.click());
@@ -77,7 +77,7 @@ describe("editor controls", () => {
     act(() => root.render(<CanvasEditorLayers layers={[ornament, title]} selectedId="detail" onSelect={select} onAction={vi.fn()} />));
     expect(container.textContent).toContain("Linha");
     act(() => Array.from(container.querySelectorAll("button")).find(b => b.textContent?.includes("Linha"))?.click());
-    expect(select).toHaveBeenCalledWith(ornament.target);
+    expect(select).toHaveBeenCalledWith(ornament.target, expect.objectContaining({ toggle: false, range: false }));
   });
   it("explains why a child cannot be shown or unlocked while its group is hidden or locked", () => {
     const layer: EditorLayer = { id: "child", target: { slideId: "s", elementId: "child" }, label: "Título", kind: "text", parentId: null, children: [], visible: false, locked: true, visibilityUnavailableReason: "Mostre o grupo Layout primeiro.", lockUnavailableReason: "Desbloqueie o grupo Layout primeiro.", capabilities: { editText: false, properties: false, duplicate: false, reorder: false, align: false, remove: false, visibility: false, lock: false } };

@@ -1,4 +1,5 @@
 import { detectFormatIntent } from "./formatIntent";
+import type { ExecutionBrandInput, ExecutionSlideInput } from "./postspark";
 import {
   CREATION_BRIEF_VERSION,
   type CreationBrief,
@@ -144,28 +145,33 @@ export function creationBriefToExecutionBrief(
   overrides?: {
     interventionLevel?: "visual_only" | "light_optimize" | "optimize_structure";
     contentSourceType?: "freeform" | "carousel_topics" | "carousel_slides" | "caption_ready";
-    slides?: Array<{ slideNumber: number; rawText: string }>;
+    slides?: ExecutionSlideInput[];
   }
 ) {
+  const brandInput: ExecutionBrandInput | undefined =
+    brief.sourceUrls && brief.sourceUrls.length > 0
+      ? {
+          websiteUrl: brief.sourceUrls[0],
+          adaptationMode: "adaptive",
+        }
+      : undefined;
+  const slides: ExecutionSlideInput[] = overrides?.slides ?? [];
+
   return {
     creationMode: "execution" as const,
     format: brief.format,
-    platform: brief.platform ?? "instagram" as const,
+    platform: brief.platform ?? ("instagram" as const),
     tone: brief.tone,
     callToAction: brief.callToAction,
     audience: brief.audience,
     brandEssence: brief.brandEssence,
     interventionLevel: overrides?.interventionLevel ?? ("light_optimize" as const),
-    contentSourceType: overrides?.contentSourceType ?? (brief.format === "carousel" ? "carousel_topics" as const : "freeform" as const),
-    slides: overrides?.slides ?? [],
+    contentSourceType: overrides?.contentSourceType ?? (brief.format === "carousel" ? ("carousel_topics" as const) : ("freeform" as const)),
+    slides,
     rawInput: brief.rawInput,
+    notes: brief.visualBrief,
     mustInclude: brief.requiredTerms ?? [],
     forbiddenTerms: brief.forbiddenTerms ?? [],
-    brandInput: brief.sourceUrls && brief.sourceUrls.length > 0
-      ? {
-          websiteUrl: brief.sourceUrls[0],
-          adaptationMode: "adaptive" as const,
-        }
-      : undefined,
+    brandInput,
   };
 }

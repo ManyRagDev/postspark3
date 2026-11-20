@@ -17,6 +17,7 @@ import type { SiteIntelligence } from "@shared/postspark";
 import { invokeLLM, knownProviderRejectionReceipt, providerRejectionErrorFromReceipt } from "../../_core/llm";
 import { replanGenerationSlot } from "./generationPlanning";
 import { recoverGenerationDelivery, deliveryRecoveryHistory } from "./generationDeliveryRecovery";
+import { REVIEW_OBSERVATION_OPERATION } from "@shared/generationDecisionTrace";
 import { extractTextContent, safeJsonParse } from "../llmJson";
 import type { InvokeResult } from "../../_core/llm";
 import { hydrateCompleteDesignComponents } from "../../designCatalog/completeDesignStore";
@@ -36,7 +37,7 @@ import {
   type PreparedGeneration,
 } from "./generationPreparation";
 import type { ProposalGraphDeps } from "./proposalGraph";
-import { generateProposalMediaForSlot } from "./proposalMedia";
+import { generateProposalMediaForSlot, requestedPreservedPhoto } from "./proposalMedia";
 import { arsenalHash, arsenalCanonicalJson } from "@shared/arsenalContent";
 import {
   getGenerationTrace,
@@ -810,7 +811,15 @@ async function executeClaimedGenerationWithinTrace(
           "context", () => deps.loadContext(record.input, record.ownerId),
         );
         const { generateFixedCopy } = await import("./fixedDesignCopy");
-        const post = await generateFixedCopy({
+        const post = record.input.fixedDesign.kind === "identity"
+        ? await (await import("./identityCanvas")).generateIdentityCanvas({
+          pin: pinned, input: record.input, owner: record.ownerId, runId: record.id, signal, deadline: record.deadlineAt,
+          model: record.generationConfig?.model,
+          source: typeof context === "string" ? context : context.text,
+          operation: durableOperations(deps.store, record, leaseToken, signal, `${proposal.proposalId}:`),
+          generate: deps.graphDeps?.generateText, render: deps.graphDeps?.renderReviewScenes,
+        })
+        : await generateFixedCopy({
           pin: pinned, input: record.input, runId: record.id, signal, deadline: record.deadlineAt,
           model: record.generationConfig?.model,
           source: typeof context === "string" ? context : context.text,
@@ -939,6 +948,9 @@ async function executeClaimedGenerationWithinTrace(
       }
     }
     controller.signal.throwIfAborted();
+    const preservedImageUrl = prepared.preservedPhoto?.url ?? (record.input.allowAiImages === false
+      ? requestedPreservedPhoto(record.input, [record.input.content, record.input.executionBrief?.rawInput, record.input.executionBrief?.notes].filter(Boolean).join("\n"))
+      : undefined);
     const coordinator = new GenerationCoordinator(
       {
         requestId: record.id,
@@ -962,6 +974,7 @@ async function executeClaimedGenerationWithinTrace(
         editorialApproaches: prepared.editorialApproaches,
         experimental: record.experimental,
         visualPreference: prepared.visualPreference,
+        allowAiImages: record.input.allowAiImages,
         imageObligation: prepared.imageObligation,
         perProposalImageObligations: prepared.perProposalImageObligations,
         executionBrief: record.input.executionBrief,
@@ -993,7 +1006,11 @@ async function executeClaimedGenerationWithinTrace(
           }),
         mediaAdapter: {
           generate: request =>
-            generateProposalMediaForSlot({...request, preservedImageUrl:prepared.preservedPhoto?.url}, {
+            generateProposalMediaForSlot({
+              ...request,
+              allowAiImages: record.input.allowAiImages,
+              preservedImageUrl,
+            }, {
               // The proposal graph wraps this entire adapter call in its durable operation.
               runIdempotent: async (_key, work) => work(),
             }),
@@ -1080,7 +1097,7 @@ async function executeClaimedGenerationWithinTrace(
             leaseToken,
             controller.signal,
             `${proposalId}:`,
-            params.operationKey==="candidate"
+            params.operationKey==="candidate" || REVIEW_OBSERVATION_OPERATION.test(params.operationKey)
           )(params.operationKey, work),
       }
     );

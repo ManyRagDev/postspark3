@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import { identityFixture } from "@shared/visualIdentity.fixture";
+import { arsenalHash } from "@shared/arsenalContent";
+import { orchestratedGenerationInputSchema } from "@shared/generationRequest";
+import { INITIAL_POST } from "../../../client/src/pages/CanvasLab/components/types";
+import { generateIdentityCanvas } from "./identityCanvas";
 
 const owner = "11111111-1111-4111-8111-111111111111";
 const otherOwner = "22222222-2222-4222-8222-222222222222";
@@ -305,6 +310,44 @@ afterEach(async () => {
 });
 
 describe("atomic durable generation finances on the existing Next ledger", () => {
+  it("admits an identity carousel locally without a catalogue and keeps a single idempotent reservation", async () => {
+    await pg.exec(`ALTER TABLE postspark.generation_v5_requests ADD COLUMN execution_mode text DEFAULT 'external', ADD COLUMN executor_scope text, ADD COLUMN catalog_revision bigint, ADD COLUMN generation_config jsonb;
+      CREATE FUNCTION postspark.generation_admit_configured(uuid,uuid,text,text,jsonb,boolean,timestamptz,jsonb,text DEFAULT NULL,bigint DEFAULT NULL) RETURNS jsonb LANGUAGE sql AS 'SELECT NULL::jsonb';
+      CREATE FUNCTION postspark.generation_admit_staged_local(uuid,uuid,text,text,jsonb,boolean,timestamptz,text,bigint,jsonb DEFAULT NULL) RETURNS jsonb LANGUAGE sql AS 'SELECT NULL::jsonb';`);
+    for (const migration of ["0053_generation_model_choices.sql", "0073_identity_generation_admission.sql"]) await pg.exec(readFileSync(new URL(`../../../drizzle/${migration}`, import.meta.url), "utf8"));
+    const requestId = "30000000-0000-4000-8000-000000000099";
+    const body = { ...input, ownerId: owner, postMode: "carousel", idempotencyKey: "identity", fixedDesign: { kind: "identity", id: owner }, pinnedDesign: { identity: { version: 1 }, revision: hash, canvas: { slides: [{}, {}] } } };
+    const args = [requestId, owner, "identity", hash, JSON.stringify(body), new Date(Date.now() + 600000).toISOString(), JSON.stringify({ version: 1, choice: "gemini", generationStrategyVersion: 1, model: "model", configurationHash: hash }), "local-identity"];
+    const query = "SELECT postspark.generation_admit_identity($1::uuid,$2::uuid,$3,$4,$5::jsonb,false,$6::timestamptz,$7::jsonb,$8) AS value";
+    const admitted = await serviceScalar<any>(query, args);
+    expect(admitted).toMatchObject({ created: true, execution_mode: "local-demand", executor_scope: "local-identity", billing_reserved: 16, catalog_revision: null });
+    expect(admitted.proposals).toHaveLength(1);
+    await expect(pg.query("UPDATE postspark.generation_v5_requests SET input=input #- '{fixedDesign}' WHERE id=$1", [requestId])).rejects.toThrow(/generation_executor_scope/);
+    expect((await serviceScalar<any>(query, args)).created).toBe(false);
+    expect(await scalar("SELECT count(*)::int AS value FROM postspark.next_spark_reservations")).toBe(1);
+    const lease = await claim();
+    const { pinnedDesign: _seed, ...publicBody } = body;
+    const literalInput = orchestratedGenerationInputSchema.parse({ ...publicBody, slideCount: 2, executionBrief: { creationMode: "execution", format: "carousel", platform: "instagram", contentSourceType: "carousel_slides", interventionLevel: "visual_only", rawInput: "Primeiro texto. Segundo texto.", slides: [{ slideNumber: 1, rawText: "Primeiro texto." }, { slideNumber: 2, rawText: "Segundo texto." }] } });
+    const canvas = structuredClone(INITIAL_POST);
+    const post = await generateIdentityCanvas({ input: literalInput, pin: { sourceId: "identity", revision: arsenalHash(canvas), canvas, identity: identityFixture() }, owner, runId: requestId, source: literalInput.content, signal: new AbortController().signal, deadline: Date.now() + 60000,
+      operation: async (key, work) => {
+        const operationKey = `${admitted.proposals[0].proposalId}:${key}`;
+        await serviceScalar("SELECT postspark.generation_v5_operation($1,$2,$3,'begin',NULL) AS value", [requestId, lease.leaseToken, operationKey]);
+        const result = await work();
+        await serviceScalar("SELECT postspark.generation_v5_operation($1,$2,$3,'complete',$4::jsonb) AS value", [requestId, lease.leaseToken, operationKey, JSON.stringify(result)]);
+        return result;
+      },
+      generate: (async () => ({ choices: [{ message: { content: JSON.stringify({ background: "#FFFFFF", text: "#111111", accent: "#226633", headingFont: "Inter", bodyFont: "Inter", margin: 64, gap: 32, align: "left", pages: [{ layout: "stacked", decoration: "none" }, { layout: "stacked", decoration: "none" }] }) } }] })) as any,
+      render: async args => args.compositions.map((_, index) => ({ slideIndex: index, renderer: "CanvasPostStage", width: 864, height: 1080, dataUri: "data:image/png;base64,fixture" })),
+    });
+    const delivered = await serviceScalar<any>("SELECT postspark.generation_commit_fixed_design($1::uuid,$2::uuid,$3::jsonb,$4::jsonb) AS value", [requestId, lease.leaseToken, JSON.stringify({ ...admitted.proposals[0], status: "ready", fixedCanvas: post }), JSON.stringify({ fixedCanvas: post })]);
+    expect(delivered.status).toBe("completed");
+    expect(await scalar("SELECT billing_debited AS value FROM postspark.generation_v5_requests WHERE id=$1", [requestId])).toBe(16);
+    await expect(serviceScalar(query, [...args.slice(0, -1), "other-scope"])).rejects.toThrow("generation_executor_scope_mismatch");
+    await pg.exec("SET ROLE authenticated");
+    await expect(scalar(query, args)).rejects.toThrow(/permission denied/i);
+    await pg.exec("RESET ROLE");
+  });
   it.each([["static", 4], ["carousel", 16]] as const)("finishes a fixed %s with one delivery and the corresponding hold", async (postMode, cost) => {
     const req = await admit({ fixed: true, postMode, key: "fixed" });
     expect(req.proposals).toHaveLength(1);

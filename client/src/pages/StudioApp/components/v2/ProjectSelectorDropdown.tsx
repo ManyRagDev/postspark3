@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Building2, ChevronDown, Plus, Check, Edit2, Trash2 } from "lucide-react";
+import { Building2, ChevronDown, Plus, Check, Edit2, Trash2, Palette } from "lucide-react";
+import VisualIdentityModal from "./VisualIdentityModal";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
@@ -26,6 +27,7 @@ export default function ProjectSelectorDropdown({
   className = "",
 }: ProjectSelectorDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [identityProject, setIdentityProject] = useState<any>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const utils = trpc.useUtils();
@@ -92,6 +94,7 @@ export default function ProjectSelectorDropdown({
 
   return (
     <div ref={containerRef} className={`relative inline-block text-left ${className}`}>
+      {identityProject !== undefined && <VisualIdentityModal project={identityProject} onClose={() => setIdentityProject(undefined)} onSaved={id => onSelectProject(id)} />}
       <button
         type="button"
         disabled={disabled}
@@ -180,6 +183,7 @@ export default function ProjectSelectorDropdown({
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
+                      <button type="button" onClick={e => { e.stopPropagation(); setIsOpen(false); setIdentityProject(proj); }} className="p-2 text-violet-300 hover:bg-white/10 rounded" title="Identidade visual do projeto" aria-label={`Identidade visual de ${proj.name}`}><Palette size={14} /></button>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -210,6 +214,7 @@ export default function ProjectSelectorDropdown({
 
           {/* Botão Novo Projeto */}
           <div className="p-1.5 bg-black/20">
+            <button type="button" onClick={() => { setIsOpen(false); setIdentityProject(null); }} className="mb-1 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-violet-500/15 px-3 py-2 text-violet-200"><Palette size={14} />Novo projeto com identidade</button>
             <button
               type="button"
               onClick={() => {

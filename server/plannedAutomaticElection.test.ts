@@ -1,6 +1,8 @@
 /** Audit reconstruction of an actual preparation with simulated provider
  * answers. It validates provenance/replay, not real provider suitability. */
 import { describe, expect, it } from "vitest";
+import { inspectGenerationDecisionTrace, renderDecisionTraceHtml } from "./generationDecisionTrace";
+import { runWithGenerationTrace, type GenerationTrace } from "./ai/generationTrace";
 import { compactComponentCard } from "../shared/componentAssembly";
 import { orchestratedGenerationInputSchema } from "../shared/generationRequest";
 import { sealGenerationPlanningReceipt } from "../shared/generationPlan";
@@ -39,6 +41,29 @@ async function fixture(score = 0, legacy = false) {
   return {request:{generation_config:generationConfig,catalog_revision:"7",experimental:false,input,prepared,proposals:[]},operations};
 }
 describe("automatic planning audit",()=>{
+  it("captures live per-slot decisions without changing the plan and attributes scores to families after reopening", async () => {
+    const trace: GenerationTrace = { id: "11111111-1111-4111-8111-111111111111", userUuid: "owner", inputType: "text", inputContent: "Café",
+      platform: "instagram", postMode: "static", creationMode: "free", requestedModel: "offline", startedAt: 0, calls: [], events: [] };
+    const source = await runWithGenerationTrace(trace, () => fixture(3.123456));
+    const snapshot = JSON.parse(JSON.stringify({ ...source, request: { ...source.request, id: trace.id }, events: trace.events }));
+    const before = JSON.stringify(snapshot);
+    const report = inspectGenerationDecisionTrace(snapshot);
+    expect(report.coverage).toMatchObject({ electionVerified: true, liveSelectionCaptured: true });
+    expect(report.selectionObservations).toHaveLength(3);
+    for (const observation of report.selectionObservations) {
+      const plan = snapshot.request.prepared.planning.slots[observation.slot];
+      expect(observation.chosenCandidateId).toBe(plan.candidateId);
+      expect(observation.candidates.filter((candidate: any) => candidate.selected)).toHaveLength(1);
+      expect(observation.candidates.every((candidate: any) => candidate.considered)).toBe(true);
+    }
+    expect(report.assessments.flatMap(batch => batch.scores)).toHaveLength(20);
+    expect(report.assessments.every(batch => batch.criteria?.length === 5)).toBe(true);
+    expect(report.assessments.flatMap(batch => batch.scores).every(score => score.targetType === "family" && score.valid && score.score === 3.123456)).toBe(true);
+    expect(report.candidates.filter(candidate => candidate.score !== null).every(candidate => candidate.scoreOrigin === "family_projection")).toBe(true);
+    expect(report.families.some(family => family.retrieved === false && family.score === null)).toBe(true);
+    expect(renderDecisionTraceHtml([report])).toContain("family_projection");
+    expect(JSON.stringify(snapshot)).toBe(before);
+  });
   it("reconstructs compact intent, continuous zero-score judgments, bounded retrieval and technical proof after JSON reopening",async()=>{
     const original=await fixture();
     const {request,operations}=JSON.parse(JSON.stringify(original));

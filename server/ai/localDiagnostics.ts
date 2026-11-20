@@ -10,6 +10,7 @@ import {
 } from "node:fs/promises";
 import { join } from "node:path";
 import { ENV } from "../_core/env";
+import { DECISION_TRACE_STAGES } from "@shared/generationDecisionTrace";
 const MAX_FILE = 5 * 1024 * 1024,
   MAX_TOTAL = 500 * 1024 * 1024,
   MAX_AGE = 7 * 24 * 60 * 60 * 1000;
@@ -111,7 +112,7 @@ export function compactDiagnosticEvents(events: any[]) {
     status,
     detail,
     at,
-    ...(stage === "preparation_request" && data ? { data: Object.fromEntries(
+    ...((DECISION_TRACE_STAGES.includes(stage) || stage === "scene_inspection" || stage === "proposal_checkpoint") ? { data } : stage === "preparation_request" && data ? { data: Object.fromEntries(
       Object.entries(data).filter(([key, value]) =>
         ["requestHash", "model", "requestCharacters", "requestBytes", "estimatedInputTokens", "tokenCountIsEstimate", "transportTimeoutMs", "deadlineAt", "remainingMs", "maxCompletionTokens"].includes(key) &&
         (typeof value === "string" || typeof value === "number" || typeof value === "boolean"))

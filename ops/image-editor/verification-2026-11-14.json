@@ -1,0 +1,109 @@
+{
+  "createdAt": "2026-11-14T21:15:49.741Z",
+  "cases": [
+    {
+      "operation": "adjust",
+      "format": "png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bytes": 613,
+      "milliseconds": 102,
+      "passed": true
+    },
+    {
+      "operation": "crop",
+      "format": "png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "bytes": 528,
+      "milliseconds": 45,
+      "passed": true
+    },
+    {
+      "operation": "resize",
+      "format": "png",
+      "dimensions": [
+        32,
+        32
+      ],
+      "bytes": 610,
+      "milliseconds": 65,
+      "passed": true
+    },
+    {
+      "operation": "mask",
+      "format": "png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bytes": 678,
+      "milliseconds": 66,
+      "passed": true
+    },
+    {
+      "operation": "blur",
+      "format": "png",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bytes": 1574,
+      "milliseconds": 67,
+      "passed": true
+    },
+    {
+      "operation": "trim",
+      "format": "png",
+      "dimensions": [
+        48,
+        48
+      ],
+      "bytes": 572,
+      "milliseconds": 49,
+      "passed": true
+    },
+    {
+      "operation": "adjust",
+      "format": "webp",
+      "dimensions": [
+        64,
+        64
+      ],
+      "bytes": 890,
+      "milliseconds": 43,
+      "passed": true
+    }
+  ],
+  "authenticatedTransport": true,
+  "arbitraryCommandsRejected": true,
+  "success": true,
+  "checkedAt": "2026-11-14T21:15:50.528888+00:00",
+  "image": "sha256:33ff4e47eed523edad9018174ba9673566a67f05cdb376fb58368fa7b919d892",
+  "readonlyRootfs": true,
+  "memoryBytes": 4294967296,
+  "cpuQuotaNano": 2000000000,
+  "pidsLimit": 128,
+  "publishedPorts": {},
+  "internalNetwork": true,
+  "remainingScratchDirectories": 0,
+  "applicationContainers": [
+    {
+      "name": "platform-app-trial-postspark-web-1",
+      "image": "sha256:b24fe20d6dd56e2a3940bcf8c842289f7c0638f893a8d879e1750add39060d8a",
+      "startedAt": "2026-11-14T06:31:30.39729152Z",
+      "health": "healthy"
+    },
+    {
+      "name": "platform-app-trial-postspark-worker-1",
+      "image": "sha256:b8fab4c09827a8ad83c8d0689b6e05ca36dd9edda84222adfbd93b1b90496507",
+      "startedAt": "2026-11-14T06:31:28.786566388Z",
+      "health": "healthy"
+    }
+  ],
+  "frontendApiPublished": false
+}

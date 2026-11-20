@@ -21,3 +21,15 @@
 - [ ] **012-brand-kit-asset-manager-v2** - Gerenciador avançado de logos, paletas customizadas e assets da marca integrados diretamente ao CanvasLab
 - [x] **013-seamless-carousel-backgrounds** - Planos de fundo contínuos "Seamless Carousel" (5, 6 e 7 slides) com versão inteira leve e Modo de Visualização Fantasma em Fileira no CanvasLab `[.conductor/tracks/013-seamless-carousel-backgrounds/plan.md]`
 - [x] **014-script-detection-studio-violet-mode** - Detecção inteligente de roteiros slide a slide, modo Violet Studio no `/thevoid` e diagramação fiel de briefings prontos `[.conductor/tracks/014-script-detection-studio-violet-mode/plan.md]`
+
+## Seleção de designs por adequação ao briefing
+
+As tracks 015 a 018 produzem evidência em ambiente de diagnóstico. A integração estrutural prevista na 019 depende de liberação explícita do responsável pelo produto.
+
+| Track | Entrega | Depende de |
+|---|---|---|
+| [ ] [015 · Controle e briefings pareados](tracks/015-controle-selecao-design/plan.md) | Reprodução das dez rodadas e critérios editoriais registrados antes das comparações | — |
+| [ ] [016 · Fichas comparáveis do acervo](tracks/016-fichas-comparaveis-acervo/plan.md) | Comparação A/B da ficha enviada ao avaliador, com custo e latência medidos | 015 |
+| [ ] [017 · Calibração da escolha](tracks/017-calibracao-escolha-design/plan.md) | Comparação local das regras de classificação sobre as mesmas notas | 015 e 016 |
+| [ ] [018 · Validação das propostas geradas](tracks/018-validacao-propostas-selecionadas/plan.md) | Verificação de encaixe, conteúdo, entrega e custo até a galeria | 017 |
+| [ ] [019 · Integração versionada e debugger](tracks/019-integracao-selecao-versionada/plan.md) | Política rastreável por pedido, compatibilidade com retomadas e reversão | 018 e liberação do responsável |

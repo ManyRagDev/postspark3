@@ -162,7 +162,7 @@ describe("list selection", () => {
     expect(opacity.max).toBe("100");
     expect(
       container.querySelector<HTMLInputElement>('input[type="number"]')!.value
-    ).toBe("83.6");
+    ).toBe("83.599999");
     expect(
       container.querySelector("select")?.selectedOptions[0].textContent
     ).toBe("Negrito");

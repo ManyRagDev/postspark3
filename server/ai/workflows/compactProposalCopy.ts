@@ -1,5 +1,7 @@
-import { buildCompactEditorialContract, positiveEditorialInstructions, usesCompactEditorialContract, usesTextFlexibility } from "./compactEditorialContract";
+import { buildCompactEditorialContract, positiveEditorialInstructions, usesCompactEditorialContract, usesCopyInstructionsV2, usesTextFlexibility } from "./compactEditorialContract";
+import { AFFIRMATIVE_COPY_LANGUAGE_ANCHOR_V2 } from "@shared/affirmativeSocialPlaybook";
 import { z } from "zod";
+import { ENV } from "../../_core/env";
 import {
   compactComponentCard,
   type ComponentDefinitionV1,
@@ -95,7 +97,7 @@ export function compactWritableSlides(
         ideas: Array.from(new Set(page.assignments.flatMap(assignment => assignment.contentIds))).flatMap(id => input.generationIntent?.content.filter(content => content.id === id).map(content => content.meaning) ?? []),
       } : {}),
       design: {
-        name: definition.label,
+        ...(!ENV.catalogLabelSanitization && definition.label ? { name: definition.label } : {}),
         description:
           guidance?.selection?.description ||
           definition.description ||
@@ -158,18 +160,27 @@ export const compactCopySystemPrompt = [
 ].join("\n");
 
 export function compactCopySystemPromptFor(input: ProposalExecutionInput) {
+  const copyV2 = usesCopyInstructionsV2(input);
+  const opening = copyV2
+    ? AFFIRMATIVE_COPY_LANGUAGE_ANCHOR_V2
+    : "Redija a proposta completa em português natural.";
   return usesCompactEditorialContract(input) ? [
     positiveEditorialInstructions,
     usesTextFlexibility(input)
-      ? "Redija a proposta completa em português natural. Distribua a mensagem pelos papéis dos campos e páginas, com frases completas e alternativas expressivas."
-      : "Redija a proposta completa em português natural. Distribua a mensagem pelos papéis dos campos e páginas, com frases completas e alternativas expressivas. Capacidades são estimativas consultivas; o servidor mede o encaixe real. Campos opcionais podem ficar vazios.",
+      ? `${opening} Distribua a mensagem pelos papéis dos campos e páginas, com frases completas e alternativas expressivas.`
+      : `${opening} Distribua a mensagem pelos papéis dos campos e páginas, com frases completas e alternativas expressivas. Capacidades são estimativas consultivas; o servidor mede o encaixe real. Campos opcionais podem ficar vazios.`,
     "Entregue somente o JSON: todos os slides na ordem, cada fieldId exatamente uma vez. Texto usa uma string canônica, inclusive quando repartido em fragmentos; listas usam arrays de itens, com prefixos aplicados pelo design. Gere prompts de imagem somente para os slots indicados, como propostas visuais subordinadas ao pedido original. Em visual_only mantenha o texto literal e as hashtags existentes.",
-  ].join("\n") : compactCopySystemPrompt;
+  ].join("\n") : copyV2 ? `${AFFIRMATIVE_COPY_LANGUAGE_ANCHOR_V2}\n${compactCopySystemPrompt}` : compactCopySystemPrompt;
 }
 
 export function targetedRepairSystemPromptFor(input: ProposalExecutionInput, version: TargetedCopyRepairVersion) {
-  if (!usesCompactEditorialContract(input)) return version === 2 ? targetedRepairSystemPromptV2 : targetedRepairSystemPrompt;
+  const copyV2 = usesCopyInstructionsV2(input);
+  if (!usesCompactEditorialContract(input)) {
+    const base = version === 2 ? targetedRepairSystemPromptV2 : targetedRepairSystemPrompt;
+    return copyV2 ? `${AFFIRMATIVE_COPY_LANGUAGE_ANCHOR_V2}\n${base}` : base;
+  }
   return [positiveEditorialInstructions,
+    ...(copyV2 ? [AFFIRMATIVE_COPY_LANGUAGE_ANCHOR_V2] : []),
     "Corrija somente os alvos autorizados. Retorne value como a melhor redação e até duas alternativas naturais e distintas; quando houver overflow, use as linhas e proporções medidas em fit para reduzir substancialmente a extensão do texto atual, oferecendo também uma opção ainda mais curta que preserve o objetivo e os fatos usados." + (usesTextFlexibility(input) ? "" : " As capacidades são estimativas: a medição local escolhe o texto que cabe."),
     "Preserve frases completas no conjunto dos alvos e das continuações congeladas indicadas. Uma string canônica pode ocupar vários fragmentos tipográficos. Cobertura considera somente campos/itens congelados e seu destino; conteúdo na legenda comprova apenas presença na legenda. Preserve a entidade em um alvo pertinente quando ela identifica o assunto e falta cobertura congelada na arte. Campos opcionais podem ficar vazios se o conteúdo material continua preservado no destino adequado.",
     "Entregue apenas os patches autorizados, mantendo o restante da proposta intacto. A revisão final verifica fatos, sentido e requisitos no resultado completo.",

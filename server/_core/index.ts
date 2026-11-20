@@ -12,6 +12,8 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { getStripe, handleStripeWebhook } from "../billing";
+import { handleMembershipWebhook } from "../membership";
+import { registerMembershipRoutes } from "./membershipRoutes";
 import { ENV } from "./env";
 import { startLocalGenerationWorker } from "../ai/workflows/localGenerationWorker";
 import { registerAcervo82ReviewRoutes } from "../designCatalog/acervo82Review";
@@ -77,18 +79,23 @@ app.post(
       return;
     }
 
+    let event: ReturnType<ReturnType<typeof getStripe>["webhooks"]["constructEvent"]>;
     try {
-      const stripe = getStripe();
-      const event = stripe.webhooks.constructEvent(
+      event = getStripe().webhooks.constructEvent(
         req.body as Buffer,
         sig,
         ENV.stripeWebhookSecret
       );
-      await handleStripeWebhook(event);
+    } catch {
+      res.status(400).json({ error: "Invalid Stripe signature" });
+      return;
+    }
+    try {
+      if (!(await handleMembershipWebhook(event))) await handleStripeWebhook(event);
       res.json({ received: true });
-    } catch (err: any) {
-      console.error("[Webhook] Error:", err.message);
-      res.status(400).json({ error: err.message });
+    } catch (error) {
+      console.error("[Webhook] Processing failed:", event.id, event.type, error instanceof Error ? error.message : "unknown");
+      res.status(500).json({ error: "Stripe webhook processing failed" });
     }
   }
 );
@@ -128,6 +135,7 @@ app.post("/api/analytics/event", async (req, res) => {
 
 // Supabase Auth bridge (email, Google SSO → PostSpark session cookie)
 registerSupabaseAuthRoutes(app);
+registerMembershipRoutes(app);
 registerGenerationStream(app);
 registerUserMediaRoutes(app);
 registerAcervo82ReviewRoutes(app);

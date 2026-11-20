@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { historicalReviewSchema } from "./historicalReviewSchema";
 import { arsenalHash } from "@shared/arsenalContent";
 import { GenerationFailureError } from "@shared/generationFailure";
 import {
@@ -26,8 +27,8 @@ export function reviewInstructionsV9(
     "\nIntervalos de orientação conservam seu tipo mesmo quando o texto também ocorre em outra fonte. Uma referência factual deve apontar para a fonte factual. Considere a imagem fonte original quando fornecida."
   );
 }
-export function reviewContractHashV9() {
-  return arsenalHash({
+export function reviewContractHashV9(historical = true) {
+  const contract = {
     protocol: "review.v9.typed-sources.1",
     contextProtocol: "sources.typed-references.3",
     copyInstructions: copyInstructionsV9,
@@ -37,7 +38,8 @@ export function reviewContractHashV9() {
     ],
     record: z.toJSONSchema(proposalReviewRecordV9Schema),
     receipt: z.toJSONSchema(reviewDurableContextV4Schema),
-  });
+  };
+  return arsenalHash(historical ? historicalReviewSchema(contract) : contract);
 }
 export function resolveReviewExecutionConfigV9(textModel?: string) {
   const { configurationHash, ...old } =
@@ -66,7 +68,7 @@ export function assertReviewExecutionConfigV9(value: unknown) {
   const { configurationHash, ...data } = r.data;
   if (
     configurationHash !== arsenalHash(data) ||
-    data.contractHash !== reviewContractHashV9()
+    ![reviewContractHashV9(), reviewContractHashV9(false)].includes(data.contractHash)
   )
     throw new GenerationFailureError(
       "preparation_contract_incompatible",

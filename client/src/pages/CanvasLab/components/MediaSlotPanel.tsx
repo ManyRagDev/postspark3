@@ -43,6 +43,8 @@ export default function MediaSlotPanel({
   retainedPreview,
   onRetainPreview,
   fixedTargetId,
+  workspaceId,
+  allowAiGeneration = true,
   addImage,
 }: {
   post: CanvasPostModel;
@@ -51,6 +53,8 @@ export default function MediaSlotPanel({
   retainedPreview?: string;
   onRetainPreview?: (url: string | undefined) => void;
   fixedTargetId?: string;
+  workspaceId?: string;
+  allowAiGeneration?: boolean;
   addImage?: (
     url: string,
     width?: number,
@@ -193,7 +197,7 @@ export default function MediaSlotPanel({
     return false;
   };
   const generateImage = async () => {
-    if (locked || inFlight.current || !prompt.trim() || prompt.length > 2000)
+    if (!allowAiGeneration || locked || inFlight.current || !prompt.trim() || prompt.length > 2000)
       return;
     const target = capture();
     inFlight.current = true;
@@ -217,6 +221,7 @@ export default function MediaSlotPanel({
         latest.current.onUpdate(target, { kind: "prompt", prompt });
       const result = await generate.mutateAsync({
         ...request,
+        ...(workspaceId ? { workspaceId } : {}),
         idempotencyKey: crypto.randomUUID(),
       });
       if (!result.imageUrl) throw new Error("Nenhuma imagem retornada.");
@@ -415,14 +420,14 @@ export default function MediaSlotPanel({
         Considerar a composição do design
       </label>
       <div className="grid grid-cols-1 gap-2">
-        <button
+        {allowAiGeneration && <button
           type="button"
           className="min-h-11 w-full rounded-xl bg-[oklch(0.78_0.22_48)] hover:brightness-110 px-3 py-2.5 text-xs font-bold text-black disabled:opacity-40 transition-all cursor-pointer"
           disabled={locked || busy || !prompt.trim() || prompt.length > 2000}
           onClick={() => void generateImage()}
         >
-          {busy ? "Preparando imagem…" : "Gerar imagem com IA"}
-        </button>
+          {busy ? "Preparando imagem…" : workspaceId ? "Gerar imagem com Sparks da equipe" : "Gerar imagem com IA"}
+        </button>}
         <label
           className={`${button} block text-center border-dashed border-white/20`}
         >

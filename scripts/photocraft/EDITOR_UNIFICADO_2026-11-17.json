@@ -1,0 +1,193 @@
+{
+  "checkedAt": "2026-11-17",
+  "binary": "photocraft-cli 0.23.1 (45066c482)",
+  "cases": [
+    {
+      "kind": {
+        "kind": "black-white"
+      },
+      "source": "portrait.png",
+      "ms": 52,
+      "dimensions": {
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "kind": {
+        "kind": "duotone",
+        "dark": "#11253a",
+        "light": "#59d4c2"
+      },
+      "source": "fruits.jpg",
+      "ms": 47,
+      "dimensions": {
+        "width": 512,
+        "height": 480
+      }
+    },
+    {
+      "kind": {
+        "kind": "shadows-highlights",
+        "shadows": 25,
+        "highlights": 10
+      },
+      "source": "scene.png",
+      "ms": 109,
+      "dimensions": {
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "kind": {
+        "kind": "look",
+        "preset": "warm"
+      },
+      "source": "portrait.png",
+      "ms": 51,
+      "dimensions": {
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "kind": {
+        "kind": "look",
+        "preset": "teal-orange"
+      },
+      "source": "fruits.jpg",
+      "ms": 45,
+      "dimensions": {
+        "width": 512,
+        "height": 480
+      }
+    },
+    {
+      "kind": {
+        "kind": "iris"
+      },
+      "source": "scene.png",
+      "ms": 94,
+      "dimensions": {
+        "width": 600,
+        "height": 600
+      }
+    },
+    {
+      "kind": {
+        "kind": "grain",
+        "amount": 1.5
+      },
+      "source": "portrait.png",
+      "ms": 49,
+      "dimensions": {
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "kind": {
+        "kind": "duotone",
+        "dark": "#11253a",
+        "light": "#59d4c2"
+      },
+      "source": "synthetic-3840",
+      "status": "Este tratamento aceita at\u00e9 2048 px por eixo. Use Dimens\u00f5es antes de aplicar.",
+      "ms": 4
+    },
+    {
+      "kind": {
+        "kind": "shadows-highlights",
+        "shadows": 25,
+        "highlights": 10
+      },
+      "source": "synthetic-3840",
+      "status": "ok",
+      "ms": 2530
+    },
+    {
+      "kind": {
+        "kind": "iris"
+      },
+      "source": "synthetic-3840",
+      "status": "ok",
+      "ms": 1074
+    },
+    {
+      "kind": {
+        "kind": "grain",
+        "amount": 1.5
+      },
+      "source": "synthetic-3840",
+      "status": "Este tratamento aceita at\u00e9 2048 px por eixo. Use Dimens\u00f5es antes de aplicar.",
+      "ms": 3
+    },
+    {
+      "kind": {
+        "kind": "duotone",
+        "dark": "#11253a",
+        "light": "#59d4c2"
+      },
+      "source": "synthetic-2048",
+      "ms": 294,
+      "bytes": 719794
+    },
+    {
+      "kind": {
+        "kind": "grain",
+        "amount": 1.5
+      },
+      "source": "synthetic-2048",
+      "ms": 351,
+      "bytes": 2344815
+    },
+    {
+      "source": "two-concurrent-3840-iris",
+      "ms": 1290
+    }
+  ],
+  "qualityDecision": {
+    "iris": "disabled: visible transition in visual review",
+    "others": "approved for bounded optional treatment; presets intentionally recolour"
+  },
+  "alphaSynthetic": "preserved for six new recipes (includes both look variants)",
+  "hostedVerification": {
+    "phase": "final",
+    "checkedAt": "2026-11-17T19:24:07.586Z",
+    "success": true,
+    "testPostId": 139,
+    "revision": 10,
+    "otherPostsUnchanged": 86,
+    "changedSlides": [
+      4
+    ],
+    "editableGradientPersisted": true,
+    "privateAssetsVerified": 5
+  },
+  "exportVerification": {
+    "slides": 2,
+    "dimensions": [
+      [
+        3840,
+        3840
+      ],
+      [
+        3840,
+        3840
+      ]
+    ],
+    "firstSlideMatchesStandalonePNG": true,
+    "localSyntheticOnly": true
+  },
+  "sourceIsolation": {
+    "typescript": "passed",
+    "directedSuite": {
+      "files": 77,
+      "tests": 468
+    },
+    "laterInteractionRegressionTests": 33,
+    "frontendAndBackendBuild": "passed",
+    "workerAndParallelEpics": "not deployed"
+  }
+}

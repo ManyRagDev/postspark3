@@ -1,3 +1,4 @@
+import { SPARK_REFILL } from "@shared/membership";
 /**
  * billing.ts — PostSpark billing module
  *
@@ -83,7 +84,7 @@ export async function rpcCall<T>(
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-export type BillingPlan = "FREE" | "LITE" | "PRO" | "AGENCY" | "FOUNDER" | "DEV";
+export type BillingPlan = "FREE" | "LITE" | "START" | "SOLO" | "PRO_PLUS" | "PRO" | "AGENCY" | "FOUNDER" | "DEV";
 export type PaidPlan = "PRO" | "AGENCY";
 export type BillingCycle = "monthly" | "annual";
 
@@ -115,29 +116,31 @@ const FREE_PROFILE_DEFAULTS: Omit<BillingProfile, "id" | "email"> = {
 // ─── Profile helpers ──────────────────────────────────────────────────────────
 
 /**
- * Busca o perfil de billing pelo e-mail.
- * Retorna defaults do plano FREE se não encontrado (usuário ainda não tem perfil Supabase).
+ * Busca pelo UUID autenticado. Chamadores legados sem UUID ainda podem usar e-mail.
  */
-export async function getBillingProfile(email: string): Promise<BillingProfile> {
+export async function getBillingProfile(email: string, userId?: string): Promise<BillingProfile> {
   if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
     // Billing não configurado — retorna mock FREE
     return { id: "dev-mock", email, ...FREE_PROFILE_DEFAULTS };
   }
 
+  const byUserId = userId && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(userId);
   try {
     const sb = getSupabase();
     const { data, error } = await sb
       .from("profiles")
       .select("id, email, plan, sparks, sparks_refill_date, stripe_customer_id")
-      .eq("email", email)
+      .eq(byUserId ? "id" : "email", byUserId ? userId : email)
       .single();
 
     if (error || !data) {
+      if (byUserId) throw new Error("Billing profile unavailable");
       return { id: "no-profile", email, ...FREE_PROFILE_DEFAULTS };
     }
 
     return data as BillingProfile;
-  } catch {
+  } catch (error) {
+    if (byUserId) throw error;
     return { id: "error", email, ...FREE_PROFILE_DEFAULTS };
   }
 }
@@ -343,6 +346,11 @@ export async function refundSparkReservation(
 // ─── Top-up packages ──────────────────────────────────────────────────────────
 
 export async function getTopupPackages(): Promise<TopupPackage[]> {
+  const pilotPrice = process.env.STRIPE_PRICE_SPARKS_600;
+  if (pilotPrice) return [{
+    id: SPARK_REFILL.id, name: "+600 Sparks", sparks: SPARK_REFILL.sparks,
+    price_brl: SPARK_REFILL.amount / 100, stripe_price_id: pilotPrice, active: true,
+  }];
   if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) return [];
 
   try {
@@ -449,6 +457,13 @@ export async function createTopupCheckout(params: {
   cancelUrl: string;
 }): Promise<string> {
   const stripe = getStripe();
+  const pilot = params.packageId === SPARK_REFILL.id;
+  if (pilot) {
+    const price = await stripe.prices.retrieve(params.priceId);
+    if (!price.active || price.type !== "one_time" || price.currency !== "brl" ||
+        price.unit_amount !== SPARK_REFILL.amount || params.priceId !== process.env.STRIPE_PRICE_SPARKS_600)
+      throw new Error("Preço da recarga não corresponde à oferta.");
+  }
   const customerId = await getOrCreateStripeCustomer(params.profileId, params.email, params.name);
 
   const session = await stripe.checkout.sessions.create({
@@ -458,6 +473,7 @@ export async function createTopupCheckout(params: {
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
     currency: "brl",
+    ...(pilot ? { payment_method_types: ["card" as const], client_reference_id: params.profileId } : {}),
     metadata: {
       profile_id: params.profileId,
       email: params.email,
@@ -467,6 +483,29 @@ export async function createTopupCheckout(params: {
   });
 
   return session.url!;
+}
+
+async function applyVerifiedSparkRefill(session: Stripe.Checkout.Session, ownerId?: string) {
+  const profileId = session.metadata?.profile_id;
+  if (!profileId || (ownerId && ownerId !== profileId) || session.client_reference_id !== profileId ||
+      session.metadata?.type !== "topup" || session.metadata.package_id !== SPARK_REFILL.id) return false;
+  if (session.mode !== "payment" || session.status !== "complete" || session.payment_status !== "paid" ||
+      session.currency !== "brl" || session.amount_total !== SPARK_REFILL.amount ||
+      typeof session.customer !== "string" || typeof session.payment_intent !== "string") return false;
+
+  const lines = await getStripe().checkout.sessions.listLineItems(session.id, { limit: 2 });
+  if (lines.has_more || lines.data.length !== 1 || lines.data[0].quantity !== 1 ||
+      !process.env.STRIPE_PRICE_SPARKS_600 || lines.data[0].price?.id !== process.env.STRIPE_PRICE_SPARKS_600) return false;
+  const { data, error } = await rpcCall<boolean>("apply_spark_refill", {
+    p_user_id: profileId, p_customer_id: session.customer, p_payment_id: session.payment_intent,
+  });
+  if (error || data !== true) throw new Error("Não foi possível creditar a recarga.");
+  return true;
+}
+
+export async function confirmSparkRefill(owner: string, sessionId: string) {
+  const session = await getStripe().checkout.sessions.retrieve(sessionId);
+  return { credited: await applyVerifiedSparkRefill(session, owner) };
 }
 
 // ─── Webhook handlers ─────────────────────────────────────────────────────────
@@ -487,6 +526,10 @@ export async function handleStripeWebhook(event: Stripe.Event): Promise<void> {
 
       if (!profileId || !email) return;
 
+      if (meta.type === "topup" && meta.package_id === SPARK_REFILL.id) {
+        await applyVerifiedSparkRefill(session);
+        return;
+      }
       if (meta.type === "topup") {
         // Top-up avulso confirmado
         const packageId = meta.package_id;

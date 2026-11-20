@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
   ChevronDown,
   ChevronUp,
+  WandSparkles,
 } from "lucide-react";
 
 export type CanvasEditorTool =
@@ -22,6 +23,7 @@ export type CanvasEditorTool =
   | "layers"
   | "caption"
   | "selection"
+  | "advanced"
   | "media";
 
 const tools = [
@@ -36,6 +38,7 @@ const tools = [
 /** The tool is independent from the selection: only an explicit action opens a panel. */
 export interface CanvasEditorChromeProps {
   mobile?: boolean;
+  showAdvanced?: boolean;
   mobileViewportHeight?: number;
   isTextEditing?: boolean;
   activeTool: CanvasEditorTool | null;
@@ -47,6 +50,7 @@ export interface CanvasEditorChromeProps {
 
 export default function CanvasEditorChrome({
   mobile = false,
+  showAdvanced = true,
   mobileViewportHeight,
   isTextEditing = false,
   activeTool,
@@ -61,7 +65,7 @@ export default function CanvasEditorChrome({
     panelSize === "expanded" ? 640 : 420,
   );
   const title =
-    activeTool === "selection"
+    activeTool === "advanced" ? "Editor avançado" : activeTool === "selection"
       ? selectionLabel || "Propriedades"
       : activeTool === "media"
         ? "Trocar imagem"
@@ -114,6 +118,28 @@ export default function CanvasEditorChrome({
               <span>{label}</span>
             </button>
           ))}
+          {showAdvanced && (
+          <button
+            type="button"
+            aria-pressed={activeTool === "advanced"}
+            onClick={() => toggle("advanced")}
+            aria-label="Editor avançado"
+            title="Editar imagens com ferramentas avançadas"
+            className={
+              mobile
+                ? "col-span-6 flex min-h-11 items-center justify-center gap-2 border-t border-white/10 px-3 py-2 text-orange-200/80 hover:bg-orange-400/10 aria-pressed:bg-orange-400/10"
+                : "mt-auto flex min-h-24 flex-col items-center justify-center gap-1 border-t border-white/10 px-1 py-3 text-orange-200/80 hover:bg-orange-400/10 aria-pressed:bg-orange-400/10"
+            }
+          >
+            <WandSparkles size={19} aria-hidden="true" />
+            <span className="text-center text-[10px] leading-tight">
+              Editor avançado
+            </span>
+            <span className="rounded-full border border-orange-400/25 bg-orange-400/10 px-1.5 py-0.5 text-[9px] font-medium leading-tight text-orange-300">
+              Em evolução
+            </span>
+          </button>
+          )}
         </nav>
       )}
       {!(mobile && isTextEditing) &&

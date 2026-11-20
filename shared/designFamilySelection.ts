@@ -10,7 +10,7 @@ type CountRange = { min: number; max: number };
 /** First election describes a family. Exact compositions remain in repertoires
  * for the subsequent choice; this profile cannot prescribe a slide sequence. */
 export interface FamilySelectionProfile {
-  version: 4 | 5;
+  version: 4 | 5 | 6;
   /** New automatic transport: expressive description only, no catalogue vocabulary. */
   compactAssessment?: true;
   selectionPolicy?: "capability_v1";
@@ -81,7 +81,8 @@ function rootFor(repertoire: DesignFamilyRepertoire): ComponentCardV1 {
 function describeFamily(
   family: string,
   repertoires: DesignFamilyRepertoire[],
-  catalog: FrozenEditorialCatalog | null
+  catalog: FrozenEditorialCatalog | null,
+  options?: FamilySelectionOptions
 ): FamilySelectionProfile {
   // Uniform carousels repeat their root; repeated references never add capacity.
   const roots = Array.from(new Map(repertoires.map(repertoire => {
@@ -137,10 +138,18 @@ function describeFamily(
       relationships: unique(guidance.flatMap(value => value?.fieldRelationships?.map(relation => relation.kind) ?? [])),
     },
     availability: {
-      roles: unique(repertoires.flatMap(repertoire => repertoire.slides.map(slide => slide.role))),
+      roles: options?.reconcileRoles
+        ? unique(roots.flatMap(root => root.roles))
+        : unique(repertoires.flatMap(repertoire => repertoire.slides.map(slide => slide.role))),
       functions: unique(functions),
     },
   };
+}
+
+export interface FamilySelectionOptions {
+  profileVersion?: 4 | 5 | 6;
+  axesVersion?: 1 | 2;
+  reconcileRoles?: boolean;
 }
 
 /** No enumeration, merging or materialization of child compositions occurs here. */
@@ -149,7 +158,8 @@ export function buildFamilySelectionCandidates(
   catalog: FrozenEditorialCatalog | null = null,
   neutral = false,
   compactAssessment = false,
-  selectionPolicy?: SelectionPolicy
+  selectionPolicy?: SelectionPolicy,
+  options?: FamilySelectionOptions
 ): FamilySelectionCandidate[] {
   const groups = new Map<string, Map<string, DesignFamilyRepertoire>>();
   for (const repertoire of repertoires) {
@@ -163,13 +173,15 @@ export function buildFamilySelectionCandidates(
   }
   return Array.from(groups).sort(([a], [b]) => compare(a, b)).map(([family, group]) => {
     const members = Array.from(group.values()).sort((a, b) => compare(a.defaultOffer.offerId, b.defaultOffer.offerId));
-    const profile = describeFamily(family, members, catalog);
+    const profile = describeFamily(family, members, catalog, options);
     if (neutral) {
-      const axes=familyAxes(rootFor(members[0]));
-      profile.version=5;
+      const axes = familyAxes(rootFor(members[0]), options?.axesVersion ?? 1);
+      profile.version = options?.profileVersion ?? 5;
       profile.description=rootFor(members[0]).completeDesign?.designGuidance?.selection?.description;
       profile.aesthetic={languages:[axes.organization],treatments:[axes.typography],motifs:[],fonts:[],densities:[axes.density],identity:{essential:Object.entries(axes).map(([k,v])=>`${k}: ${v}`),optional:[],adaptable:[]}};
       profile.editorial.rationales=[];
+    } else if (options?.profileVersion) {
+      profile.version = options.profileVersion;
     }
     if (compactAssessment) profile.compactAssessment = true;
     if (selectionPolicy === "capability_v1") {
@@ -208,6 +220,20 @@ export function familyAssessmentProfile(profile:FamilySelectionProfile) {
     typography: {fonts: profile.aesthetic.fonts}, densities: profile.aesthetic.densities,
     structure: profile.structure, rootCapabilities: profile.rootCapabilities,
     availability: profile.availability,
+  };
+  if (profile.version === 6) return {
+    version: 6 as const,
+    kind: profile.kind,
+    family: profile.family,
+    description: profile.description,
+    characteristics: profile.aesthetic.identity.essential,
+    structure: {
+      textBlocks: profile.structure.textBlocks,
+      listBlocks: profile.structure.listBlocks,
+      listItemsPerBlock: profile.structure.listItemsPerBlock,
+      mediaSlots: profile.structure.mediaSlots,
+      relationships: profile.structure.relationships,
+    },
   };
   if (profile.compactAssessment) return { version: 5 as const, kind: profile.kind, family: profile.family,
     description: profile.description, characteristics: profile.aesthetic.identity.essential };

@@ -19,19 +19,36 @@ function getPostSparkAdminClient() {
   return _postsparkAdminClient;
 }
 
-/** Server-only authorization. Login never creates or reactivates an access grant. */
+/** Server-only authorization. Any due installments come from already-paid periods. */
 export async function hasPostSparkAccess(userId: string): Promise<boolean> {
   try {
-    const { data, error } = await getPostSparkAdminClient().rpc("has_app_access", {
+    const db = getPostSparkAdminClient();
+    const { data, error } = await db.rpc("has_app_access", {
       p_user_id: userId,
     });
     if (error) {
       console.error("[AppAccess] Access check failed");
       return false;
     }
-    return data === true;
+    if (data !== true) return false;
+    const refill = await db.rpc("refill_pro_sparks", { p_user_id: userId });
+    // During rollout the manual access gate is already deployed. It remains
+    // available before the paid-membership migration is applied.
+    if (refill?.error && refill.error.code !== "PGRST202")
+      console.error("[AppAccess] Could not refresh due paid Sparks");
+    return true;
   } catch {
     console.error("[AppAccess] Access check unavailable");
     return false;
   }
+}
+
+export async function hasStartPilotAccess(userId: string) {
+  const { data, error } = await getPostSparkAdminClient().rpc("has_start_pilot", { p_user_id: userId });
+  return !error && data === true;
+}
+
+export async function hasAgencyAccess(userId: string) {
+  const { data, error } = await getPostSparkAdminClient().rpc("has_agency_access", { p_user_id: userId });
+  return !error && data === true;
 }

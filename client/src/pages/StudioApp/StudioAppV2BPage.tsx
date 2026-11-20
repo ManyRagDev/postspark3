@@ -1,4 +1,8 @@
+import type { AssemblyObserver, StudioDebugStep } from "@shared/studioDebugger";
+import { hasProfessionalEditor, type StudioPlan } from "@shared/membership";
 import { isStandaloneHttpUrl } from "@shared/generationSources";
+import { extractUrlsFromText } from "@shared/creationBrief";
+import { generationReviewWarning } from "@shared/generationReviewWarning";
 import { createGenerationTelemetry } from "@/lib/generationTelemetry";
 import type { CreationInputOptions } from "./components/v2/StudioCreateViewV2B";
 import { freezeGenerationProject } from "@shared/projectEditorial";
@@ -6,7 +10,7 @@ import {cachedCatalog} from "@/lib/catalogCache";
 import {useGenerationEvents} from "@/hooks/useGenerationEvents";
 import { useIsMobile } from "@/hooks/useMobile";
 import StudioArtPreferences from "./components/StudioArtPreferences";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
@@ -19,6 +23,7 @@ import { ProductionOverlay } from "./components/v2/shared";
 import { ProposalProgress } from "./components/ProposalSkeletonCard";
 import { useProposalProgress } from "./lib/useProposalProgress";
 import CanvasLabPage from "@/pages/CanvasLab/CanvasLabPage";
+import StartPieceFinalization from "@/pages/CanvasLab/components/StartPieceFinalization";
 import { INITIAL_POST, ensureDistinctFamilies, type CanvasPostModel, type CanvasPostProvenance } from "@/pages/CanvasLab/components/types";
 import { normalizeCanvasModel } from "@/pages/CanvasLab/lib/saveAdapter";
 import {
@@ -35,6 +40,7 @@ import {
   buildTasteInstruction,
   aiGenerationProvenance,
 } from "./lib/studioGeneration";
+import { restorePromptFromContent } from "./lib/promptRestore";
 import { loadCatalogFonts } from "@/lib/fonts";
 import { detectFormatIntent, hasFormatMismatch, type FormatIntent } from "@shared/formatIntent";
 import { classifyGenerationError, isRetryable, userMessageFor } from "@shared/generationFailure";
@@ -71,6 +77,7 @@ import {
   type PendingGenerationStart,
 } from "./lib/studioGenerationState";
 
+const StudioDebugger = lazy(() => import("./components/StudioDebugger"));
 type ScreenStage = "create" | "gallery" | "editor";
 
 interface FormatConfirmState {
@@ -91,11 +98,29 @@ interface GenerationFailureState {
 
 type ReadyProposal = Extract<ProposalDelivery, { status: "ready" }>;
 
-function withProposalIdentity(post: CanvasPostModel, requestId: string, delivery: ReadyProposal): CanvasPostModel {
+function withProposalIdentity(post: CanvasPostModel, requestId: string, delivery: ReadyProposal, originalPosition?: number): CanvasPostModel {
   return { ...post, provenance: {
     ...(post.provenance ?? aiGenerationProvenance(delivery.runId)),
     journey: { requestId, proposalId: delivery.proposalId, revision: delivery.revision },
+    originalPosition: originalPosition ?? delivery.slot,
+    reviewWarning: generationReviewWarning(delivery.diagnostics ?? []) ?? post.provenance?.reviewWarning,
   } };
+}
+
+export function getGalleryPermutation(seed: string): number[] {
+  const perm = [0, 1, 2];
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+  }
+  for (let i = perm.length - 1; i > 0; i--) {
+    h = ((h << 5) - h + i) | 0;
+    const j = Math.abs(h) % (i + 1);
+    const temp = perm[i];
+    perm[i] = perm[j];
+    perm[j] = temp;
+  }
+  return perm;
 }
 
 interface ProposalMaterializationFailure {
@@ -133,21 +158,39 @@ function extractFailureMetadata(err: unknown): GenerationFailureMetadata {
 }
 
 /** Studio: admission, durable progress and independent proposal delivery. */
-export default function StudioAppV2BPage() {
+interface StartPieceWorkflow {
+  requestId?: string | null;
+  draft?: CanvasPostModel;
+  save: (post: CanvasPostModel, finalize: boolean) => Promise<void>;
+}
+export default function StudioAppV2BPage({ studioPlan = "PRO", startPiece, teamShareUserId, debuggerOwnerId }: { debuggerOwnerId?: string; studioPlan?: StudioPlan; startPiece?: StartPieceWorkflow; teamShareUserId?: string } = {}) {
   const utils = trpc.useUtils();
+  const professionalEditor = hasProfessionalEditor(studioPlan);
+  const [assemblySteps, setAssemblySteps] = useState<Array<StudioDebugStep & { requestId: string; owner: string }>>([]);
+  function observeAssembly(requestId: string, slot: number, revision: number): AssemblyObserver | undefined {
+    if (!debuggerOwnerId) return;
+    return (title, status, detail) => {
+      const step = { id: crypto.randomUUID(), requestId, owner: debuggerOwnerId, origin: "CanvasLab" as const,
+        at: new Date().toISOString(), title, status, detail: { proposta: slot + 1, revisão: revision, ...detail } };
+      setAssemblySteps(previous => [...previous, step]);
+    };
+  }
   const telemetryMutation = trpc.generationTelemetry.record.useMutation();
   const telemetrySender = useRef(telemetryMutation.mutateAsync);
   telemetrySender.current = telemetryMutation.mutateAsync;
   const [telemetry] = useState(() => createGenerationTelemetry(events => telemetrySender.current({ events })));
-  const [exposureId] = useState(() => crypto.randomUUID());
+  const [exposureId, setExposureId] = useState(() => crypto.randomUUID());
+  const [galleryOrderSeed, setGalleryOrderSeed] = useState(() => exposureId);
   useEffect(() => () => telemetry.dispose(), [telemetry]);
   const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
   // An explicit History navigation owns this opening. Do not auto-resume an
   // unrelated session request (or admission) over the selected historical run.
   const [historyRestore] = useState(() => {
+    if (startPiece) return null;
     try {
       const payload = JSON.parse(sessionStorage.getItem("postspark.restore_generation") ?? "null") as {
+        generationRunId?: string;
         inputType?: string;
         inputContent?: string;
         postMode?: "static" | "carousel";
@@ -157,12 +200,12 @@ export default function StudioAppV2BPage() {
     } catch { return null; }
   });
   const [pendingGenerationStart, setPendingGenerationStart] = useState<PendingGenerationStart | null>(() => {
-    try { return historyRestore ? null : readPendingGenerationStart(window.sessionStorage); } catch { return null; }
+    try { return historyRestore || startPiece ? null : readPendingGenerationStart(window.sessionStorage); } catch { return null; }
   });
   const [pendingGenerationStartError, setPendingGenerationStartError] = useState<string | null>(null);
   // A normal entry restores only the briefing draft. Deliveries belong to the
   // current visit or an explicit opening from History / Saved Posts.
-  const [activeGenerationRequestId, setActiveGenerationRequestId] = useState<string | null>(null);
+  const [activeGenerationRequestId, setActiveGenerationRequestId] = useState<string | null>(startPiece?.requestId ?? null);
   const [pausedMonitoringRequestId, setPausedMonitoringRequestId] = useState<string | null>(null);
   const [monitoringPauseReason, setMonitoringPauseReason] = useState<"read_failure" | "deadline">("read_failure");
   const [resumingMonitoring, setResumingMonitoring] = useState(false);
@@ -346,7 +389,7 @@ export default function StudioAppV2BPage() {
       if (!result.persisted) console.warn("[catalog.trace] Persistência indisponível", post.catalogCompilation?.traceId);
     }).catch(() => console.warn("[catalog.trace] Falha ao enviar relatório", post.catalogCompilation?.traceId));
   };
-  const [stage, setStage] = useState<ScreenStage>("create");
+  const [stage, setStage] = useState<ScreenStage>(startPiece?.draft ? "editor" : "create");
   const [galleryResumePostId, setGalleryResumePostId] = useState<string>();
   const [isLoading, setIsLoading] = useState(false);
   const [productionIntro, setProductionIntro] = useState<{ prompt: string; startedAt: number } | null>(null);
@@ -364,17 +407,63 @@ export default function StudioAppV2BPage() {
   });
   const [lastMode, setLastMode] = useState<"static" | "carousel">("static");
   const [generatedVariations, setGeneratedVariations] = useState<CanvasPostModel[]>([]);
+  const exposedVariationsRef = useRef<Set<string>>(new Set());
+  const exposedPositionsRef = useRef<Map<string, { exposureId: string; position: number }>>(new Map());
+
+  const displayVariations = useMemo(() => {
+    if (generatedVariations.length <= 1) return generatedVariations;
+    const perm = getGalleryPermutation(galleryOrderSeed);
+    const rankFor = (slot: number) => {
+      const batch = Math.floor(slot / perm.length);
+      const offset = slot % perm.length;
+      return batch * perm.length + (perm[offset] ?? offset);
+    };
+    return [...generatedVariations].sort((a, b) => {
+      const slotA = a.provenance?.originalPosition ?? 0;
+      const slotB = b.provenance?.originalPosition ?? 0;
+      return rankFor(slotA) - rankFor(slotB) || slotA - slotB;
+    });
+  }, [generatedVariations, galleryOrderSeed]);
+
   useEffect(() => {
-    if (stage !== "gallery") return;
-    generatedVariations.forEach((post, position) => telemetry.record(post.provenance?.journey, exposureId, "exposure", { position }));
-  }, [generatedVariations, stage, telemetry, exposureId]);
+    if (stage !== "gallery" || displayVariations.length === 0) return;
+    const docKeyFor = (post: CanvasPostModel) => {
+      const journey = post.provenance?.journey;
+      return journey
+        ? `${journey.requestId}:${journey.proposalId}:${journey.revision}`
+        : post.id;
+    };
+    const hasPositionShift = displayVariations.some((post, position) => {
+      const recorded = exposedPositionsRef.current.get(docKeyFor(post));
+      return Boolean(recorded && recorded.exposureId === exposureId && recorded.position !== position);
+    });
+    if (hasPositionShift) {
+      exposedVariationsRef.current.clear();
+      exposedPositionsRef.current.clear();
+      setExposureId(crypto.randomUUID());
+      return;
+    }
+    displayVariations.forEach((post, position) => {
+      const origPos = post.provenance?.originalPosition ?? position;
+      const docKey = docKeyFor(post);
+      const dedupeKey = `${exposureId}:${docKey}`;
+      if (exposedVariationsRef.current.has(dedupeKey)) return;
+      exposedVariationsRef.current.add(dedupeKey);
+      exposedPositionsRef.current.set(docKey, { exposureId, position });
+      telemetry.record(post.provenance?.journey, exposureId, "exposure", {
+        position,
+        originalPosition: origPos,
+      });
+    });
+  }, [displayVariations, stage, telemetry, exposureId]);
   const [materializationIssue, setMaterializationIssue] = useState<MaterializationIssueState | null>(null);
-  const [selectedPost, setSelectedPost] = useState<CanvasPostModel>(INITIAL_POST);
+  const [selectedPost, setSelectedPost] = useState<CanvasPostModel>(startPiece?.draft ?? INITIAL_POST);
   const [declaredFamilyId, setDeclaredFamilyId] = useState<string | null>(null);
   const [selectedProjectId, setLocalSelectedProjectId] = useState<string | null>(() => getSelectedProjectId());
   const handleSelectProjectId = (id: string | null) => {
     setLocalSelectedProjectId(id);
     setSelectedProjectId(id);
+    setDeclaredFamilyId(current => current?.startsWith("project-") ? null : current);
   };
   const brandProjectsQuery = (trpc as any).brandProjects?.list?.useQuery
     ? (trpc as any).brandProjects.list.useQuery(undefined, {
@@ -382,6 +471,8 @@ export default function StudioAppV2BPage() {
         staleTime: 60_000,
       })
     : { data: [] };
+  const selectedIdentity = (brandProjectsQuery.data ?? []).find((p: any) => p.id === selectedProjectId)?.visualIdentity;
+  const currentCreationEnabled = generationCapabilities.data?.enabled || Boolean(selectedIdentity && (!declaredFamilyId || declaredFamilyId === `project-identity-${selectedProjectId}`) && generationCapabilities.data && 'identityEnabled' in generationCapabilities.data && generationCapabilities.data.identityEnabled);
   /** Item 7: mapa de ids de posts salvos indexados por post.id/proposta (evita colisão cruzada entre propostas). */
   const [savedPostIdsByDocId, setSavedPostIdsByDocId] = useState<Record<string, number>>({});
   const savedPostIdsRef = useRef<Record<string, number>>({});
@@ -421,11 +512,17 @@ export default function StudioAppV2BPage() {
     setGenerationSnapshot(admitted.snapshot);
     if (stage !== "editor") setStage("gallery");
     lastGenerationInput.current = pending.input;
-    setLastPrompt(pending.promptText);
+    const cleanPrompt = pending.inputType === "url" ? pending.promptText : restorePromptFromContent(pending.promptText);
+    setLastPrompt(cleanPrompt);
     setLastMode(pending.mode);
-    inputMetaByRunId.current.set(admitted.snapshot.runId, { inputType: pending.inputType, inputContent: pending.promptText });
-    if (stage !== "editor") setLastInputMeta({ inputType: pending.inputType, inputContent: pending.promptText });
+    inputMetaByRunId.current.set(admitted.snapshot.runId, { inputType: pending.inputType, inputContent: cleanPrompt });
+    if (stage !== "editor") setLastInputMeta({ inputType: pending.inputType, inputContent: cleanPrompt });
     if (pending.source === "create") {
+      const freshExposureId = crypto.randomUUID();
+      setExposureId(freshExposureId);
+      setGalleryOrderSeed(freshExposureId);
+      exposedVariationsRef.current.clear();
+      exposedPositionsRef.current.clear();
       setGeneratedVariations([]);
       setProposalMaterializationFailures([]);
       setMaterializedProposalKeys([]);
@@ -487,26 +584,30 @@ export default function StudioAppV2BPage() {
       return;
     }
     const capabilities=(await generationCapabilities.refetch()).data;
-    if (!capabilities?.enabled) {
+    const frozenProject = brief?.projectSnapshot;
+    const selectedIdentityProject = (brandProjectsQuery.data ?? []).find((p: any) => p.id === selectedProjectId);
+    const identityRequested = source === "more" ? lastGenerationInput.current?.fixedDesign?.kind === "identity"
+      : !creationInputOptions.current.fixedDesign && (brief ? frozenProject?.version === 3 : selectedIdentityProject?.visualIdentity) && (!declaredFamilyId || declaredFamilyId === `project-identity-${brief?.projectId ?? selectedProjectId}`);
+    if (!capabilities?.enabled && !(identityRequested && capabilities && 'identityEnabled' in capabilities && capabilities.identityEnabled)) {
       const reason = capabilities?.reason;
       if (reason === "maintenance") throw new Error("generation_paused");
       if (reason === "manual_session_limit" || reason === "pipeline_reconfiguration_required") throw new Error(reason);
       throw new Error(labelGenerationCapabilityReason(reason));
     }
     const previousInput = source === "more" ? lastGenerationInput.current : null;
-    const isPreserveScript = creationInputOptions.current.scriptMode === "preserve";
+    const isPreserveScript = (brief?.scriptMode ?? creationInputOptions.current.scriptMode) === "preserve";
     const parsedSlides = creationInputOptions.current.parsedSlides;
-    const structuredSlides = (isPreserveScript && parsedSlides && parsedSlides.length > 0)
+    const structuredSlides = brief?.scriptSlides?.map((rawText, index) => ({ slideNumber: index + 1, rawText })) ?? ((isPreserveScript && parsedSlides && parsedSlides.length > 0)
       ? parsedSlides.map((slide, index) => ({
           slideNumber: index + 1,
           rawText: slide.rawText,
         }))
-      : undefined;
+      : undefined);
     const executionBrief = previousInput?.executionBrief ?? (brief ? {
       ...creationBriefToExecutionBrief(
         brief,
         isPreserveScript ? {
-          interventionLevel: "light_optimize",
+          interventionLevel: "visual_only",
           contentSourceType: "carousel_slides",
           slides: structuredSlides,
         } : undefined
@@ -524,23 +625,39 @@ export default function StudioAppV2BPage() {
       try { return JSON.parse(activeProjectRecord?.visualPreferences?.composition ?? "{}").source === "design-extraction"; }
       catch { return false; }
     })();
-    const fixedDesign = previousInput ? previousInput.fixedDesign
+    const fixedDesign = startPiece ? undefined : previousInput ? previousInput.fixedDesign
       : creationInputOptions.current.fixedDesign ?? (extractedKit && activeProjId
-        ? { kind: "project" as const, id: activeProjId } : undefined);
+        ? { kind: "project" as const, id: activeProjId }
+        : activeProjId && (brief ? (brief.projectSnapshot?.version === 3 ? brief.projectSnapshot.visualIdentity : undefined) : activeProjectRecord?.visualIdentity) && (!declaredFamilyId || declaredFamilyId === `project-identity-${activeProjId}`)
+          ? { kind: "identity" as const, id: activeProjId } : undefined);
     let catalog: Awaited<ReturnType<typeof cachedCatalog>> | undefined;
     if(!fixedDesign && 'catalogRevision' in capabilities&&capabilities.catalogRevision&&capabilities.catalogScope&&capabilities.catalogProject){
       const revision=capabilities.catalogRevision;
       catalog=await cachedCatalog(capabilities.catalogProject,capabilities.ownerId,capabilities.catalogScope,revision,()=>utils.catalog.snapshot.fetch({revision}));
     }
+    const artDirectionGuidance = (import.meta as any).env?.VITE_ART_DIRECTION_GUIDANCE !== "false";
     let tasteInstruction = "";
+    let enrichedExecutionBrief = executionBrief;
     if (!fixedDesign && !isUrl && declaredFamilyId) {
       if (isProjectDesignDeclared && activeProjectRecord?.visualPreferences) {
         const vp = activeProjectRecord.visualPreferences;
         const styleName = vp.personality?.[0] || "Identidade do Projeto";
         const colors = vp.colors?.join(", ") || "";
         const fonts = vp.fonts?.join(", ") || "";
-        tasteInstruction = `\n\n[DIREÇÃO DE ARTE DO PROJETO ATIVA — OBRIGATÓRIA]\nO usuário ativou o design extraído do projeto "${activeProjectRecord.name}".\nEstilo visual: ${styleName}.\nPaleta de cores a aplicar: ${colors}.\nTipografia a aplicar: ${fonts}.\nCrie os posts aplicando com fidelidade este ecossistema visual.`;
-      } else {
+        if (!artDirectionGuidance) {
+          tasteInstruction = `\n\n[DIREÇÃO DE ARTE DO PROJETO ATIVA — OBRIGATÓRIA]\nO usuário ativou o design extraído do projeto "${activeProjectRecord.name}".\nEstilo visual: ${styleName}.\nPaleta de cores a aplicar: ${colors}.\nTipografia a aplicar: ${fonts}.\nCrie os posts aplicando com fidelidade este ecossistema visual.`;
+        } else if (enrichedExecutionBrief && !enrichedExecutionBrief.brandInput?.brandColors?.length && (vp.colors?.length || vp.fonts?.length)) {
+          enrichedExecutionBrief = {
+            ...enrichedExecutionBrief,
+            brandInput: {
+              ...enrichedExecutionBrief.brandInput,
+              adaptationMode: enrichedExecutionBrief.brandInput?.adaptationMode ?? "adaptive",
+              brandColors: vp.colors ?? [],
+              ...(vp.fonts?.length && !enrichedExecutionBrief.brandInput?.fontHint ? { fontHint: vp.fonts.join(", ") } : {}),
+            },
+          };
+        }
+      } else if (!artDirectionGuidance) {
         const preferred = catalog?.families?.find(family => family.family === declaredFamilyId && family.capabilities[mode === 'carousel' ? 'carousel' : 'single']);
         tasteInstruction = preferred
           ? `\n\nPreferência visual: ${preferred.code} · ${preferred.name}. ${preferred.descriptor}. Considere essa direção quando compatível com o conteúdo, mídia e formato pedidos.`
@@ -550,8 +667,8 @@ export default function StudioAppV2BPage() {
 
     const content = source === "more" && !isUrl
       ? fixedDesign ? `Crie outra versão do conteúdo neste design sobre: ${promptText}`
-        : `Crie 3 novos ganchos criativos e direções de arte alternativas sobre: ${promptText}${tasteInstruction}`
-      : `${promptText}${tasteInstruction}`;
+        : `Crie 3 novos ganchos criativos e direções de arte alternativas sobre: ${promptText}${artDirectionGuidance ? "" : tasteInstruction}`
+      : `${promptText}${artDirectionGuidance ? "" : tasteInstruction}`;
     let projectDossier = previousInput?.projectDossier ?? brief?.projectDossier;
     let projectSnapshot = previousInput?.projectSnapshot ?? brief?.projectSnapshot;
     if (!projectDossier && !projectSnapshot && activeProjId) {
@@ -580,16 +697,14 @@ export default function StudioAppV2BPage() {
       postMode: mode,
       formatIntentConfirmed: formatConfirmed,
       includeDraftDesigns: previousInput?.includeDraftDesigns ?? assemblyPilot,
-      ...((previousInput?.allowAiImages ?? creationInputOptions.current.allowAiImages) !== undefined
-        ? { allowAiImages: previousInput?.allowAiImages ?? creationInputOptions.current.allowAiImages }
-        : {}),
+      allowAiImages: previousInput?.allowAiImages ?? creationInputOptions.current.allowAiImages ?? false,
       aspectRatio: previousInput?.aspectRatio ?? creationInputOptions.current.aspectRatio ?? assemblyAspectRatio,
       slideCount: mode === "carousel" ? previousInput?.slideCount ?? creationInputOptions.current.slideCount ?? brief?.slideCount ?? 5 : undefined,
       ...(previousInput?.model ? { model: previousInput.model } : {}),
       generationModel: previousInput ? previousInput.generationModel ?? "gemini" : creationInputOptions.current.generationModel ?? "auto",
       generationParentRequestId: source === "more" ? activeGenerationRequestId ?? undefined : undefined,
-      creationMode: executionBrief ? "execution" : "ideation",
-      executionBrief,
+      creationMode: enrichedExecutionBrief ? "execution" : "ideation",
+      executionBrief: enrichedExecutionBrief,
       projectId: activeProjId,
       fixedDesign,
       projectDossier,
@@ -660,9 +775,7 @@ export default function StudioAppV2BPage() {
       const restoredPrompt = response.input.executionBrief?.rawInput
         ?? (response.input.inputType === "url"
           ? response.input.content
-          : response.input.content
-              .replace(/^Crie 3 novos ganchos criativos e direções de arte alternativas sobre:\s*/i, "")
-              .replace(/\n\n\[INSTRUÇÃO DE DIREÇÃO DE ARTE[\s\S]*$/, ""));
+          : restorePromptFromContent(response.input.content));
       setLastPrompt(restoredPrompt);
       setLastMode(response.input.postMode);
       inputMetaByRunId.current.set(response.snapshot.runId, { inputType: response.input.inputType, inputContent: restoredPrompt });
@@ -695,10 +808,22 @@ export default function StudioAppV2BPage() {
       activeRequestEpoch.current.set(snapshotToMaterialize.requestId, epoch);
       if (epoch !== generationEpoch.current) continue;
       const key = `${delivery.proposalId}:${delivery.revision}`;
+      const observe = observeAssembly(snapshotToMaterialize.requestId, delivery.slot, delivery.revision);
+      observe?.("Entrega recebida no navegador", "started");
       if (delivery.fixedCanvas) {
-        const post = withProposalIdentity(delivery.fixedCanvas, snapshotToMaterialize.requestId, delivery);
+        observe?.("Design fixo recebido para o CanvasLab", "completed", { slides: delivery.fixedCanvas.slides.length });
+        const fixedCanvas = delivery.fixedCanvas;
         setMaterializedProposalKeys(previous => [...previous.filter(item => item !== key), key]);
-        setGeneratedVariations(previous => previous.some(item => item.id === post.id) ? previous : [...previous, post]);
+        setGeneratedVariations(previous => {
+          if (previous.some(item => item.id === fixedCanvas.id)) return previous;
+          const otherRequestOffset = previous.reduce((maxPos, item) => {
+            const itemReqId = item.provenance?.journey?.requestId;
+            return itemReqId && itemReqId !== snapshotToMaterialize.requestId
+              ? Math.max(maxPos, item.provenance?.originalPosition ?? -1)
+              : maxPos;
+          }, -1) + 1;
+          return [...previous, withProposalIdentity(fixedCanvas, snapshotToMaterialize.requestId, delivery, otherRequestOffset + delivery.slot)];
+        });
         continue;
       }
       void materializeCatalogVariationsDetailed(
@@ -706,14 +831,27 @@ export default function StudioAppV2BPage() {
         lastPrompt || "Geração de posts",
         aiGenerationProvenance(delivery.runId),
         delivery.slot,
-        reportCompilation,
+        reportCompilation, observe,
       ).then((result) => {
         if (epoch !== generationEpoch.current) return;
         if (result.posts.length) {
           setMaterializedProposalKeys(previous => [...previous.filter(item => item !== key), key]);
           setGeneratedVariations((previous) => {
             const knownIds = new Set(previous.map((post) => post.id));
-            return [...previous, ...result.posts.map(post => withProposalIdentity(post, snapshotToMaterialize.requestId, delivery)).filter((post) => !knownIds.has(post.id))];
+            const otherRequestOffset = previous.reduce((maxPos, item) => {
+              const itemReqId = item.provenance?.journey?.requestId;
+              return itemReqId && itemReqId !== snapshotToMaterialize.requestId
+                ? Math.max(maxPos, item.provenance?.originalPosition ?? -1)
+                : maxPos;
+            }, -1) + 1;
+            return [
+              ...previous,
+              ...result.posts
+                .map((post, idx) =>
+                  withProposalIdentity(post, snapshotToMaterialize.requestId, delivery, otherRequestOffset + delivery.slot + idx)
+                )
+                .filter((post) => !knownIds.has(post.id)),
+            ];
           });
         }
         if (result.failures.length) {
@@ -731,12 +869,14 @@ export default function StudioAppV2BPage() {
   }, [generationSnapshot]);
 
   const persistBriefDraft = (brief: CreationBrief, stage: "create" | "gallery") => {
+    if (startPiece) return;
     saveBriefDraft(brief, declaredFamilyId, stage, creationInputOptions.current.generationModel);
     setHasSavedDraft(hasRecoverableBriefDraft());
   };
 
   // Etapa 4 §9.4 — Recuperação de rascunho de briefing após refresh/perda de sessão
   useEffect(() => {
+    if (startPiece) return;
     const draft = loadBriefDraft();
     setHasSavedDraft(Boolean(draft?.brief.rawInput?.trim()));
     if (draft && draft.brief && draft.brief.rawInput) {
@@ -757,6 +897,7 @@ export default function StudioAppV2BPage() {
 
   // Item 7: reabertura de post salvo — chega via /saved-posts (sessionStorage).
   useEffect(() => {
+    if (startPiece) return;
     const raw = sessionStorage.getItem("postspark.open_canvas_post");
     if (!raw) return;
     try {
@@ -925,6 +1066,9 @@ export default function StudioAppV2BPage() {
       ...interpretRawBriefing(promptText, { selectedFormat: mode }),
       ...(mode === "carousel" && creationInputOptions.current.slideCount ? { slideCount: creationInputOptions.current.slideCount } : {}),
       platform:creationInputOptions.current.platform,
+      visualBrief: creationInputOptions.current.visualBrief,
+      scriptMode: creationInputOptions.current.scriptMode,
+      scriptSlides: creationInputOptions.current.parsedSlides?.map(slide => slide.rawText),
       sources:[...interpretRawBriefing(promptText,{selectedFormat:mode}).sourceUrls?.map((url,index)=>({id:`page-${index+1}`,kind:"url" as const,purpose:"content" as const,value:url}))??[],...(creationInputOptions.current.image?[{id:"image-1",kind:"image" as const,purpose:creationInputOptions.current.imagePurpose,value:creationInputOptions.current.image}]:[])],
       ...(project ? {
         projectId: project.id,
@@ -945,6 +1089,14 @@ export default function StudioAppV2BPage() {
   };
 
   const handleCreateSubmit = (promptText: string, mode: "static" | "carousel",options?:CreationInputOptions) => {
+    if (startPiece && (extractUrlsFromText(promptText).length || options?.image)) {
+      toast.info("Para sua primeira peça, descreva o conteúdo em texto.");
+      return;
+    }
+    if (!professionalEditor && extractUrlsFromText(promptText).length) {
+      toast.info("A extração de URL está disponível a partir do PRO. Cole o texto da página no briefing.");
+      return;
+    }
     if(options?.image?.startsWith("data:")){const selected=options;void sourceUpload.mutateAsync({imageData:options.image}).then(saved=>handleCreateSubmit(promptText,mode,{...selected,image:saved.url})).catch(()=>toast.error("Não foi possível guardar a imagem fonte. Tente novamente."));return;}
     creationInputOptions.current=options??{platform:"instagram",imagePurpose:"content"};
     setFormatChoiceConfirmed(false);
@@ -1010,7 +1162,7 @@ export default function StudioAppV2BPage() {
         lastPrompt || "Geração de posts",
         aiGenerationProvenance(failure.delivery.runId),
         failure.delivery.slot,
-        reportCompilation,
+        reportCompilation, observeAssembly(failure.delivery.runId, failure.delivery.slot, failure.delivery.revision),
       );
       if (epoch !== generationEpoch.current) return;
       if (!result.posts.length) {
@@ -1021,7 +1173,25 @@ export default function StudioAppV2BPage() {
       }
       setGeneratedVariations((previous) => {
         const knownIds = new Set(previous.map((post) => post.id));
-        return [...previous, ...result.posts.map(post => generationSnapshot ? withProposalIdentity(post, generationSnapshot.requestId, failure.delivery) : post).filter((post) => !knownIds.has(post.id))];
+        const requestId = generationSnapshot?.requestId;
+        const otherRequestOffset = requestId
+          ? previous.reduce((maxPos, item) => {
+              const itemReqId = item.provenance?.journey?.requestId;
+              return itemReqId && itemReqId !== requestId
+                ? Math.max(maxPos, item.provenance?.originalPosition ?? -1)
+                : maxPos;
+            }, -1) + 1
+          : 0;
+        return [
+          ...previous,
+          ...result.posts
+            .map((post, idx) =>
+              generationSnapshot
+                ? withProposalIdentity(post, generationSnapshot.requestId, failure.delivery, otherRequestOffset + failure.delivery.slot + idx)
+                : post
+            )
+            .filter((post) => !knownIds.has(post.id)),
+        ];
       });
       setMaterializedProposalKeys(previous => [...previous.filter(item => item !== failure.key), failure.key]);
       setProposalMaterializationFailures((previous) => previous.filter((item) => item.key !== failure.key));
@@ -1060,7 +1230,12 @@ export default function StudioAppV2BPage() {
   };
 
   const handleSelectVariation = (post: CanvasPostModel) => {
-    telemetry.record(post.provenance?.journey, exposureId, "choice");
+    const pos = displayVariations.findIndex(item => item.id === post.id);
+    const position = pos >= 0 ? pos : undefined;
+    telemetry.record(post.provenance?.journey, exposureId, "choice", {
+      position,
+      originalPosition: post.provenance?.originalPosition,
+    });
     setSelectedPost(post);
     const runId = post.provenance?.generationRunId;
     const generationInput = runId ? inputMetaByRunId.current.get(runId) : undefined;
@@ -1220,6 +1395,11 @@ export default function StudioAppV2BPage() {
     lastGenerationInput.current = null;
     setActiveBrief(null);
     setIsReviewingBrief(false);
+    const resetExposureId = crypto.randomUUID();
+    setExposureId(resetExposureId);
+    setGalleryOrderSeed(resetExposureId);
+    exposedVariationsRef.current.clear();
+    exposedPositionsRef.current.clear();
     setStage("create");
     setGeneratedVariations([]);
     setSelectedPost(INITIAL_POST);
@@ -1252,15 +1432,33 @@ export default function StudioAppV2BPage() {
     setShowProposalProgress(false);
   }, [stage]);
 
+  const inspectedPost = stage === "editor" ? selectedPost : displayVariations[0];
+  const postRequestId = inspectedPost?.provenance?.journey?.requestId ?? inspectedPost?.completeDesign?.runId;
+  const historyRequestId = stage !== "create" ? historyRestore?.generationRunId : undefined;
+  const debugRequestId = (stage === "editor" ? postRequestId : null) ?? activeGenerationRequestId ?? postRequestId ?? historyRequestId ?? null;
+
+  const returnToGallery = (editedPost: CanvasPostModel) => {
+    setSelectedPost(editedPost);
+    setGalleryResumePostId(editedPost.id);
+    setGeneratedVariations(previous => previous.some(item => item.id === editedPost.id)
+      ? previous.map(item => item.id === editedPost.id ? editedPost : item)
+      : [...previous, editedPost]);
+    setStage("gallery");
+  };
+
   return (
     <>
+    {debuggerOwnerId && <Suspense fallback={null}><StudioDebugger key={debuggerOwnerId}
+      owner={debuggerOwnerId}
+      requestId={debugRequestId} restoredRequestId={historyRequestId}
+      posts={displayVariations} steps={assemblySteps} /></Suspense>}
     <AnimatePresence>{productionIntro && <ProductionOverlay prompt={productionIntro.prompt} />}</AnimatePresence>
     <div inert={productionIntro ? true : undefined} className={`flex min-h-[100svh] w-full flex-col bg-[#0B0A08] font-sans text-white md:min-h-screen md:overflow-hidden ${stage === "gallery" ? "max-md:bg-[#07090E]" : ""}`}>
       {generationEvents.error && <div role="alert">A conexão com a geração foi interrompida. O trabalho pode continuar no servidor. <button onClick={generationEvents.reconnect}>Reconectar</button></div>}
       {monitoringPaused && activeGenerationRequestId && <div role="alert">{monitoringPauseReason === "deadline" ? "O prazo deste pedido terminou. O acompanhamento automático foi pausado; os resultados já recebidos continuam disponíveis." : "O acompanhamento foi pausado porque não foi possível consultar o pedido. O trabalho pode continuar no servidor."} <button type="button" disabled={resumingMonitoring} onClick={() => void resumeGenerationMonitoring()}>{resumingMonitoring ? "Consultando…" : monitoringPauseReason === "deadline" ? "Consultar resultado" : "Retomar acompanhamento"}</button></div>}
-      {stage === "create" && ((!generationCapabilities.isLoading && !generationCapabilities.data?.enabled) || activeGenerationQuery.error || pendingGenerationStart) && (
+      {stage === "create" && ((!generationCapabilities.isLoading && !currentCreationEnabled) || activeGenerationQuery.error || pendingGenerationStart) && (
         <div className="mx-auto mt-4 w-[min(92%,64rem)] rounded-lg border border-violet-300/25 bg-violet-300/5 p-4 text-sm text-violet-100">
-          {!generationCapabilities.data?.enabled && (
+          {!currentCreationEnabled && (
             <p role="status">{labelGenerationCapabilityReason(generationCapabilities.data?.reason)}</p>
           )}
           {activeGenerationQuery.error && activeGenerationRequestId && (
@@ -1308,9 +1506,14 @@ export default function StudioAppV2BPage() {
       */}
       {stage === "create" && (
         <StudioCreateViewV2B
+          startPilot={Boolean(startPiece)}
+          allowProfessionalTools={professionalEditor}
           onSubmit={handleCreateSubmit}
           isLoading={isLoading||sourceUpload.isPending}
           initialPlatform={activeBrief?.platform}
+          initialVisualBrief={activeBrief?.visualBrief}
+          initialScriptSlides={activeBrief?.scriptSlides}
+          initialScriptMode={activeBrief?.scriptMode}
           initialGenerationModel={creationInputOptions.current.generationModel}
           initialImage={activeBrief?.sources?.find(s=>s.kind==="image")?.value}
           initialImagePurpose={activeBrief?.sources?.find(s=>s.kind==="image")?.purpose}
@@ -1426,14 +1629,22 @@ export default function StudioAppV2BPage() {
             </section>
           )}
           <StudioGalleryView
-            variations={generatedVariations}
+            allowDownload={!startPiece}
+            exportQuality={professionalEditor ? "4k" : "hd"}
+            variations={displayVariations}
             mobile={isMobile}
             initialAspectRatio={generatedVariations[0]?.aspectRatio ?? lastGenerationInput.current?.aspectRatio ?? assemblyAspectRatio}
             resumeMobilePost={galleryResumePostId ? generatedVariations.find(post => post.id === galleryResumePostId) : undefined}
             onSelectVariation={handleSelectVariation}
-            onExport={(post, kind) => telemetry.record(post.provenance?.journey, exposureId, kind)}
+            onExport={(post, kind) => {
+              const pos = displayVariations.findIndex(item => item.id === post.id);
+              telemetry.record(post.provenance?.journey, exposureId, kind, {
+                position: pos >= 0 ? pos : undefined,
+                originalPosition: post.provenance?.originalPosition,
+              });
+            }}
             onBackToCreate={handleGalleryBackToCreate}
-            onGenerateMore={dispatchInterrupted || (!generationSnapshot && Boolean((historyRestore?.variations?.[0] as { fixedCanvas?: CanvasPostModel } | undefined)?.fixedCanvas)) ? undefined : handleGenerateMore}
+            onGenerateMore={startPiece || dispatchInterrupted || (!generationSnapshot && Boolean((historyRestore?.variations?.[0] as { fixedCanvas?: CanvasPostModel } | undefined)?.fixedCanvas)) ? undefined : handleGenerateMore}
             isGeneratingMore={!dispatchInterrupted && (isGeneratingMore || generationSnapshot?.overallStatus === "running")}
             declaredFamilyId={declaredFamilyId}
             generationProposals={dispatchInterrupted ? generationSnapshot?.proposals.filter(proposal => proposal.status === "ready") : generationSnapshot?.proposals}
@@ -1445,24 +1656,27 @@ export default function StudioAppV2BPage() {
         </>
       )}
 
-      {stage === "editor" && (
+      {stage === "editor" && (startPiece ? (
+        <StartPieceFinalization key={selectedPost.id} initialPost={selectedPost}
+          onSave={startPiece.save} onBack={returnToGallery} />
+      ) : (
         <CanvasLabPage
+          studioPlan={studioPlan}
           initialPost={selectedPost}
-          onJourneyEvent={(post, kind) => telemetry.record(post.provenance?.journey, exposureId, kind)}
-          onBackToGallery={(editedPost) => {
-            setSelectedPost(editedPost);
-            setGalleryResumePostId(editedPost.id);
-            setGeneratedVariations(previous => previous.some(item => item.id === editedPost.id)
-              ? previous.map(item => item.id === editedPost.id ? editedPost : item)
-              : [...previous, editedPost]);
-            setStage("gallery");
-          }}
+          onJourneyEvent={(post, kind, delta) => telemetry.record(post.provenance?.journey, exposureId, kind, { delta })}
+          onBackToGallery={returnToGallery}
           onRestart={handleRestart}
           onSave={handleSavePost}
+          onShareWithTeam={teamShareUserId ? post => {
+            try {
+              sessionStorage.setItem(`postspark.agency_share.${teamShareUserId}`, JSON.stringify(post));
+              setLocation("/agency?share=1");
+            } catch { toast.error("Não foi possível preparar a peça para compartilhar."); }
+          } : undefined}
           hasSavedPost={Boolean(selectedPost.id && (savedPostIdsRef.current[selectedPost.id] || savedPostIdsByDocId[selectedPost.id]))}
           isSaving={isSaving}
         />
-      )}
+      ))}
 
       {/* Etapa 3 & 4 — bloqueios de UX e revisão de briefing sobre as telas */}
       <CreationGuardsHost>

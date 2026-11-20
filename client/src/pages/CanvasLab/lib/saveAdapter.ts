@@ -1,4 +1,7 @@
+import { readTextGradient } from "@shared/textGradient";
 import { assemblyDirectionV1Schema, assemblySlideRoles, assemblyDensities } from "@shared/componentAssembly";
+import { visualIdentityUsageSchema } from "@shared/identityComposition";
+import { imageEditAssetsSchema } from "@shared/imageEditor";
 import { arsenalCompilationReportSchema } from "@shared/arsenalGeneration";
 import { catalogCompilationSchema } from "@shared/designCatalog";
 import { readArsenalComposition, canvasElementStatesSchema, arsenalLogoSchema } from "@shared/designArsenal";
@@ -190,6 +193,8 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
   return {
     id: raw.id || `saved-${Date.now()}`,
     modelVersion: raw.modelVersion,
+    visualIdentityUsage: visualIdentityUsageSchema.safeParse(raw.visualIdentityUsage).success ? visualIdentityUsageSchema.parse(raw.visualIdentityUsage) : undefined,
+    advancedImageAssets: imageEditAssetsSchema.safeParse(raw.advancedImageAssets).data,
     ...(completeDesignProvenanceSchema.safeParse(raw.completeDesign).success ? { completeDesign: completeDesignProvenanceSchema.parse(raw.completeDesign) } : {}),
     catalogCompilation: catalogCompilationSchema.safeParse(raw.catalogCompilation).data,
     arsenalCompilation: arsenalCompilationReportSchema.safeParse(raw.arsenalCompilation).data,
@@ -232,9 +237,15 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
     logoPosition,
     isSnapEnabled: raw.isSnapEnabled !== false,
     headlineSizeScale: raw.headlineSizeScale,
+    headlineLineHeight: raw.headlineLineHeight,
+    subtextLineHeight: raw.subtextLineHeight,
+    headlineLetterSpacing: raw.headlineLetterSpacing,
+    subtextLetterSpacing: raw.subtextLetterSpacing,
     subtextSizeScale: raw.subtextSizeScale,
     manualHeadlineColor: raw.manualHeadlineColor,
     manualSubtextColor: raw.manualSubtextColor,
+    headlineGradient: readTextGradient(raw.headlineGradient),
+    subtextGradient: readTextGradient(raw.subtextGradient),
     headlineEffect,
     headlineEffectColor: typeof raw.headlineEffectColor === "string" ? raw.headlineEffectColor : undefined,
     subtextEffect,
@@ -275,7 +286,7 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
           headlineScale: normalizePositiveNumber(s.headlineScale),
           subtextScale: normalizePositiveNumber(s.subtextScale),
           nativeDecorationTransforms: normalizeNativeDecorationTransforms(s.nativeDecorationTransforms),
-          extraTexts: Array.isArray(s.extraTexts) ? s.extraTexts : undefined,
+          extraTexts: Array.isArray(s.extraTexts) ? s.extraTexts.map((t: any) => ({ ...t, textGradient: readTextGradient(t.textGradient) })) : undefined,
           extraShapes: Array.isArray(s.extraShapes) ? s.extraShapes : undefined,
           extraImages: Array.isArray(s.extraImages) ? s.extraImages : undefined,
           suppressFamilyDecorations: s.suppressFamilyDecorations === true ? true : undefined,
@@ -291,7 +302,7 @@ export function normalizeCanvasModel(raw: Partial<CanvasPostModel> & { id?: stri
                 nativeDecorationTransforms: normalizeNativeDecorationTransforms(s.initialVisual.geometry.nativeDecorationTransforms),
               },
             } : undefined,
-          visualStyle: s.visualStyle && typeof s.visualStyle === "object" ? s.visualStyle : undefined,
+          visualStyle: s.visualStyle && typeof s.visualStyle === "object" ? { ...s.visualStyle, headlineGradient: readTextGradient(s.visualStyle.headlineGradient), subtextGradient: readTextGradient(s.visualStyle.subtextGradient) } : undefined,
         }))
       : [
           {

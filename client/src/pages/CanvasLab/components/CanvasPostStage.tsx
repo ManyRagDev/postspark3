@@ -1,3 +1,4 @@
+import { projectAdvancedImagePreview, type AdvancedImagePreview } from "../lib/advancedImageEditing";
 import { aspectRatioHeight } from "@shared/aspectRatios";
 import { ArsenalCompositionContents } from "./ArsenalCompositionContents";
 import { editArsenalElementText, overrideArsenalElement, arsenalWorldGeometry } from "../lib/arsenalComposition";
@@ -6,7 +7,7 @@ import { renderedCompositionImageCount, renderedNativeImageCount, visibleComposi
 import type { ArsenalComposition, ArsenalLogo } from "@shared/designArsenal";
 import { ensureCatalogPostFonts } from "../lib/catalogCompiler";
 import { canvasTypography } from "../lib/catalogTypography";
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Stage, Layer, Rect, Text, Group, Image as KonvaImage, Transformer, Line, Circle } from "react-konva";
 import type { BgImageTransform, CanvasCustomImage, CanvasCustomShape, CanvasCustomText, CanvasPostModel, ElementPosition, LogoPositionType, TextLegibilityEffect, SplitBgPosition } from "./types";
@@ -37,10 +38,13 @@ import {
 import { registerUserFont } from "../lib/fontResources";
 import { COMPOSITION_BACKGROUND_ID, COMPOSITION_LOGO_ID, getEditorElementState, resolveEditorElementOrder } from "../lib/editorElementState";
 import { collectUsedFontsForSlide, collectUsedFontsForDocument, assertFontsReady } from "../lib/exportReadiness";
+import type { SelectionModifiers, SelectionTransform } from "../lib/editorSelection";
+import { withoutEditorGuides } from "../lib/exportEditorGuides";
+import { extraTextAppearance } from "../lib/nativeTextAppearance";
 
 export interface CanvasPostStageRef {
   exportPng4K: (maxDimension?: number) => string;
-  exportZip4K: (onProgress?: (current: number, total: number) => void) => Promise<Blob>;
+  exportZip4K: (onProgress?: (current: number, total: number) => void, maxDimension?: number) => Promise<Blob>;
   exportThumbnail: () => Promise<string>;
   commitDraft: () => void;
   cancelDraft: () => void;
@@ -51,6 +55,7 @@ export interface CanvasPostStageRef {
 
 interface CanvasPostStageProps {
   post: CanvasPostModel;
+  advancedImagePreview?: AdvancedImagePreview | null;
   onUpdateComposition?: (composition: ArsenalComposition) => void;
   /** Cena privada de diagnóstico; usa o mesmo Stage/Konva sem criar um post de produto. */
   diagnosticScene?: ReferenceReconstructionSpecV2;
@@ -74,9 +79,12 @@ interface CanvasPostStageProps {
     transform: { scaleX: number; scaleY: number; rotation: number },
     pos?: ElementPosition
   ) => void;
-  onSelectElement?: (elementId: string | null) => void;
+  onSelectElement?: (elementId: string | null, modifiers?: SelectionModifiers) => void;
   selectedElementId?: string | null;
+  selectedElementIds?: readonly string[];
+  onTransformSelection?: (transform: SelectionTransform) => void;
   onEditingChange?: (editing: boolean) => void;
+  onBeforeTextEdit?: (proceed: () => void) => void;
   isReadOnly?: boolean;
   isEditingBackground?: boolean;
   onUpdateBgTransform?: (transform: BgImageTransform) => void;
@@ -418,7 +426,7 @@ function NativeElementStack({ children, order }: { children: React.ReactNode; or
 const CanvasCustomImageNode: React.FC<{
   item: CanvasCustomImage;
   isInteractive: boolean;
-  onSelect: () => void;
+  onSelect: (event: any) => void;
   onDragMove: (e: any) => void;
   onDragEnd: (e: any) => void;
   onTransformEnd: (e: any) => void;
@@ -483,6 +491,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
   (
     {
       post: documentPost,
+      advancedImagePreview,
       onUpdateComposition,
       diagnosticScene,
       diagnosticTextMode,
@@ -497,7 +506,10 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       onUpdateDecorationTransform,
       onSelectElement,
       selectedElementId,
+      selectedElementIds,
+      onTransformSelection,
       onEditingChange,
+      onBeforeTextEdit,
       isReadOnly = false,
       isEditingBackground = false,
       onUpdateBgTransform,
@@ -514,7 +526,6 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     },
     ref
   ) => {
-    const isInteractive = !isReadOnly && Boolean(onUpdateElementPosition || onUpdateComposition);
     const stageRef = useRef<any>(null);
     // CSS zoom keeps canonical coordinates; increase only the preview backing pixels.
     useEffect(() => {
@@ -543,13 +554,31 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     const extraShapeRefs = useRef<Record<string, any>>({});
     const extraImageRefs = useRef<Record<string, any>>({});
 
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [localSelection, setLocalSelection] = useState<string[]>([]);
+    const selectedIds = selectedElementIds ?? localSelection;
+    const selectedId = selectedIds[selectedIds.length - 1] ?? null;
+    const setSelectedId = (id: string | null) => setLocalSelection(id ? [id] : []);
+    const multiSelectionRef = useRef<any>(null);
+    const latestDocumentRef = useRef(documentPost);
+    latestDocumentRef.current = documentPost;
+    const multiPreviewRef = useRef<{ document: CanvasPostModel; nodes: Array<{ node: any; x: number; y: number; scaleX: number; scaleY: number; absolute: { x: number; y: number } }> } | null>(null);
+    const [multiBounds, setMultiBounds] = useState<{x: number; y: number; width: number; height: number} | null>(null);
+    const [selectionModifier, setSelectionModifier] = useState(false);
+    useEffect(() => {
+      const down = (event: KeyboardEvent) => setSelectionModifier(event.ctrlKey || event.metaKey || event.shiftKey);
+      const clear = () => setSelectionModifier(false);
+      window.addEventListener("keydown", down); window.addEventListener("keyup", down); window.addEventListener("blur", clear);
+      return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", down); window.removeEventListener("blur", clear); };
+    }, []);
     // Índice de slide usado exclusivamente durante a exportação ZIP offscreen:
     // o mesmo motor renderiza cada slide de forma determinística, em vez de
     // capturar repetidamente o slide visível (Etapa 2 §7.6).
     const [exportSlideIndex, setExportSlideIndex] = useState<number | null>(null);
     const [exportFrozenPost, setExportFrozenPost] = useState<CanvasPostModel | null>(null);
-    const activeDocument = exportFrozenPost ?? documentPost;
+    const previewProjection = useMemo(() => exportFrozenPost ? null : projectAdvancedImagePreview(documentPost, advancedImagePreview), [documentPost, advancedImagePreview, exportFrozenPost]);
+    const previewActive = Boolean(previewProjection);
+    const isInteractive = !isReadOnly && !previewActive && Boolean(onUpdateElementPosition || onUpdateComposition);
+    const activeDocument = exportFrozenPost ?? previewProjection ?? documentPost;
     const post = resolveSlideAppearance(activeDocument, exportSlideIndex ?? activeDocument.currentSlideIndex);
     const composition = post.slides[exportSlideIndex ?? post.currentSlideIndex]?.composition;
     const [arsenalFonts, setArsenalFonts] = useState<{key: string; ready: boolean; error?: string}>({key:"",ready:false});
@@ -722,8 +751,58 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       return () => { active = false; };
     }, [activeLogoUrl]);
 
+    const selectionNode = (id: string) => compositionNodeRefs.current[id]
+      ?? (id === "headline" ? headlineResizeFrameRef.current : id === "subtext" ? subtextResizeFrameRef.current
+        : id === "badge" ? badgeRef.current : id === "bar" ? barRef.current : id === "logo" ? logoRef.current
+          : extraTextRefs.current[id] ?? extraImageRefs.current[id] ?? extraShapeRefs.current[id]);
+    const beginMultiPreview = () => {
+      multiPreviewRef.current = { document: documentPost, nodes: selectedIds.map(id => {
+        const node = !composition && id === "headline" ? headlineRef.current : !composition && id === "subtext" ? subtextRef.current : selectionNode(id);
+        return { node, x: node.x(), y: node.y(), scaleX: node.scaleX(), scaleY: node.scaleY(), absolute: node.getAbsolutePosition() };
+      }) };
+    };
+    const previewMulti = (event: any) => {
+      if (!multiBounds || !multiPreviewRef.current || multiPreviewRef.current.document !== latestDocumentRef.current) return;
+      const proxy = event.target, scale = proxy.scaleX();
+      for (const item of multiPreviewRef.current.nodes) {
+        item.node.setAbsolutePosition({ x: proxy.x() + (item.absolute.x - multiBounds.x) * scale,
+          y: proxy.y() + (item.absolute.y - multiBounds.y) * scale });
+        item.node.scaleX(item.scaleX * scale); item.node.scaleY(item.scaleY * scale);
+      }
+    };
+    const restoreMultiPreview = () => {
+      const preview = multiPreviewRef.current;
+      multiPreviewRef.current = null;
+      if (!preview || preview.document !== latestDocumentRef.current) return false;
+      for (const item of preview.nodes) {
+        item.node.position({ x: item.x, y: item.y }); item.node.scaleX(item.scaleX); item.node.scaleY(item.scaleY);
+      }
+      return true;
+    };
+
+    // A single proxy transforms a set atomically, avoiding one commit per Konva child.
+    useEffect(() => {
+      if (selectedIds.length < 2 || !onTransformSelection || isEditingBackground || editingTarget ||
+          selectedIds.some(id => !canInteractWith(id) || id === "background" || id === COMPOSITION_BACKGROUND_ID)) {
+        setMultiBounds(null); return;
+      }
+      const rects = selectedIds.map(id => selectionNode(id)?.getClientRect?.({ relativeTo: stageRef.current }));
+      if (rects.some(rect => !rect)) { setMultiBounds(null); return; }
+      const x = Math.min(...rects.map(r => r.x)), y = Math.min(...rects.map(r => r.y));
+      setMultiBounds({ x, y, width: Math.max(...rects.map(r => r.x + r.width)) - x,
+        height: Math.max(...rects.map(r => r.y + r.height)) - y });
+    }, [selectedIds.join("\0"), documentPost, arsenalReady, isEditingBackground, editingTarget, isReadOnly]);
+
     // Vincula o Transformer normal aos elementos de texto/marca quando não estiver em modo de fundo
     useEffect(() => {
+      if (exportFrozenPost) {
+        transformerRef.current?.nodes([]); return;
+      }
+      if (selectedIds.length > 1) {
+        transformerRef.current?.nodes(multiBounds && multiSelectionRef.current ? [multiSelectionRef.current] : []);
+        transformerRef.current?.getLayer()?.batchDraw();
+        return;
+      }
       if (isEditingBackground || editingTarget || !selectedId || !canInteractWith(selectedId)) {
         transformerRef.current?.nodes([]);
         transformerRef.current?.getLayer()?.batchDraw();
@@ -750,7 +829,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         transformerRef.current.nodes([]);
         transformerRef.current.getLayer()?.batchDraw();
       }
-    }, [selectedId, isEditingBackground, editingTarget, composition, currentSlide.elementStates, isReadOnly, logoImgElement]);
+    }, [selectedId, selectedIds.length, multiBounds, exportFrozenPost, isEditingBackground, editingTarget, composition, currentSlide.elementStates, isReadOnly, logoImgElement]);
 
     // Vincula o Transformer exclusivo ao Plano de Fundo quando isEditingBackground === true (Estilo Canva)
     useEffect(() => {
@@ -766,6 +845,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
 
     useImperativeHandle(ref, () => ({
       exportThumbnail: async () => {
+        if (previewActive) return "";
         const stage = stageRef.current;
         if (!stage) return "";
         if (composition) { try { await ensureArsenalCompositionAssets(visibleCompositionAssets(composition)); } catch { return ""; } }
@@ -789,7 +869,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
             await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
             stage.getLayers().forEach((layer: any) => layer.draw());
             try {
-              return stage.toDataURL({ pixelRatio: 1.5, mimeType: "image/png" });
+              return withoutEditorGuides(stage, () => stage.toDataURL({ pixelRatio: 1.5, mimeType: "image/png" }));
             } catch {
               return "";
             }
@@ -799,6 +879,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         return "";
       },
       exportPng4K: (maxDimension = 3840) => {
+        if (previewActive) throw new Error("Aplique ou descarte a prévia da imagem antes de baixar.");
         if (!stageRef.current) return "";
         const expectedImages = composition
           ? renderedCompositionImageCount(composition)
@@ -814,19 +895,13 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
           assertFontsReady(usedFonts);
         }
 
-        setSelectedId(null);
-        transformerRef.current?.nodes([]);
-        bgTransformerRef.current?.nodes([]);
-        stageRef.current.getLayers().forEach((l: any) => l.draw());
-        const mediaGuides = stageRef.current.find(".editor-media-guide");
-        mediaGuides.forEach((node: any) => node.hide());
-        stageRef.current.getLayers().forEach((layer: any) => layer.draw());
-        try { return stageRef.current.toDataURL({
+        return withoutEditorGuides(stageRef.current, () => stageRef.current.toDataURL({
           pixelRatio: diagnosticScene ? diagnosticScene.source.widthPx / baseWidth : Math.min(3840, Math.max(256, maxDimension)) / Math.max(baseWidth, baseHeight),
           mimeType: "image/png",
-        }); } finally { mediaGuides.forEach((node: any) => node.show()); stageRef.current.getLayers().forEach((layer: any) => layer.draw()); }
+        }));
       },
-      exportZip4K: async (onProgress) => {
+      exportZip4K: async (onProgress, maxDimension = 3840) => {
+        if (previewActive) throw new Error("Aplique ou descarte a prévia da imagem antes de baixar.");
         if (editingTarget) throw new Error("Conclua a edição do texto antes de exportar.");
         // Validação estrita de fontes usadas no documento
         const usedFonts = collectUsedFontsForDocument(documentPost);
@@ -877,14 +952,11 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
             const expected = slide.composition ? renderedCompositionImageCount(slide.composition) : renderedNativeImageCount(slide, frozenPost);
             await awaitStageImagesLoaded(4000, expected);
 
-            const mediaGuides = stage.find(".editor-media-guide");
-            mediaGuides.forEach((node: any) => node.hide());
-            stage.getLayers().forEach((l: any) => l.draw());
             let dataUrl: string;
-            try { dataUrl = stage.toDataURL({
-              pixelRatio: 3840 / Math.max(baseWidth, baseHeight),
+            dataUrl = withoutEditorGuides(stage, () => stage.toDataURL({
+              pixelRatio: Math.min(3840, Math.max(256, maxDimension)) / Math.max(baseWidth, baseHeight),
               mimeType: "image/png",
-            }); } finally { mediaGuides.forEach((node: any) => node.show()); }
+            }));
             const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
             zip.file(`slide-${i + 1}.png`, base64Data, { base64: true });
           }
@@ -920,13 +992,14 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
             return { x: node.x() * factor, y: node.y() * factor, width: node.width() * factor, height: node.height() * factor, rotation: 0 }; }
           const target = [...composition.elements, ...composition.groups].find(e => e.id === id);
           if (target) { const world = arsenalWorldGeometry(target, composition.groups);
-            return { x: world.x, y: world.y, width: target.width * world.scale, height: target.height * world.scale,
+            const ownScale = "scale" in target ? target.scale : 1;
+            return { x: world.x, y: world.y, width: target.width * world.scale * ownScale, height: target.height * world.scale * ownScale,
               rotation: world.rotation, fontSize: "fontSize" in target ? target.fontSize * world.scale : undefined }; }
         }
         if (id === (composition ? COMPOSITION_BACKGROUND_ID : "background")) return { x: 0, y: 0, width: composition?.artboard.width ?? baseWidth, height: composition?.artboard.height ?? baseHeight };
         if (!node) return null;
         return { x: node.x(), y: node.y(), width: node.width() * node.scaleX(), height: node.height() * node.scaleY(), rotation: node.rotation(),
-          fontSize: id === "headline" ? headlineFontSize : id === "subtext" ? subtextFontSize : activeExtraTexts.find(text => text.id === id)?.fontSize };
+          fontSize: id === "headline" ? headlineFontSize : id === "subtext" ? subtextFontSize : (() => { const text = activeExtraTexts.find(text => text.id === id); return text ? extraTextAppearance(post, text).fontSize : undefined; })() };
       },
     }));
 
@@ -1123,11 +1196,11 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       const node = e.target;
       const rawScaleX = node.scaleX();
       const rawScaleY = node.scaleY();
-      const scaleX = typeof rawScaleX === "number" && Number.isFinite(rawScaleX) && rawScaleX > 0 ? Number(rawScaleX.toFixed(4)) : 1;
-      const scaleY = typeof rawScaleY === "number" && Number.isFinite(rawScaleY) && rawScaleY > 0 ? Number(rawScaleY.toFixed(4)) : 1;
-      const rotation = typeof node.rotation() === "number" && Number.isFinite(node.rotation()) ? Math.round(node.rotation()) : 0;
-      const x = Math.round(node.x());
-      const y = Math.round(node.y());
+      const scaleX = typeof rawScaleX === "number" && Number.isFinite(rawScaleX) && rawScaleX > 0 ? rawScaleX : 1;
+      const scaleY = typeof rawScaleY === "number" && Number.isFinite(rawScaleY) && rawScaleY > 0 ? rawScaleY : 1;
+      const rotation = typeof node.rotation() === "number" && Number.isFinite(node.rotation()) ? node.rotation() : 0;
+      const x = node.x();
+      const y = node.y();
       onUpdateDecorationTransform?.(target, { scaleX, scaleY, rotation }, { x, y });
     };
 
@@ -1155,8 +1228,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         fontStyle: post.headlineFontWeight ? String(post.headlineFontWeight) : "bold",
         fill: post.palette.headlineColor || post.palette.text,
         align: post.headlineAlign || "left",
-        letterSpacing: typography.headlineLetterSpacing,
-        lineHeight: typography.headlineLineHeight,
+        letterSpacing: post.headlineLetterSpacing ?? typography.headlineLetterSpacing,
+        lineHeight: post.headlineLineHeight ?? typography.headlineLineHeight,
       });
 
     const subtextMetricsFor = (size: number) =>
@@ -1169,7 +1242,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         fontStyle: post.subtextFontWeight ? String(post.subtextFontWeight) : "normal",
         fill: post.palette.subtextColor || post.palette.text,
         align: post.bodyAlign || "left",
-        lineHeight: 1.45,
+        lineHeight: post.subtextLineHeight ?? 1.45,
+        letterSpacing: post.subtextLetterSpacing ?? 0,
       });
 
     const headlineFontSize = effHeadlineSizeBase;
@@ -1417,16 +1491,17 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       resizeFrame?.current?.position({ x: e.target.x(), y: e.target.y() });
       if (onUpdateElementPosition) {
         onUpdateElementPosition(elementKey, {
-          x: Math.round(e.target.x()),
-          y: Math.round(e.target.y()),
+          x: e.target.x(),
+          y: e.target.y(),
         });
       }
     };
 
-    const handleSelect = (id: string) => {
+    const handleSelect = (id: string, event?: any) => {
       if (!canInteractWith(id)) return;
-      setSelectedId(id);
-      if (onSelectElement) onSelectElement(id);
+      const toggle = Boolean(event?.evt?.ctrlKey || event?.evt?.metaKey || event?.evt?.shiftKey);
+      setLocalSelection(previous => toggle ? previous.includes(id) ? previous.filter(value => value !== id) : [...previous, id] : [id]);
+      onSelectElement?.(id, { toggle });
     };
 
     const syncNativeSelection = (start: number, end = start) => {
@@ -1457,7 +1532,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     };
 
     // ─── Ações de Edição Direta no Canvas ───
-    const startEditing = (target: string, event?: any, targetLayout?: RichTextLayout) => {
+    const startEditing = (target: string, event?: any, targetLayout?: RichTextLayout, confirmed = false) => {
+      if (onBeforeTextEdit && !confirmed) { onBeforeTextEdit(() => startEditing(target, event, targetLayout, true)); return; }
       if (!canInteractWith(target) || isEditingBackground) return;
       if (composition ? !composition.elements.some(e => e.id === target && e.kind === "text") : !["headline", "subtext", "badge", ...activeExtraTexts.map(t => t.id)].includes(target)) return;
       if (!arsenalReady) { pendingEditRef.current = { slideId: currentSlide.id, target }; return; }
@@ -1605,13 +1681,10 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     };
 
     const handleTextClick = (event: any, target: string, layout: RichTextLayout) => {
-      const wasSelected = selectedId === target;
-      handleSelect(target);
+      handleSelect(target, event);
       if ((event.evt?.detail ?? 0) >= 3) {
         if (editingTargetRef.current === target) syncNativeSelection(0, editingTextRef.current.length);
         else startEditing(target, undefined, layout);
-      } else if (wasSelected && editingTargetRef.current !== target) {
-        startEditing(target, event, layout);
       }
     };
 
@@ -1624,6 +1697,29 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
         startEditing(target, event, layout);
       }
     };
+
+    useEffect(() => {
+      const handleSelectionKey = (event: KeyboardEvent) => {
+        if (!selectedId || editingTargetRef.current || event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+        const target = event.target;
+        if (target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select, [role='dialog'], [contenteditable='true']"))) return;
+        if (event.key === "Enter") {
+          if (selectedIds.length !== 1 || (target instanceof HTMLElement && target.closest("button"))) return;
+          const isText = composition
+            ? composition.elements.some(element => element.id === selectedId && element.kind === "text")
+            : ["headline", "subtext", "badge", ...activeExtraTexts.map(text => text.id)].includes(selectedId);
+          if (!isText || !canInteractWith(selectedId) || isEditingBackground) return;
+          event.preventDefault();
+          startEditing(selectedId);
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          setSelectedId(null);
+          onSelectElement?.(null);
+        }
+      };
+      window.addEventListener("keydown", handleSelectionKey);
+      return () => window.removeEventListener("keydown", handleSelectionKey);
+    }, [selectedId, selectedIds.length, composition, activeExtraTexts, currentSlide, isInteractive, isEditingBackground, arsenalReady, onSelectElement]);
 
     const clearLongPress = () => {
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
@@ -1684,6 +1780,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
     };
 
     const handleStagePointerDown = (e: any) => {
+      if (e.target === multiSelectionRef.current) return;
       // Ignora clique no Transformer ou em suas âncoras
       const isTransformer =
         e.target?.getParent?.()?.className === "Transformer" ||
@@ -1698,6 +1795,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       const isLogo = isDescendantOf(e.target, logoRef.current);
       const isExtraText = Object.values(extraTextRefs.current).some((ref) => isDescendantOf(e.target, ref));
       const isExtraImage = Object.values(extraImageRefs.current).some((ref) => isDescendantOf(e.target, ref));
+      const isExtraShape = Object.values(extraShapeRefs.current).some(ref => isDescendantOf(e.target, ref));
 
       // Clicar em outro elemento conclui primeiro a edição corrente. Isso evita
       // que seleção visual e alvo do teclado fiquem apontando para objetos distintos.
@@ -1713,7 +1811,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
       }
 
       const isComposition = Object.values(compositionNodeRefs.current).some(node=>isDescendantOf(e.target,node));
-      if (isHeadline || isSubtext || isBadge || isBar || isLogo || isExtraText || isExtraImage || isComposition) {
+      if (isHeadline || isSubtext || isBadge || isBar || isLogo || isExtraText || isExtraImage || isExtraShape || isComposition) {
         return;
       }
 
@@ -1794,6 +1892,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   {[0.2, 0.4, 0.5, 0.6, 0.8].map((ratio) => (
                     <Line
                       key={`grid-x-${ratio}`}
+                      name="editor-media-guide"
                       points={[baseWidth * ratio, 0, baseWidth * ratio, baseHeight]}
                       stroke="rgba(255,255,255,0.05)"
                       strokeWidth={1}
@@ -1804,6 +1903,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   {[0.2, 0.4, 0.5, 0.6, 0.8].map((ratio) => (
                     <Line
                       key={`grid-y-${ratio}`}
+                      name="editor-media-guide"
                       points={[0, baseHeight * ratio, baseWidth, baseHeight * ratio]}
                       stroke="rgba(255,255,255,0.05)"
                       strokeWidth={1}
@@ -1871,8 +1971,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     onDragEnd={(e) => {
                       if (!onUpdateBgTransform) return;
                       onUpdateBgTransform({
-                        x: Math.round(e.target.x()),
-                        y: Math.round(e.target.y()),
+                        x: e.target.x(),
+                        y: e.target.y(),
                         scaleX: Number(e.target.scaleX().toFixed(3)),
                         scaleY: Number(e.target.scaleY().toFixed(3)),
                         rotation: Math.round(e.target.rotation()),
@@ -1883,11 +1983,11 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                       const node = bgImageRef.current;
                       if (!node) return;
                       onUpdateBgTransform({
-                        x: Math.round(node.x()),
-                        y: Math.round(node.y()),
+                        x: node.x(),
+                        y: node.y(),
                         scaleX: Number(node.scaleX().toFixed(3)),
                         scaleY: Number(node.scaleY().toFixed(3)),
-                        rotation: Math.round(node.rotation()),
+                        rotation: node.rotation(),
                       });
                     }}
                   />
@@ -2105,7 +2205,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     rotation={currentSlide?.nativeDecorationTransforms?.badge?.rotation ?? -4}
                     draggable={isInteractive}
                     dragBoundFunc={isInteractive ? createSnapBoundFunc(Math.max(95, primaryBadgeText.length * 8 + 20), 26) : undefined}
-                    onClick={() => handleSelect("badge")}
+                    onClick={event => handleSelect("badge", event)}
                     onDblClick={() => startEditing("badge")}
                     onDblTap={() => startEditing("badge")}
                     onDragMove={handleDragMove}
@@ -2149,7 +2249,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     rotation={currentSlide?.nativeDecorationTransforms?.badge?.rotation ?? 0}
                     draggable={isInteractive}
                     dragBoundFunc={isInteractive ? createSnapBoundFunc(primaryBadgeText.length * 7 + 16, 22) : undefined}
-                    onClick={() => handleSelect("badge")}
+                    onClick={event => handleSelect("badge", event)}
                     onDblClick={() => startEditing("badge")}
                     onDblTap={() => startEditing("badge")}
                     onDragMove={handleDragMove}
@@ -2170,7 +2270,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     rotation={currentSlide?.nativeDecorationTransforms?.badge?.rotation ?? 0}
                     draggable={isInteractive}
                     dragBoundFunc={isInteractive ? createSnapBoundFunc(primaryBadgeText.length * 7 + 22, 22) : undefined}
-                    onClick={() => handleSelect("badge")}
+                    onClick={event => handleSelect("badge", event)}
                     onDblClick={() => startEditing("badge")}
                     onDblTap={() => startEditing("badge")}
                     onDragMove={handleDragMove}
@@ -2191,7 +2291,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     rotation={currentSlide?.nativeDecorationTransforms?.badge?.rotation ?? 0}
                     draggable={isInteractive}
                     dragBoundFunc={isInteractive ? createSnapBoundFunc(primaryBadgeText.length * 7 + 18, 22) : undefined}
-                    onClick={() => handleSelect("badge")}
+                    onClick={event => handleSelect("badge", event)}
                     onDblClick={() => startEditing("badge")}
                     onDblTap={() => startEditing("badge")}
                     onDragMove={handleDragMove}
@@ -2273,7 +2373,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   opacity={currentSlide.logo?.opacity ?? 1}
                   draggable={isInteractive}
                   dragBoundFunc={isInteractive ? createSnapBoundFunc(46, 24) : undefined}
-                  onClick={() => handleSelect("logo")}
+                  onClick={event => handleSelect("logo", event)}
                   onDragMove={handleDragMove}
                   onDragEnd={(event) => {
                     if (!canInteractWith("logo")) return;
@@ -2308,8 +2408,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   fill={shape.color}
                   listening={canInteractWith(shape.id) && !isEditingBackground}
                   draggable={canInteractWith(shape.id) && !isEditingBackground && Boolean(onUpdateExtraShape)}
-                  onClick={() => handleSelect(shape.id)}
-                  onTap={() => handleSelect(shape.id)}
+                  onClick={event => handleSelect(shape.id, event)}
+                  onTap={event => handleSelect(shape.id, event)}
                   onDragEnd={event => { if (canInteractWith(shape.id)) onUpdateExtraShape?.(shape.id, { x: event.target.x(), y: event.target.y() }); }}
                   onTransformEnd={event => {
                     if (!canInteractWith(shape.id)) return;
@@ -2362,7 +2462,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 draggable={canInteractWith("headline") && editingTarget !== "headline"}
                 dragBoundFunc={isInteractive ? createSnapBoundFunc(activeHeadlineWidth, headlineHeight) : undefined}
                 onClick={(event) => handleTextClick(event, "headline", headlineMetrics)}
-                onTap={() => handleSelect("headline")}
+                onTap={event => handleSelect("headline", event)}
                 onDblClick={(event) => handleTextDoubleClick(event, "headline", headlineMetrics)}
                 onDblTap={(event) => handleTextDoubleClick(event, "headline", headlineMetrics)}
                 onMouseDown={(event) => handleEditingPointerDown(event, "headline", headlineMetrics)}
@@ -2392,7 +2492,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   accentColor: post.palette.accent,
                   customColor: post.headlineEffectColor,
                   lines: headlineLines,
-                  lineHeightPx: headlineFontSize * (typography.headlineLineHeight),
+                  lineHeightPx: headlineFontSize * (post.headlineLineHeight ?? typography.headlineLineHeight),
                   align: defaultAlign,
                 })}
                 {headlineSelectionRects.map(rect => (
@@ -2415,10 +2515,11 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   fontSize={headlineFontSize}
                   fontFamily={post.fontFamily}
                   fontStyle={post.headlineFontWeight ? String(post.headlineFontWeight) : "bold"}
+                  fillGradient={post.headlineGradient ?? undefined}
                   fill={headlineColor}
                   align={defaultAlign}
-                  lineHeight={typography.headlineLineHeight}
-                  letterSpacing={typography.headlineLetterSpacing}
+                  lineHeight={post.headlineLineHeight ?? typography.headlineLineHeight}
+                  letterSpacing={post.headlineLetterSpacing ?? typography.headlineLetterSpacing}
                   opacity={1}
                   {...getTextEffectProps(headlineEffect, isDarkHeadline, true, post.headlineEffectColor)}
                 />
@@ -2472,7 +2573,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 draggable={canInteractWith("subtext") && editingTarget !== "subtext"}
                 dragBoundFunc={isInteractive ? createSnapBoundFunc(activeSubtextWidth, subtextHeight) : undefined}
                 onClick={(event) => handleTextClick(event, "subtext", subtextMetrics)}
-                onTap={() => handleSelect("subtext")}
+                onTap={event => handleSelect("subtext", event)}
                 onDblClick={(event) => handleTextDoubleClick(event, "subtext", subtextMetrics)}
                 onDblTap={(event) => handleTextDoubleClick(event, "subtext", subtextMetrics)}
                 onMouseDown={(event) => handleEditingPointerDown(event, "subtext", subtextMetrics)}
@@ -2502,7 +2603,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   accentColor: post.palette.accent,
                   customColor: post.subtextEffectColor,
                   lines: subtextLines,
-                  lineHeightPx: subtextFontSize * 1.45,
+                  lineHeightPx: subtextFontSize * (post.subtextLineHeight ?? 1.45),
                   align: subtextAlign,
                 })}
                 {subtextSelectionRects.map(rect => (
@@ -2525,10 +2626,12 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   fontSize={subtextFontSize}
                   fontFamily={post.subtextFontFamily ?? (currentSlide?.guidedComposition ? "Arial, sans-serif" : isCyber ? "Space Mono, monospace" : "Inter, sans-serif")}
                   fontStyle={post.subtextFontWeight ? String(post.subtextFontWeight) : "normal"}
+                  fillGradient={post.subtextGradient ?? undefined}
                   fill={subtextColor}
                   opacity={isBrutalSplit ? 0.95 : 0.85}
                   align={subtextAlign}
-                  lineHeight={1.45}
+                  lineHeight={post.subtextLineHeight ?? 1.45}
+                  letterSpacing={post.subtextLetterSpacing ?? 0}
                   {...getTextEffectProps(subtextEffect, isDarkSubtext, false, post.subtextEffectColor)}
                 />
                 {subtextCaret && editingSelection.start === editingSelection.end && (
@@ -2554,7 +2657,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   fill={post.palette.accent}
                   draggable={isInteractive}
                   dragBoundFunc={isInteractive ? createSnapBoundFunc(isEditorial ? 48 : 36, 4) : undefined}
-                  onClick={() => handleSelect("bar")}
+                  onClick={event => handleSelect("bar", event)}
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(e, "barPos")}
                   onTransformEnd={(e) => handleDecorationTransformEnd(e, "bar", "barPos")}
@@ -2568,7 +2671,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 const itemRich = editingTarget === item.id ? editingRichText : item.textRich;
                 const itemX = item.x ?? Math.round(baseWidth * 0.1);
                 const itemY = item.y ?? Math.round(baseHeight * 0.65);
-                const itemSize = (item.fontSize || 16) * (item.sizeScale || 1);
+                const appearance = extraTextAppearance(post, item);
+                const itemSize = appearance.fontSize;
                 const rawItemColor = item.color || post.palette.text;
                 const itemAlign = item.align || "left";
                 const itemEffect: TextLegibilityEffect = item.effect || "none";
@@ -2579,13 +2683,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     : itemEffect === "box-brutal"
                     ? (isDarkItem ? "#000000" : "#FFFFFF")
                     : rawItemColor;
-                const itemFont =
-                  item.fontFamily ||
-                  (isCyber
-                    ? "Space Mono, monospace"
-                    : isEditorial
-                    ? "Playfair Display, serif"
-                    : "Inter, sans-serif");
+                const itemFont = appearance.fontFamily;
                 const itemWidth = item.width || contentWidth;
 
                 const itemMetrics = layoutRichText({
@@ -2632,7 +2730,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                         : undefined
                     }
                     onClick={(event) => handleTextClick(event, item.id, itemMetrics)}
-                    onTap={() => handleSelect(item.id)}
+                    onTap={event => handleSelect(item.id, event)}
                     onDblClick={(event) => handleTextDoubleClick(event, item.id, itemMetrics)}
                     onDblTap={(event) => handleTextDoubleClick(event, item.id, itemMetrics)}
                     onMouseDown={(event) => handleEditingPointerDown(event, item.id, itemMetrics)}
@@ -2645,8 +2743,8 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     onDragMove={handleDragMove}
                     onDragEnd={(e) => {
                       setSnapLines({});
-                      const newX = Math.round(e.target.x());
-                      const newY = Math.round(e.target.y());
+                      const newX = e.target.x();
+                      const newY = e.target.y();
                       if (onUpdateExtraText) {
                         onUpdateExtraText(item.id, {
                           x: newX,
@@ -2667,13 +2765,13 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                       const anchor = transformerRef.current?.getActiveAnchor() as TextResizeAnchor | undefined;
                       const isCorner = anchor === "top-left" || anchor === "top-right" || anchor === "bottom-left" || anchor === "bottom-right";
                       const currentWidth = item.width || contentWidth;
-                      const newWidth = Math.max(40, Math.round(currentWidth * scaleX));
-                      const newRotation = Math.round(node.rotation());
-                      const newX = Math.round(node.x());
-                      const newY = Math.round(node.y());
-                      const currentFontSize = item.fontSize || 24;
+                      const newWidth = Math.max(40, currentWidth * scaleX);
+                      const newRotation = node.rotation();
+                      const newX = node.x();
+                      const newY = node.y();
+                      const currentFontSize = item.fontSize ?? 16;
                       const newFontSize = isCorner
-                        ? Math.max(10, Math.round(currentFontSize * Math.max(scaleX, scaleY)))
+                        ? Math.max(10, currentFontSize * Math.max(scaleX, scaleY))
                         : currentFontSize;
                       // Invariante Konva: reseta escalas para 1 para não acumular distorções
                       node.scaleX(1);
@@ -2741,6 +2839,7 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                           ? "italic"
                           : "normal"
                       }
+                      fillGradient={item.textGradient ?? undefined}
                       fill={itemColor}
                       align={itemAlign}
                       lineHeight={1.3}
@@ -2772,20 +2871,20 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   setRef={(el) => {
                     if (el) {
                       extraImageRefs.current[imgItem.id] = el;
-                      if (selectedId === imgItem.id && canInteractWith(imgItem.id) && !isEditingBackground && !editingTarget) {
+                      if (selectedIds.length === 1 && selectedId === imgItem.id && canInteractWith(imgItem.id) && !isEditingBackground && !editingTarget) {
                         transformerRef.current?.nodes([el]);
                         transformerRef.current?.getLayer()?.batchDraw();
                       }
                     } else delete extraImageRefs.current[imgItem.id];
                   }}
-                  onSelect={() => handleSelect(imgItem.id)}
+                  onSelect={event => handleSelect(imgItem.id, event)}
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => {
                     setSnapLines({});
                     if (onUpdateExtraImage) {
                       onUpdateExtraImage(imgItem.id, {
-                        x: Math.round(e.target.x()),
-                        y: Math.round(e.target.y()),
+                        x: e.target.x(),
+                        y: e.target.y(),
                       });
                     }
                   }}
@@ -2793,11 +2892,11 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                     const node = e.target;
                     const scaleX = node.scaleX();
                     const scaleY = node.scaleY();
-                    const newWidth = Math.max(20, Math.round(node.width() * scaleX));
-                    const newHeight = Math.max(20, Math.round(node.height() * scaleY));
-                    const newRotation = Math.round(node.rotation());
-                    const newX = Math.round(node.x());
-                    const newY = Math.round(node.y());
+                    const newWidth = Math.max(20, node.width() * scaleX);
+                    const newHeight = Math.max(20, node.height() * scaleY);
+                    const newRotation = node.rotation();
+                    const newX = node.x();
+                    const newY = node.y();
                     // Invariante Konva: reseta escalas para 1 para não acumular distorções
                     node.scaleX(1);
                     node.scaleY(1);
@@ -2854,11 +2953,34 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                 />
               )}
               </React.Fragment>)}
+              {isInteractive && multiBounds && !exportFrozenPost && !isEditingBackground && !editingTarget && (
+                <Rect ref={multiSelectionRef} name="editor-media-guide editor-multi-selection"
+                  {...multiBounds} fill="rgba(56,189,248,0.04)" stroke="#38bdf8" strokeWidth={1}
+                  draggable listening={!selectionModifier}
+                  onDragStart={beginMultiPreview} onTransformStart={beginMultiPreview}
+                  onDragMove={previewMulti} onTransform={previewMulti}
+                  onClick={event => { event.cancelBubble = true; }}
+                  onTap={event => { event.cancelBubble = true; }}
+                  onDragEnd={event => {
+                    const node = event.target, factor = (composition?.artboard.width ?? baseWidth) / baseWidth;
+                    const transform = { x: multiBounds.x * factor, y: multiBounds.y * factor,
+                      dx: (node.x() - multiBounds.x) * factor, dy: (node.y() - multiBounds.y) * factor, scale: 1 };
+                    node.position({ x: multiBounds.x, y: multiBounds.y });
+                    if (restoreMultiPreview()) onTransformSelection?.(transform);
+                  }}
+                  onTransformEnd={event => {
+                    const node = event.target, factor = (composition?.artboard.width ?? baseWidth) / baseWidth;
+                    const transform = { x: multiBounds.x * factor, y: multiBounds.y * factor,
+                      dx: (node.x() - multiBounds.x) * factor, dy: (node.y() - multiBounds.y) * factor, scale: node.scaleX() };
+                    node.scaleX(1); node.scaleY(1); node.position({ x: multiBounds.x, y: multiBounds.y });
+                    if (restoreMultiPreview()) onTransformSelection?.(transform);
+                  }} />
+              )}
               {/* ─── 8. TRANSFORMER PARA ELEMENTOS DE TEXTO/MARCA/IMAGENS ─── */}
               {isInteractive && !isEditingBackground && (
                 <Transformer
                   ref={transformerRef}
-                  rotateEnabled={selectedId !== "headline" && selectedId !== "subtext" && selectedId !== "logo" && selectedId !== COMPOSITION_LOGO_ID && !currentSlide.extraShapes?.some(shape => shape.id === selectedId)}
+                  rotateEnabled={selectedIds.length <= 1 && selectedId !== "headline" && selectedId !== "subtext" && selectedId !== "logo" && selectedId !== COMPOSITION_LOGO_ID && !currentSlide.extraShapes?.some(shape => shape.id === selectedId)}
                   rotationSnaps={[0, 90, 180, 270]}
                   borderStroke="#38bdf8"
                   borderStrokeWidth={1.5}
@@ -2866,9 +2988,9 @@ export const CanvasPostStage = forwardRef<CanvasPostStageRef, CanvasPostStagePro
                   anchorFill="#ffffff"
                   anchorSize={7}
                   anchorCornerRadius={2}
-                  keepRatio={Boolean(selectedId && (extraImageRefs.current[selectedId] || composition?.groups.some(g=>g.id===selectedId)))}
+                  keepRatio={selectedIds.length > 1 || Boolean(selectedId && (extraImageRefs.current[selectedId] || composition?.groups.some(g=>g.id===selectedId)))}
                   enabledAnchors={
-                    selectedId && extraImageRefs.current[selectedId]
+                    selectedIds.length > 1 || (selectedId && extraImageRefs.current[selectedId])
                       ? ["top-left", "top-right", "bottom-left", "bottom-right"]
                       : (selectedId === "headline" || selectedId === "subtext" || (selectedId && extraTextRefs.current[selectedId]) || composition?.elements.some(e=>e.id===selectedId && e.kind==="text"))
                       ? ["top-left", "top-right", "bottom-left", "bottom-right", "middle-left", "middle-right"]

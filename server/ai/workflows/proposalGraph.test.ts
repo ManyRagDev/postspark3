@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { completeDesignTestDefinitions } from "@shared/completeDesignGeneration.fixture";
-import { createComponentDefinition } from "@shared/componentAssembly";
+import { compactComponentCard, createComponentDefinition } from "@shared/componentAssembly";
+import { cardsWithAvailableMedia } from "@shared/generationPlan";
 import { arsenalHash } from "@shared/arsenalContent";
 import { completeDesignVariationV1Schema } from "@shared/completeDesignGeneration";
 import { proposalDeliverySchema } from "@shared/generationContracts";
@@ -803,6 +804,31 @@ describe("Proposal Graph Workflow (canonical V1 delivery)", () => {
     expect(deps.generateText).not.toHaveBeenCalled();
   });
 
+  it("admits a prefilled deferred slot and delivers its original asset with paid generation off", async () => {
+    const { definition: blank, slot } = withMediaSlot(completeDesignTestDefinitions()[0], "photo");
+    const asset = { id: "image-" + "e".repeat(64), kind: "catalog" as const, bytes: 64, sha256: "e".repeat(64), mimeType: "image/png" };
+    const instance = blank.fragment.instances.find(item => item.id === slot.id)!;
+    const piece = { ...blank.pieces[instance.pieceHash], imageAssetId: asset.id };
+    const hash = arsenalHash(piece);
+    const filled = createComponentDefinition({
+      ...blank, pieces: { ...blank.pieces, [hash]: piece }, assets: [...blank.assets, asset],
+      fragment: { ...blank.fragment, assetIds: [...blank.fragment.assetIds, asset.id],
+        instances: blank.fragment.instances.map(item => item.id === slot.id ? { ...item, pieceHash: hash } : item) },
+    });
+    const obligation = { policy: "optional" as const, required: false, purpose: "none" as const, embeddedMediaOnly: true as const, slotTargets: 0, reason: "Usar o acervo" };
+    const filledCard = compactComponentCard(filled);
+    expect(cardsWithAvailableMedia([compactComponentCard(blank), filledCard], obligation)).toEqual([filledCard]);
+    const mediaAdapter = { generate: vi.fn() };
+    for (const imageObligation of [obligation, { policy: "optional" as const, required: false, purpose: "product" as const, slotTargets: 0, reason: "Upload disponível" }]) {
+      const result = await executeProposalWorkflow(workflowInput(filled, { allowAiImages: false, imageObligation }), textDeps(copyFor(filled), { mediaAdapter }));
+      expect(result.status, result.errorReason).toBe("ready");
+      expect(result.bundle?.slides[0].composition.elements.find(item => item.id === slot.id)?.imageAssetId).toBe(asset.id);
+    }
+    const rejected = await executeProposalWorkflow(workflowInput(blank, { allowAiImages: false, imageObligation: obligation }), textDeps(copyFor(blank), { mediaAdapter }));
+    expect(rejected.status).toBe("failed");
+    expect(mediaAdapter.generate).not.toHaveBeenCalled();
+  });
+
   it("keeps contrast:unknown as a non-blocking diagnostic and persists media for its native slot", async () => {
     const [base] = completeDesignTestDefinitions();
     const { definition, slot } = withMediaSlot(base, "photo-1");
@@ -1012,9 +1038,9 @@ describe("Proposal Graph Workflow (canonical V1 delivery)", () => {
     );
     expect(first.status).toBe("ready");
     expect(retried.status).toBe("ready");
-    expect(
-      executeOperation.mock.calls.map(([call]) => call.operationKey)
-    ).toEqual(["copy", "image:0:photo-1", "copy", "image:0:photo-1"]);
+    const attemptKeys = ["copy", "image:0:photo-1", `review_observation:initial:${"a".repeat(64)}:candidate`];
+    expect(executeOperation.mock.calls.map(([call]) => call.operationKey))
+      .toEqual([...attemptKeys, ...attemptKeys]);
     expect(deps.generateText).toHaveBeenCalledTimes(1);
     expect(mediaAdapter.generate).toHaveBeenCalledTimes(1);
     expect(checkpoint).toHaveBeenCalledWith("copy_started", {

@@ -1,3 +1,4 @@
+import type { AssemblyObserver } from "@shared/studioDebugger";
 import {
   completeDesignVariationV1Schema,
   completeDesignProvenanceSchema,
@@ -19,16 +20,18 @@ import { ensureArsenalFont } from "./arsenalAssets";
  * geometry reconstruction or editorial fallback is allowed in this path. */
 export async function compileCompleteDesign(
   value: CompleteDesignVariationV1,
-  options: { provenance?: CanvasPostProvenance; assetDeadline: number }
+  options: { provenance?: CanvasPostProvenance; assetDeadline: number; observe?: AssemblyObserver }
 ): Promise<CanvasPostModel> {
   const bundle = completeDesignVariationV1Schema.parse(value),
     start = performance.now();
+  options.observe?.("Design recebido e validado", "completed", { family: bundle.family, reason: bundle.reason, slides: bundle.slides.length });
   const scenes = bundle.slides.map(s => readArsenalComposition(s.composition));
   const assets = Array.from(
     new Map(
       scenes.flatMap(c => c.assets.filter(a => a.family)).map(a => [a.id, a])
     ).values()
   );
+  options.observe?.("Carregamento das fontes", "started", { families: assets.map(a => a.family) });
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     if (performance.now() >= options.assetDeadline) throw new Error("deadline");
@@ -41,6 +44,7 @@ export async function compileCompleteDesign(
         );
       }),
     ]);
+    options.observe?.("Fontes prontas", "completed");
   } catch {
     throw Object.assign(
       new Error(
@@ -65,8 +69,8 @@ export async function compileCompleteDesign(
     bundle.runId && typeof bundle.slot === "number"
       ? `cd-${bundle.runId}-${bundle.slot}`
       : crypto.randomUUID();
-  const posts = scenes.map((scene, i) =>
-    putArsenalComposition(
+  const posts = scenes.map((scene, i) => {
+    const slidePost = putArsenalComposition(
       {
         ...structuredClone(INITIAL_POST),
         id: stablePostId,
@@ -95,8 +99,10 @@ export async function compileCompleteDesign(
         ],
       },
       scene
-    )
-  );
+    );
+    options.observe?.("Slide montado", "completed", { slide: i + 1, role: bundle.slides[i].role, variant: scene.sourceVariantKey, candidate: scene.origin.candidateId, layers: scene.elements.length, groups: scene.groups.length });
+    return slidePost;
+  });
   return {
     ...posts[0],
     caption: bundle.caption,

@@ -2,6 +2,11 @@ import { z } from "zod";
 
 export const GENERATION_TELEMETRY_BATCH_SIZE = 20;
 export const GENERATION_TELEMETRY_MAX_BYTES = 8192;
+export const telemetryDeltaSchema = z.object({
+  fieldId: z.string().max(160).optional(),
+  property: z.string().max(160).optional(),
+  changeType: z.string().max(80).optional(),
+}).strict();
 export const generationTelemetryEventSchema = z.object({
   eventId: z.string().uuid(),
   exposureId: z.string().uuid(),
@@ -10,7 +15,9 @@ export const generationTelemetryEventSchema = z.object({
   revision: z.number().int().min(0),
   kind: z.enum(["exposure", "choice", "edit", "save", "reopen", "export_png", "export_zip"]),
   position: z.number().int().min(0).max(99).optional(),
+  originalPosition: z.number().int().min(0).max(99).optional(),
   changes: z.number().int().min(1).max(1000).optional(),
+  delta: telemetryDeltaSchema.optional(),
 }).strict();
 export const generationTelemetryBatchSchema = z.object({
   events: z.array(generationTelemetryEventSchema).min(1).max(GENERATION_TELEMETRY_BATCH_SIZE),

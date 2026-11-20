@@ -10,6 +10,7 @@ import {
 } from "@shared/generationRequest";
 import {
   determineImageObligation,
+  eligibleCompleteDesignCardsForRequest,
   prepareOrchestratedGeneration,
   validateDesignSelection,
   diversifyDesignSelection,
@@ -339,6 +340,26 @@ describe("orchestrated preparation", () => {
   });
 
   describe("determineImageObligation", () => {
+    it("admits embedded photography with AI off, includes empty slots only with content, and honors explicit text-only", () => {
+      const [first, second, third] = completeDesignTestDefinitions();
+      const typography = compactComponentCard(first);
+      const embedded = compactComponentCard(second);
+      embedded.completeDesign!.designGuidance = {
+        version: 1, summary: "Fotografia incorporada", motifs: ["photographic-object"],
+        preserve: [], contentRules: [], mediaRules: [], knownLimitations: [],
+      };
+      const empty = compactComponentCard(withNativePhoto(third));
+      const ids = (content: string, extras = {}) => eligibleCompleteDesignCardsForRequest(
+        [typography, embedded, empty], inputFor(content, { postMode: "static", allowAiImages: false, ...extras }), 2, true
+      ).map(card => card.id).sort();
+      const source = { id: "foto", kind: "image", purpose: "content", value: `/api/post-media/${owner}/${"d".repeat(64)}` };
+      expect(ids("Divulgue o encontro")).toEqual([typography.id, embedded.id].sort());
+      expect(ids("Divulgue o encontro", { sources: [source] })).toEqual([typography.id, embedded.id, empty.id].sort());
+      expect(ids("Divulgue o encontro", { sources: [{ ...source, purpose: "visual_reference" }] })).toEqual([typography.id, embedded.id].sort());
+      expect(ids("Somente texto, sem fotos", { sources: [source] })).toEqual([typography.id]);
+      expect(ids("Duas propostas com foto e uma tipográfica")).toEqual([typography.id, embedded.id].sort());
+    });
+
     it("returns product obligation when image reference is provided by user or brand", () => {
       const obligation1 = determineImageObligation(
         {

@@ -1,0 +1,58 @@
+/* Context belongs to the creation UI, never to brand palettes or canvas artwork. */
+.studio-create-page[data-creation-tone],
+.studio-creation-dialog[data-creation-tone] {
+  --creation-accent: #ff5c00;
+  --creation-accent-rgb: 255, 92, 0;
+  --creation-accent-ink: #ffd0b5;
+  --creation-action: #ff5c00;
+  --creation-on-accent: #0b0a08;
+  --creation-border: rgba(242, 237, 228, 0.14);
+  --creation-muted: rgba(242, 237, 228, 0.65);
+}
+.studio-create-page[data-creation-tone="script"],
+.studio-creation-dialog[data-creation-tone="script"] {
+  --creation-accent: #8b5cf6;
+  --creation-accent-rgb: 139, 92, 246;
+  --creation-accent-ink: #ddd0ff;
+  --creation-action: #7c3aed;
+  --creation-on-accent: #fff;
+}
+.studio-create-page[data-creation-tone="url"],
+.studio-creation-dialog[data-creation-tone="url"] {
+  --creation-accent: #38bdf8;
+  --creation-accent-rgb: 56, 189, 248;
+  --creation-accent-ink: #bae6fd;
+  --creation-action: #0284c7;
+}
+
+.studio-create-page [data-creation-highlight="true"],
+.studio-create-page [data-project-active="true"],
+.studio-create-page [data-project-selected="true"],
+.studio-creation-dialog [data-creation-highlight="true"] {
+  border-color: var(--creation-accent);
+  background-color: rgba(var(--creation-accent-rgb), 0.12);
+  color: var(--creation-accent-ink);
+  --tw-shadow-color: rgba(var(--creation-accent-rgb), 0.1);
+}
+.studio-create-page [data-creation-outline],
+.studio-creation-dialog[data-creation-outline],
+.studio-creation-dialog [data-creation-outline] {
+  border-color: rgba(var(--creation-accent-rgb), 0.4);
+}
+.studio-create-page [data-creation-outline]:enabled:hover,
+.studio-creation-dialog [data-creation-outline]:enabled:hover {
+  border-color: var(--creation-accent);
+}
+.studio-create-page [data-project-accent],
+.studio-create-page .studio-context-icon {
+  color: var(--creation-accent);
+}
+.studio-create-page :is(button, select, a, input, summary):focus-visible,
+.studio-creation-dialog :is(button, textarea):focus-visible {
+  border-color: var(--creation-accent);
+  outline: 2px solid var(--creation-accent);
+  outline-offset: 2px;
+}
+.studio-create-page input[type="checkbox"] {
+  accent-color: var(--creation-accent);
+}

@@ -1,3 +1,4 @@
+import { textGradientSchema } from "./textGradient";
 import {
   variableContentContractSchema,
   validateVariableContent,
@@ -709,6 +710,7 @@ export type ArsenalUserFont = z.infer<typeof arsenalUserFontSchema>;
 
 export const arsenalElementEffectSchema = z
   .object({
+    gradient: textGradientSchema.nullable().optional(),
     effect: z.enum([
       "none",
       "shadow",

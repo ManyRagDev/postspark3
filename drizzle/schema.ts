@@ -204,6 +204,7 @@ export type SparkReservation = typeof sparkReservations.$inferSelect;
 export type InsertSparkReservation = typeof sparkReservations.$inferInsert;
 
 export const brandProjects = postsparkSchema.table("brand_projects", {
+  visualIdentity: jsonb("visual_identity").$type<import("../shared/visualIdentity").VisualIdentity>(),
   id: uuid("id").defaultRandom().primaryKey(),
   userUuid: uuid("user_uuid").notNull(),
   name: varchar("name", { length: 120 }).notNull(),

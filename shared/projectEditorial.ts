@@ -1,5 +1,6 @@
 import { brandCaptureMetadataSchema, capturedVisualPreferencesSchema } from "./generationSources";
 import { z } from "zod";
+import { visualIdentitySchema, type VisualIdentity } from "./visualIdentity";
 import type { ProjectStructuredData } from "./brandProjects";
 
 /** Frozen with the request, including projects that only exist in local storage. */
@@ -19,7 +20,8 @@ const generationProjectSnapshotV1Schema = z
     }),
   })
   .strict();
-export const generationProjectSnapshotSchema = z.union([generationProjectSnapshotV1Schema,generationProjectSnapshotV1Schema.extend({version:z.literal(2),capture:brandCaptureMetadataSchema.optional(),visualPreferences:capturedVisualPreferencesSchema.optional()})]);
+const generationProjectSnapshotV2Schema = generationProjectSnapshotV1Schema.extend({version:z.literal(2),capture:brandCaptureMetadataSchema.optional(),visualPreferences:capturedVisualPreferencesSchema.optional()});
+export const generationProjectSnapshotSchema = z.union([generationProjectSnapshotV1Schema,generationProjectSnapshotV2Schema,generationProjectSnapshotV2Schema.extend({version:z.literal(3),visualIdentity:visualIdentitySchema})]);
 export type GenerationProjectSnapshot = z.infer<
   typeof generationProjectSnapshotSchema
 >;
@@ -91,6 +93,7 @@ export function freezeGenerationProject(project: {
   structuredData?: Partial<ProjectStructuredData>;
   capture?: z.infer<typeof brandCaptureMetadataSchema> | null;
   visualPreferences?: z.infer<typeof capturedVisualPreferencesSchema> | null;
+  visualIdentity?: VisualIdentity | null;
 }): GenerationProjectSnapshot {
   const snapshot = generationProjectSnapshotSchema.parse({
     version: 1,
@@ -100,11 +103,12 @@ export function freezeGenerationProject(project: {
   });
   // Preserve all recognized text, including historical documents whose fields are empty.
   const editorial = projectEditorialDefaults(project.compiledDocument, snapshot);
-  if (!project.capture && !project.visualPreferences)
+  if (!project.capture && !project.visualPreferences && !project.visualIdentity)
     return generationProjectSnapshotV1Schema.parse(editorial);
   return generationProjectSnapshotSchema.parse({
     ...editorial,
-    version: 2,
+    version: project.visualIdentity ? 3 : 2,
+    ...(project.visualIdentity ? { visualIdentity: project.visualIdentity } : {}),
     ...(project.capture ? { capture: project.capture } : {}),
     ...(project.visualPreferences ? { visualPreferences: project.visualPreferences } : {}),
   });

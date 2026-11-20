@@ -2,6 +2,7 @@
 export const generationAspectRatios = ["1:1", "4:5", "9:16"] as const;
 export const storedAspectRatios = ["1:1", "4:5", "5:6", "9:16"] as const;
 export type StoredAspectRatio = (typeof storedAspectRatios)[number];
+export type ExportQuality = "hd" | "4k";
 export const aspectRatioDimensions: Record<
   StoredAspectRatio,
   { width: number; height: number }
@@ -20,4 +21,7 @@ export function aspectRatioHeight(
 }
 export function isPortraitRatio(ratio: string): boolean {
   return ratio === "4:5" || ratio === "5:6";
+}
+export function exportLongestSide(ratio: StoredAspectRatio, quality: ExportQuality) {
+  return quality === "hd" ? aspectRatioDimensions[ratio].height : 3840;
 }

@@ -92,7 +92,10 @@ export default function InspiracaoShowcasePage() {
           </span>
         </div>
 
-        <div className="flex items-center">
+        <nav className="flex items-center gap-2 sm:gap-4" aria-label="Conta">
+          <a href="/pricing" className="px-2 py-2 text-xs font-semibold text-white/85 hover:text-white">
+            Planos
+          </a>
           <button
             type="button"
             onClick={() => setIsAuthOpen(true)}
@@ -100,7 +103,7 @@ export default function InspiracaoShowcasePage() {
           >
             Entrar
           </button>
-        </div>
+        </nav>
       </header>
 
       {/* 3. Headline Hero com Entrada Tipográfica Monumental & Prompt Capsule */}

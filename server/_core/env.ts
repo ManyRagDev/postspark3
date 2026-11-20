@@ -28,6 +28,10 @@ export const ENV = {
   generationWorkerHealthPort: envInteger("GENERATION_WORKER_HEALTH_PORT", 9465, 1, 65535),
   generationWorkerSafetyScanMs: envInteger("GENERATION_WORKER_SAFETY_SCAN_MS", 300_000, 60_000, 3_600_000),
   generationLexicalRetrieval: envFlag("GENERATION_LEXICAL_RETRIEVAL", isProduction),
+  artDirectionGuidance: envFlag("ART_DIRECTION_GUIDANCE", true),
+  catalogLabelSanitization: envFlag("CATALOG_LABEL_SANITIZATION", true),
+  rankingV2: envFlag("RANKING_V2", true),
+  minifyLegacyPrompts: envFlag("MINIFY_LEGACY_PROMPTS", false),
   reviewLenientDelivery: envFlag("REVIEW_LENIENT_DELIVERY", isProduction),
   designRetrievalDirectory: process.env.DESIGN_RETRIEVAL_DIRECTORY ?? "",
   localCatalogRevision: process.env.GENERATION_LOCAL_CATALOG_REVISION ?? "",
@@ -104,6 +108,7 @@ export const ENV = {
   // Stripe
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+  stripePortalConfigurationId: process.env.STRIPE_PORTAL_CONFIGURATION_ID ?? "",
   stripePriceProMonthly: process.env.STRIPE_PRICE_PRO_MONTHLY ?? "",
   stripePriceProAnnual: process.env.STRIPE_PRICE_PRO_ANNUAL ?? "",
   stripePriceAgencyMonthly: process.env.STRIPE_PRICE_AGENCY_MONTHLY ?? "",

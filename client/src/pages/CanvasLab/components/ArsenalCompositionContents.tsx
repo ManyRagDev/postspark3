@@ -44,7 +44,7 @@ function SlotImage({
 }: {
   e: ArsenalElement;
   c: ArsenalComposition;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, event?: Event) => void;
   interactive: boolean;
 }) {
   const slot = activeArsenalMedia(c, e);
@@ -102,8 +102,8 @@ function SlotImage({
         cornerRadius={radius}
         fill={e.imageAssetId ? undefined : e.fill}
         listening={interactive}
-        onClick={() => onSelect(e.id)}
-        onTap={() => onSelect(e.id)}
+        onClick={event => onSelect(e.id, event)}
+        onTap={event => onSelect(e.id, event)}
       />
       {image && (
         <KonvaImage
@@ -114,8 +114,8 @@ function SlotImage({
           height={contain && image ? image.naturalHeight * containScale : e.height}
           crop={crop}
           listening={interactive}
-          onClick={() => onSelect(e.id)}
-          onTap={() => onSelect(e.id)}
+          onClick={event => onSelect(e.id, event)}
+          onTap={event => onSelect(e.id, event)}
         />
       )}
       {image && replacement && (
@@ -286,7 +286,7 @@ function CompositionLogo({
   stageWidth: number;
   stageHeight: number;
   interactive: boolean;
-  onSelect: () => void;
+  onSelect: (event: Event) => void;
   register: (node: any) => void;
   onTransform: (patch: Record<string, number>) => void;
 }) {
@@ -370,7 +370,7 @@ export function ArsenalCompositionContents({
   interactive: boolean;
   bridge: ArsenalTextBridge;
   register: (id: string, node: any, isText: boolean) => void;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, event?: Event) => void;
   onTransform: (id: string, patch: Record<string, number>) => void;
   createSnapBoundFunc?: (width: number, height: number) => (pos: { x: number; y: number }) => { x: number; y: number };
   onDragMove?: () => void;
@@ -386,35 +386,35 @@ export function ArsenalCompositionContents({
     const editing = bridge.target === node.id;
     const choose = (event: Event) => {
       event.cancelBubble = true;
-      if (event.evt?.shiftKey && node.parentId) onSelect(node.parentId);
-      else onSelect(node.id);
+      if (event.evt?.altKey && node.parentId) onSelect(node.parentId, event);
+      else onSelect(node.id, event);
     };
     const commit = (event: Event) => {
       if (!canInteract || event.target !== event.currentTarget) return;
       event.cancelBubble = true;
       const target = event.target;
       const patch: Record<string, any> = {
-        x: Math.round(target.x()),
-        y: Math.round(target.y()),
-        rotation: Math.round(target.rotation()),
+        x: target.x(),
+        y: target.y(),
+        rotation: target.rotation(),
       };
       if (isGroup) {
-        Object.assign(patch, { scale: Number(target.scaleX().toFixed(4)) });
+        Object.assign(patch, { scale: target.scaleX() });
       } else if (target.scaleX() !== 1 || target.scaleY() !== 1) {
         if (e.kind === "text") {
           const scaleX = target.scaleX();
           const scaleY = target.scaleY();
           const isLateral = Math.abs(scaleY - 1) < 0.005;
           const factor = isLateral ? scaleX : (Math.abs(scaleX - 1) > Math.abs(scaleY - 1) ? scaleX : scaleY);
-          const newWidth = Math.max(20, Math.round(node.width * (isLateral ? scaleX : factor)));
+          const newWidth = Math.max(20, node.width * (isLateral ? scaleX : factor));
           patch.width = newWidth;
           if (!isLateral) {
-            patch.fontSize = Math.max(8, Math.round(e.fontSize * factor));
+            patch.fontSize = Math.max(8, e.fontSize * factor);
           }
         } else {
           Object.assign(patch, {
-            width: Math.max(20, Math.round(node.width * target.scaleX())),
-            height: Math.max(20, Math.round(node.height * target.scaleY())),
+            width: Math.max(20, node.width * target.scaleX()),
+            height: Math.max(20, node.height * target.scaleY()),
           });
         }
       }
@@ -455,7 +455,7 @@ export function ArsenalCompositionContents({
         onTransformEnd={commit}
         onClick={event => {
           event.cancelBubble = true;
-          if (layout && !event.evt?.shiftKey)
+          if (layout && !event.evt?.shiftKey && !event.evt?.ctrlKey && !event.evt?.metaKey && !event.evt?.altKey)
             bridge.click(event, node.id, layout);
           else choose(event);
         }}
@@ -550,7 +550,7 @@ export function ArsenalCompositionContents({
               fontFamily={e.fontFamily}
               fontStyle={String(e.fontWeight)}
               fill={e.fill}
-              fillGradient={c.overrides[e.id]?.fill ? undefined : e.textGradient}
+              fillGradient={c.version === 3 && c.effects[e.id]?.gradient !== undefined ? c.effects[e.id].gradient ?? undefined : c.overrides[e.id]?.fill ? undefined : e.textGradient}
               align={e.align}
               lineHeight={e.lineHeight}
               letterSpacing={e.letterSpacing}
@@ -664,7 +664,7 @@ export function ArsenalCompositionContents({
           stageWidth={360}
           stageHeight={stageHeight}
           interactive={interactive && !getArsenalElementState(c, COMPOSITION_LOGO_ID).locked}
-          onSelect={() => onSelect(COMPOSITION_LOGO_ID)}
+          onSelect={event => onSelect(COMPOSITION_LOGO_ID, event)}
           register={node => register(COMPOSITION_LOGO_ID, node, false)}
           onTransform={patch => onTransform(COMPOSITION_LOGO_ID, patch)}
         />

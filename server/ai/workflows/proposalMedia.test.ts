@@ -27,6 +27,31 @@ describe("proposal media adapter", () => {
     expect(generate).not.toHaveBeenCalled();
   });
 
+  it("reuses owned content with AI off and excludes visual references, unauthorized URLs and pending bytes from execution", async () => {
+    const ownerId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+    const input = { ownerId, inputType: "image" as const, content: "Divulgue o encontro", allowAiImages: false };
+    const reference = { id: "style", kind: "image" as const, purpose: "visual_reference" as const, value: privateAsset.url };
+    expect(requestedPreservedPhoto({ ...input, sources: [reference], imageUrl: reference.value })).toBeUndefined();
+    const source = { ...reference, purpose: "content" as const };
+    expect(requestedPreservedPhoto({ ...input, sources: [source] })).toBe(privateAsset.url);
+    expect(requestedPreservedPhoto({ ...input, content: "Não use a imagem enviada", sources: [source] })).toBeUndefined();
+    expect(requestedPreservedPhoto({ ...input, ownerId: "other", sources: [source] })).toBeUndefined();
+    const upload = { ...input, imageUrl: "data:image/png;base64,aGVsbG8=" };
+    expect(requestedPreservedPhoto(upload, input.content, true)).toBe(upload.imageUrl);
+    expect(requestedPreservedPhoto(upload)).toBeUndefined();
+
+    const generateImage = vi.fn(), resolveOwnedReference = vi.fn(), runIdempotent = vi.fn();
+    const deps = { generateImage, resolveOwnedReference, runIdempotent };
+    const request = { ownerId, slot, prompt: "Uma foto", operationId: "media-retry", allowAiImages: false };
+    await expect(generateProposalMediaForSlot({ ...request, references: [{ url: reference.value }] }, deps)).rejects.toThrow("desativada");
+    expect(resolveOwnedReference).not.toHaveBeenCalled();
+    expect(await generateProposalMediaForSlot({ ...request, preservedImageUrl: source.value }, deps)).toEqual(privateAsset);
+    resolveOwnedReference.mockRejectedValueOnce(new Error("upload indisponível"));
+    await expect(generateProposalMediaForSlot({ ...request, preservedImageUrl: source.value }, deps)).rejects.toThrow("upload indisponível");
+    expect(generateImage).not.toHaveBeenCalled();
+    expect(runIdempotent).not.toHaveBeenCalled();
+  });
+
   it("derives the nearest supported image proportion from native slot geometry", () => {
     expect(aspectRatioForProposalSlot(400, 300)).toBe("1:1");
     expect(aspectRatioForProposalSlot(160, 90)).toBe("1:1");

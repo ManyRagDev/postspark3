@@ -474,12 +474,13 @@ export class CatalogMaterializationError extends Error {
 export async function materializeCatalogVariationsDetailed(
   variations: GeneratedVariationInput[], prompt: string, provenance?: CanvasPostProvenance, offset = 0,
   report?: (post: CanvasPostModel, slot: number, durationMs: number) => void,
+  observe?: import("@shared/studioDebugger").AssemblyObserver,
 ): Promise<CatalogMaterializationResult> {
   const startedAt = performance.now();
   const results = await Promise.allSettled(
     variations.map(async (v, index) => {
       if (v.completeDesignV1) {
-        const post = await compileCompleteDesign(v.completeDesignV1, { assetDeadline: startedAt + 15000, provenance });
+        const post = await compileCompleteDesign(v.completeDesignV1, { assetDeadline: startedAt + 15000, provenance, observe });
         report?.(post, v.completeDesignV1.slot, Math.round(performance.now() - startedAt));
         return post;
       }
@@ -526,6 +527,7 @@ export async function materializeCatalogVariationsDetailed(
       const variation = variations[index];
       const slot = variation.completeDesignV1?.slot ?? variation.componentAssemblyV1?.slot ?? variation.catalogSelectionV2?.slot;
       const message = res.reason instanceof Error ? res.reason.message : "Falha desconhecida ao montar esta direção.";
+      observe?.("Falha ao montar a proposta", "failed", { slot, message });
       failures.push({ index, slot, variation, message, cause: res.reason, recoveryAction: "retry_same_result" });
     }
   });

@@ -357,6 +357,20 @@ export function putArsenalComposition(
   };
 }
 
+export function syncPostCaptionWithCompositions(post: CanvasPostModel): CanvasPostModel {
+  if (typeof post.caption !== "string") return post;
+  let changed = false;
+  const slides = post.slides.map(slide => {
+    if (!slide.composition || slide.composition.content.caption === post.caption) return slide;
+    changed = true;
+    return {
+      ...slide,
+      composition: editArsenalContent(slide.composition, { ...slide.composition.content, caption: post.caption }),
+    };
+  });
+  return changed ? { ...post, slides } : post;
+}
+
 export function projectArsenalFormat(
   c: ArsenalComposition,
   ratio: CanvasPostModel["aspectRatio"]

@@ -1,4 +1,5 @@
 import { CAPABILITY_SELECTION_POLICY } from "@shared/selectionPolicy";
+import type { CandidateDecisionObservation, SelectionSlotObservation } from "@shared/generationDecisionTrace";
 import { familyAxes, familyDistance, familyTie, PROPOSAL_SELECTION_POLICY, type FamilyAxes, type FamilyNeutrality } from "@shared/familyNeutrality";
 import type { ComponentCardV1 } from "@shared/componentAssembly";
 import { completeDesignFields } from "@shared/completeDesignGeneration";
@@ -13,7 +14,7 @@ import type {
   GenerationSlotPlan,
   ViableGenerationPlan,
 } from "@shared/generationPlan";
-import { validateGenerationPlan } from "@shared/generationPlan";
+import { availablePhotoCount, validateGenerationPlan } from "@shared/generationPlan";
 import type { ImageObligation } from "@shared/generationContracts";
 import type { DesignShortlistResult } from "../../designCatalog/designShortlist";
 import {
@@ -34,6 +35,7 @@ export interface HeuristicPlanBuilderInput {
   /** Pinned only by new selection receipts; omitted historical plans stay unchanged. */
   familyFirst?: boolean;
   neutrality?: FamilyNeutrality;
+  observeDecision?: (observation: SelectionSlotObservation) => void;
 }
 
 export interface HeuristicPlanResult {
@@ -77,7 +79,7 @@ export function buildHeuristicGenerationPlan(
   const evalMap = new Map(shortlist.evaluated.map(e => [e.id, e]));
 
   const mediaCapable = (r: DesignFamilyRepertoire) =>
-    r.slides.some(s => s.variants.some(c => c.mediaSlots.length > 0));
+    r.slides.some(s => s.variants.some(c => availablePhotoCount(c, imageObligation) > 0));
 
   // Nível 1: Ranqueamento e Eleição de Famílias
   interface ScoredRepertoire {
@@ -235,7 +237,7 @@ export function distinctProposalRecovery(input: HeuristicPlanBuilderInput, offer
   inspectFamilyPlans(input, (slot, viable) => {
     if (!offers[slot]) return;
     const unused = viable.filter(f => !occupied.has(f.family));
-    const peers = (slot === 2 || input.neutrality?.selectionPolicy === "capability_v1") ? offers.filter((_, index) => index !== slot).flatMap(offer => offer ? [familyAxes(offer.slides[0].card)] : []) : [];
+    const peers = (slot === 2 || input.neutrality?.selectionPolicy === "capability_v1") ? offers.filter((_, index) => index !== slot).flatMap(offer => offer ? [familyAxes(offer.slides[0].card, input.neutrality?.axesVersion ?? 1)] : []) : [];
     const best = Math.max(-Infinity, ...(peers.length === 2 ? viable : unused).map(f => f.score));
     alternatives[slot] = rankProposalFamilies(unused, best, (peers.length === 2 || input.neutrality?.selectionPolicy === "capability_v1") ? peers : [], recent, input.neutrality!.seed, input.neutrality?.creativeFlexibility === 1, input.neutrality?.selectionPolicy === "capability_v1")
       .slice(0, 2).map(f => f.repertoire);
@@ -299,7 +301,7 @@ function inspectFamilyPlans(input: HeuristicPlanBuilderInput, onViable?: (slot: 
     const effectiveScore = (assessment?.score ?? 2.5) * (0.5 + 0.5 * (assessment?.confidence ?? 0.8));
     const familyPenalty = recentSelections.slice(0, 5).reduce((penalty, run, index) =>
       Math.max(penalty, run.selections.some(choice => choice.family === family) ? 0.22 / (index + 1) : 0), 0);
-    return { family, members, effectiveScore, adjustedScore: effectiveScore - familyPenalty };
+    return { family, members, assessment, effectiveScore, familyPenalty, adjustedScore: effectiveScore - familyPenalty };
   }).sort((a, b) => b.adjustedScore - a.adjustedScore || (input.neutrality ? familyTie(input.neutrality.seed,a.family).localeCompare(familyTie(input.neutrality.seed,b.family)) : compare(a.family, b.family)));
   const chosenFamilies = new Set<string>();
   const chosenAxes: FamilyAxes[] = [];
@@ -307,6 +309,7 @@ function inspectFamilyPlans(input: HeuristicPlanBuilderInput, onViable?: (slot: 
   const rejected = new Set<string>();
   const slots: GenerationSlotPlan[] = [];
   const viableBySlot = new Map<number, ViableFamily[]>();
+  const observations = new Map<number, SelectionSlotObservation>();
   const insufficient = (slot: number): GenerationSlotPlan => ({
     slot,
     status: "insufficient_fit",
@@ -321,24 +324,47 @@ function inspectFamilyPlans(input: HeuristicPlanBuilderInput, onViable?: (slot: 
     const slotForbidsPhoto = requestedPhotoMix ? slot === 2 : imageObligation.policy === "forbidden";
     const mediaKey = `${slotRequiresPhoto}:${slotForbidsPhoto}`;
     const orderedFamilies = [
+      // Preserve the exact execution order; tracing never changes the ranking.
       ...families.filter(f => !chosenFamilies.has(f.family)),
       ...families.filter(f => chosenFamilies.has(f.family)),
     ];
+    const observation: SelectionSlotObservation = {
+      version: 1, slot, policy: input.neutrality?.selectionPolicy === "capability_v1" ? "capability_v1" : input.neutrality?.creativeFlexibility === 1 ? "creative_flexibility" : distinct ? "distinct_families" : "family_first",
+      seed: input.neutrality?.seed ?? null, requiresPhoto: slotRequiresPhoto, forbidsPhoto: slotForbidsPhoto,
+      chosenCandidateId: null,
+      candidates: families.flatMap(family => family.members.map(repertoire => {
+        const assessment = family.assessment;
+        return { candidateId: repertoire.defaultOffer.offerId, family: family.family, considered: false, reason: "not_reached",
+          providerScore: assessment?.score ?? null, confidence: assessment?.confidence ?? null,
+          effectiveScore: family.effectiveScore, scoreOrigin: assessment ? "assessment" : "default",
+          technicalFit: null, technicalRejections: [], variantEvaluations: [], familyQueuePenalty: family.familyPenalty, familyQueueScore: family.adjustedScore,
+          componentRecencyPenalty: null, componentIds: [], familyRepresentative: false,
+          diversityDistance: null, recentFamily: recentFamilies.has(family.family), rankingUtility: null, mediaCoverage: null,
+          tieBreaker: input.neutrality ? familyTie(input.neutrality.seed, family.family) : null,
+          rank: null, selected: false } satisfies CandidateDecisionObservation;
+      })),
+    };
+    observations.set(slot, observation);
+    const observed = new Map(observation.candidates.map(candidate => [candidate.candidateId, candidate]));
     let selected: ViableGenerationPlan | null = null;
     const viableFamilies: ViableFamily[] = [];
     for (const family of orderedFamilies) {
       const viable: Array<{ plan: ViableGenerationPlan; fit: number; recency: number; cover: ComponentCardV1; repertoire: DesignFamilyRepertoire }> = [];
       for (const repertoire of family.members) {
+        const entry = observed.get(repertoire.defaultOffer.offerId)!;
+        entry.considered = true;
         const key = `${repertoire.defaultOffer.offerId}:${mediaKey}`;
-        if (rejected.has(key)) continue;
-        const hasMedia = repertoire.slides.some(s => s.variants.some(c => c.mediaSlots.length > 0));
-        if (slotRequiresPhoto && !hasMedia) continue;
+        if (rejected.has(key)) { entry.reason = "cached_technical_rejection"; continue; }
+        const hasMedia = repertoire.slides.some(s => s.variants.some(c => availablePhotoCount(c, imageObligation) > 0));
+        if (slotRequiresPhoto && !hasMedia) { entry.reason = "required_photo_unavailable"; continue; }
         if (slotForbidsPhoto && !repertoire.slides.every(s =>
-          s.variants.some(c => !c.mediaSlots.length && !designHasPhotographicContent(c)))) continue;
+          s.variants.some(c => !c.mediaSlots.length && !designHasPhotographicContent(c)))) { entry.reason = "photo_forbidden"; continue; }
         let fit = 0;
         const plan = buildSlotPagesAndAssignments({
           slot, repertoire, intent, slideCount, slotRequiresPhoto, slotForbidsPhoto,
           surfaceAwareCaption: input.neutrality?.planningVersion === 3,
+          onReject: reasons => { entry.technicalRejections = reasons; },
+          onVariantDecision: variant => { entry.variantEvaluations.push(variant); },
           compositionSelection: {
             recentSelections,
             neutral: Boolean(input.neutrality),
@@ -346,22 +372,27 @@ function inspectFamilyPlans(input: HeuristicPlanBuilderInput, onViable?: (slot: 
             onFit: value => { fit = value; },
           },
         });
-        if (!plan) { rejected.add(key); continue; }
+        if (!plan) { entry.reason = "content_or_layout_incompatible"; rejected.add(key); continue; }
         const selectedCards = plan.pages.map(page =>
           repertoire.slides[page.slideIndex].variants.find(card => card.id === page.componentId)!);
-        if (distinct && slotRequiresPhoto && selectedCards.reduce((n, card) => n + card.mediaSlots.length, 0) < Math.max(1, imageObligation.slotTargets)) {
+        if (distinct && slotRequiresPhoto && selectedCards.reduce((n, card) => n + availablePhotoCount(card, imageObligation), 0) < Math.max(1, imageObligation.slotTargets)) {
           rejected.add(key);
+          entry.reason = "required_photo_count_unmet";
           continue;
         }
         // Only the concrete sequence receives an exact-component history penalty.
         const recency = Math.max(0, ...selectedCards.map(card => designRecencyPenalty(card, recentSelections)));
+        Object.assign(entry, { reason: "viable_member_not_representative", technicalFit: fit, componentRecencyPenalty: recency, componentIds: selectedCards.map(card => card.id) });
         viable.push({ plan, fit, recency, cover: selectedCards[0], repertoire });
       }
       viable.sort((a, b) => b.fit - a.fit || a.recency - b.recency || compare(a.plan.candidateId, b.plan.candidateId));
       if (viable.length) {
+        const representative = observed.get(viable[0].plan.candidateId)!;
+        representative.familyRepresentative = true;
+        representative.reason = "viable_family_not_selected";
         if (distinct) {
           const choice = viable[0];
-          viableFamilies.push({ family: family.family, score: family.effectiveScore, plan: choice.plan, axes: familyAxes(choice.cover), repertoire: choice.repertoire });
+          viableFamilies.push({ family: family.family, score: family.effectiveScore, plan: choice.plan, axes: familyAxes(choice.cover, input.neutrality?.axesVersion ?? 1), repertoire: choice.repertoire });
           continue;
         }
         selected = viable[0].plan;
@@ -374,6 +405,9 @@ function inspectFamilyPlans(input: HeuristicPlanBuilderInput, onViable?: (slot: 
       viableBySlot.set(slot, viableFamilies);
     } else {
       slots.push(selected ?? insufficient(slot));
+      observation.chosenCandidateId = selected?.candidateId ?? null;
+      if (selected) Object.assign(observed.get(selected.candidateId)!, { selected: true, reason: "selected", rank: 1 });
+      input.observeDecision?.(observation);
     }
   }
 
@@ -399,6 +433,23 @@ function inspectFamilyPlans(input: HeuristicPlanBuilderInput, onViable?: (slot: 
     if (requestedPhotoMix && slot < 2 && ranked.length > 1)
       ranked.sort((a, b) => coverage(b.family, slot + 1, chosenFamilies) - coverage(a.family, slot + 1, chosenFamilies));
     const choice = ranked[0];
+    const observation = observations.get(slot)!;
+    observation.chosenCandidateId = choice?.plan.candidateId ?? null;
+    for (const entry of observation.candidates.filter(candidate => candidate.familyRepresentative)) {
+      const candidate = viableFamilies.find(family => family.plan.candidateId === entry.candidateId)!;
+      const distance = visualAlternative && chosenAxes.length ? Math.min(...chosenAxes.map(peer => familyDistance(candidate.axes, peer))) : 0;
+      const position = ranked.indexOf(candidate);
+      const capability = input.neutrality?.selectionPolicy === "capability_v1";
+      const flexible = input.neutrality?.creativeFlexibility === 1;
+      Object.assign(entry, {
+        diversityDistance: distance,
+        mediaCoverage: requestedPhotoMix && slot < 2 ? coverage(candidate.family, slot + 1, chosenFamilies) : null,
+        rankingUtility: capability || flexible ? candidate.score + (capability ? CAPABILITY_SELECTION_POLICY.diversityWeight : .25) * distance - (capability ? CAPABILITY_SELECTION_POLICY.recencyWeight : .1) * Number(recentFamilies.has(candidate.family)) : null,
+        rank: position < 0 ? null : position + 1, selected: candidate === choice,
+        reason: candidate === choice ? "selected" : chosenFamilies.has(candidate.family) ? "family_already_selected" : position < 0 ? "outside_suitability_gap" : requestedPhotoMix && slot < 2 ? "lower_rank_after_media_coverage" : "lower_rank",
+      });
+    }
+    input.observeDecision?.(observation);
     if (!choice) { slots.push(insufficient(slot)); continue; }
     const isDifferent = visualAlternative && chosenAxes.every(peer => familyDistance(choice.axes, peer) > 0);
     chosenFamilies.add(choice.family);
@@ -421,6 +472,8 @@ function buildSlotPagesAndAssignments(input: {
   slotRequiresPhoto: boolean;
   slotForbidsPhoto: boolean;
   surfaceAwareCaption?: boolean;
+  onReject?: (reasons: string[]) => void;
+  onVariantDecision?: (observation: CandidateDecisionObservation["variantEvaluations"][number]) => void;
   compositionSelection?: {
     recentSelections: RecentDesignSelection[];
     onFit: (score: number) => void;
@@ -451,7 +504,7 @@ function buildSlotPagesAndAssignments(input: {
   const contentItems = intent.content.filter(item =>
     !captionContent.has(item.id) || item.requirementIds.some(id => artRequirements.has(id))
   );
-  if (!contentItems.length) return null;
+  if (!contentItems.length) { input.onReject?.(["art_content_unavailable"]); return null; }
 
   // Distribuir os conteúdos por slide:
   // Slide 0 (Capa): primeiro item de conteúdo (gancho principal)
@@ -512,6 +565,7 @@ function buildSlotPagesAndAssignments(input: {
   for (let sIdx = 0; sIdx < slideCount; sIdx++) {
     const slideRepertoire = repertoire.slides[sIdx];
     if (!slideRepertoire || !slideRepertoire.variants.length) {
+      input.onReject?.([`slide_variants_unavailable:${sIdx}`]);
       return null;
     }
 
@@ -533,24 +587,26 @@ function buildSlotPagesAndAssignments(input: {
     const alternatives = compositionSelection && slotForbidsPhoto
       ? slideRepertoire.variants.filter(variant => !variant.mediaSlots.length && !designHasPhotographicContent(variant))
       : slideRepertoire.variants;
-    if (!alternatives.length) return null;
+    if (!alternatives.length) { input.onReject?.([`photo_free_variant_unavailable:${sIdx}`]); return null; }
     const scoredVariants = alternatives.map(variant => {
       let score = 0;
+      const contributions: Array<{ criterion: string; points: number }> = [];
+      const add = (criterion: string, points: number) => { score += points; contributions.push({ criterion, points }); };
 
       // 1. Papel correto
       if (variant.roles.includes(expectedRole as any)) {
-        score += 50;
+        add("requested_slide_role", 50);
       }
 
       // 2. Mídia
       const hasPhoto =
         variant.mediaSlots.length > 0 || designHasPhotographicContent(variant);
       if (slotRequiresPhoto) {
-        if (hasPhoto) score += 30;
+        if (hasPhoto) add("required_photo", 30);
       }
       if (slotForbidsPhoto) {
-        if (!hasPhoto) score += 30;
-        else score -= 100;
+        if (!hasPhoto) add("photo_free", 30);
+        else add("forbidden_photo", -100);
       }
 
       // 3. Mecânica de Layout e cardinalidade de listas
@@ -565,25 +621,30 @@ function buildSlotPagesAndAssignments(input: {
           f => f.cardinality && independentOnSlide > f.cardinality.max
         );
       if (hasOverflowingList) {
-        score -= 100;
+        add("independent_items_exceed_list_capacity", -100);
       } else if (allocatedContentCount > 1 && hasCompatibleList) {
-        score += 40;
+        add("compatible_list_capacity", 40);
       }
 
       // 4. Text-fit aproximado
       const budgets = designTextBudgetsV3(variant);
       const totalChars = budgets.reduce((sum, b) => sum + b.estimatedCharacters, 0);
       if (!compositionSelection?.neutral && totalChars >= 50 && totalChars <= 600) {
-        score += 20;
+        add("historical_character_budget", 20);
       }
 
-      return { variant, score };
+      return { variant, score, contributions };
     });
 
     scoredVariants.sort((a, b) => b.score - a.score || (compositionSelection
       ? designRecencyPenalty(a.variant, compositionSelection.recentSelections) - designRecencyPenalty(b.variant, compositionSelection.recentSelections)
       : 0));
     const bestVariant = scoredVariants[0].variant;
+    scoredVariants.forEach((value, index) => input.onVariantDecision?.({
+      slideIndex: sIdx, componentId: value.variant.id, scoreKind: "composition_fit", score: value.score,
+      contributions: value.contributions, recencyPenalty: compositionSelection ? designRecencyPenalty(value.variant, compositionSelection.recentSelections) : 0,
+      rank: index + 1, selected: index === 0,
+    }));
     compositionFit += scoredVariants[0].score;
 
     chosenPages.push({
@@ -735,10 +796,12 @@ function buildSlotPagesAndAssignments(input: {
     );
     const violations = validateGenerationPlan(plan, offer, intent);
     if (violations.length > 0) {
+      input.onReject?.(violations);
       console.warn(`[heuristicPlanBuilder] Violações no slot ${slot}:`, violations);
       return null;
     }
   } catch (error) {
+    input.onReject?.(["offer_materialization_failed"]);
     console.warn(`[heuristicPlanBuilder] Erro ao materializar oferta do slot ${slot}:`, error);
     return null;
   }

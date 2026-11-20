@@ -195,7 +195,7 @@ export async function retrieveFamilyCandidates(
       reason: "relevance",
       score: 0,
       tie: args.neutrality ? familyTie(args.neutrality.seed,family.family) : arsenalHash({ query, id: family.id }),
-      axes: familyAxes(family.repertoires[0].slides[0].variants.find(c=>c.id===family.repertoires[0].sourceId)!),
+      axes: familyAxes(family.repertoires[0].slides[0].variants.find(c=>c.id===family.repertoires[0].sourceId)!, args.neutrality?.axesVersion ?? 1),
       traits: new Set([
         ...family.profile.aesthetic.motifs,
         ...family.profile.aesthetic.languages,

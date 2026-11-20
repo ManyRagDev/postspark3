@@ -24,13 +24,30 @@ const t = initTRPC.context<TrpcContext>().create({
 export const router = t.router;
 export const publicProcedure = t.procedure;
 
+const startProcedures = new Set([
+  "billing.getProfile", "startPilot.state", "startPilot.save",
+  "generation.capabilities", "generation.start", "generation.get", "generation.progress",
+  "generation.resume", "generation.cancel", "generationTelemetry.record",
+  "catalog.acervo", "catalog.acervo82Directory", "catalog.manifest", "catalog.snapshot", "designCatalog.generationReadiness",
+  "designCatalog.getStudioPreferences", "designCatalog.reportArsenalCompilation",
+  "designCatalog.reportCompilation", "designCatalog.reportComponentCompilation",
+  "designCatalog.resolveArsenalVariant",
+  "brandProjects.list", "brandProjects.getById", "brandProjects.upsert", "brandProjects.saveIdentity", "post.saveMediaAsset",
+]);
+
 const requireUser = t.middleware(async opts => {
-  const { ctx, next } = opts;
+  const { ctx, next, path } = opts;
 
   if (!ctx.user) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
+  if (ctx.user.access === "start" && !startProcedures.has(path)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Escolha uma assinatura para usar este recurso." });
+  }
 
+  if (ctx.user.access === "agency" && !["imageEditor.capabilities", "imageEditor.preview", "imageEditor.publish", "post.saveMediaAsset", "post.generateImage"].includes(path)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Este recurso pertence ao Studio pessoal." });
+  }
   return next({
     ctx: {
       ...ctx,
@@ -45,7 +62,7 @@ export const adminProcedure = t.procedure.use(
   t.middleware(async opts => {
     const { ctx, next } = opts;
 
-    if (!ctx.user || ctx.user.role !== 'admin') {
+    if (!ctx.user || ctx.user.access || ctx.user.role !== 'admin') {
       throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
     }
 

@@ -3,12 +3,14 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { INITIAL_POST } from "@/pages/CanvasLab/components/types";
+import { savedPostToCanvasModel } from "@/pages/CanvasLab/lib/saveAdapter";
 vi.mock("@/hooks/useGenerationEvents",()=>({useGenerationEvents:(_id: unknown,enabled: boolean)=>{h.eventsEnabled=enabled;return {error:false,reconnect:vi.fn()};}}));
-import Studio from "./StudioAppV2BPage";
+import Studio, { getGalleryPermutation } from "./StudioAppV2BPage";
 import { saveBriefDraft } from "./lib/briefDraftStorage";
 import { setSelectedProjectId } from "./lib/projectStorage";
 import { detectScriptStructure } from "./lib/scriptDetector";
 import { interpretRawBriefing } from "@shared/postspark";
+import { identityFixture } from "@shared/visualIdentity.fixture";
 import {
   ACTIVE_GENERATION_REQUEST_SESSION_KEY,
   PENDING_GENERATION_START_SESSION_KEY,
@@ -333,6 +335,36 @@ describe("Studio Generation progressive flow", () => {
     expect(h.editor.initialPost).toEqual(canvas);
   });
 
+  it("keeps project art direction out of content so palette hex and fonts do not become user facts", async () => {
+    const project = {
+      id: secondRequestId,
+      name: "ReUNE",
+      niche: "Eventos",
+      compiledDocument: "Organização de eventos.",
+      visualPreferences: {
+        colors: ["#FFFDF5", "#F05728"],
+        fonts: ["Space Grotesk", "Space Mono"],
+        personality: ["Neubrutalismo"],
+        composition: "Editorial",
+      },
+    };
+    h.projects = [project];
+    setSelectedProjectId(project.id);
+    h.start.mockResolvedValue({ snapshot: snapshot([running("proposal-a", 0)]), created: true });
+    mount();
+    act(() => h.create.onDeclareFamily(`project-design-${project.id}`));
+    await act(async () => { h.create.onSubmit("Lançamento do Sorteador Relâmpago", "static"); });
+    expect(h.start).toHaveBeenCalledOnce();
+    const sent = h.start.mock.calls[0][0];
+    expect(sent.content).toBe("Lançamento do Sorteador Relâmpago");
+    expect(sent.content).not.toMatch(/#[0-9A-F]{6}/i);
+    expect(sent.content).not.toContain("Space Grotesk");
+    expect(sent.projectSnapshot).toMatchObject({
+      version: 2,
+      visualPreferences: project.visualPreferences,
+    });
+  });
+
   it("starts the single durable pipeline when its executor becomes available, without a version selector", async () => {
     h.capabilities = { selectable: true, enabled: false, reason: "durable_worker_required" };
     h.start.mockResolvedValue({ snapshot: snapshot([running("proposal-a", 0)]), created: true });
@@ -371,6 +403,20 @@ describe("Studio Generation progressive flow", () => {
     act(() => h.gallery.onSelectVariation(h.gallery.variations[0]));
     expect(h.editor.hasSavedPost).toBe(true);
     expect(h.legacyGenerate).not.toHaveBeenCalled();
+  });
+
+  it.each(["inconclusive", "correction_required"] as const)("carries the %s review warning through materialization, editing and save/reopen", async warning => {
+    const delivery = { ...ready("proposal-warning", 0), diagnostics: [{ code: "review_lenient_delivery", target: "proposal", evidence: warning }] };
+    h.start.mockResolvedValue({ snapshot: snapshot([delivery], "completed"), created: true });
+    mount();
+    await act(async () => { h.create.onSubmit("Café artesanal", "static"); await Promise.resolve(); });
+    await flush();
+    expect(h.gallery.variations[0].provenance.reviewWarning).toBe(warning);
+    act(() => h.gallery.onSelectVariation(h.gallery.variations[0]));
+    expect(h.editor.initialPost.provenance.reviewWarning).toBe(warning);
+    await act(async () => { await h.editor.onSave(h.editor.initialPost, "new", "auto"); });
+    const saved = JSON.parse(JSON.stringify(h.save.mock.calls[0][0].canvasModel));
+    expect(savedPostToCanvasModel({ id: 21, canvas_model: saved }).provenance?.reviewWarning).toBe(warning);
   });
 
   it("refreshes the saved library and account count after insert/update without hiding successful saves on cache failure", async () => {
@@ -922,6 +968,24 @@ describe("Studio Generation progressive flow", () => {
     expect(h.save.mock.calls[0][0].inputContent).toBe("Brief preservado");
   });
 
+  it("restores multi-paragraph prompt preserving all paragraphs and removing legacy art direction block", async () => {
+    sessionStorage.setItem(ACTIVE_GENERATION_REQUEST_SESSION_KEY, requestId);
+    const multiParagraph = [
+      "Parágrafo 1 com a proposta de valor do produto.",
+      "Parágrafo 2 com métricas e detalhes essenciais.",
+      "Parágrafo 3 com chamada para ação final.",
+    ].join("\n\n");
+    const legacyContent = multiParagraph + "\n\n[DIREÇÃO DE ARTE DO PROJETO ATIVA — OBRIGATÓRIA]\nO usuário ativou o design extraído do projeto \"ReUNE\".\nEstilo visual: Neubrutalismo.\nPaleta de cores a aplicar: #FFFDF5, #F05728.\nTipografia a aplicar: Space Grotesk, Space Mono.\nCrie os posts aplicando com fidelidade este ecossistema visual.";
+    h.getData = {
+      snapshot: snapshot([ready("proposal-a", 0)], "completed"),
+      input: { inputType: "text", content: legacyContent, postMode: "static", platform: "instagram" },
+    };
+    await explicitlyResumeStored(h.getData.input);
+    act(() => h.gallery.onSelectVariation(h.gallery.variations[0]));
+    await act(async () => { await h.editor.onSave(h.editor.initialPost, "new", "auto"); });
+    expect(h.save.mock.calls[0][0].inputContent).toBe(multiParagraph);
+  });
+
   it("uses only the request when no project is selected, even with a populated Brand Kit", async () => {
     h.brandKitData = {brand_name:"KIT_SENTINELA",tone:"TOM_DO_KIT",target_audience:"PUBLICO_DO_KIT"};
     mount(); await flush();
@@ -933,6 +997,41 @@ describe("Studio Generation progressive flow", () => {
     expect(input.projectSnapshot).toBeUndefined();
     expect(JSON.stringify(input)).not.toContain("KIT_SENTINELA");
     expect(JSON.stringify(input)).not.toContain("TOM_DO_KIT");
+  });
+  it("persists separate visual instructions in the creation draft and restores them after reopening", async () => {
+    mount(); await flush();
+    await act(async () => {
+      h.create.onSubmit("Slide 1:\nPrimeiro.\nSlide 2:\nSegundo.", "carousel", {
+        platform: "instagram", imagePurpose: "content", visualBrief: "Mais respiro\nSem fotografias",
+        scriptMode: "preserve", parsedSlides: [{ slideIndex: 0, rawText: "Primeiro." }, { slideIndex: 1, rawText: "Segundo." }],
+      });
+    });
+    await flush();
+    const saved = JSON.parse(localStorage.getItem("postspark.creation_brief.draft.v1")!);
+    expect(saved.brief.visualBrief).toBe("Mais respiro\nSem fotografias");
+    expect(saved.brief.rawInput).not.toContain("Sem fotografias");
+    act(() => root.unmount());
+    root = createRoot(host);
+    mount(); await flush();
+    expect(h.create.initialVisualBrief).toBe("Mais respiro\nSem fotografias");
+    expect(h.create.initialScriptSlides).toEqual(["Primeiro.", "Segundo."]);
+  });
+
+  it("admits literal identity slides with a separate visual brief even without a catalogue", async () => {
+    const project = { id: "11111111-1111-4111-8111-111111111111", name: "Só identidade", niche: "", compiledDocument: "", structuredData: {}, visualIdentity: identityFixture({ accent: "#226633" }) };
+    h.projects = [project]; setSelectedProjectId(project.id);
+    h.capabilities = { enabled: false, selectable: true, reason: "catalog_publication_required", identityEnabled: true } as any;
+    h.start.mockResolvedValue({ snapshot: snapshot([running("identity-proposal", 0)]), created: true });
+    mount(); await flush();
+    await act(async () => { h.create.onSubmit("Slide 1:\nPrimeiro.\nSlide 2:\nSegundo.", "carousel", { platform: "instagram", imagePurpose: "content", scriptMode: "preserve", parsedSlides: [{ slideIndex: 0, rawText: "Primeiro." }, { slideIndex: 1, rawText: "Segundo." }], visualBrief: "Mais respiro" }); });
+    await flush();
+    expect(h.briefReview.brief.projectSnapshot.version).toBe(3);
+    project.visualIdentity.rules.accent = "#FF0000";
+    await act(async () => { h.briefReview.onConfirmGenerate(); await Promise.resolve(); });
+    await flush();
+    expect(h.start).toHaveBeenCalledOnce();
+    const admitted = h.start.mock.calls[0][0];
+    expect(admitted).toMatchObject({ fixedDesign: { kind: "identity", id: project.id }, projectSnapshot: { version: 3, visualIdentity: { rules: { accent: "#226633" } } }, executionBrief: { interventionLevel: "visual_only", notes: "Mais respiro", slides: [{ slideNumber: 1, rawText: "Primeiro." }, { slideNumber: 2, rawText: "Segundo." }] } });
   });
 
   it("freezes the project independently of Brand Kit across modal edits, refresh, retry, more and project changes", async () => {
@@ -1116,4 +1215,114 @@ it("reads delivery only for new ready revisions or settlement", async () => {
   h.getData = {...h.getData,billingPending:false};
   mount(); await flush();
   expect(h.progressOptions.enabled).toBe(false);
+});
+
+it("alinha exposição e escolha à posição exibida durante entregas progressivas fora de ordem", async () => {
+  vi.useFakeTimers();
+  // Escolher seed determinística onde slot 2 NÃO fica em rank mínimo, garantindo deslocamento ao chegar slot 0/1
+  let seed = "10000000-0000-4000-8000-000000000000";
+  for (let i = 0; i < 50; i++) {
+    const candidate = `${String(i).padStart(8, "0")}-0000-4000-8000-000000000000`;
+    const p = getGalleryPermutation(candidate);
+    if (p[2] > Math.min(p[0], p[1])) {
+      seed = candidate;
+      break;
+    }
+  }
+  let uuidCounter = 0;
+  const uuidSpy = vi
+    .spyOn(crypto, "randomUUID")
+    .mockImplementation(() => {
+      uuidCounter += 1;
+      // Chamada 1: useState inicial; Chamada 2: freshExposureId em pending.source="create" (define galleryOrderSeed)
+      return (uuidCounter <= 2
+        ? seed
+        : `99999999-0000-4000-8000-${String(uuidCounter).padStart(12, "0")}`) as `${string}-${string}-${string}-${string}-${string}`;
+    });
+
+  try {
+    const input = { inputType: "text", content: "Brief progressivo", postMode: "static" };
+    h.materialize.mockImplementation(async (_variations: any[], _prompt?: string, _prov?: unknown, slot = 0) =>
+      materializedResult([post(`post-${slot}`)])
+    );
+
+    // 1ª entrega progressiva: chega apenas slot 2 (exibido na posição visual 0)
+    h.getData = {
+      snapshot: snapshot([running("p-0", 0), running("p-1", 1), ready("p-2", 2)], "running"),
+      input,
+      requestStatus: "running",
+      progressTransport: "poll",
+      billingPending: false,
+    };
+    await explicitlyResumeStored(input);
+    await flush();
+    await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
+    await flush();
+
+    const initialExposure = h.telemetry.mock.calls.flatMap(c => c[0].events).filter((e: any) => e.kind === "exposure");
+    expect(initialExposure).toHaveLength(1);
+    expect(initialExposure[0]).toMatchObject({
+      proposalId: "p-2",
+      position: 0,
+      originalPosition: 2,
+    });
+    const firstExposureId = initialExposure[0].exposureId;
+
+    // 2ª entrega progressiva: chegam slots 0 e 1, deslocando p-2 para posP2 > 0
+    h.telemetry.mockClear();
+    h.getData = {
+      snapshot: snapshot([ready("p-0", 0), ready("p-1", 1), ready("p-2", 2)], "completed"),
+      input,
+      requestStatus: "completed",
+      progressTransport: "poll",
+      billingPending: false,
+    };
+    mount();
+    await flush();
+    await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
+    await flush();
+
+    const displayedOrder = h.gallery.variations.map((v: any) => v.id);
+    const posP2 = displayedOrder.indexOf("post-2");
+    expect(posP2).toBeGreaterThan(0);
+
+    const shiftExposures = h.telemetry.mock.calls.flatMap(c => c[0].events).filter((e: any) => e.kind === "exposure");
+    const expForP2 = shiftExposures.find((e: any) => e.proposalId === "p-2");
+    expect(expForP2).toMatchObject({
+      proposalId: "p-2",
+      position: posP2,
+      originalPosition: 2,
+    });
+    expect(expForP2.exposureId).not.toBe(firstExposureId);
+    const activeExposureIdForP2 = expForP2.exposureId;
+
+    // Ao selecionar p-2 na galeria, choice usa posição exibida atual, originalPosition=2 e nova exposureId ativa
+    h.telemetry.mockClear();
+    await act(async () => {
+      h.gallery.onSelectVariation(h.gallery.variations[posP2]);
+    });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
+    await flush();
+
+    const choiceEvents = h.telemetry.mock.calls.flatMap(c => c[0].events).filter((e: any) => e.kind === "choice");
+    expect(choiceEvents).toHaveLength(1);
+    expect(choiceEvents[0]).toMatchObject({
+      proposalId: "p-2",
+      position: posP2,
+      originalPosition: 2,
+      exposureId: activeExposureIdForP2,
+    });
+
+    // Retornar à galeria sem alteração de posições não reemite exposure duplicada
+    h.telemetry.mockClear();
+    await act(async () => {
+      h.editor.onBackToGallery(h.editor.initialPost);
+    });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
+    await flush();
+    const reemitted = h.telemetry.mock.calls.flatMap(c => c[0].events).filter((e: any) => e.kind === "exposure");
+    expect(reemitted).toHaveLength(0);
+  } finally {
+    uuidSpy.mockRestore();
+  }
 });

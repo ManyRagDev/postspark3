@@ -1,0 +1,605 @@
+{
+  "cli_evaluation": {
+    "schema_version": 1,
+    "created_at": "2026-11-14T19:47:06.355989+00:00",
+    "cli_version": "photocraft-cli 0.23.1 (45066c482, 2026-11-12)",
+    "sources": {
+      "market": {
+        "post_id": 94,
+        "revision": 1,
+        "file": "original-post-94.jpg",
+        "sha256": "94c78bf5ea80bda426630a177f688f3517cbc449279bf2eaca3174e58d64e0d8"
+      },
+      "chart": {
+        "post_id": 97,
+        "revision": 1,
+        "file": "original-post-97.webp",
+        "sha256": "5a0229ca939588a4ac483b8663fe51dff61682b608fff65e3be394c07256ff77"
+      },
+      "logo": {
+        "post_id": 135,
+        "revision": 82,
+        "file": "original-post-135.png",
+        "sha256": "d87875edc2350d1a11526dc15123f2109aa8f012b61918ba0909b658886d6740"
+      }
+    },
+    "cases": [
+      {
+        "name": "market-colour",
+        "exit_status": 0,
+        "timed_out": false,
+        "observed_wall_seconds": 0.274,
+        "receipts": [
+          {
+            "command": "image.adjustments.brightnessContrast",
+            "result": null
+          },
+          {
+            "command": "image.adjustments.hueSaturation",
+            "result": null
+          }
+        ],
+        "output_exists": true,
+        "wall_seconds": 0.23,
+        "user_cpu_seconds": 0.11,
+        "system_cpu_seconds": 0.11,
+        "max_rss_kib": 40088,
+        "output": "market-colour.png",
+        "output_bytes": 723540,
+        "output_sha256": "ec15204197566dc5deba058d485c1fb1e40377265ce44c0efed66b552b51110c",
+        "output_dimensions": [
+          600,
+          600
+        ],
+        "png_colour_type": 2,
+        "technical_success": true
+      },
+      {
+        "name": "chart-local-blur",
+        "exit_status": 0,
+        "timed_out": false,
+        "observed_wall_seconds": 0.279,
+        "receipts": [
+          {
+            "command": "select.lasso",
+            "result": {
+              "selected": true
+            }
+          },
+          {
+            "command": "filter.blur.gaussianBlur",
+            "result": {
+              "filter": {
+                "filter": "gaussianBlur",
+                "radius": 10.0
+              },
+              "layer": 2
+            }
+          }
+        ],
+        "output_exists": true,
+        "wall_seconds": 0.23,
+        "user_cpu_seconds": 0.09,
+        "system_cpu_seconds": 0.11,
+        "max_rss_kib": 39948,
+        "output": "chart-local-blur.png",
+        "output_bytes": 209907,
+        "output_sha256": "40406370b484806a914eb7529490796a02cfe401b02796d28f3a5f1179c61c95",
+        "output_dimensions": [
+          800,
+          800
+        ],
+        "png_colour_type": 2,
+        "technical_success": true
+      },
+      {
+        "name": "logo-colour",
+        "exit_status": 0,
+        "timed_out": false,
+        "observed_wall_seconds": 0.067,
+        "receipts": [
+          {
+            "command": "image.adjustments.brightnessContrast",
+            "result": null
+          }
+        ],
+        "output_exists": true,
+        "wall_seconds": 0.05,
+        "user_cpu_seconds": 0.01,
+        "system_cpu_seconds": 0.03,
+        "max_rss_kib": 24252,
+        "output": "logo-colour.png",
+        "output_bytes": 6668,
+        "output_sha256": "50667b1d19b809e3334d70058fe2afe23c75e788ad541cf19b77215ef5395da5",
+        "output_dimensions": [
+          440,
+          100
+        ],
+        "png_colour_type": 6,
+        "technical_success": true
+      },
+      {
+        "name": "logo-trim",
+        "exit_status": 0,
+        "timed_out": false,
+        "observed_wall_seconds": 0.121,
+        "receipts": [
+          {
+            "command": "image.trim",
+            "result": {
+              "height": 80,
+              "width": 300,
+              "x": 10,
+              "y": 10
+            }
+          }
+        ],
+        "output_exists": true,
+        "wall_seconds": 0.07,
+        "user_cpu_seconds": 0.01,
+        "system_cpu_seconds": 0.05,
+        "max_rss_kib": 24336,
+        "output": "logo-trim.png",
+        "output_bytes": 6350,
+        "output_sha256": "fce5ed3a65dc3946b72147c1a4ee81a4452ae1df3406011e00901d6816b7a90c",
+        "output_dimensions": [
+          300,
+          80
+        ],
+        "png_colour_type": 6,
+        "technical_success": true
+      },
+      {
+        "name": "market-crop-resize",
+        "exit_status": 0,
+        "timed_out": false,
+        "observed_wall_seconds": 0.267,
+        "receipts": [
+          {
+            "command": "image.crop",
+            "result": {
+              "documentHeight": 540,
+              "documentWidth": 480,
+              "height": 540,
+              "resolution": 72.0,
+              "width": 480,
+              "x": 60,
+              "y": 30
+            }
+          },
+          {
+            "command": "image.imageSize",
+            "result": {
+              "height": 900,
+              "width": 800
+            }
+          }
+        ],
+        "output_exists": true,
+        "wall_seconds": 0.26,
+        "user_cpu_seconds": 0.15,
+        "system_cpu_seconds": 0.15,
+        "max_rss_kib": 36328,
+        "output": "market-crop-resize.png",
+        "output_bytes": 1165774,
+        "output_sha256": "d203c42a32ab98cab3a8673a6197924507127a8c649779853c1103e1345b8729",
+        "output_dimensions": [
+          800,
+          900
+        ],
+        "png_colour_type": 2,
+        "technical_success": true
+      },
+      {
+        "name": "chart-polygon-mask",
+        "exit_status": 0,
+        "timed_out": false,
+        "observed_wall_seconds": 0.217,
+        "receipts": [
+          {
+            "command": "select.lasso",
+            "result": {
+              "selected": true
+            }
+          },
+          {
+            "command": "select.refineEdge",
+            "result": {
+              "layer": 2,
+              "output": "layerMask",
+              "selected": false
+            }
+          }
+        ],
+        "output_exists": true,
+        "wall_seconds": 0.17,
+        "user_cpu_seconds": 0.09,
+        "system_cpu_seconds": 0.1,
+        "max_rss_kib": 46848,
+        "output": "chart-polygon-mask.png",
+        "output_bytes": 201344,
+        "output_sha256": "1c11b1f4e027b6bbaeeecf984750405e404215af29283ac1b04582e4a3715e52",
+        "output_dimensions": [
+          800,
+          800
+        ],
+        "png_colour_type": 6,
+        "technical_success": true
+      },
+      {
+        "name": "market-auto-mask",
+        "exit_status": 0,
+        "timed_out": false,
+        "observed_wall_seconds": 2.032,
+        "receipts": [
+          {
+            "command": "select.subject",
+            "result": {
+              "bounds": [
+                102,
+                57,
+                395,
+                104
+              ],
+              "changed": true,
+              "selected": true
+            }
+          },
+          {
+            "command": "select.refineEdge",
+            "result": {
+              "layer": 2,
+              "output": "layerMask",
+              "selected": false
+            }
+          }
+        ],
+        "output_exists": true,
+        "wall_seconds": 2.01,
+        "user_cpu_seconds": 1.96,
+        "system_cpu_seconds": 0.13,
+        "max_rss_kib": 39932,
+        "output": "market-auto-mask.png",
+        "output_bytes": 74753,
+        "output_sha256": "1bce5c48e60bf1c07f7bb7f8544c19e0504fb6577b1cde3b3a7d9830588406c5",
+        "output_dimensions": [
+          600,
+          600
+        ],
+        "png_colour_type": 6,
+        "technical_success": true,
+        "subject_selected": true,
+        "visual_approval": "pending"
+      },
+      {
+        "name": "chart-auto-mask",
+        "exit_status": 0,
+        "timed_out": false,
+        "observed_wall_seconds": 0.672,
+        "receipts": [
+          {
+            "command": "select.subject",
+            "result": {
+              "bounds": [
+                0,
+                0,
+                800,
+                652
+              ],
+              "changed": true,
+              "selected": true
+            }
+          },
+          {
+            "command": "select.refineEdge",
+            "result": {
+              "layer": 2,
+              "output": "layerMask",
+              "selected": false
+            }
+          }
+        ],
+        "output_exists": true,
+        "wall_seconds": 0.66,
+        "user_cpu_seconds": 0.58,
+        "system_cpu_seconds": 0.2,
+        "max_rss_kib": 47452,
+        "output": "chart-auto-mask.png",
+        "output_bytes": 238394,
+        "output_sha256": "4eea74139a2e9adf273b27bb2979a7934b6e4e5538fa44c4a2ddb93ac5cc6969",
+        "output_dimensions": [
+          800,
+          800
+        ],
+        "png_colour_type": 6,
+        "technical_success": true,
+        "subject_selected": true,
+        "visual_approval": "pending"
+      },
+      {
+        "name": "mask-native-save",
+        "exit_status": 0,
+        "timed_out": false,
+        "observed_wall_seconds": 0.218,
+        "receipts": [
+          {
+            "command": "select.lasso",
+            "result": {
+              "selected": true
+            }
+          },
+          {
+            "command": "select.refineEdge",
+            "result": {
+              "layer": 2,
+              "output": "layerMask",
+              "selected": false
+            }
+          }
+        ],
+        "output_exists": true,
+        "wall_seconds": 0.17,
+        "user_cpu_seconds": 0.13,
+        "system_cpu_seconds": 0.14,
+        "max_rss_kib": 63124,
+        "output": "mask.pcraft",
+        "output_bytes": 805331,
+        "output_sha256": "b3ccf8556987017c93e20e464a90f02ad0fe0dfa83cc2c1c9f59b8bbee681ff6",
+        "technical_success": true
+      },
+      {
+        "name": "mask-native-reopen",
+        "exit_status": 0,
+        "timed_out": false,
+        "observed_wall_seconds": 0.168,
+        "receipts": [],
+        "output_exists": true,
+        "wall_seconds": 0.13,
+        "user_cpu_seconds": 0.07,
+        "system_cpu_seconds": 0.08,
+        "max_rss_kib": 39544,
+        "output": "mask-reopened.png",
+        "output_bytes": 201344,
+        "output_sha256": "1c11b1f4e027b6bbaeeecf984750405e404215af29283ac1b04582e4a3715e52",
+        "output_dimensions": [
+          800,
+          800
+        ],
+        "png_colour_type": 6,
+        "technical_success": true
+      },
+      {
+        "name": "logo-webp",
+        "exit_status": 0,
+        "timed_out": false,
+        "observed_wall_seconds": 0.067,
+        "receipts": [],
+        "output_exists": true,
+        "wall_seconds": 0.04,
+        "user_cpu_seconds": 0.0,
+        "system_cpu_seconds": 0.03,
+        "max_rss_kib": 16848,
+        "output": "logo.webp",
+        "output_bytes": 6068,
+        "output_sha256": "8491ae923ec8bc04cc6ff48a43d6629a72ec1cab99eaab4b8ff193b9e9f7ce18",
+        "technical_success": true
+      },
+      {
+        "name": "chart-feathered-blur",
+        "exit_status": 0,
+        "timed_out": false,
+        "output_exists": true,
+        "wall_seconds": 0.15,
+        "user_cpu_seconds": 0.05,
+        "system_cpu_seconds": 0.11,
+        "max_rss_kib": 41148,
+        "output": "chart-feathered-blur.png",
+        "output_bytes": 214267,
+        "output_sha256": "d4efff6ce8549f6f82b3aa2d3bf4d01bf981d62d2688d1997814f0a4d0b5e401",
+        "output_dimensions": [
+          800,
+          800
+        ],
+        "png_colour_type": 2,
+        "technical_success": true,
+        "receipts": [
+          {
+            "command": "select.lasso",
+            "result": {
+              "selected": true
+            }
+          },
+          {
+            "command": "select.refineEdge",
+            "result": {
+              "output": "selection",
+              "selected": true
+            }
+          },
+          {
+            "command": "filter.blur.gaussianBlur",
+            "result": {
+              "filter": {
+                "filter": "gaussianBlur",
+                "radius": 10.0
+              },
+              "layer": 2
+            }
+          }
+        ],
+        "note": "One refinement after visual review of the initial hard-edge blur."
+      }
+    ],
+    "post_writes": 0,
+    "limitation": "Existing post imagery, not a portrait/product corpus. Auto masks require visual review.",
+    "concurrent_pair_seconds": 0.284,
+    "originals_unchanged": true,
+    "finished_at": "2026-11-14T19:47:10.565795+00:00"
+  },
+  "pixel_verification": {
+    "logo_adjust_alpha_exact": true,
+    "logo_webp_alpha_exact": true,
+    "logo_trim_dimensions": [
+      300,
+      80
+    ],
+    "logo_trim_matches_alpha_bbox": true,
+    "native_reopen_exact_png": true,
+    "local_blur_changed_bbox": [
+      420,
+      480,
+      600,
+      640
+    ],
+    "local_blur_outside_roi_exact": true,
+    "market_crop_size": [
+      800,
+      900
+    ],
+    "market-auto-mask": {
+      "alpha_zero_fraction": 0.8995194444444444,
+      "alpha_full_fraction": 0.08910555555555555,
+      "alpha_partial_fraction": 0.011375,
+      "alpha_bbox": [
+        100,
+        55,
+        499,
+        163
+      ]
+    },
+    "chart-auto-mask": {
+      "alpha_zero_fraction": 0.20495625,
+      "alpha_full_fraction": 0.7707796875,
+      "alpha_partial_fraction": 0.0242640625,
+      "alpha_bbox": [
+        0,
+        0,
+        800,
+        654
+      ]
+    },
+    "chart-polygon-mask": {
+      "alpha_zero_fraction": 0.5726421875,
+      "alpha_full_fraction": 0.4181265625,
+      "alpha_partial_fraction": 0.00923125,
+      "alpha_bbox": [
+        49,
+        179,
+        761,
+        701
+      ]
+    },
+    "measured_jobs": 12,
+    "all_technical_success": true,
+    "wall_range_seconds": [
+      0.04,
+      2.01
+    ],
+    "max_rss_mib": 61.64453125,
+    "concurrent_pair_seconds": 0.284,
+    "feather_changed_bbox": [
+      405,
+      464,
+      615,
+      651
+    ],
+    "logo_webp_visible_rgba_exact": true
+  },
+  "document_verification": {
+    "post_writes": 0,
+    "original_posts": [
+      {
+        "post_id": 94,
+        "revision": 1,
+        "saved_record_unchanged": true,
+        "source_sha256": "94c78bf5ea80bda426630a177f688f3517cbc449279bf2eaca3174e58d64e0d8"
+      },
+      {
+        "post_id": 97,
+        "revision": 1,
+        "saved_record_unchanged": true,
+        "source_sha256": "5a0229ca939588a4ac483b8663fe51dff61682b608fff65e3be394c07256ff77"
+      },
+      {
+        "post_id": 135,
+        "revision": 82,
+        "saved_record_unchanged": true,
+        "source_sha256": "d87875edc2350d1a11526dc15123f2109aa8f012b61918ba0909b658886d6740"
+      }
+    ],
+    "copied_documents": [
+      {
+        "post_id": 94,
+        "derived_image": "market-colour.png",
+        "changed_paths": [
+          ".imageUrl",
+          ".canvas_model.slides[0].bgImage"
+        ],
+        "json_roundtrip_ok": true,
+        "only_image_references_changed": true,
+        "database_saved": false,
+        "rendered_in_canvaslab": false
+      },
+      {
+        "post_id": 97,
+        "derived_image": "chart-polygon-mask.png",
+        "changed_paths": [
+          ".imageUrl",
+          ".canvas_model.slides[0].bgImage",
+          ".canvas_model.slides[0].composition.media.im-9c6f7e5e-e29e-40cb-a538-48fcb4db5692.url",
+          ".canvas_model.slides[0].composition.authorialLayers[0].url",
+          ".canvas_model.slides[0].extraImages[0].url",
+          ".canvas_model.extraImages[0].url"
+        ],
+        "json_roundtrip_ok": true,
+        "only_image_references_changed": true,
+        "database_saved": false,
+        "rendered_in_canvaslab": false
+      }
+    ],
+    "missing_source": {
+      "post_id": 132,
+      "storage_read_succeeded": false,
+      "metadata_object_exists": false
+    },
+    "temporary_entries_remaining": 0,
+    "postspark_health": [
+      {
+        "name": "platform-app-trial-postspark-web-1",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "platform-app-trial-postspark-worker-1",
+        "running": true,
+        "health": "healthy"
+      }
+    ]
+  },
+  "visual_review": {
+    "reviewed_at": "2026-11-14T19:52:15.853393+00:00",
+    "case_count": 12,
+    "edit_recipes": 9,
+    "format_checks": 3,
+    "operations": {
+      "colour_adjustments": "pilot_candidate",
+      "crop_resize": "pilot_candidate_with_explicit_framing",
+      "alpha_and_trim": "pilot_candidate_with_trim_geometry_mapping",
+      "polygon_masks": "pilot_candidate",
+      "local_blur": "pilot_candidate_with_feather_control",
+      "native_roundtrip": "pixel_exact_on_this_mask",
+      "webp_alpha": "exact_on_this_logo",
+      "automatic_subject": "experimental_not_a_default_background_remover"
+    },
+    "automatic_subject_findings": {
+      "market": "Selected the inner cloth; omitted its patterned border/fringes. Requires explicit target and correction.",
+      "chart": "Kept the background and removed floor regions; visual rejection despite selected=true and exit 0."
+    },
+    "limitations": [
+      "Three existing post assets: one logo and two photo-like/illustrative images; no camera provenance claim.",
+      "No portrait, hair, transparent product, high-resolution photo, JPEG export, long load, timeout or cancellation certification in this round.",
+      "Two offline document copies only; no CanvasLab render, hosted save/reopen, billing or integration activation."
+    ],
+    "comparison_artifact": "/home/emanuel/.codex/visualizations/2026/11/13/01a1d619-c5ee-71f0-89e1-1c4446976e53/photocraft-posts/comparacao.png"
+  }
+}

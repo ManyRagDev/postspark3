@@ -18,6 +18,7 @@ import { adminProcedure } from "../_core/trpc";
 import { authorizeArsenalSaveModel, validateArsenalSaveModel } from "../designCatalog/arsenalSave";
 import { compressPostPayload } from "../lib/imageCompress";
 import { normalizeCanvasMediaPayload } from "../mediaAssets";
+import { requireProfessionalStudio } from "../studioAccess";
 
 const saveTemplateInput = z.object({
   title: z.string().trim().min(1).max(120),
@@ -62,8 +63,13 @@ async function persistTemplatePost(
   return { id: postId };
 }
 
+const designReplicationProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  await requireProfessionalStudio(ctx.user, "A opção Replicar Design");
+  return next();
+});
+
 export const templateIngestionRouter = router({
-  ingestFromImage: protectedProcedure
+  ingestFromImage: designReplicationProcedure
     .input(
       z.object({
         imageDataUrl: z
@@ -101,7 +107,7 @@ export const templateIngestionRouter = router({
       }
     }),
 
-  ingestFromUrl: protectedProcedure
+  ingestFromUrl: designReplicationProcedure
     .input(
       z.object({
         url: z.string().trim().url("Informe uma URL válida com http:// ou https://"),
@@ -162,7 +168,7 @@ export const templateIngestionRouter = router({
     )
     .query(({ input }) => searchOpenFontCatalog(input.query, input.category)),
 
-  saveAsTemplate: protectedProcedure
+  saveAsTemplate: designReplicationProcedure
     .input(saveTemplateInput)
     .mutation(async ({ input, ctx }) => {
       try {
@@ -180,7 +186,7 @@ export const templateIngestionRouter = router({
    * Extrai DNA visual + intenções de post. O resultado é privado do usuário:
    * nada aqui toca o catálogo global.
    */
-  extractDesign: protectedProcedure
+  extractDesign: designReplicationProcedure
     .input(
       z
         .object({
@@ -246,7 +252,7 @@ export const templateIngestionRouter = router({
    * Destino privado: o DNA vira a identidade visual do projeto do próprio usuário e
    * as peças aprovadas vão para a biblioteca dele. O dono vem sempre da sessão.
    */
-  saveExtractionToProject: protectedProcedure
+  saveExtractionToProject: designReplicationProcedure
     .input(
       z.object({
         projectId: z.string().uuid(),

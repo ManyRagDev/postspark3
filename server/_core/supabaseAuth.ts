@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./cookies";
 import { ENV } from "./env";
-import { hasPostSparkAccess } from "./appAccess";
+import { hasPostSparkAccess, hasStartPilotAccess, hasAgencyAccess } from "./appAccess";
 import { recordLocalAuth } from "./localAuthDiagnostic";
 
 function getSupabaseAdmin() {
@@ -44,15 +44,11 @@ export function registerSupabaseAuthRoutes(app: Express) {
         return;
       }
 
-      // ── Application access check (skip in dev with BYPASS_AUTH) ──
-      if (!(process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true")) {
-        const hasAccess = await hasPostSparkAccess(user.id);
-
-        if (!hasAccess) {
-          recordLocalAuth(req, "bridge.access_denied", access_token);
-          res.status(403).json({ error: "postspark_access_required" });
-          return;
-        }
+      const hasAccess = await hasPostSparkAccess(user.id);
+      if (!hasAccess && !(user.email_confirmed_at && (await hasStartPilotAccess(user.id) || await hasAgencyAccess(user.id)))) {
+        recordLocalAuth(req, "bridge.access_denied", access_token);
+        res.status(403).json({ error: "postspark_access_required" });
+        return;
       }
 
       const cookieOptions = getSessionCookieOptions(req);

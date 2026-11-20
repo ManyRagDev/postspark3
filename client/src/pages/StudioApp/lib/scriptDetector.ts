@@ -27,15 +27,18 @@ export interface ScriptDetectionResult {
 
 /**
  * Padrões que indicam início de uma lâmina/slide:
- * - Slide 1:, Slide 1 -, **Slide 1:**, **Slide 1**
- * - Lâmina 1:, Lamina 1:, Tela 1:, Página 1:
+ * - slide1, Slide 1:, ## Slide 01, **Slide 1:**, [Slide 1]
+ * - Lâmina1:, Lamina 1:, Tela1:, Página 1:
+ * - --- em uma linha separada
  * - 1. Gancho:, 2. Solução:, 1. Título:
  */
-const SLIDE_HEADER_REGEX = /(?:^|\n)[ \t]*(?:\*{1,2})?(?:slide|l[aâ]mina|tela|p[aá]gina)\s+(\d+)[ \t]*(?:\*{1,2})?[ \t]*[:-]?[ \t]*/i;
-const NUMBERED_TOPIC_REGEX = /(?:^|\n)[ \t]*(\d+)[\.\)][ \t]+(?:gancho|problema|solu[cç][aã]o|fechamento|cta|t[ií]tulo|texto)?[ \t]*[:-]?[ \t]*/i;
+const SLIDE_MARKER_REGEX = new RegExp(
+  String.raw`^[ \t]*(?:#{1,6}[ \t]+)?(\*{1,2}|_{1,2})?(?:\[[ \t]*)?(?:slide|l[aâ]mina|tela|p[aá]gina)[ \t]*#?[ \t]*(\d+)(?![\p{L}\p{N}_])(?:[ \t]*\])?[ \t]*`,
+  "gimu"
+);
 
 export function detectScriptStructure(text: string): ScriptDetectionResult {
-  if (!text || text.trim().length < 30) {
+  if (!text?.trim()) {
     return {
       isScript: false,
       slideCount: 0,
@@ -44,11 +47,13 @@ export function detectScriptStructure(text: string): ScriptDetectionResult {
     };
   }
 
-  const raw = text.normalize("NFC");
+  const raw = text.replace(/\r\n?/g, "\n");
 
   // Verifica se há seções múltiplas (ex: "## Roteiro Reels" e "## Carrossel")
   const hasReels = /roteiro\s+reels|vídeo\s+reels|tiktok/i.test(raw);
-  const hasCarouselHeading = /##\s*carrossel|#\s*carrossel|carrossel\s*:/i.test(raw);
+  const hasCarouselHeading = /##\s*carrossel|#\s*carrossel|carrossel\s*:/i.test(
+    raw
+  );
   const hasCaption = /##\s*legenda|legenda\s*:/i.test(raw);
   const hasExtraneousSections = hasReels || hasCaption;
 
@@ -56,8 +61,10 @@ export function detectScriptStructure(text: string): ScriptDetectionResult {
 
   // Se houver uma seção específica "## Carrossel", isola para análise prioritária
   if (hasCarouselHeading) {
-    const match = raw.match(/(?:##|#)[ \t]*carrossel[\s\S]*?(?=(?:##|#)[ \t]*legenda|$)/i);
-    if (match && match[0].length > 40) {
+    const match = raw.match(
+      /(?:##|#)[ \t]*carrossel[\s\S]*?(?=(?:##|#)[ \t]*legenda|$)/i
+    );
+    if (match) {
       targetText = match[0];
     }
   }
@@ -69,10 +76,31 @@ export function detectScriptStructure(text: string): ScriptDetectionResult {
     return {
       isScript: true,
       slideCount: boundedCount,
-      slides: explicitSlides.slice(0, 10),
+      slides: explicitSlides,
       hasExtraneousSections,
       carouselSectionText: targetText !== raw ? targetText : undefined,
     };
+  }
+
+  // A dedicated separator avoids confusing normal paragraphs with slide boundaries.
+  const separated = targetText
+    .replace(/^(?:#{1,6}[ \t]+)carrossel[ \t]*\n/i, "")
+    .split(/^[ \t]*---[ \t]*$/m);
+  if (separated.length >= 2) {
+    while (separated.length && !separated[0].trim()) separated.shift();
+    while (separated.length && !separated[separated.length - 1].trim())
+      separated.pop();
+    if (separated.length >= 2)
+      return {
+        isScript: true,
+        slideCount: Math.min(separated.length, 10),
+        slides: separated.map((block, slideIndex) => {
+          const rawText = block.trim();
+          return { slideIndex, rawText, ...extractTitleAndBody(rawText) };
+        }),
+        hasExtraneousSections,
+        carouselSectionText: targetText !== raw ? targetText : undefined,
+      };
   }
 
   // Estratégia 2: Itens numerados ordenados (1. ..., 2. ..., 3. ..., 4. ...)
@@ -82,7 +110,7 @@ export function detectScriptStructure(text: string): ScriptDetectionResult {
     return {
       isScript: true,
       slideCount: boundedCount,
-      slides: numberedSlides.slice(0, 10),
+      slides: numberedSlides,
       hasExtraneousSections,
       carouselSectionText: targetText !== raw ? targetText : undefined,
     };
@@ -98,16 +126,36 @@ export function detectScriptStructure(text: string): ScriptDetectionResult {
 
 function parseExplicitSlides(text: string): ParsedScriptSlide[] {
   // Encontra todas as posições dos marcadores "Slide X"
-  const markerRegex = /(?:^|\n)[ \t]*(?:\*{1,2})?(?:slide|l[aâ]mina|tela|p[aá]gina)\s+(\d+)[ \t]*(?:\*{1,2})?[ \t]*[:-]?[ \t]*/gi;
-  const matches = Array.from(text.matchAll(markerRegex));
+  const matches = Array.from(text.matchAll(SLIDE_MARKER_REGEX));
   if (matches.length < 2) return [];
 
   const slides: ParsedScriptSlide[] = [];
 
   for (let i = 0; i < matches.length; i++) {
     const match = matches[i];
-    const slideNumber = parseInt(match[1], 10);
-    const startIdx = match.index! + match[0].length;
+    const slideNumber = parseInt(match[2], 10);
+    let startIdx = match.index! + match[0].length;
+    const decoration = match[1];
+    const skipSpaces = () => {
+      while (/[ \t]/.test(text[startIdx] ?? "") && startIdx < text.length)
+        startIdx++;
+    };
+    // Close only the decoration that opened the marker. Body emphasis stays intact.
+    const closesBeforeDelimiter = Boolean(
+      decoration && text.startsWith(decoration, startIdx)
+    );
+    if (closesBeforeDelimiter) {
+      startIdx += decoration.length;
+      skipSpaces();
+    }
+    if (/[:.\-–—]/.test(text[startIdx] ?? "")) startIdx++;
+    skipSpaces();
+    if (
+      decoration &&
+      !closesBeforeDelimiter &&
+      text.startsWith(decoration, startIdx)
+    )
+      startIdx += decoration.length;
     const endIdx = i + 1 < matches.length ? matches[i + 1].index! : text.length;
 
     const blockText = text.slice(startIdx, endIdx).trim();
@@ -144,7 +192,7 @@ function parseNumberedSlides(text: string): ParsedScriptSlide[] {
       } else if (currentBlock) {
         currentBlock.lines.push(line);
       }
-    } else if (currentBlock && line.trim().length > 0) {
+    } else if (currentBlock) {
       currentBlock.lines.push(line);
     }
   }
@@ -163,10 +211,17 @@ function parseNumberedSlides(text: string): ParsedScriptSlide[] {
   });
 }
 
-function extractTitleAndBody(blockText: string): { title?: string; body?: string } {
+function extractTitleAndBody(blockText: string): {
+  title?: string;
+  body?: string;
+} {
   // Se contiver marcadores "Título:" e "Texto:" explícitos
-  const titleMatch = blockText.match(/(?:t[ií]tulo|header|headline)[ \t]*[:-][ \t]*(.*?)(?:\n|$)/i);
-  const textMatch = blockText.match(/(?:texto|corpo|body|descri[cç][aã]o)[ \t]*[:-][ \t]*([\s\S]*?)$/i);
+  const titleMatch = blockText.match(
+    /(?:t[ií]tulo|header|headline)[ \t]*[:-][ \t]*(.*?)(?:\n|$)/i
+  );
+  const textMatch = blockText.match(
+    /(?:texto|corpo|body|descri[cç][aã]o)[ \t]*[:-][ \t]*([\s\S]*?)$/i
+  );
 
   if (titleMatch && titleMatch[1].trim()) {
     const title = titleMatch[1].trim().replace(/^[*_]+|[*_]+$/g, "");
@@ -176,15 +231,23 @@ function extractTitleAndBody(blockText: string): { title?: string; body?: string
     }
     return { title, body };
   }
+  if (textMatch)
+    return { body: textMatch[1].trim().replace(/^[*_]+|[*_]+$/g, "") };
 
   // Divisão heurística: primeira linha é título, demais são corpo
-  const lines = blockText.split("\n").map(l => l.trim()).filter(Boolean);
+  const lines = blockText
+    .split("\n")
+    .map(l => l.trim())
+    .filter(Boolean);
   if (lines.length === 0) return {};
   if (lines.length === 1) {
     return { title: lines[0].replace(/^[*_]+|[*_]+$/g, "") };
   }
 
   const title = lines[0].replace(/^[*_]+|[*_]+$/g, "");
-  const body = lines.slice(1).join(" ").replace(/^[*_]+|[*_]+$/g, "");
+  const body = lines
+    .slice(1)
+    .join(" ")
+    .replace(/^[*_]+|[*_]+$/g, "");
   return { title, body };
 }

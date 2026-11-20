@@ -11,6 +11,7 @@ const object = (value: unknown): Record<string, any> | undefined =>
 const number = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
 export const isPaidGenerationOperation = (key: string) =>
+  /:identity_(?:copy|plan|review)$/.test(key) ||
   key === "prepare:selection" ||
   key === "prepare:intent" ||
   key.startsWith("prepare:template_replan:") ||
@@ -25,7 +26,7 @@ export function journalOperationWasLocal(result: unknown) {
     Array.isArray(metadata.events) &&
     metadata.events.some(
       (event: any) =>
-        (event.stage === "review_correction" || event.stage === "generation_plan") &&
+        (event.stage === "review_correction" || event.stage === "generation_plan" || event.stage === "identity_review") &&
         event.status === "completed" &&
         event.detail === "deterministic_local" &&
         event.data?.paidEffect === false

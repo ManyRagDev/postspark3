@@ -1,0 +1,150 @@
+{
+  "checkedAt": "2026-11-17T19:15:18.408Z",
+  "success": true,
+  "irisDisabled": true,
+  "privateTools": [
+    {
+      "kind": "adjust",
+      "label": "Ajustes"
+    },
+    {
+      "kind": "crop",
+      "label": "Recortar"
+    },
+    {
+      "kind": "resize",
+      "label": "Dimensões"
+    },
+    {
+      "kind": "mask",
+      "label": "Máscara"
+    },
+    {
+      "kind": "blur",
+      "label": "Desfocar"
+    },
+    {
+      "kind": "trim",
+      "label": "Limpar bordas"
+    },
+    {
+      "kind": "black-white",
+      "label": "Preto e branco"
+    },
+    {
+      "kind": "duotone",
+      "label": "Duotone",
+      "maxDimension": 2048
+    },
+    {
+      "kind": "shadows-highlights",
+      "label": "Sombras e realces"
+    },
+    {
+      "kind": "look",
+      "label": "Looks"
+    },
+    {
+      "kind": "grain",
+      "label": "Granulação",
+      "maxDimension": 2048
+    }
+  ],
+  "results": [
+    {
+      "operation": {
+        "kind": "black-white"
+      },
+      "size": 64,
+      "ms": 63,
+      "bytes": 834
+    },
+    {
+      "operation": {
+        "kind": "duotone",
+        "dark": "#11253a",
+        "light": "#59d4c2"
+      },
+      "size": 64,
+      "ms": 34,
+      "bytes": 1139
+    },
+    {
+      "operation": {
+        "kind": "shadows-highlights",
+        "shadows": 25,
+        "highlights": 10
+      },
+      "size": 64,
+      "ms": 42,
+      "bytes": 1395
+    },
+    {
+      "operation": {
+        "kind": "look",
+        "preset": "warm"
+      },
+      "size": 64,
+      "ms": 42,
+      "bytes": 864
+    },
+    {
+      "operation": {
+        "kind": "look",
+        "preset": "teal-orange"
+      },
+      "size": 64,
+      "ms": 50,
+      "bytes": 869
+    },
+    {
+      "operation": {
+        "kind": "grain",
+        "amount": 1.5
+      },
+      "size": 64,
+      "ms": 41,
+      "bytes": 3466
+    },
+    {
+      "operation": {
+        "kind": "duotone",
+        "dark": "#11253a",
+        "light": "#59d4c2"
+      },
+      "size": 2048,
+      "ms": 1076,
+      "bytes": 678545
+    },
+    {
+      "operation": {
+        "kind": "grain",
+        "amount": 1.5
+      },
+      "size": 2048,
+      "ms": 2738,
+      "bytes": 1615615
+    },
+    {
+      "operation": {
+        "kind": "shadows-highlights",
+        "shadows": 25,
+        "highlights": 10
+      },
+      "size": 3840,
+      "ms": 14809,
+      "bytes": 489952
+    },
+    {
+      "operation": {
+        "kind": "shadows-highlights",
+        "shadows": 25,
+        "highlights": 10
+      },
+      "size": 3840,
+      "ms": 14884,
+      "bytes": 489952
+    }
+  ],
+  "concurrent3840ms": 14889
+}

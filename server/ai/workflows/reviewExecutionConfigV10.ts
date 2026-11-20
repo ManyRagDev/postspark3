@@ -1,6 +1,9 @@
 import { NATIVE_GLYPH_MANIFEST_HASH } from "@shared/nativeGlyphProjection";
 import { positiveEditorialInstructions } from "@shared/compactEditorialContract";
+import { affirmativeCopyInstructionsV2 } from "@shared/affirmativeSocialPlaybook";
+import { referenceContextInstructions } from "./editorialContextV8";
 import { z } from "zod";
+import { historicalReviewSchema } from "./historicalReviewSchema";
 import { AUTOMATIC_REVIEW_PROTOCOL, AUTOMATIC_REVIEW_PROTOCOL_V3, AUTOMATIC_REVIEW_PROTOCOL_V4, compactAutomaticReviewInstructionsV4, compactAutomaticReviewInstructions, compactAutomaticReviewInstructionsV3 } from "./automaticReviewProtocol";
 import type { GenerationTaskModelConfig } from "@shared/generationModel";
 import { generationIntentLegacySchema as generationIntentSchema } from "@shared/generationPlan";
@@ -25,6 +28,11 @@ import {
 } from "./editorialGuidance";
 
 export const copyInstructionsV10 = copyInstructionsV9;
+export const copyInstructionsV10V2 =
+  affirmativeCopyInstructionsV2 +
+  "\n" +
+  referenceContextInstructions +
+  "\nProtocolo de fontes tipadas v3: preserve a finalidade e a origem de cada referência. Preferências visuais orientam a escolha; mantenha a geometria, cores e fontes autorais.";
 export function reviewInstructionsV10(
   violations?: string[],
   invalidHash?: string
@@ -53,19 +61,26 @@ export function reviewInstructionsV10(
     .join("\n");
 }
 export const automaticReviewInstructionsV10 = "Na política automática, preferências de estilo visual, composição, ritmo e escolha de design são orientações consultivas. Não crie achado bloqueante por afastamento dessas preferências. Preserve a revisão material de fatos, condições, requisitos de conteúdo, contagens, destinos arte/legenda, legibilidade e mídia obrigatória. O plano é apenas uma distribuição sugerida, nunca evidência factual nem nova obrigação.";
-export function reviewContractHashV10(includeExecutionKind = false, automatic = false, nativeInventoryVersion?: 1, automaticReviewVersion?: 2 | 3 | 4) {
-  if (automaticReviewVersion === 4) return arsenalHash({protocol:AUTOMATIC_REVIEW_PROTOCOL_V4, response:z.toJSONSchema(proposalReviewExceptionsResponseV10Schema), record:z.toJSONSchema(proposalReviewExceptionsRecordV10Schema), context:z.toJSONSchema(reviewDurableContextV5Schema), instructions:[compactAutomaticReviewInstructionsV4(positiveEditorialInstructions),compactAutomaticReviewInstructionsV4(positiveEditorialInstructions,["formal-reason"],"receipt-hash")]});
+export function reviewContractHashV10(includeExecutionKind = false, automatic = false, nativeInventoryVersion?: 1, automaticReviewVersion?: 2 | 3 | 4, historical = true, copyInstructionsVersion?: 2) {
+  if (automaticReviewVersion === 4) return arsenalHash({
+    protocol:AUTOMATIC_REVIEW_PROTOCOL_V4,
+    response:z.toJSONSchema(proposalReviewExceptionsResponseV10Schema),
+    record:z.toJSONSchema(proposalReviewExceptionsRecordV10Schema),
+    context:z.toJSONSchema(reviewDurableContextV5Schema),
+    ...(copyInstructionsVersion === 2 ? { copyInstructions: affirmativeCopyInstructionsV2 } : {}),
+    instructions:[compactAutomaticReviewInstructionsV4(positiveEditorialInstructions),compactAutomaticReviewInstructionsV4(positiveEditorialInstructions,["formal-reason"],"receipt-hash")],
+  });
   // V10 still reviews the historical material-content namespace. The reader
   // also accepts the additive schema emitted during the classification rollout.
   const record = includeExecutionKind ? proposalReviewRecordV10Schema : proposalReviewRecordV10Schema.safeExtend({
     intentRequirements: generationIntentSchema.shape.requirements.element.omit({ kind: true }).array().max(50),
   });
-  return arsenalHash({
+  const contract = {
     protocol: "review.v10.material-unit-assessment.1",
     evidence: "typed-origin-preserved.ids.1",
     units: "native-address.ids.1",
     normalization: "v9-adapter.material-sequence.intent-namespace-canonicalization.2",
-    copyInstructions: copyInstructionsV10,
+    copyInstructions: copyInstructionsVersion === 2 ? copyInstructionsV10V2 : copyInstructionsV10,
     instructions: [
       reviewInstructionsV10(),
       reviewInstructionsV10(["formal-reason"], "receipt-hash"),
@@ -81,17 +96,20 @@ export function reviewContractHashV10(includeExecutionKind = false, automatic = 
       empty: z.toJSONSchema(reviewResponseInventorySchemaV10({requirementChecks: [], intentChecks: []})),
       populated: z.toJSONSchema(reviewResponseInventorySchemaV10({requirementChecks: ["requirement-1", "requirement-2"], intentChecks: ["intent-1", "intent-2"]})),
     } } : {}),
-  });
+  };
+  return arsenalHash(historical ? historicalReviewSchema(contract) : contract);
 }
-export function resolveReviewExecutionConfigV10(textModel?: string, taskModelConfig?: GenerationTaskModelConfig) {
+export function resolveReviewExecutionConfigV10(textModel?: string, taskModelConfig?: GenerationTaskModelConfig, options?: { copyInstructionsVersion?: 2 }) {
   const { configurationHash: _hash, ...old } =
     resolveReviewExecutionConfigV9(textModel);
+  const copyInstructionsVersion = options?.copyInstructionsVersion;
   const data = {
     ...old,
     version: 5,
     policyVersion: 10,
     editorialGuidanceVersion: 9,
-    contractHash: reviewContractHashV10(false, Boolean(taskModelConfig), taskModelConfig ? 1 : undefined, taskModelConfig ? 4 : undefined),
+    contractHash: reviewContractHashV10(false, Boolean(taskModelConfig), taskModelConfig ? 1 : undefined, taskModelConfig ? 4 : undefined, true, copyInstructionsVersion),
+    ...(copyInstructionsVersion === 2 ? { copyInstructionsVersion: 2 as const } : {}),
     ...(taskModelConfig ? { taskModelConfig, resolvedModel: taskModelConfig.model, nativeInventoryVersion: 1, automaticReviewVersion: 4, localContrastPolicyVersion: 1, textFlexibilityVersion: 1, visualTextRepairVersion: 1, profileHandlePolicyVersion: 1, nativeGlyphProjection: 1, nativeGlyphManifestHash: NATIVE_GLYPH_MANIFEST_HASH } : {}),
   };
   return reviewExecutionConfigV5Schema.parse({
@@ -115,7 +133,7 @@ export function assertReviewExecutionConfigV10(value: unknown) {
     (data.visualTextRepairVersion && (data.automaticReviewVersion !== 4 || data.textFlexibilityVersion !== 1 || !data.taskModelConfig)) ||
     (data.nativeGlyphProjection ? data.nativeGlyphManifestHash !== NATIVE_GLYPH_MANIFEST_HASH : data.nativeGlyphManifestHash !== undefined) ||
     ((data.localContrastPolicyVersion || data.textFlexibilityVersion || data.profileHandlePolicyVersion || data.nativeGlyphProjection) && data.automaticReviewVersion !== 4) ||
-    ![reviewContractHashV10(false, Boolean(data.taskModelConfig), data.nativeInventoryVersion, data.automaticReviewVersion), reviewContractHashV10(true, Boolean(data.taskModelConfig), data.nativeInventoryVersion, data.automaticReviewVersion)].includes(data.contractHash)
+    ![false, true].flatMap(include => [true, false].map(historical => reviewContractHashV10(include, Boolean(data.taskModelConfig), data.nativeInventoryVersion, data.automaticReviewVersion, historical, data.copyInstructionsVersion))).includes(data.contractHash)
   )
     throw new GenerationFailureError(
       "preparation_contract_incompatible",

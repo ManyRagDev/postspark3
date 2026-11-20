@@ -134,6 +134,21 @@ it("retains signup when explicitly enabled with email delivery", async () => {
   expect(element.textContent).toContain("Verifique seu e-mail");
 });
 
+it("confirms the identity for the selected annual plan without opening the Studio", async () => {
+  auth.signUp.mockResolvedValue({ data: { session: null }, error: null });
+  await act(async () => root.render(
+    <StudioAuthModal isOpen isMobile={false} onClose={() => {}} checkoutCycle="annual" checkoutPlan="SOLO" />
+  ));
+  await submit();
+  expect(auth.signUp).toHaveBeenCalledWith({
+    email: "acervo82@postspark.test",
+    password: "local-test-password",
+    options: { emailRedirectTo: "https://postspark.com.br/auth/google-callback?cycle=annual&plan=SOLO" },
+  });
+  expect(element.textContent).toContain("Confirme seu e-mail para continuar com a assinatura.");
+  expect(auth.bridge).not.toHaveBeenCalled();
+});
+
 it("does not enter the Studio until the backend grants access and synchronizes the cookie", async () => {
   auth.signInWithPassword.mockResolvedValue({ data: { session: { access_token: "token" } }, error: null });
   let reject!: (error: Error) => void;
@@ -144,5 +159,6 @@ it("does not enter the Studio until the backend grants access and synchronizes t
   expect(element.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
   await act(async () => { reject(new Error("postspark_access_required")); });
   expect(window.location.pathname).toBe("/");
-  expect(element.querySelector('[role="alert"]')!.textContent).toBe("Sua conta ainda não tem acesso ao PostSpark. Fale com o suporte.");
+  expect(element.querySelector('[role="alert"]')!.textContent).toContain("Sua conta ainda não tem acesso ao Studio.");
+  expect(element.querySelector('[role="alert"] a')?.getAttribute("href")).toBe("/pricing");
 });

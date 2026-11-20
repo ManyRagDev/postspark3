@@ -8,6 +8,11 @@ const owner="25c1b164-6829-4b88-9f34-052ea8f7b13a";
 const picture=()=>createCanvas(1200,700).toDataURL("image/png");
 beforeEach(()=>{vi.clearAllMocks();mocks.getBucket.mockResolvedValue({data:{public:false},error:null});mocks.upload.mockResolvedValue({error:null});});
 describe("durable owner-private media",()=>{
+ it("checks ownership of original and derived references in advanced edit receipts",async()=>{
+  const foreign="/api/post-media/00000000-0000-0000-0000-000000000001/"+"a".repeat(64);
+  await expect(normalizeCanvasMediaPayload({canvasModel:{advancedImageAssets:{receipt:{originalUrl:foreign,inputUrl:foreign,resultUrl:foreign}}}},owner)).rejects.toThrow("outro proprietário");
+  expect(mocks.upload).not.toHaveBeenCalled();
+ });
  it("stores full-resolution verified bytes and a stable owned path",async()=>{
   const saved=await saveUserMediaAsset(picture(),owner);
   expect(saved.url).toMatch(new RegExp(`^/api/post-media/${owner}/[a-f0-9]{64}$`));

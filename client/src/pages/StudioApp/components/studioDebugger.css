@@ -1,0 +1,112 @@
+.studio-debugger {
+  position: fixed;
+  z-index: 10000;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  color: #eae9ef;
+  font:
+    14px/1.5 "Inter",
+    sans-serif;
+}
+.studio-debugger button,
+.studio-debugger input,
+.studio-debugger select {
+  font: inherit;
+  color: inherit;
+  background: #262932;
+  border: 1px solid #555863;
+  border-radius: 6px;
+  padding: 5px 9px;
+}
+.studio-debugger button {
+  cursor: pointer;
+}
+.studio-debugger button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.studio-debugger button[aria-pressed="true"] {
+  color: #ffe0b4;
+  border-color: #d49c60;
+}
+.studio-debugger .sd-launch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  background: #18191e;
+  box-shadow: 0 3px 12px #0006;
+}
+.studio-debugger section {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  right: 0;
+  width: min(435px, calc(100vw - 24px));
+  max-height: min(72dvh, 770px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #18191e;
+  border: 1px solid #4e5058;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 12px 50px #0008;
+  overflow-wrap: anywhere;
+}
+.studio-debugger h2 {
+  font-size: 18px;
+  font-weight: 650;
+  margin-bottom: 3px;
+}
+.studio-debugger h3 {
+  font-weight: 650;
+  margin: 4px 0;
+}
+.studio-debugger small {
+  color: #c5c3cd;
+}
+.studio-debugger nav,
+.studio-debugger .sd-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0;
+}
+.studio-debugger label,
+.studio-debugger input,
+.studio-debugger select {
+  display: block;
+  width: 100%;
+  margin: 5px 0;
+}
+.studio-debugger article,
+.studio-debugger details {
+  border-top: 1px solid #3d3e47;
+  padding: 9px 0;
+}
+.studio-debugger summary {
+  cursor: pointer;
+}
+.studio-debugger pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font:
+    12px/1.5 ui-monospace,
+    monospace;
+  padding: 9px;
+  background: #111217;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+.studio-debugger .sd-frequency {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.sd-frequency :is(th, td) {
+  padding: 4px;
+  text-align: right;
+  border-bottom: 1px solid #3d3e47;
+}
+.sd-frequency :is(th, td):first-child, .sd-frequency caption { text-align: left; }

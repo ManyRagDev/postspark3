@@ -1,0 +1,14 @@
+{
+  "previousImage": "sha256:a01daec01a0b60915b7b3854f7226387f6f9cdeee520661c82dc3f0654eef14f",
+  "image": "sha256:2802759135cc8976103cd671caf057d795a9d82bddc116382bf114d9a6767eec",
+  "rollbackImage": "postspark-web:before-roadmap-20261117",
+  "composeFiles": [
+    "/opt/platform-staging/runtime/compose.yml",
+    "/opt/postspark/photocraft/web-release-20261115/compose.web.yaml",
+    "/opt/postspark/releases/thevoid-20261115-753e310f62/compose.thevoid.yaml",
+    "/opt/postspark/releases/advanced-roadmap-20261117/compose.roadmap.yaml"
+  ],
+  "onlyInformationalFrontendChange": true,
+  "backendChanged": false,
+  "configurationChanged": false
+}

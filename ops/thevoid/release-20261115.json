@@ -1,0 +1,92 @@
+{
+  "baseImage": "sha256:09f296eaf2b336ec0a94814592418e09a246794b41dd3756cf09468fccf4db6e",
+  "scope": "TheVoid content controls, visual brief modal, slide paste, draft restoration, Ctrl/Cmd+Enter",
+  "backendBundleUnchanged": true,
+  "files": [
+    {
+      "path": "client/src/pages/StudioApp/StudioAppV2BPage.tsx",
+      "sha256": "c6f9ded3be47463404da70f08ca7a72ff5c7348dde0de0a4aef42686d4d053ef"
+    },
+    {
+      "path": "client/src/pages/StudioApp/components/v2/ProjectSelectorDropdown.tsx",
+      "sha256": "6111720040a53883dd09e5ceeb01defda2427302be917ff295d75997d9e08f2e"
+    },
+    {
+      "path": "client/src/pages/StudioApp/components/v2/ScriptSlidesModal.tsx",
+      "sha256": "3753bfea3cc0af17e1765c3467399025f8598c77cafb7f1581355d1a102ad629"
+    },
+    {
+      "path": "client/src/pages/StudioApp/components/v2/StudioCreateViewV2B.tsx",
+      "sha256": "908ed5e77b6df37445399229b95eac635d07dce19e9c5760c6e013596dd520b7"
+    },
+    {
+      "path": "client/src/pages/StudioApp/components/v2/StudioMobileCreationForm.tsx",
+      "sha256": "ea84aca4cae00900d3326bcfe095e57375542869401d9b31e9ddd03c4735d1b3"
+    },
+    {
+      "path": "client/src/pages/StudioApp/components/v2/VisualBriefControl.tsx",
+      "sha256": "1f11bb47e3e0ec514095cf37eeb9f97a2743d17e6c7f66f0646627f1bc85c053"
+    },
+    {
+      "path": "client/src/pages/StudioApp/components/v2/studioMobileCreation.css",
+      "sha256": "2fe1974465765dcdf250656b1086fe1aed5c12db5cda1b1dc0203a9fa5fde414"
+    },
+    {
+      "path": "client/src/pages/StudioApp/lib/scriptDetector.ts",
+      "sha256": "84e5e27a7e7ea5faf996919759aae65b57117655ea4826d82e0348a7a9496a09"
+    },
+    {
+      "path": "shared/creationBrief.ts",
+      "sha256": "a82bda84c6c577474431d5048d1adef223a61189c3a063ff384d6ff925bee1fa"
+    },
+    {
+      "path": "shared/postsparkSchemas.ts",
+      "sha256": "b5542b026146a4bd84649bb9996ca1ca45e982fd264fd79349aef12902c57ec9"
+    }
+  ],
+  "publicIndexSha256": "753e310f62dada0393db27b3cbdfc46f6410579f367a452088d331407483c8c4",
+  "releaseId": "thevoid-20261115-753e310f62",
+  "stage": "activate",
+  "image": "sha256:a01daec01a0b60915b7b3854f7226387f6f9cdeee520661c82dc3f0654eef14f",
+  "health": "healthy",
+  "apiUnchanged": true,
+  "workerAndOtherServicesUnchanged": true,
+  "publicCheck": {
+    "publicOrigin": "https://postspark.com.br",
+    "path": "/thevoid",
+    "status": 200,
+    "indexSha256": "753e310f62dada0393db27b3cbdfc46f6410579f367a452088d331407483c8c4",
+    "assets": [
+      {
+        "path": "/assets/index-DztzwZdS.js",
+        "bytes": 2881097,
+        "sha256": "fd2cca18524105712657a7f1670a1e7e0906fffa874ac56dcedfb3956620c92a"
+      },
+      {
+        "path": "/assets/index-jy5Crb89.css",
+        "bytes": 302322,
+        "sha256": "f785a53f59deba18e6df2495df80a334498f9beb3faafa372dde993a16398285"
+      }
+    ]
+  },
+  "verification": {
+    "isolatedTestsPassed": 46,
+    "frontendTypecheck": true,
+    "frontendBuild": true,
+    "hostedAuthenticatedBrowser": true,
+    "hostedEnterNewline": true,
+    "hostedVisualBriefModal": true,
+    "hostedBulkPasteSplit": true,
+    "originalDraftPreserved": true,
+    "browserConsoleErrors": 0,
+    "paidGenerationTriggered": false
+  },
+  "rollbackImage": "postspark-web:before-thevoid-20261115-753e310f62",
+  "remoteReleaseDirectory": "/opt/postspark/releases/thevoid-20261115-753e310f62",
+  "excluded": [
+    "visual identity backend and migrations",
+    "generation workflow changes",
+    "worker deployment",
+    "unrelated workspace changes"
+  ]
+}

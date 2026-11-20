@@ -1,8 +1,11 @@
+import { readTextGradient } from "@shared/textGradient";
 import type { CanvasPostModel, CarouselSlideItem, CanvasCustomText, CanvasCustomImage } from "../components/types";
 import { applyContrastGuard, patchTouchesContrast } from "./contrast";
-import { editArsenalContent, cloneArsenalComposition, setArsenalCustomBackground, overrideArsenalElement } from "./arsenalComposition";
-import { applyContentText, projectContentHeadline } from "@shared/arsenalContent";
+import { editArsenalContent, cloneArsenalComposition, setArsenalCustomBackground, overrideArsenalElement, setArsenalElementEffect } from "./arsenalComposition";
+import { applyContentText, projectContentHeadline, canonicalContentSources } from "@shared/arsenalContent";
 import { freshId } from "./documentCommands";
+import { nativeTextAppearance } from "./nativeTextAppearance";
+import { getEditorElementState, COMPOSITION_BACKGROUND_ID } from "./editorElementState";
 
 export const REPLICATION_GROUPS = ["background", "colors", "font", "headline", "headlineText", "body", "composition"] as const;
 export type ReplicationGroup = typeof REPLICATION_GROUPS[number];
@@ -13,7 +16,9 @@ const STYLE_KEYS = [
   "familyId", "familyName", "fontFamily", "customFontUrl", "palette",
   "overlayOpacity", "overlayColor", "overlayMode", "headlineAlign", "bodyAlign",
   "headlineSizeScale", "subtextSizeScale", "manualHeadlineColor", "manualSubtextColor",
-  "headlineEffect", "headlineEffectColor", "subtextEffect", "subtextEffectColor",
+  "headlineGradient", "subtextGradient", "headlineEffect", "headlineEffectColor", "subtextEffect", "subtextEffectColor",
+  "subtextFontFamily", "headlineFontWeight", "subtextFontWeight",
+  "headlineLineHeight", "subtextLineHeight", "headlineLetterSpacing", "subtextLetterSpacing",
 ] as const;
 
 export function resolveSlideAppearance(post: CanvasPostModel, index: number): CanvasPostModel {
@@ -22,6 +27,8 @@ export function resolveSlideAppearance(post: CanvasPostModel, index: number): Ca
   return {
     ...post,
     ...style,
+    headlineGradient: style.headlineGradient === undefined ? post.headlineGradient : style.headlineGradient,
+    subtextGradient: style.subtextGradient === undefined ? post.subtextGradient : style.subtextGradient,
     palette: style.palette ? { ...post.palette, ...style.palette } : post.palette,
   };
 }
@@ -68,8 +75,8 @@ export function applyCurrentSlideAppearancePatch(
 const GROUP_STYLE_KEYS: Record<Exclude<ReplicationGroup, "background" | "headlineText">, readonly (keyof SlideStyle)[]> = {
   colors: ["palette", "overlayOpacity", "overlayColor", "overlayMode"],
   font: ["fontFamily", "customFontUrl"],
-  headline: ["headlineAlign", "headlineSizeScale", "headlineEffect", "headlineEffectColor", "manualHeadlineColor"],
-  body: ["bodyAlign", "subtextSizeScale", "subtextEffect", "subtextEffectColor", "manualSubtextColor"],
+  headline: ["headlineGradient", "headlineAlign", "headlineSizeScale", "headlineEffect", "headlineEffectColor", "manualHeadlineColor"],
+  body: ["subtextGradient", "bodyAlign", "subtextSizeScale", "subtextEffect", "subtextEffectColor", "manualSubtextColor"],
   composition: ["familyId", "familyName"],
 };
 
@@ -84,40 +91,54 @@ export interface ReplicationValidationResult {
   issues: ReplicationValidationIssue[];
 }
 
-export function findArsenalTextElementByRole(
+function bindingsForTextRole(
   comp: NonNullable<CarouselSlideItem["composition"]>,
   role: "headline" | "body"
 ) {
-  const bindings = comp.base.bindings.filter(b => {
-    if (role === "headline") {
-      return b.source === "headline" || b.source.includes("headline");
-    }
-    return b.source === "body" || b.source.includes("body") || b.source === "subtext" || b.source.includes("subtext");
-  });
-  const boundTargetIds = new Set(bindings.flatMap(b => b.targetIds));
-  const boundElement = comp.elements.find(e => boundTargetIds.has(e.id) || (e.bindingId && bindings.some(b => b.id === e.bindingId)));
-  if (boundElement) return boundElement;
+  return comp.base.bindings.filter(b => b.kind === "text" && (
+    comp.content.schemaVersion === 3
+      ? canonicalContentSources(comp.content, b.source).some(source => comp.content.schemaVersion === 3 && comp.content.blocks.some(block => block.id === source.split(":")[1] && block.type === "text" && block.role === role))
+      : role === "headline" ? b.source === "headline" : b.source === "body" || b.source === "subtext"
+  ));
+}
 
-  const match = comp.elements.find(e =>
+export function findArsenalTextElementsByRole(
+  comp: NonNullable<CarouselSlideItem["composition"]>, role: "headline" | "body"
+) {
+  const bindings = bindingsForTextRole(comp, role);
+  const boundTargetIds = new Set(bindings.flatMap(b => b.targetIds));
+  const boundElements = comp.elements.filter(e => e.kind === "text" && (boundTargetIds.has(e.id) || Array.from(boundTargetIds).some(id => e.id.startsWith(id + "~")) || (e.bindingId && bindings.some(b => b.id === e.bindingId))));
+  if (boundElements.length) return boundElements;
+
+  const matches = comp.elements.filter(e =>
     e.kind === "text" && (
       role === "headline"
         ? e.id.toLowerCase().includes("headline") || e.id.toLowerCase().includes("title")
         : e.id.toLowerCase().includes("body") || e.id.toLowerCase().includes("subtext")
     )
   );
-  if (match) return match;
+  return matches;
+}
 
-  if (comp.version === 3) {
-    const layer = comp.authorialLayers.find(l =>
-      l.kind === "text" && (
-        role === "headline"
-          ? l.id.toLowerCase().includes("headline") || l.id.toLowerCase().includes("title")
-          : l.id.toLowerCase().includes("body") || l.id.toLowerCase().includes("subtext")
-      )
-    );
-    if (layer) return comp.elements.find(e => e.id === layer.id);
-  }
-  return undefined;
+export function findArsenalTextElementByRole(comp: NonNullable<CarouselSlideItem["composition"]>, role: "headline" | "body") {
+  return findArsenalTextElementsByRole(comp, role)[0];
+}
+
+const TEXT_STYLE_KEYS = ["fontFamily", "fontSize", "fontWeight", "fill", "align", "lineHeight", "letterSpacing"] as const;
+
+/** Compare rendered values, not the mere creation of a new object or overrides. */
+export function changedReplicationSlides(before: CanvasPostModel, after: CanvasPostModel, targets: readonly number[]): number[] {
+  const signature = (post: CanvasPostModel, i: number) => {
+    const slide = post.slides[i], view = resolveSlideAppearance(post, i);
+    return JSON.stringify({ style: Object.fromEntries(STYLE_KEYS.map(key => [key, view[key]])),
+      headline: slide.headline, subtext: slide.subtext, headlineRich: slide.headlineRich,
+      bgImage: slide.bgImage ?? view.bgImage, bgPlacement: slide.bgPlacement ?? view.bgPlacement,
+      bgTransform: slide.bgTransform ?? view.bgTransform, splitBgPosition: slide.splitBgPosition ?? view.splitBgPosition,
+      composition: slide.composition && { elements: slide.composition.elements, groups: slide.composition.groups,
+        artboard: slide.composition.artboard, ...(slide.composition.version === 3 ? { effects: slide.composition.effects, background: slide.composition.customBackground } : {}) },
+    });
+  };
+  return Array.from(new Set(targets)).filter(i => before.slides[i] && after.slides[i] && signature(before, i) !== signature(after, i));
 }
 
 export function getEffectiveSourceFont(source: CarouselSlideItem, post: CanvasPostModel): string {
@@ -146,12 +167,17 @@ export function validateReplication(
     };
   }
 
-  const targets = targetIndices.filter(index => index !== sourceIndex && index >= 0 && index < post.slides.length);
-  if (targets.length === 0 || groups.length === 0) {
-    return { ok: true, issues: [] };
+  for (const index of targetIndices) {
+    if (!Number.isInteger(index) || index < 0 || index >= post.slides.length)
+      issues.push({ targetIndex: index, group: groups[0] ?? "composition", reason: "Um slide de destino não existe mais." });
   }
 
-  if (groups.includes("headlineText") && source.composition && !source.composition.base.bindings.some(b => b.kind === "text" && b.source === "headline")) {
+  const targets = targetIndices.filter(index => index !== sourceIndex && index >= 0 && index < post.slides.length);
+  if (targets.length === 0 || groups.length === 0) {
+    return { ok: issues.length === 0, issues };
+  }
+
+  if (groups.includes("headlineText") && source.composition && !bindingsForTextRole(source.composition, "headline").length) {
     issues.push({ targetIndex: sourceIndex, group: "headlineText", reason: `Slide de origem ${sourceIndex + 1} não possui título vinculado que possa ser copiado.` });
   }
 
@@ -160,6 +186,24 @@ export function validateReplication(
     if (!target) continue;
 
     for (const group of groups) {
+      const affectedIds = group === "font"
+        ? target.composition ? target.composition.elements.filter(e => e.kind === "text" && e.bindingId).map(e => e.id) : ["headline", "subtext"]
+        : group === "background" || group === "colors" ? [target.composition ? COMPOSITION_BACKGROUND_ID : "background"]
+        : group === "composition" ? target.composition ? [...target.composition.elements, ...target.composition.groups].map(e => e.id) : ["headline", "subtext", "background"] : [];
+      if (affectedIds.some(id => getEditorElementState(post, target.id, id).locked))
+        issues.push({ targetIndex, group, reason: `Slide ${targetIndex + 1}: a operação afetaria um objeto bloqueado.` });
+      if (group === "headline" || group === "body" || group === "headlineText") {
+        const role = group === "body" ? "body" : "headline";
+        const elements = target.composition ? findArsenalTextElementsByRole(target.composition, role) : [];
+        const ids = target.composition ? elements.map(e => e.id) : [role === "headline" ? "headline" : "subtext"];
+        if (ids.some(id => getEditorElementState(post, target.id, id).locked))
+          issues.push({ targetIndex, group, reason: `Slide ${targetIndex + 1}: desbloqueie o texto de destino antes de aplicar.` });
+        const sourceElements = source.composition ? findArsenalTextElementsByRole(source.composition, role) : [];
+        if (source.composition && !sourceElements.length)
+          issues.push({ targetIndex, group, reason: `A origem não possui texto correspondente ao papel ${role === "body" ? "corpo" : "título"}.` });
+        if (group !== "headlineText" && new Set(sourceElements.map(e => JSON.stringify(TEXT_STYLE_KEYS.map(key => e[key])))).size > 1)
+          issues.push({ targetIndex, group, reason: "A origem tem textos com estilos diferentes nesse papel. Selecione um objeto para copiar sua aparência." });
+      }
       if (group === "background") {
         const sourceCompBg = source.composition?.version === 3 ? source.composition.customBackground : undefined;
         const sourceHasBg = Boolean(
@@ -180,7 +224,7 @@ export function validateReplication(
       } else if (group === "headline" || group === "headlineText") {
         if (target.composition) {
           const headlineElem = findArsenalTextElementByRole(target.composition, "headline");
-          const headlineBinding = target.composition.base.bindings.some(b => b.kind === "text" && b.source === "headline");
+          const headlineBinding = bindingsForTextRole(target.composition, "headline").length > 0;
           if (!headlineElem || (group === "headlineText" && !headlineBinding)) {
             issues.push({
               targetIndex,
@@ -296,6 +340,7 @@ export function replicateSlideAppearance(
         const fontName = getEffectiveSourceFont(source, post);
         if (fontName) {
           style.fontFamily = fontName;
+          style.subtextFontFamily = sourceComp ? findArsenalTextElementByRole(sourceComp, "body")?.fontFamily ?? fontName : nativeTextAppearance(appearance, source, "body").fontFamily;
           if (targetComp) {
             const sourceHeadlineElem = sourceComp ? findArsenalTextElementByRole(sourceComp, "headline") : undefined;
             const sourceBodyElem = sourceComp ? findArsenalTextElementByRole(sourceComp, "body") : undefined;
@@ -357,75 +402,48 @@ export function replicateSlideAppearance(
         }
       }
 
-      if (group === "headline") {
-        style.palette = { ...(style.palette ?? resolveSlideAppearance(post, index).palette), headlineColor: appearance.palette.headlineColor };
+      if (group === "headline" || group === "body") {
+        const title = group === "headline", colorKey = title ? "headlineColor" : "subtextColor";
+        const sourceElement = sourceComp && findArsenalTextElementByRole(sourceComp, group);
+        const textStyle = sourceElement ?? nativeTextAppearance(appearance, source, group);
+        const effect = sourceComp?.version === 3 && sourceElement ? sourceComp.effects[sourceElement.id] : undefined;
+        const gradient = sourceComp ? (effect?.gradient !== undefined ? effect.gradient : (sourceComp.overrides[sourceElement!.id]?.fill ? null : sourceElement?.textGradient)) : (title ? appearance.headlineGradient : appearance.subtextGradient);
+        const effectName = effect?.effect ?? (title ? appearance.headlineEffect : appearance.subtextEffect) ?? "none";
+        const effectColor = effect?.color ?? (title ? appearance.headlineEffectColor : appearance.subtextEffectColor);
+        style.palette = { ...(style.palette ?? resolveSlideAppearance(post, index).palette), [colorKey]: textStyle.fill };
         if (targetComp) {
-          const headlineElem = findArsenalTextElementByRole(targetComp, "headline");
-          const sourceHeadline = sourceComp && findArsenalTextElementByRole(sourceComp, "headline");
-          if (headlineElem && sourceHeadline) {
-            const patch: Record<string, string | number | boolean | null> = {};
-            for (const key of ["fontFamily", "fontSize", "fontWeight", "fill", "align", "lineHeight", "letterSpacing"] as const) {
-              const value = sourceHeadline[key];
-              if (value !== undefined && value !== null) patch[key] = value;
-            }
-            const asset = sourceComp?.assets.find(a => a.family === sourceHeadline.fontFamily);
-            if (asset && !targetComp.assets.some(a => a.id === asset.id)) targetComp.assets = [...targetComp.assets, asset];
-            if (sourceHeadline.fontFamily) patch.fontAssetId = asset?.id ?? null;
-            targetComp = overrideArsenalElement(targetComp, headlineElem.id, patch);
-          } else
-          if (headlineElem) {
-            const hColor = appearance.palette.headlineColor;
-            targetComp.elements = targetComp.elements.map(el =>
-              el.id === headlineElem.id
-                ? {
-                    ...el,
-                    fill: hColor ?? el.fill,
-                    align: appearance.headlineAlign ?? el.align,
-                  }
-                : el
-            );
-            if (targetComp.version === 3 && targetComp.authorialLayers) {
-              targetComp.authorialLayers = targetComp.authorialLayers.map(l =>
-                l.id === headlineElem.id
-                  ? {
-                      ...l,
-                      fill: hColor ?? (l as any).fill,
-                      align: appearance.headlineAlign ?? (l as any).align,
-                    }
-                  : l
-              );
-            }
+          const unitScale = targetComp.artboard.width / (sourceComp?.artboard.width ?? 360);
+          const asset = sourceComp?.assets.find(a => a.family === textStyle.fontFamily);
+          if (asset && !targetComp.assets.some(a => a.id === asset.id)) targetComp.assets = [...targetComp.assets, asset];
+          const patch: Record<string, string | number | boolean | null> = {};
+          for (const key of TEXT_STYLE_KEYS) {
+            const value = textStyle[key];
+            if (value !== undefined && value !== null)
+              patch[key] = (key === "fontSize" || key === "letterSpacing") && typeof value === "number" ? value * unitScale : value;
           }
-        }
-      }
-
-      if (group === "body") {
-        style.palette = { ...(style.palette ?? resolveSlideAppearance(post, index).palette), subtextColor: appearance.palette.subtextColor };
-        if (targetComp) {
-          const bodyElem = findArsenalTextElementByRole(targetComp, "body");
-          if (bodyElem) {
-            const bColor = appearance.palette.subtextColor;
-            targetComp.elements = targetComp.elements.map(el =>
-              el.id === bodyElem.id
-                ? {
-                    ...el,
-                    fill: bColor ?? el.fill,
-                    align: appearance.bodyAlign ?? el.align,
-                  }
-                : el
-            );
-            if (targetComp.version === 3 && targetComp.authorialLayers) {
-              targetComp.authorialLayers = targetComp.authorialLayers.map(l =>
-                l.id === bodyElem.id
-                  ? {
-                      ...l,
-                      fill: bColor ?? (l as any).fill,
-                      align: appearance.bodyAlign ?? (l as any).align,
-                    }
-                  : l
-              );
-            }
+          patch.fontAssetId = asset?.id ?? null;
+          for (const targetElement of findArsenalTextElementsByRole(targetComp, group)) {
+            targetComp = overrideArsenalElement(targetComp, targetElement.id, patch);
+            if (gradient !== undefined || effectName !== "none" || (targetComp.version === 3 && targetComp.effects[targetElement.id]))
+              targetComp = setArsenalElementEffect(targetComp, targetElement.id, { effect: effectName, ...(effectColor ? { color: effectColor } : {}), gradient: readTextGradient(gradient) ?? null });
           }
+        } else {
+          const targetView = resolveSlideAppearance(post, index);
+          const current = nativeTextAppearance(targetView, slide, group);
+          const scaleKey = title ? "headlineSizeScale" : "subtextSizeScale";
+          Object.assign(style, {
+            [title ? "fontFamily" : "subtextFontFamily"]: textStyle.fontFamily,
+            [title ? "headlineFontWeight" : "subtextFontWeight"]: textStyle.fontWeight,
+            [title ? "headlineAlign" : "bodyAlign"]: textStyle.align,
+            [title ? "headlineLineHeight" : "subtextLineHeight"]: textStyle.lineHeight,
+            [title ? "headlineLetterSpacing" : "subtextLetterSpacing"]: (textStyle.letterSpacing ?? 0) * (sourceComp ? 360 / sourceComp.artboard.width : 1),
+            [title ? "headlineGradient" : "subtextGradient"]: readTextGradient(gradient) ?? null,
+            [title ? "headlineEffect" : "subtextEffect"]: effectName,
+            [title ? "headlineEffectColor" : "subtextEffectColor"]: effectColor,
+            [title ? "manualHeadlineColor" : "manualSubtextColor"]: true,
+            // Native-to-native keeps the requested relative appearance; catalogue text supplies px.
+            [scaleKey]: sourceComp ? textStyle.fontSize * 360 / sourceComp.artboard.width / current.fontSize * (targetView[scaleKey] ?? 1) : appearance[scaleKey],
+          });
         }
       }
     }

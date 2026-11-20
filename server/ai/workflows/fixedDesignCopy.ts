@@ -335,13 +335,18 @@ export async function fitFixedCopy(
   }
   const normalize = (text: string) => text.trim().replace(/\s+/g, " ");
   if (brief?.interventionLevel === "visual_only") {
-    if (normalize(art) !== normalize(brief.rawInput))
+    const suppliedSlides = brief.slides?.length ? brief.slides : undefined;
+    const source = suppliedSlides ? suppliedSlides.map(slide => slide.rawText).join("\n") : brief.rawInput;
+    const changed = suppliedSlides
+      ? suppliedSlides.length !== post.slides.length || suppliedSlides.some((slide, index) => normalize(visible.filter(field => field.id.startsWith(`${index}:`)).map(field => field.text).join(" ")) !== normalize(slide.rawText))
+      : normalize(art) !== normalize(source);
+    if (changed)
       issues.push(
         "Distribua literalmente o texto do briefing na arte, sem acrescentar nem retirar palavras."
       );
     if (
       copy.caption.trim() &&
-      normalize(copy.caption) !== normalize(brief.rawInput)
+      normalize(copy.caption) !== normalize(source)
     )
       issues.push(
         "A legenda deve ficar vazia ou repetir o texto literal do briefing."
@@ -405,7 +410,7 @@ export async function generateFixedCopy(args: {
           : input.postMode === "carousel"
             ? "carousel_generation"
             : "static_generation",
-        ...(model ? { pinnedModel: model } : {}),
+        ...(model ? { pinnedModel: model, disableFallback: true } : {}),
         signal,
         deadlineMs: deadline,
         messages: [
@@ -429,7 +434,8 @@ export async function generateFixedCopy(args: {
       return schema.parse(JSON.parse(raw));
     });
   const instructions =
-    "Preencha os campos deste design fixo. Respeite o briefing, conserve fatos e CTA obrigatórios na arte. As amostras mostram espaço, não são fontes de fatos. maxChars é uma estimativa. Use frases concisas e os IDs indicados. Retorne todos os campos, inclusive os opcionais vazios.";
+    "Preencha os campos deste design fixo. Respeite o briefing, conserve fatos e CTA obrigatórios na arte. As amostras mostram espaço, não são fontes de fatos. maxChars é uma estimativa. Use frases concisas e os IDs indicados. Retorne todos os campos, inclusive os opcionais vazios." +
+    (input.executionBrief?.interventionLevel === "visual_only" ? " Preserve literalmente os textos e a ordem de cada slide recebido, sem reescrever, resumir, adicionar CTA ou criar legenda. Os marcadores de slide não pertencem à arte." : "");
   const review = (copy: Copy, visible: Copy["values"], key: string) =>
     call(
       key,

@@ -82,8 +82,8 @@ export function resolveGuardedPalette(post: CanvasPostModel): {
   return {
     palette,
     warnings: {
-      headline: !hasLegibleTextContrast(bg, headlineColor),
-      subtext: !hasLegibleTextContrast(subtextBg, subtextColor),
+      headline: post.headlineGradient ? gradientContrastRatio(bg, post.headlineGradient.colors) < 4.5 : !hasLegibleTextContrast(bg, headlineColor),
+      subtext: post.subtextGradient ? gradientContrastRatio(subtextBg, post.subtextGradient.colors) < 4.5 : !hasLegibleTextContrast(subtextBg, subtextColor),
     },
   };
 }
@@ -126,4 +126,19 @@ export function contrastRatio(background:string,foreground:string):number {
   };
   const a=luminance(background),b=luminance(foreground);
   return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+}
+
+/** Test stops and intervening sRGB colours: opposite readable endpoints can cross the background. */
+export function gradientContrastRatio(background: string, colors: readonly string[]): number {
+  if (colors.length < 2 || !colors.every(c => /^#[0-9a-f]{6}$/i.test(c))) return NaN;
+  let minimum = Infinity;
+  for (let segment = 0; segment < colors.length - 1; segment++) {
+    const a = colors[segment].slice(1).match(/../g)!.map(v => parseInt(v, 16));
+    const b = colors[segment + 1].slice(1).match(/../g)!.map(v => parseInt(v, 16));
+    for (let step = 0; step <= 64; step++) {
+      const color = "#" + a.map((v, i) => Math.round(v + (b[i] - v) * step / 64).toString(16).padStart(2, "0")).join("");
+      minimum = Math.min(minimum, contrastRatio(background, color));
+    }
+  }
+  return minimum;
 }

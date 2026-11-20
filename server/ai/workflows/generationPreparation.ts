@@ -1,7 +1,8 @@
 import { compactSelectionContextV1 } from "./editorialContextTransport";
 import { generationModelCallOptions } from "../generationModel";
 import { resolveDesignFamilyRepertoires } from "@shared/designRepertoire";
-import { repertoireMeetsMedia } from "@shared/generationPlan";
+import { requestedPreservedPhoto } from "./proposalMedia";
+import { availablePhotoCount, cardsWithAvailableMedia, repertoireMeetsMedia } from "@shared/generationPlan";
 import { reviewExecutionConfigV5Schema } from "@shared/proposalReviewV10";
 import { preparePlannedGeneration, verifyPlannedEligibility } from "./generationPlanning";
 import { resolveGenerationVisualImages,resolveGenerationVisualSites } from "./generationVisualSources";
@@ -108,6 +109,10 @@ export const selectionInputReceiptSchema = z
     jevModel: z.string().min(1),
     shortlistContextEncoding: z.literal(1).optional(),
     shortlistProfileEncoding: z.literal("repertoire_pages_v1").optional(),
+    shortlistBatchVersion: z.literal(2).optional(),
+    shortlistRankingVersion: z.literal(2).optional(),
+    familyProfileVersion: z.literal(6).optional(),
+    familyReconciliationVersion: z.literal(1).optional(),
     familyRankingVersion: z.literal(1).optional(),
     familyVisualQueryVersion: z.literal(2).optional(),
     visualRequirementsVersion: z.literal(1).optional(),
@@ -118,7 +123,7 @@ export const selectionInputReceiptSchema = z
     editorialQuotePolicy: z.literal(1).optional(),
     carouselCaptionPolicy: z.literal(1).optional(),
     preservedPhoto: z.object({version:z.literal(1),url:z.string().regex(/^\/api\/post-media\/[a-f0-9-]{36}\/[a-f0-9]{64}$/i)}).strict().optional(),
-    familyNeutrality: z.object({version:z.literal(1),seed:z.string().min(1),selectionPolicy:z.literal("capability_v1").optional(),planningVersion:z.union([z.literal(2),z.literal(3)]).optional(),proposalSelectionVersion:z.literal(1).optional(),creativeFlexibility:z.literal(1).optional(),deliveryRecoveryVersion:z.union([z.literal(1),z.literal(2)]).optional()}).strict().optional(),
+    familyNeutrality: z.object({version:z.literal(1),seed:z.string().min(1),selectionPolicy:z.literal("capability_v1").optional(),planningVersion:z.union([z.literal(2),z.literal(3)]).optional(),proposalSelectionVersion:z.literal(1).optional(),creativeFlexibility:z.literal(1).optional(),deliveryRecoveryVersion:z.union([z.literal(1),z.literal(2)]).optional(),axesVersion:z.literal(2).optional()}).strict().optional(),
     familyRetrievalVersion: z.literal(1).optional(),
     familyRecoveryVersion: z.literal(1).optional(),
     familyRetrievalIndex: z.object({ hash: z.string(), modelFingerprint: z.string() }).strict().optional(),
@@ -331,8 +336,8 @@ export function creativeImagePreference(obligation: ImageObligation): ImageOblig
 }
 
 /** Declared obligations remain binding; softer language is ranking evidence only. */
-export function policyImageObligation(input: OrchestratedGenerationInput, brief: ReturnType<typeof normalizeExecutionBrief> | null): ImageObligation {
-  if (input.selectionPolicy !== "capability_v1") return determineImageObligation(input, brief);
+export function policyImageObligation(input: OrchestratedGenerationInput, brief: ReturnType<typeof normalizeExecutionBrief> | null, existingMediaPolicy = true): ImageObligation {
+  if (input.selectionPolicy !== "capability_v1") return determineImageObligation(input, brief, undefined, existingMediaPolicy);
   const obligatory = (text: string) => text.split(/[,.!?;\n]+|\b(?:mas|porém|e)\s+(?=(?:use|utilize|inclua|mostre|quero|preciso|não|sem|apenas|somente)\b)/i)
     .filter(clause => !/\b(?:prefir[oa]|preferimos|preferência|se possível|se puder|talvez|opcional)\b/i.test(clause))
     .join(" ");
@@ -340,35 +345,48 @@ export function policyImageObligation(input: OrchestratedGenerationInput, brief:
   // A stylistic reference is not itself a command to reproduce its photo.
   if (cleanBrief?.brandInput?.referenceImageUrl && input.inputType !== "image" && !input.imageUrl)
     cleanBrief.brandInput = { ...cleanBrief.brandInput, referenceImageUrl: undefined };
-  return determineImageObligation({ ...input, content: obligatory(input.content) }, cleanBrief);
+  return determineImageObligation({ ...input, content: obligatory(input.content) }, cleanBrief, undefined, existingMediaPolicy);
 }
 
 export function determineImageObligation(
   input: OrchestratedGenerationInput,
   brief: ReturnType<typeof normalizeExecutionBrief> | null,
-  _preferences?: ReturnType<typeof effectiveStudioPreferences>
+  _preferences?: ReturnType<typeof effectiveStudioPreferences>,
+  existingMediaPolicy = true
 ): ImageObligation {
   const combined = requestImageInstructions(input, brief);
-  if (requestsPhotoMix(combined)) {
+  const mixed = requestsPhotoMix(combined);
+  // A reference can guide content/identity without being displayed when the
+  // current user explicitly asks for a text-only result. Saved taste is advisory.
+  const textOnlyRegex =
+    /\b(?:(?:apenas|somente|s[oó])\s+texto|sem\s+(?:fotos?|fotografias?|imagem|imagens)|texto\s+puro|n[aã]o\s+(?:use|utilize|inclua|mostre)\s+(?:fotos?|fotografias?|imagem|imagens))\b/i;
+  if (!mixed && textOnlyRegex.test(combined)) {
+    return {
+      policy: "forbidden",
+      required: false,
+      purpose: "none",
+      reason: "Pedido atual expressamente sem fotos ou apenas texto.",
+      slotTargets: 0,
+    };
+  }
+  if (existingMediaPolicy && input.allowAiImages === false) {
+    const upload = requestedPreservedPhoto(input, combined, true);
+    if (!upload) return {
+      policy: "optional", required: false, purpose: "none", slotTargets: 0,
+      embeddedMediaOnly: true, reason: "Usar a mídia já incorporada ao design.",
+    };
+    if (!mixed) return {
+      policy: "required", required: true, purpose: "product", slotTargets: 1,
+      reason: "Há uma foto de conteúdo disponível para o slot da composição.",
+    };
+  }
+  if (mixed) {
     return {
       policy: "optional",
       required: false,
       purpose: "editorial-photo",
       reason:
         "Pedido misto explícito: duas propostas com foto e uma proposta tipográfica.",
-      slotTargets: 0,
-    };
-  }
-  // A reference can guide content/identity without being displayed when the
-  // current user explicitly asks for a text-only result. Saved taste is advisory.
-  const textOnlyRegex =
-    /\b(?:(?:apenas|somente|s[oó])\s+texto|sem\s+(?:fotos?|fotografias?|imagem|imagens)|texto\s+puro|n[aã]o\s+(?:use|utilize|inclua|mostre)\s+(?:fotos?|fotografias?|imagem|imagens))\b/i;
-  if (textOnlyRegex.test(combined)) {
-    return {
-      policy: "forbidden",
-      required: false,
-      purpose: "none",
-      reason: "Pedido atual expressamente sem fotos ou apenas texto.",
       slotTargets: 0,
     };
   }
@@ -732,7 +750,7 @@ export function eligibleCompleteDesignCardsForRequest(
     const brief = input.executionBrief ? normalizeExecutionBrief(input.executionBrief) : null;
     const declared = policyImageObligation(input, brief);
     const obligation = automatic && input.selectionPolicy !== "capability_v1" ? creativeImagePreference(declared) : declared;
-    const repertoires = resolveDesignFamilyRepertoires(cards, {
+    const repertoires = resolveDesignFamilyRepertoires(cardsWithAvailableMedia(cards, obligation), {
       slideCount: input.postMode === "static" ? 1 : input.slideCount ?? 5,
       contentMode: brief?.interventionLevel === "visual_only" ? "literal" : "compose",
       instructions: [input.content, brief?.rawInput, brief?.notes].filter(Boolean).join("\n"),
@@ -749,7 +767,7 @@ export function eligibleCompleteDesignCardsForRequest(
 export function eligibleCompleteDesignOffersForRequest(cards: ComponentCardV1[], input: OrchestratedGenerationInput) {
   const brief = input.executionBrief ? normalizeExecutionBrief(input.executionBrief) : null;
   const obligation = determineImageObligation(input, brief);
-  const offers = resolveCompleteDesignOffers(cards, {
+  const offers = resolveCompleteDesignOffers(cardsWithAvailableMedia(cards, obligation), {
     slideCount: input.postMode === "static" ? 1 : input.slideCount ?? 5,
     contentMode: brief?.interventionLevel === "visual_only" ? "literal" : "compose",
     instructions: [input.content, brief?.rawInput, brief?.notes].filter(Boolean).join("\n"),
@@ -759,7 +777,7 @@ export function eligibleCompleteDesignOffersForRequest(cards: ComponentCardV1[],
   });
   if (!offers.length) throw new GenerationFailureError("catalog_variant_unavailable", "catalog", false);
   const mix = requestsPhotoMix(requestImageInstructions(input, brief));
-  if (mix && (!offers.some(o => o.slides.some(s => s.card.mediaSlots.length)) || !offers.some(o => o.slides.every(s => !s.card.mediaSlots.length && !designHasPhotographicContent(s.card)))))
+  if (mix && (!offers.some(o => o.slides.some(s => availablePhotoCount(s.card, obligation))) || !offers.some(o => o.slides.every(s => !s.card.mediaSlots.length && !designHasPhotographicContent(s.card)))))
     throw new GenerationFailureError("catalog_variant_unavailable", "catalog", false);
   return offers;
 }
@@ -885,7 +903,7 @@ export async function prepareOrchestratedGeneration(
         : [],
     });
     // Pin before any paid assessment. Previously persisted catalogs keep their old prompts and keys.
-    return Array.isArray(catalog) ? catalog : { ...catalog, selectionProfileVersion: 2 as const };
+    return Array.isArray(catalog) ? catalog : { ...catalog, selectionProfileVersion: 2 as const, existingMediaPolicyVersion: 1 as const };
   });
   const compactProfiles = !Array.isArray(catalogResult) && catalogResult.selectionProfileVersion === 2;
   // Historical array receipts remain immutable and explicitly unaudited.
@@ -903,7 +921,10 @@ export async function prepareOrchestratedGeneration(
     throw new Error(
       "Não há composições completas compatíveis com este pedido e formato."
     );
-  const declaredImagePreference = policyImageObligation(input, executionBrief);
+  const existingMediaPolicy = Array.isArray(catalogResult)
+    ? !deps.resumeReviewPolicyVersion
+    : catalogResult.existingMediaPolicyVersion === 1;
+  const declaredImagePreference = policyImageObligation(input, executionBrief, existingMediaPolicy);
   const imageObligation = automatic && input.selectionPolicy !== "capability_v1" ? creativeImagePreference(declaredImagePreference) : declaredImagePreference;
   const requestedPhotoMix = (!automatic || input.selectionPolicy === "capability_v1") && requestsPhotoMix(requestImageInstructions(input, executionBrief));
   if (deps.generationConfig?.generationStrategyVersion === 2) return preparePlannedGeneration({
@@ -913,7 +934,7 @@ export async function prepareOrchestratedGeneration(
     contextContent, sourceReferences, imageSourceReading, visualPreference, executionBrief, imageObligation, experimental, deadlineMs,
   }, deps);
   const offerRequest = { slideCount: count, contentMode: executionBrief?.interventionLevel === "visual_only" ? "literal" as const : "compose" as const, instructions: [input.content, executionBrief?.rawInput, executionBrief?.notes].filter(Boolean).join("\n") };
-  const potential = resolveCompleteDesignOffers(cards, offerRequest);
+  const potential = resolveCompleteDesignOffers(cardsWithAvailableMedia(cards, imageObligation), offerRequest);
   const offers = potential.filter(o => {
     const slots = o.slides.reduce((n,s) => n+s.card.mediaSlots.length,0);
     return imageObligation.required ? slots >= Math.max(1,imageObligation.slotTargets) : imageObligation.policy !== "forbidden" || (!slots && !o.slides.some(s => designHasPhotographicContent(s.card)));
@@ -921,7 +942,7 @@ export async function prepareOrchestratedGeneration(
   const expectedCandidates = coverage ? electionCandidates(coverage, cards, potential, offers, offerRequest, compactProfiles) : null;
   const candidates = expectedCandidates ? electionCandidatesSchema.parse(await deps.operation("election_candidates", async () => expectedCandidates)) : null;
   if (candidates && arsenalHash(candidates) !== arsenalHash(expectedCandidates)) throw new GenerationFailureError("catalog_coverage_incomplete", "catalog");
-  if (!offers.length || (requestedPhotoMix && (!offers.some(o => o.slides.some(s => s.card.mediaSlots.length)) || !offers.some(o => o.slides.every(s => !s.card.mediaSlots.length && !designHasPhotographicContent(s.card)))))) throw new GenerationFailureError("catalog_variant_unavailable", "catalog", false);
+  if (!offers.length || (requestedPhotoMix && (!offers.some(o => o.slides.some(s => availablePhotoCount(s.card, imageObligation))) || !offers.some(o => o.slides.every(s => !s.card.mediaSlots.length && !designHasPhotographicContent(s.card)))))) throw new GenerationFailureError("catalog_variant_unavailable", "catalog", false);
   const brief = buildUserPrompt({ request: input, executionBrief, contextContent }).content;
   const profiles = compactProfiles ? Object.fromEntries(candidates!.selectionProfiles!.map(p => [p.offerId, p.profile])) : Object.fromEntries(offers.map(offer => {
     const members = Array.from(new Map(offer.slides.map(s => [s.componentId, s])).values());
@@ -973,6 +994,8 @@ export async function prepareOrchestratedGeneration(
           return observation ? { editorialAffinity: observation } : {};
         })(),
         ...(resolvedReviewConfig.policyVersion === 9 ? {shortlistContextEncoding: 1 as const} : {}),
+        shortlistBatchVersion: 2 as const,
+        shortlistRankingVersion: 2 as const,
       }))
     );
   } catch (err) {
@@ -1003,9 +1026,11 @@ export async function prepareOrchestratedGeneration(
     profiles,
     ...(compactProfiles ? { offers } : {}),
     recentSelections,
+    shortlistBatchVersion: selectionInput.shortlistBatchVersion ?? 1,
+    rankingVersion: selectionInput.shortlistRankingVersion ?? 1,
     brief: designShortlistBrief(selectionInput.brief as any, {
       visualPreference,
-      capturedVisualPreferences:input.projectSnapshot?.version===2?input.projectSnapshot.visualPreferences:undefined,
+      capturedVisualPreferences:input.projectSnapshot && input.projectSnapshot.version !== 1 ? input.projectSnapshot.visualPreferences : undefined,
       visualReferenceSites,
       imageObligation,
       ...(selectionInput.editorialContext ? {editorialContext:selectionInput.shortlistContextEncoding === 1 ? compactSelectionContextV1(selectionInput.editorialContext) : selectionInput.editorialContext} : {}),
@@ -1023,8 +1048,8 @@ export async function prepareOrchestratedGeneration(
   const score = (o: CompleteDesignOfferV1) => shortlist.evaluated.find(e => e.id === o.offerId)?.score ?? -Infinity;
   // Explicit image obligations survive the advisory shortlist, at the same offer budget.
   for (const photo of requestedPhotoMix ? [true, false] : imageObligation.required ? [true] : []) {
-    if (offered.some(o => o.slides.some(s => s.card.mediaSlots.length) === photo)) continue;
-    const candidate = offers.filter(o => o.slides.some(s => s.card.mediaSlots.length) === photo).sort((a,b) => score(b)-score(a))[0];
+    if (offered.some(o => o.slides.some(s => availablePhotoCount(s.card, imageObligation)) === photo)) continue;
+    const candidate = offers.filter(o => o.slides.some(s => availablePhotoCount(s.card, imageObligation)) === photo).sort((a,b) => score(b)-score(a))[0];
     if (!candidate) throw new GenerationFailureError("catalog_variant_unavailable", "catalog", false);
     if (offered.length >= DESIGN_SHORTLIST_SIZE) offered = [...offered].sort((a,b) => score(a)-score(b)).slice(1);
     offered.push(candidate);
@@ -1048,8 +1073,8 @@ export async function prepareOrchestratedGeneration(
       pinnedModel: selectionInput.reviewExecutionConfig.textModel, traceLabel: modern ? "generation_selection_v3" : "generation_selection_v2", taskRoute: input.postMode === "carousel" ? "carousel_generation" : "static_generation", model: input.model, deadlineMs, signal: deps.signal,
       disableFallback: true, maxTransportAttempts: 1, disableStructuredRepair: true, forceTextSchema: true,
       messages: [
-        { role: "system", content: modern ? `${referenceContextInstructions} Escolha exatamente três offerId do catálogo finito e preserve capacidades, mídia, textos literais e requisitos expressos. reason justifica exclusivamente adequação visual; ${literal ? "Preserve a composição literal, sem editorialApproach." : "editorialApproach descreve um recorte editorial próprio e distinto para cada proposta, com utilidade para o público, sem inventar fatos ou uma fórmula obrigatória. Em light_optimize mantenha estrutura e intervenções leves."} A justificativa visual não substitui o recorte editorial. Retorne version=3 e options com offerId, reason${literal ? "" : " e editorialApproach"}. ${requestedPhotoMix ? "Exatamente duas propostas com slots de foto e uma sem slots nem fotografia." : ""}` : `Contrato postspark.selection.v2. Escolha exatamente três offerId do catálogo finito. Cada oferta contém uma sequência completa e imutável de capa/leitura/fechamento; não escolha componentes individuais. Compare o núcleo pedido, requisitos explícitos e condições das promessas usadas com as capacidades reais por papel. Detalhes periféricos podem ficar fora do recorte; nunca apague condição necessária para tornar uma promessa verdadeira. Justifique a adequação. Proponha três abordagens editoriais distintas quando permitido, sem inventar fatos para variar. Lista/comparação e estrutura pedida prevalecem; a razão não é fonte factual. Preserve requisitos explícitos, textos literais, cores, fontes e mídia. Prefira famílias distintas com adequação próxima; repetição é permitida quando necessária. Nunca invente IDs, layouts ou capacidades. ${requestedPhotoMix ? "Exatamente duas propostas com slots de foto e uma sem slots nem fotografia." : ""} Retorne version=2 e options com offerId e reason.` },
-        { role: "user", content: JSON.stringify({ brief: selectionInput.reviewExecutionConfig.policyVersion===9 ? extractTextContent(selectionInput.brief as any) : selectionInput.brief, ...(selectionInput.editorialContext ? {editorialContext:selectionInput.editorialContext} : {}), ...(selectionInput.complementaryInstruction ? { complementaryInstruction: selectionInput.complementaryInstruction } : {}), ...(selectionInput.sourceEvidence ? { sourceEvidence: selectionInput.sourceEvidence } : {}), ...((selectionInput.reviewExecutionConfig.policyVersion !== 8 && selectionInput.reviewExecutionConfig.policyVersion !== 9) && selectionInput.requirements?.length ? { requirements: selectionInput.requirements } : {}), narrativeContract: null, visualContract: carouselVisualContract(count, input.content), imageObligation, visualPreference, capturedVisualPreferences:input.projectSnapshot?.version === 2 ? input.projectSnapshot.visualPreferences : undefined, visualReferenceSites, recentSelections,
+        { role: "system", content: modern ? `${referenceContextInstructions} Escolha exatamente três offerId do catálogo finito e preserve capacidades, mídia, textos literais e requisitos expressos. reason justifica exclusivamente adequação visual; ${literal ? "Preserve a composição literal, sem editorialApproach." : "editorialApproach descreve um recorte editorial próprio e distinto para cada proposta, com utilidade para o público, sem inventar fatos ou uma fórmula obrigatória. Em light_optimize mantenha estrutura e intervenções leves."} A justificativa visual não substitui o recorte editorial. Retorne version=3 e options com offerId, reason${literal ? "" : " e editorialApproach"}. ${requestedPhotoMix ? (imageObligation.embeddedMediaOnly ? "Exatamente duas propostas com fotografia incorporada e uma tipográfica." : "Exatamente duas propostas com slots de foto e uma sem slots nem fotografia.") : ""}` : `Contrato postspark.selection.v2. Escolha exatamente três offerId do catálogo finito. Cada oferta contém uma sequência completa e imutável de capa/leitura/fechamento; não escolha componentes individuais. Compare o núcleo pedido, requisitos explícitos e condições das promessas usadas com as capacidades reais por papel. Detalhes periféricos podem ficar fora do recorte; nunca apague condição necessária para tornar uma promessa verdadeira. Justifique a adequação. Proponha três abordagens editoriais distintas quando permitido, sem inventar fatos para variar. Lista/comparação e estrutura pedida prevalecem; a razão não é fonte factual. Preserve requisitos explícitos, textos literais, cores, fontes e mídia. Prefira famílias distintas com adequação próxima; repetição é permitida quando necessária. Nunca invente IDs, layouts ou capacidades. ${requestedPhotoMix ? (imageObligation.embeddedMediaOnly ? "Exatamente duas propostas com fotografia incorporada e uma tipográfica." : "Exatamente duas propostas com slots de foto e uma sem slots nem fotografia.") : ""} Retorne version=2 e options com offerId e reason.` },
+        { role: "user", content: JSON.stringify({ brief: selectionInput.reviewExecutionConfig.policyVersion===9 ? extractTextContent(selectionInput.brief as any) : selectionInput.brief, ...(selectionInput.editorialContext ? {editorialContext:selectionInput.editorialContext} : {}), ...(selectionInput.complementaryInstruction ? { complementaryInstruction: selectionInput.complementaryInstruction } : {}), ...(selectionInput.sourceEvidence ? { sourceEvidence: selectionInput.sourceEvidence } : {}), ...((selectionInput.reviewExecutionConfig.policyVersion !== 8 && selectionInput.reviewExecutionConfig.policyVersion !== 9) && selectionInput.requirements?.length ? { requirements: selectionInput.requirements } : {}), narrativeContract: null, visualContract: carouselVisualContract(count, input.content), imageObligation, visualPreference, capturedVisualPreferences:input.projectSnapshot && input.projectSnapshot.version !== 1 ? input.projectSnapshot.visualPreferences : undefined, visualReferenceSites, recentSelections,
           ...(compactProfiles ? { profileLegend: compactDesignProfileLegend } : {}),
           catalog: offered.map(o => compactProfiles ? {
             offerId: o.offerId, family: o.family, profile: profiles[o.offerId] as CompactOfferProfile,
@@ -1070,14 +1095,14 @@ export async function prepareOrchestratedGeneration(
   const { profileContext: _profileContext, ...selectionData } = raw as Record<string, unknown>;
   const selected = schema.parse(compactProfiles ? selectionData : raw);
   const original = selected.options.map(option => offered.find(o => o.offerId === option.offerId)!);
-  if (requestedPhotoMix && original.filter(o => o.slides.some(s => s.card.mediaSlots.length)).length !== 2) throw new GenerationFailureError("catalog_variant_unavailable", "selection", false);
+  if (requestedPhotoMix && original.filter(o => o.slides.some(s => availablePhotoCount(s.card, imageObligation))).length !== 2) throw new GenerationFailureError("catalog_variant_unavailable", "selection", false);
   // Replace only a repeated family with an unused, similarly suitable family.
   // A replacement must improve total variety and retain media and writing room.
   const chosen = [...original];
   for (let i = 1; i < chosen.length; i++) {
     const o = chosen[i];
     if (!chosen.slice(0,i).some(p => p.family === o.family) || !Number.isFinite(score(o))) continue;
-    const candidate = offered.filter(c => !chosen.some(p => p.family === c.family) && score(c) >= score(o)-0.2 && c.slides.some(s => s.card.mediaSlots.length) === o.slides.some(s => s.card.mediaSlots.length) && c.slides.every((s,j) => designTextBudgets(s.card).filter(b => /body|items|list|comparison|metric/.test(b.source)).reduce((n,b) => n+b.estimatedCharacters,0) >= designTextBudgets(o.slides[j].card).filter(b => /body|items|list|comparison|metric/.test(b.source)).reduce((n,b) => n+b.estimatedCharacters,0))).sort((a,b) => score(b)-score(a))[0];
+    const candidate = offered.filter(c => !chosen.some(p => p.family === c.family) && score(c) >= score(o)-0.2 && c.slides.some(s => availablePhotoCount(s.card, imageObligation)) === o.slides.some(s => availablePhotoCount(s.card, imageObligation)) && c.slides.every((s,j) => designTextBudgets(s.card).filter(b => /body|items|list|comparison|metric/.test(b.source)).reduce((n,b) => n+b.estimatedCharacters,0) >= designTextBudgets(o.slides[j].card).filter(b => /body|items|list|comparison|metric/.test(b.source)).reduce((n,b) => n+b.estimatedCharacters,0))).sort((a,b) => score(b)-score(a))[0];
     if (candidate && ![input.content, executionBrief?.rawInput, executionBrief?.notes].join(" ").toLowerCase().includes(o.slides[0].card.label.toLowerCase())) chosen[i] = candidate;
   }
   const approaches = modern ? selected.options.map(o=>typeof o.editorialApproach === "string" ? o.editorialApproach : null) : undefined;
@@ -1090,7 +1115,7 @@ export async function prepareOrchestratedGeneration(
     recordGenerationEvent({ stage:"election_decision",status:"completed",detail:"coverage_verified",data:{receiptHash:electionReceipt.receiptHash,choices:electionReceipt.choices} });
   }
   const alternatives = selectionInput.reviewExecutionConfig.policyVersion === 9 ? chosen.map(initial => offered
-    .filter(o=>o.offerId!==initial.offerId && Number.isFinite(score(o)) && o.slides.length===initial.slides.length && o.slides.some(s=>s.card.mediaSlots.length)===initial.slides.some(s=>s.card.mediaSlots.length))
+    .filter(o=>o.offerId!==initial.offerId && Number.isFinite(score(o)) && o.slides.length===initial.slides.length && o.slides.some(s=>availablePhotoCount(s.card,imageObligation))===initial.slides.some(s=>availablePhotoCount(s.card,imageObligation)))
     .sort((a,b)=>score(b)-score(a)||a.offerId.localeCompare(b.offerId)).slice(0,3)) : undefined;
   const ids = Array.from(new Set([...chosen,...(alternatives?.flat() ?? [])].flatMap(o => o.slides.map(s => s.componentId))));
   const definitions = await deps.operation("definitions", () => deps.hydrate(ids, experimental));
@@ -1106,5 +1131,5 @@ export async function prepareOrchestratedGeneration(
   const reviewExecutionConfig = selectionInput.reviewExecutionConfig;
   const editorialContextHash = frozenEditorialContext.hash;
   return { ...(selectionInput.editorialAffinity ? { editorialAffinity: selectionInput.editorialAffinity } : {}), preparationVersion: reviewExecutionConfig.policyVersion === 9 ? 5 : modern ? 4 : 3, reviewPolicyVersion: reviewExecutionConfig.policyVersion, ...(alternatives ? {alternativeOffers:alternatives,alternativeDefinitions,recoveryPlanHash} : {}), ...(modern ? {editorialApproaches:approaches} : {}), reviewExecutionConfig, editorialContextHash, ...(selectionInput.editorialContext ? {editorialContext:selectionInput.editorialContext} : {}), ...(electionReceipt ? {electionReceipt} : {}), selectedOffers: chosen, selectedDefinitions, selectionReasons: selected.options.map((o,i) => chosen[i] === original[i] ? o.reason : "Adequação próxima com maior variedade de famílias e capacidades preservadas."), contextContent, sourceReferences, imageSourceReading, visualPreference, executionBrief, imageObligation,
-    perProposalImageObligations: requestedPhotoMix ? chosen.map(o => { const photo = o.slides.some(s => s.card.mediaSlots.length); return { policy: photo ? "required" as const : "forbidden" as const, required: photo, purpose: photo ? "editorial-photo" as const : "none" as const, reason: "Mídia do pedido misto explícito.", slotTargets: photo ? 1 : 0 }; }) : undefined };
+    perProposalImageObligations: requestedPhotoMix ? chosen.map(o => { const photo = o.slides.some(s => availablePhotoCount(s.card, imageObligation)); return { policy: photo ? "required" as const : "forbidden" as const, required: photo, ...(photo && imageObligation.embeddedMediaOnly ? { embeddedMediaOnly: true as const } : {}), purpose: photo && !imageObligation.embeddedMediaOnly ? "editorial-photo" as const : "none" as const, reason: "Mídia do pedido misto explícito.", slotTargets: photo ? 1 : 0 }; }) : undefined };
 }

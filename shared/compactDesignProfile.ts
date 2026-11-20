@@ -540,7 +540,7 @@ export function compactDesignSection(card: ComponentCardV1): Section {
       slot: s.id,
       function: s.function,
       fit: s.policy,
-      source: s.deferred ? "to_provide" : "embedded",
+      source: s.deferred && !s.embeddedAsset ? "to_provide" : "embedded",
     })),
     character: {
       catalogLanguages: unique(card.visualTraits?.languages ?? []),

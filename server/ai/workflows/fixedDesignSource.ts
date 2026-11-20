@@ -1,5 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { visualIdentitySchema, type VisualIdentity } from "@shared/visualIdentity";
+import { INITIAL_POST } from "../../../client/src/pages/CanvasLab/components/types";
+import { arsenalBundledManifest } from "@shared/arsenalBundledManifest";
+import { loadOwnedMediaReference } from "../../mediaAssets";
 import type { OrchestratedGenerationInput } from "@shared/generationRequest";
 import { arsenalHash } from "@shared/arsenalContent";
 import { SHOWCASE_ITEMS } from "../../../client/src/pages/StudioApp/components/v2/showcaseData";
@@ -8,6 +12,7 @@ import { authorizeArsenalSaveModel } from "../../designCatalog/arsenalSave";
 import { getBrandProjectById, getDb, getPostById } from "../../db";
 
 export type PinnedDesign = {
+  identity?: VisualIdentity;
   sourceId: string;
   revision: string;
   canvas: CanvasPostModel;
@@ -45,6 +50,25 @@ export async function pinFixedDesign(
   owner: string
 ): Promise<PinnedDesign> {
   const selected = input.fixedDesign!;
+  if (selected.kind === "identity") {
+    const project = input.projectId === selected.id ? await getBrandProjectById(selected.id, owner) : undefined;
+    if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "Projeto não encontrado nesta conta." });
+    const identity = visualIdentitySchema.parse(input.projectSnapshot?.version === 3 ? input.projectSnapshot.visualIdentity : project.visual_identity);
+    const { revision, ...identityBody } = identity;
+    if (arsenalHash(identityBody) !== revision) throw new TRPCError({ code: "BAD_REQUEST", message: "A identidade visual mudou. Reabra o projeto para criar." });
+    for (const font of Object.values(identity.fonts)) {
+      const asset = arsenalBundledManifest[font.assetId];
+      if (!asset || asset.sourceFamily !== font.applied || !(asset.weight === font.weight || asset.weightRange && font.weight >= asset.weightRange.min && font.weight <= asset.weightRange.max))
+        throw new TRPCError({ code: "BAD_REQUEST", message: "A fonte aplicada à identidade não está disponível. Salve novamente a identidade." });
+    }
+    if (identity.logoUrl) await loadOwnedMediaReference(identity.logoUrl, owner);
+    const canvas: CanvasPostModel = {
+      ...structuredClone(INITIAL_POST), id: `identity-${identity.revision}`, headline: "", subtext: "", caption: "", imagePrompt: "", badgeText: "", showBadge: false, showStep: false,
+      aspectRatio: input.aspectRatio, currentSlideIndex: 0,
+      slides: Array.from({ length: input.postMode === "static" ? 1 : input.slideCount ?? 5 }, (_, i) => ({ id: `identity-${i}`, step: "", headline: "", subtext: "" })),
+    };
+    return { sourceId: `identity:${selected.id}:${identity.revision}`, revision: arsenalHash(canvas), canvas, identity };
+  }
   let sourceId: string;
   let canvas: CanvasPostModel | undefined;
   if (selected.kind === "showcase") {

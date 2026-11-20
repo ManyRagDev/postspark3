@@ -6,6 +6,7 @@ import {
   resolveEditorPhrase,
   type EditorCommand,
   type EditorLayer,
+  type EditorGeometry,
 } from "../lib/editorController";
 import { contrastRatio } from "../lib/contrast";
 import { resolveSlideAppearance } from "../lib/slideReplication";
@@ -21,6 +22,7 @@ export function CanvasSelectionPanel({
   onEditOnCanvas,
   onChangeImage,
   hideColor = false,
+  geometry,
 }: {
   post: CanvasPostModel;
   layer: EditorLayer;
@@ -28,6 +30,7 @@ export function CanvasSelectionPanel({
   onEditOnCanvas: () => void;
   onChangeImage?: () => void;
   hideColor?: boolean;
+  geometry?: EditorGeometry | null;
 }) {
   if (!post.slides.some(slide => slide.id === layer.target.slideId))
     return <p>O objeto não está mais neste slide.</p>;
@@ -46,9 +49,9 @@ export function CanvasSelectionPanel({
     name: string,
     min?: number,
     max?: number,
-    step = 1
+    step: number | "any" = "any"
   ) => {
-    const value = values[key];
+    const value = values[key] ?? geometry?.[key as keyof EditorGeometry];
     if (!has(key) || typeof value !== "number") return null;
     return (
       <label key={key} className="block space-y-1 text-xs text-white/70">
@@ -56,12 +59,13 @@ export function CanvasSelectionPanel({
         <input
           className={field}
           type="number"
-          value={Math.round(value * 100) / 100}
+          value={value}
           min={min}
           max={max}
           step={step}
           onChange={event => {
-            if (event.target.value !== "")
+            if (event.target.value.trim() !== "" && Number.isFinite(Number(event.target.value)) &&
+                (min === undefined || Number(event.target.value) >= min) && (max === undefined || Number(event.target.value) <= max))
               set({ [key]: Number(event.target.value) });
           }}
         />

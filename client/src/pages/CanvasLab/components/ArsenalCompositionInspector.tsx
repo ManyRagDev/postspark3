@@ -498,7 +498,8 @@ export default function ArsenalCompositionInspector({
                     type="number"
                     min={8}
                     max={200}
-                    value={Math.round(selected.fontSize)}
+                    step="any"
+                    value={selected.fontSize}
                     onChange={e => {
                       const v = Number(e.target.value);
                       if (v > 0) patch({ fontSize: v });
@@ -993,17 +994,19 @@ export default function ArsenalCompositionInspector({
                           className={field + " mt-1"}
                           type="number"
                           step="any"
-                          defaultValue={Math.round(
-                            (selected as unknown as Record<string, number>)[key]
-                          )}
+                          defaultValue={(selected as unknown as Record<string, number>)[key]}
                           onBlur={e => {
+                            const current = (selected as unknown as Record<string, number>)[key];
                             const v = Number(e.target.value);
                             if (
+                              e.target.value.trim() !== "" &&
                               Number.isFinite(v) &&
+                              v !== current &&
                               (!["width", "height", "scale"].includes(key) ||
                                 v > 0)
                             )
                               patch({ [key]: v });
+                            else e.target.value = String(current);
                           }}
                         />
                       </label>

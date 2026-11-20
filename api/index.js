@@ -192,27 +192,9 @@ async function hasPostSparkAccess(userId) {
       console.error("[ManyLabs] has_manylabs_app_access RPC error:", error.message);
       return false;
     }
-    return Boolean(data);
+    return data === true;
   } catch (err) {
     console.error("[ManyLabs] has_manylabs_app_access unexpected error:", err);
-    return false;
-  }
-}
-async function ensurePostSparkAccess(userId, email, name) {
-  try {
-    const supabase = getPostSparkAdminClient();
-    const { data, error } = await supabase.rpc("ensure_manylabs_app_access", {
-      p_user_id: userId,
-      p_email: email,
-      p_display_name: name
-    });
-    if (error) {
-      console.error("[ManyLabs] ensure_manylabs_app_access RPC error:", error.message);
-      return false;
-    }
-    return Boolean(data);
-  } catch (err) {
-    console.error("[ManyLabs] ensure_manylabs_app_access unexpected error:", err);
     return false;
   }
 }
@@ -451,12 +433,10 @@ var init_sdk = __esm({
           recordLocalAuth(req, "request.invalid_session");
           throw ForbiddenError("Invalid or expired session");
         }
-        if (!(process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true")) {
-          const hasAccess = await hasPostSparkAccess(user.id);
-          if (!hasAccess) {
-            recordLocalAuth(req, "request.access_denied");
-            throw ForbiddenError("PostSpark access required");
-          }
+        const hasAccess = await hasPostSparkAccess(user.id);
+        if (!hasAccess) {
+          recordLocalAuth(req, "request.access_denied");
+          throw ForbiddenError("PostSpark access required");
         }
         recordLocalAuth(req, "request.authenticated");
         const metadata = user.user_metadata ?? {};
@@ -14085,9 +14065,6 @@ var init_versionedCatalog = __esm({
 
 // server/_core/context.ts
 async function createContext(opts) {
-  if (process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true") {
-    return { req: opts.req, res: opts.res, user: DEV_USER };
-  }
   try {
     const user = await sdk.authenticateRequest(opts.req);
     return {
@@ -14099,17 +14076,10 @@ async function createContext(opts) {
     return { req: opts.req, res: opts.res, user: null };
   }
 }
-var DEV_USER;
 var init_context = __esm({
   "server/_core/context.ts"() {
     "use strict";
     init_sdk();
-    DEV_USER = {
-      id: "00000000-0000-0000-0000-000000000001",
-      name: "Dev User",
-      email: "dev@local.dev",
-      role: "admin"
-    };
   }
 });
 
@@ -16966,15 +16936,11 @@ function registerSupabaseAuthRoutes(app2) {
         res.status(401).json({ error: "Invalid or expired token" });
         return;
       }
-      if (!(process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true")) {
-        const metadata2 = user.user_metadata ?? {};
-        const name2 = typeof metadata2.full_name === "string" ? metadata2.full_name : typeof metadata2.name === "string" ? metadata2.name : null;
-        const hasAccess = await ensurePostSparkAccess(user.id, user.email ?? null, name2);
-        if (!hasAccess) {
-          recordLocalAuth(req, "bridge.access_denied", access_token);
-          res.status(403).json({ error: "postspark_access_required" });
-          return;
-        }
+      const hasAccess = await hasPostSparkAccess(user.id);
+      if (!hasAccess) {
+        recordLocalAuth(req, "bridge.access_denied", access_token);
+        res.status(403).json({ error: "postspark_access_required" });
+        return;
       }
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, access_token, { ...cookieOptions, maxAge: ONE_YEAR_MS });

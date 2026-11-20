@@ -65,10 +65,10 @@ describe("textResizeGeometry", () => {
     expect(restored).toEqual({ x: 24, y: 80, width: 200 });
   });
 
-  it("keeps subpixel precision during the gesture and rounds only on commit", () => {
+  it("keeps subpixel precision during the gesture and on commit", () => {
     const live = computeTextResizeGeometry(rightSession, 312.625);
     expect(live.width).toBe(212.625);
-    expect(finalizeTextResizeGeometry(live)).toEqual({ x: 24, y: 80, width: 213 });
+    expect(finalizeTextResizeGeometry(live)).toEqual({ x: 24, y: 80, width: 212.625 });
   });
 
   it("does not depend on any previous frame", () => {

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { resyncSupabaseSession } from "@/lib/authBridge";
+import { membershipCycleKey } from "@/lib/membershipApi";
 
 export default function GoogleAuthCallback() {
   useEffect(() => {
@@ -13,14 +14,35 @@ export default function GoogleAuthCallback() {
         if (error) throw error;
         if (!session?.access_token) throw new Error("auth_session_missing");
         if (!active) return;
+        const params = new URLSearchParams(window.location.search);
+        const invite = params.get("invite");
+        if (invite && /^[0-9a-f-]{36}$/i.test(invite)) {
+          window.location.replace(`/agency?invite=${invite}`);
+          return;
+        }
+        if (params.get("start") === "1") {
+          window.location.replace("/pricing?start=1");
+          return;
+        }
+        const checkoutCycle = params.get("cycle")
+          ?? sessionStorage.getItem(membershipCycleKey);
+        if (checkoutCycle === "monthly" || checkoutCycle === "annual") {
+          sessionStorage.removeItem(membershipCycleKey);
+          const plan = params.get("plan");
+          const suffix = plan && ["SOLO", "PRO_PLUS", "AGENCY"].includes(plan) ? `&plan=${plan}` : "";
+          window.location.replace(`/pricing?cycle=${checkoutCycle}${suffix}`);
+          return;
+        }
         await resyncSupabaseSession(session.access_token);
         if (active) window.location.replace("/thevoid");
       } catch (error) {
         if (!active) return;
         const message = error instanceof Error ? error.message : "";
-        const reason = message === "postspark_access_required"
-          ? "postspark_access_required"
-          : message === "auth_session_missing" ? "no_token" : "session_failed";
+        if (message === "postspark_access_required") {
+          window.location.replace("/pricing");
+          return;
+        }
+        const reason = message === "auth_session_missing" ? "no_token" : "session_failed";
         window.location.replace(`/?auth_error=${reason}`);
       }
     };

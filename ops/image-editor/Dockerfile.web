@@ -1,0 +1,10 @@
+# Frozen from the running web image before release; runtime dependencies unchanged.
+ARG BASE_IMAGE=postspark-editor-web-base:20261115
+FROM ${BASE_IMAGE}
+USER root
+WORKDIR /app
+COPY --chown=node:node source/ /app/
+# Keep existing hashed assets for already-open browser tabs; index.html is replaced.
+COPY --chown=node:node public/ /app/dist/public/
+USER node
+CMD ["node", "api/index.js"]

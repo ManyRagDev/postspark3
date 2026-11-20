@@ -1,0 +1,12 @@
+# Merge with the existing runtime compose. Preserve its database/proxy networks.
+services:
+  postspark-web:
+    image: postspark-web:advanced-editor-20261115
+    env_file:
+      - /etc/postspark/image-editor-web.env
+    networks:
+      - image-editor
+networks:
+  image-editor:
+    external: true
+    name: postspark-image-editor

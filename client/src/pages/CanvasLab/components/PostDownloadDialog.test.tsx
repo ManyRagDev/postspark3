@@ -109,3 +109,21 @@ it("shows error alert if thumbnail or resource readiness check fails", async () 
   expect(alert?.textContent).toContain("A imagem ou fonte ainda não carregou");
   expect(stageMock.exportPng4K).not.toHaveBeenCalled();
 });
+
+
+it("locks START and Solo delivery to HD for both individual slides and the complete carousel", async () => {
+  const post = {
+    ...INITIAL_POST,
+    aspectRatio: "4:5" as const,
+    slides: [...INITIAL_POST.slides, {...INITIAL_POST.slides[0], id: "another-slide"}],
+  };
+  await act(async () => root.render(<PostDownloadDialog post={post} exportQuality="hd" onClose={() => {}} />));
+  expect(document.body.querySelectorAll("select")).toHaveLength(1);
+  for (const name of ["Baixar imagem", "Baixar carrossel"]) {
+    const button = Array.from(document.body.querySelectorAll("button")).find(b => b.textContent === name);
+    expect(button).toBeDefined();
+    await act(async () => button!.click());
+  }
+  expect(stageMock.exportPng4K).toHaveBeenCalledWith(1350);
+  expect(stageMock.exportZip4K).toHaveBeenCalledWith(undefined, 1350);
+});

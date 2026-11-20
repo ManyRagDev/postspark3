@@ -29,6 +29,8 @@ import {
   generationSlotPlanSchema,
   validateGenerationPlan,
   validateGenerationIntent,
+  availablePhotoCount,
+  cardsWithAvailableMedia,
   repertoireMeetsMedia,
   type GenerationPlanningReceipt,
 } from "../shared/generationPlan";
@@ -278,7 +280,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       : undefined;
     if (visualRequirements || planning.visualRequirements)
       check(same(visualRequirements, planning.visualRequirements), "visual_requirements_mismatch");
-    repertoires = resolveDesignFamilyRepertoires(cards, {
+    repertoires = resolveDesignFamilyRepertoires(cardsWithAvailableMedia(cards, obligation), {
       slideCount: input.postMode === "static" ? 1 : (input.slideCount ?? 5),
       contentMode: intent.adaptation === "literal" ? "literal" : "compose",
       instructions: requestText,
@@ -293,7 +295,19 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       "planning_candidates_reconstruction_mismatch"
     );
     if (familyRanking) {
-      familyCandidates = buildFamilySelectionCandidates(repertoires, editorialCatalog, Boolean(neutrality), automatic);
+      const profileVersion = selectionInput.familyProfileVersion === 6 ? 6 : undefined;
+      const axesVersion: 1 | 2 = selectionInput.familyReconciliationVersion ? 2 : (neutrality?.axesVersion === 2 ? 2 : 1);
+      const reconcileRoles = Boolean(selectionInput.familyReconciliationVersion);
+      familyCandidates = buildFamilySelectionCandidates(
+        repertoires,
+        editorialCatalog,
+        Boolean(neutrality),
+        automatic,
+        selectionInput.selectionPolicy,
+        (profileVersion || selectionInput.familyReconciliationVersion)
+          ? { profileVersion, axesVersion, reconcileRoles }
+          : undefined
+      );
       check(same(familyCandidates.map(candidate => ({
         id: candidate.id, family: candidate.family, signature: candidate.signature,
         profileHash: arsenalHash(candidate.profile),
@@ -322,7 +336,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
       const valid =
         op.state === "completed" &&
         context.version === 1 &&
-        context.profileVersion === (familyRanking ? neutrality ? 5 : 4 : 3) &&
+        context.profileVersion === (familyRanking ? (selectionInput.familyProfileVersion === 6 ? 6 : neutrality ? 5 : 4) : 3) &&
         typeof context.requestHash === "string" &&
         String(op.operation_key).endsWith(`:${context.requestHash}`) &&
         ids.length > 0 &&
@@ -360,7 +374,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
               `family_scoring_actual_bytes_mismatch:${op.operation_key}`);
             check(sameIds(Object.keys(questions), ids) && ids.every(id => {
               const family = familyCandidates.find(candidate => candidate.id === id);
-              return family && same(row(questions[id]).instructions?.design, family.profile.version === 5 ? familyAssessmentProfile(family.profile) : family.profile);
+              return family && same(row(questions[id]).instructions?.design, (family.profile.version === 5 || family.profile.version === 6) ? familyAssessmentProfile(family.profile) : family.profile);
             }), `family_scoring_actual_payload_mismatch:${op.operation_key}`);
           }
       }
@@ -593,7 +607,7 @@ export function inspectPlannedDesignElection(request: Row, operations: Row[]) {
             list(prepared.perProposalImageObligations)[slot] ?? obligation
           ),
           count = o.slides.reduce(
-            (sum, s) => sum + s.card.mediaSlots.length,
+            (sum, s) => sum + availablePhotoCount(s.card, image),
             0
           );
         return (

@@ -628,7 +628,7 @@ describe("Generation journey regressions", () => {
       }
 
   for (const representation of ["headings", "structured_snapshot"]) {
-    it(`guidance cannot certify facts: ${representation}`, async () => {
+    it(`warns on lenient delivery when guidance is cited as factual evidence: ${representation}`, async () => {
       const guidance = "Entrega garantida";
       const extra =
         representation === "headings"
@@ -675,7 +675,12 @@ describe("Generation journey regressions", () => {
         guidanceRanges: s.record().prepared.editorialContext.guidanceRanges,
         failures: r.proposals.map((p: any) => p.failure),
       });
-      expect(r.overallStatus).toBe("failed");
+      expect(r.overallStatus).toBe("completed");
+      for (const proposal of r.proposals) {
+        expect(proposal.diagnostics).toEqual(expect.arrayContaining([
+          expect.objectContaining({ code: "review_lenient_delivery", target: "proposal" }),
+        ]));
+      }
     });
   }
 
@@ -739,7 +744,7 @@ describe("Generation journey regressions", () => {
     expect(s.calls.filter(p => p.traceLabel.endsWith("_copy"))).toHaveLength(3);
   });
 
-  it("a missing or invalid review cannot become ready", async () => {
+  it("delivers an invalid review with a durable warning in lenient mode", async () => {
     const s = setup(makeInput(), { reviewFault: () => reply({}) });
     const r = await s.run();
     reports.push({
@@ -750,13 +755,18 @@ describe("Generation journey regressions", () => {
       states: Array.from(s.journal.values()).map((o: any) => o.state),
       failures: r.proposals.map((p: any) => p.failure),
     });
-    expect(r.proposals.every((p: any) => p.status === "failed")).toBe(true);
+    expect(r.proposals.every((p: any) => p.status === "ready")).toBe(true);
+    for (const proposal of s.record().proposals) {
+      expect(proposal.diagnostics).toEqual(expect.arrayContaining([
+        { code: "review_lenient_delivery", target: "proposal", evidence: "inconclusive" },
+      ]));
+    }
     expect(s.calls.filter(p => p.taskRoute === "post_evaluation")).toHaveLength(
       6
     );
   });
 
-  it("review timeout awaits reconciliation without repeating paid work", async () => {
+  it("warns on a review timeout in lenient mode without repeating paid work", async () => {
     const timeout = Object.assign(new Error("LLM request deadline exceeded"), {
       name: "LlmDeadlineExceededError",
     });
@@ -777,10 +787,15 @@ describe("Generation journey regressions", () => {
       additionalCalls: s.calls.length - before,
       failures: r.proposals.map((p: any) => p.failure),
     });
-    expect(r.overallStatus).toBe("awaiting_reconciliation");
+    expect(r.overallStatus).toBe("completed");
     expect(
-      r.proposals.every((p: any) => p.status === "awaiting_reconciliation")
+      r.proposals.every((p: any) => p.status === "ready")
     ).toBe(true);
+    for (const proposal of r.proposals) {
+      expect(proposal.diagnostics).toEqual(expect.arrayContaining([
+        { code: "review_lenient_delivery", target: "proposal", evidence: "inconclusive" },
+      ]));
+    }
     expect(s.calls).toHaveLength(before);
   });
 

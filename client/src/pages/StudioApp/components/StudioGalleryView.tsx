@@ -1,8 +1,10 @@
+import type { ExportQuality } from "@shared/aspectRatios";
 import {designLabel,savedDesignIdentity} from "@shared/acervo82Identity";
 import { generationAspectRatios, isPortraitRatio, aspectRatioHeight } from "@shared/aspectRatios";
 import { fitPostToAspectRatio } from "@/pages/CanvasLab/lib/guidedComposition";
 import { resolveSlideAppearance } from "@/pages/CanvasLab/lib/slideReplication";
 import PostDownloadDialog from "@/pages/CanvasLab/components/PostDownloadDialog";
+import PostReviewWarning from "@/pages/CanvasLab/components/PostReviewWarning";
 import StudioMobileFlashcards from "./StudioMobileFlashcards";
 import StudioDirectionFeedback from "./StudioDirectionFeedback";
 import StudioSlideNavigation, { useStudioSlidePreviews } from "./StudioSlideNavigation";
@@ -19,6 +21,8 @@ import { CanvasPostStage } from "@/pages/CanvasLab/components/CanvasPostStage";
 import UserTopMenu from "@/components/UserTopMenu";
 
 interface StudioGalleryViewProps {
+  exportQuality?: ExportQuality;
+  allowDownload?: boolean;
   variations: CanvasPostModel[];
   mobile?: boolean;
   initialAspectRatio?: AspectRatioType;
@@ -40,6 +44,8 @@ interface StudioGalleryViewProps {
 }
 
 export default function StudioGalleryView({
+  exportQuality,
+  allowDownload = true,
   variations,
   mobile = false,
   initialAspectRatio,
@@ -102,6 +108,8 @@ export default function StudioGalleryView({
     return (
       <div className="flex w-full flex-1 flex-col md:hidden">
         <StudioMobileFlashcards
+          exportQuality={exportQuality}
+          allowDownload={allowDownload}
           variations={variations}
           initialAspectRatio={variations[0]?.aspectRatio ?? initialAspectRatio ?? "1:1"}
           resumePost={resumeMobilePost}
@@ -119,7 +127,7 @@ export default function StudioGalleryView({
 
   return (
     <>
-      {downloadPost && <PostDownloadDialog post={downloadPost} onClose={() => setDownloadPost(null)} onExport={onExport} />}
+      {downloadPost && <PostDownloadDialog exportQuality={exportQuality} post={downloadPost} onClose={() => setDownloadPost(null)} onExport={onExport} />}
       <div className="hidden md:flex flex-1 flex flex-col h-full overflow-hidden select-none">
       {/* Barra Superior da Galeria */}
       <header className="h-14 border-b border-white/10 bg-black/60 backdrop-blur-xl px-6 flex items-center justify-between shrink-0 z-20">
@@ -216,8 +224,9 @@ export default function StudioGalleryView({
                 <StudioSlideNavigation count={item.slides.length} index={previewItem.currentSlideIndex}
                   onChange={index => slidePreviews.navigate(item, idx, index)} />
                 <StudioDirectionFeedback post={item} />
+                <PostReviewWarning warning={item.provenance?.reviewWarning} />
 
-                <button type="button" disabled={!!projection.error} onClick={() => setDownloadPost(cleanItem)} className="mt-4 w-full rounded-xl bg-orange-300 px-4 py-2.5 text-xs font-bold text-black hover:bg-orange-200">Baixar</button>
+                {allowDownload && <button type="button" disabled={!!projection.error} onClick={() => setDownloadPost(cleanItem)} className="mt-4 w-full rounded-xl bg-orange-300 px-4 py-2.5 text-xs font-bold text-black hover:bg-orange-200">Baixar</button>}
                 {/* Botão de Ação: Personalizar Post (mantido para a11y — o card inteiro também clica) */}
                 <button
                   type="button"

@@ -1,3 +1,4 @@
+import type { ExportQuality } from "@shared/aspectRatios";
 import { useLayoutEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowDownToLine, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
@@ -6,6 +7,7 @@ import { generationAspectRatios, aspectRatioHeight } from "@shared/aspectRatios"
 import { fitPostToAspectRatio } from "@/pages/CanvasLab/lib/guidedComposition";
 import { resolveSlideAppearance } from "@/pages/CanvasLab/lib/slideReplication";
 import PostDownloadDialog from "@/pages/CanvasLab/components/PostDownloadDialog";
+import PostReviewWarning from "@/pages/CanvasLab/components/PostReviewWarning";
 import { ASPECT_RATIO_CAPTIONS, type AspectRatioType, type CanvasPostModel } from "@/pages/CanvasLab/components/types";
 import { CanvasPostStage } from "@/pages/CanvasLab/components/CanvasPostStage";
 import StudioDirectionFeedback from "./StudioDirectionFeedback";
@@ -13,6 +15,8 @@ import StudioSlideNavigation, { useStudioSlidePreviews } from "./StudioSlideNavi
 import StudioGalleryEmptyState from "./StudioGalleryEmptyState";
 
 interface StudioMobileFlashcardsProps {
+  exportQuality?: ExportQuality;
+  allowDownload?: boolean;
   variations: CanvasPostModel[];
   initialAspectRatio: AspectRatioType;
   resumePost?: Pick<CanvasPostModel, "id" | "aspectRatio">;
@@ -28,6 +32,8 @@ interface StudioMobileFlashcardsProps {
 const proposalNavButton = "grid min-h-11 min-w-11 place-items-center rounded-xl border border-white/15 text-white/80 hover:bg-white/10 disabled:opacity-30";
 
 export default function StudioMobileFlashcards({
+  exportQuality,
+  allowDownload = true,
   variations,
   initialAspectRatio,
   resumePost,
@@ -129,15 +135,19 @@ export default function StudioMobileFlashcards({
         <StudioSlideNavigation count={currentPost.slides.length} index={currentPost.currentSlideIndex}
           onChange={index => slidePreviews.navigate(currentPost, currentIndex, index)} />
 
+        <PostReviewWarning warning={currentPost.provenance?.reviewWarning} />
+
         <div className="flex gap-2">
           <button type="button" disabled={!projectedPost} onClick={() => projectedPost && onSelectVariation(projectedPost)}
             className="flex min-h-12 flex-1 items-center justify-center rounded-xl bg-orange-400 px-3 text-sm font-bold text-black hover:bg-orange-300 disabled:opacity-40">
             Editar proposta
           </button>
+          {allowDownload && (
           <button type="button" disabled={!projectedPost} onClick={() => setDownloadPost(projectedPost ?? null)}
             className="flex min-h-12 items-center justify-center gap-1.5 rounded-xl border border-white/15 px-3 text-sm hover:bg-white/10 disabled:opacity-40">
             <ArrowDownToLine size={16} aria-hidden="true" /> Baixar
           </button>
+          )}
         </div>
 
         <StudioDirectionFeedback key={`${currentPost.completeDesign?.runId ?? currentPost.componentAssembly?.runId}:${currentPost.completeDesign?.slot ?? currentPost.componentAssembly?.slot}`} post={currentPost} />
@@ -149,7 +159,7 @@ export default function StudioMobileFlashcards({
           </button>
         )}
       </main>
-      {downloadPost && <PostDownloadDialog post={downloadPost} onClose={() => setDownloadPost(null)} onExport={onExport} />}
+      {downloadPost && <PostDownloadDialog exportQuality={exportQuality} post={downloadPost} onClose={() => setDownloadPost(null)} onExport={onExport} />}
     </div>
   );
 }

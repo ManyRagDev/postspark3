@@ -457,6 +457,9 @@ export const postVisualSnapshotSchema = z.object({
 export const CREATION_BRIEF_VERSION = 1;
 
 export const creationBriefSchema = z.object({
+  visualBrief: z.string().max(4000).optional(),
+  scriptMode: z.enum(["preserve", "rewrite"]).optional(),
+  scriptSlides: z.array(z.string().max(8000)).max(10).optional(),
   platform:z.enum(["instagram","twitter","linkedin","facebook"]).optional(),
   sources:z.array(generationSourceSchema).max(8).optional(),
   version: z.number().default(CREATION_BRIEF_VERSION),

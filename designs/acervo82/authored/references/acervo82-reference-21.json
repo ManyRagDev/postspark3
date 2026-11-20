@@ -59,10 +59,39 @@
           "uncertainty": null
         },
         {
+          "id": "photo-scrim",
+          "kind": "rect",
+          "role": "Tratamento tonal da fotografia",
+          "zIndex": 1,
+          "x": 0,
+          "y": 0,
+          "width": 1199,
+          "height": 1496,
+          "text": null,
+          "fontFamily": null,
+          "fontWeight": 400,
+          "fontSize": 24,
+          "lineHeight": 1.15,
+          "letterSpacing": 0,
+          "align": "left",
+          "fill": "#141619",
+          "strokeColor": null,
+          "strokeWidth": 0,
+          "rotationDeg": 0,
+          "opacity": 0.64,
+          "points": [],
+          "arc": null,
+          "extrusion": null,
+          "confidenceScore": 0.75,
+          "provenance": "curator",
+          "support": "supported",
+          "uncertainty": null
+        },
+        {
           "id": "intro",
           "kind": "text",
           "role": "headline",
-          "zIndex": 1,
+          "zIndex": 2,
           "x": 348,
           "y": 265,
           "width": 580,
@@ -91,7 +120,7 @@
           "id": "title",
           "kind": "text",
           "role": "headline",
-          "zIndex": 2,
+          "zIndex": 3,
           "x": 218,
           "y": 326,
           "width": 815,
@@ -120,7 +149,7 @@
           "id": "left",
           "kind": "text",
           "role": "headline",
-          "zIndex": 3,
+          "zIndex": 4,
           "x": 213,
           "y": 528,
           "width": 360,
@@ -149,7 +178,7 @@
           "id": "right",
           "kind": "text",
           "role": "headline",
-          "zIndex": 4,
+          "zIndex": 5,
           "x": 761,
           "y": 528,
           "width": 410,
@@ -219,6 +248,11 @@
           "fit": "preserve"
         },
         {
+          "layerId": "photo-scrim",
+          "cornerRadiusPx": 0,
+          "fit": "preserve"
+        },
+        {
           "layerId": "intro",
           "cornerRadiusPx": 0,
           "fit": "preserve"
@@ -257,6 +291,12 @@
               "y": 0,
               "rotationDeg": 0,
               "layerId": "photo"
+            },
+            {
+              "x": 0,
+              "y": 0,
+              "rotationDeg": 0,
+              "layerId": "photo-scrim"
             }
           ]
         },

@@ -10,22 +10,11 @@ export type TrpcContext = {
   user: TrpcUser | null;
 };
 
-const DEV_USER: TrpcUser = {
-  id: "00000000-0000-0000-0000-000000000001",
-  name: "Dev User",
-  email: "dev@local.dev",
-  role: "admin",
-};
-
 export async function createContext(
   opts: Pick<CreateExpressContextOptions, "req" | "res">
 ): Promise<TrpcContext> {
-  if (process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true") {
-    return { req: opts.req, res: opts.res, user: DEV_USER };
-  }
-
   try {
-    const user = await sdk.authenticateRequest(opts.req);
+    const user = await sdk.authenticateRequest(opts.req, { allowStart: true, allowAgency: true });
     return {
       req: opts.req,
       res: opts.res,

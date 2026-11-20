@@ -29,6 +29,10 @@ const state = vi.hoisted(() => ({
   get: vi.fn(),
   cancel: vi.fn(),
 }));
+vi.mock("../billing", async importOriginal => ({
+  ...await importOriginal<typeof import("../billing")>(),
+  getBillingProfile: async (_email: string, id: string) => ({ id, plan: state.plan }),
+}));
 vi.mock("../designCatalog/completeDesignStore", async () => {
   const { completeDesignTestDefinitions } = await import(
     "../../shared/completeDesignGeneration.fixture"
@@ -104,6 +108,25 @@ function caller(
     res: {} as any,
   });
 }
+
+it("restricts cross-account family statistics to administrators", async () => {
+  for (const user of [null, { id: owner, role: "user" }, { id: owner, role: "admin", access: "start" }])
+    await expect(caller(user).designFrequency({ rounds: 25 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+});
+
+it("rejects website extraction on Solo before reserving Sparks, including links inside a briefing", async () => {
+  state.plan = "SOLO";
+  const solo = caller({ id: owner, email: "solo@example.test", role: "user" });
+  const url = "https://example.invalid/artigo";
+  for (const request of [
+    { ...input, inputType: "url" as const, content: url },
+    { ...input, content: `Faça um post com base em ${url}` },
+    { ...input, sources: [{ id: "artigo", kind: "url" as const, purpose: "visual_reference" as const, value: url }] },
+  ]) {
+    await expect(solo.start(request)).rejects.toMatchObject({ code: "FORBIDDEN", message: expect.stringContaining("PRO") });
+  }
+  expect(state.admission).not.toHaveBeenCalled();
+});
 
 it("pins the exact showcase card before admitting and skips general catalog retrieval", async () => {
   const fixedDesign = { kind: "showcase", id: "risograph" } as const;

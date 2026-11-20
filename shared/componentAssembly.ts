@@ -222,6 +222,7 @@ export const componentCardV1Schema = z
           function: z.string(),
           prompt: z.string(),
           deferred: z.boolean(),
+          embeddedAsset: z.literal(true).optional(),
           policy: z.enum(["cover", "contain"]),
         })
         .strict()
@@ -312,7 +313,12 @@ export function compactComponentCard(
       required,
       cardinality,
     })),
-    mediaSlots: v.mediaSlots ?? [],
+    mediaSlots: (v.mediaSlots ?? []).map(slot => {
+      const instance = v.instances.find(item => item.id === slot.id);
+      return slot.deferred && instance && c.pieces[instance.pieceHash].imageAssetId
+        ? { ...slot, embeddedAsset: true }
+        : slot;
+    }),
     fontFamilies: Array.from(
       new Set(
         Object.values(c.pieces)
@@ -393,6 +399,7 @@ export function compactComponentCard(
               minFontSize:
                 r?.kind === "textFit" ? r.parameters.minFontSize : p.fontSize,
               minWords: p.contentFragment?.count ?? 1,
+              fragmentCount: p.contentFragment?.count ?? 1,
             };
           })
         ),

@@ -145,11 +145,6 @@ export function finalizeTextResizeGeometry(
   geometry: TextResizeGeometry
 ): TextResizeGeometry {
   return {
-    x: Math.round(geometry.x),
-    y: Math.round(geometry.y),
-    width: Math.round(geometry.width),
-    ...(geometry.height !== undefined ? { height: Math.round(geometry.height) } : {}),
-    ...(geometry.scale !== undefined ? { scale: Number(geometry.scale.toFixed(4)) } : {}),
-    ...(geometry.fontSize !== undefined ? { fontSize: Math.round(geometry.fontSize) } : {}),
+    ...geometry,
   };
 }

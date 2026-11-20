@@ -80,7 +80,10 @@ export function registerAcervo82ReviewRoutes(app:Express) {
     const {id,kind}=req.params;
     if(!acervo82Code(id)||!['reference','render'].includes(kind)){res.sendStatus(404);return;}
     const {user}=await createContext({req,res});
-    if(user?.role!=='admin'){res.sendStatus(user?403:401);return;}
+    if (user?.role !== 'admin' || user.access) {
+      res.sendStatus(user ? 403 : 401);
+      return;
+    }
     try {
       const review=await readReview(),entry=review?.entries.find(e=>e.id===id), file=kind==='reference'?entry?.reference:entry?.render;
       if(!review||!file||!/^(references|thumbnails)\/[a-z0-9_.-]+\.(png|jpe?g|webp)$/i.test(file)){res.sendStatus(404);return;}

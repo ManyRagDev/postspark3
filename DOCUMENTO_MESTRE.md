@@ -61,7 +61,7 @@ O Studio ativo combina inteligência semântica de marca (**Brand DNA**), seleç
 | **Orquestrador de IA** | `server/ai/workflows/generationPreparation.ts`, `generationCoordinator.ts`, `proposalGraph.ts`, `server/_core/llm.ts` | Preparação/Jev/seleção, propostas independentes e operações persistidas; revisão com `proposalReview.ts` e `proposalRenderer.ts` |
 | **Persistência Runtime**| Supabase Client (`@supabase/supabase-js`) | Acesso direto ao PostgreSQL e Storage de assets |
 | **Autenticação** | Supabase Auth + Cookie Bridge HTTP-only | Sessão segura sincronizada entre cliente e servidor |
-| **Billing & Planos** | Stripe SDK & Webhooks | Gestão de assinaturas Pro/Agency e recargas de `Sparks` |
+| **Billing & Planos** | Stripe SDK, Supabase & Webhooks | Acesso por assinatura Pro e cotas de Sparks |
 | **Deploy & Serverless** | `api/index.js` (esbuild bundle) | Entrypoint serverless compatível com Vercel e Railway |
 
 ---
@@ -413,10 +413,11 @@ O sistema de autenticação utiliza o Supabase Auth integrado por uma ponte segu
 2. **Entrada e sincronização de sessão**:
    - A landing ativa (`/`, `InspiracaoShowcasePage`) abre `StudioAuthModal`. O padrão é e-mail/senha via `signInWithPassword`; `/criar` encaminha seus CTAs para essa landing.
    - `VITE_POSTSPARK_AUTH_MODE=email-google` habilita Google explicitamente, conservando e-mail/senha. Ausência, `email` ou valor desconhecido mantém apenas senha. Google retorna por `/auth/google-callback`.
-   - Cadastro só aparece com `VITE_POSTSPARK_SIGNUP_ENABLED=true` **e** `VITE_POSTSPARK_EMAIL_DELIVERY_ENABLED=true`, após configurar envio e confirmação no Supabase. Não há recuperação de senha anunciada na UI ativa. O perfil local `VITE_POSTSPARK_LOCAL_AUTH=email` continua restrito a desenvolvimento/loopback.
+   - O cadastro da assinatura começa em `/pricing`. O usuário confirma a identidade no Supabase antes de iniciar o checkout. Os flags de cadastro e entrega continuam controlando o formulário de auth legado. O fluxo pago depende de cadastro por e-mail, confirmação e callback configurados no serviço Auth. O perfil local `VITE_POSTSPARK_LOCAL_AUTH=email` continua restrito a desenvolvimento/loopback.
    - Login explícito chama `resyncSupabaseSession`, que força `POST /api/auth/supabase-session` mesmo com marcador persistido antigo. O backend valida a identidade e o grant de acesso próprio, emite os cookies e só então o cliente navega para `/thevoid`. Falha permanece no formulário; login não concede nem reativa acesso.
    - Flags `VITE_*` são públicas e incorporadas no build, não substituem configuração Auth nem autorização do servidor. Contrato de integração e ensaio em `docs/contrato-integracao-supabase-vps.md`.
 3. **Controle de Acesso**:
+   - O servidor HTTP valida o token no Supabase Auth e consulta a concessão da aplicação também em desenvolvimento. `BYPASS_AUTH` não tem efeito. Para testes unitários, injete o contexto em `appRouter.createCaller`. Para testes HTTP locais, use Auth e concessões de teste isolados.
    - `ProtectedRoute`: assegura redirecionamento para `/` se não autenticado;
    - `AdminRoute`: restringe áreas de gestão (`/admin` e `/admin2`) exclusivamente a usuários com role `admin`.
 
@@ -431,13 +432,41 @@ O PostSpark adota um modelo híbrido de assinaturas com saldo de créditos consu
 - **Geração de Imagens por IA**: Débito específico por imagem gerada em alta definição.
 - **Proteção de Saldo**: O backend verifica o saldo antes de iniciar qualquer chamada generativa externa; se insuficiente, instrui o cliente a exibir o modal de recarga ou upgrade.
 
-### Planos e Integração Stripe:
-- **Planos Recorrentes**:
-  - *Free*: degustação com saldo inicial de Sparks;
-  - *Pro* (Mensal/Anual): cota ampliada de Sparks e acesso a exportação 4K;
-  - *Agency* (Mensal/Anual): alta capacidade, suporte prioritário e recursos corporativos.
-- **Recargas Avulsas (Top-ups)**: Pacotes *Starter*, *Power* e *Mega* para compra imediata de Sparks.
-- **Webhooks do Stripe**: Endpoint `POST /api/stripe/webhook` gerencia eventos de checkout concluído, renovação de ciclo, cancelamento e falha de pagamento com sincronização imediata no Supabase.
+### Assinatura Pro
+
+| Ciclo | Cobrança | Cota |
+| --- | --- | --- |
+| Mensal | R$ 147 por mês | 2.000 Sparks por mês |
+| Anual | R$ 1.404 por ano | 2.000 Sparks por mês, até 24.000 durante o período pago |
+
+- Novos membros precisam de um pagamento confirmado para usar o Studio. A identidade Supabase autenticada e com e-mail confirmado serve para abrir o checkout e consultar o pagamento. A ponte de sessão, a API protegida e as políticas RLS consultam o acesso no PostgreSQL. Grants manuais já concedidos continuam válidos. Uma revogação manual tem prioridade.
+- A API usa os preços Pro de `STRIPE_PRICE_PRO_MONTHLY` e `STRIPE_PRICE_PRO_ANNUAL`, validando valor, moeda e recorrência antes de criar a sessão. `POST /api/stripe/webhook` confirma a assinatura com `invoice.paid` e processa o encerramento com `customer.subscription.deleted`. A página de retorno pode confirmar a mesma fatura autenticada. O portal de gestão é aberto pelo cliente da conta na Stripe.
+- A migração `0074_paid_memberships.sql` vincula tentativa, cliente, assinatura e período pago por UUID de Auth. A chave única da fatura e a atualização transacional do saldo impedem duplicação pela repetição de eventos. O primeiro pagamento credita a primeira cota. O mensal recebe nova cota a cada renovação paga. O anual recebe cotas vencidas no primeiro acesso após cada aniversário mensal dentro do período pago. Sparks acumulam. O encerramento bloqueia a entrada quando termina a cobertura paga.
+- A ativação requer SMTP de confirmação e cadastro no Auth, webhook do Stripe com versão `2026-01-28.clover` e as variáveis `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` e `STRIPE_PORTAL_CONFIGURATION_ID` no runtime da web. O portal dedicado permite trocar o cartão, consultar faturas e cancelar ao final do ciclo. O catálogo de recargas avulsas é consultado no banco para membros.
+- Desde 18/11/2026, a adesão está disponível em `/pricing`. O Auth na VPS usa Resend via SMTP com TLS e remetente `conta@mail.postspark.com.br`. A chave tem permissão de envio limitada ao subdomínio autenticado no DNS do Hostinger e fica no ambiente privado do Auth. O release da web e o recibo da ativação do webhook ficam em `/opt/postspark/releases/paid-membership-20261118/`.
+
+### Portfólio do Studio e pilotos
+
+| Plano | Oferta configurada no código | Acesso |
+| --- | --- | --- |
+| START | Gratuito, cota única interna de 40 Sparks | Uma rodada por conta de e-mail confirmada, com briefing em texto, até três propostas e uma marca. Na finalização, o cliente corrige texto e legenda, salva o rascunho e baixa a versão final em HD sem marca d’água. A peça e a marca podem ser reutilizadas após a adesão. |
+| Solo | R$ 49,90 no mensal ou R$ 479,04 no anual, com 600 Sparks por mês | Criação recorrente, uma marca, edição na prancheta, projetos salvos e cópias, imagens geradas com Sparks e exportação HD. |
+| PRO | R$ 147 no mensal ou R$ 1.404 no anual, com 2.000 Sparks por mês | Editor Avançado de imagem e texto, Replicar Design, extração de URL, Fundo Contínuo, cópia seletiva entre slides, ajustes técnicos da composição, várias marcas opcionais e exportação em HD e 4K. |
+| PRO+ | R$ 249,90 no mensal ou R$ 2.399,04 no anual, com 4.500 Sparks por mês | Mesmo conjunto de ferramentas do PRO, com 2.500 Sparks adicionais por mês. |
+| AGENCY | R$ 299,90 no mensal ou R$ 2.879,04 no anual, com 4.500 Sparks por mês | Ferramentas PRO, um workspace com proprietário e dois convidados, edição, revisão e aprovação. O Studio pessoal pode enviar uma peça para a equipe. A geração avulsa de imagem no CanvasLab usa o saldo da equipe. |
+
+- Na página de planos, o anual destaca a cobrança total e mostra o equivalente mensal abaixo. Solo, PRO+ e AGENCY têm desconto de 20% sobre doze mensalidades. A adesão anual dos pilotos requer a migração `0080_studio_annual_checkout.sql` e os respectivos preços anuais `STRIPE_PRICE_SOLO_ANNUAL`, `STRIPE_PRICE_PRO_PLUS_ANNUAL` e `STRIPE_PRICE_PILOT_AGENCY_ANNUAL`. Sem a variável do plano, a página exibe “Adesão anual em breve”. O pagamento integral libera a primeira cota e as seguintes ficam disponíveis mês a mês durante o período pago.
+
+- O START requer `POSTSPARK_START_PILOT_MAX_MEMBERS`. A tela de finalização usa o mesmo renderizador do CanvasLab e limita a interação a texto e legenda. O `CanvasPostModel` final fica congelado para novos downloads. A identidade aceita descrição, cores hexadecimais e logo sem interpretação por LLM. URLs e geração de fotos com IA ficam fora dessa primeira oferta. Um pedido admitido ocupa a rodada mesmo se a geração falhar. A franquia interna cobre uma sessão estática ou de carrossel e é substituída pela cota paga no primeiro pagamento.
+- A regra de PRO para extração de URL é aplicada no Studio, na admissão de geração e nas rotas de captura e replicação de design. O CanvasLab mantém edição manual e aplicação de logo entre slides no Solo. A escolha de propriedades para replicar, os ajustes técnicos e a aplicação de panoramas começam no PRO.
+- A adesão pública ao AGENCY fica “Em breve” até `POSTSPARK_AGENCY_ENROLLMENT_ENABLED=true` e a configuração do preço do ciclo. O controle de adesão é independente da confirmação de pagamentos e da renovação de assinaturas existentes.
+- O preço piloto vem de `STRIPE_PRICE_SOLO_MONTHLY`, `STRIPE_PRICE_PRO_PLUS_MONTHLY` ou `STRIPE_PRICE_PILOT_AGENCY_MONTHLY`. O pagamento credita o plano associado à tentativa de checkout. A recarga piloto de 600 Sparks por R$ 64,90 requer `STRIPE_PRICE_SPARKS_600` e uma assinatura ativa para iniciar. O pagamento confirmado tem um recibo único por intenção Stripe. Uma reserva de imagem pode disparar o provedor apenas uma vez. A edição e a exportação local de peças ficam disponíveis mesmo com saldo zerado durante a assinatura.
+- Assinaturas anuais ativas podem receber recursos elegíveis antes do lançamento. O canal de Centro nítido usa `POSTSPARK_IRIS_RELEASE_CHANNEL` com `early`, `labs` ou `general`. O canal experimental exige adesão revogável. O processamento usa também a configuração existente do Editor Avançado.
+- Em desenvolvimento, uma conta DEV pode abrir **Testar como…** no menu de conta. A prévia local usa o CanvasLab com um carrossel de exemplo, saldos simulados e os papéis do AGENCY. O transporte da prévia oferece mídia de exemplo e guarda alterações em memória. Ele permite conferir menus, edição e download, sem validar permissões do servidor ou executar o processamento do Editor Avançado. A rota fica fora do build de produção.
+- As regras de piloto, cobrança e acesso de equipe ficam nas migrações `0075` a `0079`. A troca de planos em uma assinatura vigente depende de implementação e homologação na Stripe. Rodadas completas de propostas continuam no Studio pessoal, inclusive para contas que têm um workspace de equipe.
+- Em 18/11/2026, a web e a API do portfólio foram publicadas na VPS, com as cinco migrações aplicadas em uma transação. A versão partiu do código publicado anteriormente e manteve a geração e a calibração de marca já em uso. O catálogo público foi verificado com o PRO como única assinatura disponível. START, Solo, PRO+, AGENCY e a recarga piloto aguardam ativação. A verificação cobriu o cadastro inicial no navegador, preços e portal ativos na Stripe, a assinatura simulada do webhook e as funções do PostgREST. O recibo e a configuração de retorno ficam em `/opt/postspark/releases/studio-portfolio-20261118/`.
+- A página `/pricing` exibe os cinco planos, inclusive quando a adesão aos pilotos está fechada. A resposta de `/api/membership/offers` controla os botões de adesão. Ofertas fechadas aparecem como “Em breve”, com os preços pagos identificados como previstos para o piloto. A página atualizada foi publicada e verificada no navegador, com recibo em `/opt/postspark/releases/pricing-catalog-20261118/`.
+- Os preços recorrentes de Solo e PRO+ estão cadastrados na Stripe. Os checkouts passaram em uma instância isolada ligada ao Stripe de produção, com sessões expiradas sem pagamentos. Uma conta temporária START obteve a sessão e a cota gratuitas. Para clientes comuns, a geração na VPS ainda exige um catálogo aprovado ativo. O catálogo da VPS está sem revisão ativa e contém o ensaio administrativo com componentes em rascunho. A revisão R9 com 29 famílias aprovadas segue ativa na instância Supabase anterior. O catálogo público de assinaturas continua com o PRO enquanto é definida a revisão de geração para o lançamento.
 
 ---
 
@@ -450,7 +479,8 @@ O PostSpark adota um modelo híbrido de assinaturas com saldo de créditos consu
 | **`/`** | Pública | [`InspiracaoShowcasePage`](file:///client/src/pages/InspiracaoShowcase/InspiracaoShowcasePage.tsx) | **Home Oficial de Não Logados (Definitiva)**: Vitrine imersiva definitiva com palco 3D coverflow no desktop (matemática pura nativa sem GSAP), stories dinâmicos no mobile, typewriter reverso com acionamento por card e fundo cósmico TheVoid com 6 posts canônicos. Redireciona imediatamente para `/thevoid` assim que autenticado. |
 | **`/criar`** | Pública | [`PreviewHomePage`](file:///client/src/pages/PreviewHome/PreviewHomePage.tsx) | **Landing Page Oficial de Tráfego / Anúncios (Dark Studio Editorial)**: Página de alta conversão para tráfego pago reformulada no padrão TheVoid (`oklch(0.04 0.06 280)`). Apresenta Hero com Live Sandbox tonal e backgrounds artísticos canônicos, Atelier de Brand DNA por URL (sem clichês de Mac dots), Galeria dos 6 espécimes canônicos em proporções 1:1, 4:5 e 9:16, e Estúdio de Texturas táteis interativo. Todos os CTAs e links de ação da página redirecionam diretamente para a rota `/` (Showcase de Insumo e Captura), maximizando conversão e retenção sem barreiras mecânicas de modal. |
 | **`/thevoid`**, **`/studio`** | Protegida | [`StudioAppV2BPage`](file:///client/src/pages/StudioApp/StudioAppV2BPage.tsx) | **Estúdio Oficial Logado**: máquina `create → gallery → editor` (StudioCreateViewV2B → StudioGalleryView/StudioMobileFlashcards → **CanvasLabPage**, o editor oficial Konva). Também lê `sessionStorage("postspark.open_canvas_post")` para reabrir posts salvos com fidelidade total. (*Alias: `/studio-v2b`*). |
-| **`/pricing`** | Pública | `Pricing.tsx` | Tabela oficial de planos Pro, Agency e pacotes de recarga de Sparks. |
+| **`/pricing`** | Pública | `Pricing.tsx` | Adesão ao Pro mensal ou anual e entrada no portal Stripe. |
+| **`/billing/success`** | Identidade Supabase | `MembershipSuccess.tsx` | Confirma o pagamento e abre a sessão do Studio. |
 | **`/billing`** | Protegida | `Billing.tsx` | Painel de gestão de assinatura, histórico de faturas e saldo de Sparks. |
 | **`/history`** | Protegida | `History.tsx` | Histórico cronológico de gerações realizadas pelo usuário. |
 | **`/saved-posts`** | Protegida | `SavedPosts.tsx` | Galeria de posts salvos e finalizados. |
@@ -3723,7 +3753,7 @@ Na sessão `manual-01`, o marcador privado `.acervo82-local/manual-01.json.open-
 
 Novos pedidos editoriais fixam `familyNeutrality` v1 e uma semente por pedido no recibo `selection_input`. A busca usa a projeção 2 do índice: uma descrição canônica por família, afinidade normalizada pelas intenções do pedido e diversidade em quatro eixos fixos (organização, densidade, tipografia e papel da imagem). Quantidades de assets, campos excedentes, variantes e páginas disponíveis não dão bônus. O JEV recebe o perfil v5, com capacidades booleanas; o planejador verifica os campos e o encaixe para o pedido concreto. O perfil, o índice e a política de cada geração são auditáveis; pedidos antigos conservam a versão gravada. A recuperação continua limitada a 24 famílias iniciais e uma expansão de até 12.
 
-Quando o briefing pede explicitamente a preservação de uma única foto de conteúdo fornecida, o recibo fixa a referência privada verificada. O compositor reutiliza os mesmos bytes nas regiões de mídia e não solicita outra geração de imagem para esses slots. A fotografia usada apenas como referência visual continua no fluxo de orientação existente. A mídia escolhida e a composição editável permanecem em `CanvasPostModel`, persistido em `canvas_model`.
+Quando o briefing pede explicitamente a preservação de uma única foto de conteúdo fornecida, o recibo fixa a referência privada verificada. O compositor reutiliza os mesmos bytes nas regiões de mídia e não solicita outra geração de imagem para esses slots. Nos novos pedidos do TheVoid com geração de imagens por IA desligada, a seleção aceita fotografias já incorporadas à arte. Um slot vazio pode usar o primeiro upload de conteúdo autorizado do proprietário. Na ausência desse upload, variantes que dependem de preencher um slot ficam fora da seleção. O adaptador bloqueia a chamada ao gerador de imagem também nas retentativas. Um pedido expresso de arte sem foto mantém a restrição fotográfica. A fotografia usada apenas como referência visual continua no fluxo de orientação existente. A mídia escolhida e a composição editável permanecem em `CanvasPostModel`, persistido em `canvas_model`.
 
 `familyNeutrality.proposalSelectionVersion=1` limita cada pedido a uma proposta por identidade de design, inclusive na recuperação. Com o mesmo formato, conteúdo e mídia atendidos, as duas primeiras propostas priorizam adequação e dão preferência a famílias fora das três últimas gerações com entrega (incluindo a geração de origem em “Gerar mais”), dentro de 0,4 ponto da melhor nota ajustada por confiança. A terceira maximiza a menor distância aos outros dois designs nos quatro eixos visuais, dentro da mesma margem frente à melhor opção que atenderia a esse slot. Uma proposta pode ficar vaga quando faltar outra família adequada. O recibo mantém a semente e a versão para auditoria; pedidos preparados em versões anteriores conservam a política original.
 
@@ -3870,3 +3900,123 @@ limitações de ativação em `docs/contrato-integracao-supabase-vps.md`.
 `scripts/importFrozenCatalog.ts` verifica o pacote offline e, somente com `--apply`, importa assets/definições como drafts por staging atômico, sem ativar o head global, gerar embeddings ou aprovar visualmente o acervo. O destino precisa estar inativo e conter somente o mesmo pacote compatível; não é um merge genérico. O hash do snapshot de origem e o hash/revisão da publicação são identidades distintas. Grants de origem ausentes não são inventados; novos grants de assets ficam vinculados ao ator admin confirmado.
 
 O par server-only `GENERATION_TRIAL_CATALOG_REVISION` + `GENERATION_TRIAL_CATALOG_ADMIN_UUID` permite a esse administrador consultar e admitir a revisão inativa no executor externo. Outros usuários não recebem o pin. A migração 0070 oferece admissão restrita, verificando admin/acesso próprio, revisão e configuração antes da reserva existente; não modifica billing ou o head. A API exige catálogo editorial da revisão antes de gerar; publicar o documento original por identidade/hash não equivale a certificar visualmente os designs. Worker usa a revisão persistida no pedido. `motorPreflight.ts --trial` verifica esse contrato sem mudar os critérios de publicação global do modo normal. Procedimento, hashes, permissões e limites de aceite estão no contrato VPS.
+
+### Compatibilidade dos hashes históricos de revisão
+
+Zod 4.6 representa strings anuláveis em JSON Schema como um vetor de tipos; Zod 4.1 usava `anyOf`. A normalização em `server/ai/workflows/historicalReviewSchema.ts` conserva a representação usada no cálculo dos hashes históricos V7–V9 e V10 anterior ao protocolo automático V4. A leitura também aceita os hashes equivalentes emitidos com Zod 4.6, preservando configurações já salvas. A normalização atua apenas nos dados usados para calcular o hash, sem alterar a validação de entrada nem o contrato V4. Os hashes V8/V9 foram comparados aos calculados com Zod 4.1; os testes históricos V7/V10 também devem continuar passando. Esta correção está local até ser versionada e implantada.
+
+### Aviso de entrega com ressalvas da revisão
+
+O runtime mantém a entrega leniente. Antes de normalizar uma revisão não aprovada para permitir a entrega, registra o diagnóstico `review_lenient_delivery` com o resultado original (`inconclusive` ou `correction_required`). Na materialização, esse resultado vira `provenance.reviewWarning` no documento Canvas, preservado por salvar/reabrir. Galeria desktop, galeria móvel e editor mostram um aviso de revisão inconclusiva ou de ajustes apontados, recomendando conferir os textos e as informações antes de publicar. O aviso fica fora do Canvas exportado. Registros antigos que tenham `review_inconclusive` também recebem aviso quando o pedido é materializado; demais registros históricos sem evidência explícita não são reclassificados.
+
+### Rastreabilidade de seleção e revisão (13/11/2026)
+
+O planejador por famílias captura `selection_slot_observed` durante a decisão efetiva: candidatos examinados, nota/confiança recebidas ou valor padrão, encaixe e rejeições técnicas, pontuação determinística das variantes com contribuições por critério, recência, diversidade, posição e desempate por seed. A shortlist preserva a rubrica e a identidade dos alvos mesmo com retenção de prompts desativada. A nota de família continua sendo uma avaliação única projetada nos membros; não significa revisão individual de cada post. Recuperação registra candidatos e resultados próprios, sem alterar a eleição nem iniciar inferências adicionais.
+
+Antes da normalização leniente, `proposalGraph.ts` captura o parecer original em `review_verdict_observed` e no journal por chave `review_observation:<round>:<inputHash>:candidate`. Essa operação local usa a permissão de replay seguro já existente para chaves terminadas em `:candidate`, sem migration nova. O relatório distingue parecer capturado, parecer armazenado na entrega e resposta bruta do provedor; registra divergências e remoções. Essa instrumentação não substitui a futura separação arquitetural entre parecer e decisão de entrega.
+
+`pnpm generation:trace --id UUID_DA_GERACAO --watch --output /tmp/postspark-trace.html` acompanha operações persistidas e, no executor local, observações imediatas dos arquivos privados de diagnóstico. Gera HTML com atualização automática e JSON correspondente. Repetir `--id` compara gerações; `--from snapshot.json` permite analisar dados controlados offline (`{request,operations,events?}` ou uma lista). O relatório de `verify:e2e` também inclui `decisionTrace`. A leitura não gera conteúdo, não altera o banco e não recupera evidências ausentes consultando o catálogo atual.
+
+O painel **Debugger** do Studio acompanha o pedido do próprio administrador durante criação, galeria e edição. A consulta de leitura `generation.debugger` combina o journal, os eventos do tracer e, no executor local, os diagnósticos do pedido. O coordenador registra cada checkpoint da proposta e cada inspeção registra a variante e os achados por slide. O navegador registra validação da entrega, carregamento das fontes e montagem. A aba guarda somente a preferência de abertura e o identificador do último pedido por conta. Os passos do navegador duram a visita ao Studio. Fixar um passo congela a leitura enquanto o executor continua trabalhando.
+
+A comparação separa coortes por catálogo, configuração, modelo de avaliação, política, plataforma, formato e proporção; contabiliza exposição/elegibilidade, recuperação, avaliação, escolha, revisão e entrega por família. Evidências de eleição inválidas ficam fora das taxas. Concentração observada não comprova viés causal, especialmente entre briefings diferentes. Histórico sem captura permanece explicitamente desconhecido. Validação local usa provedores simulados e PostgreSQL embarcado; não comprova adequação semântica com IA real nem implantação no executor remoto.
+
+### Seleção múltipla e replicação do CanvasLab — 14/11/2026
+
+A seleção do editor é transitória, vinculada ao slide e compartilhada entre a prancheta e a árvore de camadas (`lib/editorSelection.ts`). Clique simples substitui a seleção; Ctrl/Cmd ou Shift na prancheta alterna objetos. Na árvore, Ctrl/Cmd alterna e Shift seleciona o intervalo visível; “Selecionar vários” permite a mesma escolha por toque. Alt+clique em um objeto de composição alcança seu grupo imediato. Selecionar um grupo elimina filhos do conjunto, evitando transformar o mesmo objeto duas vezes; escolher explicitamente um filho substitui o ancestral selecionado. Um grupo continua movendo sua estrutura inteira conforme o comportamento existente; bloqueios impedem a edição direta dos alvos bloqueados.
+
+Movimento e escala proporcional de um conjunto passam por uma única confirmação em `handleUpdatePost`, assim como ocultação, bloqueio e exclusão em lote. Operações inválidas descartam integralmente o resultado provisório; não há aplicação parcial silenciosa. Seleção inválida é removida ao trocar de slide, excluir objetos ou percorrer o histórico. Coordenadas fracionárias são preservadas no modelo, controles e transformações.
+
+“Aplicar aparência deste objeto em outros slides” usa IDs no mesmo namespace, bindings, papéis semânticos e correspondências explícitas. A prévia permite escolher ou excluir destinos ausentes/ambíguos e propriedades individuais. Tamanhos em pixels são convertidos entre as unidades das pranchetas; texto e geometria dos destinos não são copiados. A confirmação contabiliza alterações efetivas. A replicação geral de título/corpo grava overrides canônicos, incluindo corpo, espaçamento e efeitos; destinos bloqueados são recusados. `headlineLineHeight`, `subtextLineHeight`, `headlineLetterSpacing` e `subtextLetterSpacing` são opcionais e conservam os defaults históricos quando ausentes.
+
+PNG, miniatura e ZIP omitem as guias do editor e restauram sua visibilidade mesmo se a captura falhar. A conferência reproduzível em `harness/canvaslabStabilization/` monta a página/Stage reais com documentos fictícios, JSON local e captura do exportador em `/tmp`; não comprova autenticação nem persistência hospedada e não integra PhotoCraft.
+
+
+## Identidade visual livre por projeto (2026-11-14)
+
+O projeto passa a manter três recursos independentes: contexto textual (`structured_data`/`compiled_document`), templates extraídos (`visual_preferences` e peças salvas) e identidade visual cadastrada (`visual_identity`). O cadastro aceita descrição livre e logo opcional, sem exigir nicho ou calibração editorial. `brandProjects.saveIdentity` interpreta somente definições informadas; cores sem papel permanecem numa paleta sem função fixa, e campos desconhecidos continuam nulos. A interpretação original e sua revisão são persistidas. Fontes são resolvidas para assets empacotados verificáveis, conservando nome solicitado, nome aplicado, peso disponível e aviso de substituição. O salvamento da identidade não reserva Sparks.
+
+A edição da identidade usa `brand_project_save_identity`, que atualiza apenas nome e identidade, preservando contexto e templates mesmo se a interpretação demorar. A criação usa um UUID estável para retry; falhas de persistência não são anunciadas como sucesso local. As RPCs permanecem exclusivas do runtime e conferem propriedade. O snapshot de projeto versão 3 inclui a identidade, sem reinterpretar versões 1 e 2. O backend valida hash, fontes e logo privado e conserva o snapshot recebido para aquela criação; retomadas e gerar mais reutilizam a identidade já admitida.
+
+No Studio, selecionar um projeto com identidade a aplica por padrão quando não existe outro design explicitamente escolhido. A ação “Já tenho meu conteúdo” oferece “Colar texto” e “Slide por slide”. O detector compartilhado aceita marcadores no início da linha como `slide1`, `Slide 1:`, cabeçalhos Markdown, `[Slide 1]`, Lâmina/Tela/Página com ou sem espaço e o separador `---` em linha própria. A divisão é local, sem chamada de IA; conserva o texto interno e abre os cartões para conferência, edição e ordenação. Os dois modos mantêm os rascunhos durante a alternância; o reconhecimento no campo principal usa o mesmo detector. “Preservar meu texto” envia `visual_only`, com fronteiras e ordem dos slides, e as orientações visuais viajam separadamente em `notes`. Rascunhos conservam esses controles. Acima de dez slides, a interface bloqueia a preservação até reorganização, sem descartar silenciosamente as páginas excedentes.
+
+A criação por identidade usa `fixedDesign.kind=identity` como modalidade de entrega única, sem exigir template ou revisão de catálogo. `identityCanvas` usa operações duráveis de conteúdo (quando autorizado), composição e revisão; no modo literal não chama redator e valida cada página contra o texto original. A IA completa decisões visuais para a peça, e `identityComposition` produz composições vetoriais novas com assets reais, medição das fontes, cores e espaçamentos. O renderer CanvasPostStage confere as páginas antes da entrega. Texto sem encaixe legível não é truncado nem reescrito. Uma imagem de conteúdo pode ocupar a capa; referências visuais orientam a composição.
+
+O documento autoritativo continua sendo `CanvasPostModel`. `visualIdentityUsage` registra a identidade congelada e as decisões daquela peça; salvar/reabrir preserva as composições e essa proveniência, sem transformar escolhas geradas em regras permanentes do projeto. A substituição de fonte é exibida no cadastro e no editor. A cobrança da criação segue a modalidade existente de peça única (4 Sparks estático / 16 carrossel quando houver reserva), sem mudar planos ou preços.
+
+Ativação: aplicar `drizzle/0072_project_visual_identity.sql` e `drizzle/0073_identity_generation_admission.sql` sobre o schema existente, seguido de backend/executor/frontend compatíveis. A segunda migration mantém a admissão local independente de catálogo e preserva reserva/idempotência existentes. As migrations não são aplicadas automaticamente pelo frontend. Conferência reproduzível e limites das evidências: `harness/visualIdentity/README.md`.
+
+## PhotoCraft CLI preparado no host da VPS (2026-11-14)
+
+O PhotoCraft CLI 0.23.1 (build `45066c482`, 1.009 comandos) foi instalado e validado na VPS Ubuntu 22.04 x86_64/glibc 2.35. O binário do host é `/opt/postspark/photocraft/current/photocraft-cli`, também acessível por `/usr/local/bin/photocraft-cli`. O instalador verifica o SHA-256 oficial e extrai o AppImage sem FUSE; releases são preservadas em diretórios versionados e selecionadas por symlink. Não há atualização automática ou serviço PhotoCraft residente.
+
+Validações administrativas usam o usuário de sistema `photocraft` e unidades systemd transitórias, com teto agregado de duas CPUs equivalentes/4 GiB, sem rede IP e com escrita restrita ao estado privado. Temporários em `/var/lib/postspark-photocraft/tmp` são apagados pelos testes; resíduos após queda/kill têm política de idade de um dia pelo timer de tmpfiles. O arquivo `/etc/postspark/photocraft.env` registra apenas a referência de ambiente do host e não foi injetado nos contêineres existentes. Comandos, recibos, medição e procedimento de retorno de versão: [scripts/photocraft/VPS_OPERACAO.md](scripts/photocraft/VPS_OPERACAO.md).
+
+Smoke real aprovou máscaras/alpha, concorrência, ajustes, recorte/dimensões, conversão e reabertura de `.pcraft`; imagem sem assunto foi recusada sem exportação. O benchmark mediu 28 execuções sintéticas até 3840×3840, com maior RSS individual de 522 MiB. Essas evidências não certificam qualidade em fotos reais ou capacidade sob carga prolongada; `select.subject` usa saliência/GrabCut, sem modelo treinado.
+
+A preparação operacional corresponde à fase 1 da Entrega B. O PostSpark segue em React/Vite + Express/tRPC, com API/executor em Docker. Essa preparação antecedeu a avaliação de assets de posts e a implementação do pacote inicial abaixo. As evidências dessa avaliação estão em `scripts/photocraft/AVALIACAO_POSTS_2026-11-14.md`.
+
+## Editor avançado — primeiro pacote de imagens (2026-11-14)
+
+O acesso do CanvasLab abre a escolha explícita de imagem/fundo/logo e um editor de asset com brilho, contraste, saturação, crop, resize, máscara poligonal/feather, blur localizado/feather e trim transparente. A interface usa apenas a marca PostSpark e anuncia evolução contínua sem prazo ou ferramenta futura específica. Operações experimentais/não certificadas permanecem em `scripts/photocraft/BACKLOG_EDITOR_AVANCADO.md`, sem controles bloqueados no produto.
+
+O documento continua sendo `CanvasPostModel`. `advancedImageAssets` é um mapa opcional de recibos versão 1, por URL derivada, com original privado, entrada/resultado, operação, dimensões e enquadramento original. Prévia não modifica o documento nem publica assets. Na confirmação, entrada e resultado tornam-se objetos privados por hash antes de uma única mutação em `handleUpdatePost`. Alvo/revisão obsoletos são recusados; outras instâncias da mesma imagem não são substituídas globalmente. O save adapter preserva os recibos e posts antigos não precisam do novo campo. Fonte original pode ser restaurada; histórico, contraste e regras dos presets existentes permanecem no CanvasLab.
+
+O backend oferece `imageEditor.capabilities`, `preview` e `publish` autenticados. Schemas estritos permitem somente o pacote aprovado, PNG/WebP, até 8 MiB/3840 por lado. Fonte é transmitida como pixels já acessíveis ao navegador; a API não baixa URLs arbitrárias. O normalizador de persistência verifica também a propriedade de `originalUrl`, `inputUrl` e `resultUrl`. Não houve mudança de plano, Sparks, schema SQL ou journal de geração.
+
+Na VPS, um adaptador Node privado executa o CLI por `spawn` sem shell, com diretório por operação, timeout de 90 s, encerramento do grupo e limpeza. O contêiner `postspark-image-pilot-image-editor-1` tem rede interna sem porta publicada, usuário não root, filesystem/binário somente leitura, tmpfs e teto de duas CPUs/4 GiB/128 tarefas. Não recebe credenciais de Storage/IA no filho e não introduz uma fila ou motor frontend. A API do PostSpark usa o transporte privado autenticado e publica os assets via armazenamento existente.
+
+Estado da entrega: **frontend/API publicados em `https://postspark.com.br` em 14/11/2026**, release UTC `20261115`. A imagem anterior da web foi preservada para rollback. A atualização isolada partiu do código implantado e incluiu CanvasLab/edição de imagens, mantendo fora o trabalho paralelo de identidade visual, as alterações de geração de IA e migrações. Somente a web foi recriada; worker e demais serviços preservados. A rede interna foi adicionada às redes existentes da web, com as três variáveis `ADVANCED_IMAGE_EDITOR_ENABLED`, `ADVANCED_IMAGE_PROCESSOR_URL` e `ADVANCED_IMAGE_PROCESSOR_TOKEN` injetadas por arquivo privado de servidor. A jornada hospedada verificou Auth/Storage reais, prévia/aplicar, histórico, salvar/reabrir, restaurar original e cancelar sem nova revisão em cópia de conferência. Os 82 documentos originais permaneceram intactos; somente um slide da cópia foi alterado. A exportação mostrou sucesso de PNG 4K, mas o arquivo de download não foi capturado para inspeção dos bytes nessa rodada. Contrato, operação, verificações, limites e rollback: [ops/image-editor/README.md](ops/image-editor/README.md).
+
+
+## Editor avançado unificado — 2026-11-17
+
+O acesso avançado do CanvasLab agora monta um único painel Imagem/Texto, sem
+modal no caminho ativo. Seleção individual, IDs estáveis e bloqueios continuam
+sendo os do editor. Uma prévia pendente exige aplicar ou descartar antes de sair;
+respostas de documento/alvo obsoletos não são confirmadas. Recorte/máscara na
+prévia do asset permanecem disponíveis; novos gestos na prancheta são backlog.
+
+Além das seis operações anteriores, o backend aceita intenções estritas para
+preto e branco, duotone, sombras/realces, dois looks curados e grão discreto.
+Duotone/grão limitam a origem a 2048 px por eixo, sem redução silenciosa; os
+limites gerais continuam em 3840 px/8 MiB. API e processador têm flags separadas
+para núcleo/acabamentos; capabilities anuncia a interseção habilitada. Iris Blur
+está desligado por qualidade visual (`ADVANCED_IMAGE_IRIS_ENABLED=false`).
+
+Gradiente vertical de texto usa o contrato aditivo `shared/textGradient.ts`:
+ausência herda, `null` escolhe sólido e objeto estrito aplica duas cores. Título e
+corpo persistem em `visualStyle`, textos extras em seu documento e composição em
+`effects[id].gradient` V3. Peças do catálogo não são modificadas. Konva mantém
+texto editável e cores de trechos ricamente formatados; um gradiente ativo tem
+precedência visual, sem apagar os trechos. O contraste amostra cores
+intermediárias e alerta sem substituir o preenchimento. Persistência e exportação
+usam o funil/documento existentes. Não há mudança de Sparks, autenticação ou SQL.
+
+Release: `/opt/postspark/releases/unified-editor-20261117`, primeiro processador
+privado e depois web. Overrides Compose e fontes publicadas são preservados;
+worker/geração não foram atualizados. Rollback após gravar os novos campos deve
+manter os leitores aditivos; desligar grupos na imagem atual preserva os posts.
+Procedimentos e limites: `ops/image-editor/README.md`.
+
+
+### Retorno visual dos ajustes de imagem — 2026-11-17
+
+Os controles de intensidade usam sliders com limites visíveis: brilho/contraste/
+saturação de −100 a +100; sombras/realces/grão de 0% a 100%. A UI traduz a escala
+para as faixas já aprovadas no contrato; desfoque e feather mostram pixels.
+Soltar o slider ou concluir um ajuste por teclado dispara uma prévia real, sem
+requisição por movimento. Duotone por cores mantém confirmação em Gerar prévia.
+
+A prévia é uma projeção transitória no Stage, ligada ao documento/alvo capturado;
+ela não entra no CanvasPostModel, histórico, telemetria de commit ou Storage.
+Antes/Ver original restaura a visualização da origem; Cancelar descarta a
+projeção. O Stage bloqueia mutações e exportação enquanto apresenta o resultado
+não confirmado; Aplicar mantém a publicação privada e o funil autoritativo
+existentes. Há zoom de asset em 100% para efeitos finos e respeito ao aspecto
+real do recorte. Publicação apenas de frontend em
+`/opt/postspark/releases/editor-feedback-20261117`; API/processador inalterados.
+
+### Frequência dos designs no debugger administrativo
+
+A consulta `generation.designFrequency` consolida os recibos de pedidos encerrados por ordem de criação. A RPC `design_frequency_receipts` (migração 0081) é uma leitura com permissão de execução para o papel de serviço. O painel agrega todos os usuários por formato, quantidade de páginas, autorização de imagem e revisões registradas da seleção e do acervo. Cada família conta uma vez por etapa e pedido. A escolha inicial vem do plano, a entrega final vem das propostas prontas e a manutenção da escolha exige a mesma família no mesmo slot. Pedidos sem recibos suficientes aparecem no total da amostra e ficam fora das taxas. A consulta só acontece por solicitação administrativa. O gerador, o histórico de seleção e o faturamento seguem independentes desse relatório.

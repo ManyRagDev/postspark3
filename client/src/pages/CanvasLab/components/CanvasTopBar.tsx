@@ -1,3 +1,4 @@
+import type { ExportQuality } from "@shared/aspectRatios";
 import {
   AlertCircle,
   ArrowDownToLine,
@@ -28,6 +29,8 @@ import type { AspectRatioType } from "./types";
 import type { AutoSaveState } from "../lib/autoSaveManager";
 
 interface CanvasTopBarProps {
+  hideAccountMenu?: boolean;
+  exportQuality?: ExportQuality;
   aspectRatio: AspectRatioType;
   onAspectRatioChange: (ratio: AspectRatioType) => void;
   zoom: number;
@@ -36,6 +39,8 @@ interface CanvasTopBarProps {
   onResetZoom: () => void;
   onExportPng: () => void;
   onExportZip: () => void;
+  onExportHdPng?: () => void;
+  onExportHdZip?: () => void;
   onBackToGallery?: () => void;
   isSnapEnabled?: boolean;
   onToggleSnap?: () => void;
@@ -57,6 +62,7 @@ interface CanvasTopBarProps {
   onTechnical?: () => void;
   onCanvasTools?: () => void;
   onSaveCopy?: () => void;
+  onShareWithTeam?: () => void;
   designIdentity?: string;
 }
 
@@ -66,8 +72,12 @@ const menuClass =
   "[&_[role=menuitem]]:min-h-11 [&_[role=menuitemcheckbox]]:min-h-11 w-64 border-white/15 bg-[#10141D] text-white";
 
 export default function CanvasTopBar({
+  hideAccountMenu = false,
+  exportQuality = "4k",
   onExportPng,
   onExportZip,
+  onExportHdPng,
+  onExportHdZip,
   onBackToGallery,
   isExportingZip = false,
   slideCount = 1,
@@ -75,6 +85,7 @@ export default function CanvasTopBar({
   onRestart,
   onSave,
   onSaveCopy,
+  onShareWithTeam,
   isSaving = false,
   onUndo,
   onRedo,
@@ -198,8 +209,12 @@ export default function CanvasTopBar({
             <DropdownMenuLabel>Baixar a arte</DropdownMenuLabel>
             <DropdownMenuItem onSelect={onExportPng}>
               <ArrowDownToLine />
-              Imagem do slide atual · PNG 4K
+              Imagem do slide atual · PNG {exportQuality.toUpperCase()}
             </DropdownMenuItem>
+            {onExportHdPng && <DropdownMenuItem onSelect={onExportHdPng}>
+              <ArrowDownToLine />
+              Imagem do slide atual · PNG HD
+            </DropdownMenuItem>}
             {slideCount > 1 && (
               <DropdownMenuItem
                 onSelect={onExportZip}
@@ -208,7 +223,13 @@ export default function CanvasTopBar({
                 <FileArchive />
                 {isExportingZip
                   ? "Preparando arquivos…"
-                  : "Todos os slides · ZIP"}
+                  : `Todos os slides · ZIP ${exportQuality.toUpperCase()}`}
+              </DropdownMenuItem>
+            )}
+            {slideCount > 1 && onExportHdZip && (
+              <DropdownMenuItem onSelect={onExportHdZip} disabled={isExportingZip}>
+                <FileArchive />
+                Todos os slides · ZIP HD
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -241,6 +262,11 @@ export default function CanvasTopBar({
                 Salvar uma cópia
               </DropdownMenuItem>
             )}
+            {onShareWithTeam && (
+              <DropdownMenuItem onSelect={onShareWithTeam}>
+                Enviar para equipe
+              </DropdownMenuItem>
+            )}
             {onSave && onAutoSaveChange && (
               <DropdownMenuCheckboxItem
                 checked={isAutoSaveEnabled}
@@ -266,7 +292,7 @@ export default function CanvasTopBar({
             {onTechnical && (
               <DropdownMenuItem onSelect={onTechnical}>
                 <SlidersHorizontal />
-                Ferramentas avançadas
+                Ajustes de composição
               </DropdownMenuItem>
             )}
             {onRestart && (
@@ -280,7 +306,7 @@ export default function CanvasTopBar({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-        <UserTopMenu variant="inline" compactMobile />
+        {!hideAccountMenu && <UserTopMenu variant="inline" compactMobile />}
       </div>
     </header>
     {saveStatus && <div role="status" className={`shrink-0 bg-[#0a0d16] px-3 py-1 text-xs lg:hidden ${autoSaveState === "error" ? "text-red-300" : "text-white/70"}`}>

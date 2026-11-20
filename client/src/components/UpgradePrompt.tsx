@@ -6,12 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Crown } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { PRO_MEMBERSHIP } from "@shared/membership";
 
-const PACKAGES = [
-  { id: "starter", label: "Starter", sparks: 200, price: "R$ 29,00", popular: false },
-  { id: "power", label: "Power", sparks: 700, price: "R$ 79,00", popular: true },
-  { id: "mega", label: "Mega", sparks: 1500, price: "R$ 159,00", popular: false },
-];
+const reais = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export function useUpgradePrompt() {
   const [open, setOpen] = useState(false);
@@ -32,20 +29,13 @@ type UpgradePromptModalProps = {
 export function UpgradePromptModal({ open, onClose }: UpgradePromptModalProps) {
   const [tab, setTab] = useState<"topup" | "plans">("topup");
   const topupMutation = trpc.billing.createTopupCheckout.useMutation();
-  const checkoutMutation = trpc.billing.createCheckout.useMutation();
+  const { data: packages, isPending } = trpc.billing.getTopupPackages.useQuery(undefined, {
+    enabled: open && tab === "topup",
+  });
 
   const handleTopup = async (packageId: string) => {
     try {
       const { url } = await topupMutation.mutateAsync({ packageId });
-      window.location.href = url;
-    } catch {
-      toast.error("Nao foi possivel abrir o checkout. Tente novamente.");
-    }
-  };
-
-  const handleUpgrade = async () => {
-    try {
-      const { url } = await checkoutMutation.mutateAsync({ plan: "PRO", cycle: "monthly" });
       window.location.href = url;
     } catch {
       toast.error("Nao foi possivel abrir o checkout. Tente novamente.");
@@ -98,7 +88,7 @@ export function UpgradePromptModal({ open, onClose }: UpgradePromptModalProps) {
                 <div>
                   <h2 className="font-bold text-foreground">Sparks esgotados</h2>
                   <p className="text-xs text-muted-foreground">
-                    Recarregue para continuar gerando
+                    Consulte as opções da sua conta
                   </p>
                 </div>
               </div>
@@ -121,63 +111,55 @@ export function UpgradePromptModal({ open, onClose }: UpgradePromptModalProps) {
 
               {tab === "topup" && (
                 <div className="flex flex-col gap-2">
-                  {PACKAGES.map((pkg) => (
+                  {!packages?.length && (
+                    <p className="text-sm text-muted-foreground">
+                      {isPending ? "Consultando recargas…" : "Nenhuma recarga avulsa disponível agora."}
+                    </p>
+                  )}
+                  {packages?.map((pkg) => (
                     <button
                       key={pkg.id}
                       onClick={() => handleTopup(pkg.id)}
                       disabled={topupMutation.isPending}
                       className="relative flex items-center justify-between p-3.5 rounded-xl border transition-all hover:border-white/20 hover:bg-white/5 text-left"
                       style={{
-                        borderColor: pkg.popular ? "oklch(0.7 0.22 40 / 40%)" : "oklch(1 0 0 / 8%)",
-                        backgroundColor: pkg.popular ? "oklch(0.7 0.22 40 / 5%)" : undefined,
+                        borderColor: "oklch(1 0 0 / 8%)",
                       }}
                     >
-                      {pkg.popular && (
-                        <span
-                          className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                          style={{ backgroundColor: "oklch(0.7 0.22 40)", color: "#000" }}
-                        >
-                          Popular
-                        </span>
-                      )}
                       <div>
-                        <p className="text-sm font-semibold text-foreground">{pkg.label} Pack</p>
+                        <p className="text-sm font-semibold text-foreground">{pkg.name}</p>
                         <p className="text-xs text-muted-foreground">+{pkg.sparks.toLocaleString("pt-BR")} ✦</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold" style={{ color: "oklch(0.7 0.22 40)" }}>
-                          {pkg.price}
+                          {reais.format(pkg.price_brl)}
                         </p>
                       </div>
                     </button>
                   ))}
-                  <p className="text-[11px] text-center text-muted-foreground mt-1">
-                    Pagamento unico · Sparks nao expiram
-                  </p>
                 </div>
               )}
 
               {tab === "plans" && (
                 <div className="flex flex-col gap-2">
-                  <button
-                    onClick={handleUpgrade}
-                    disabled={checkoutMutation.isPending}
-                    className="relative flex items-center justify-between p-3.5 rounded-xl border transition-all hover:border-white/20 hover:bg-white/5 text-left disabled:opacity-60 disabled:cursor-not-allowed"
+                  <a
+                    href="/pricing"
+                    className="relative flex items-center justify-between p-3.5 rounded-xl border transition-all hover:border-white/20 hover:bg-white/5 text-left"
                     style={{ borderColor: "oklch(1 0 0 / 8%)" }}
                   >
                     <div className="flex items-center gap-2">
                       <Crown className="h-4 w-4" style={{ color: "oklch(0.7 0.22 40)" }} />
                       <div>
                         <p className="text-sm font-semibold text-foreground">PRO</p>
-                        <p className="text-xs text-muted-foreground">2000 ✦ por mes · melhor custo por geracao</p>
+                        <p className="text-xs text-muted-foreground">{PRO_MEMBERSHIP.sparksPerMonth.toLocaleString("pt-BR")} ✦ por mês</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold" style={{ color: "oklch(0.7 0.22 40)" }}>
-                        R$ 147/mes
+                        {reais.format(PRO_MEMBERSHIP.monthly.amount / 100)}/mês
                       </p>
                     </div>
-                  </button>
+                  </a>
 
                   <button
                     disabled

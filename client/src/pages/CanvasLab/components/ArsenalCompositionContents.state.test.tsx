@@ -7,15 +7,34 @@ import { ArsenalCompositionContents, type ArsenalTextBridge } from "./ArsenalCom
 import { addArsenalAuthorialLayer } from "../lib/arsenalComposition";
 import { createArsenalFixtureComposition } from "../lib/arsenalFixture";
 
+const nodes = vi.hoisted(() => new Map<string, any>());
 vi.mock("react-konva", async () => {
   const React = await import("react");
   return {
-    Group: React.forwardRef((props: any, ref) => React.createElement("div", { "data-node": props.name, "data-listening": String(props.listening !== false), "data-draggable": String(Boolean(props.draggable)) }, props.children)),
+    Group: React.forwardRef((props: any, ref) => { if (props.name) nodes.set(props.name, props); return React.createElement("div", { "data-node": props.name, "data-listening": String(props.listening !== false), "data-draggable": String(Boolean(props.draggable)) }, props.children); }),
     Rect: () => null, Line: () => null, Text: () => null,
     Image: (props: any) => React.createElement("i", { "data-image": "true", "data-x": props.x, "data-y": props.y, "data-width": props.width, "data-height": props.height }),
   };
 });
 vi.mock("./RichTextRenderer", () => ({ default: () => null }));
+
+it("keeps fractional coordinates when a composition element is moved", async () => {
+  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  const canvas = vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => createCanvas(20,20).getContext("2d") as never);
+  const c = createArsenalFixtureComposition();
+  const item = c.elements.find(element => element.kind === "text")!;
+  const host = document.createElement("div"), root = createRoot(host), onTransform = vi.fn();
+  const bridge: ArsenalTextBridge = { target: null, selection: {start:0,end:0}, click: vi.fn(), doubleClick: vi.fn(), down: vi.fn(), move: vi.fn(), touchStart: vi.fn(), touchMove: vi.fn(), up: vi.fn() };
+  try {
+    await act(async () => root.render(<ArsenalCompositionContents composition={c} interactive bridge={bridge} register={vi.fn()} onSelect={vi.fn()} onTransform={onTransform} />));
+    const node = { x: () => 10.75, y: () => 20.125, rotation: () => 2.5, scaleX: vi.fn(() => 1), scaleY: vi.fn(() => 1) };
+    await act(async () => nodes.get(`arsenal-${item.id}`).onDragEnd({target: node, currentTarget: node}));
+    expect(onTransform).toHaveBeenCalledWith(item.id, { x: 10.75, y: 20.125, rotation: 2.5 });
+    const resized = { ...node, scaleX: vi.fn(() => 1.125), scaleY: vi.fn(() => 1) };
+    await act(async () => nodes.get(`arsenal-${item.id}`).onTransformEnd({target: resized, currentTarget: resized}));
+    expect(onTransform.mock.calls.at(-1)![1].width).toBeCloseTo(item.width * 1.125, 8);
+  } finally { act(() => root.unmount()); canvas.mockRestore(); }
+});
 
 it("hidden groups omit their descendants and locking prevents interactions without removing the rendered group", async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;

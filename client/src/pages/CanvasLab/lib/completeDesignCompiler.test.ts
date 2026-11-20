@@ -71,6 +71,15 @@ function fixture(): CompleteDesignVariationV1 {
   };
 }
 describe("complete design delivery in Studio", () => {
+  it("records the actual assembly stages and preserves the delivered slide", async () => {
+    const bundle = fixture(), observe = vi.fn();
+    const options = { assetDeadline: performance.now() + 15000 };
+    const before = await compileCompleteDesign(bundle, options);
+    const after = await compileCompleteDesign(bundle, { ...options, observe });
+    expect(observe.mock.calls.map(([title]) => title)).toEqual(["Design recebido e validado", "Carregamento das fontes", "Fontes prontas", "Slide montado"]);
+    expect(after.slides).toEqual(before.slides);
+    expect(observe.mock.calls.at(-1)?.[2]).toMatchObject({ slide:1, candidate:bundle.slides[0].composition.origin.candidateId });
+  });
   it("keeps the three visual roles and CTA unchanged through compilation, save and reopening", async () => {
     const input = fixture(),
       source = completeDesignTestDefinitions()[0];

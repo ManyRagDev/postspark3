@@ -5,14 +5,18 @@
  */
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Zap, Crown, ShoppingBag, ArrowLeft, Building2, Check, Sparkles } from "lucide-react";
+import { Zap, Crown, ShoppingBag, ArrowLeft } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import Footer from "@/components/Footer";
+import { PAID_PLAN_OFFERS } from "@shared/membership";
 
 const PLAN_LABELS: Record<string, string> = {
-  FREE: "START",
+  FREE: "Sem plano",
+  START: "START",
+  SOLO: "Solo",
+  PRO_PLUS: "PRO+",
   PRO: "PRO",
   AGENCY: "AGENCY",
   FOUNDER: "Founder",
@@ -30,107 +34,29 @@ const PLAN_COLORS: Record<string, string> = {
 };
 
 const PLAN_MONTHLY_SPARKS: Record<string, number> = {
-  FREE: 150,
-  PRO: 2000,
-  AGENCY: 4500,
+  FREE: 1,
+  START: 40,
+  SOLO: PAID_PLAN_OFFERS.SOLO.sparksPerMonth,
+  PRO: PAID_PLAN_OFFERS.PRO.sparksPerMonth,
+  PRO_PLUS: PAID_PLAN_OFFERS.PRO_PLUS.sparksPerMonth,
+  AGENCY: PAID_PLAN_OFFERS.AGENCY.sparksPerMonth,
   FOUNDER: 99999,
   DEV: 99999,
   LITE: 150,
 };
 
-type BillingCycle = "monthly" | "annual";
-type PaidPlan = "PRO" | "AGENCY";
-
-const PLANS = [
-  {
-    id: "free",
-    planCode: null,
-    name: "START",
-    icon: Zap,
-    price: { monthly: "Grátis", annual: "Grátis" },
-    sparks: "150 ✦ iniciais",
-    trial: false,
-    rollover: false,
-    equivalence: "3 carrosséis completos ou até 15 posts simples",
-    features: [
-      "Geração de posts",
-      "Geração de legendas",
-      "Editor completo",
-      "Exportação HD ilimitada",
-      "Créditos de entrada para experimentar",
-    ],
-    footnote: "Os Sparks gratuitos do START não acumulam indefinidamente.",
-    cta: "Começar grátis",
-    highlighted: false,
-    comingSoon: false,
-  },
-  {
-    id: "pro",
-    planCode: "PRO" as const,
-    name: "PRO",
-    icon: Crown,
-    price: { monthly: "R$ 147", annual: "R$ 117" },
-    sparks: "2000 ✦ por mês",
-    trial: true,
-    rollover: true,
-    equivalence: "Até 50 carrosséis completos ou até 200 posts simples",
-    features: [
-      "Geração de posts e carrosséis",
-      "Geração de legendas",
-      "Chameleon Protocol",
-      "Geração premium",
-      "Editor completo",
-      "Melhor custo por geração",
-    ],
-    footnote: "Sparks de planos pagos acumulam e não expiram.",
-    cta: "Iniciar trial grátis",
-    highlighted: true,
-    comingSoon: false,
-  },
-  {
-    id: "agency",
-    planCode: "AGENCY" as const,
-    name: "AGENCY",
-    icon: Building2,
-    price: { monthly: "Em breve", annual: "Em breve" },
-    sparks: "Plano orientado por operação",
-    trial: false,
-    rollover: true,
-    equivalence: "Teams, colaboração, multi-brand e operação em escala",
-    features: [
-      "Workspace multi-brand",
-      "Colaboração em equipe",
-      "Gerenciamento de clientes",
-      "Bibliotecas compartilhadas",
-      "Geração em lote",
-      "Exportação em massa",
-    ],
-    footnote: "O Agency será liberado quando as features operacionais estiverem prontas.",
-    cta: "Em breve",
-    highlighted: false,
-    comingSoon: true,
-  },
-] as const;
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
-};
+const reais = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function Billing() {
-  const utils=trpc.useUtils();
   const [, setLocation] = useLocation();
-  const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const { data: profile, isLoading: profileLoading, isFetching: profileRefreshing, refetch:refreshProfile } = trpc.billing.getProfile.useQuery();
   const { data: packages, isLoading: pkgLoading } = trpc.billing.getTopupPackages.useQuery();
+  const paidPlan = Boolean(profile?.plan && Object.hasOwn(PAID_PLAN_OFFERS, profile.plan));
+  const usage = trpc.billing.usage.useQuery(undefined, { enabled: paidPlan, retry: false });
+  const annual = trpc.billing.annualFeatures.useQuery(undefined, { enabled: paidPlan, retry: false });
+  const lab = trpc.billing.setIrisExperiment.useMutation();
+  const [savingExperiment, setSavingExperiment] = useState(false);
   const topupMutation = trpc.billing.createTopupCheckout.useMutation();
-  const checkoutMutation = trpc.billing.createCheckout.useMutation();
-  const trialMutation = trpc.billing.startTrial.useMutation({onSuccess:()=>{void utils.billing.getProfile.invalidate();}});
 
   const handleTopup = async (packageId: string) => {
     try {
@@ -141,46 +67,11 @@ export default function Billing() {
     }
   };
 
-  const handleCheckout = async (plan: PaidPlan) => {
-    try {
-      const { url } = await checkoutMutation.mutateAsync({ plan, cycle });
-      window.location.href = url;
-    } catch {
-      toast.error("Não foi possível abrir o checkout. Tente novamente.");
-    }
-  };
-
-  const handleCTA = async (planId: string) => {
-    if (planId === "free") {
-      setLocation("/");
-      return;
-    }
-
-    const planItem = PLANS.find((item) => item.id === planId);
-    if (!planItem || planItem.comingSoon || !planItem.planCode) return;
-
-    if (planItem.planCode === "PRO" && profile?.plan === "FREE" && planItem.trial) {
-      try {
-        const result = await trialMutation.mutateAsync({ plan: "PRO" });
-        if (result.success) {
-          toast.success("Trial de 7 dias iniciado com 2000 Sparks.");
-          setLocation("/");
-          return;
-        }
-      } catch {
-        // Se o trial falhar, cai para o checkout pago.
-      }
-    }
-
-    await handleCheckout(planItem.planCode);
-  };
-
   const plan = profile?.plan ?? "FREE";
   const sparks = profile?.sparks ?? 0;
   const maxSparks = PLAN_MONTHLY_SPARKS[plan] ?? 150;
   const sparkPct = Math.min(100, (sparks / maxSparks) * 100);
   const planColor = PLAN_COLORS[plan] ?? PLAN_COLORS.FREE;
-  const annualDiscount = 20;
 
   return (
     <>
@@ -195,6 +86,27 @@ export default function Billing() {
 
       <div className="w-full max-w-5xl flex flex-col items-center gap-10">
         <button disabled={profileRefreshing} onClick={()=>void refreshProfile()} className="text-sm text-muted-foreground">{profileRefreshing?'Atualizando saldo…':'Atualizar saldo'}</button>
+        {annual.data?.annual && (
+          <section className="w-full rounded-2xl border border-white/10 p-5">
+            <h2 className="font-semibold">Benefícios do anual</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Acesso antecipado aos lançamentos elegíveis do seu plano.</p>
+            {annual.data.labsAvailable && (
+              <label className="mt-4 flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={annual.data.optedIn} disabled={savingExperiment} onChange={async event => {
+                  setSavingExperiment(true);
+                  try {
+                    await lab.mutateAsync({ enabled: event.target.checked });
+                    await annual.refetch();
+                  } catch { toast.error("Não foi possível salvar a preferência."); }
+                  finally { setSavingExperiment(false); }
+                }} />
+                Testar Centro nítido no PostSpark Labs
+              </label>
+            )}
+          </section>
+        )}
+        {profile?.plan === "AGENCY" && <a className="text-sm underline" href="/agency">Projetos de equipe</a>}
+        <a className="text-sm text-muted-foreground underline" href="/start/peca">Abrir minha peça START</a>
         {/* --- Card de Plano Atual --- */}
         <motion.div
           className="rounded-2xl border p-6 w-full max-w-lg"
@@ -246,149 +158,27 @@ export default function Billing() {
 
             {plan !== "FOUNDER" && plan !== "DEV" && (
               <p className="text-xs text-muted-foreground mt-2">
-                {sparks.toLocaleString("pt-BR")} de {maxSparks.toLocaleString("pt-BR")} ✦ de referência mensal
+                {plan === "START"
+                  ? "Cota de uma rodada de propostas."
+                  : `Cota de referência do ciclo: ${maxSparks.toLocaleString("pt-BR")} ✦`}
               </p>
+            )}
+            {usage.data && (
+              <div className="mt-4 space-y-1 text-sm text-muted-foreground">
+                <p>Rodadas com propostas entregues neste ciclo: {usage.data.completedRounds.toLocaleString("pt-BR")}</p>
+                <p>Próxima cota prevista para {new Date(usage.data.nextRefill).toLocaleDateString("pt-BR")} com a assinatura em dia.</p>
+                {sparkPct <= 20 && <p className="text-amber-200">Seu saldo está perto do fim. Você pode continuar editando e exportando suas peças.</p>}
+              </div>
             )}
           </div>
         </motion.div>
 
-        {/* --- Seletor Mensal / Anual --- */}
-        <div className="w-full flex flex-col items-center mt-4">
-          <div className="flex items-center gap-2 justify-center mb-6">
-            <Sparkles className="h-5 w-5 text-thermal-orange" />
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              Planos de Assinatura
-            </h2>
-          </div>
-
-          <motion.div
-            className="flex items-center gap-1 p-1 rounded-full mb-8 bg-soul-base border border-border"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            {(["monthly", "annual"] as const).map((item) => (
-              <button
-                key={item}
-                onClick={() => setCycle(item)}
-                className={`px-5 py-2 text-sm font-medium rounded-full transition-all ${cycle === item ? "bg-thermal-orange text-black" : "bg-transparent text-muted-foreground hover:text-foreground"}`}
-              >
-                {item === "monthly" ? "Mensal" : (
-                  <span className="flex items-center gap-1.5">
-                    Anual
-                    <span
-                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${cycle === "annual" ? "bg-black/20 text-black" : "bg-thermal-orange/20 text-thermal-orange"}`}
-                    >
-                      -{annualDiscount}%
-                    </span>
-                  </span>
-                )}
-              </button>
-            ))}
-          </motion.div>
-
-          {/* --- Grid de Planos --- */}
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {PLANS.map((planItem) => {
-              const Icon = planItem.icon;
-              const isCurrentPlan = profile?.plan === (planItem.planCode ?? "FREE");
-
-              return (
-                <motion.div
-                  key={planItem.id}
-                  variants={cardVariants}
-                  className={`relative flex flex-col rounded-2xl border p-6 ${planItem.highlighted ? "bg-thermal-orange/5 border-thermal-orange/45 shadow-[0_0_40px_rgba(255,165,0,0.12)]" : "bg-soul-base border-border"}`}
-                >
-                  {planItem.highlighted && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold bg-thermal-orange text-black">
-                      Mais popular
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2.5 mb-4">
-                    <div
-                      className="p-2 rounded-xl"
-                      style={{
-                        backgroundColor: planItem.highlighted ? "oklch(0.7 0.22 40 / 15%)" : "oklch(1 0 0 / 6%)",
-                      }}
-                    >
-                      <Icon
-                        className="h-4 w-4"
-                        style={{
-                          color: planItem.highlighted ? "oklch(0.7 0.22 40)" : "oklch(0.6 0.02 280)",
-                        }}
-                      />
-                    </div>
-                    <span className="font-semibold text-foreground">{planItem.name}</span>
-                    {isCurrentPlan && (
-                      <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-muted-foreground border border-white/5">
-                        Atual
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="mb-1">
-                    <span className="text-3xl font-bold text-foreground">
-                      {planItem.price[cycle]}
-                    </span>
-                    {planItem.planCode === "PRO" && (
-                      <span className="text-sm text-muted-foreground ml-1">
-                        {cycle === "annual" ? "/mês" : "/mês"}
-                      </span>
-                    )}
-                  </div>
-                  {planItem.planCode === "PRO" && cycle === "annual" && (
-                    <p className="text-[11px] text-muted-foreground mb-1 mt-0">Cobrado anualmente</p>
-                  )}
-
-                  <div className="flex items-center gap-1.5 text-sm mb-2 mt-2" style={{ color: "oklch(0.7 0.22 40)" }}>
-                    <Zap className="h-3.5 w-3.5" />
-                    <span>{planItem.sparks}</span>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{planItem.equivalence}</p>
-
-                  <ul className="flex flex-col gap-2 mb-4 flex-1">
-                    {planItem.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2 text-sm">
-                        <Check className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "oklch(0.7 0.22 40)" }} />
-                        <span className="text-muted-foreground">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <p className="text-[11px] text-muted-foreground mb-6 min-h-[32px]">{planItem.footnote}</p>
-
-                  <button
-                    onClick={() => handleCTA(planItem.id)}
-                    disabled={planItem.comingSoon || isCurrentPlan || checkoutMutation.isPending || trialMutation.isPending}
-                    className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: planItem.highlighted ? "oklch(0.7 0.22 40)" : "oklch(1 0 0 / 8%)",
-                      color: planItem.highlighted ? "#000" : "oklch(0.8 0.01 280)",
-                    }}
-                  >
-                    {isCurrentPlan ? "Plano atual" : planItem.cta}
-                  </button>
-
-                  {planItem.planCode === "PRO" && (
-                    <p className="text-[11px] text-center text-muted-foreground mt-2">
-                      7 dias grátis · sem cartão
-                    </p>
-                  )}
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        </div>
+        <a href="/pricing" className="rounded-xl border border-white/15 px-4 py-3 text-sm">
+          Ver planos e gerenciar assinatura
+        </a>
 
         {/* --- Topup / Pacotes Avulsos --- */}
-        <motion.div
+        {profile?.plan !== "START" && <motion.div
           className="w-full max-w-lg mt-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -447,7 +237,7 @@ export default function Billing() {
               </div>
             )}
           </div>
-        </motion.div>
+        </motion.div>}
 
       </div>
     </div>

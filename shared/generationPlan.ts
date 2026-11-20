@@ -1,3 +1,4 @@
+import type { ComponentCardV1 } from "./componentAssembly";
 import { z } from "zod";
 import { arsenalHash } from "./arsenalContent";
 import { completeDesignFields, completeDesignProvenanceSchema } from "./completeDesignGeneration";
@@ -7,9 +8,27 @@ import type { ImageObligation } from "./generationContracts";
 import { designHasPhotographicContent } from "./designSelection";
 import { editorialIntentReadingSchema, type FrozenEditorialCatalog } from "./editorialIntent";
 
+/** Resolve alternatives after excluding designs that need an unfilled image slot.
+ * A deferred slot with an authored image already has usable media. */
+export function cardsWithAvailableMedia(cards: ComponentCardV1[], obligation?: ImageObligation) {
+  return obligation?.embeddedMediaOnly
+    ? cards.filter(card => !card.mediaSlots.some(slot => slot.deferred && !slot.embeddedAsset))
+    : cards;
+}
+
+/** An embedded photograph can satisfy a visual requirement without an image task. */
+export function availablePhotoCount(card: ComponentCardV1, obligation: ImageObligation) {
+  if (!obligation.embeddedMediaOnly) return card.mediaSlots.length;
+  const filled = card.mediaSlots.filter(slot => !slot.deferred || slot.embeddedAsset).length;
+  return Math.max(filled, Number(designHasPhotographicContent(card)));
+}
+
 export function repertoireMeetsMedia(repertoire: DesignFamilyRepertoire, obligation: ImageObligation) {
   if (obligation.policy === "forbidden") return repertoire.slides.every(slide => slide.variants.some(card => !card.mediaSlots.length && !designHasPhotographicContent(card)));
-  return !obligation.required || repertoire.slides.reduce((sum, slide) => sum + Math.max(...slide.variants.map(card => card.mediaSlots.length)), 0) >= Math.max(1, obligation.slotTargets);
+  const variants = repertoire.slides.map(slide => cardsWithAvailableMedia(slide.variants, obligation));
+  if (variants.some(options => !options.length)) return false;
+  return !obligation.required || variants.reduce((sum, options) =>
+    sum + Math.max(...options.map(card => availablePhotoCount(card, obligation))), 0) >= Math.max(1, obligation.slotTargets);
 }
 
 const text = z.string().min(1).max(1600);

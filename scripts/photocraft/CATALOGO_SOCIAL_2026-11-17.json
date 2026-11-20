@@ -1,0 +1,390 @@
+{
+  "checkedAt": "2026-11-17",
+  "source": "photocraft-cli commands --json on installed VPS binary",
+  "version": "photocraft-cli 0.23.1 (45066c482, 2026-11-12)",
+  "registeredCommandCount": 1009,
+  "catalogOnly": true,
+  "visualQualityCertified": false,
+  "absentIds": [
+    "layer.addMaskFromSelection",
+    "image.adjustments.autoTone",
+    "image.adjustments.autoContrast",
+    "edit.transform.perspective"
+  ],
+  "commands": [
+    {
+      "disabledReason": "no selection",
+      "enabled": false,
+      "id": "layer.layerMask.revealSelection",
+      "label": "Reveal Selection",
+      "menu": [
+        "Layer",
+        "Layer Mask"
+      ],
+      "needsDocument": false,
+      "params": "{\"layer\":id?} (no layer: every selected layer that can take a mask)",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "image.adjustments.gradientMap",
+      "label": "Gradient Map…",
+      "menu": [
+        "Image",
+        "Adjustments"
+      ],
+      "needsDocument": true,
+      "params": "{\"stops\":json,\"reverse\":bool=false,\"dither\":bool=false} (stops [[location 0..1, \"#rrggbb\"], …], 2..64)",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "image.adjustments.colorLookup",
+      "label": "Color Lookup…",
+      "menu": [
+        "Image",
+        "Adjustments"
+      ],
+      "needsDocument": true,
+      "params": "{\"lut\":\"none|warm|cool|tealOrange|bleachBypass|fadedFilm|dayForNight|monoContrast|crossProcess\"=\"none\",\"file\":text,\"interpolation\":\"trilinear|tetrahedral\"=\"trilinear\",\"dither\":bool=false,\"data\":text,\"dataEncoding\":\"text|base64\"=\"text\",\"fileName\":text,\"lutFormat\":\"auto|cube|3dl|look\"=\"auto\"} (file: LUT path; data: file text or encoded bytes; lutFormat overrides format detection, auto detects it)",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "layer.layerStyle.dropShadow",
+      "label": "Drop Shadow…",
+      "menu": [
+        "Layer",
+        "Layer Style"
+      ],
+      "needsDocument": true,
+      "params": "{\"color\":\"#rrggbb\",\"opacity\":0..100=75,\"blend\":str=\"multiply\",\"angle\":deg=120,\"useGlobalLight\":bool,\"distance\":px=5,\"spread\":0..100,\"size\":px=5,\"contour\":\"Linear|Cone|Cone - Inverted|Cove - Deep|Cove - Shallow|Gaussian|Half Round|Ring|Ring - Double|Rolling Slope - Descending|Rounded Steps|Sawtooth 1\"|{\"name\":str,\"points\":[[in 0..1,out 0..1],…],\"corners\":[bool,…]}=\"Linear\",\"antiAlias\":bool,\"noise\":0..100,\"knocksOut\":bool,\"add\":bool,\"layer\":id}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "layer.layerStyle.outerGlow",
+      "label": "Outer Glow…",
+      "menu": [
+        "Layer",
+        "Layer Style"
+      ],
+      "needsDocument": true,
+      "params": "{\"color\":\"#rrggbb\",\"opacity\":0..100=75,\"blend\":str=\"screen\",\"technique\":\"softer|precise\",\"spread\":0..100,\"size\":px,\"range\":1..100=50,\"contour\":name|curve,\"antiAlias\":bool,\"noise\":0..100,\"add\":bool}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "layer.layerStyle.innerGlow",
+      "label": "Inner Glow…",
+      "menu": [
+        "Layer",
+        "Layer Style"
+      ],
+      "needsDocument": true,
+      "params": "{\"color\":\"#rrggbb\",\"opacity\":0..100=75,\"blend\":str=\"screen\",\"technique\":\"softer|precise\",\"source\":\"edge|center\",\"choke\":0..100,\"size\":px,\"range\":1..100=50,\"contour\":name|curve,\"antiAlias\":bool,\"noise\":0..100,\"add\":bool}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "layer.layerStyle.stroke",
+      "label": "Stroke…",
+      "menu": [
+        "Layer",
+        "Layer Style"
+      ],
+      "needsDocument": true,
+      "params": "{\"size\":px=1,\"position\":\"inside|outside|center\",\"color\":\"#rrggbb\",\"from\":\"#rrggbb\",\"to\":\"#rrggbb\",\"method\":\"classic|perceptual|linear|smooth\"?,\"smoothness\":0..100=100,\"style\":str,\"angle\":deg,\"opacity\":0..100,\"blend\":str,\"overprint\":bool,\"add\":bool}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "layer.layerStyle.bevelEmboss",
+      "label": "Bevel & Emboss…",
+      "menu": [
+        "Layer",
+        "Layer Style"
+      ],
+      "needsDocument": true,
+      "params": "{\"style\":\"inner|outer|emboss|pillow|stroke\",\"technique\":\"smooth|chiselHard|chiselSoft\",\"contour\":bool,\"contourName\":name|curve,\"contourRange\":1..100=50,\"contourAntiAlias\":bool,\"glossContour\":name|curve,\"glossAntiAlias\":bool,\"texture\":pattern id|name?,\"textureScale\":1..1000=100,\"textureDepth\":-1000..1000=100,\"textureInvert\":bool,\"textureLink\":bool=true,\"depth\":1..1000=100,\"direction\":\"up|down\",\"size\":px=5,\"soften\":px,\"angle\":deg,\"altitude\":deg,\"add\":bool}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "filter.blur.gaussianBlur",
+      "label": "Gaussian Blur…",
+      "menu": [
+        "Filter",
+        "Blur"
+      ],
+      "needsDocument": true,
+      "params": "{\"radius\":0.1..1000=1}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "filter.noise.addNoise",
+      "label": "Add Noise…",
+      "menu": [
+        "Filter",
+        "Noise"
+      ],
+      "needsDocument": true,
+      "params": "{\"amount\":0.1..400=12.5,\"distribution\":\"uniform|gaussian\",\"monochromatic\":bool,\"seed\":u32=0}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "filter.blur.lensBlur",
+      "label": "Lens Blur…",
+      "menu": [
+        "Filter",
+        "Blur"
+      ],
+      "needsDocument": true,
+      "params": "{\"radius\":0..100=15,\"shape\":\"hexagon|triangle|square|pentagon|heptagon|octagon\",\"bladeCurvature\":0..100=0,\"rotation\":0..360=0,\"depthMap\":\"none|transparency|layerMask|channel\",\"depthChannel\":index|name?,\"focalDistance\":0..255=0,\"invert\":bool,\"brightness\":0..100=0,\"threshold\":0..255=255,\"noise\":0..100=0,\"distribution\":\"uniform|gaussian\",\"monochromatic\":bool,\"seed\":u32=0}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "filter.blurGallery.tiltShift",
+      "label": "Tilt-Shift…",
+      "menu": [
+        "Filter",
+        "Blur Gallery"
+      ],
+      "needsDocument": true,
+      "params": "{\"blur\":0..500=15,\"centerX\":0..1=0.5,\"centerY\":0..1=0.5,\"angle\":-90..90=0,\"focus\":0..1=0.1,\"transition\":0.01..1=0.15}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "filter.blurGallery.irisBlur",
+      "label": "Iris Blur…",
+      "menu": [
+        "Filter",
+        "Blur Gallery"
+      ],
+      "needsDocument": true,
+      "params": "{\"blur\":0..500=15,\"centerX\":0..1=0.5,\"centerY\":0..1=0.5,\"radiusX\":0.01..1=0.35,\"radiusY\":0.01..1=0.25,\"angle\":-180..180=0,\"roundness\":0..100=0,\"feather\":0..0.99=0.5,\"pins\":json}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "type.create",
+      "label": "New Type Layer",
+      "menu": [
+        "Layer",
+        "New"
+      ],
+      "needsDocument": true,
+      "params": "{\"x\":px,\"y\":px (baseline anchor of point text),\"text\":str,\"box\":[x,y,w,h]? (paragraph text),\"name\":str?,\"align\":\"left|center|right|justify…\"?,\"orientation\":\"horizontal|vertical\"=\"horizontal\", …character keys: \"font\",\"size\":pt=12,\"color\",…}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no active layer",
+      "enabled": false,
+      "id": "edit.transform",
+      "label": "Free Transform",
+      "menu": [],
+      "needsDocument": false,
+      "params": "{\"layer\":id?,\"layers\":[id,…]? (several layers moved by one box, one step; default with neither = the selected layers, as Photoshop's Free Transform with several selected; refused as locked when the Background is among several),\"rect\":[x0,y0,x1,y1]? (source frame; default = the layers' content ∩ selection),\"quad\":[[x,y]×4]? (where the frame's corners go, clockwise from top-left),\"matrix\":[a,b,c,d,e,f]? (affine alternative),\"scaleX\":%?,\"scaleY\":%?,\"rotate\":deg?,\"dx\":px?,\"dy\":px?,\"reference\":\"center|topLeft|top|topRight|left|right|bottomLeft|bottom|bottomRight\"|[x,y]=\"center\" (relative alternative: scale and rotate about this point, then move),\"interpolation\":\"bicubic|bilinear|nearest|bicubicSharper|bicubicSmoother|bicubicAutomatic\"=\"bicubic\" (Photoshop's bicubic variants render as Bicubic),\"stepName\":\"Transform Path\"? (History step name; the shape tools' bounding box sends it; default \"Free Transform\"; any other value is refused),\"target\":\"pixels\"|\"mask\"|\"quickMask\"|{\"channel\":i}=Channels panel target (an unlinked mask, an alpha channel or the Quick Mask transforms alone; a linked mask moves with its layer)}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "select.object",
+      "label": "Object Selection",
+      "menu": [],
+      "needsDocument": true,
+      "params": "{\"rect\":[x,y,w,h] | \"point\":[x,y],\"mode\":\"replace|add|subtract|intersect\"=\"replace\",\"sampleAllLayers\":bool=false} (point: the Object Finder's object under the point, as hovering previews it)",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "select.subject",
+      "label": "Subject",
+      "menu": [
+        "Select"
+      ],
+      "needsDocument": true,
+      "params": "{\"sampleAllLayers\":bool=false,\"mode\":\"replace|add|subtract|intersect\"=\"replace\"} (samples the selected layer; the composite when no pixel layer is selected)",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "select.refineEdge",
+      "label": "Refine Edge",
+      "menu": [],
+      "needsDocument": true,
+      "params": "{\"radius\":px=0,\"smartRadius\":bool=false,\"smooth\":0..100=0,\"feather\":px=0,\"contrast\":0..100=0,\"shiftEdge\":-100..100=0,\"decontaminate\":bool=false,\"amount\":0..100=100,\"output\":\"selection|layerMask|newLayer|newLayerWithMask|newDocument|newDocumentWithMask\"=\"selection\",\"sampleAllLayers\":bool=false,\"refineStrokes\":[{\"points\":[[x,y],…],\"size\":px=30,\"mode\":\"add|subtract\"=\"add\"},…]=[],\"edits\":[{\"tool\":\"quick\",\"points\":[[x,y],…],\"size\":px=30,\"mode\":\"add|subtract\"=\"add\",\"sampleAllLayers\":bool=false} | {\"tool\":\"brush\",\"points\":[[x,y],…],\"size\":px=30,\"hardness\":0..100=100,\"mode\":\"add|subtract\"=\"add\"} | {\"tool\":\"lasso\",\"points\":[[x,y],…≥3],\"mode\":\"add|subtract\"=\"add\"} | {\"tool\":\"object\",\"rect\":[x,y,w,h] | \"point\":[x,y],\"mode\":\"add|subtract\"=\"add\",\"sampleAllLayers\":bool=false} | {\"tool\":\"subject\",\"mode\":\"replace|add|subtract\"=\"replace\",\"sampleAllLayers\":bool=true} | {\"tool\":\"clear\"} | {\"tool\":\"invert\"},…]=[]} (refineStrokes: the Refine Edge Brush, in painting order: add refines the painted area from the image, subtract keeps the original edge there; edits: the workspace's Quick Selection, Brush, Lasso, Object Selection, Select Subject, Clear Selection and Invert, applied in order to the selection before its edge is refined)",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "image.autoTone",
+      "label": "Auto Tone",
+      "menu": [
+        "Image"
+      ],
+      "needsDocument": true,
+      "params": "{}",
+      "shortcut": "Cmd+Shift+L"
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "image.autoContrast",
+      "label": "Auto Contrast",
+      "menu": [
+        "Image"
+      ],
+      "needsDocument": true,
+      "params": "{}",
+      "shortcut": "Cmd+Alt+Shift+L"
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "image.autoColor",
+      "label": "Auto Color",
+      "menu": [
+        "Image"
+      ],
+      "needsDocument": true,
+      "params": "{}",
+      "shortcut": "Cmd+Shift+B"
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "image.canvasSize",
+      "label": "Canvas Size…",
+      "menu": [
+        "Image"
+      ],
+      "needsDocument": true,
+      "params": "{\"width\":number,\"height\":number,\"units\":\"px|percent\"=\"px\" (percent uses each current side; absolute sizes only),\"relative\":bool=false,\"anchor\":\"topLeft|top|topRight|left|center|right|bottomLeft|bottom|bottomRight\"=\"center\",\"extensionColor\":\"background|foreground|white|black|transparent|#rrggbb\"=\"background\"}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no selection",
+      "enabled": false,
+      "id": "select.modify.smooth",
+      "label": "Smooth…",
+      "menu": [
+        "Select",
+        "Modify"
+      ],
+      "needsDocument": false,
+      "params": "{\"radius\":1..500=1,\"applyAtCanvasBounds\":bool=false}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no selection",
+      "enabled": false,
+      "id": "select.modify.expand",
+      "label": "Expand…",
+      "menu": [
+        "Select",
+        "Modify"
+      ],
+      "needsDocument": false,
+      "params": "{\"radius\":1..500=1,\"applyAtCanvasBounds\":bool=false}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no selection",
+      "enabled": false,
+      "id": "select.modify.feather",
+      "label": "Feather…",
+      "menu": [
+        "Select",
+        "Modify"
+      ],
+      "needsDocument": false,
+      "params": "{\"radius\":0.1..1000=1,\"applyAtCanvasBounds\":bool=false}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "file.placeEmbedded",
+      "label": "Place Embedded…",
+      "menu": [
+        "File"
+      ],
+      "needsDocument": true,
+      "params": "{\"path\":str,\"scale\":%? (default: fit when larger than the canvas),\"fit\":bool? (default: Preferences > General > Resize Image During Place),\"smartObject\":bool? (default: Preferences > General > Always Create Smart Objects When Placing),\"center\":[x,y]?,\"approveHighMemory\":bool=false (explicitly approve high memory usage),\"frame\":id|false? (default: selected frame)}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "file.export.layersToFiles",
+      "label": "Layers to Files…",
+      "menu": [
+        "File",
+        "Export"
+      ],
+      "needsDocument": true,
+      "params": "{\"dir\":folder,\"format\":\"png|jpg|psd|tiff|…\"=\"png\",\"prefix\":str=document name,\"visibleOnly\":bool=true,\"trim\":bool=false,\"quality\":0..12?,\"jpegFormat\":\"baseline|optimized|progressive\"?,\"tiffLayers\":bool=false,\"tiffCompression\":\"none|lzw|zip\"?,\"tiffTransparency\":bool?,\"tiffPyramid\":bool=false,\"tgaBits\":24|32?,\"dpxBits\":8|10|12|16? (DPX: bits per sample; unset, 8 for an 8-bit document, else 16),\"ddsCompression\":\"none|bc1|bc2|bc3\"=\"none\" (DDS: uncompressed, or block compression; BC1 keeps alpha on or off),\"ddsMipmaps\":bool=false (DDS: also write the full mip chain),\"maximizeCompatibility\":bool? (PSD/PSB: write the real merged image; unset, Preferences > File Handling > Maximize PSD and PSB File Compatibility),\"pdfSpotPlates\":bool=true (PDF: spot channels as overprinting Separation plates after the image; a Multichannel document as plates alone, so false refuses it)} → {files}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "layer.layerMask.apply",
+      "label": "Apply",
+      "menu": [
+        "Layer",
+        "Layer Mask"
+      ],
+      "needsDocument": true,
+      "params": "{\"layer\":id?}",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no active layer",
+      "enabled": false,
+      "id": "edit.transform.warp",
+      "label": "Warp",
+      "menu": [
+        "Edit",
+        "Transform"
+      ],
+      "needsDocument": false,
+      "params": "{\"layer\":id?,\"rect\":[x0,y0,x1,y1]? (warp box; default = layer content ∩ selection),\"style\":\"custom|none|arc|arcLower|arcUpper|arch|bulge|shellLower|shellUpper|flag|wave|fish|rise|fisheye|inflate|squeeze|twist|cylinder\",\"bend\":%=50,\"hDistort\":%,\"vDistort\":%,\"vertical\":bool,\"values\":[left,bottom,right,top,topDepth,bottomDepth,wrap]? (cylinder: silhouettes and edges in document px, the ellipses' depths in half-axis units, wrap 0..1; horizontal only),\"mesh\":{\"us\":[0,…,1],\"vs\":[0,…,1],\"points\":[[x,y]…]} ((3c+1)×(3r+1) control points, row-major, document px; on a smart object `us`/`vs` span the source contents, so points equal to the placement are an identity warp even when it is skewed),\"grid\":[cols,rows]?,\"warp\":{full warp object}?,\"interpolation\":\"bicubic|bilinear|nearest\"} — on a type layer a style (or none) sets its Warp Text and the type stays editable",
+      "shortcut": null
+    },
+    {
+      "disabledReason": "no document open",
+      "enabled": false,
+      "id": "edit.perspectiveWarp",
+      "label": "Perspective Warp",
+      "menu": [
+        "Edit"
+      ],
+      "needsDocument": true,
+      "params": "{\"planes\":[{\"src\":[[x,y]×4],\"dst\":[[x,y]×4]}…] (corners clockwise from top-left; corners that coincide in src are linked),\"straighten\":\"horizontal|vertical|auto\"?,\"interpolation\":\"bicubic|bilinear|nearest\",\"layer\":id?}",
+      "shortcut": null
+    }
+  ]
+}

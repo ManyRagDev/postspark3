@@ -5,6 +5,7 @@ import { beforeEach, afterEach, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({ session: vi.fn() }));
 vi.mock("@/lib/supabaseClient", () => ({ supabase: { auth: { getSession: state.session } } }));
 import GoogleAuthCallback from "./GoogleAuthCallback";
+import { membershipCycleKey } from "@/lib/membershipApi";
 
 let root: Root;
 let element: HTMLDivElement;
@@ -12,6 +13,7 @@ let navigate: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.clear();
+  sessionStorage.clear();
   window.history.replaceState({}, "", "/auth/google-callback");
   state.session.mockResolvedValue({ data: { session: { access_token: "oauth-token" } }, error: null });
   vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })));
@@ -48,8 +50,22 @@ it("waits for SDK initialization rather than rejecting an empty hash early", asy
 it("keeps denied application access out of the Studio", async () => {
   vi.mocked(fetch).mockResolvedValue({ok:false,json:async()=>({error:"postspark_access_required"})} as Response);
   await act(async () => root.render(<GoogleAuthCallback />));
-  await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/?auth_error=postspark_access_required"));
+  await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/pricing"));
   expect(navigate).not.toHaveBeenCalledWith("/thevoid");
+});
+
+it("returns an identity from the annual checkout to pricing without granting app access", async () => {
+  sessionStorage.setItem(membershipCycleKey, "annual");
+  await act(async () => root.render(<GoogleAuthCallback />));
+  await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/pricing?cycle=annual"));
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+it("preserves the annual offer when the confirmation email opens on a different browser", async () => {
+  window.history.replaceState({}, "", "/auth/google-callback?cycle=annual&plan=SOLO");
+  await act(async () => root.render(<GoogleAuthCallback />));
+  await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/pricing?cycle=annual&plan=SOLO"));
+  expect(fetch).not.toHaveBeenCalled();
 });
 
 it("reports a missing session without synchronizing an empty credential", async () => {

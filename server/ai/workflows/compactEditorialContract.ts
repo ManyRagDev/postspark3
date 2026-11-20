@@ -25,6 +25,11 @@ export function usesTextFlexibility(input: Pick<ProposalExecutionInput, "reviewE
   return config?.version === 5 && "textFlexibilityVersion" in config && config.textFlexibilityVersion === 1;
 }
 
+export function usesCopyInstructionsV2(input: Pick<ProposalExecutionInput, "reviewExecutionConfig">) {
+  const config = input.reviewExecutionConfig;
+  return config?.version === 5 && "copyInstructionsVersion" in config && config.copyInstructionsVersion === 2;
+}
+
 export const textFlexibilityEditorialInstruction = "Oriente a extensão pelas faixas consultivas chars/lines de cada campo ou item; o encaixe real é medido localmente. Campos opcionais podem ficar vazios. A legenda aprofunda a mensagem, preservando o destino exigido dos fatos e condições.";
 
 /** One lossless projection for creator and reviewer. IDs remain those of V10's

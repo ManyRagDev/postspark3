@@ -13,6 +13,8 @@ const label = "block space-y-1 text-xs text-white/70";
 export function CanvasMediaPanel({
   post,
   onMediaUpdate,
+  workspaceId,
+  allowAiGeneration,
   onApplySeamlessPanorama,
   onOpenGhostView,
   selectedId,
@@ -27,6 +29,8 @@ export function CanvasMediaPanel({
 }: {
   post: CanvasPostModel;
   onMediaUpdate: MediaUpdate;
+  workspaceId?: string;
+  allowAiGeneration?: boolean;
   onApplySeamlessPanorama?: (panorama: SeamlessPanoramaMeta) => void;
   onOpenGhostView?: () => void;
   selectedId?: string | null;
@@ -49,6 +53,7 @@ export function CanvasMediaPanel({
   const [drawerInitialTab, setDrawerInitialTab] = useState<string>("all");
 
   const isCarousel = Boolean(post.slides && post.slides.length > 1);
+  const canUsePanorama = isCarousel && Boolean(onApplySeamlessPanorama);
 
   useEffect(() => {
     fetch("/images/backgrounds/manifest.json")
@@ -75,7 +80,7 @@ export function CanvasMediaPanel({
       {mode === "background" && (
         <div className="grid grid-cols-2 gap-2">
           {/* BOTÃO ESPECIAL DE SEAMLESS CAROUSEL (Visível exclusivamente para carrosséis) */}
-          {isCarousel && (
+          {canUsePanorama && (
             <button
               type="button"
               aria-label="Seamless Carousel (Fundo Contínuo)"
@@ -104,7 +109,7 @@ export function CanvasMediaPanel({
           <button
             type="button"
             aria-label="Explorar biblioteca de texturas"
-            className={button + (isCarousel ? " order-2 min-h-16 w-full" : " col-span-2 w-full")}
+            className={button + (canUsePanorama ? " order-2 min-h-16 w-full" : " col-span-2 w-full")}
             onClick={() => {
               setDrawerInitialTab("all");
               setOpen(true);
@@ -131,6 +136,8 @@ export function CanvasMediaPanel({
       <MediaSlotPanel
         post={post}
         onUpdate={onMediaUpdate}
+        workspaceId={workspaceId}
+        allowAiGeneration={allowAiGeneration}
         selectedId={selectedId}
         retainedPreview={mediaPreview}
         onRetainPreview={onMediaPreview}
@@ -158,6 +165,7 @@ export function CanvasMediaPanel({
         onClose={() => setOpen(false)}
         post={post}
         manifestData={manifest}
+        allowPanorama={canUsePanorama}
         initialTab={drawerInitialTab}
         onApplyBackground={url => {
           const slideId = post.slides[post.currentSlideIndex]?.id;

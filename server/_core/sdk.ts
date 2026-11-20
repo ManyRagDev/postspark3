@@ -4,7 +4,7 @@ import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
 import { createClient } from "@supabase/supabase-js";
 import { ENV } from "./env";
-import { hasPostSparkAccess } from "./appAccess";
+import { hasPostSparkAccess, hasStartPilotAccess, hasAgencyAccess } from "./appAccess";
 import { recordLocalAuth } from "./localAuthDiagnostic";
 
 export type AuthenticatedUser = {
@@ -14,6 +14,7 @@ export type AuthenticatedUser = {
   phone?: string | null;
   company?: string | null;
   role?: string | null;
+  access?: "start" | "agency";
 };
 
 let _supabaseAuthClient: ReturnType<typeof createClient> | null = null;
@@ -47,7 +48,7 @@ class SDKServer {
    * - le access token do cookie bridge
    * - valida com supabase.auth.getUser(token)
    */
-  async authenticateRequest(req: Request): Promise<AuthenticatedUser> {
+  async authenticateRequest(req: Request, options?: { allowStart?: boolean; allowAgency?: boolean }): Promise<AuthenticatedUser> {
     const cookies = this.parseCookies(req.headers.cookie);
     const accessToken = cookies.get(COOKIE_NAME);
 
@@ -67,13 +68,13 @@ class SDKServer {
       throw ForbiddenError("Invalid or expired session");
     }
 
-    // ── Application access check (skip in dev with BYPASS_AUTH) ──
-    if (!(process.env.NODE_ENV === "development" && process.env.BYPASS_AUTH === "true")) {
-      const hasAccess = await hasPostSparkAccess(user.id);
-      if (!hasAccess) {
-        recordLocalAuth(req, "request.access_denied");
-        throw ForbiddenError("PostSpark access required");
-      }
+    let access: AuthenticatedUser["access"];
+    const hasAccess = await hasPostSparkAccess(user.id);
+    if (!hasAccess && options?.allowStart && user.email_confirmed_at && await hasStartPilotAccess(user.id)) access = "start";
+    if (!hasAccess && !access && options?.allowAgency && user.email_confirmed_at && await hasAgencyAccess(user.id)) access = "agency";
+    if (!hasAccess && !access) {
+      recordLocalAuth(req, "request.access_denied");
+      throw ForbiddenError("PostSpark access required");
     }
 
     recordLocalAuth(req, "request.authenticated");
@@ -99,6 +100,7 @@ class SDKServer {
       phone: phoneFromMetadata,
       company: companyFromMetadata,
       role: roleFromMetadata,
+      ...(access ? { access } : {}),
     };
   }
 }

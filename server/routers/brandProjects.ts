@@ -3,18 +3,39 @@ import { startCapture,readCapture,saveCapture,publicCapture } from "../brandCapt
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { saveVisualIdentitySchema } from "@shared/visualIdentity";
+import { cachedVisualIdentity, manualVisualIdentity } from "../visualIdentity";
+import { loadOwnedMediaReference } from "../mediaAssets";
 import { brandProjectInputSchema, compileProjectDossier } from "@shared/brandProjects";
+import { requireProfessionalStudio } from "../studioAccess";
 import {
   getBrandProjectsByUser,
   getBrandProjectById,
   upsertBrandProject,
   deleteBrandProject,
+  saveBrandProjectIdentity,
 } from "../db";
 
+const brandCaptureProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  await requireProfessionalStudio(ctx.user, "A captura de marca por URL");
+  return next();
+});
+
 export const brandProjectsRouter = router({
-  captureStart:protectedProcedure.input(brandCaptureStartSchema).mutation(async({ctx,input})=>{try{return publicCapture(await startCapture(ctx.user.id,input));}catch(e){const error=e as {code?:string;message?:string};throw new TRPCError({code:error.code==="PT429"?"TOO_MANY_REQUESTS":"BAD_REQUEST",message:error.message??"Não foi possível iniciar a captura."});}}),
-  captureGet:protectedProcedure.input(brandCaptureGetSchema).query(async({ctx,input})=>{const c=await readCapture(input.captureId,ctx.user.id);if(!c)throw new TRPCError({code:"NOT_FOUND",message:"Captura não encontrada."});return publicCapture(c);}),
-  captureSave:protectedProcedure.input(brandCaptureSaveSchema).mutation(async({ctx,input})=>({success:true,project:await saveCapture(ctx.user.id,input)})),
+  saveIdentity: protectedProcedure.input(saveVisualIdentitySchema).mutation(async ({ ctx, input }) => {
+    const id = input.id ?? input.creationId;
+    const existing = id ? await getBrandProjectById(id, ctx.user.id) : undefined;
+    if (input.id && !existing) throw new TRPCError({ code: "NOT_FOUND", message: "Projeto não encontrado nesta conta." });
+    if (input.logoUrl) await loadOwnedMediaReference(input.logoUrl, ctx.user.id);
+    const visualIdentity = ctx.user.access === "start"
+      ? manualVisualIdentity(input.description, input.logoUrl)
+      : await cachedVisualIdentity(ctx.user.id, input.description, input.logoUrl, existing?.visual_identity);
+    const saved = await saveBrandProjectIdentity(ctx.user.id, { id, name: input.name, visualIdentity });
+    return { id: saved.id, visualIdentity: saved.visual_identity! };
+  }),
+  captureStart:brandCaptureProcedure.input(brandCaptureStartSchema).mutation(async({ctx,input})=>{try{return publicCapture(await startCapture(ctx.user.id,input));}catch(e){const error=e as {code?:string;message?:string};throw new TRPCError({code:error.code==="PT429"?"TOO_MANY_REQUESTS":"BAD_REQUEST",message:error.message??"Não foi possível iniciar a captura."});}}),
+  captureGet:brandCaptureProcedure.input(brandCaptureGetSchema).query(async({ctx,input})=>{const c=await readCapture(input.captureId,ctx.user.id);if(!c)throw new TRPCError({code:"NOT_FOUND",message:"Captura não encontrada."});return publicCapture(c);}),
+  captureSave:brandCaptureProcedure.input(brandCaptureSaveSchema).mutation(async({ctx,input})=>({success:true,project:await saveCapture(ctx.user.id,input)})),
   /**
    * Lista todos os projetos do usuário logado.
    */
@@ -26,7 +47,7 @@ export const brandProjectsRouter = router({
         name: p.name,
         niche: p.niche,
         sourceType: p.source_type,
-        capture:p.capture,visualPreferences:p.visual_preferences,
+        capture:p.capture,visualPreferences:p.visual_preferences,visualIdentity:p.visual_identity ?? undefined,
         structuredData: p.structured_data,
         compiledDocument: p.compiled_document,
         isDefault: p.is_default,
@@ -62,7 +83,7 @@ export const brandProjectsRouter = router({
           name: project.name,
           niche: project.niche,
           sourceType: project.source_type,
-          capture:project.capture,visualPreferences:project.visual_preferences,
+          capture:project.capture,visualPreferences:project.visual_preferences,visualIdentity:project.visual_identity ?? undefined,
           structuredData: project.structured_data,
           compiledDocument: project.compiled_document,
           isDefault: project.is_default,
@@ -110,7 +131,7 @@ export const brandProjectsRouter = router({
             name: saved.name,
             niche: saved.niche,
             sourceType: saved.source_type,
-            capture:saved.capture,visualPreferences:saved.visual_preferences,
+            capture:saved.capture,visualPreferences:saved.visual_preferences,visualIdentity:saved.visual_identity ?? undefined,
             structuredData: saved.structured_data,
             compiledDocument: saved.compiled_document,
             isDefault: saved.is_default,

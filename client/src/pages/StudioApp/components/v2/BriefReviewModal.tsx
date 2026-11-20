@@ -98,6 +98,7 @@ export default function BriefReviewModal({
               <button
                 key={num}
                 type="button"
+                disabled={brief.scriptMode === "preserve" && brief.scriptSlides?.length !== num}
                 onClick={() => handleSlideCountChange(num)}
                 aria-pressed={(brief.slideCount ?? 5) === num}
                 className={`h-11 flex-1 rounded-md text-sm font-bold transition-colors md:h-8 md:text-xs ${
@@ -110,6 +111,7 @@ export default function BriefReviewModal({
               </button>
             ))}
           </div>
+          {brief.scriptMode === "preserve" && <p className="text-xs text-violet-200">A quantidade e a ordem dos slides seguem o seu roteiro. Os textos serão preservados.</p>}
         </div>
 
         {/* FONTES / URLS IDENTIFICADAS */}

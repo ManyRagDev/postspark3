@@ -25,12 +25,13 @@ import {
 } from "../generationTrace";
 import { providerRejectionErrorFromReceipt } from "../../_core/llm";
 import { ENV } from "../../_core/env";
-import { isPaidGenerationOperation, summarizeGenerationJournal } from "./generationJournalTrace";
+import { isPaidGenerationOperation, summarizeGenerationJournal, journalOperationWasLocal } from "./generationJournalTrace";
 import * as localDiagnostics from "../localDiagnostics";
 import { resolveReviewExecutionConfigV7 } from "./reviewExecutionConfigV7";
 import { resolveGenerationModelConfig } from "../generationModel";
 import { INITIAL_POST } from "../../../client/src/pages/CanvasLab/components/types";
 import { arsenalHash } from "@shared/arsenalContent";
+import { identityFixture } from "@shared/visualIdentity.fixture";
 
 describe("uncertain strategy-2 preparation lifecycle", () => {
   it("terminalizes a known route rejection, preserves a ready slot and never buys the operation on replay", async () => {
@@ -251,6 +252,23 @@ function setup(overrides: Partial<RequestRecord> = {}) {
 }
 
 describe("durable runtime and independent delivery", () => {
+  it("delivers an identity composition without catalog preparation and never repeats its layout inference", async () => {
+    const source = setup().record();
+    const canvas = structuredClone(INITIAL_POST);
+    const input = { ...orchestratedGenerationInputSchema.parse({ ...source.input, fixedDesign: { kind: "identity", id: owner }, projectId: owner, creationMode: "execution", executionBrief: { creationMode: "execution", format: "static", platform: "instagram", contentSourceType: "freeform", interventionLevel: "visual_only", rawInput: "Meu conteúdo pronto." } }), pinnedDesign: { canvas, revision: arsenalHash(canvas), sourceId: "identity", identity: identityFixture() } };
+    const worker = setup({ input, prepared: undefined, proposals: [source.proposals[0]] });
+    const generateText = vi.fn(async () => ({ choices: [{ message: { content: JSON.stringify({ background: "#FFFFFF", text: "#111111", accent: "#226633", headingFont: "Inter", bodyFont: "Inter", margin: 64, gap: 32, align: "left", pages: [{ layout: "stacked", decoration: "none" }] }) } }] }));
+    const prepare = vi.fn();
+    const deps = { store: worker.store, prepare, loadContext: async () => input.content, graphDeps: { generateText: generateText as any, renderReviewScenes: fixtureReviewScenes }, persistTrace: vi.fn(async () => {}), loadTraceCalls: async () => [] };
+    const done = await executeClaimedGeneration(worker.record(), "lease", deps);
+    expect(done.overallStatus).toBe("completed");
+    expect(done.proposals[0]).toMatchObject({ status: "ready", fixedCanvas: { visualIdentityUsage: { identity: input.pinnedDesign.identity } } });
+    expect(journalOperationWasLocal(worker.journal.get(`${source.proposals[0].proposalId}:review`)?.result)).toBe(true);
+    expect(prepare).not.toHaveBeenCalled();
+    expect(generateText).toHaveBeenCalledTimes(1);
+    await executeClaimedGeneration({ ...worker.record(), status: "running" }, "new-lease", deps);
+    expect(generateText).toHaveBeenCalledTimes(1);
+  });
   it("reuses the pinned editable design, repairs its text, and completes a single-slot request", async () => {
     const source = setup().record();
     const canvas = { ...structuredClone(INITIAL_POST), aspectRatio: "4:5" as const, familyName: "ReUNE" };

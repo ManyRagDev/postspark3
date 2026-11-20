@@ -9,6 +9,7 @@ import { createArsenalFixtureComposition } from "../lib/arsenalFixture";
 import { INITIAL_POST, type CanvasPostModel } from "./types";
 
 const stageNodes: Record<string, any> = {};
+let textGroups: any[] = [];
 let capturedTransformer: any = null;
 let previewRatio = 1;
 const setPreviewRatio = vi.fn((ratio: number) => { previewRatio = ratio; });
@@ -39,6 +40,7 @@ vi.mock("react-konva", async () => {
         height: () => props.height ?? 100,
       }));
       if (props.name) stageNodes[props.name] = props;
+      if (props.onClick && props.onDblClick && props.onMouseDown) textGroups.push(props);
       return React.createElement("div", { "data-native": props.name, "data-visible": String(props.visible !== false), "data-listening": String(props.listening !== false) }, props.children);
     }),
     Transformer: React.forwardRef((props: any, ref) => {
@@ -57,6 +59,7 @@ vi.mock("react-konva", async () => {
     Rect: React.forwardRef((props: any, ref) => {
       React.useImperativeHandle(ref, () => ({
         setAttrs: vi.fn(),
+        position: vi.fn(),
         x: () => props.x ?? 0,
         y: () => props.y ?? 0,
         scaleX: () => 1,
@@ -103,6 +106,68 @@ beforeEach(() => {
   capturedTransformer = null;
   previewRatio = 1; setPreviewRatio.mockClear();
   for (const key of Object.keys(stageNodes)) delete stageNodes[key];
+  textGroups = [];
+});
+
+it("keeps a selected text out of editing on a second single click and edits on double click", async () => {
+  const ref = createRef<CanvasPostStageRef>();
+  await act(async () => root.render(<CanvasPostStage ref={ref} post={structuredClone(INITIAL_POST)} zoom={1} onUpdateElementPosition={vi.fn()} />));
+  const event = { evt: { detail: 1 } };
+  const beforeSelection = textGroups.length;
+  await act(async () => textGroups[0].onClick(event));
+  const selectedGroup = textGroups[beforeSelection];
+  expect(selectedGroup).toBeDefined();
+  await act(async () => selectedGroup.onClick(event));
+  expect(ref.current!.hasActiveDraft()).toBe(false);
+  await act(async () => selectedGroup.onDblClick({ evt: { detail: 2 } }));
+  expect(ref.current!.hasActiveDraft()).toBe(true);
+});
+
+it("opens selected text with Enter and cancels its draft with Escape", async () => {
+  const ref = createRef<CanvasPostStageRef>();
+  const onCommitTextEdit = vi.fn();
+  await act(async () => root.render(<CanvasPostStage ref={ref} post={structuredClone(INITIAL_POST)} zoom={1} selectedElementId="headline" onUpdateElementPosition={vi.fn()} onCommitTextEdit={onCommitTextEdit} />));
+  await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  expect(ref.current!.hasActiveDraft()).toBe(true);
+  const textarea = host.querySelector("textarea")!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, "Rascunho temporário");
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(textarea.value).toBe("Rascunho temporário");
+  await act(async () => textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+  expect(ref.current!.hasActiveDraft()).toBe(false);
+  expect(onCommitTextEdit).not.toHaveBeenCalled();
+  await act(async () => ref.current!.beginTextEdit("headline"));
+  expect(host.querySelector("textarea")!.value).toBe(INITIAL_POST.slides[0].headline);
+});
+
+it("keeps fractional native text coordinates after dragging", async () => {
+  const onUpdateElementPosition = vi.fn();
+  await act(async () => root.render(<CanvasPostStage post={structuredClone(INITIAL_POST)} zoom={1} onUpdateElementPosition={onUpdateElementPosition} />));
+  const node = { x: () => 10.75, y: () => 20.125 };
+  await act(async () => textGroups[0].onDragEnd({ target: node }));
+  expect(onUpdateElementPosition).toHaveBeenCalledWith("headlinePos", { x: 10.75, y: 20.125 });
+});
+
+it("keeps fractional coordinates after dragging user-added text", async () => {
+  const post = structuredClone(INITIAL_POST);
+  post.slides[0].extraTexts = [{ id: "extra", text: "Extra", x: 1, y: 2 }];
+  const onUpdateExtraText = vi.fn();
+  await act(async () => root.render(<CanvasPostStage post={post} zoom={1} onUpdateExtraText={onUpdateExtraText} />));
+  const node = { x: () => 10.75, y: () => 20.125 };
+  await act(async () => textGroups.at(-1).onDragEnd({ target: node }));
+  expect(onUpdateExtraText).toHaveBeenCalledWith("extra", { x: 10.75, y: 20.125 });
+});
+
+it("keeps fractional geometry after resizing user-added text", async () => {
+  const post = structuredClone(INITIAL_POST);
+  post.slides[0].extraTexts = [{ id: "extra", text: "Extra", x: 10.75, y: 20.125, width: 100.25, fontSize: 20.5 }];
+  const onUpdateExtraText = vi.fn();
+  await act(async () => root.render(<CanvasPostStage post={post} zoom={1} onUpdateElementPosition={vi.fn()} onUpdateExtraText={onUpdateExtraText} />));
+  const node = { x: () => 10.75, y: () => 20.125, rotation: () => 2.5, scaleX: vi.fn(() => 1.125), scaleY: vi.fn(() => 1.125) };
+  await act(async () => textGroups.at(-1).onTransformEnd({ target: node }));
+  expect(onUpdateExtraText).toHaveBeenCalledWith("extra", { x: 10.75, y: 20.125, width: 112.78125, fontSize: 23.0625, rotation: 2.5 });
 });
 
 afterEach(() => {
@@ -275,5 +340,21 @@ it("fits a square native logo inside its original editable box without stretchin
   expect(logo.getAttribute("data-x")).toBe("11");
   expect(logo.getAttribute("data-y")).toBe("0");
   expect(ref.current!.getElementGeometry("logo")).toMatchObject({width:46,height:24});
+  expect(post).toEqual(before);
+});
+
+it("keeps temporary image previews out of export, thumbnails and text edits", async () => {
+  const { advancedImageTargets } = await import("../lib/advancedImageEditing");
+  const post = structuredClone(INITIAL_POST);
+  post.slides[0].extraImages = [{ id: "photo", url: "/original.png", x: 10, y: 20, width: 100, height: 100 }];
+  const before = structuredClone(post), target = advancedImageTargets(post).find(t=>t.slotId === "photo")!;
+  const preview = { document: post, target, operation: {kind:"adjust" as const, brightness:10,contrast:0,saturation:0}, result:{requestId:crypto.randomUUID(),imageData:"data:image/png;base64,test",sourceSha256:"a".repeat(64),resultSha256:"b".repeat(64),sourceDimensions:{width:100,height:100},resultDimensions:{width:100,height:100},format:"png" as const} };
+  const ref = createRef<CanvasPostStageRef>();
+  await act(async () => root.render(<CanvasPostStage ref={ref} post={post} advancedImagePreview={preview} zoom={1} onUpdateElementPosition={vi.fn()} />));
+  expect(() => ref.current!.exportPng4K()).toThrow(/prévia/);
+  await expect(ref.current!.exportZip4K()).rejects.toThrow(/prévia/);
+  expect(await ref.current!.exportThumbnail()).toBe("");
+  act(() => ref.current!.beginTextEdit("headline"));
+  expect(ref.current!.hasActiveDraft()).toBe(false);
   expect(post).toEqual(before);
 });

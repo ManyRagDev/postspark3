@@ -1,3 +1,4 @@
+import { recordGenerationEvent } from "../generationTrace";
 import { recoveryAction } from "./generationRecovery";
 import { failureFromError } from "@shared/generationFailure";
 import { Annotation, StateGraph, START, END } from "@langchain/langgraph";
@@ -176,6 +177,10 @@ export class GenerationCoordinator {
       stage,
       context
     ) => {
+      recordGenerationEvent({ stage: "proposal_checkpoint",
+        status: stage.endsWith("started") ? "started" : stage.endsWith("rejected") ? "rejected" : stage.endsWith("failed") ? "failed" : "completed",
+        detail: stage, data: { slot, proposalId: identity.proposalId, slideCount: context?.slideCount, operationKey: context?.operationKey },
+      });
       await this.deps.checkpoint?.(stage, context);
       const state =
         stage === "recovering"

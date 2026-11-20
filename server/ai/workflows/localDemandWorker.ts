@@ -5,7 +5,7 @@ import { createGenerationStore } from "./generationStore";
 import { executeClaimedGeneration } from "./generationRuntime";
 import { createGenerationWorkerIdentity } from "./generationWorkerIdentity";
 import { ENV } from "../../_core/env";
-import { withCatalogRevision } from "../../designCatalog/versionedCatalog";
+import { withLocalRequestCatalog } from "./localRequestCatalog";
 import { publishGenerationRecord } from "./generationEvents";
 async function main() {
   if (!ENV.localDemandEnabled || !process.send || !process.connected)
@@ -36,10 +36,8 @@ async function main() {
       return;
     }
     if (shutdown.signal.aborted) return;
-    if (!claim.record.catalogRevision)
-      throw new Error("catalog_revision_missing");
     publishGenerationRecord(claim.record);
-    await withCatalogRevision(claim.record.catalogRevision, () =>
+    await withLocalRequestCatalog(claim.record, () =>
       executeClaimedGeneration(claim.record, claim.leaseToken, {
         store: createGenerationStore(),
         workerIdentity,

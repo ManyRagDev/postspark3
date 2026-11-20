@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { historicalReviewSchema } from "./historicalReviewSchema";
 import { arsenalHash } from "@shared/arsenalContent";
 import { affirmativeCopyInstructions } from "@shared/affirmativeSocialPlaybook";
 import { GenerationFailureError } from "@shared/generationFailure";
@@ -36,8 +37,8 @@ export function reviewInstructionsV8(
     ].join("\n")
   );
 }
-export function reviewContractHashV8() {
-  return arsenalHash({
+export function reviewContractHashV8(historical = true) {
+  const contract = {
     protocol: "review.v8.factual-audit.1",
     contextProtocol: "sources.references.2",
     selectionProtocol: "selection.v3",
@@ -50,7 +51,8 @@ export function reviewContractHashV8() {
     schema: z.toJSONSchema(proposalReviewResponseV8Schema),
     recordSchema: z.toJSONSchema(proposalReviewRecordV8Schema),
     receipt: z.toJSONSchema(reviewDurableContextV3Schema),
-  });
+  };
+  return arsenalHash(historical ? historicalReviewSchema(contract) : contract);
 }
 export function resolveReviewExecutionConfigV8(textModel?: string) {
   const { configurationHash, ...old } = resolveReviewExecutionConfigV7(
@@ -79,7 +81,7 @@ export function assertReviewExecutionConfigV8(value: unknown) {
   const { configurationHash, ...data } = r.data;
   if (
     configurationHash !== arsenalHash(data) ||
-    data.contractHash !== reviewContractHashV8()
+    ![reviewContractHashV8(), reviewContractHashV8(false)].includes(data.contractHash)
   )
     throw new GenerationFailureError(
       "preparation_contract_incompatible",

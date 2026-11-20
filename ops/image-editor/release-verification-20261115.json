@@ -1,0 +1,70 @@
+{
+  "checkedAt": "2026-11-15T00:38:26.765Z",
+  "success": true,
+  "originalPostsUnchanged": 82,
+  "testPostId": 139,
+  "testPostRevision": 6,
+  "slides": 5,
+  "receiptCount": 1,
+  "changedSlideIndexes": [
+    4
+  ],
+  "cancelPreservedRevision": true,
+  "privateBucket": true,
+  "assets": [
+    {
+      "hash": "d87875edc2350d1a11526dc15123f2109aa8f012b61918ba0909b658886d6740",
+      "bytes": 4960,
+      "anonymousStatus": 401
+    },
+    {
+      "hash": "0800ef192af8348d32eb54e823169c7ca4f657d14ea4acac19014d94e7e73547",
+      "bytes": 6648,
+      "anonymousStatus": 401
+    }
+  ],
+  "anonymousCapabilities": 401,
+  "frontendApiPublished": true,
+  "publicOrigin": "https://postspark.com.br",
+  "containers": {
+    "platform-app-trial-postspark-web-1": {
+      "image": "sha256:09f296eaf2b336ec0a94814592418e09a246794b41dd3756cf09468fccf4db6e",
+      "health": "healthy",
+      "startedAt": "2026-11-15T00:11:59.900809199Z"
+    },
+    "platform-app-trial-postspark-worker-1": {
+      "image": "sha256:b8fab4c09827a8ad83c8d0689b6e05ca36dd9edda84222adfbd93b1b90496507",
+      "health": "healthy",
+      "startedAt": "2026-11-14T06:31:28.786566388Z"
+    },
+    "postspark-image-pilot-image-editor-1": {
+      "image": "sha256:33ff4e47eed523edad9018174ba9673566a67f05cdb376fb58368fa7b919d892",
+      "health": "healthy",
+      "startedAt": "2026-11-14T21:15:49.08379342Z"
+    }
+  },
+  "scratchDirectories": 0,
+  "isolatedValidation": {
+    "testFiles": 74,
+    "testsPassed": 458,
+    "typescript": true,
+    "frontendBuild": true,
+    "backendBuild": true
+  },
+  "browserJourney": {
+    "previewAdjust": true,
+    "apply": true,
+    "undoRedo": true,
+    "reopen": true,
+    "restoreOriginal": true,
+    "resizePreview": true,
+    "cancel": true,
+    "png4kSuccessToast": true,
+    "downloadFileCaptured": false
+  },
+  "testCopiesCreated": [
+    138,
+    139
+  ],
+  "rollbackImage": "postspark-web:before-advanced-20261115"
+}

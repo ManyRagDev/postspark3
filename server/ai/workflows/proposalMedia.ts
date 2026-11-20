@@ -31,6 +31,7 @@ export interface ProposalMediaRequest {
   postContext?: ImagePostContext;
   references?: ProposalMediaReference[];
   preservedImageUrl?: string;
+  allowAiImages?: boolean;
   /** Stable key supplied by the proposal runtime for deduplicating a slot operation. */
   operationId: string;
   signal?: AbortSignal;
@@ -177,6 +178,7 @@ export async function generateProposalMediaForSlot(
     request.signal?.throwIfAborted();
     return {url:request.preservedImageUrl};
   }
+  if (request.allowAiImages === false) throw new Error("A geração de imagens por IA está desativada neste pedido.");
   if (!request.prompt.trim()) throw new Error("Prompt de mídia obrigatório");
 
   const originalImages = await resolveProposalMediaReferences(
@@ -213,20 +215,26 @@ export async function generateProposalMediaForSlot(
   return { url: generated.url! };
 }
 
-/** Freeze explicit preservation of one owned content image. Other source
- * photographs remain context for interpretation or a requested new image. */
-export function requestedPreservedPhoto(input: Pick<import('@shared/generationRequest').OrchestratedGenerationInput,'ownerId'|'content'|'inputType'|'imageUrl'|'sources'>, brief = input.content): string | undefined {
+/** Only content uploads may occupy a slot. A style reference or logo is never a substitute. */
+type PhotoInput = Pick<import("@shared/generationRequest").OrchestratedGenerationInput,
+  "ownerId" | "content" | "inputType" | "imageUrl" | "sources" | "executionBrief" | "allowAiImages">;
+export function requestedPreservedPhoto(input: PhotoInput, brief = input.content, acceptPendingUpload = false): string | undefined {
   const text=brief.normalize('NFC').toLocaleLowerCase('pt-BR');
   const target='(?:foto(?:grafia)?|imagem)\\s+(?:enviada|fornecida|anexada|original)';
   const use='(?:us[ea]|usando|utiliz[ea]|utilizando|preserv[ea]|preservando|mantenha|inclua|reaproveite)';
   const command=new RegExp(`\\b${use}\\b[^.!?;\\n]{0,48}\\b${target}\\b`,'i');
   const negative=new RegExp(`\\b(?:não|nunca)\\s+${use}\\b[^.!?;\\n]{0,48}\\b${target}\\b`,'i');
-  if(!command.test(text)||negative.test(text))return;
-  const values=Array.from(new Set([
-    ...(input.sources??[]).filter(s=>s.kind==='image'&&s.purpose==='content').map(s=>s.value),
-    ...(input.inputType==='image'&&input.imageUrl?[input.imageUrl]:[]),
-  ]));
-  if(values.length!==1)return;
-  const match=PRIVATE_MEDIA_PATH.exec(values[0]);
-  return match?.[1]===input.ownerId?values[0]:undefined;
+  if (negative.test(text) || (input.allowAiImages !== false && !command.test(text))) return;
+  const sources = input.sources ?? [];
+  const values = sources.filter(source => source.kind === "image" && source.purpose === "content")
+    .map(source => source.value);
+  const brand = input.executionBrief?.brandInput;
+  if (input.inputType === "image" && input.imageUrl &&
+      input.imageUrl !== brand?.logoUrl && input.imageUrl !== brand?.referenceImageUrl &&
+      !sources.some(source => source.value === input.imageUrl))
+    values.push(input.imageUrl);
+  const unique = Array.from(new Set(values));
+  if (input.allowAiImages !== false && unique.length !== 1) return;
+  return unique.find(value => PRIVATE_MEDIA_PATH.exec(value)?.[1] === input.ownerId ||
+    (acceptPendingUpload && input.allowAiImages === false && INLINE_IMAGE.test(value)));
 }

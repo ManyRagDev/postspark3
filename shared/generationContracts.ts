@@ -86,6 +86,7 @@ export const imageObligationSchema = z
     purpose: imageTaskPurposeSchema.default("none"),
     reason: z.string(),
     slotTargets: z.number().int().min(0).default(0),
+    embeddedMediaOnly: z.literal(true).optional(),
   })
   .strict();
 export type ImageObligation = z.infer<typeof imageObligationSchema>;

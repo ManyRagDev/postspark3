@@ -1,0 +1,38 @@
+{
+  "checked_at": "2026-11-14T17:56:18.814582+00:00",
+  "kernel": "Linux 5.15.0-203-generic",
+  "architecture": "x86_64",
+  "os_release": "PRETTY_NAME=\"Ubuntu 22.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"22.04\"\nVERSION=\"22.04.5 LTS (Jammy Jellyfish)\"\nVERSION_CODENAME=jammy\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=jammy\n",
+  "glibc": "glibc 2.35",
+  "cpu_count": 8,
+  "memory_kib": {
+    "MemTotal": 32861496,
+    "MemAvailable": 28983780,
+    "SwapTotal": 0
+  },
+  "cli_version": "photocraft-cli 0.23.1 (45066c482, 2026-11-12)",
+  "release_target": "/opt/postspark/photocraft/releases/v0.23.1-x86_64",
+  "appimage_sha256": "05747b3e527e1e0a0c1de39970361cf38c8fca7e8d3e3601ef2082fb0e6dd17f",
+  "registered_commands": 1009,
+  "tmpfiles_timer_active": true,
+  "temporary_entries_remaining": 0,
+  "integration_enabled": false,
+  "postspark_containers": [
+    {
+      "name": "platform-app-trial-postspark-worker-1",
+      "image": "sha256:b8fab4c09827a8ad83c8d0689b6e05ca36dd9edda84222adfbd93b1b90496507",
+      "started_at": "2026-11-14T06:31:28.786566388Z",
+      "running": true,
+      "health": "healthy"
+    },
+    {
+      "name": "platform-app-trial-postspark-web-1",
+      "image": "sha256:b24fe20d6dd56e2a3940bcf8c842289f7c0638f893a8d879e1750add39060d8a",
+      "started_at": "2026-11-14T06:31:30.39729152Z",
+      "running": true,
+      "health": "healthy"
+    }
+  ],
+  "running_containers_total": 15,
+  "unhealthy_containers_total": 0
+}

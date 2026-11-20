@@ -9,6 +9,7 @@ export interface LocalBrandProject {
   compiledDocument: string;
   isDefault: boolean;
   visualPreferences?: import("@shared/brandProjects").BrandProjectRecord["visualPreferences"];
+  visualIdentity?: import("@shared/visualIdentity").VisualIdentity;
   createdAt: string;
   updatedAt: string;
   isLocalOnly?: boolean;
@@ -76,6 +77,7 @@ export function saveLocalProject(
 
   const existingIndex = projects.findIndex((p) => p.id === projectId);
   const record: LocalBrandProject = {
+    ...(existingIndex !== -1 ? projects[existingIndex] : {}),
     id: projectId,
     name: input.name,
     niche: input.niche,

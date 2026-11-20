@@ -2,7 +2,7 @@ import { performance } from "node:perf_hooks";
 import type { OrchestratedGenerationInput } from "@shared/generationRequest";
 import type { ComponentCardV1 } from "@shared/componentAssembly";
 import { resolveDesignFamilyRepertoires } from "@shared/designRepertoire";
-import { repertoireMeetsMedia } from "@shared/generationPlan";
+import { cardsWithAvailableMedia, repertoireMeetsMedia } from "@shared/generationPlan";
 import type { ImageObligation } from "@shared/generationContracts";
 import {
   affinityHash,
@@ -100,7 +100,7 @@ export function offeredEditorialProfiles(args: AffinityObservationInput) {
       return match ? [match] : [];
     });
   const { input, cards, imageObligation } = args;
-  const repertoires = resolveDesignFamilyRepertoires(cards, {
+  const repertoires = resolveDesignFamilyRepertoires(cardsWithAvailableMedia(cards, imageObligation), {
     slideCount: input.postMode === "static" ? 1 : (input.slideCount ?? 5),
     contentMode:
       input.executionBrief?.interventionLevel === "visual_only"

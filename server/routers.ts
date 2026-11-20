@@ -26,7 +26,13 @@ import { scrapeUrl as scrapeSiteUrl } from "./siteContent";
 import { extractBrandDNA } from "./brandDNA";
 import * as fs from "fs";
 import * as path from "path";
-import { getBillingProfile, debitSparks, deriveIdempotencyKey, reserveSparks, commitSparkReservation, refundSparkReservation, getTopupPackages, createSubscriptionCheckout, createTopupCheckout, getSubscriptionPriceId, rpcCall, SPARK_COSTS } from "./billing";
+import { getBillingProfile, debitSparks, deriveIdempotencyKey, reserveSparks, commitSparkReservation, refundSparkReservation, getTopupPackages, createTopupCheckout, SPARK_COSTS, rpcCall } from "./billing";
+import { MembershipError, readMembership, startMembershipCheckout } from "./membership";
+import { SPARK_REFILL } from "@shared/membership";
+import { readAnnualFeatures, setIrisExperiment } from "./annualFeatures";
+import { requireAgencyEditor, requireProfessionalStudio, resolveStudioPlan } from "./studioAccess";
+import { startPilotRouter } from "./startPilot";
+import { membershipOrigin } from "./_core/membershipRoutes";
 import { ENV } from "./_core/env";
 import { appendOperationalLog } from "./_core/operationalLog";
 import { TRPCError } from "@trpc/server";
@@ -84,77 +90,47 @@ function resolveSaveLimitMessage(plan: string | null | undefined): string {
 
 // ─── Billing router ───────────────────────────────────────────────────────────
 const billingRouter = router({
+  usage: protectedProcedure.query(async ({ ctx }) => {
+    const { data, error } = await rpcCall("studio_usage_summary", { p_user_id: ctx.user.id });
+    if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Resumo de uso indisponível." });
+    return z.object({ completedRounds: z.number().int(), nextRefill: z.string() }).nullable().parse(data);
+  }),
+  annualFeatures: protectedProcedure.query(({ ctx }) => readAnnualFeatures(ctx.user.id)),
+  setIrisExperiment: protectedProcedure.input(z.object({ enabled: z.boolean() })).mutation(({ ctx, input }) =>
+    setIrisExperiment(ctx.user.id, input.enabled)),
+
   /** Retorna perfil de billing do usuário logado (plano, sparks, etc.) */
   getProfile: protectedProcedure.query(async ({ ctx }) => {
     const email = ctx.user.email ?? "dev@local.dev";
-    return getBillingProfile(email);
+    return getBillingProfile(email, ctx.user.id);
   }),
 
-  /** Inicia trial de 7 dias (anti-abuso por e-mail + IP) */
+  /** Compatibility for an already-open browser from the previous pricing page. */
   startTrial: protectedProcedure
-    .input(
-      z.object({
-        plan: z.enum(["PRO", "AGENCY"]).default("PRO"),
-      })
-    )
-    .mutation(async ({ input, ctx }) => {
-      const email = ctx.user.email ?? "";
-      const ip = (ctx.req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? ctx.req.socket.remoteAddress ?? "0.0.0.0";
+    .input(z.object({ plan: z.enum(["PRO", "AGENCY"]).default("PRO") }))
+    .mutation(() => ({ success: false, reason: "paid_membership_required" })),
 
-      if (!ENV.supabaseUrl || !ENV.supabaseServiceRoleKey) {
-        return { success: true, reason: "ok" };
-      }
-
-      const profile = await getBillingProfile(email);
-      if (profile.id === "no-profile" || profile.id === "error" || profile.id === "dev-mock") {
-        return { success: false, reason: "profile_not_found" };
-      }
-
-      const { data, error } = await rpcCall<{ success: boolean; reason: string }>("start_trial", {
-        p_user_id: profile.id,
-        p_email: email,
-        p_ip_address: ip,
-        p_plan: input.plan,
-      });
-
-      if (error) return { success: false, reason: error.message };
-      return data ?? { success: false, reason: "unknown" };
-    }),
-
-  /** Cria Stripe Checkout Session para assinatura */
   createCheckout: protectedProcedure
-    .input(
-      z.object({
-        plan: z.enum(["PRO", "AGENCY"]),
-        cycle: z.enum(["monthly", "annual"]).default("monthly"),
-        successPath: z.string().default("/billing/success"),
-        cancelPath: z.string().default("/pricing"),
-      })
-    )
+    .input(z.object({
+      plan: z.enum(["PRO", "AGENCY"]),
+      cycle: z.enum(["monthly", "annual"]).default("monthly"),
+      successPath: z.string().optional(),
+      cancelPath: z.string().optional(),
+    }))
     .mutation(async ({ input, ctx }) => {
-      const email = ctx.user.email ?? "";
-      const name = ctx.user.name ?? undefined;
-
-      const profile = await getBillingProfile(email);
-      if (profile.id === "no-profile" || profile.id === "error") {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "Perfil de billing não encontrado.",
-        });
+      if (input.plan !== "PRO")
+        throw new TRPCError({ code: "BAD_REQUEST", message: "O plano Agency ainda não está disponível." });
+      try {
+        return await startMembershipCheckout(ctx.user.id, input.cycle, membershipOrigin(ctx.req));
+      } catch (error) {
+        if (error instanceof MembershipError) {
+          throw new TRPCError({
+            code: error.status === 403 ? "FORBIDDEN" : "CONFLICT",
+            message: error.message,
+          });
+        }
+        throw error;
       }
-
-      const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
-      const priceId = getSubscriptionPriceId(input.plan, input.cycle);
-      const url = await createSubscriptionCheckout({
-        profileId: profile.id,
-        email,
-        name,
-        priceId,
-        successUrl: `${host}${input.successPath}`,
-        cancelUrl: `${host}${input.cancelPath}`,
-      });
-
-      return { url };
     }),
 
   /** Lista pacotes de top-up ativos */
@@ -183,7 +159,7 @@ const billingRouter = router({
           message: "Pacote não encontrado.",
         });
 
-      const profile = await getBillingProfile(email);
+      const profile = await getBillingProfile(email, ctx.user.id);
       if (profile.id === "no-profile" || profile.id === "error") {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
@@ -191,15 +167,24 @@ const billingRouter = router({
         });
       }
 
-      const host = `${ctx.req.protocol}://${ctx.req.get("host")}`;
+      if (pkg.id === SPARK_REFILL.id) {
+        const member = await readMembership(ctx.user.id);
+        if (!member.active || !member.customerId || member.customerId !== profile.stripe_customer_id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "A recarga está disponível para assinantes ativos." });
+        }
+      }
+
+      const host = membershipOrigin(ctx.req);
       const url = await createTopupCheckout({
         profileId: profile.id,
         email,
         name,
         priceId: pkg.stripe_price_id,
         packageId: pkg.id,
-        successUrl: `${host}${input.successPath}`,
-        cancelUrl: `${host}${input.cancelPath}`,
+        successUrl: pkg.id === SPARK_REFILL.id
+          ? `${host}/billing/topup-success?session_id={CHECKOUT_SESSION_ID}`
+          : `${host}${input.successPath}`,
+        cancelUrl: pkg.id === SPARK_REFILL.id ? `${host}/billing` : `${host}${input.cancelPath}`,
       });
 
       return { url };
@@ -213,9 +198,12 @@ import { designDnaRouter } from "./routers/designDna";
 import { privacyRouter } from "./routers/privacy";
 import { brandProjectsRouter } from "./routers/brandProjects";
 import { templateIngestionRouter } from "./routers/templateIngestion";
+import { imageEditorRouter } from "./routers/imageEditor";
 
 export const appRouter = router({
+  imageEditor: imageEditorRouter,
   generation: generationRouter,
+  startPilot: startPilotRouter,
   generationTelemetry: generationTelemetryRouter,
   catalog: catalogRouter,
   templateIngestion: templateIngestionRouter,
@@ -227,7 +215,10 @@ export const appRouter = router({
   privacy: privacyRouter,
   brandProjects: brandProjectsRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(async ({ ctx }) => {
+      if (!ctx.user) return null;
+      return { ...ctx.user, studioPlan: await resolveStudioPlan(ctx.user) };
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -291,16 +282,44 @@ export const appRouter = router({
         prompt: z.string().min(1).max(2000),
         aspectRatio: z.enum(["1:1", "4:5", "5:6", "9:16"]).optional(),
         postContext: imagePostContextSchema.optional(),
+        workspaceId: z.string().uuid().optional(),
         idempotencyKey: z.string().min(1).max(128).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
-        const profile = await getBillingProfile(ctx.user.email ?? "dev@local.dev");
-        const reservation = await reserveSparks(profile, SPARK_COSTS.GENERATE_IMAGE, input.idempotencyKey ?? deriveIdempotencyKey(ctx.user.id,{inputType:"image",postMode:"image",platform:"canvas",content:JSON.stringify([input.prompt,input.aspectRatio,input.postContext])}), "Geração de imagem IA");
+        if (ctx.user.access === "agency" && !input.workspaceId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Selecione a equipe para gerar imagens." });
+        }
+        let billingOwner = ctx.user.id;
+        if (input.workspaceId) {
+          const { data, error } = await rpcCall<string>("agency_billing_owner", {
+            p_user_id: ctx.user.id, p_workspace_id: input.workspaceId,
+          });
+          if (error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Saldo da equipe indisponível." });
+          if (!data) throw new TRPCError({ code: "FORBIDDEN", message: "A equipe não autorizou esta geração." });
+          billingOwner = data;
+          const refreshed = await rpcCall("refill_pro_sparks", { p_user_id: billingOwner });
+          if (refreshed.error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Saldo da equipe indisponível." });
+        }
+        const profile = await getBillingProfile(ctx.user.email ?? "dev@local.dev", billingOwner);
+        const requestSeed = input.idempotencyKey ?? JSON.stringify([input.prompt, input.aspectRatio, input.postContext]);
+        const reservationKey = !input.workspaceId && input.idempotencyKey
+          ? input.idempotencyKey
+          : deriveIdempotencyKey(ctx.user.id, {
+            inputType: "image", postMode: "image", platform: input.workspaceId ?? "canvas", content: requestSeed,
+          });
+        const reservation = await reserveSparks(profile, SPARK_COSTS.GENERATE_IMAGE, reservationKey,
+          input.workspaceId ? "Geração de imagem IA da equipe" : "Geração de imagem IA");
         if (!reservation.reservationId) throw new TRPCError({code:reservation.reason==="committed"?"CONFLICT":"PAYMENT_REQUIRED",message:reservation.reason==="committed"?"Esta solicitação já foi concluída. Acione uma nova geração no editor.":"Não foi possível reservar Sparks para esta imagem. Verifique seu saldo ou tente novamente."});
+        if (reservation.reservationId !== "dev-mock") {
+          const claim = await rpcCall<boolean>("claim_studio_image_dispatch", { p_reservation_id: reservation.reservationId });
+          if (claim.error) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível confirmar a reserva da imagem." });
+          if (claim.data !== true)
+            throw new TRPCError({ code: "CONFLICT", message: "Esta solicitação de imagem já foi iniciada." });
+        }
         try {
           const result = await generateImage({prompt: input.prompt, aspectRatio: input.aspectRatio, postContext: input.postContext, ownerId: ctx.user.id});
           if (!result.url) throw new Error("Nenhuma imagem retornada");
-          if (!await commitSparkReservation(reservation.reservationId, `image:${input.idempotencyKey ?? reservation.reservationId}`)) throw new Error("Não foi possível confirmar a geração da imagem");
+          if (!await commitSparkReservation(reservation.reservationId, `image:${reservationKey}`)) throw new Error("Não foi possível confirmar a geração da imagem");
           return { imageUrl: result.url };
         } catch(error) {
           const refunded=await refundSparkReservation(reservation.reservationId,"Falha na geração ou entrega da imagem");
@@ -316,7 +335,8 @@ export const appRouter = router({
           url: z.string().url(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await requireProfessionalStudio(ctx.user, "A extração de URL");
         return scrapeUrl(input.url);
       }),
 
@@ -374,7 +394,7 @@ export const appRouter = router({
         } catch (error: any) {
           const rawMessage = String(error?.message || "");
           if (rawMessage.includes("Saved posts limit reached for plan")) {
-            const profile = await getBillingProfile(ctx.user.email ?? "dev@local.dev");
+            const profile = await getBillingProfile(ctx.user.email ?? "dev@local.dev", ctx.user.id);
             throw new TRPCError({
               code: "FORBIDDEN",
               message: resolveSaveLimitMessage(profile.plan),
@@ -490,7 +510,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         // Debita Sparks para geração de imagem de fundo
         const email = ctx.user.email ?? "dev@local.dev";
-        const profile = await getBillingProfile(email);
+        const profile = await getBillingProfile(email, ctx.user.id);
         const debit = await debitSparks(profile.id, SPARK_COSTS.GENERATE_IMAGE, "Geração de imagem de fundo");
         if (!debit.success) {
           throw new TRPCError({
@@ -505,7 +525,17 @@ export const appRouter = router({
 
     saveMediaAsset: protectedProcedure
       .input(z.object({ imageData: z.string().min(1).max(12 * 1024 * 1024) }))
-      .mutation(({ input, ctx }) => saveUserMediaAsset(input.imageData, ctx.user.id)),
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.access === "agency") await requireAgencyEditor(ctx.user.id);
+        if (ctx.user.access === "start") {
+          const { data, error } = await rpcCall<boolean>("start_pilot_reserve_upload", {
+            p_user_id: ctx.user.id, p_bytes: Buffer.byteLength(input.imageData),
+          });
+          if (error || data !== true)
+            throw new TRPCError({ code: "FORBIDDEN", message: "Limite de imagens da degustação atingido." });
+        }
+        return saveUserMediaAsset(input.imageData, ctx.user.id);
+      }),
 
     saveBackgroundAsset: protectedProcedure
       .input(
@@ -716,9 +746,10 @@ Devolva as sugestões respeitando estritamente os IDs recebidos. Não invente no
         })
       )
       .mutation(async ({ input, ctx }) => {
+        await requireProfessionalStudio(ctx.user, "A análise de marca por URL");
         // ChameleonProtocol debita Sparks
         const email = ctx.user.email ?? "dev@local.dev";
-        const profile = await getBillingProfile(email);
+        const profile = await getBillingProfile(email, ctx.user.id);
         const debit = await debitSparks(profile.id, SPARK_COSTS.CHAMELEON, "ChameleonProtocol — análise de marca");
         if (!debit.success) {
           throw new TRPCError({
@@ -741,7 +772,8 @@ Devolva as sugestões respeitando estritamente os IDs recebidos. Não invente no
           url: z.string().url(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        await requireProfessionalStudio(ctx.user, "A extração de estilos por URL");
         // Step 1: Extract raw style data (HTML + Vision hybrid pipeline)
         const { data: extractedData, visionUsed } = await extractStyleFromUrlWithMeta(input.url);
 
@@ -778,6 +810,7 @@ Devolva as sugestões respeitando estritamente os IDs recebidos. Não invente no
         })
       )
       .mutation(async ({ input, ctx }) => {
+        await requireProfessionalStudio(ctx.user, "A captura de marca por URL");
         if (!ENV.aiSiteIntelligenceEnabled) {
           throw new TRPCError({
             code: "SERVICE_UNAVAILABLE",

@@ -37,7 +37,7 @@ const restorations = {
       "warm-paper",
       "screen-title",
     ],
-    keepShapes: [],
+    keepShapes: ["selo-superior"],
     limitation:
       "Fotografia de fundo restaurada por edição assistida; pequenas diferenças locais permanecem. Tipografia editável aproxima a referência, sem deformação em perspectiva das letras.",
   },

@@ -29,6 +29,21 @@ afterEach(() => {
 });
 const button = (label: string) => Array.from(host.querySelectorAll("button")).find(b => b.textContent?.includes(label))!;
 describe("gallery fidelity", () => {
+  it("shows a persistent review warning on desktop and follows the selected proposal on mobile", () => {
+    const warned = { ...structuredClone(INITIAL_POST), id: "warning", provenance: { source: "ai" as const, generatedAt: "2026-11-13T00:00:00Z", reviewWarning: "inconclusive" as const } };
+    const clean = { ...structuredClone(INITIAL_POST), id: "clean" };
+    act(() => root.render(<StudioGalleryView variations={[warned, clean]} onSelectVariation={vi.fn()} onBackToCreate={vi.fn()} />));
+    expect(host.textContent).toContain("Revisão de IA inconclusiva");
+    expect(host.textContent).toContain("Confira os textos e as informações antes de publicar");
+    expect(host.querySelectorAll('[role="status"]')).toHaveLength(1);
+    act(() => root.render(<StudioGalleryView mobile variations={[warned, clean]} onSelectVariation={vi.fn()} onBackToCreate={vi.fn()} />));
+    expect(host.textContent).toContain("Revisão de IA inconclusiva");
+    act(() => host.querySelector<HTMLButtonElement>('[aria-label="Próxima proposta"]')!.click());
+    expect(host.textContent).not.toContain("Proposta entregue com ressalvas");
+    act(() => host.querySelector<HTMLButtonElement>('[aria-label="Proposta anterior"]')!.click());
+    expect(host.textContent).toContain("Proposta entregue com ressalvas");
+  });
+
   it("navigates each desktop carousel independently and opens/downloads the displayed page without mutating slides", () => {
     const posts = ["first", "second"].map(id => ({ ...structuredClone(INITIAL_POST), id,
       slides: ["Capa", "Explicação", "Fechamento"].map((headline, index) => ({ ...structuredClone(INITIAL_POST.slides[0]), id: `${id}-${index}`, headline })) }));

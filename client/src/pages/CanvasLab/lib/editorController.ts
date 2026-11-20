@@ -1,3 +1,4 @@
+import { readTextGradient, textGradientSchema, type TextGradient } from "@shared/textGradient";
 import type {
   ArsenalComposition,
   ArsenalElement,
@@ -47,6 +48,7 @@ import { resolveSlideAppearance } from "./slideReplication";
 import { applyContrastGuard } from "./contrast";
 import { applyArsenalPalette } from "./editorPalette";
 import { reconcileRichTextChange } from "./richText";
+import { nativeTextAppearance, extraTextAppearance } from "./nativeTextAppearance";
 import {
   getEditorElementState,
   getArsenalElementStateInheritance,
@@ -101,6 +103,7 @@ export type EditorLayer = {
   unavailableReason?: string;
 };
 export type EditorCommand =
+  | { type: "text-gradient"; gradient: TextGradient | null | undefined }
   | { type: "visibility"; visible: boolean }
   | { type: "lock"; locked: boolean }
   | { type: "text"; text: string; richText?: CanvasRichTextChunk[]; scope?: "phrase" }
@@ -420,7 +423,7 @@ export function executeEditorCommand(
   const capability =
     command.type === "text" || command.type === "list"
       ? "editText"
-      : command.type;
+      : command.type === "text-gradient" ? "properties" : command.type;
   if (!layer.capabilities[capability])
     return failed(
       post,
@@ -434,6 +437,22 @@ export function executeEditorCommand(
   ): EditorCommandResult => ({ ok: true, post: next, selection });
   try {
     let c = slide.composition;
+    if (command.type === "text-gradient") {
+      if (layer.kind !== "text") return failed(post, "Selecione um texto.");
+      const gradient = command.gradient === undefined || command.gradient === null ? command.gradient : textGradientSchema.parse(command.gradient);
+      if (c) {
+        const previous = c.version === 3 ? c.effects[id] : undefined;
+        const effect = { ...previous, effect: previous?.effect ?? "none" as const, gradient };
+        return success(storeComposition(post, index, setArsenalElementEffect(c, id, effect)));
+      }
+      if (id === "headline" || id === "subtext") {
+        const key = id === "headline" ? "headlineGradient" : "subtextGradient";
+        const visualStyle = { ...slide.visualStyle, [key]: gradient };
+        if (gradient === undefined) delete visualStyle[key];
+        return success(updateSlideById(post, slide.id, { visualStyle }));
+      }
+      return success(onSlide(post, index, p => updateExtraElement(p, id, { textGradient: gradient })));
+    }
     if (command.type === "list") {
       if (!c) return failed(post, "O objeto selecionado não é uma lista.");
       const list = resolveEditorList(post, target);
@@ -779,6 +798,7 @@ export function executeEditorCommand(
                 ? (effective.palette.headlineColor ?? effective.palette.text)
                 : (effective.palette.subtextColor ?? effective.palette.text),
               align: title ? effective.headlineAlign : effective.bodyAlign,
+              textGradient: title ? effective.headlineGradient : effective.subtextGradient,
               effect: title
                 ? effective.headlineEffect
                 : effective.subtextEffect,
@@ -1039,6 +1059,7 @@ function applyProperties(
       if (effect !== undefined || effectColor !== undefined) {
         const previous = c.version === 3 ? c.effects[id] : undefined;
         const data = arsenalElementEffectSchema.parse({
+          ...previous,
           effect: effect ?? previous?.effect ?? "none",
           ...(effectColor !== undefined
             ? { color: effectColor }
@@ -1105,14 +1126,24 @@ function applyProperties(
           fontFamily: "fontFamily",
           fontWeight: "headlineFontWeight",
           align: "headlineAlign",
+          lineHeight: "headlineLineHeight",
+          letterSpacing: "headlineLetterSpacing",
         }
       : {
           fontFamily: "subtextFontFamily",
           fontWeight: "subtextFontWeight",
           align: "bodyAlign",
+          lineHeight: "subtextLineHeight",
+          letterSpacing: "subtextLetterSpacing",
         };
     for (const [key, value] of Object.entries(patch)) {
       if (mapping[key]) Object.assign(style, { [mapping[key]]: value });
+      else if (key === "fontSize") {
+        const effective = resolveSlideAppearance(post, index);
+        const current = nativeTextAppearance(effective, slide, title ? "headline" : "body");
+        Object.assign(style, { [title ? "headlineSizeScale" : "subtextSizeScale"]:
+          Number(value) / current.fontSize * ((title ? effective.headlineSizeScale : effective.subtextSizeScale) ?? 1) });
+      }
       else if (key === "effect" || key === "effectColor" || key === "sizeScale")
         Object.assign(style, {
           [`${title ? "headline" : "subtext"}${key === "effect" ? "Effect" : key === "effectColor" ? "EffectColor" : "SizeScale"}`]:
@@ -1219,6 +1250,8 @@ function applyProperties(
         "Este ajuste não está disponível para este texto livre."
       );
     const { fill, ...rest } = patch;
+    const text = resolveSlideExtraTexts(post, index).find(t => t.id === id);
+    if (text && typeof rest.fontSize === "number") rest.fontSize /= text.sizeScale ?? 1;
     next = onSlide(post, index, p =>
       updateExtraElement(p, id, {
         ...rest,
@@ -1412,14 +1445,9 @@ export function resolveEditorProperties(
   } else if (id === "headline" || id === "subtext") {
     const title = id === "headline";
     raw = {
+      ...nativeTextAppearance(effective, slide, title ? "headline" : "body"),
       ...slide[`${id}Pos`],
       width: slide[`${id}Width`],
-      fontFamily: title
-        ? effective.fontFamily
-        : (effective.subtextFontFamily ?? effective.fontFamily),
-      fontWeight:
-        (title ? effective.headlineFontWeight : effective.subtextFontWeight) ??
-        400,
       fill:
         (title
           ? effective.palette.headlineColor
@@ -1438,7 +1466,10 @@ export function resolveEditorProperties(
       "y",
       "width",
       "fontFamily",
+      "fontSize",
       "fontWeight",
+      "lineHeight",
+      "letterSpacing",
       "fill",
       "align",
       "effect",
@@ -1482,10 +1513,7 @@ export function resolveEditorProperties(
     if (text) {
       raw = {
         ...text,
-        fill: text.color ?? effective.palette.text,
-        fontFamily: text.fontFamily ?? effective.fontFamily,
-        fontSize: text.fontSize ?? 24,
-        fontWeight: text.fontWeight ?? 400,
+        ...extraTextAppearance(effective, text),
         opacity: text.opacity ?? 1,
         rotation: text.rotation ?? 0,
       };
@@ -1508,6 +1536,7 @@ export function resolveEditorProperties(
         ...image,
         opacity: image.opacity ?? 1,
         rotation: image.rotation ?? 0,
+        cornerRadius: image.cornerRadius ?? 0,
       };
       supported = [
         "x",
@@ -1682,4 +1711,20 @@ export function applyEditorPalette(
         : "Não foi possível aplicar a paleta."
     );
   }
+}
+
+/** Effective fill without altering the catalogue definition or the rich text runs. */
+export function editorTextGradient(post: CanvasPostModel, target: EditorTarget) {
+  const index = post.slides.findIndex(s => s.id === target.slideId), slide = post.slides[index];
+  if (!slide) return undefined;
+  const c = slide.composition;
+  if (c) {
+    const effect = c.version === 3 ? c.effects[target.elementId] : undefined;
+    if (effect?.gradient !== undefined) return effect.gradient;
+    return c.overrides[target.elementId]?.fill ? undefined : c.elements.find(e => e.id === target.elementId)?.textGradient;
+  }
+  const effective = resolveSlideAppearance(post, index);
+  if (target.elementId === "headline") return effective.headlineGradient;
+  if (target.elementId === "subtext") return effective.subtextGradient;
+  return resolveSlideExtraTexts(post, index).find(t => t.id === target.elementId)?.textGradient;
 }

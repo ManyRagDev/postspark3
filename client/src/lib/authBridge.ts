@@ -90,7 +90,7 @@ let refresh: Promise<void> | undefined;
 export async function resyncSupabaseSession(accessToken: string) {
   const previous = inFlightToken === accessToken ? inFlight : undefined;
   clearBridgeMarker();
-  if (previous) await previous;
+  if (previous) await previous.catch(() => {});
   await exchangeSupabaseSession(accessToken);
 }
 export async function ensureSessionForRequest() {

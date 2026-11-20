@@ -1,4 +1,5 @@
 import { isStandaloneHttpUrl } from "@shared/generationSources";
+import { extractUrlsFromText } from "@shared/creationBrief";
 import BrandCaptureModal from "./BrandCaptureModal";
 import { TemplateIngestionModal } from "@/pages/TemplateIngestion/TemplateIngestionModal";
 import StudioShowcaseModal from "./StudioShowcaseModal";
@@ -8,13 +9,16 @@ import type { CanvasPostModel } from "@/pages/CanvasLab/components/types";
 import { toast } from "sonner";
 import { GENERATION_MODEL_LABELS, getGenerationModelHint, type GenerationModel } from "@shared/generationModel";
 import { detectScriptStructure, type ParsedScriptSlide } from "../../lib/scriptDetector";
-export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference";generationModel?:GenerationModel;allowAiImages?:boolean;aspectRatio?: "4:5";fixedDesign?: OrchestratedGenerationInput["fixedDesign"];slideCount?: number;scriptMode?: "preserve"|"rewrite";parsedSlides?: ParsedScriptSlide[]};
+import ScriptSlidesModal from "./ScriptSlidesModal";
+import VisualBriefControl from "./VisualBriefControl";
+import "./studioCreationTone.css";
+export type CreationInputOptions={platform:"instagram"|"twitter"|"linkedin"|"facebook";image?:string;imagePurpose:"content"|"visual_reference";generationModel?:GenerationModel;allowAiImages?:boolean;aspectRatio?: "4:5";fixedDesign?: OrchestratedGenerationInput["fixedDesign"];slideCount?: number;scriptMode?: "preserve"|"rewrite";parsedSlides?: ParsedScriptSlide[];visualBrief?:string};
 import { trpc } from "@/lib/trpc";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/useMobile";
 import StudioMobileCreationForm, { MOBILE_PROMPT_COMPACT_HEIGHT } from "./StudioMobileCreationForm";
-import { ArrowRight, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { ArrowRight, Loader2, PanelsTopLeft, Sparkles, Trash2 } from "lucide-react";
 import { loadFontByName } from "@/lib/fonts";
 import SparkLogo from "@/components/SparkLogo";
 import ProjectSelectorDropdown from "./ProjectSelectorDropdown";
@@ -38,6 +42,8 @@ import {
  */
 
 interface StudioCreateViewV2BProps {
+  startPilot?: boolean;
+  allowProfessionalTools?: boolean;
   onSubmit: (prompt: string, mode: "static" | "carousel",options?:CreationInputOptions) => void;
   isLoading: boolean;
   declaredFamilyId: string | null;
@@ -47,6 +53,9 @@ interface StudioCreateViewV2BProps {
   initialImage?:string;
   initialImagePurpose?:CreationInputOptions["imagePurpose"];
   initialPrompt?: string;
+  initialVisualBrief?: string;
+  initialScriptSlides?: string[];
+  initialScriptMode?: "preserve" | "rewrite";
   initialMode?: "static" | "carousel";
   hasSavedDraft?: boolean;
   onDiscardDraft?: () => void;
@@ -58,12 +67,17 @@ interface StudioCreateViewV2BProps {
 }
 
 export default function StudioCreateViewV2B({
+  startPilot = false,
+  allowProfessionalTools = !startPilot,
   onSubmit,
   isLoading,
   declaredFamilyId,
   onDeclareFamily,
   initialPlatform="instagram",initialImage,initialImagePurpose="content",initialGenerationModel="auto",
   initialPrompt = "",
+  initialVisualBrief = "",
+  initialScriptSlides,
+  initialScriptMode,
   initialMode = "static",
   hasSavedDraft = false,
   onDiscardDraft,
@@ -82,11 +96,17 @@ export default function StudioCreateViewV2B({
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
   const [prompt, setPrompt] = useState(initialPrompt);
+  const [visualBrief, setVisualBrief] = useState(initialVisualBrief);
+  const [scriptEditorOpen, setScriptEditorOpen] = useState(false);
+  const [manualSlides, setManualSlides] = useState<string[] | null>(initialScriptSlides ?? null);
   const [postMode, setPostMode] = useState<"static" | "carousel">(initialMode);
 
   useEffect(() => {
     if (initialPrompt && !prompt) {
       setPrompt(initialPrompt);
+      setManualSlides(initialScriptSlides ?? null);
+      setVisualBrief(initialVisualBrief);
+      setScriptModeOverride(initialScriptMode ?? null);
     }
   }, [initialPrompt]);
 
@@ -208,8 +228,8 @@ export default function StudioCreateViewV2B({
     }
   }, [prompt, isMobile, promptExpanded]);
 
-  const scriptDetection = useMemo(() => detectScriptStructure(prompt), [prompt]);
-  const [scriptModeOverride, setScriptModeOverride] = useState<"preserve" | "rewrite" | null>(null);
+  const scriptDetection = useMemo(() => manualSlides ? { isScript: true, slideCount: manualSlides.length, hasExtraneousSections: false, slides: manualSlides.map((rawText, slideIndex) => ({ rawText, slideIndex })) } : detectScriptStructure(prompt), [prompt, manualSlides]);
+  const [scriptModeOverride, setScriptModeOverride] = useState<"preserve" | "rewrite" | null>(initialScriptMode ?? null);
 
   useEffect(() => {
     if (!scriptDetection.isScript) {
@@ -231,15 +251,24 @@ export default function StudioCreateViewV2B({
   }, [scriptDetection.isScript, scriptDetection.slideCount]);
 
   const isEmpty = prompt.trim().length === 0;
-  const isUrl = isStandaloneHttpUrl(prompt);
-  const canSubmit = !isEmpty && !isLoading;
+  const isUrl = allowProfessionalTools && isStandaloneHttpUrl(prompt);
+  const blockedWebsite = !allowProfessionalTools && extractUrlsFromText(prompt).length > 0;
+  const creationTone = isScriptMode ? "script" : isUrl ? "url" : "text";
+  const scriptOverflow = isScriptMode && scriptDetection.slides.length > 10;
+  const scriptTextOverflow = isScriptMode && (prompt.length > 24000 || scriptDetection.slides.some(slide => slide.rawText.length > 8000));
+  const canSubmit = !isEmpty && !isLoading && !scriptOverflow && !scriptTextOverflow && !blockedWebsite;
   const declaredSpecimen = allSpecimens.find((s) => s.id === declaredFamilyId) ?? null;
 
   const handleSubmit = () => {
     if (!canSubmit) return;
+    if (startPilot && (isUrl || options.image)) {
+      toast.info("Escreva o briefing da sua peça para continuar no START.");
+      return;
+    }
     if(isUrl&&!urlAsContent){setCaptureUrl(prompt.trim());return;}
     const finalOptions: CreationInputOptions = {
       ...options,
+      visualBrief: visualBrief || undefined,
       ...(isScriptMode ? {
         slideCount: scriptDetection.slideCount,
         scriptMode: "preserve" as const,
@@ -248,9 +277,24 @@ export default function StudioCreateViewV2B({
     };
     onSubmit(prompt.trim(), postMode, finalOptions);
   };
+  const contentTools = <div className="space-y-2 px-4 py-3">
+    {blockedWebsite && <p role="status" className="text-xs text-amber-200">A extração de URL está disponível a partir do PRO. Cole o texto da página no briefing para continuar.</p>}
+    {scriptTextOverflow && <p role="alert" className="text-xs text-amber-200">O roteiro excede o limite de 24 mil caracteres no total ou 8 mil em um slide. Ajuste o conteúdo para continuar; nenhum trecho será descartado automaticamente.</p>}
+    {scriptOverflow && <p role="alert" className="text-xs text-amber-200">Seu roteiro tem {scriptDetection.slides.length} slides. O limite atual é 10. Organize os slides ou escolha reescrever com IA.</p>}
+    <div className="flex flex-wrap gap-2">
+      <button type="button" disabled={isLoading} data-creation-highlight="true" aria-haspopup="dialog" onClick={() => setScriptEditorOpen(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-violet-300/25 bg-violet-300/10 px-3 py-2 text-xs text-violet-200 transition-colors hover:bg-violet-300/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-300 disabled:opacity-45 md:min-h-9">
+        <PanelsTopLeft size={14} aria-hidden="true" className="shrink-0" />
+        <span>{scriptDetection.isScript ? "Conferir e organizar slides" : "Já tenho meu conteúdo"}</span>
+      </button>
+      <VisualBriefControl value={visualBrief} onChange={setVisualBrief} disabled={isLoading} tone={creationTone} />
+    </div>
+    {currentProject?.visualIdentity && <button type="button" disabled={isLoading} onClick={() => onDeclareFamily(`project-identity-${selectedProjectId}`)} aria-pressed={!declaredFamilyId || declaredFamilyId === `project-identity-${selectedProjectId}`} className="min-h-11 text-left text-xs text-violet-200">{!declaredFamilyId || declaredFamilyId === `project-identity-${selectedProjectId}` ? "✓ Identidade visual do projeto ativa" : "Usar identidade visual do projeto"}</button>}
+  </div>;
 
   const handleDiscardDraft = () => {
     setPrompt("");
+    setManualSlides(null);
+    setVisualBrief("");
     setPostMode("static");
     onDiscardDraft?.();
     textareaRef.current?.focus();
@@ -265,7 +309,7 @@ export default function StudioCreateViewV2B({
   };
 
   return (
-    <div data-mobile-tone={isMobile ? (isScriptMode ? "script" : isUrl ? "url" : "text") : undefined} className="studio-create-page flex min-h-[100svh] md:h-[100svh] flex-col md:overflow-hidden" style={{ background: STUDIO.bg, color: STUDIO.ink }}>
+    <div data-creation-tone={creationTone} data-mobile-tone={isMobile ? creationTone : undefined} className="studio-create-page flex min-h-[100svh] md:h-[100svh] flex-col md:overflow-hidden" style={{ background: STUDIO.bg, color: STUDIO.ink }}>
       <style>{`
         .psv2b-prompt::placeholder {
           font-family: 'Playfair Display', serif;
@@ -285,11 +329,11 @@ export default function StudioCreateViewV2B({
       <div className="hidden md:block">
         <UserTopMenu />
       </div>
-      <div className="fixed left-4 top-4 z-40 hidden md:flex items-center gap-2">
+      {!startPilot && <div className="fixed left-4 top-4 z-40 hidden md:flex items-center gap-2">
         <Link href="/saved-posts" className="flex min-h-11 items-center rounded-full border border-white/15 bg-[#0a0d16] px-4 text-sm text-white hover:bg-white/10">
           Meus posts
         </Link>
-        <button
+        {allowProfessionalTools && <button
           type="button"
           onClick={() => setIsTemplateIngestOpen(true)}
           disabled={isLoading}
@@ -298,19 +342,19 @@ export default function StudioCreateViewV2B({
         >
           <Sparkles size={14} className="text-[#FF5C00]" />
           <span>Replicar Design</span>
-        </button>
-      </div>
+        </button>}
+      </div>}
 
       {/* HEADER MOBILE NO FLUXO (EVITA COLISÃO COM O LOGO E INCLUI REPLICAÇÃO DE DESIGN) */}
       <header className="shrink-0 z-40 flex items-center justify-between gap-2 px-4 pt-2 pb-0 md:hidden">
-        <div className="flex items-center gap-1.5 min-w-0">
+        {!startPilot && <div className="flex items-center gap-1.5 min-w-0">
           <Link
             href="/saved-posts"
             className="flex min-h-10 items-center rounded-full border border-white/15 bg-[#0a0d16]/90 px-3 text-xs font-medium text-white hover:bg-white/10 whitespace-nowrap"
           >
             Meus posts
           </Link>
-          <button
+          {allowProfessionalTools && <button
             type="button"
             onClick={() => setIsTemplateIngestOpen(true)}
             disabled={isLoading}
@@ -319,12 +363,16 @@ export default function StudioCreateViewV2B({
           >
             <Sparkles size={12} className="studio-mobile-accent-icon text-[#FF5C00] shrink-0" />
             <span>Replicar</span>
-          </button>
-        </div>
+          </button>}
+        </div>}
         <UserTopMenu variant="inline" compactMobile />
       </header>
 
-      {captureUrl&&<BrandCaptureModal url={captureUrl} projectId={selectedProjectId} onClose={()=>setCaptureUrl(undefined)} onSaved={id=>{onSelectProjectId?.(id);setCaptureUrl(undefined);setPrompt("");setUrlAsContent(false);toast.success("Projeto salvo. Agora informe o pedido do post.");}}/>}
+      {startPilot && <p className="px-4 pt-2 text-center text-xs text-white/65">START · Um briefing em texto, uma peça e download em HD.</p>}
+      {scriptEditorOpen && <ScriptSlidesModal initial={scriptDetection.slides.map(slide => slide.rawText)} initialText={prompt} onClose={() => setScriptEditorOpen(false)} onApply={slides => {
+        setManualSlides(slides); setPrompt(slides.map((text, index) => `Slide ${index + 1}:\n${text}`).join("\n\n")); setPostMode("carousel"); setScriptModeOverride("preserve"); setScriptEditorOpen(false);
+      }} />}
+      {allowProfessionalTools && captureUrl && <BrandCaptureModal url={captureUrl} projectId={selectedProjectId} onClose={()=>setCaptureUrl(undefined)} onSaved={id=>{onSelectProjectId?.(id);setCaptureUrl(undefined);setPrompt("");setUrlAsContent(false);toast.success("Projeto salvo. Agora informe o pedido do post.");}}/>}
       {/* MODAL DE CALIBRAGEM DE PROJETO */}
       {isProjectModalOpen && (
         <ProjectCalibrationModal
@@ -341,7 +389,7 @@ export default function StudioCreateViewV2B({
       )}
 
       {/* MODAL DE INGESTÃO E REPLICAÇÃO DE TEMPLATES (Print / URL -> 2D Konva) */}
-      {isTemplateIngestOpen && (
+      {allowProfessionalTools && isTemplateIngestOpen && (
         <TemplateIngestionModal
           isOpen={isTemplateIngestOpen}
           onClose={() => setIsTemplateIngestOpen(false)}
@@ -355,7 +403,7 @@ export default function StudioCreateViewV2B({
       {/* ÁREA PRINCIPAL CENTRALIZADA VERTICALMENTE */}
       {isMobile ? (
         <StudioMobileCreationForm
-          prompt={prompt} onPromptChange={setPrompt} textareaRef={textareaRef}
+          prompt={prompt} onPromptChange={value => { setPrompt(value); setManualSlides(null); }} textareaRef={textareaRef}
           expanded={promptExpanded} canExpand={canExpandPrompt} onExpandedChange={setPromptExpanded}
           onFocusChange={setIsFocused}
           onPromptKeyDown={event => {
@@ -370,7 +418,8 @@ export default function StudioCreateViewV2B({
           options={options} onOptionsChange={setOptions} postMode={postMode} onPostModeChange={setPostMode}
           aspectRatio={proposalAspectRatio} onAspectRatioChange={onProposalAspectRatioChange}
           hasSavedDraft={hasSavedDraft} onDiscardDraft={onDiscardDraft ? handleDiscardDraft : undefined}
-          onSubmit={handleSubmit} onOpenShowcase={() => setIsShowcaseOpen(true)}
+          onSubmit={handleSubmit} startPilot={startPilot} onOpenShowcase={startPilot ? undefined : () => setIsShowcaseOpen(true)}
+          contentTools={contentTools}
           projectControl={<ProjectSelectorDropdown
             className="studio-mobile-project" selectedProjectId={selectedProjectId}
             onSelectProject={id => onSelectProjectId?.(id)} disabled={isLoading}
@@ -450,17 +499,7 @@ export default function StudioCreateViewV2B({
                   : isScriptMode
                   ? "rgba(139,92,246,0.03)"
                   : "rgba(242,237,228,0.03)",
-                borderColor: isScriptMode
-                  ? isFocused
-                    ? "rgba(139,92,246,0.7)"
-                    : "rgba(139,92,246,0.4)"
-                  : isUrl
-                  ? isFocused
-                    ? "rgba(56,189,248,0.6)"
-                    : "rgba(56,189,248,0.3)"
-                  : isFocused
-                  ? "rgba(255,92,0,0.4)"
-                  : STUDIO.hairline,
+                borderColor: `rgba(var(--creation-accent-rgb), ${isFocused ? 0.7 : 0.35})`,
                 boxShadow: isScriptMode
                   ? isFocused
                     ? "0 0 28px rgba(139,92,246,0.3), inset 0 -2px 0 #8b5cf6"
@@ -483,11 +522,11 @@ export default function StudioCreateViewV2B({
                   id="studio-idea"
                   ref={textareaRef}
                   value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
+                  onChange={(e) => { setPrompt(e.target.value); setManualSlides(null); }}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey && (!isMobile || e.ctrlKey || e.metaKey)) {
+                    if (e.key === "Enter" && !e.shiftKey && (e.ctrlKey || e.metaKey) && !e.nativeEvent.isComposing) {
                       e.preventDefault();
                       handleSubmit();
                     }
@@ -508,16 +547,17 @@ export default function StudioCreateViewV2B({
                 />
 </div>
 
+                {contentTools}
                 {/* Seletor Inline de Modo Roteiro */}
                 {scriptDetection.isScript && (
-                  <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-violet-950/40 border-t border-violet-500/25 text-xs">
+                  <div data-creation-outline className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-violet-950/40 border-t border-violet-500/25 text-xs">
                     <div className="flex items-center gap-2">
                       <span className="size-2 rounded-full bg-violet-400 animate-pulse shrink-0" />
                       <span className="text-violet-200 font-medium">
                         Roteiro de {scriptDetection.slideCount} slides detectado
                       </span>
                     </div>
-                    <div className="grid w-full grid-cols-2 md:w-auto md:flex items-center gap-1 bg-black/50 p-0.5 rounded-lg border border-violet-500/30">
+                    <div data-creation-outline className="grid w-full grid-cols-2 md:w-auto md:flex items-center gap-1 bg-black/50 p-0.5 rounded-lg border border-violet-500/30">
                       <button
                         type="button"
                         aria-pressed={isScriptMode}
@@ -670,6 +710,7 @@ export default function StudioCreateViewV2B({
               {/* Pílula de Estilo Visual do Projeto Ativo (Opcional & Clicável) */}
               {projectDesignSpecimen && (
                 <button type="button" aria-pressed={declaredFamilyId === projectDesignSpecimen.id}
+                  data-creation-highlight={declaredFamilyId === projectDesignSpecimen.id ? "true" : undefined}
                   className={`inline-flex min-h-11 max-w-full items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition cursor-pointer select-none ${
                     declaredFamilyId === projectDesignSpecimen.id
                       ? "border-orange-500 bg-orange-500/15 text-orange-200 shadow-sm shadow-orange-500/10"
@@ -700,6 +741,7 @@ export default function StudioCreateViewV2B({
                     ))}
                   </div>
                   <span
+                    style={declaredFamilyId === projectDesignSpecimen.id ? { backgroundColor: "var(--creation-action)" } : undefined}
                     className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ml-1 ${
                       declaredFamilyId === projectDesignSpecimen.id
                         ? "bg-orange-500 text-white"
@@ -713,7 +755,7 @@ export default function StudioCreateViewV2B({
             </div>
           </section>
 
-          <details open={isMobile ? undefined : true} className="rounded-2xl border border-white/10 px-4 md:border-0 md:px-0">
+          {!startPilot && <details open={isMobile ? undefined : true} className="rounded-2xl border border-white/10 px-4 md:border-0 md:px-0">
             <summary className="flex min-h-12 cursor-pointer items-center text-sm text-white/80 md:hidden">Mais ajustes · modelo e imagens</summary>
             <div className="grid gap-4 pb-4 pt-2 md:flex md:items-center md:pb-0">
                   {/* Seletor de Modelo */}
@@ -744,6 +786,7 @@ export default function StudioCreateViewV2B({
                     role="switch"
                     aria-checked={Boolean(options.allowAiImages)}
                     aria-label="Gerar imagens com IA"
+                    data-creation-highlight={options.allowAiImages ? "true" : undefined}
                     disabled={isLoading}
                     onClick={() => setOptions({ ...options, allowAiImages: !options.allowAiImages })}
                     className={`col-span-1 min-h-11 w-full md:w-auto justify-center md:justify-start flex items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors cursor-pointer ${
@@ -753,6 +796,7 @@ export default function StudioCreateViewV2B({
                     }`}
                   >
                     <span
+                      style={options.allowAiImages ? { backgroundColor: "var(--creation-accent)" } : undefined}
                       className={`inline-block h-2 w-2 rounded-full transition-colors ${
                         options.allowAiImages ? "bg-[#FF5C00]" : "bg-white/30"
                       }`}
@@ -761,7 +805,7 @@ export default function StudioCreateViewV2B({
                   </button>
 
             </div>
-          </details>
+          </details>}
 
           <button type="button" onClick={handleSubmit} disabled={!canSubmit}
                   aria-label={
@@ -774,30 +818,31 @@ export default function StudioCreateViewV2B({
                       : "Criar posts"
                   }
             className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#FF5C00] px-4 py-3 text-base font-semibold text-white transition disabled:opacity-40"
-            style={{ background: isScriptMode ? "#7c3aed" : isUrl && !urlAsContent ? "#0284c7" : "#FF5C00" }}>
+            style={{ background: "var(--creation-action)" }}>
             {isLoading ? <Loader2 size={20} className="animate-spin" /> : <ArrowRight size={20} />}
             {isLoading ? "Preparando…" : isUrl && !urlAsContent ? "Capturar marca gratuitamente" : isScriptMode ? `Diagramar ${scriptDetection.slideCount} slides` : declaredSpecimen ? "Criar com este gosto" : "Criar posts"}
           </button>
 
           {/* 4. BOTÃO DE INSPIRAÇÃO / SHOWCASE: O QUE DÁ PRA FAZER COM O POSTSPARK */}
-          <div className="flex shrink-0 justify-center pt-1 md:pt-2">
+          {!startPilot && <div className="flex shrink-0 justify-center pt-1 md:pt-2">
             <button
               type="button"
               onClick={() => setIsShowcaseOpen(true)}
+              data-creation-outline
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.03] hover:border-orange-500/40 hover:bg-orange-500/10 text-white/75 hover:text-orange-200 text-xs font-medium transition-all duration-200 shadow-sm cursor-pointer active:scale-95 group"
               title="Veja exemplos reais do que você pode criar no PostSpark"
             >
-              <Sparkles className="size-3.5 text-orange-400 group-hover:scale-110 transition-transform" />
+              <Sparkles className="studio-context-icon size-3.5 text-orange-400 group-hover:scale-110 transition-transform" />
               <span>O que dá pra fazer com o PostSpark?</span>
             </button>
-          </div>
+          </div>}
 
         </div>
       </main>
       )}
 
       {/* MODAL MURAL SHOWCASE: O QUE DÁ PRA FAZER COM O POSTSPARK */}
-      {isShowcaseOpen && (
+      {!startPilot && isShowcaseOpen && (
         <StudioShowcaseModal
           onClose={() => setIsShowcaseOpen(false)}
           currentPrompt={prompt}

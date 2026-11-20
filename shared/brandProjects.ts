@@ -1,5 +1,6 @@
 import { brandCaptureMetadataSchema, capturedVisualPreferencesSchema } from "./generationSources";
 import { z } from "zod";
+import { visualIdentitySchema, type VisualIdentity } from "./visualIdentity";
 
 /**
  * Dados estruturados de calibração de um projeto / empresa.
@@ -37,6 +38,7 @@ export const brandProjectInputSchema = z.object({
   isDefault: z.boolean().default(false),
   capture: brandCaptureMetadataSchema.optional(),
   visualPreferences: capturedVisualPreferencesSchema.optional(),
+  visualIdentity: visualIdentitySchema.optional(),
 });
 
 export type BrandProjectInput = z.infer<typeof brandProjectInputSchema>;
@@ -49,6 +51,7 @@ export interface BrandProjectRecord {
   sourceType: "form" | "external_prompt" | "website";
   capture?: z.infer<typeof brandCaptureMetadataSchema>;
   visualPreferences?: z.infer<typeof capturedVisualPreferencesSchema>;
+  visualIdentity?: VisualIdentity;
   structuredData: ProjectStructuredData;
   compiledDocument: string;
   isDefault: boolean;

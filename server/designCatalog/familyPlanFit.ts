@@ -1,6 +1,6 @@
 import { arsenalHash } from "@shared/arsenalContent";
 import type { FamilySelectionCandidate } from "@shared/designFamilySelection";
-import type { GenerationIntent } from "@shared/generationPlan";
+import { availablePhotoCount, type GenerationIntent } from "@shared/generationPlan";
 import type { ImageObligation } from "@shared/generationContracts";
 import {
   effectiveFamilyScore,
@@ -27,7 +27,7 @@ export function inspectFamilyPlanFit(args: {
   const selected = new Set(args.ids);
   const photo = (f: FamilySelectionCandidate) =>
     f.repertoires.some(r =>
-      r.slides.some(s => s.variants.some(c => c.mediaSlots.length))
+      r.slides.some(s => s.variants.some(c => availablePhotoCount(c, args.imageObligation)))
     );
   // Preserve the existing, limited restoration of assessed media alternatives.
   for (const required of args.requestedPhotoMix

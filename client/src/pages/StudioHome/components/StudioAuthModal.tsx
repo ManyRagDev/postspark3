@@ -1,6 +1,8 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { resyncSupabaseSession } from "@/lib/authBridge";
 import { getAuthUiConfig } from "@/lib/authUiConfig";
+import { enrollStartPilot, membershipCycleKey, startProCheckout } from "@/lib/membershipApi";
+import type { MembershipCycle, PaidStudioPlan } from "@shared/membership";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -52,6 +54,10 @@ interface StudioAuthModalProps {
   isMobile: boolean;
   onClose: () => void;
   initialPrompt?: string;
+  checkoutCycle?: MembershipCycle;
+  checkoutPlan?: PaidStudioPlan;
+  startPilot?: boolean;
+  agencyInvite?: string;
 }
 
 export default function StudioAuthModal({
@@ -59,9 +65,16 @@ export default function StudioAuthModal({
   isMobile,
   onClose,
   initialPrompt,
+  checkoutCycle,
+  checkoutPlan = "PRO",
+  startPilot = false,
+  agencyInvite,
 }: StudioAuthModalProps) {
   const { googleEnabled, signupEnabled } = getAuthUiConfig();
-  const [mode, setMode] = useState<AuthMode>("login");
+  const canRegister = signupEnabled || Boolean(checkoutCycle) || startPilot || Boolean(agencyInvite);
+  const returnQuery = agencyInvite ? `?invite=${agencyInvite}` : startPilot ? "?start=1" : checkoutCycle
+    ? `?cycle=${checkoutCycle}${checkoutPlan === "PRO" ? "" : `&plan=${checkoutPlan}`}` : "";
+  const [mode, setMode] = useState<AuthMode>(() => checkoutCycle || startPilot || agencyInvite ? "register" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -75,7 +88,7 @@ export default function StudioAuthModal({
     setLoading(true);
 
     try {
-      if (mode === "register" && !signupEnabled) {
+      if (mode === "register" && !canRegister) {
         throw new Error("Cadastro indisponível no momento.");
       }
       if (!isSupabaseConfigured || !supabase) {
@@ -85,7 +98,13 @@ export default function StudioAuthModal({
       const result =
         mode === "login"
           ? await supabase.auth.signInWithPassword({ email, password })
-          : await supabase.auth.signUp({ email, password });
+          : await supabase.auth.signUp({
+              email,
+              password,
+              ...(returnQuery ? {
+                options: { emailRedirectTo: `${window.location.origin}/auth/google-callback${returnQuery}` },
+              } : {}),
+            });
 
       if (result.error) throw result.error;
 
@@ -93,13 +112,25 @@ export default function StudioAuthModal({
       if (!accessToken) {
         if (mode === "register") {
           setError(
-            "Conta criada com sucesso! Verifique seu e-mail para confirmar."
+            startPilot ? "Confirme seu e-mail para começar sua peça START." : checkoutCycle
+              ? "Confirme seu e-mail para continuar com a assinatura."
+              : "Conta criada com sucesso! Verifique seu e-mail para confirmar."
           );
           return;
         }
         throw new Error("Sessão não encontrada.");
       }
 
+      if (agencyInvite) {
+        window.location.assign(`/agency?invite=${agencyInvite}`);
+        return;
+      }
+      if (startPilot) await enrollStartPilot();
+      if (checkoutCycle) {
+        const { url } = await startProCheckout(checkoutCycle, checkoutPlan);
+        window.location.assign(url);
+        return;
+      }
       await resyncSupabaseSession(accessToken);
       window.location.href = "/thevoid";
     } catch (err: any) {
@@ -109,7 +140,7 @@ export default function StudioAuthModal({
       else if (message.includes("User already registered"))
         setError("Este e-mail já está cadastrado.");
       else if (message === "postspark_access_required")
-        setError("Sua conta ainda não tem acesso ao PostSpark. Fale com o suporte.");
+        setError("Sua conta ainda não tem acesso ao Studio.");
       else setError(message);
     } finally {
       setLoading(false);
@@ -125,10 +156,11 @@ export default function StudioAuthModal({
         throw new Error("Login com Google indisponível.");
       }
 
+      if (checkoutCycle) sessionStorage.setItem(membershipCycleKey, checkoutCycle);
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/google-callback`,
+          redirectTo: `${window.location.origin}/auth/google-callback${startPilot || agencyInvite || checkoutPlan !== "PRO" ? returnQuery : ""}`,
           queryParams: { access_type: "offline", prompt: "consent" },
         },
       });
@@ -197,12 +229,14 @@ export default function StudioAuthModal({
                 {mode === "login" ? "Acesso ao Estúdio" : "Nova Conta"}
               </div>
               <h2 className="mt-2 text-2xl font-bold text-white tracking-tight">
-                {mode === "login" ? "Entre no PostSpark" : "Crie sua conta"}
+                {mode === "login" ? "Entre no PostSpark" : checkoutCycle ? "Crie sua conta para assinar" : "Crie sua conta"}
               </h2>
               <p className="mt-1 text-xs md:text-sm text-white/60">
                 {initialPrompt
                   ? "Acesse sua conta para gerar posts com esta ideia."
-                  : "Entre com o e-mail e a senha da sua conta."}
+                  : mode === "register" && checkoutCycle
+                    ? "Confirme seu e-mail para seguir ao pagamento do Pro."
+                    : "Entre com o e-mail e a senha da sua conta."}
               </p>
             </div>
 
@@ -293,6 +327,9 @@ export default function StudioAuthModal({
               {error && (
                 <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-200">
                   {error}
+                  {!checkoutCycle && error === "Sua conta ainda não tem acesso ao Studio." && (
+                    <> <a href="/pricing" className="underline">Ver assinaturas</a></>
+                  )}
                 </div>
               )}
 
@@ -322,7 +359,7 @@ export default function StudioAuthModal({
               </button>
             </form>
 
-            {signupEnabled && (
+            {canRegister && (
               <div className="mt-4 text-center text-xs text-white/55">
                 {mode === "login"
                   ? "Ainda não tem conta? "

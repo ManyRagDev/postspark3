@@ -1,8 +1,9 @@
 import { usesVisualTextRepair, visualTextRepairCall } from "./visualTextRepair";
 import { ENV } from "../../_core/env";
+import { LENIENT_REVIEW_DIAGNOSTIC } from "@shared/generationReviewWarning";
 import { correctArsenalSurfaceContrast } from "@shared/arsenalSurfaceContrast";
 import { normalizeCopyProfileHandles, profileHandleValueNormalizer } from "./profileHandlePolicy";
-import { usesCompactEditorialContract } from "./compactEditorialContract";
+import { usesCompactEditorialContract, usesCopyInstructionsV2 } from "./compactEditorialContract";
 import { compactComponentCard } from "@shared/componentAssembly";
 import { designTextBudgetsV3 } from "@shared/designSelection";
 import { generationModelCallOptions, generationTaskModelCallOptions } from "../generationModel";
@@ -12,7 +13,7 @@ import {
   applyTargetedCopyRepair, editorialRepairTargets, enrichTargetedCopyRepairTargets, TARGETED_REPAIR_MAX_TOKENS,
   type TargetedCopyRepairTarget, type TargetedCopyRepairFitContext,
 } from "./compactProposalCopy";
-import { copyInstructionsV10 } from "./reviewExecutionConfigV10";
+import { copyInstructionsV10, copyInstructionsV10V2 } from "./reviewExecutionConfigV10";
 import { copyInstructionsV9 } from "./reviewExecutionConfigV9";
 import { validatedEditorialContextV9 } from "./editorialContextV9";
 import { copyInstructionsV8 } from "./reviewExecutionConfigV8";
@@ -54,7 +55,9 @@ import {
 } from "@shared/studioPreferences";
 import type { InvokeParams, InvokeResult } from "../../_core/llm";
 import { extractTextContent, safeJsonParse } from "../llmJson";
-import { recordGenerationEvent } from "../generationTrace";
+import { getGenerationTrace, recordGenerationEvent } from "../generationTrace";
+import { recordDecisionObservation } from "../decisionTrace";
+import { REVIEW_OBSERVATION_OPERATION } from "@shared/generationDecisionTrace";
 import { createComponentTextMeasurer } from "../componentTextMeasurer";
 import {
   imagePostContextSchema,
@@ -173,6 +176,7 @@ export interface ProposalExecutionInput {
   experimental?: boolean;
   selectionReason?: string;
   editorialApproach?: string | null;
+  allowAiImages?: boolean;
   imageObligation?: ImageObligation;
   deliveryRecoveryEnabled?: boolean;
   firstDeliveryReviewRecovery?: boolean;
@@ -457,6 +461,20 @@ function checkBriefConstraints(
       if (copy.hashtags.some(tag => !brief.rawInput.includes(tag)))
         issues.push("visual_only_hashtags_expand_source");
     }
+    if (brief.contentSourceType === "carousel_slides" && brief.slides?.length) {
+      const normalize = (value: string) => value.trim().replace(/\s+/g, " ");
+      const definitions = input.selectedDefinitions ?? [];
+      if (copy.slides.length !== brief.slides.length) issues.push("visual_only_slide_count_changed");
+      brief.slides.forEach((source, index) => {
+        const slide = copy.slides[index];
+        const fields = definitions[index] ? completeDesignFields(definitions[index], nativeGlyphProjectionFor(input)) : [];
+        const values = fields.length ? fields.map(field => slide?.values.find(v => v.fieldId === field.id)?.value ?? "") : slide?.values.map(v => v.value) ?? [];
+        if (normalize(values.flatMap(value => Array.isArray(value) ? value : [value]).join(" ")) !== normalize(source.rawText)) issues.push(`visual_only_slide_${index + 1}_changed`);
+      });
+      const literalSource = brief.slides.map(slide => slide.rawText).join("\n");
+      if (copy.caption.trim() && normalize(copy.caption) !== normalize(literalSource)) issues.push("visual_only_caption_expands_source");
+      if (copy.hashtags.some(tag => !literalSource.includes(tag))) issues.push("visual_only_hashtags_expand_source");
+    }
   }
   if((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) {
     const art=copy.slides.flatMap(s=>s.values.flatMap(v=>Array.isArray(v.value)?v.value:[v.value]));
@@ -501,7 +519,7 @@ function mediaReferences(
   );
 }
 
-function mediaPostContext(
+export function mediaPostContext(
   input: ProposalExecutionInput,
   definition: ComponentDefinitionV1,
   slide: CopySlide,
@@ -511,17 +529,20 @@ function mediaPostContext(
     Array.isArray(item.value) ? item.value : [item.value]
   );
   const brand = input.executionBrief?.brandInput;
+  const familyName = ENV.catalogLabelSanitization
+    ? undefined
+    : definition.completeDesign?.family?.slice(0, 80);
   if (usesCompactEditorialContract(input)) return imagePostContextSchema.parse({
     editorialPromptVersion: 1,
     originalRequest: input.prompt,
     finalCopy: {values, caption},
-    familyName: definition.completeDesign?.family.slice(0, 80),
+    ...(familyName ? { familyName } : {}),
   });
   return imagePostContextSchema.parse({
     headline: values[0]?.slice(0, 180),
     body: values.slice(1).join(" ").slice(0, 500),
     caption: caption.slice(0, 1500),
-    familyName: definition.completeDesign?.family.slice(0, 80),
+    ...(familyName ? { familyName } : {}),
     compositionGuidance: [
       input.executionBrief?.objective &&
         `Objetivo: ${input.executionBrief.objective}`,
@@ -755,13 +776,11 @@ export function formatHumanTextCapacityGuidance(
       targets?: Array<{ maxLines?: number; maxChars?: number }> | null;
     }>;
   }>,
-  capabilityPolicy = false
+  _capabilityPolicy = true
 ): string {
   const lines: string[] = [
     "📐 GUIA PRÁTICO DE ENCAIXE E EXTENSÃO DE TEXTO (por slide):",
-    capabilityPolicy
-      ? "Capacidade em caracteres é estimativa, não comprovação de encaixe. fragmentCount conta caixas que compartilham um texto; não é mínimo de palavras. O medidor real confirma o encaixe depois da composição."
-      : "Siga estes ranges recomendados de palavras/caracteres para garantir que o texto fique legível e bem diagramado na arte:",
+    "Capacidade em caracteres é estimativa, não comprovação de encaixe. fragmentCount conta caixas que compartilham um texto; não é mínimo de palavras. O medidor real confirma o encaixe depois da composição.",
   ];
 
   definitions.forEach((def, slideIdx) => {
@@ -781,18 +800,14 @@ export function formatHumanTextCapacityGuidance(
           f.role ?? "Campo";
 
         const maxChars = f.capacity?.estimatedMaxChars ?? 80;
-        const minWords = Math.max(1, f.capacity?.minWords ?? 2);
-        const maxWords = Math.max(minWords, Math.min(Math.round(maxChars / 5.5), 35));
         const maxLines = Math.max(1, ...(f.targets?.map((t: any) => t.maxLines ?? 1) ?? [2]));
 
         if (f.kind === "list") {
           const items = f.plannedItemCount ?? f.cardinality?.min ?? 3;
           lines.push(`  • [${f.id}] ${roleLabel}: Lista com aprox. ${items} itens. Cada item curto (3 a 8 palavras).`);
-        } else if (capabilityPolicy) {
+        } else {
           const fragments = Math.max(1, f.capacity?.fragmentCount ?? f.capacity?.minWords ?? 1);
           lines.push(`  • [${f.id}] ${roleLabel}: ${fragments} caixa(s) compartilham o texto; estimativa de ~${maxChars} caracteres e até ${maxLines} linha(s). Preserve conteúdo obrigatório e literal; fragmentos opcionais podem ficar vazios.`);
-        } else {
-          lines.push(`  • [${f.id}] ${roleLabel}: Recomendado ${minWords} a ${maxWords} palavras (máx ~${maxChars} caracteres, até ${maxLines} linha${maxLines > 1 ? "s" : ""}).`);
         }
       }
     }
@@ -934,8 +949,18 @@ export async function executeProposalWorkflow(
     const allowSubpixelTextOverflow = adaptiveTextFit || input.generationConfig?.layoutFitPolicy === "subpixel_v1";
     const textFlexibilityVersion = input.reviewExecutionConfig?.version === 5 ? input.reviewExecutionConfig.textFlexibilityVersion : undefined;
     const localContrast = input.reviewExecutionConfig?.version === 5 && input.reviewExecutionConfig.localContrastPolicyVersion === 1;
-    const inspect = (scenes: ArsenalComposition[], final = false) =>
-      inspectProposalScenes(scenes, definitions, measureText, allowSubpixelTextOverflow, adaptiveTextFit, final && localContrast, textFlexibilityVersion);
+    const inspect = (scenes: ArsenalComposition[], final = false) => {
+      const inspected = inspectProposalScenes(scenes, definitions, measureText, allowSubpixelTextOverflow, adaptiveTextFit, final && localContrast, textFlexibilityVersion);
+      if (getGenerationTrace()) recordGenerationEvent({
+        stage: "scene_inspection", status: "completed", detail: final ? "final" : "preflight",
+        data: { slot, proposalId, inspectedSlides: inspected.slides.map(({ composition, findings, diagnostics }, index) => ({
+          slide: index + 1, candidate: composition.origin.candidateId, variant: composition.sourceVariantKey,
+          elements: composition.elements.length, findings: findings.map(({ rule, target }) => ({ rule, target })),
+          diagnostics: diagnostics.map(({ code, target }) => ({ code, target })),
+        })) },
+      });
+      return inspected;
+    };
     if ((input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) deps = {...deps,measureText};
     for (const definition of definitions) {
       for (const [pieceHash, piece] of Object.entries(definition.pieces)) {
@@ -1021,7 +1046,12 @@ export async function executeProposalWorkflow(
       narrative: narrativeContract?.slides[index] ?? null,
       designName: definition.label,
       family: definition.completeDesign!.family,
-      designGuidance: definition.completeDesign?.designGuidance,
+      designGuidance: definition.completeDesign?.designGuidance ? {
+        contentRules: definition.completeDesign.designGuidance.contentRules,
+        mediaRules: definition.completeDesign.designGuidance.mediaRules,
+        preserve: definition.completeDesign.designGuidance.preserve,
+        requiredTextTargets: definition.completeDesign.designGuidance.requiredTextTargets,
+      } : undefined,
       fields: allFields[index].map(field => {
         const targets = definition.fragment.bindings
           .filter(binding => binding.source === field.source)
@@ -1195,7 +1225,7 @@ export async function executeProposalWorkflow(
       `Grafias canônicas protegidas (não separar, abreviar ou inserir espaços dentro dos nomes): ${JSON.stringify(protectedEditorialEntities(input))}`,
       `Direção selecionada para esta proposta (${slot + 1}): ${input.selectionReason ?? "composição compatível com o pedido"}. Essa justificativa orienta a direção; não é fonte de fatos sobre o produto.`,
       capacityGuidance,
-      `Composições nativas, capacidade, cardinalidade e alvos reais:\n${JSON.stringify(fieldSchemaNotes, null, 2)}`,
+      `Composições nativas, capacidade, cardinalidade e alvos reais:\n${ENV.minifyLegacyPrompts ? JSON.stringify(fieldSchemaNotes) : JSON.stringify(fieldSchemaNotes, null, 2)}`,
       ...(narrativeContract
         ? [
             `CONTRATO DA SEQUÊNCIA:\n${JSON.stringify({ version: narrativeContract.version, slides: narrativeContract.slides })}`,
@@ -1206,7 +1236,7 @@ export async function executeProposalWorkflow(
     ].join("\n\n");
     const copySystemPrompt = compactPolicy ? compactCopySystemPromptFor(input) : affirmative ? [
       "Você redige diretamente nas composições visuais autoradas do PostSpark. Entregue JSON no schema nativo fornecido.",
-      (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? ((input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10) ? (input.reviewPolicyVersion === 10 ? copyInstructionsV10 : copyInstructionsV9) : copyInstructionsV8) : copyInstructionsV7(6),
+      (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? ((input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10) ? (input.reviewPolicyVersion === 10 ? (usesCopyInstructionsV2(input) ? copyInstructionsV10V2 : copyInstructionsV10) : copyInstructionsV9) : copyInstructionsV8) : copyInstructionsV7(6),
       ...(carouselCaption ? [
         "Carrossel para leitura no celular: mantenha uma ideia central visível por lâmina. No desenvolvimento, use título e apoio breve; se o briefing pedir um exemplo na arte, inclua sua versão curta. Deixe caixas opcionais vazias quando repetiriam a mesma ideia.",
         "Use o campo caption para aprofundar as etapas, na ordem dos slides, quando houver explicações, exemplos adicionais ou contexto útil sustentado pelo briefing e pelas fontes. Prefira parágrafos curtos e complemente a arte. Cumpra os requisitos de destino: preserve na lâmina tudo que foi pedido para a arte, incluindo fatos, ressalvas e quantidades; se o briefing limitar ou dispensar a legenda, respeite essa escolha.",
@@ -1520,11 +1550,11 @@ export async function executeProposalWorkflow(
           ((input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10))) && (input.reviewExecutionConfig as import("@shared/proposalReviewV7").ReviewExecutionConfigV2 | undefined)?.editorialGuidanceVersion === 5 && (input.executionBrief?.audience || input.executionBrief?.brandEssence))
             ? `ORIENTAÇÃO DE MARCA E PÚBLICO:\n${[input.executionBrief.audience ? `Público: ${input.executionBrief.audience}` : null, input.executionBrief.brandEssence ? `Essência: ${input.executionBrief.brandEssence}` : null].filter(Boolean).join("\n")}`
             : null,
-          `TEXTO ATUAL GERADO (SUJEITO A AJUSTE):\n${JSON.stringify(copy.slides, null, 2)}`,
+          `TEXTO ATUAL GERADO (SUJEITO A AJUSTE):\n${ENV.minifyLegacyPrompts ? JSON.stringify(copy.slides) : JSON.stringify(copy.slides, null, 2)}`,
           (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? "Obrigações congeladas: referências no contexto editorial único." : input.reviewPolicyVersion === 7 ? `OBRIGAÇÕES CONGELADAS: ${JSON.stringify(proposalContentRequirements(input))}` : `PLANO EDITORIAL CONGELADO: preserve mensagem, fatos atribuídos e propósito de cada slide; não elimine diferenciais para encurtar.\n${JSON.stringify(copy.editorialPlan ?? null)}`,
           (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)) ? null : `CONTEXTO FACTUAL COMPLETO:\n${input.contextContent ?? ""}\n${JSON.stringify(input.sourceReferences ?? [])}`,
           `LEGENDA / CONTEXTO:\n${copy.caption}`,
-          `COMPOSIÇÕES NATIVAS E LIMITES DE CARACTERES:\n${JSON.stringify(fieldSchemaNotes, null, 2)}`,
+          `COMPOSIÇÕES NATIVAS E LIMITES DE CARACTERES:\n${ENV.minifyLegacyPrompts ? JSON.stringify(fieldSchemaNotes) : JSON.stringify(fieldSchemaNotes, null, 2)}`,
         ]
           .filter(Boolean)
           .join("\n\n");
@@ -1706,7 +1736,7 @@ export async function executeProposalWorkflow(
     const noAutomaticImage = compactPolicy &&
       input.imageObligation?.purpose === "none" &&
       !input.imageObligation.required;
-    if (noAutomaticImage) {
+    if (noAutomaticImage || input.imageObligation?.embeddedMediaOnly) {
       const missing = preflight.slides.flatMap(({ composition }, slideIndex) =>
         composition.elements.filter(element => element.kind === "media" &&
           element.mediaSlot?.deferred && !composition.media[element.id] &&
@@ -1716,7 +1746,7 @@ export async function executeProposalWorkflow(
         throw new GenerationFailureError("artwork_unusable", "media");
       }
     }
-    const isImageForbidden = noAutomaticImage ||
+    const isImageForbidden = noAutomaticImage || input.imageObligation?.embeddedMediaOnly ||
       input.imageObligation?.policy === "forbidden" ||
       (input.imageObligation?.purpose === "none" &&
         input.imageObligation?.policy !== "optional");
@@ -1724,7 +1754,9 @@ export async function executeProposalWorkflow(
     if (!isImageForbidden) {
       for (let slideIndex = 0; slideIndex < definitions.length; slideIndex++) {
         const requiredSlots = mediaSlots[slideIndex].filter(
-          mediaSlot => mediaSlot.deferred
+          mediaSlot => mediaSlot.deferred && !(input.allowAiImages === false &&
+            preflight.slides[slideIndex].composition.elements.some(element => element.id === mediaSlot.id &&
+              (element.imageAssetId || preflight.slides[slideIndex].composition.media[element.id])))
         );
         for (const slotDef of requiredSlots) {
           const authoredMediaRules =
@@ -1763,7 +1795,10 @@ export async function executeProposalWorkflow(
       }
     }
 
-    if (input.imageObligation?.required && mediaTasks.length === 0) {
+    const hasAuthoredMedia = (slides: typeof preflight.slides) =>
+      input.allowAiImages === false && slides.some(({ composition }) => composition.elements.some(element =>
+        element.kind === "media" && (element.imageAssetId || composition.media[element.id])));
+    if (input.imageObligation?.required && mediaTasks.length === 0 && !hasAuthoredMedia(preflight.slides)) {
       throw new Error(
         `proposal_missing_required_media_slots:${input.imageObligation.purpose}`
       );
@@ -1987,6 +2022,23 @@ export async function executeProposalWorkflow(
       "initial"
     );
     reviews.push(initialReview);
+    const observeReview = async (review: ProposalReviewRecord) => {
+      const data = structuredClone({
+        version: 1, requestId: input.requestId, proposalId, slot, revision,
+        candidateId: input.narrativePlan?.candidateId ?? null,
+        candidateHash: arsenalHash({ copy, compositions: finalInspection.slides.map(slide => slide.composition) }),
+        componentIds: definitions.map(definition => definition.id),
+        family: definitions[0]?.completeDesign?.family ?? null,
+        configurationHash: input.reviewExecutionConfig?.configurationHash ?? null,
+        review,
+      });
+      recordDecisionObservation("review_verdict_observed", data);
+      const operationKey = `review_observation:${review.round}:${review.inputHash}:candidate`;
+      if (deps.executeOperation && REVIEW_OBSERVATION_OPERATION.test(operationKey)) {
+        await deps.executeOperation({ operationKey, stage: "review", deadlineMs: input.deadlineMs, signal: input.signal }, async () => ({ kind: "review_observation_v1", data }));
+      }
+    };
+    await observeReview(initialReview);
     if (
       !ENV.reviewLenientDelivery &&
       initialReview.status === "correction_required" &&
@@ -2191,6 +2243,7 @@ export async function executeProposalWorkflow(
           "recheck"
         )
       );
+      await observeReview(reviews.at(-1)!);
     }
     if ((input.reviewPolicyVersion === 5 || input.reviewPolicyVersion === 6 || (input.reviewPolicyVersion === 7 || (input.reviewPolicyVersion === 8 || (input.reviewPolicyVersion === 9 || input.reviewPolicyVersion === 10)))) && reviews.length === 2) {
       const previous = reviews[0], current = reviews[1];
@@ -2220,6 +2273,7 @@ export async function executeProposalWorkflow(
     });
     if (lastReview.status !== "passed") {
       if (input.reviewLenientDelivery ?? ENV.reviewLenientDelivery) {
+        diagnostics.push({ code: LENIENT_REVIEW_DIAGNOSTIC, target: "proposal", evidence: lastReview.status });
         for (const finding of lastReview.findings) {
           diagnostics.push({
             code: `review_${finding.category}`,
@@ -2346,7 +2400,7 @@ export async function executeProposalWorkflow(
       const fulfilledMedia = readySlides.flatMap(s =>
         Object.values(s.composition.media)
       );
-      if (fulfilledMedia.length === 0) {
+      if (fulfilledMedia.length === 0 && !hasAuthoredMedia(finalInspection.slides)) {
         throw new Error("proposal_required_media_not_fulfilled");
       }
     }

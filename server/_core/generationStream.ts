@@ -19,7 +19,7 @@ export function registerGenerationStream(app: Express) {
       return;
     }
     try {
-      const user = await sdk.authenticateRequest(req);
+      const user = await sdk.authenticateRequest(req, { allowStart: true });
       const record = await ownedGenerationSubscription(req.params.id, user.id);
       if (!record) {
         res.sendStatus(404);
@@ -51,7 +51,7 @@ export function registerGenerationStream(app: Express) {
         if (closed || event.ownerId !== user.id) return;
         // Revalidate on actual progress, not on a clock; revoked access must close the stream.
         void sdk
-          .authenticateRequest(req)
+          .authenticateRequest(req, { allowStart: true })
           .then(current => {
             if (closed) return;
             if (current.id === user.id) send(event);

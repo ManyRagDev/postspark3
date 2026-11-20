@@ -121,6 +121,13 @@ function deps(
 }
 
 describe("canonical proposal review gate", () => {
+  it("keeps a passed review free of a lenient-delivery warning", async () => {
+    const result = await executeProposalWorkflow({ ...input, reviewLenientDelivery: true }, deps([cleanReview], ["Evento começa às 12h"]));
+    expect(result.status).toBe("ready");
+    expect(result.diagnostics.some(item => item.code === "review_lenient_delivery")).toBe(false);
+  });
+
+
   it("keeps a previously purchased copy recovery in the shared recovery budget even if current fitting no longer needs it", async () => {
     const implementation = deps([contradiction()]);
     implementation.recoveryOperationKeys = async () => ["copy_recovery"];
@@ -307,7 +314,7 @@ describe("canonical proposal review gate", () => {
     );
   });
 
-  it("does not deliver cafeteria copy whose opening hours were replaced by a generic slogan after recovery", async () => {
+  it.each([false, true])("keeps remaining factual corrections visible after recovery (lenient=%s)", async reviewLenientDelivery => {
     const prompt = "Cafeteria artesanal. Aberto das 8h às 18h.";
     const job = { ...input, prompt, contextContent: prompt };
     const candidate = copy("Café artesanal"),
@@ -331,15 +338,27 @@ describe("canonical proposal review gate", () => {
       ],
     };
     const d = deps([]);
+    const observedReviews = new Map<string, any>();
+    d.executeOperation = async ({ operationKey }, work) => {
+      const value = await work();
+      if (operationKey.startsWith("review_observation:")) observedReviews.set(operationKey, structuredClone(value));
+      return value;
+    };
     d.generateText = vi.fn(async params =>
       response(params.taskRoute === "post_evaluation" ? loss : initial, params)
     );
-    const result = await executeRawProposalWorkflow(job, d);
-    expect(result.status).toBe("failed");
-    expect(result.bundle).toBeUndefined();
-    expect(result.findings).toContainEqual(
-      expect.objectContaining({ rule: "source_backed_fact_omission" })
-    );
+    const result = await executeRawProposalWorkflow({ ...job, reviewLenientDelivery }, d);
+    expect(observedReviews.size).toBeGreaterThan(0);
+    expect(Array.from(observedReviews.values()).every(value => value.data.review.status === "correction_required")).toBe(true);
+    expect(Array.from(observedReviews.keys()).every(key => key.endsWith(":candidate"))).toBe(true);
+    if (reviewLenientDelivery) {
+      expect(result.status).toBe("ready");
+      expect(result.diagnostics).toContainEqual({ code: "review_lenient_delivery", target: "proposal", evidence: "correction_required" });
+    } else {
+      expect(result.status).toBe("failed");
+      expect(result.bundle).toBeUndefined();
+      expect(result.findings).toContainEqual(expect.objectContaining({ rule: "source_backed_fact_omission" }));
+    }
     expect(d.generateText).toHaveBeenCalledTimes(4);
     expect(d.renderReviewScenes).toHaveBeenCalledTimes(2);
   });
@@ -580,6 +599,7 @@ describe("canonical proposal review gate", () => {
           ...input,
           executionBrief: {
             interventionLevel: "visual_only",
+            format: "static",
             rawInput: "Café artesanal.",
             mustKeep: [],
             mustInclude: [],

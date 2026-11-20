@@ -46,3 +46,19 @@ it("Media exposes photo controls without the old family selector", () => {
   expect(host.textContent).not.toContain("Conteúdo vinculado");
   expect(host.querySelector('[aria-label="Fonte da peça"]')).toBeNull();
 });
+it("preserves fractional geometry when a field is focused and blurred without editing", () => {
+  const c = addArsenalAuthorialLayer(createArsenalFixtureComposition(), {id:"photo-precision", kind:"image", url:"https://example.com/photo.png", x:10.75,y:0,width:100,height:100,zIndex:99,parentId:null,rotation:0,opacity:1});
+  const onChange = vi.fn();
+  act(() => root.render(<ArsenalCompositionInspector section="design" composition={c} selectedId="photo-precision" onSelect={vi.fn()} onChange={onChange} />));
+  const input = host.querySelector<HTMLInputElement>('[aria-label="Peça x"]')!;
+  expect(input.value).toBe("10.75");
+  act(() => { input.focus(); input.blur(); });
+  expect(onChange).not.toHaveBeenCalled();
+  act(() => { input.focus(); input.value = "12.125"; input.blur(); });
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange.mock.calls[0][0].elements.find((element: {id: string}) => element.id === "photo-precision").x).toBe(12.125);
+  const width = host.querySelector<HTMLInputElement>('[aria-label="Peça width"]')!;
+  act(() => { width.focus(); width.value = ""; width.blur(); });
+  expect(width.value).toBe("100");
+  expect(onChange).toHaveBeenCalledTimes(1);
+});

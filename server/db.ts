@@ -251,6 +251,7 @@ export type BrandProjectRecord = {
   source_type: string;
   capture?: import("@shared/brandProjects").BrandProjectRecord["capture"];
   visual_preferences?: import("@shared/brandProjects").BrandProjectRecord["visualPreferences"];
+  visual_identity?: import("@shared/visualIdentity").VisualIdentity;
   structured_data: Record<string, any>;
   compiled_document: string;
   is_default: boolean;
@@ -266,6 +267,7 @@ export type UpsertBrandProjectInput = {
   sourceType?: string;
   capture?: import("@shared/brandProjects").BrandProjectRecord["capture"];
   visualPreferences?: import("@shared/brandProjects").BrandProjectRecord["visualPreferences"];
+  visualIdentity?: import("@shared/visualIdentity").VisualIdentity;
   structuredData?: Record<string, any>;
   compiledDocument?: string;
   isDefault?: boolean;
@@ -805,6 +807,13 @@ export async function upsertBrandProject(
   const {userUuid,...project}=input;
   const {data,error}=await db.rpc("brand_project_upsert",{p_owner:userUuid,p_project:project});
   if(error||!data)throw new Error(`[Database] upsertBrandProject failed: ${error?.message??"unknown error"}`);
+  return data as BrandProjectRecord;
+}
+
+/** Identity edits must not overwrite concurrently edited context or templates. */
+export async function saveBrandProjectIdentity(owner: string, project: { id?: string; name: string; visualIdentity: import("@shared/visualIdentity").VisualIdentity }): Promise<BrandProjectRecord> {
+  const { data, error } = await getSupabaseDbClient().rpc("brand_project_save_identity", { p_owner: owner, p_project: project });
+  if (error || !data) throw new Error(`Não foi possível salvar a identidade: ${error?.message ?? "unknown error"}`);
   return data as BrandProjectRecord;
 }
 

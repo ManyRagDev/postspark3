@@ -22,10 +22,11 @@ import { refreshBridgeFromCurrentSession } from "@/lib/authBridge";
 import { useMobileEditorUI } from "@/store/mobileEditorUI";
 import { supabase } from "@/lib/supabaseClient";
 import { trpc } from "@/lib/trpc";
-import { Bookmark, Building2, ChevronDown, Clock, Crown, Loader2, LogOut, Phone, Settings, UserRound } from "lucide-react";
+import { Bookmark, Building2, ChevronDown, Clock, Crown, FlaskConical, Loader2, LogOut, Phone, Settings, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { PAID_PLAN_OFFERS } from "@shared/membership";
 
 function getInitials(name: string | null, email: string | null) {
   const base = (name ?? email ?? "").trim();
@@ -55,14 +56,15 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
 
+  const scopedAccess = Boolean(user?.access);
   const { data: billing } = trpc.billing.getProfile.useQuery(undefined, {
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && user?.access !== "agency",
     staleTime: 15_000,
     refetchInterval: false,
     refetchOnWindowFocus: true,
   });
   const { data: savedPosts } = trpc.post.listSummary.useQuery(undefined, {
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !scopedAccess,
     staleTime: 15_000,
   });
 
@@ -120,6 +122,7 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
   }
 
   const isInline = variant === "inline";
+  const lowBalance = billing?.plan === "PRO_PLUS" && billing.sparks <= PAID_PLAN_OFFERS.PRO_PLUS.sparksPerMonth * 0.2;
 
   // O menu flutuante global some quando o editor mobile imersivo está ativo
   // (o WorkbenchV2 renderiza sua própria instância inline no header).
@@ -140,8 +143,8 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
       <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-white/10 border border-white/15">
         {initials}
       </div>
-      <span className="hidden sm:inline text-xs font-semibold text-white/90">
-        {(billing?.sparks ?? 0).toLocaleString("pt-BR")} ✦
+      <span className={`hidden sm:inline text-xs font-semibold ${lowBalance ? "text-amber-200" : "text-white/90"}`}>
+        {billing ? `${billing.sparks.toLocaleString("pt-BR")} ✦` : "Conta"}
       </span>
       <ChevronDown size={12} className={compactMobile ? "hidden opacity-60 sm:block" : "opacity-60"} />
     </button>
@@ -165,7 +168,8 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
           {user.name ?? user.email ?? "Conta"}
         </span>
         <span className="text-[10px] opacity-75">
-          {billing?.plan ?? "FREE"} · {(billing?.sparks ?? 0).toLocaleString("pt-BR")} ✦
+          {billing ? `${billing.plan === "PRO_PLUS" ? "PRO+" : billing.plan} · ${billing.sparks.toLocaleString("pt-BR")} ✦` : "Conta"}
+          {lowBalance && <span className="ml-1 text-amber-200">Saldo baixo</span>}
         </span>
       </div>
       <ChevronDown size={14} className="opacity-80" />
@@ -204,6 +208,7 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
               <UserRound size={14} />
               Meu perfil
             </DropdownMenuItem>
+            {!scopedAccess && <>
             <DropdownMenuItem onClick={() => setLocation("/saved-posts")} className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Bookmark size={14} />
@@ -217,10 +222,24 @@ export default function UserTopMenu({ variant = "floating", compactMobile = fals
                 Histórico
               </span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLocation("/billing")}>
+            </>}
+            {user.studioPlan === "AGENCY" && <DropdownMenuItem onClick={() => setLocation("/agency")}>
+              <Building2 size={14} />
+              Projetos de equipe
+            </DropdownMenuItem>}
+            {lowBalance && <DropdownMenuItem onClick={() => setLocation("/billing")} className="text-amber-200">
+              Saldo baixo · consultar próxima cota
+            </DropdownMenuItem>}
+            {user.access !== "agency" && <DropdownMenuItem onClick={() => setLocation("/billing")}>
               <Settings size={14} />
               Configurações e plano
-            </DropdownMenuItem>
+            </DropdownMenuItem>}
+            {import.meta.env.DEV && billing?.plan === "DEV" && (
+              <DropdownMenuItem onSelect={() => setLocation("/dev/plan-preview")}>
+                <FlaskConical size={14} />
+                Testar como…
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setLocation("/privacy")}>
               Privacidade

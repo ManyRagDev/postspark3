@@ -100,6 +100,7 @@ export interface GenerationOperationRecord {
 }
 
 export interface GenerationStore {
+  isIdentityAvailable?: () => Promise<boolean>;
   isFixedDesignAvailable?: () => Promise<boolean>;
   isPreparationAvailable?: () => Promise<boolean>;
   isTaskRoutingAvailable?: () => Promise<boolean>;
@@ -446,7 +447,7 @@ export function createGenerationStore(
         if (input.stagedCatalog || input.executorScope || !input.generationConfig || !input.experimental)
           throw new Error("catalog_trial_admission_not_allowed");
       }
-      const data = await rpc(input.trialCatalog ? "generation_admit_trial_external" : input.stagedCatalog ? "generation_admit_staged_local" : input.generationConfig ? "generation_admit_configured" : input.executorScope ? "generation_admit_local" : input.catalogRevision ? "generation_admit_external" : "generation_admit", {
+      const data = await rpc(input.input.fixedDesign?.kind === "identity" ? "generation_admit_identity" : input.trialCatalog ? "generation_admit_trial_external" : input.stagedCatalog ? "generation_admit_staged_local" : input.generationConfig ? "generation_admit_configured" : input.executorScope ? "generation_admit_local" : input.catalogRevision ? "generation_admit_external" : "generation_admit", {
         ...(input.generationConfig ? { p_generation_config: generationModelConfigSchema.parse(input.generationConfig) } : {}),
         ...(input.executorScope ? {p_scope:input.executorScope}:{}),
         ...(input.catalogRevision ? {p_revision:input.catalogRevision}:{}),
@@ -492,6 +493,9 @@ export function createGenerationStore(
     async isFixedDesignAvailable() {
       try { return await rpc("generation_fixed_design_available") === true; }
       catch { return false; }
+    },
+    async isIdentityAvailable() {
+      return Boolean(await rpc("generation_identity_available", {}).catch(() => false));
     },
 
     async getByIdempotencyKey(ownerId, key) {

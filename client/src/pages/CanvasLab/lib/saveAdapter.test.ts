@@ -87,6 +87,14 @@ describe("saveAdapter", () => {
     expect(reopened.slides[0].subtextWidth).toBe(184);
   });
 
+  it("preserves fractional geometry of added text through JSON save and reopen", () => {
+    const post = makePost();
+    post.slides[0].extraTexts = [{ id: "extra", text: "Teste", x: 10.75, y: 20.125, width: 112.78125, fontSize: 23.0625, rotation: 2.5 }];
+    const payload = canvasModelToSavePayload(post, { inputType: "text", inputContent: "p" });
+    const reopened = savedPostToCanvasModel({ id: 8, canvas_model: JSON.parse(JSON.stringify(payload.canvasModel)) });
+    expect(reopened.slides[0].extraTexts).toEqual(post.slides[0].extraTexts);
+  });
+
   it("preserves provenance through save → reopen (local fallback never becomes AI)", () => {
     const provenance = {
       source: "local_fallback" as const,

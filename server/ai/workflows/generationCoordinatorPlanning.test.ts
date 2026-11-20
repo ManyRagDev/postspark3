@@ -98,7 +98,8 @@ describe("visual repair before design recovery", () => {
   beforeEach(() => vi.resetAllMocks());
   it.each(["visual", "historical", "manual"] as const)("preserves the shared recovery budget and attempt limit in %s mode", async mode => {
     const definitions = completeDesignTestDefinitions();
-    const offer = resolveDesignFamilyRepertoires(definitions.map(compactComponentCard), { slideCount: 1, contentMode: "compose" })[0].defaultOffer;
+    const repertoires = resolveDesignFamilyRepertoires(definitions.map(compactComponentCard), { slideCount: 1, contentMode: "compose" });
+    const offer = repertoires[0].defaultOffer;
     const selected = offer.slides.map(slide => definitions.find(def => def.id === slide.componentId)!);
     const plan: ViableGenerationPlan = { slot: 0, status: "viable", candidateId: offer.offerId, reason: "Composição selecionada", editorialApproach: "Explicar", captionContentIds: [], pages: [{ slideIndex: 0, componentId: selected[0].id, purpose: "Explicar", rhythm: "highlight", assignments: [{ fieldId: "field-0", contentIds: [], itemCount: null, instruction: "Apresentar" }] }] };
     const planning = sealGenerationPlanningReceipt({ version: 1, intent: { version: 1, objective: "Explicar", tone: { description: "Claro", origin: "inferred", rationale: "Pedido" }, adaptation: "controlled", requirements: [], content: [] },
@@ -115,11 +116,16 @@ describe("visual repair before design recovery", () => {
       return { contractVersion: 1, proposalId: input.proposalId, runId: input.runId, slot: input.slot, status: "failed", revision: 1, findings: [], diagnostics: [], failure: { code: "artwork_unusable", stage: "copy", retryable: false } };
     });
     const recoveryCopy = { caption: "Mesmo candidato", hashtags: [], slides: [{ values: [{ fieldId: "field-0", value: "Café artesanal" }], mediaPrompts: [] }] };
-    const recoverDelivery = vi.fn(async () => ({ definitions: selected, plan, recoveryCopy, rewriteForRecovery: false }));
+    const replacementOffer = repertoires.find(item => item.defaultOffer.offerId !== offer.offerId)!.defaultOffer;
+    const replacementDefinitions = replacementOffer.slides.map(slide => definitions.find(def => def.id === slide.componentId)!);
+    const replacementPlan = { ...plan, candidateId: replacementOffer.offerId, pages: plan.pages.map(page => ({ ...page, componentId: replacementDefinitions[page.slideIndex].id })) };
+    const recoverDelivery = vi.fn(async () => ({ definitions: replacementDefinitions, plan: replacementPlan, recoveryCopy, rewriteForRecovery: false }));
     const owner = "00000000-0000-4000-8000-000000000001";
     const coordinator = new GenerationCoordinator({ requestId: owner, runId: owner, actor: owner, prompt: "Uma ideia", reviewPolicyVersion: 10, reviewExecutionConfig, selectedDefinitions: [selected, [], []], planning }, { actor: owner, generateText: vi.fn(), recoverDelivery, recoveryOperationKeys: recoveryKeys });
     const result = await coordinator.start();
-    expect(workflow).toHaveBeenCalledTimes(2); expect(recoverDelivery).toHaveBeenCalledTimes(1);
+    // Later replayed decisions return the same candidate and are skipped until
+    // the bounded set of recovery attempts is exhausted.
+    expect(workflow).toHaveBeenCalledTimes(2); expect(recoverDelivery).toHaveBeenCalledTimes(3);
     expect(workflow.mock.calls[0][0].deferCopyRepair).toBe(mode !== "visual");
     expect(workflow.mock.calls[1][0]).toMatchObject({ deferCopyRepair: false, recoveryCopy });
     expect(recoverDelivery.mock.calls[0][1]).toBe(true);

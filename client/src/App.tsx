@@ -8,12 +8,16 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Pricing from "./pages/Pricing";
 import Billing from "./pages/Billing";
+import MembershipSuccess from "./pages/MembershipSuccess";
 import History from "./pages/History";
 import SavedPosts from "./pages/SavedPosts";
 import Admin from "./pages/Admin";
 import FamilyCatalog from "./pages/FamilyCatalog";
 import PreviewHomePage from "./pages/PreviewHome/PreviewHomePage";
 import StudioAppV2BPage from "./pages/StudioApp/StudioAppV2BPage";
+import AgencyStudio from "./pages/AgencyStudio";
+import StartStudio from "./pages/StartStudio";
+import SparkRefillSuccess from "./pages/SparkRefillSuccess";
 import UserTopMenu from "./components/UserTopMenu";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -28,32 +32,7 @@ import { useEffect, lazy, Suspense, type ComponentType } from "react";
 // Lazy loading da vitrine de inspiração com isolamento total de bundle
 const InspiracaoShowcasePage = lazy(() => import("./pages/InspiracaoShowcase/InspiracaoShowcasePage"));
 const Admin2 = lazy(() => import("./pages/Admin2"));
-
-function PostCheckoutSuccess() {
-  setTimeout(() => { window.location.href = "/"; }, 3000);
-  return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "oklch(0.04 0.06 280)" }}>
-      <div className="text-center">
-        <p className="text-2xl mb-2">✅</p>
-        <p className="text-foreground font-semibold">Assinatura ativada!</p>
-        <p className="text-muted-foreground text-sm mt-1">Redirecionando...</p>
-      </div>
-    </div>
-  );
-}
-
-function TopupSuccess() {
-  setTimeout(() => { window.location.href = "/thevoid"; }, 3000);
-  return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "oklch(0.04 0.06 280)" }}>
-      <div className="text-center">
-        <p className="text-2xl mb-2">⚡</p>
-        <p className="text-foreground font-semibold">Sparks adicionados!</p>
-        <p className="text-muted-foreground text-sm mt-1">Redirecionando...</p>
-      </div>
-    </div>
-  );
-}
+const DevPlanPreview = import.meta.env.DEV ? lazy(() => import("./pages/DevPlanPreview")) : null;
 
 /**
  * Rota Inicial Pública (Não Logados):
@@ -158,7 +137,22 @@ function AdminRoute({ component: Component }: { component: ComponentType }) {
 
 /* Componentes de rota estáveis para evitar recriação de nós virtuais */
 function TheVoidRoute() {
-  return <ProtectedRoute component={StudioAppV2BPage} />;
+  return <ProtectedRoute component={MembershipStudio} />;
+}
+function MembershipStudio() {
+  const { user } = useAuth();
+  if (user?.studioPlan === "START") return <StartStudio />;
+  if (user?.access === "agency") return <RedirectToRoute to="/agency" />;
+  return <StudioAppV2BPage studioPlan={user?.studioPlan}
+    debuggerOwnerId={user?.role === "admin" && !user.access ? user.id : undefined}
+    teamShareUserId={user?.studioPlan === "AGENCY" ? user.id : undefined} />;
+}
+function StartPieceRoute() {
+  return <ProtectedRoute component={StartPieceArchive} />;
+}
+function StartPieceArchive() {
+  const { user } = useAuth();
+  return <StartStudio archive={user?.studioPlan !== "START"} />;
 }
 function BillingRoute() {
   return <ProtectedRoute component={Billing} />;
@@ -192,6 +186,13 @@ function Router() {
       <Route path={"/thevoid"} component={TheVoidRoute} />
       <Route path={"/studio"} component={TheVoidRoute} />
       <Route path={"/studio-v2b"} component={TheVoidRoute} />
+      <Route path={"/agency"} component={AgencyStudio} />
+      <Route path={"/start/peca"} component={StartPieceRoute} />
+      {DevPlanPreview && (
+        <Route path="/dev/plan-preview">
+          <Suspense fallback={null}><DevPlanPreview /></Suspense>
+        </Route>
+      )}
 
       {/* 4. Redirecionamentos Canônicos de Rotas Experimentais e Legadas */}
       {/* 4.1 Experimentos de Landing Page ➔ /criar */}
@@ -225,8 +226,8 @@ function Router() {
       <Route path={"/terms"} component={Terms} />
       <Route path={"/cookies"} component={Cookies} />
       <Route path={"/privacy-settings"} component={PrivacySettingsRoute} />
-      <Route path={"/billing/success"} component={PostCheckoutSuccess} />
-      <Route path={"/billing/topup-success"} component={TopupSuccess} />
+      <Route path={"/billing/success"} component={MembershipSuccess} />
+      <Route path={"/billing/topup-success"} component={SparkRefillSuccess} />
       <Route path={"/admin"} component={AdminPageRoute} />
       <Route path={"/admin2"} component={Admin2PageRoute} />
       <Route path={"/familias"} component={FamilyCatalog} />
@@ -245,6 +246,7 @@ function AppInner() {
   const { isAuthenticated } = useAuth();
   const [location] = useLocation();
   const isMobile = useIsMobile();
+  const isDevPlanPreview = import.meta.env.DEV && location === "/dev/plan-preview";
 
   // Nas rotas de estúdio (/thevoid, /studio, /studio-v2b), cada etapa (Criação, Galeria e CanvasLab)
   // renderiza o UserTopMenu de forma nativa e integrada ao seu respectivo layout/header.
@@ -253,7 +255,8 @@ function AppInner() {
   const isStudioRoute =
     location === "/thevoid" ||
     location === "/studio" ||
-    location === "/studio-v2b";
+    location === "/studio-v2b" ||
+    isDevPlanPreview;
 
   return (
     <>
@@ -275,8 +278,8 @@ function AppInner() {
       <Router />
       {isAuthenticated && !isStudioRoute && location !== "/saved-posts" ? <UserTopMenu /> : null}
       {/* Consentimento LGPD e Cookies - fora das páginas imersivas */}
-      {location !== "/" && location !== "/criar" && <ConsentModal />}
-      {location !== "/" && location !== "/criar" && <CookieBanner />}
+      {!isDevPlanPreview && location !== "/" && location !== "/criar" && <ConsentModal />}
+      {!isDevPlanPreview && location !== "/" && location !== "/criar" && <CookieBanner />}
     </>
   );
 }

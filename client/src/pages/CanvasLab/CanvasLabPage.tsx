@@ -1,9 +1,24 @@
+import { exportLongestSide, type ExportQuality } from "@shared/aspectRatios";
+import { hasProfessionalEditor, type StudioPlan } from "@shared/membership";
 import {designLabel} from "@shared/acervo82Identity";
+import { computePostEditDelta, type EditDelta } from "./lib/editDelta";
+import {
+  selectEditorTarget, normalizeEditorSelection, flattenEditorLayers,
+  executeEditorSelectionCommand, transformEditorSelection,
+  type EditorSelection, type SelectionModifiers, type SelectionTransform,
+} from "./lib/editorSelection";
+import { CanvasMultiSelectionPanel } from "./components/CanvasMultiSelectionPanel";
+import ElementReplicationDialog from "./components/ElementReplicationDialog";
+import AdvancedEditorPanel, { type AdvancedTransitionGuard } from "./components/AdvancedEditorPanel";
+import { advancedImageTargets, type AdvancedImagePreview } from "./lib/advancedImageEditing";
+import { replicateElementAppearance } from "./lib/elementReplication";
+import PostReviewWarning from "./components/PostReviewWarning";
 import {
   applyMediaOperation,
   pendingMediaCount,
   targetExists,
   type MediaUpdate,
+  BACKGROUND_SLOT,
 } from "./lib/mediaSlots";
 import {
   applyCompositionAppearancePatch,
@@ -20,7 +35,7 @@ import { applyContentText } from "@shared/arsenalContent";
 import {
   putArsenalComposition,
   restoreArsenalVariant,
-  editArsenalContent,
+  syncPostCaptionWithCompositions,
   editArsenalElementText,
   setArsenalCustomBackground,
   setArsenalLogo,
@@ -53,6 +68,7 @@ import {
   setEditorLogo,
   resolveEditorProperties,
   COMPOSITION_BACKGROUND_ID,
+  COMPOSITION_LOGO_ID,
   type EditorCommand,
   type EditorTarget,
 } from "./lib/editorController";
@@ -128,6 +144,8 @@ import {
   replicateSlideAppearance,
   resolveSlideAppearance,
   replicateCarouselComposition,
+  validateReplication,
+  changedReplicationSlides,
   type ReplicationGroup,
 } from "./lib/slideReplication";
 
@@ -150,6 +168,10 @@ export type PostUpdateInput =
   | ((prev: CanvasPostModel) => CanvasPostModel);
 
 interface CanvasLabPageProps {
+  studioPlan?: StudioPlan;
+  localPreview?: { imageEditorClient: typeof import("@/lib/imageEditorApi").imageEditorApi };
+  agencyWorkspaceId?: string;
+  onShareWithTeam?: (post: CanvasPostModel) => void;
   initialPost?: CanvasPostModel;
   onBackToGallery?: (post: CanvasPostModel) => void;
   /** Item 6: recomeçar do zero — limpa a sessão e volta à tela de criação. */
@@ -164,7 +186,7 @@ interface CanvasLabPageProps {
   /** Existe um post salvo vinculado à sessão (habilita "Atualizar"). */
   hasSavedPost?: boolean;
   isSaving?: boolean;
-  onJourneyEvent?: (post: CanvasPostModel, kind: "edit" | "export_png" | "export_zip") => void;
+  onJourneyEvent?: (post: CanvasPostModel, kind: "edit" | "export_png" | "export_zip", delta?: EditDelta) => void;
   [key: string]: any;
 }
 
@@ -179,32 +201,12 @@ function readAutoSavePreference(): boolean {
   }
 }
 
-function syncPostCaptionWithCompositions(
-  post: CanvasPostModel
-): CanvasPostModel {
-  if (typeof post.caption !== "string") return post;
-  let changed = false;
-  const slides = post.slides.map(slide => {
-    if (
-      slide.composition &&
-      slide.composition.content.caption !== post.caption
-    ) {
-      changed = true;
-      return {
-        ...slide,
-        composition: editArsenalContent(slide.composition, {
-          ...slide.composition.content,
-          caption: post.caption,
-        }),
-      };
-    }
-    return slide;
-  });
-  return changed ? { ...post, slides } : post;
-}
-
 export default function CanvasLabPage({
   initialPost,
+  studioPlan = "PRO",
+  localPreview,
+  agencyWorkspaceId,
+  onShareWithTeam,
   onBackToGallery,
   onRestart,
   onSave,
@@ -212,6 +214,8 @@ export default function CanvasLabPage({
   isSaving = false,
   onJourneyEvent,
 }: CanvasLabPageProps = {}) {
+  const professionalEditor = hasProfessionalEditor(studioPlan);
+  const exportQuality = professionalEditor ? "4k" : "hd";
   const [activeTool, setActiveTool] = useState<CanvasEditorTool | null>(null);
   const [restorePreview, setRestorePreview] = useState<{
     slideId: string;
@@ -273,7 +277,7 @@ export default function CanvasLabPage({
   const [autoSaveState, setAutoSaveState] = useState<AutoSaveState>("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(
-    readAutoSavePreference
+    () => localPreview ? true : readAutoSavePreference()
   );
   const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false);
   const isExitingRef = useRef(false);
@@ -325,6 +329,7 @@ export default function CanvasLabPage({
       autoSaveManagerRef.current = null;
     }
     setIsAutoSaveEnabled(enabled);
+    if (localPreview) return;
     try {
       window.localStorage.setItem(AUTO_SAVE_PREF_KEY, String(enabled));
     } catch {
@@ -342,6 +347,7 @@ export default function CanvasLabPage({
       syncPostCaptionWithCompositions(proposed)
     );
     if (next === current) return;
+    const delta = computePostEditDelta(current, next);
     postRef.current = next;
     const session = editSessionRef.current;
     const coalesce = Boolean(session?.started);
@@ -354,7 +360,7 @@ export default function CanvasLabPage({
     });
     autoSaveManagerRef.current?.triggerChange(next);
     // Only committed document mutations, never drag previews or keystroke drafts.
-    try { onJourneyEvent?.(next, "edit"); } catch { /* Analysis cannot block editing. */ }
+    try { onJourneyEvent?.(next, "edit", delta); } catch { /* Analysis cannot block editing. */ }
     if (!autoSaveManagerRef.current) setAutoSaveState("dirty");
   };
 
@@ -474,12 +480,13 @@ export default function CanvasLabPage({
 
   const [zoom, setZoom] = useState(1);
   const [isExportingZip, setIsExportingZip] = useState(false);
-  const [pendingExport, setPendingExport] = useState<"png" | "zip" | null>(
+  const [pendingExport, setPendingExport] = useState<{ format: "png" | "zip"; quality: ExportQuality } | null>(
     null
   );
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isRestartConfirmOpen, setIsRestartConfirmOpen] = useState(false);
   const [isReplicationOpen, setIsReplicationOpen] = useState(false);
+  const [isElementReplicationOpen, setIsElementReplicationOpen] = useState(false);
   const stageRef = useRef<CanvasPostStageRef>(null);
   const captureSavePreview = async (
     doc: CanvasPostModel
@@ -499,12 +506,18 @@ export default function CanvasLabPage({
     }
   };
 
-  const [selectedElementTarget, setSelectedElementTarget] = useState<{
-    slideId: string;
-    elementId: string;
-  } | null>(null);
+  const [selection, setSelection] = useState<EditorSelection | null>(null);
+  const [advancedImagePreview, setAdvancedImagePreview] = useState<AdvancedImagePreview | null>(null);
+  const advancedTransitionGuard = useRef<AdvancedTransitionGuard | null>(null);
+  const selectedElementTarget = selection?.ids.length
+    ? { slideId: selection.slideId, elementId: selection.ids[selection.ids.length - 1] }
+    : null;
+  const setSelectedElementTarget = useCallback((target: EditorTarget | null) => {
+    setSelection(target ? { slideId: target.slideId, ids: [target.elementId], anchor: target.elementId } : null);
+  }, []);
 
   const curActiveSlide = post.slides[post.currentSlideIndex];
+  const advancedTargets = useMemo(() => advancedImageTargets(post), [post]);
 
   const editorLayers = useMemo(
     () => projectEditorLayers(post, curActiveSlide.id),
@@ -519,6 +532,13 @@ export default function CanvasLabPage({
   );
   const isElementInCurrentSlide = Boolean(editorSelection);
   const selectedElementId = editorSelection?.id ?? null;
+  const selectedAdvancedTarget = advancedTargets.find(target => target.slotId ===
+    (editorSelection?.kind === "background" ? BACKGROUND_SLOT : editorSelection?.kind === "logo" ? COMPOSITION_LOGO_ID : selectedElementId));
+  const selectedElementIds = selection?.slideId === curActiveSlide.id
+    ? normalizeEditorSelection(editorLayers, selection.ids) : [];
+  const selectElement = (target: EditorTarget, modifiers: SelectionModifiers = {}) => {
+    setSelection(previous => selectEditorTarget(editorLayers, previous, target, modifiers));
+  };
 
   const setSelectedElementId = useCallback(
     (
@@ -527,20 +547,20 @@ export default function CanvasLabPage({
         | null
         | ((prev: string | null) => string | null)
     ) => {
-      setSelectedElementTarget(prevTarget => {
+      setSelection(previous => {
         const curSlide =
           postRef.current.slides[postRef.current.currentSlideIndex];
         const curSlideId = curSlide?.id;
         const prevId =
-          prevTarget && curSlideId && prevTarget.slideId === curSlideId
-            ? prevTarget.elementId
+          previous && curSlideId && previous.slideId === curSlideId
+            ? previous.ids[previous.ids.length - 1] ?? null
             : null;
         const nextId =
           typeof elementIdOrUpdater === "function"
             ? elementIdOrUpdater(prevId)
             : elementIdOrUpdater;
         if (!nextId || !curSlideId) return null;
-        return { slideId: curSlideId, elementId: nextId };
+        return { slideId: curSlideId, ids: [nextId], anchor: nextId };
       });
     },
     []
@@ -746,6 +766,8 @@ export default function CanvasLabPage({
   };
 
   const handleReplicate = (groups: ReplicationGroup[], targets: number[]) => {
+    const validation = validateReplication(post, post.currentSlideIndex, targets, groups);
+    if (!validation.ok) { toast.info(validation.issues.map(issue => issue.reason).join(" ")); return; }
     let next = replicateSlideAppearance(
       post,
       post.currentSlideIndex,
@@ -785,10 +807,12 @@ export default function CanvasLabPage({
         ),
       };
     }
+    const changedTargets = changedReplicationSlides(post, next, targets);
+    if (!changedTargets.length) { toast.info("Os destinos já têm esses valores. Nenhum slide foi alterado."); return; }
     handleUpdatePost({ kind: "document", document: next });
     setIsReplicationOpen(false);
     toast.success(
-      `Alterações aplicadas em ${targets.length} slide${targets.length === 1 ? "" : "s"}.`
+      `Alterações aplicadas em ${changedTargets.length} slide${changedTargets.length === 1 ? "" : "s"}.`
     );
   };
 
@@ -1486,8 +1510,26 @@ export default function CanvasLabPage({
       setSelectedElementTarget(result.selection);
   };
   const removeSelectedElement = () => {
-    if (selectedElementTarget)
+    if (selection && selectedElementIds.length > 1) runSelectionCommand({ type: "remove" });
+    else if (selectedElementTarget)
       runEditorCommand(selectedElementTarget, { type: "remove" });
+  };
+  const selectionGeometries = () => Object.fromEntries(selectedElementIds.flatMap(id => {
+    const geometry = stageRef.current?.getElementGeometry?.(id);
+    return geometry ? [[id, geometry]] : [];
+  }));
+  const runSelectionCommand = (command: EditorCommand) => {
+    if (!selection) return;
+    const result = executeEditorSelectionCommand(postRef.current, selection, command, selectionGeometries());
+    if (!result.ok) { toast.info(result.reason); return; }
+    handleUpdatePost({ kind: "document", document: result.post });
+    if (result.selection === null) setSelection(null);
+  };
+  const transformSelection = (transform: SelectionTransform) => {
+    if (!selection) return;
+    const result = transformEditorSelection(postRef.current, selection, transform, selectionGeometries());
+    if (result.ok) handleUpdatePost({ kind: "document", document: result.post });
+    else toast.info(result.reason);
   };
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -1502,14 +1544,16 @@ export default function CanvasLabPage({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [post, selectedElementId, freeEditing]);
+  }, [post, selectedElementId, freeEditing, selection]);
 
   // Limpa a seleção quando o elemento selecionado deixar de existir no slide ativo ou o slide mudar
   useEffect(() => {
-    if (selectedElementTarget && !isElementInCurrentSlide) {
-      setSelectedElementTarget(null);
-    }
-  }, [selectedElementTarget, isElementInCurrentSlide]);
+    if (!selection) return;
+    const ids = selection.slideId === curActiveSlide.id
+      ? normalizeEditorSelection(editorLayers, selection.ids) : [];
+    if (ids.length !== selection.ids.length)
+      setSelection(ids.length ? { ...selection, ids } : null);
+  }, [selection, editorLayers, curActiveSlide.id]);
 
   // ─── Item 7: fluxo de salvamento com decisão memorizável ───
   const saveManually = async (mode: "new" | "update") => {
@@ -1535,6 +1579,7 @@ export default function CanvasLabPage({
   };
 
   const handleSaveClick = () => {
+    if (activeTool === "advanced" && advancedImagePreview?.document === postRef.current) { toast.info("Aplique ou descarte a prévia da imagem antes de salvar."); return; }
     if (!onSave) {
       toast.error("Salvamento indisponível nesta tela.");
       return;
@@ -1578,27 +1623,27 @@ export default function CanvasLabPage({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isEditingBackground]);
 
-  const exportPng = () => {
+  const exportPng = (quality: ExportQuality) => {
     if (!stageRef.current) return;
     if (stageRef.current.hasActiveDraft?.()) {
       stageRef.current.commitDraft?.();
     }
     let dataUrl: string;
     try {
-      dataUrl = stageRef.current.exportPng4K();
+      dataUrl = stageRef.current.exportPng4K(exportLongestSide(post.aspectRatio, quality));
     } catch (error) {
       toast.error((error as Error).message);
       return;
     }
     if (!dataUrl) {
-      toast.error("Erro ao gerar imagem 4K.");
+      toast.error("Erro ao gerar a imagem.");
       return;
     }
     // Use the same file download mechanism as ZIP. A large data URL can be
     // treated as navigation by embedded browsers instead of creating a file.
     const encoded = dataUrl.match(/^data:image\/png;base64,([A-Za-z0-9+/]+={0,2})$/)?.[1];
     if (!encoded) {
-      toast.error("Erro ao gerar imagem 4K.");
+      toast.error("Erro ao gerar a imagem.");
       return;
     }
     const binary = atob(encoded);
@@ -1610,13 +1655,13 @@ export default function CanvasLabPage({
       link.href = url;
       link.click();
       try { onJourneyEvent?.(postRef.current, "export_png"); } catch { /* Disposable analysis. */ }
-      toast.success("Post 4K exportado com sucesso!");
+      toast.success(`Post ${quality.toUpperCase()} exportado com sucesso!`);
     } finally {
       URL.revokeObjectURL(url);
     }
   };
 
-  const exportZip = async () => {
+  const exportZip = async (quality: ExportQuality) => {
     if (!stageRef.current || isExportingZip) return;
     if (stageRef.current.hasActiveDraft?.()) {
       stageRef.current.commitDraft?.();
@@ -1631,7 +1676,7 @@ export default function CanvasLabPage({
         toast.loading(`Renderizando slide ${current} de ${total}...`, {
           id: "zip-progress",
         });
-      });
+      }, exportLongestSide(post.aspectRatio, quality));
       toast.dismiss("zip-progress");
 
       const url = URL.createObjectURL(blob);
@@ -1649,23 +1694,23 @@ export default function CanvasLabPage({
     }
   };
 
-  const handleExportPng = () => {
+  const handleExportPng = (quality: ExportQuality) => {
     if (!stageRef.current || isExportingZip) return;
-    if (pendingMediaCount(post, false)) setPendingExport("png");
-    else exportPng();
+    if (pendingMediaCount(post, false)) setPendingExport({ format: "png", quality });
+    else exportPng(quality);
   };
 
-  const handleExportZip = () => {
+  const handleExportZip = (quality: ExportQuality) => {
     if (!stageRef.current || isExportingZip) return;
-    if (pendingMediaCount(post)) setPendingExport("zip");
-    else void exportZip();
+    if (pendingMediaCount(post)) setPendingExport({ format: "zip", quality });
+    else void exportZip(quality);
   };
 
   const confirmPendingExport = () => {
-    const format = pendingExport;
+    if (!pendingExport) return;
     setPendingExport(null);
-    if (format === "png") exportPng();
-    else if (format === "zip") void exportZip();
+    if (pendingExport.format === "png") exportPng(pendingExport.quality);
+    else void exportZip(pendingExport.quality);
   };
 
   const handleAddSlide = () => {
@@ -1780,16 +1825,19 @@ export default function CanvasLabPage({
 
   const editSelectedText = () => {
     if (!editorSelection?.capabilities.editText) return;
-    setActiveTool(null);
-    setPendingTextEdit(editorSelection.id);
+    const proceed = () => { setActiveTool(null); setPendingTextEdit(editorSelection.id); };
+    if (activeTool === "advanced" && advancedTransitionGuard.current) advancedTransitionGuard.current(proceed); else proceed();
   };
   const changeTool = (tool: CanvasEditorTool | null) => {
+    if (tool === "advanced" && !professionalEditor) return;
     stageRef.current?.commitDraft?.();
-    setActiveTool(
+    const proceed = () => setActiveTool(
       tool === "selection" && editorSelection?.kind === "background"
         ? "background"
         : tool
     );
+    if (activeTool === "advanced" && tool !== "advanced" && advancedTransitionGuard.current) advancedTransitionGuard.current(proceed);
+    else proceed();
   };
   const updateAppearance = (patch: Partial<CanvasPostModel>) => {
     if (patch.palette) {
@@ -1807,6 +1855,7 @@ export default function CanvasLabPage({
   };
   const editorChrome = (
     <CanvasEditorChrome
+      showAdvanced={professionalEditor}
       isTextEditing={isTextEditing}
       mobile={isMobile}
       mobileViewportHeight={windowDimensions.height}
@@ -1823,8 +1872,9 @@ export default function CanvasLabPage({
             Editar texto
           </button>
         ) : editorSelection &&
-          ["image", "background"].includes(editorSelection.kind) ? (
-          <button
+          ["image", "background", "logo"].includes(editorSelection.kind) ? (
+          <div className="flex flex-wrap gap-1">
+          {editorSelection.kind !== "logo" && <button
             type="button"
             className="min-h-11 px-2 text-xs font-semibold text-orange-300"
             onClick={() =>
@@ -1834,10 +1884,16 @@ export default function CanvasLabPage({
             }
           >
             Trocar imagem
-          </button>
+          </button>}
+          {professionalEditor && selectedAdvancedTarget && <button type="button" disabled={selectedAdvancedTarget.locked} onClick={() => changeTool("advanced")} className="min-h-11 px-2 text-xs font-semibold text-orange-300 disabled:opacity-40">Editar imagem</button>}
+          </div>
         ) : undefined
       }
       contents={{
+        advanced: professionalEditor ? <AdvancedEditorPanel post={post} selectionIds={selectedElementIds}
+          imageEditorClient={localPreview?.imageEditorClient}
+          transitionGuard={advancedTransitionGuard} onImagePreview={setAdvancedImagePreview} onSelect={setSelectedElementTarget}
+          onCommand={runEditorCommand} onCommit={document => handleUpdatePost({ kind: "document", document })} /> : undefined,
         add: (
           <div className="space-y-3">
             <CanvasAddPanel
@@ -1863,18 +1919,20 @@ export default function CanvasLabPage({
           if (!layer) return null;
           return (
             <CanvasMediaPanel
+              workspaceId={agencyWorkspaceId}
+              allowAiGeneration={studioPlan !== "START"}
               post={post}
               mode="background"
               onMediaUpdate={handleMediaUpdate}
-              onApplySeamlessPanorama={panorama => {
+              onApplySeamlessPanorama={professionalEditor ? panorama => {
                 setActiveSeamlessPanorama(panorama);
                 setSeamlessStartOffset(0);
                 const next = applySeamlessPanoramaToPost(postRef.current, panorama, 0);
                 handleUpdatePost({ kind: "document", document: next });
                 setIsViewingSeamlessGhost(true);
                 toast.success(`Panorama "${panorama.name}" aplicado! Abrindo visualização em fileira.`);
-              }}
-              onOpenGhostView={() => setIsViewingSeamlessGhost(true)}
+              } : undefined}
+              onOpenGhostView={professionalEditor ? () => setIsViewingSeamlessGhost(true) : undefined}
               mediaPreview={mediaPreview}
               onMediaPreview={setMediaPreview}
               onOpenReplacement={elementId => {
@@ -1904,6 +1962,8 @@ export default function CanvasLabPage({
         })(),
         "insert-image": (
           <CanvasMediaPanel
+            workspaceId={agencyWorkspaceId}
+            allowAiGeneration={studioPlan !== "START"}
             post={post}
             mode="add"
             onMediaUpdate={handleMediaUpdate}
@@ -1990,7 +2050,7 @@ export default function CanvasLabPage({
                 });
               }}
             />
-            {post.slides.length > 1 && (
+            {professionalEditor && post.slides.length > 1 && (
               <button
                 className="min-h-11 w-full rounded-lg border border-white/15 text-xs"
                 onClick={() => setIsReplicationOpen(true)}
@@ -2029,10 +2089,14 @@ export default function CanvasLabPage({
         ),
         layers: (
           <CanvasEditorLayers
+            selectionActions={selectedElementIds.length > 1 && <CanvasMultiSelectionPanel
+              layers={flattenEditorLayers(editorLayers).filter(l => selectedElementIds.includes(l.id))}
+              onCommand={runSelectionCommand} onClear={() => setSelection(null)} />}
             key={curActiveSlide.id}
             layers={editorLayers}
             selectedId={selectedElementId}
-            onSelect={setSelectedElementTarget}
+            selectedIds={selectedElementIds}
+            onSelect={selectElement}
             onAdjust={target => {
               setSelectedElementTarget(target);
               const layer = resolveEditorSelection(postRef.current, target);
@@ -2061,11 +2125,15 @@ export default function CanvasLabPage({
             onChange={caption => handleUpdatePost({ caption })}
           />
         ),
-        selection: editorSelection ? (
+        selection: selectedElementIds.length > 1 ? (
+          <CanvasMultiSelectionPanel layers={flattenEditorLayers(editorLayers).filter(l => selectedElementIds.includes(l.id))}
+            onCommand={runSelectionCommand} onClear={() => setSelection(null)} />
+        ) : editorSelection ? (
           <div className="space-y-4">
           <CanvasSelectionPanel
             post={post}
             layer={editorSelection}
+            geometry={stageRef.current?.getElementGeometry?.(selectedElementId!)}
             onCommand={command =>
               runEditorCommand(editorSelection.target, command)
             }
@@ -2076,12 +2144,14 @@ export default function CanvasLabPage({
               )
             }
           />
-          {post.slides.length > 1 && (
+          {professionalEditor && post.slides.length > 1 && (
             <button type="button" className="min-h-11 w-full rounded-lg border border-white/15 px-3 text-sm" onClick={() => {
               stageRef.current?.commitDraft?.();
               setIsReplicationOpen(true);
             }}>Copiar opções deste slide</button>
           )}
+          {professionalEditor && post.slides.length > 1 && <button type="button" className="min-h-11 w-full rounded-lg border border-orange-400/40 px-3 text-sm text-orange-200"
+            onClick={() => { stageRef.current?.commitDraft?.(); setIsElementReplicationOpen(true); }}>Aplicar aparência deste objeto em outros slides</button>}
           </div>
         ) : (
           <p className="text-sm text-white/60">
@@ -2090,6 +2160,8 @@ export default function CanvasLabPage({
         ),
         media: (
           <CanvasMediaPanel
+            workspaceId={agencyWorkspaceId}
+            allowAiGeneration={studioPlan !== "START"}
             post={post}
             onMediaUpdate={handleMediaUpdate}
             selectedId={selectedElementId}
@@ -2117,11 +2189,12 @@ export default function CanvasLabPage({
         if (editSessionRef.current?.target === event.target)
           editSessionRef.current = null;
       }}
-      style={{ height: windowDimensions.height }}
+      style={{ height: localPreview ? "100%" : windowDimensions.height }}
       className="h-[100dvh] w-full bg-[#07090E] text-white flex flex-col overflow-hidden select-none font-sans"
     >
       {/* 1. Top Bar */}
       <CanvasTopBar
+        hideAccountMenu={Boolean(localPreview)}
         designIdentity={designLabel(post)}
         aspectRatio={post.aspectRatio}
         onAspectRatioChange={handleAspectRatioChange}
@@ -2129,8 +2202,11 @@ export default function CanvasLabPage({
         onZoomIn={() => setZoom(z => Math.min(1.8, z + 0.1))}
         onZoomOut={() => setZoom(z => Math.max(0.6, z - 0.1))}
         onResetZoom={() => setZoom(1)}
-        onExportPng={handleExportPng}
-        onExportZip={handleExportZip}
+        exportQuality={exportQuality}
+        onExportPng={() => handleExportPng(exportQuality)}
+        onExportZip={() => handleExportZip(exportQuality)}
+        onExportHdPng={professionalEditor ? () => handleExportPng("hd") : undefined}
+        onExportHdZip={professionalEditor ? () => handleExportZip("hd") : undefined}
         onBackToGallery={onBackToGallery ? handleBackToGallery : undefined}
         isSnapEnabled={post.isSnapEnabled !== false}
         onToggleSnap={handleToggleSnap}
@@ -2149,11 +2225,22 @@ export default function CanvasLabPage({
         isAutoSaveEnabled={isAutoSaveEnabled}
         onAutoSaveChange={handleAutoSaveChange}
         onSaveCopy={onSave ? () => handleSaveNew(false) : undefined}
-        onTechnical={() => setTechnicalOpen(true)}
+        onShareWithTeam={onShareWithTeam ? () => {
+          stageRef.current?.commitDraft?.();
+          onShareWithTeam(postRef.current);
+        } : undefined}
+        onTechnical={professionalEditor && arsenalComposition ? () => setTechnicalOpen(true) : undefined}
         onCanvasTools={
           isMobile ? () => setCanvasToolsOpen(open => !open) : undefined
         }
       />
+
+      {post.provenance?.reviewWarning && (
+        <div className="shrink-0 px-3 py-2"><PostReviewWarning warning={post.provenance.reviewWarning} /></div>
+      )}
+      {post.visualIdentityUsage?.appearance.warnings.length ? (
+        <div role="status" className="shrink-0 px-3 py-2 text-xs text-amber-200">{post.visualIdentityUsage.appearance.warnings.map(warning => <p key={warning}>{warning}</p>)}</div>
+      ) : null}
 
       {!isTextEditing && (!isMobile || canvasToolsOpen) && (
         <CanvasToolRail
@@ -2250,12 +2337,13 @@ export default function CanvasLabPage({
           </AnimatePresence>
 
           <div
-            className="shrink-0"
+            className="relative shrink-0"
             style={{
               width: baseWidth * fittedScale * zoom,
               height: baseHeight * fittedScale * zoom,
             }}
           >
+            {activeTool === "advanced" && advancedImagePreview?.document === post && <p role="status" className="pointer-events-none absolute left-2 top-2 z-20 rounded-md border border-orange-300/40 bg-[#151515]/95 px-2 py-1 text-[11px] text-orange-200">Prévia não aplicada</p>}
             <div
               style={{
                 width: baseWidth,
@@ -2267,14 +2355,24 @@ export default function CanvasLabPage({
               <CanvasPostStage
                 ref={stageRef}
                 post={post}
+                advancedImagePreview={activeTool === "advanced" ? advancedImagePreview : null}
                 onUpdateComposition={c => handleUpdatePost({}, c)}
+                onBeforeTextEdit={proceed => {
+                  const document = postRef.current;
+                  const resume = () => { if (postRef.current === document) proceed(); };
+                  if (activeTool === "advanced" && advancedTransitionGuard.current) advancedTransitionGuard.current(resume); else resume();
+                }}
                 onEditingChange={setIsTextEditing}
                 isReadOnly={false}
                 isMobile={isMobile}
                 zoom={1}
                 displayScale={fittedScale * zoom}
                 selectedElementId={selectedElementId}
-                onSelectElement={setSelectedElementId}
+                selectedElementIds={selectedElementIds}
+                onTransformSelection={transformSelection}
+                onSelectElement={(id, modifiers) => id
+                  ? selectElement({ slideId: curActiveSlide.id, elementId: id }, modifiers)
+                  : setSelectedElementId(null)}
                 onUpdateElementPosition={handleUpdateElementPosition}
                 onUpdateDecorationTransform={handleUpdateDecorationTransform}
                 onUpdateTextTransform={handleUpdateTextTransform}
@@ -2328,7 +2426,7 @@ export default function CanvasLabPage({
             post={post}
             slides={post.slides}
             currentIndex={post.currentSlideIndex}
-            onSelectSlide={handleSelectSlide}
+            onSelectSlide={index => { const proceed = () => handleSelectSlide(index); if (activeTool === "advanced" && advancedTransitionGuard.current) advancedTransitionGuard.current(proceed); else proceed(); }}
             onAddSlide={handleAddSlide}
             onDuplicateSlide={handleDuplicateSlide}
             onRemoveSlide={handleDeleteSlide}
@@ -2403,7 +2501,7 @@ export default function CanvasLabPage({
       </ConfirmDialog>
       <ConfirmDialog
         open={technicalOpen}
-        title="Ferramentas avançadas do design"
+        title="Ajustes de composição"
         description="Ajustes técnicos de relações e arquivo portátil."
         confirmLabel="Concluir"
         onConfirm={() => setTechnicalOpen(false)}
@@ -2474,8 +2572,8 @@ export default function CanvasLabPage({
         </div>
       </ConfirmDialog>
       <PendingMediaExportDialog
-        format={pendingExport}
-        count={pendingMediaCount(post, pendingExport === "zip")}
+        format={pendingExport?.format ?? null}
+        count={pendingMediaCount(post, pendingExport?.format === "zip")}
         onConfirm={confirmPendingExport}
         onCancel={() => setPendingExport(null)}
       />
@@ -2592,6 +2690,16 @@ export default function CanvasLabPage({
           </div>
         )}
       </ConfirmDialog>
+      <ElementReplicationDialog open={isElementReplicationOpen} post={post} source={selectedElementTarget}
+        onOpenChange={setIsElementReplicationOpen} onApply={(targets, properties) => {
+          if (!selectedElementTarget) return;
+          const result = replicateElementAppearance(postRef.current, selectedElementTarget, targets, properties);
+          if (!result.ok) { toast.info(result.reason); return; }
+          if (!result.changed.length) { toast.info("Os destinos já têm esses valores. Nenhum objeto foi alterado."); return; }
+          handleUpdatePost({ kind: "document", document: result.post });
+          setIsElementReplicationOpen(false);
+          toast.success(`Aparência aplicada em ${result.changed.length} slide(s).`);
+        }} />
       <SlideReplicationDialog
         open={isReplicationOpen}
         post={post}

@@ -28,6 +28,7 @@
     "editorial:catalog": "node --import tsx harness/completeDesigns/importEditorialCatalog.ts",
     "verify:runtime": "tsx --env-file=.env server/verifyRuntime.ts",
     "verify:e2e": "node --env-file-if-exists=.env --import tsx scripts/inspectGenerationRun.ts",
+    "generation:trace": "node --env-file-if-exists=.env --import tsx scripts/traceGenerationDecisions.ts",
     "generation:worker": "tsx --env-file-if-exists=.env server/ai/workflows/generationWorker.ts",
     "build:review-renderer": "node scripts/build-review-renderer.mjs",
     "predev": "pnpm build:review-renderer",

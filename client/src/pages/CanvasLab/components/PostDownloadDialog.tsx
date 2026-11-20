@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { aspectRatioHeight } from "@shared/aspectRatios";
+import { aspectRatioHeight, exportLongestSide, type ExportQuality } from "@shared/aspectRatios";
 import { CanvasPostStage, type CanvasPostStageRef } from "./CanvasPostStage";
 import type { CanvasPostModel } from "./types";
 
@@ -8,15 +8,18 @@ import type { CanvasPostModel } from "./types";
 export default function PostDownloadDialog({
   post,
   onClose,
+  exportQuality = "4k",
   onExport,
 }: {
   post: CanvasPostModel;
   onClose: () => void;
+  exportQuality?: ExportQuality;
   onExport?: (post: CanvasPostModel, kind: "export_png" | "export_zip") => void;
 }) {
   const stage = useRef<CanvasPostStageRef>(null);
   const [index, setIndex] = useState(post.currentSlideIndex);
   const [busy, setBusy] = useState(false);
+  const [quality, setQuality] = useState(exportQuality);
   const [error, setError] = useState("");
   const [previewZoom, setPreviewZoom] = useState(0.75);
   useEffect(() => {
@@ -42,9 +45,10 @@ export default function PostDownloadDialog({
         throw new Error(
           "A imagem ou fonte ainda não carregou. Aguarde e tente novamente."
         );
+      const maxDimension = exportLongestSide(post.aspectRatio, quality);
       const href = zip
-        ? (objectUrl = URL.createObjectURL(await stage.current.exportZip4K()))
-        : stage.current.exportPng4K();
+        ? (objectUrl = URL.createObjectURL(await stage.current.exportZip4K(undefined, maxDimension)))
+        : stage.current.exportPng4K(maxDimension);
       if (!href) throw new Error("Não foi possível preparar o download.");
       const link = document.createElement("a");
       link.href = href;
@@ -104,6 +108,18 @@ export default function PostDownloadDialog({
               </select>
             </label>
           )}
+          {exportQuality === "4k" && <label className="mb-4 block text-xs">
+            Resolução
+            <select
+              disabled={busy}
+              value={quality}
+              onChange={event => setQuality(event.target.value === "hd" ? "hd" : "4k")}
+              className="ml-2 rounded bg-slate-800 p-2"
+            >
+              <option value="hd">HD</option>
+              <option value="4k">4K</option>
+            </select>
+          </label>}
           {error && (
             <p role="alert" className="mb-3 text-sm text-amber-200">
               {error}

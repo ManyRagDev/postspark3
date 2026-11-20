@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Express } from "express";
 import { ENV } from "./_core/env";
+import { rpcCall } from "./billing";
 import { createContext } from "./_core/context";
 import { verifyArsenalAsset } from "./designCatalog/arsenalAssets";
 
@@ -83,7 +84,7 @@ export async function normalizeCanvasMediaPayload<T extends Record<string, unkno
   if (!payload.canvasModel || typeof payload.canvasModel !== "object") return payload;
   const cache = new Map<string, Promise<string>>();
   let visited = 0;
-  const imageKeys = new Set(["url", "imageUrl", "bgImage", "logoUrl"]);
+  const imageKeys = new Set(["url", "imageUrl", "bgImage", "logoUrl", "originalUrl", "inputUrl", "resultUrl"]);
   async function visit(value: unknown, key = "", depth = 0): Promise<unknown> {
     if (signal?.aborted) throw signal.reason ?? new Error("Operação de mídia cancelada");
     if (++visited > 100000 || depth > 40) throw new Error("Documento de mídia excede os limites");
@@ -110,7 +111,12 @@ export function registerUserMediaRoutes(app: Express) {
     if (!uuid.test(owner) || !/^[a-f0-9]{64}$/.test(hash)) { res.sendStatus(404); return; }
     const ctx = await createContext({ req, res });
     if (!ctx.user) { res.sendStatus(401); return; }
-    if (ctx.user.id !== owner) { res.sendStatus(404); return; }
+    if (ctx.user.id !== owner) {
+      const { data, error } = await rpcCall<boolean>("agency_can_read_media", {
+        p_user_id: ctx.user.id, p_media_path: `/api/post-media/${owner}/${hash}`,
+      });
+      if (error || data !== true) { res.sendStatus(404); return; }
+    }
     try {
       const result = await storage().from(USER_MEDIA_BUCKET).download(`${owner}/${hash}`);
       if (result.error || !result.data) { res.sendStatus(404); return; }

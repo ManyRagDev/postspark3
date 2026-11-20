@@ -1,5 +1,6 @@
 import { affirmativeCopyInstructions } from "@shared/affirmativeSocialPlaybook";
 import { z } from "zod";
+import { historicalReviewSchema } from "./historicalReviewSchema";
 import { arsenalHash } from "@shared/arsenalContent";
 import { GenerationFailureError } from "@shared/generationFailure";
 import {
@@ -46,8 +47,8 @@ export function copyInstructionsV7(guidanceVersion: 1 | 2 | 3 | 4 | 5 | 6 = 6) {
   if (guidanceVersion === 6) return affirmativeCopyInstructions;
   return [creativeCopyInstructionsV7, guidanceVersion >= 2 ? editorialFinishInstructions : "", guidanceVersion >= 3 ? boundedBenefitCopyGuidance : ""].filter(Boolean).join("\n");
 }
-export function reviewContractHashV7(guidanceVersion: 1 | 2 | 3 | 4 | 5 | 6 = 6) {
-  return arsenalHash({
+export function reviewContractHashV7(guidanceVersion: 1 | 2 | 3 | 4 | 5 | 6 = 6, historical = true) {
+  const contract = {
     protocol: guidanceVersion >= 4 ? "review.v7.material.2.category-consequence-consistency" : "review.v7.material.1",
     normalization: 1,
     requirements: "typed.unicode-boundaries.1",
@@ -62,7 +63,8 @@ export function reviewContractHashV7(guidanceVersion: 1 | 2 | 3 | 4 | 5 | 6 = 6)
       reviewInstructionsV7(undefined, undefined, guidanceVersion),
       reviewInstructionsV7(["formal-reason"], "receipt-hash", guidanceVersion),
     ],
-  });
+  };
+  return arsenalHash(historical ? historicalReviewSchema(contract) : contract);
 }
 export function resolveReviewExecutionConfigV7(guidanceVersion: 1 | 2 | 3 | 4 | 5 | 6 = 6, textModel?: string) {
   const data = {
@@ -101,7 +103,7 @@ export function assertReviewExecutionConfigV7(value: unknown) {
   if (
     configurationHash !== arsenalHash(data) ||
     (data.editorialGuidanceVersion !== 6 && data.textModel !== undefined) ||
-    data.contractHash !== reviewContractHashV7(data.editorialGuidanceVersion ?? 1)
+    ![reviewContractHashV7(data.editorialGuidanceVersion ?? 1), reviewContractHashV7(data.editorialGuidanceVersion ?? 1, false)].includes(data.contractHash)
   )
     throw new GenerationFailureError(
       "preparation_contract_incompatible",

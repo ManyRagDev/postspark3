@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { EditorLayer, EditorTarget } from "../lib/editorController";
+import type { SelectionModifiers } from "../lib/editorSelection";
 
 const button =
   "min-h-11 rounded-lg border border-white/15 px-2 text-xs text-white/80 hover:bg-white/10 disabled:opacity-40";
@@ -14,7 +15,9 @@ type LayerAction =
 export interface CanvasEditorLayersProps {
   layers: EditorLayer[];
   selectedId?: string | null;
-  onSelect: (target: EditorTarget) => void;
+  selectedIds?: readonly string[];
+  selectionActions?: React.ReactNode;
+  onSelect: (target: EditorTarget, modifiers?: SelectionModifiers) => void;
   onAdjust?: (target: EditorTarget) => void;
   onAction: (
     target: EditorTarget,
@@ -27,10 +30,13 @@ export interface CanvasEditorLayersProps {
 export function CanvasEditorLayers({
   layers,
   selectedId,
+  selectedIds,
+  selectionActions,
   onSelect,
   onAdjust,
   onAction,
 }: CanvasEditorLayersProps) {
+  const [multiple, setMultiple] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(() => {
     const groups = (items: EditorLayer[]): string[] =>
       items.flatMap(layer => [
@@ -43,6 +49,13 @@ export function CanvasEditorLayers({
     () => new Set()
   );
   const isDecoration = (layer: EditorLayer) => layer.role === "decoration";
+  const visibleOrder = (items: EditorLayer[], parent: string): string[] => {
+    const reversed = [...items].reverse();
+    const visible = [...reversed.filter(l => !isDecoration(l)),
+      ...(decorExpanded.has(parent) ? reversed.filter(isDecoration) : [])];
+    return visible.flatMap(layer => [layer.id,
+      ...(expanded.has(layer.id) ? visibleOrder(layer.children, `group:${layer.id}`) : [])]);
+  };
   useEffect(() => {
     if (!selectedId) return;
     const find = (
@@ -88,8 +101,8 @@ export function CanvasEditorLayers({
     depth: number,
     parent: string
   ): React.ReactNode => {
-    const content = items.filter(layer => !isDecoration(layer));
-    const decoration = items.filter(isDecoration);
+    const content = [...items].reverse().filter(layer => !isDecoration(layer));
+    const decoration = [...items].reverse().filter(isDecoration);
     return (
       <>
         {content.map(layer => renderLayer(layer, depth))}
@@ -116,7 +129,7 @@ export function CanvasEditorLayers({
     );
   };
   const renderLayer = (layer: EditorLayer, depth: number): React.ReactNode => {
-    const selected = selectedId === layer.id;
+    const selected = selectedIds ? selectedIds.includes(layer.id) : selectedId === layer.id;
     const name = /^Projeção uniforme /i.test(layer.label)
       ? "Layout"
       : layer.kind === "group" && /^field-\d+$/i.test(layer.label)
@@ -182,7 +195,11 @@ export function CanvasEditorLayers({
           <button
             type="button"
             aria-pressed={selected}
-            onClick={() => onSelect(layer.target)}
+            onClick={event => onSelect(layer.target, {
+              toggle: multiple || event.ctrlKey || event.metaKey,
+              range: event.shiftKey,
+              order: visibleOrder(layers, "root:"),
+            })}
             className="min-h-11 min-w-0 flex-1 rounded-lg px-2 text-left text-sm hover:bg-white/10 aria-pressed:bg-white/15"
           >
             <span className="block truncate">{excerpt || name}</span>
@@ -203,7 +220,7 @@ export function CanvasEditorLayers({
             </span>
           </button>
         </div>
-        {selected && (
+        {selected && (!selectedIds || selectedIds.length <= 1) && (
           <div className="flex flex-wrap gap-1 pl-2">
             {onAdjust && (
               <button
@@ -257,9 +274,11 @@ export function CanvasEditorLayers({
   };
   return layers.length ? (
     <div>
+      {selectionActions}
+      <button type="button" aria-pressed={multiple} onClick={() => setMultiple(value => !value)}
+        className={button + " mb-2 w-full aria-pressed:bg-white/15"}>Selecionar vários</button>
       <p className="mb-2 text-xs text-white/50">
-        Conteúdo e decoração são agrupados para facilitar o acesso. As ações de
-        ordem respeitam a ordem real da arte.
+        Camadas da frente aparecem primeiro em cada grupo. Ctrl/Cmd alterna objetos; Shift seleciona um intervalo.
       </p>
       <ul aria-label="Camadas da arte" className="space-y-1">
         {renderLayers(layers, 0, "root:")}

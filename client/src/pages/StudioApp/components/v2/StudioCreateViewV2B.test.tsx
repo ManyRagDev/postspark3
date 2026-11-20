@@ -39,6 +39,65 @@ describe("StudioCreateViewV2B draft control", () => {
     container.remove();
     delete (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT;
   });
+  it("keeps website extraction and Replicar Design out of the Solo creation menu", () => {
+    const onSubmit = vi.fn();
+    act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null}
+      onDeclareFamily={vi.fn()} initialPrompt="https://example.invalid/artigo" allowProfessionalTools={false} />));
+    expect(container.textContent).toContain("A extração de URL está disponível a partir do PRO.");
+    expect(container.textContent).not.toContain("Replicar Design");
+    expect(container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')?.disabled).toBe(true);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+  it("opens the explicit slide editor, reorders exact source text and submits a visual brief separately", () => {
+    const onSubmit = vi.fn();
+    act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={vi.fn()} initialPrompt={"Slide 1:\nPrimeiro texto.\n\nSlide 2:\nSegundo texto."} initialVisualBrief="Mais respiro" />));
+    const open = Array.from(container.querySelectorAll("button")).find(b => b.textContent === "Conferir e organizar slides")!;
+    act(() => open.click());
+    const dialog = document.querySelector('[role="dialog"]')!;
+    const above = Array.from(dialog.querySelectorAll("button")).filter(b => b.textContent === "Mover acima")[1];
+    act(() => above.click());
+    const apply = Array.from(dialog.querySelectorAll("button")).find(b => b.textContent?.startsWith("Usar estes"))!;
+    act(() => apply.click());
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Diagramar 2 slides com fidelidade"]')!.click());
+    expect(onSubmit).toHaveBeenCalledWith(expect.any(String), "carousel", expect.objectContaining({ visualBrief: "Mais respiro", scriptMode: "preserve", parsedSlides: [expect.objectContaining({ rawText: "Segundo texto." }), expect.objectContaining({ rawText: "Primeiro texto." })] }));
+  });
+
+  it("keeps visual instructions in a separate modal, cancels edits and applies them without changing the prompt", () => {
+    const onSubmit = vi.fn();
+    act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={vi.fn()} initialPrompt="Meu conteúdo original" initialVisualBrief="Mais respiro" />));
+    const guide = () => Array.from(container.querySelectorAll("button")).find(b => b.textContent?.startsWith("Orientações para esta arte"))!;
+    const dialogButton = (text: string) => Array.from(document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')).find(b => b.textContent === text)!;
+    const enter = (value: string) => {
+      const field = document.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea')!;
+      act(() => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, value);
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    };
+    expect(container.querySelectorAll("textarea")).toHaveLength(1);
+    expect(guide().getAttribute("aria-haspopup")).toBe("dialog");
+    expect(Array.from(container.querySelectorAll("button")).find(b => b.textContent === "Já tenho meu conteúdo")?.getAttribute("aria-haspopup")).toBe("dialog");
+    act(() => guide().click());
+    expect(document.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea')?.value).toBe("Mais respiro");
+    enter("Edição descartada");
+    act(() => dialogButton("Cancelar").click());
+    act(() => guide().click());
+    expect(document.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea')?.value).toBe("Mais respiro");
+    enter("Títulos grandes\nSem fotografias");
+    act(() => dialogButton("Aplicar orientações").click());
+    expect(guide().textContent).toContain("Editar");
+    act(() => guide().click());
+    expect(document.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea')?.value).toBe("Títulos grandes\nSem fotografias");
+    act(() => dialogButton("Cancelar").click());
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!.click());
+    expect(onSubmit).toHaveBeenLastCalledWith("Meu conteúdo original", "static", expect.objectContaining({ visualBrief: "Títulos grandes\nSem fotografias" }));
+    act(() => guide().click());
+    enter("");
+    act(() => dialogButton("Aplicar orientações").click());
+    expect(guide().textContent).not.toContain("Editar");
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Criar posts"]')!.click());
+    expect(onSubmit).toHaveBeenLastCalledWith("Meu conteúdo original", "static", expect.objectContaining({ visualBrief: undefined }));
+  });
 
   it.each(["auto", "claude", "deepseek", "gemini"])("submits the active %s model and keeps legacy GPT hidden", model => {
     const onSubmit = vi.fn();
@@ -162,17 +221,23 @@ describe("StudioCreateViewV2B draft control", () => {
       expect.not.objectContaining({ scriptMode: "preserve" })
     );
   });
-  it("keeps Enter available for mobile paragraphs and submits only with an explicit shortcut", () => {
+  it.each([375, 1440])("keeps Enter available for paragraphs at %spx and submits only with an explicit shortcut", viewportWidth => {
     const width = Object.getOwnPropertyDescriptor(window, "innerWidth");
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: 375 });
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: viewportWidth });
     const onSubmit = vi.fn();
     try {
       act(() => root.render(<StudioCreateViewV2B onSubmit={onSubmit} isLoading={false} declaredFamilyId={null} onDeclareFamily={() => {}} initialPrompt="Um roteiro" />));
       const field = container.querySelector("textarea")!;
-      act(() => field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })));
+      for (const modifiers of [{}, { shiftKey: true }, { ctrlKey: true, isComposing: true }]) {
+        const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, ...modifiers });
+        act(() => { field.dispatchEvent(event); });
+        expect(event.defaultPrevented).toBe(false);
+      }
       expect(onSubmit).not.toHaveBeenCalled();
       act(() => field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true, cancelable: true })));
       expect(onSubmit).toHaveBeenCalledOnce();
+      act(() => field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true, cancelable: true })));
+      expect(onSubmit).toHaveBeenCalledTimes(2);
     } finally {
       if (width) Object.defineProperty(window, "innerWidth", width);
     }
@@ -200,7 +265,7 @@ describe("StudioCreateViewV2B draft control", () => {
       const briefing = "Minha ideia com todos os detalhes. ".repeat(30);
       act(() => setField(field, briefing));
       expect(field.style.height).toBe("72px");
-      expect(field.rows).toBe(3);
+      expect(field.getAttribute("rows")).toBe("3");
       const expand = Array.from(container.querySelectorAll("button")).find(button => button.textContent?.includes("Expandir texto"))!;
       expect(expand.disabled).toBe(false);
       act(() => expand.click());

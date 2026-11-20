@@ -11,6 +11,7 @@ interface BackgroundsDrawerProps {
   post: CanvasPostModel;
   onApplyBackground: (url?: string) => void;
   onApplySeamlessPanorama?: (panorama: SeamlessPanoramaMeta) => void;
+  allowPanorama?: boolean;
   manifestData: any;
   initialTab?: string;
 }
@@ -21,22 +22,26 @@ export default function BackgroundsDrawer({
   post,
   onApplyBackground,
   onApplySeamlessPanorama,
+  allowPanorama = true,
   manifestData,
   initialTab,
 }: BackgroundsDrawerProps) {
   const isMobile = useIsMobile();
-  const isCarousel = Boolean(post.slides && post.slides.length > 1);
+  const isCarousel = allowPanorama && Boolean(post.slides && post.slides.length > 1);
+  const defaultCategory = initialTab === "seamless" && !isCarousel
+    ? "all"
+    : initialTab || (isCarousel ? "seamless" : "all");
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    initialTab || (isCarousel ? "seamless" : "all")
+    defaultCategory
   );
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedCategory(initialTab || (isCarousel ? "seamless" : "all"));
+      setSelectedCategory(defaultCategory);
       setSearchQuery("");
     }
-  }, [isOpen, initialTab, isCarousel]);
+  }, [isOpen, defaultCategory]);
 
   const currentSlide = post.slides[post.currentSlideIndex];
   const activeBg = currentSlide?.composition?.version === 3

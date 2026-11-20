@@ -1,3 +1,4 @@
+import type { TextGradient } from "@shared/textGradient";
 import type { CatalogCompilation } from "@shared/designCatalog";
 export type AspectRatioType = "1:1" | "4:5" | "5:6" | "9:16";
 export type TextAlignType = "left" | "center" | "right";
@@ -306,6 +307,7 @@ export interface CanvasCustomText {
   fontStyle?: "normal" | "italic";
   color?: string;
   align?: TextAlignType;
+  textGradient?: TextGradient | null;
   effect?: TextLegibilityEffect;
   effectColor?: string;
   rotation?: number;
@@ -428,8 +430,9 @@ export interface CarouselSlideItem {
     | "familyId" | "familyName" | "fontFamily" | "subtextFontFamily" | "customFontUrl"
     | "palette" | "overlayOpacity" | "overlayColor" | "overlayMode"
     | "headlineAlign" | "bodyAlign" | "headlineSizeScale" | "subtextSizeScale" | "headlineFontWeight" | "subtextFontWeight"
+    | "headlineLineHeight" | "subtextLineHeight" | "headlineLetterSpacing" | "subtextLetterSpacing"
     | "manualHeadlineColor" | "manualSubtextColor"
-    | "headlineEffect" | "headlineEffectColor" | "subtextEffect" | "subtextEffectColor"
+    | "headlineGradient" | "subtextGradient" | "headlineEffect" | "headlineEffectColor" | "subtextEffect" | "subtextEffectColor"
   >>;
 }
 
@@ -531,6 +534,8 @@ export interface CanvasPostProvenance {
   source: "ai" | "local_fallback";
   generationRunId?: string;
   journey?: import("@shared/generationTelemetry").GenerationJourneyIdentity;
+  originalPosition?: number;
+  reviewWarning?: import("@shared/generationReviewWarning").GenerationReviewWarning;
   fallbackReason?: string;
   generatedAt: string;
 }
@@ -553,6 +558,8 @@ export interface CanvasCopyAngle {
 }
 
 export interface CanvasPostModel {
+  /** Frozen identity plus choices completed for this piece; never updates the project. */
+  visualIdentityUsage?: import("zod").infer<typeof import("@shared/identityComposition").visualIdentityUsageSchema>;
   /** Small provenance; compositions contain the complete pinned editable documents. */
   componentAssembly?: Pick<import("@shared/componentAssembly").AssemblyVariationBundleV1, "schemaVersion" | "planHash" | "slot" | "runId" | "traceId" | "direction">;
   completeDesign?: import("zod").infer<typeof import("@shared/completeDesignGeneration").completeDesignProvenanceSchema>;
@@ -594,7 +601,13 @@ export interface CanvasPostModel {
   subtextFontFamily?: string;
   headlineFontWeight?: number;
   subtextFontWeight?: number;
+  headlineLineHeight?: number;
+  subtextLineHeight?: number;
+  headlineLetterSpacing?: number;
+  subtextLetterSpacing?: number;
   customFontUrl?: string;
+  /** Original and recipe receipts for derived, owner-private image assets. */
+  advancedImageAssets?: Record<string, import("@shared/imageEditor").ImageEditAsset>;
   bgImage?: string;
   bgTransform?: BgImageTransform;
   bgPlacement?: BackgroundPlacement;
@@ -615,6 +628,8 @@ export interface CanvasPostModel {
   /** Usuário escolheu cor do corpo manualmente — o guardião de contraste preserva. */
   manualSubtextColor?: boolean;
   /** Efeito visual de legibilidade para o título (fundo, sombra, contorno). */
+  headlineGradient?: TextGradient | null;
+  subtextGradient?: TextGradient | null;
   headlineEffect?: TextLegibilityEffect;
   /** Cor customizada do efeito/sombra do título. */
   headlineEffectColor?: string;

@@ -114,6 +114,33 @@ function basePost(): CanvasPostModel {
 }
 
 describe("CanvasLabPage Document Contracts (OS-001)", () => {
+  it("shares multiple selection with the layer tree and deletes a set in one undoable commit", async () => {
+    const post = basePost();
+    post.slides[0].extraTexts = [{ id: "set-a", text: "A", x: 10.75, y: 20.125 }, { id: "set-b", text: "B", x: 80, y: 20 }];
+    await act(async () => root.render(<CanvasLabPage initialPost={post} />));
+    const slideId = post.slides[0].id;
+    await act(async () => c.chrome.contents.layers.props.onSelect({ slideId, elementId: "set-a" }));
+    await act(async () => c.stage.onSelectElement("set-b", { toggle: true }));
+    expect(c.stage.selectedElementIds).toEqual(["set-a", "set-b"]);
+    expect(c.chrome.contents.layers.props.selectedIds).toEqual(["set-a", "set-b"]);
+    await act(async () => c.chrome.contents.selection.props.onCommand({ type: "remove" }));
+    expect(c.stage.post.slides[0].extraTexts).toHaveLength(0);
+    expect(c.stage.selectedElementIds).toEqual([]);
+    await act(async () => c.bar.onUndo());
+    expect(c.stage.post.slides[0].extraTexts).toHaveLength(2);
+    await act(async () => c.bar.onRedo());
+    expect(c.stage.post.slides[0].extraTexts).toHaveLength(0);
+  });
+  it("keeps the review warning visible after reopening a saved proposal", async () => {
+    const post = basePost();
+    post.provenance = { source: "ai", generatedAt: "2026-11-13T00:00:00Z", reviewWarning: "correction_required" };
+    const payload = canvasModelToSavePayload(post, { inputType: "text", inputContent: "Café" });
+    const reopened = savedPostToCanvasModel({ id: 31, canvas_model: JSON.parse(JSON.stringify(payload.canvasModel)) });
+    await act(async () => root.render(<CanvasLabPage initialPost={reopened} />));
+    expect(host.textContent).toContain("A revisão de IA apontou ajustes");
+    expect(host.querySelector('[role="status"]')?.textContent).toContain("Confira os textos");
+  });
+
   it("AC-01 (BUG-CL-002): applies balanced proposal without root default stomping; supports undo", async () => {
     const post = basePost();
     // Post inicial configurado explicitamente com Playfair Display e headlineAlign: "left"
