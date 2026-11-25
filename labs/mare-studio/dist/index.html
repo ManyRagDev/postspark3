@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#111214" />
+    <title>Maré Studio · Laboratório de movimento</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./timeline.css" />
+    <link rel="stylesheet" href="./composition.css" />
+    <link rel="stylesheet" href="./speech.css" />
+    <link rel="stylesheet" href="./start.css" />
+    <link rel="stylesheet" href="./stock-library.css" />
+    <link rel="stylesheet" href="./image-layouts.css" />
+  </head>
+  <body data-start>
+    <header class="mast">
+      <div class="brand">
+        <svg viewBox="0 0 38 34" aria-hidden="true">
+          <g
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3.3"
+            stroke-linecap="round"
+          >
+            <path
+              d="M3 14Q11 -1 19 11T35 9M3 20Q11 5 19 17T35 15M3 26Q11 11 19 23T35 21"
+            />
+          </g></svg
+        ><span>Maré <b>Studio</b></span>
+      </div>
+      <nav class="modebar" aria-label="Modo de edição">
+        <button id="montage-mode" title="Editar um vídeo" aria-pressed="true">
+          <i data-i="Clapperboard"></i>Montagem</button
+        ><button id="motion-mode" title="Animar uma arte" aria-pressed="false">
+          <i data-i="Waves"></i>Animação
+        </button>
+      </nav>
+      <div class="file-actions">
+        <button class="save" id="save" aria-label="Salvar no navegador" title="Salvar projeto neste navegador">
+          <i data-i="Save"></i><span class="save-long-label">Salvar no navegador</span><span class="save-short-label" aria-hidden="true">Salvar</span></button
+        ><button class="primary" id="export">
+          <i data-i="Download"></i><span id="export-label">Baixar vídeo</span>
+        </button>
+      </div>
+    </header>
+    <main class="studio-start" id="studio-start" aria-labelledby="start-title" hidden>
+      <div class="start-content">
+        <h1 id="start-title" tabindex="-1">Crie uma animação para suas redes</h1>
+        <p>Personalize um modelo animado ou crie do zero. Baixe sua criação em vídeo vertical.</p>
+        <div class="start-create">
+          <button type="button" class="btn primary" id="start-templates"><i data-i="SquareStack"></i>Escolher um modelo</button>
+          <button type="button" class="btn" id="start-blank"><i data-i="Plus"></i>Criar do zero</button>
+        </div>
+        <div class="start-options">
+          <button type="button" id="start-continue" hidden>Continuar edição</button>
+          <button type="button" id="start-open"><i data-i="FolderOpen"></i>Abrir projeto</button>
+          <button type="button" id="start-video"><i data-i="Film"></i>Começar com um vídeo</button>
+          <button type="button" id="start-stock-library" aria-haspopup="dialog"><i data-i="Layers"></i>Biblioteca de vídeos</button>
+        </div>
+      </div>
+      <div class="start-example">
+        <button type="button" id="start-demo" class="start-example-link">
+          <img src="./assets/wave.jpg" alt="" width="540" height="960" />
+          <span><i data-i="Play"></i>Ver projeto de exemplo</span>
+        </button>
+      </div>
+    </main>
+    <main id="studio-editor" hidden>
+      <div class="project-line">
+        <div class="project-title">
+          <button type="button" class="breadcrumb" id="open-start"><i data-i="FolderOpen"></i>Início</button>
+          <span class="slash" aria-hidden="true">/</span>
+          <button id="project-menu" aria-haspopup="menu" aria-controls="project-pop" aria-expanded="false">
+            <b id="project-name">Maré alta</b><i data-i="ChevronDown"></i>
+          </button>
+        </div>
+        <div class="history">
+          <span id="save-status">Projeto de exemplo</span
+          ><span class="vline"></span
+          ><button class="icon" id="undo" aria-label="Desfazer">
+            <i data-i="Undo2"></i></button
+          ><button class="icon" id="redo" aria-label="Refazer">
+            <i data-i="Redo2"></i>
+          </button>
+        </div>
+        <div id="project-pop" class="menu" role="menu" hidden>
+          <button role="menuitem" id="menu-composition">
+            <i data-i="SquareStack"></i>Adicionar composição
+          </button>
+          <button role="menuitem" id="new-video">
+            <i data-i="Film"></i>Nova montagem com vídeo</button
+          ><button role="menuitem" id="new-art">
+            <i data-i="Waves"></i>Nova animação</button
+          ><button role="menuitem" id="rename">
+            <i data-i="PencilLine"></i>Renomear projeto</button
+          ><button role="menuitem" id="rename-animation" hidden>
+            <i data-i="PencilLine"></i>Renomear animação</button
+          ><button role="menuitem" id="pack">
+            <i data-i="Download"></i>Baixar projeto editável</button
+          ><button role="menuitem" id="unpack">
+            <i data-i="FolderOpen"></i>Abrir arquivo de projeto</button
+          ><button role="menuitem" id="reset">
+            <i data-i="RotateCcw"></i>Restaurar exemplo
+          </button>
+        </div>
+      </div>
+      <section class="editor-context" aria-label="Ambiente de edição">
+        <div class="editor-context-name">
+          <strong id="environment-label">Montagem</strong>
+          <span id="environment-item"></span>
+        </div>
+        <div class="editor-context-actions">
+          <span id="insertion-point" hidden></span>
+          <button type="button" class="btn" id="project-assistant" aria-haspopup="dialog"><i data-i="Sparkles"></i>Assistente do projeto</button>
+          <button type="button" class="btn" id="edit-scene" hidden>
+            <i data-i="PencilLine"></i>Editar na Animação
+          </button>
+          <button type="button" class="btn" id="generate-narration" aria-haspopup="dialog" hidden>
+            <i data-i="AudioLines"></i>Gerar narração
+          </button>
+          <button type="button" class="btn" id="edit-speech" aria-haspopup="dialog" hidden>
+            <i data-i="Sparkles"></i>Editar vídeo falado
+          </button>
+          <button type="button" class="btn" id="duplicate-composition" hidden>
+            <i data-i="SquareStack"></i>Duplicar composição
+          </button>
+          <button type="button" class="btn environment-primary" id="insert-composition" hidden>
+            <i data-i="Plus"></i>Adicionar à montagem
+          </button>
+          <button type="button" class="btn" id="apply-and-return" hidden>
+            <i data-i="Check"></i><span id="return-label">Aplicar e voltar</span>
+          </button>
+        </div>
+      </section>
+      <div class="mobile-tabs">
+        <button data-panel="media"><i data-i="Layers"></i>Biblioteca</button
+        ><button data-panel="preview" aria-pressed="true">
+          <i data-i="Film"></i>Prévia</button
+        ><button data-panel="props">
+          <i data-i="SlidersHorizontal"></i>Ajustes
+        </button>
+      </div>
+      <div class="workspace" data-panel="preview">
+        <aside class="library">
+          <h2 class="lib-title"><i data-i="Layers"></i><span id="library-label">Mídias do projeto</span></h2>
+          <button class="new-composition" id="create-composition" hidden>
+            <i data-i="Plus"></i>Criar composição
+          </button>
+          <button class="new-composition" id="animation-catalog" hidden>
+            <i data-i="SquareStack"></i>Modelos de animação
+          </button>
+          <button type="button" class="new-composition" id="stock-library" aria-haspopup="dialog">
+            <i data-i="Film"></i>Biblioteca de vídeos
+          </button>
+          <div class="filters" aria-label="Filtrar biblioteca">
+            <button aria-pressed="true" data-filter="all">Tudo</button
+            ><button data-filter="video">Vídeo</button
+            ><button data-filter="audio">Áudio</button>
+          </div>
+          <div class="library-scroll">
+            <div id="composition-library" hidden></div>
+            <div id="library-items"></div>
+            <button class="import" id="import">
+              <i data-i="Plus"></i>Importar mídia
+            </button>
+          </div>
+        </aside>
+        <section class="preview">
+          <div class="preview-head">
+            <h2><i data-i="PanelsTopLeft"></i>Prévia</h2>
+            <span class="ratio"><span></span>9:16</span>
+          </div>
+          <div class="stage" id="stage">
+            <canvas
+              role="img"
+              aria-label="Prévia da montagem"
+              id="screen"
+              width="540"
+              height="960"
+            ></canvas>
+            <div id="layer-resize" class="cp-resize-overlay" aria-hidden="true" hidden>
+              <div class="cp-resize-box">
+                <span data-cp-corner="-1,-1"></span>
+                <span data-cp-corner="1,-1"></span>
+                <span data-cp-corner="-1,1"></span>
+                <span data-cp-corner="1,1"></span>
+              </div>
+            </div>
+            <div class="animation-starter" id="animation-starter" hidden>
+              <h3 id="animation-starter-title">Adicione seu primeiro elemento</h3>
+              <div class="animation-starter-actions">
+                <button type="button" class="btn primary" id="starter-prompt"><i data-i="Sparkles"></i>Pedir uma animação</button>
+                <button type="button" class="btn" id="starter-text"><i data-i="Plus"></i>Adicionar texto</button>
+                <button type="button" class="btn" id="starter-template"><i data-i="SquareStack"></i>Escolher um modelo</button>
+              </div>
+            </div>
+          </div>
+          <div class="transport">
+            <span class="clock"
+              ><b id="current">00:01,90</b> <span>/</span>
+              <span id="length">00:10,00</span></span
+            >
+            <div class="playback">
+              <button id="back" class="icon" aria-label="Ir ao início">
+                <i data-i="SkipBack"></i></button
+              ><button id="play" class="play" aria-label="Reproduzir">
+                <i data-i="Play"></i></button
+              ><button id="end" class="icon" aria-label="Ir ao fim">
+                <i data-i="SkipForward"></i>
+              </button>
+            </div>
+            <button class="icon full" id="full" aria-label="Ampliar prévia">
+              <i data-i="Expand"></i>
+            </button>
+          </div>
+        </section>
+        <aside class="inspector">
+          <h2><i data-i="SlidersHorizontal"></i><span id="inspector-label">Propriedades do clipe</span></h2>
+          <label class="field composition-duration" id="composition-duration-field" hidden>
+            <span class="field-label">Duração da composição (s)</span>
+            <input type="number" class="num-input" id="composition-duration" min="0.03333333333333333" step="any" max="86400" />
+          </label>
+          <div id="inspector"></div>
+        </aside>
+      </div>
+      <section id="timeline" aria-label="Timeline de montagem"></section>
+      <section
+        id="motion-track"
+        hidden
+        aria-label="Timeline de animação"
+      ></section>
+    </main>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <dialog id="dialog" aria-labelledby="dialog-title"><div id="dialog-content"></div></dialog>
+    <input
+      type="file"
+      id="media-file"
+      accept="video/*,audio/*"
+      multiple
+      hidden
+    /><input type="file" id="first-video" accept="video/*" hidden /><input
+      type="file"
+      id="project-file"
+      hidden
+    />
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

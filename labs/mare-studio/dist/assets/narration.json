@@ -1,0 +1,13 @@
+{
+  "maxCharacters": 1500,
+  "models": {
+    "elevenlabs/eleven-flash-v2.5": "Eleven Flash v2.5",
+    "elevenlabs/eleven-multilingual-v2": "Eleven Multilingual v2",
+    "elevenlabs/eleven-v4": "Eleven v4"
+  },
+  "voices": {
+    "lWq4KDY8znfkV0DrK8Vb": "Yasmin Alves",
+    "Qrdut83w0Cr152Yb4Xn3": "Paulo",
+    "george": "George"
+  }
+}

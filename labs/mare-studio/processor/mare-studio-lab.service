@@ -1,0 +1,26 @@
+[Unit]
+Description=Maré Studio private native rendering lab
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/postspark/mare-lab/current/processor/server.py
+DynamicUser=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectHome=yes
+ProtectSystem=strict
+NoNewPrivileges=yes
+UMask=0077
+MemoryMax=4G
+CPUQuota=200%
+TasksMax=160
+Environment=MARE_DIRECTOR_MODEL=google/gemini-2.5-flash
+EnvironmentFile=-/etc/postspark/mare-narration.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=RAYON_NUM_THREADS=2
+Environment=LP_NUM_THREADS=2
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,19 @@
+{
+  "cross_dissolve": {"name": "Dissolução cruzada", "group": "Dissoluções"},
+  "dip_to_black": {"name": "Passagem pelo preto", "group": "Dissoluções"},
+  "dip_to_white": {"name": "Passagem pelo branco", "group": "Dissoluções"},
+  "push_legacy": {"name": "Empurrão lateral", "group": "Movimento"},
+  "split_legacy": {"name": "Cortina dupla", "group": "Movimento"},
+  "band_slide": {"name": "Faixas alternadas", "group": "Movimento"},
+  "wipe": {"name": "Varredura lateral", "group": "Revelações"},
+  "clock_wipe_legacy": {"name": "Revelação em relógio", "group": "Revelações"},
+  "venetian_blinds": {"name": "Persianas", "group": "Revelações"},
+  "film_burn_1": {"name": "Queima de filme 1", "group": "Filme antigo", "overlay": {"blend": "screen", "frames": 14, "cut": 7}},
+  "film_burn_2": {"name": "Queima de filme 2", "group": "Filme antigo", "overlay": {"blend": "screen", "frames": 7, "cut": 3}},
+  "film_burn_3": {"name": "Queima de filme 3", "group": "Filme antigo", "overlay": {"blend": "screen", "frames": 12, "cut": 7}},
+  "film_burn_6": {"name": "Queima de filme 6", "group": "Filme antigo", "overlay": {"blend": "screen", "frames": 11, "cut": 3}},
+  "torn_paper_3": {"name": "Papel rasgado · Lilás", "group": "Papel rasgado", "overlay": {"blend": "normal", "frames": 28, "cut": 14, "mirror": true}},
+  "torn_paper_4": {"name": "Papel rasgado · Jornal", "group": "Papel rasgado", "overlay": {"blend": "normal", "frames": 28, "cut": 14, "mirror": true}},
+  "torn_paper_5": {"name": "Papel rasgado · Creme", "group": "Papel rasgado", "overlay": {"blend": "normal", "frames": 28, "cut": 14, "mirror": true}},
+  "torn_paper_7": {"name": "Papel rasgado · Grafite", "group": "Papel rasgado", "overlay": {"blend": "normal", "frames": 28, "cut": 14, "mirror": true}}
+}

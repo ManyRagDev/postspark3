@@ -1,0 +1,9 @@
+wllama 3.13.0, original npm distribution @wllama/wllama. MIT.
+https://github.com/ngxson/wllama
+Includes llama.cpp build b12211-7d7f028 from ggml-org/llama.cpp, MIT.
+@noble/hashes 1.8.0 (bundled SHA-256), MIT.
+https://github.com/paulmillr/noble-hashes
+The optional Qwen2.5-0.5B-Instruct model is distributed by the Qwen team
+(Apache-2.0). GGUF quantization by bartowski. Downloaded on explicit opt-in.
+https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct
+https://huggingface.co/bartowski/Qwen2.5-0.5B-Instruct-GGUF

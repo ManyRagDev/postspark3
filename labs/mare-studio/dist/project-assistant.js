@@ -1,0 +1,407 @@
+import { canInfer } from "./local-inference.js";
+import { hasCachedModel } from "./model-cache.js";
+import { inferProjectCommand } from "./project-inference.js";
+
+// Native project-level entry point. The draft belongs to the editor, including when a
+// composition is open from the montage. A declined proposal never touches that draft.
+export function openProjectAssistant({ session, showDialog, dialog, esc, initialRequest = "" }) {
+  const catalog = session.catalog();
+  showDialog(
+    "Assistente do projeto",
+    '<label class="field">O que deseja editar?<textarea id="project-request" class="text-input" rows="3" placeholder="Descreva a mudança no vídeo"></textarea></label>' +
+      (document.querySelector('meta[name="mare-director"]')
+        ? '<details><summary>Criar vídeo a partir do briefing</summary><label class="field">Materiais <input id="director-files" type="file" multiple accept="image/*,video/*,audio/*"></label>' +
+          '<label>Duração em segundos <input id="director-seconds" type="number" min="1" max="60" value="26"></label>' +
+          '<label class="field">Chamada final obrigatória (opcional)<input id="director-cta" maxlength="256"></label>' +
+          "<p>O OpenRouter recebe o briefing, miniaturas e três quadros de cada vídeo. A duração e o nome da trilha entram no inventário.</p>" +
+          '<button class="btn" id="director-create">Criar com duas chamadas</button></details>'
+        : "") +
+      '<details><summary>Comandos e estado do projeto</summary><select id="assistant-operation" aria-label="Comando"></select>' +
+      '<pre id="assistant-options"></pre><label id="assistant-file-label" hidden>Arquivo <input type="file" id="assistant-file"></label><button class="btn" id="assistant-inspect">Consultar projeto</button><pre id="assistant-state"></pre></details>' +
+      '<button class="btn" id="assistant-qwen" hidden>Interpretar com Qwen local</button>' +
+      '<div role="status" aria-live="polite" id="assistant-report"></div><img id="assistant-frame" hidden alt="Quadro da edição proposta">' +
+      '<div id="assistant-detail"></div>',
+    '<button class="btn" id="assistant-plan">Preparar edição</button><button class="btn primary" id="assistant-apply" disabled>Aplicar edição</button>'
+  );
+  const get = id => dialog.querySelector("#" + id);
+  const prompt = get("project-request"),
+    report = get("assistant-report"),
+    apply = get("assistant-apply");
+  const frame = get("assistant-frame"),
+    select = get("assistant-operation"),
+    detail = get("assistant-detail");
+  const controller = new AbortController();
+  let editorialController;
+  const downloads = [];
+  let plan,
+    generation = 0,
+    objectURL,
+    activeJob;
+  const model = get("assistant-qwen");
+  if (canInfer())
+    hasCachedModel().then(cached => {
+      model.textContent = cached ? "Interpretar com Qwen local" : "Baixar Qwen (398 MB) e interpretar";
+      model.hidden = false;
+    });
+  function clear() {
+    generation++;
+    editorialController?.abort();
+    editorialController = null;
+    for (const url of downloads.splice(0)) URL.revokeObjectURL(url);
+    if (activeJob) {
+      const summary = session.inspect().jobs.find(j => j.id === activeJob);
+      if (summary && !(summary.state === "ready" && summary.operation === "speech.analyze"))
+        session.release(activeJob);
+    }
+    activeJob = null;
+    plan = null;
+    apply.disabled = true;
+    frame.hidden = true;
+    frame.removeAttribute("src");
+    if (objectURL) URL.revokeObjectURL(objectURL);
+    objectURL = null;
+    detail.replaceChildren();
+  }
+  function showParams() {
+    const { params } = catalog[select.selectedIndex];
+    get("assistant-file-label").hidden = !Object.hasOwn(params, "file");
+    get("assistant-file").accept =
+      select.value === "project.open"
+        ? ".mare"
+        : select.value === "project.fromVideo"
+          ? "video/*"
+          : "image/*,audio/*,video/*";
+    get("assistant-options").textContent = Object.entries(params)
+      .map(([name, desc]) => name + " · " + desc)
+      .join("\n");
+    get("assistant-options").textContent +=
+      "\n" +
+      JSON.stringify({
+        id: select.value,
+        ...Object.fromEntries(
+          Object.keys(params)
+            .filter(k => !k.endsWith("?"))
+            .map(k => [k, "…"])
+        ),
+      });
+  }
+  select.innerHTML = catalog
+    .map(c => '<option value="' + esc(c.id) + '">' + esc(c.manual) + "</option>")
+    .join("");
+  select.onchange = showParams;
+  showParams();
+  get("assistant-inspect").onclick = () => {
+    get("assistant-state").textContent = JSON.stringify(session.inspect(), null, 2);
+  };
+  prompt.oninput = () => {
+    clear();
+    report.textContent = "";
+  };
+  async function structured(commands, state) {
+    const specs = commands.map(c => catalog.find(x => x.id === c.id));
+    if (specs.some(x => !x)) throw Error("Comando desconhecido. Consulte o catálogo.");
+    if (specs.every(x => x.kind === "edit")) {
+      return {
+        commands,
+        summary: specs.map(c => c.manual).join(" · "),
+        proposal: await session.prepareWithAssets(state.revision, commands),
+      };
+    }
+    if (commands.length !== 1)
+      throw Error("Execute a operação de sessão ou de mídia separadamente do lote de edição.");
+    const [{ id, ...params }] = commands;
+    if (Object.hasOwn(specs[0].params, "file")) {
+      const file = get("assistant-file").files[0];
+      if (!file) throw Error("Escolha o arquivo no catálogo de comandos.");
+      params.file = file;
+    }
+    return {
+      commands,
+      summary: specs[0].manual,
+      proposal: { apply: () => session.invoke(id, params, state.revision) },
+      kind: specs[0].kind,
+    };
+  }
+  async function prepare(useModel) {
+    clear();
+    const run = generation;
+    try {
+      const text = prompt.value.trim();
+      if (!text) throw Error("Escreva o pedido.");
+      const state = session.inspect();
+      let next;
+      if (text.startsWith("[") || text.startsWith("{")) {
+        const data = JSON.parse(text);
+        next = await structured(Array.isArray(data) ? data : [data], state);
+      } else if (useModel) {
+        const command = await inferProjectCommand(session, text, {
+          signal: controller.signal,
+          onProgress: msg => {
+            if (generation === run) report.textContent = msg;
+          },
+        });
+        next = await structured([command], state);
+      } else {
+        next = await session.plan(text);
+        if (!next)
+          throw Error(
+            "O modo rápido não reconheceu o pedido. Consulte os comandos disponíveis." +
+              (model.hidden ? "" : " O Qwen local também pode interpretar a instrução.")
+          );
+      }
+      if (generation !== run || controller.signal.aborted) return;
+      report.textContent = next.summary;
+      if (next.preview) {
+        const pic = await next.proposal.preview(
+          next.preview.clipId
+            ? { clipId: next.preview.clipId }
+            : { compositionId: next.preview.compositionId },
+          next.preview.time,
+          controller.signal
+        );
+        if (generation !== run || controller.signal.aborted) return;
+        objectURL = URL.createObjectURL(pic);
+        frame.src = objectURL;
+        frame.hidden = false;
+      }
+      if (generation !== run || controller.signal.aborted) return;
+      const details = document.createElement("details"),
+        summary = document.createElement("summary"),
+        data = document.createElement("pre");
+      summary.textContent = next.kind
+        ? "Parâmetros da operação"
+        : next.commands.length + " comando(s) · um passo de desfazer";
+      data.textContent = JSON.stringify(next.commands, null, 2);
+      details.append(summary, data);
+      detail.append(details);
+      plan = next;
+      apply.disabled = false;
+      apply.focus();
+    } catch (error) {
+      if (run === generation && !controller.signal.aborted) report.textContent = error.message;
+    }
+  }
+  if (get("director-create")) {
+    for (const id of ["director-files", "director-seconds", "director-cta"])
+      get(id).oninput = () => {
+        clear();
+        report.textContent = "";
+      };
+    get("director-create").onclick = async () => {
+      clear();
+      const run = generation;
+      const active = new AbortController();
+      editorialController = active;
+      const button = get("director-create");
+      button.disabled = true;
+      const measurements = document.createElement("pre");
+      const metrics = document.createElement("details"),
+        metricsTitle = document.createElement("summary");
+      measurements.id = "editorial-measurements";
+      metricsTitle.textContent = "Tempos e custos por etapa";
+      metrics.append(metricsTitle, measurements);
+      detail.append(metrics);
+      function progress(message, trace) {
+        if (generation !== run) return;
+        report.textContent = message;
+        measurements.textContent = JSON.stringify(trace, null, 2);
+      }
+      try {
+        const { createEditorialCut } = await import("./editorial-run.js");
+        const result = await createEditorialCut({
+          session,
+          signal: active.signal,
+          brief: prompt.value,
+          seconds: get("director-seconds").valueAsNumber,
+          cta: get("director-cta").value.trim(),
+          files: Array.from(get("director-files").files),
+          report: progress,
+        });
+        if (generation !== run) return;
+        progress(result.script.title + " · Confira a montagem antes de aplicar.", result.trace);
+        const modelSteps = result.trace.steps.filter(step => step.kind === "modelo");
+        const costs = modelSteps.map(step => step.usage?.cost);
+        const cost = costs.every(Number.isFinite)
+          ? new Intl.NumberFormat("pt-BR", {
+              style: "currency",
+              currency: "USD",
+              minimumFractionDigits: 5,
+            }).format(costs.reduce((a, b) => a + b, 0))
+          : "custo indisponível";
+        metricsTitle.textContent =
+          modelSteps.length +
+          " chamadas · " +
+          result.trace.commands +
+          " comandos · " +
+          cost +
+          " · " +
+          (result.trace.totalMs / 1000).toFixed(1) +
+          " s";
+        const video = document.createElement("video");
+        video.controls = true;
+        video.style.cssText = "display:block;max-height:42vh;max-width:100%";
+        function showCut(cut, suffix) {
+          for (const [file, label, ext] of [
+            [cut.movie, "Baixar MP4", "mp4"],
+            [cut.portable, "Baixar projeto", "mare"],
+          ]) {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(file);
+            downloads.push(a.href);
+            if (ext === "mp4") video.src = a.href;
+            a.textContent = label + suffix;
+            a.className = "btn";
+            a.download = result.script.title + suffix + "." + ext;
+            detail.prepend(a);
+          }
+        }
+        showCut(result, "");
+        const script = document.createElement("details"),
+          heading = document.createElement("summary"),
+          copy = document.createElement("pre");
+        copy.id = "editorial-script";
+        heading.textContent = "Roteiro e materiais escolhidos";
+        copy.textContent = JSON.stringify(result.script, null, 2);
+        script.append(heading, copy);
+        detail.prepend(video, script);
+        const reviewButton = document.createElement("button");
+        reviewButton.className = "btn";
+        reviewButton.textContent = "Enviar prévia com áudio ao OpenRouter para revisão · 1 chamada";
+        detail.append(reviewButton);
+        reviewButton.onclick = async () => {
+          reviewButton.disabled = true;
+          apply.disabled = true;
+          report.textContent = "Revisando a prévia renderizada…";
+          try {
+            const { reviewEditorialCut } = await import("./editorial-review.js");
+            const review = await reviewEditorialCut({
+              target: result.proposal,
+              brief: prompt.value,
+              cta: get("director-cta").value.trim(),
+              movie: result.movie,
+              signal: active.signal,
+              check: () => {
+                if (session.inspect().revision !== result.proposal.revision) throw Error("O projeto mudou.");
+              },
+            });
+            if (run !== generation) return;
+            if (review.changed) {
+              showCut(review, " revisado");
+              plan = { proposal: review.proposal };
+            }
+            report.textContent =
+              review.review.assessment + (review.changed ? " · Prévia revisada." : " · Corte mantido.");
+            const info = document.createElement("details"),
+              label = document.createElement("summary"),
+              data = document.createElement("pre");
+            label.textContent = "Revisão audiovisual · " + (review.trace.totalMs / 1000).toFixed(1) + " s";
+            data.textContent = JSON.stringify({ parecer: review.review, medidas: review.trace }, null, 2);
+            info.append(label, data);
+            detail.append(info);
+          } catch (error) {
+            if (run === generation) report.textContent = error.message;
+          } finally {
+            if (run === generation) apply.disabled = false;
+          }
+        };
+        plan = { proposal: result.proposal };
+        apply.disabled = false;
+      } catch (e) {
+        if (generation === run) report.textContent = e.message;
+      } finally {
+        button.disabled = false;
+      }
+    };
+  }
+  get("assistant-plan").onclick = () => prepare(false);
+  model.onclick = () => prepare(true);
+  apply.onclick = async () => {
+    if (!plan) return;
+    const current = plan,
+      run = generation;
+    apply.disabled = true;
+    plan = null;
+    try {
+      const result = await current.proposal.apply();
+      if (current.kind !== "job") {
+        if (
+          result !== undefined &&
+          current.kind === "session" &&
+          (current.commands[0].id.startsWith("asset.") || current.commands[0].id.startsWith("query."))
+        ) {
+          report.textContent =
+            typeof result === "string" ? "Mídia disponível · " + result : JSON.stringify(result, null, 2);
+        } else dialog.close();
+        return;
+      }
+      activeJob = result;
+      while (generation === run && !controller.signal.aborted) {
+        const status = session.job(result);
+        if (status.state === "failed" || status.state === "cancelled")
+          throw Error(status.error || "Trabalho cancelado.");
+        if (status.state === "ready") {
+          report.textContent = "Pronto · revisão " + status.revision + " · " + result;
+          const output = status.result;
+          if (output instanceof Blob) {
+            objectURL = URL.createObjectURL(output);
+            const link = document.createElement("a");
+            const ext =
+              {
+                "export.project": "mare",
+                "export.subtitles": "srt",
+                "preview.frame": "png",
+                "narration.generate": "mp3",
+              }[current.commands[0].id] ?? "mp4";
+            link.href = objectURL;
+            link.textContent = "Baixar resultado";
+            link.download = "Projeto." + ext;
+            link.className = "btn";
+            detail.append(link);
+            if (ext === "png") {
+              frame.src = objectURL;
+              frame.hidden = false;
+            }
+            if (current.commands[0].id === "narration.generate") {
+              const ref = await session.attach(output, "audio");
+              report.textContent += " · referência para inserir a narração: " + ref;
+            }
+          } else if (output?.base) {
+            for (const [file, label] of [
+              ["final.mp4", "Baixar MP4"],
+              ["projects.zip", "Baixar pacote editável"],
+              ["preview.png", "Ver quadro"],
+            ]) {
+              const link = document.createElement("a");
+              link.href = output.base + file;
+              link.textContent = label;
+              detail.append(link);
+            }
+          } else {
+            const out = document.createElement("pre");
+            out.textContent = JSON.stringify(output, null, 2);
+            detail.append(out);
+          }
+          break;
+        }
+        report.textContent = status.message || "Processando · " + Math.round(status.progress * 100) + "%";
+        await new Promise(done => setTimeout(done, 150));
+      }
+    } catch (e) {
+      if (generation === run) {
+        clear();
+        report.textContent = e.message;
+      }
+    }
+  };
+  dialog.addEventListener(
+    "close",
+    () => {
+      controller.abort();
+      clear();
+    },
+    { once: true }
+  );
+  prompt.value = initialRequest;
+  prompt.focus();
+  if (initialRequest) prepare(false);
+}
