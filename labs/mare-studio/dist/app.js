@@ -2118,18 +2118,30 @@ document.addEventListener("keydown", e => {
       e.target.closest("input,textarea,select,[contenteditable]")) return;
   if (compositionUI.removeSelectedLayer()) e.preventDefault();
 }, true);
+// A pointer edit can leave focus on a button, including one focused by a redraw.
+// Tab returns Space to the focused control for keyboard navigation.
+let pointerEditing = false;
+document.addEventListener("pointerdown", () => { pointerEditing = true; }, true);
 document.addEventListener("keydown", e => {
+  if (e.key === "Tab") pointerEditing = false;
   if (
     busy ||
     $("#studio-editor").hidden ||
     $("#dialog").open ||
-    e.target.closest("input,textarea,select,button,[contenteditable]")
+    e.target.closest("input,textarea,select,[contenteditable]")
   )
     return;
-  if (e.code === "Space") {
+  if (e.code === "Space" || e.key === " ") {
+    const playButton = $("#play");
+    if (e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey ||
+        !$("#project-pop").hidden || playButton.disabled ||
+        e.target.closest("a[href],summary,video[controls],audio[controls]") ||
+        (!pointerEditing && e.target.closest("button") && !playButton.contains(e.target))) return;
     e.preventDefault();
-    safe(play)();
+    if (!e.repeat) playButton.click();
+    return;
   }
+  if (e.target.closest("button")) return;
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
     e.preventDefault();
     safe(save)();
