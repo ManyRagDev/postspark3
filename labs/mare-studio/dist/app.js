@@ -280,6 +280,13 @@ function seek(t) {
   timeUI();
   redraw();
 }
+function stepFrame(direction) {
+  // The end marker is exclusive, even when the last frame is shorter than 1/FPS.
+  const frame = time >= currentDuration()
+    ? Math.ceil(currentDuration() * FPS - 1e-8)
+    : Math.floor(time * FPS + 1e-8);
+  seek((frame + direction) / FPS);
+}
 function redraw() {
   engine.seek(liveScope(), time).catch(problem);
 }
@@ -2127,10 +2134,19 @@ document.addEventListener("keydown", e => {
   if (
     busy ||
     $("#studio-editor").hidden ||
-    $("#dialog").open ||
-    e.target.closest("input,textarea,select,[contenteditable]")
+    $("#dialog").open
   )
     return;
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    if (e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey ||
+        !$("#project-pop").hidden || $("#play").disabled ||
+        e.target.closest('input:not(#scene-cursor):not([data-cp-time]),textarea,select,[contenteditable],video[controls],audio[controls]'))
+      return;
+    e.preventDefault();
+    stepFrame(e.key === "ArrowRight" ? 1 : -1);
+    return;
+  }
+  if (e.target.closest("input,textarea,select,[contenteditable]")) return;
   if (e.code === "Space" || e.key === " ") {
     const playButton = $("#play");
     if (e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey ||

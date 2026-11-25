@@ -528,10 +528,10 @@ export function mountTimeline(
     }
   }
   ruler.addEventListener("keydown", e => {
-    const step = e.shiftKey ? 1 : 1 / 30;
+    // Plain arrows use the editor's frame step in both environments.
     const target = {
-      ArrowLeft: time - step,
-      ArrowRight: time + step,
+      ArrowLeft: e.shiftKey ? time - 1 : undefined,
+      ArrowRight: e.shiftKey ? time + 1 : undefined,
       Home: 0,
       End: duration,
     }[e.key];

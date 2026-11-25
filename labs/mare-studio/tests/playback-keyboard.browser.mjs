@@ -21,7 +21,32 @@ async function checkPlayback(page) {
   assert.notEqual(await clock.textContent(), before);
 }
 
-test("Espaço controla a prévia ao editar e preserva digitação e navegação por Tab", async t => {
+async function checkFrameSteps(page, ruler) {
+  const time = () => page.evaluate(async () => (await import("./app.js")).projectEditor.inspect().context.time);
+  await page.locator("#back").click();
+  await page.keyboard.press("ArrowLeft");
+  assert.equal(await time(), 0);
+  await page.keyboard.press("ArrowRight");
+  assert.equal(await time(), 1 / 30);
+  await ruler.focus();
+  await page.keyboard.press("ArrowRight");
+  assert.equal(await time(), 2 / 30);
+  await page.keyboard.press("ArrowLeft");
+  assert.equal(await time(), 1 / 30);
+  await page.locator("#end").click();
+  const end = await time();
+  await page.keyboard.press("ArrowRight");
+  assert.equal(await time(), end);
+  await page.keyboard.press("ArrowLeft");
+  assert.equal(await time(), (Math.ceil(end * 30 - 1e-8) - 1) / 30);
+  await page.locator("#back").click();
+  await page.keyboard.press("Space");
+  await page.getByRole("button", {name: "Pausar", exact: true}).waitFor();
+  await page.keyboard.press("ArrowRight");
+  assert.equal(await page.locator("#play").getAttribute("aria-label"), "Reproduzir");
+}
+
+test("Espaço e setas controlam a prévia ao editar e preservam digitação e navegação por Tab", async t => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_EXECUTABLE_PATH});
   t.after(() => browser.close());
   const origin = process.env.MARE_PRIVATE_ORIGIN;
@@ -36,6 +61,7 @@ test("Espaço controla a prévia ao editar e preserva digitação e navegação 
   assert.equal(await montage.locator("#project-menu").evaluate(b => b === document.activeElement), true);
   await checkPlayback(montage);
   assert.equal(await montage.locator("#project-pop").isHidden(), true);
+  await checkFrameSteps(montage, montage.getByRole("slider", {name: "Posição na montagem"}));
 
   await montage.locator("#open-start").focus();
   await montage.keyboard.press("Tab");
@@ -60,7 +86,12 @@ test("Espaço controla a prévia ao editar e preserva digitação e navegação 
   await text.press("End");
   await text.press("Space");
   assert.equal(await text.inputValue(), "Nova ");
+  const at = await animation.locator("#current").textContent();
+  await text.press("ArrowLeft");
+  assert.equal(await text.evaluate(field => field.selectionStart), 4);
+  assert.equal(await animation.locator("#current").textContent(), at);
   assert.equal(await animation.locator("#play").getAttribute("aria-label"), "Reproduzir");
   await animation.locator("#back").click();
   await checkPlayback(animation);
+  await checkFrameSteps(animation, animation.getByRole("slider", {name: "Tempo da composição"}));
 });
